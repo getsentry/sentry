@@ -588,7 +588,7 @@ def register_temporary_features(manager: FeatureManager):
 
     # Ecosystem: Enable verbose alert reporting when triggering test alerts
     manager.add("projects:verbose-test-alert-reporting", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE,
-                api_expose=False)
+                default=True, api_expose=False)
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
 

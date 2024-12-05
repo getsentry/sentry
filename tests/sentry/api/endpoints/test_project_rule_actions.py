@@ -7,7 +7,6 @@ from sentry.rules.actions.notify_event import NotifyEventAction
 from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
@@ -35,11 +34,6 @@ class ProjectRuleActionsEndpointTest(APITestCase):
 
     @mock.patch.object(JiraIntegration, "create_issue")
     @mock.patch.object(sentry_sdk, "capture_exception")
-    @with_feature(
-        {
-            "projects:verbose-test-alert-reporting": True,
-        }
-    )
     def test_sample_event_raises_exceptions(self, mock_sdk_capture, mock_create_issue):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.jira_integration = self.create_provider_integration(
@@ -73,38 +67,6 @@ class ProjectRuleActionsEndpointTest(APITestCase):
         actions = response.data.get("actions")
         assert actions is not None
         assert actions == ["An unexpected error occurred. Error ID: 'abc-1234'"]
-
-    @mock.patch.object(JiraIntegration, "create_issue")
-    def test_success_response_when_client_raises(self, mock_create_issue):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.jira_integration = self.create_provider_integration(
-                provider="jira", name="Jira", external_id="jira:1"
-            )
-            self.jira_integration.add_organization(self.organization, self.user)
-
-        mock_create_issue.side_effect = IntegrationFormError({"broken": "something went wrong"})
-        action_data = [
-            {
-                "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                "dynamic_form_fields": {
-                    "fake_field": "fake_value",
-                },
-            }
-        ]
-
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, actions=action_data
-        )
-        assert mock_create_issue.call_count == 1
-        assert response.data is None
-
-        # With error propagation option enabled
-        with self.options({"ecosystem:enable_integration_form_error_raise": True}):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, actions=action_data
-            )
-            assert mock_create_issue.call_count == 2
-            assert response.data is None
 
     def test_no_events(self):
         response = self.get_response(self.organization.slug, self.project.slug)
