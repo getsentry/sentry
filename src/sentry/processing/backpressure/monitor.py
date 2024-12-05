@@ -85,7 +85,7 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
         reasons = []
 
         logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
-        host, port = None
+        host, port = None, None
         try:
             for memory, host, port in check_service_memory(service):
                 if memory.percentage >= high_watermark:

@@ -51,7 +51,7 @@ def get_memory_usage(node_id: str, info: Mapping[str, Any]) -> ServiceMemory:
     return ServiceMemory(node_id, memory_used, memory_available)
 
 
-def get_host_port_info(node_id: str, info: Mapping[str, Any], cluster: Cluster) -> tuple[str, int]:
+def get_host_port_info(node_id: str, cluster: Cluster) -> tuple[str, int]:
     """
     Extract the host and port of the given node in the cluster.
     """
