@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {t} from 'sentry/locale';
@@ -26,3 +27,13 @@ export const ProfilingAM1OrMMXUpgrade = HookOrDefault({
     </Fragment>
   ),
 });
+
+export function ContinuousProfilingBetaBanner() {
+  return (
+    <Alert type="warning" showIcon>
+      {t(
+        'Continuous Profiling Beta is ending! We will begin to bill you for profiling usage after <date>.'
+      )}
+    </Alert>
+  );
+}
