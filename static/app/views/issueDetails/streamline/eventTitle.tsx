@@ -46,13 +46,14 @@ type EventNavigationProps = {
 const sectionLabels = {
   [SectionKey.HIGHLIGHTS]: t('Highlights'),
   [SectionKey.STACKTRACE]: t('Stack Trace'),
-  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.EXCEPTION]: t('Stack Trace'),
+  [SectionKey.THREADS]: t('Stack Trace'),
+  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.BREADCRUMBS]: t('Breadcrumbs'),
+  [SectionKey.TRACE]: t('Trace'),
   [SectionKey.TAGS]: t('Tags'),
   [SectionKey.CONTEXTS]: t('Context'),
   [SectionKey.USER_FEEDBACK]: t('User Feedback'),
-  [SectionKey.REPLAY]: t('Replay'),
   [SectionKey.FEATURE_FLAGS]: t('Flags'),
 };
 

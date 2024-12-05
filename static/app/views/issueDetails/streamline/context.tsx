@@ -25,6 +25,7 @@ export const enum SectionKey {
 
   EXCEPTION = 'exception',
   STACKTRACE = 'stacktrace',
+  THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
