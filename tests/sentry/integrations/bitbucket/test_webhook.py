@@ -9,11 +9,8 @@ from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_success_metric,
-)
 
 BAD_IP = "109.111.111.10"
 BITBUCKET_IP_IN_RANGE = "104.192.143.10"

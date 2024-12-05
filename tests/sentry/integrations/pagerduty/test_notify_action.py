@@ -9,12 +9,12 @@ from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifySe
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.integrations.utils.test_assert_metrics import assert_halt_metric
 
 pytestmark = [requires_snuba]
 

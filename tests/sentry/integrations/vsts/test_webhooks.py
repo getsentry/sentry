@@ -18,14 +18,11 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.identity import Identity
 from sentry.utils.http import absolute_uri
-from tests.sentry.integrations.utils.test_assert_metrics import (
-    assert_failure_metric,
-    assert_success_metric,
-)
 
 
 class VstsWebhookWorkItemTest(APITestCase):
