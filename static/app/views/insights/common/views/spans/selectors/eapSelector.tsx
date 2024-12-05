@@ -18,7 +18,7 @@ export function EapSelector() {
   const location = useLocation();
   const {features} = useOrganization();
   const {useEap, useRpc} = useEapOptions();
-  const hasEAPFeature = features.includes('insights-use-eap');
+  const hasEAPFeature = features.includes('insights-use-eap-wip');
 
   type Options = SelectProps<EapOption>['options'];
 
@@ -68,7 +68,7 @@ export function EapSelector() {
 export function useEapOptions(): {useEap: boolean; useRpc: boolean} {
   const location = useLocation();
   const {features} = useOrganization();
-  const hasEAPFeature = features.includes('insights-use-eap');
+  const hasEAPFeature = features.includes('insights-use-eap-wip');
 
   if (!hasEAPFeature) {
     return {useEap: false, useRpc: false};
