@@ -96,12 +96,11 @@ function DashboardCard({
                 color={favorited ? 'yellow300' : 'gray300'}
                 size="sm"
                 aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-                data-test-id={favorited ? 'yellow-star' : 'empty-star'}
               />
             }
             size="zero"
             borderless
-            aria-label={'dashboards-favorite'}
+            aria-label={t('dashboards-favorite')}
             onClick={async () => {
               try {
                 setFavorited(!favorited);
