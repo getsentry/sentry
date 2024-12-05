@@ -332,9 +332,6 @@ def handle_resolve_in_release(
     user: User | RpcUser,
     result: MutableMapping[str, Any],
 ) -> tuple[dict[str, Any], GroupResolution.Type | None] | Response:
-    res_type = None
-    release = None
-    commit = None
     self_assign_issue = "0"
     if acting_user:
         user_options = user_option_service.get_many(
@@ -342,118 +339,31 @@ def handle_resolve_in_release(
         )
         if user_options:
             self_assign_issue = user_options[0].value
-    res_status = None
-    if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
+
+    if (
+        status == "resolvedInNextRelease"
+        or status_details.get("inNextRelease")
+        or status_details.get("inUpcomingRelease")
+        or status_details.get("inRelease")
+    ):
         # TODO(jess): We may want to support this for multi project, but punting on it for now
         if len(projects) > 1:
             return Response(
-                {"detail": "Cannot set resolved in next release for multiple projects."},
-                status=400,
+                {"detail": "Cannot set resolve in release for multiple projects."}, status=400
             )
-        # may not be a release yet
-        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
-
-        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {
-            # no version yet
-            "version": ""
-        }
-
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inNextRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
-        res_type = GroupResolution.Type.in_next_release
-        res_type_str = "in_next_release"
-        res_status = GroupResolution.Status.pending
-    elif status_details.get("inUpcomingRelease"):
-        if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in upcoming release for multiple projects."},
-                status=400,
-            )
-        release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
-        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {"version": ""}
-
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inUpcomingRelease": True,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
-        res_type = GroupResolution.Type.in_upcoming_release
-        res_type_str = "in_upcoming_release"
-        res_status = GroupResolution.Status.pending
-    elif status_details.get("inRelease"):
-        # TODO(jess): We could update validation to check if release
-        # applies to multiple projects, but I think we agreed to punt
-        # on this for now
-        if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in release for multiple projects."}, status=400
-            )
-        release = status_details["inRelease"]
-        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-        activity_data = {
-            # no version yet
-            "version": release.version
-        }
-
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-        new_status_details = {
-            "inRelease": release.version,
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
-        res_type = GroupResolution.Type.in_release
-        res_type_str = "in_release"
-        res_status = GroupResolution.Status.resolved
-    elif status_details.get("inCommit"):
-        # TODO(jess): Same here, this is probably something we could do, but
-        # punting for now.
-        if len(projects) > 1:
-            return Response(
-                {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
-            )
-        commit = status_details["inCommit"]
-        activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
-        activity_data = {"commit": commit.id}
-        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
-
-        new_status_details = {
-            "inCommit": serialize(commit, user),
-        }
-        if serialized_user:
-            new_status_details["actor"] = serialized_user[0]
-        res_type_str = "in_commit"
-    else:
-        res_type_str = "now"
-        activity_type = ActivityType.SET_RESOLVED.value
-        activity_data = {}
-        new_status_details = {}
+    (
+        activity_type,
+        activity_data,
+        new_status_details,
+        res_type,
+        res_type_str,
+        res_status,
+        commit,
+        release,
+    ) = resolve_in_release_helper(status, status_details, projects, user)
 
     metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
 
-    # if we've specified a commit, let's see if its already been released
-    # this will allow us to associate the resolution to a release as if we
-    # were simply using 'inRelease' above
-    # Note: this is different than the way commit resolution works on deploy
-    # creation, as a given deploy is connected to an explicit release, and
-    # in this case we're simply choosing the most recent release which contains
-    # the commit.
-    if commit and not release:
-        # TODO(jess): If we support multiple projects for release / commit resolution,
-        # we need to update this to find the release for each project (we shouldn't assume
-        # it's the same)
-        try:
-            release = most_recent_release_matching_commit(projects, commit)
-            res_type = GroupResolution.Type.in_release
-            res_status = GroupResolution.Status.resolved
-        except IndexError:
-            release = None
     for group in group_list:
         with transaction.atomic(router.db_for_write(Group)):
             process_group_resolution(
@@ -472,7 +382,7 @@ def handle_resolve_in_release(
             )
 
         issue_resolved.send_robust(
-            organization_id=projects[0].organization_id,
+            organization_id=group.project.organization_id,
             user=(acting_user or user),
             group=group,
             project=project_lookup[group.project_id],
@@ -650,6 +560,122 @@ def process_group_resolution(
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
             transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
+
+
+def resolve_in_release_helper(
+    status: str,
+    status_details: Mapping[str, Any],
+    projects: Sequence[Project],
+    user: User,
+) -> tuple[
+    int,
+    dict[str, Any],
+    dict[str, Any],
+    GroupResolution.Type,
+    str,
+    GroupResolution.Status,
+    Commit | None,
+    Release | None,
+]:
+    commit = None
+    release = None
+
+    if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
+        # may not be a release yet
+        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {
+            # no version yet
+            "version": ""
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inNextRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_next_release
+        res_type_str = "in_next_release"
+        res_status = GroupResolution.Status.pending
+    elif status_details.get("inUpcomingRelease"):
+        release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {"version": ""}
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inUpcomingRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_upcoming_release
+        res_type_str = "in_upcoming_release"
+        res_status = GroupResolution.Status.pending
+    elif status_details.get("inRelease"):
+        release = status_details["inRelease"]
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {
+            # no version yet
+            "version": release.version
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inRelease": release.version,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_release
+        res_type_str = "in_release"
+        res_status = GroupResolution.Status.resolved
+    elif status_details.get("inCommit"):
+        commit = status_details["inCommit"]
+        activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
+        activity_data = {"commit": commit.id}
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+
+        new_status_details = {
+            "inCommit": serialize(commit, user),
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type_str = "in_commit"
+    else:
+        res_type_str = "now"
+        activity_type = ActivityType.SET_RESOLVED.value
+        activity_data = {}
+        new_status_details = {}
+
+    # if we've specified a commit, let's see if its already been released
+    # this will allow us to associate the resolution to a release as if we
+    # were simply using 'inRelease' above
+    # Note: this is different than the way commit resolution works on deploy
+    # creation, as a given deploy is connected to an explicit release, and
+    # in this case we're simply choosing the most recent release which contains
+    # the commit.
+    if commit and not release:
+        # TODO(jess): If we support multiple projects for release / commit resolution,
+        # we need to update this to find the release for each project (we shouldn't assume
+        # it's the same)
+        try:
+            release = most_recent_release_matching_commit(projects, commit)
+            res_type = GroupResolution.Type.in_release
+            res_status = GroupResolution.Status.resolved
+        except IndexError:
+            release = None
+
+    return (
+        activity_type,
+        activity_data,
+        new_status_details,
+        res_type,
+        res_type_str,
+        res_status,
+        commit,
+        release,
+    )
 
 
 def merge_groups(
