@@ -163,6 +163,13 @@ describe('StreamlinedActivitySection', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(await screen.findByText('Group Test')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
     await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
     await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
