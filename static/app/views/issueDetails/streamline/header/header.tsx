@@ -5,7 +5,8 @@ import Color from 'color';
 import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
 import Count from 'sentry/components/count';
 import ErrorLevel from 'sentry/components/events/errorLevel';
@@ -14,7 +15,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGlobe} from 'sentry/icons';
+import {IconGlobe, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -124,7 +125,22 @@ export default function StreamlinedGroupHeader({
               />
             ) : null}
           </Flex>
-          <NewIssueExperienceButton />
+          <ButtonBar gap={0.5}>
+            <LinkButton
+              size="xs"
+              external
+              title={t('Learn more about the new UI')}
+              aria-label={t('Learn more about the new UI')}
+              href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
+              icon={<IconQuestion />}
+              onClick={() => {
+                trackAnalytics('issue_details.streamline_ui_learn_more', {
+                  organization,
+                });
+              }}
+            />
+            <NewIssueExperienceButton />
+          </ButtonBar>
         </Flex>
         <HeaderGrid>
           <Flex gap={space(0.75)} align="baseline">
