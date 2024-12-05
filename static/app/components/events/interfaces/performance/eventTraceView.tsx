@@ -133,9 +133,7 @@ function IssuesTraceOverlay({event}: {event: Event}) {
         icon={<IconOpen />}
         aria-label={t('Open Trace')}
         to={traceTarget}
-      >
-        {t('View Full Trace')}
-      </LinkButton>
+      />
     </IssuesTraceOverlayContainer>
   );
 }
@@ -178,7 +176,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
 
   return (
     <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
-      <TraceDataSection event={event} group={group} />
+      <TraceDataSection event={event} />
       {hasTracePreviewFeature && (
         <EventTraceViewInner
           event={event}
