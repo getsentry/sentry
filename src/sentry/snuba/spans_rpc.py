@@ -219,15 +219,15 @@ def run_timeseries_query(
             ["time"],
         )
 
-    if comparison_delta:
+    if comparison_delta is not None:
         if len(rpc_request.aggregations) != 1:
             raise InvalidSearchQuery("Only one column can be selected for comparison queries")
 
         comp_query_params = params.copy()
         assert comp_query_params.start is not None, "start is required"
         assert comp_query_params.end is not None, "end is required"
-        comp_query_params.start -= comparison_delta
-        comp_query_params.end -= comparison_delta
+        comp_query_params.start = comp_query_params.start_date - comparison_delta
+        comp_query_params.end = comp_query_params.end_date - comparison_delta
 
         comp_rpc_request = get_timeseries_query(
             comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
@@ -239,8 +239,7 @@ def run_timeseries_query(
             processed, _ = _process_timeseries(timeseries, params, granularity_secs)
             label = get_function_alias(timeseries.label)
             for existing, new in zip(result, processed):
-                compared_value = new[label]
-                existing["comparisonCount"] = compared_value
+                existing["comparisonCount"] = new[label]
         else:
             for existing in result:
                 existing["comparisonCount"] = 0
