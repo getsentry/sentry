@@ -336,6 +336,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=False,
                     ),
+                    comparison_delta=comparison_delta,
                 )
 
             transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
