@@ -365,6 +365,8 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
             response = self.get_success_response(self.organization.slug)
             assert response.data["isDynamicallySampled"]
+            assert "planSampleRate" not in response.data
+            assert "desiredSampleRate" not in response.data
 
     def test_dynamic_sampling_custom_target_sample_rate(self):
         with self.feature({"organizations:dynamic-sampling-custom": True}):
