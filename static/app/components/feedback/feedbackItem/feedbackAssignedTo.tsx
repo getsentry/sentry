@@ -72,7 +72,7 @@ export default function FeedbackAssignedTo({
       }}
       owners={owners}
       group={feedbackIssue}
-      alignMenu="left"
+      alignMenu="right"
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>
