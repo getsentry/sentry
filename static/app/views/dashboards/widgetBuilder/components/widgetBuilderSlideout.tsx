@@ -5,23 +5,35 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useParams} from 'sentry/utils/useParams';
+import type {Widget} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
   onClose: () => void;
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
-function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
+function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutProps) {
+  const {widgetIndex} = useParams();
+  const isEditing = widgetIndex !== undefined;
+  const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
+
   return (
-    <SlideOverPanel collapsed={!isOpen} slidePosition="left">
+    <SlideOverPanel
+      collapsed={!isOpen}
+      slidePosition="left"
+      data-test-id="widget-slideout"
+    >
       <SlideoutHeaderWrapper>
-        <SlideoutTitle>{t('Create Custom Widget')}</SlideoutTitle>
+        <SlideoutTitle>{title}</SlideoutTitle>
         <CloseButton
           priority="link"
           size="zero"
@@ -49,6 +61,7 @@ function WidgetBuilderSlideout({isOpen, onClose}: WidgetBuilderSlideoutProps) {
         <Section>
           <WidgetBuilderNameAndDescription />
         </Section>
+        <SaveButton isEditing={isEditing} onSave={onSave} />
         <DevBuilder />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
