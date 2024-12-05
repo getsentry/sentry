@@ -217,7 +217,7 @@ export function GroupTagValues() {
               >
                 {key === 'user' ? (
                   <UserBadge
-                    user={{...tagValue, id: tagValue.id ?? ''}}
+                    user={{...tagValue, id: tagValue.id ?? tagValue.value}}
                     avatarSize={20}
                     hideEmail
                   />
