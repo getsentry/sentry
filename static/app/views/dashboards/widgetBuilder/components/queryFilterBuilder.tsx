@@ -20,73 +20,11 @@ function WidgetBuilderQueryFilterBuilder() {
     state.displayType !== DisplayType.BIG_NUMBER;
 
   const onAddSearchConditions = () => {
+    // TODO: after hook gets updated with different dispatch types, change this part
     dispatch({
       type: BuilderStateAction.SET_QUERY,
       payload: state.query?.length ? [...state.query, ''] : ['', ''],
     });
-  };
-
-  const renderQueryFields = () => {
-    return (
-      <div>
-        {!state.query?.length ? (
-          <QueryFieldRowWrapper key={0}>
-            <QueryField
-              query={''}
-              onSearch={queryString => {
-                dispatch({
-                  type: BuilderStateAction.SET_QUERY,
-                  payload: [queryString],
-                });
-              }}
-            />
-            {canAddSearchConditions && (
-              // TODO: Hook up alias to query hook when it's implemented
-              <LegendAliasInput
-                type="text"
-                name="name"
-                placeholder={t('Legend Alias')}
-                onChange={() => {}}
-              />
-            )}
-          </QueryFieldRowWrapper>
-        ) : (
-          state.query?.map((query, index) => (
-            <QueryFieldRowWrapper key={index}>
-              <QueryField
-                query={query}
-                onSearch={queryString => {
-                  dispatch({
-                    type: BuilderStateAction.SET_QUERY,
-                    payload:
-                      state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
-                  });
-                }}
-              />
-              {canAddSearchConditions && (
-                // TODO: Hook up alias to query hook when it's implemented
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  placeholder={t('Legend Alias')}
-                  onChange={() => {}}
-                />
-              )}
-              {state.query && state.query?.length > 1 && canAddSearchConditions && (
-                <DeleteButton
-                  onDelete={() =>
-                    dispatch({
-                      type: BuilderStateAction.SET_QUERY,
-                      payload: state.query?.filter((_, i) => i !== index) ?? [],
-                    })
-                  }
-                />
-              )}
-            </QueryFieldRowWrapper>
-          ))
-        )}
-      </div>
-    );
   };
 
   return (
@@ -109,7 +47,62 @@ function WidgetBuilderQueryFilterBuilder() {
         </Tooltip>
         <OptionalHeader>{t('(optional)')}</OptionalHeader>
       </HeaderWrapper>
-      {renderQueryFields()}
+      {!state.query?.length ? (
+        <QueryFieldRowWrapper key={0}>
+          <QueryField
+            query={''}
+            onSearch={queryString => {
+              dispatch({
+                type: BuilderStateAction.SET_QUERY,
+                payload: [queryString],
+              });
+            }}
+          />
+          {canAddSearchConditions && (
+            // TODO: Hook up alias to query hook when it's implemented
+            <LegendAliasInput
+              type="text"
+              name="name"
+              placeholder={t('Legend Alias')}
+              onChange={() => {}}
+            />
+          )}
+        </QueryFieldRowWrapper>
+      ) : (
+        state.query?.map((query, index) => (
+          <QueryFieldRowWrapper key={index}>
+            <QueryField
+              query={query}
+              onSearch={queryString => {
+                dispatch({
+                  type: BuilderStateAction.SET_QUERY,
+                  payload:
+                    state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
+                });
+              }}
+            />
+            {canAddSearchConditions && (
+              // TODO: Hook up alias to query hook when it's implemented
+              <LegendAliasInput
+                type="text"
+                name="name"
+                placeholder={t('Legend Alias')}
+                onChange={() => {}}
+              />
+            )}
+            {state.query && state.query?.length > 1 && canAddSearchConditions && (
+              <DeleteButton
+                onDelete={() =>
+                  dispatch({
+                    type: BuilderStateAction.SET_QUERY,
+                    payload: state.query?.filter((_, i) => i !== index) ?? [],
+                  })
+                }
+              />
+            )}
+          </QueryFieldRowWrapper>
+        ))
+      )}
       {canAddSearchConditions && (
         <Button size="sm" icon={<IconAdd isCircled />} onClick={onAddSearchConditions}>
           {t('Add Filter')}
@@ -130,7 +123,7 @@ function QueryField({
 }) {
   return (
     <SearchQueryBuilder
-      placeholder={'Search'}
+      placeholder={t('Search')}
       filterKeys={{}}
       initialQuery={query ?? ''}
       onSearch={onSearch}
