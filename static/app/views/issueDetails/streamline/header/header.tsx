@@ -133,11 +133,8 @@ export default function StreamlinedGroupHeader({
               aria-label={t('Learn more about the new UI')}
               href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
               icon={<IconQuestion />}
-              onClick={() => {
-                trackAnalytics('issue_details.streamline_ui_learn_more', {
-                  organization,
-                });
-              }}
+              analyticsEventKey="issue_details.streamline_ui_learn_more"
+              analyticsEventName="Issue Details: Streamline UI Learn More"
             />
             <NewIssueExperienceButton />
           </ButtonBar>
