@@ -53,7 +53,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             else None
         )
         skip_project_ids = (
-            request.data["skip_project_ids"].split(",")
+            [int(i) for i in request.data["skip_project_ids"].split(",")]
             if request.data.get("skip_project_ids")
             else None
         )
