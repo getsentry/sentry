@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.exceptions import SentryAppError
+from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -73,7 +73,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBas
                 uri=uri,
                 user=user,
             ).run()
-        except SentryAppError as e:
+        except (SentryAppError, SentryAppIntegratorError) as e:
             return Response({"error": str(e)}, status=400)
         except Exception as e:
             error_id = capture_exception(e)
