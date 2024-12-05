@@ -444,8 +444,8 @@ const ChartLabel = styled('div')`
 
 const ChartFooter = styled('div')`
   color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSizeSmall};
   display: inline-block;
-  margin-top: ${space(1)};
+  margin-top: ${space(1.5)};
   margin-bottom: 0;
 `;
