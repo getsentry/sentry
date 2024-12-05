@@ -28,11 +28,12 @@ class SDKCrashDetector:
         sdk_name: str,
         sdk_version: str,
     ) -> bool:
-        if sdk_name not in self.config.sdk_names:
+        minimum_sdk_version_string = self.config.sdk_names.get(sdk_name)
+        if not minimum_sdk_version_string:
             return False
 
         try:
-            minimum_sdk_version = Version(self.config.min_sdk_version)
+            minimum_sdk_version = Version(minimum_sdk_version_string)
             actual_sdk_version = Version(sdk_version)
 
             if actual_sdk_version < minimum_sdk_version:
