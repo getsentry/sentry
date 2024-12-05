@@ -57,6 +57,8 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_source import process_data_sources
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -327,6 +329,14 @@ class SubscriptionProcessor:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
+        if features.has(
+            "organizations:workflow-engine-m3-dual-write", self.subscription.project.organization
+        ):
+            data_packet = DataPacket(
+                query_id=self.subscription.snuba_query.id, packet=subscription_update
+            )
+            process_data_sources([data_packet], query_type=self.subscription.type)
+            return
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
