@@ -143,7 +143,7 @@ function StreamlinedNoteInput({
   return (
     <NoteInputForm data-test-id="note-input-form" noValidate onSubmit={handleSubmit}>
       <MentionsInput
-        aria-label={t('Add a comment')}
+        aria-label={existingItem ? t('Edit comment') : t('Add a comment')}
         aria-errormessage={errorMessage ? errorId : undefined}
         style={{
           ...mentionStyle({theme, minHeight: 14, streamlined: true}),
