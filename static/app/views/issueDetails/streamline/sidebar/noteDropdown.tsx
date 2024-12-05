@@ -7,10 +7,16 @@ import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   onDelete: () => void;
+  onEdit: () => void;
   user?: User | null;
 };
 
-function NoteDropdown({user, onDelete, ...props}: Props & Partial<DropdownMenuProps>) {
+function NoteDropdown({
+  user,
+  onDelete,
+  onEdit,
+  ...props
+}: Props & Partial<DropdownMenuProps>) {
   const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
@@ -30,6 +36,14 @@ function NoteDropdown({user, onDelete, ...props}: Props & Partial<DropdownMenuPr
         'aria-label': t('Comment Actions'),
       }}
       items={[
+        {
+          key: 'edit',
+          label: t('Edit'),
+          onAction: onEdit,
+          tooltip: activeUser.isSuperuser
+            ? t('You can edit this comment due to your superuser status')
+            : undefined,
+        },
         {
           key: 'delete',
           label: t('Remove'),
