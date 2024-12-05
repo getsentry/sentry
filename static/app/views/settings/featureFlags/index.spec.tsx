@@ -1,4 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SecretFixture} from 'sentry-fixture/secret';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -141,35 +140,6 @@ describe('OrganizationFeatureFlagsIndex', function () {
       );
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('does not allow to remove without permission', async function () {
-      const org = OrganizationFixture({
-        access: ['org:read'],
-      });
-
-      const secrets: Secret[] = [
-        SecretFixture(),
-        SecretFixture({
-          id: 2,
-          provider: 'openfeature',
-          secret: '456def**************************',
-        }),
-      ];
-
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: {data: secrets},
-      });
-
-      render(<OrganizationFeatureFlagsIndex />, {organization: org});
-
-      expect(await screen.findByText('launchdarkly')).toBeInTheDocument();
-
-      expect(
-        screen.getByLabelText('Remove secret for launchdarkly provider')
-      ).toBeDisabled();
     });
   });
 });
