@@ -192,7 +192,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         p1.update_option("sentry:target_sample_rate", 0.2)
 
-        # bulk task
+        # make sure that no rebalancing is actually run
         with patch(
             "sentry.dynamic_sampling.models.projects_rebalancing.ProjectsRebalancingModel._run"
         ) as mock_run:
