@@ -583,7 +583,7 @@ const PulsingIndicator = styled('div')<{hasQuickStartUpdatesFeature?: boolean}>`
   ${p =>
     p.hasQuickStartUpdatesFeature
       ? css`
-          margin: 0 ${space(0.5)};
+          margin: 0;
         `
       : css`
           margin-right: ${space(1)};
