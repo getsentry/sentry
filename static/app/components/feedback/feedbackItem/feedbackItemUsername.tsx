@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {selectText} from 'sentry/utils/selectText';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   feedbackIssue: FeedbackIssue;
@@ -22,6 +23,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
   const name = feedbackIssue.metadata.name;
   const email = feedbackIssue.metadata.contact_email;
 
+  const organization = useOrganization();
   const nameOrEmail = name || email;
   const isSameNameAndEmail = name === email;
 
@@ -52,6 +54,13 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     return <strong>{t('Anonymous User')}</strong>;
   }
 
+  const mailToHref = `mailto:${email}?subject=${encodeURIComponent(`Following up from ${organization.name}`)}&body=${encodeURIComponent(
+    feedbackIssue.metadata.message
+      .split('\n')
+      .map(s => `> ${s}`)
+      .join('\n')
+  )}`;
+
   return (
     <Flex align="center" gap={space(1)} className={className} style={style}>
       <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
@@ -79,7 +88,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
       {email ? (
         <Tooltip title={t(`Email %s`, user)} containerDisplayMode="flex">
           <LinkButton
-            href={`mailto:${email}`}
+            href={mailToHref}
             external
             icon={<IconMail color="gray300" />}
             aria-label={t(`Email %s`, user)}
