@@ -37,6 +37,14 @@ function NoteDropdown({
       }}
       items={[
         {
+          key: 'edit',
+          label: t('Edit'),
+          onAction: onEdit,
+          tooltip: activeUser.isSuperuser
+            ? t('You can edit this comment due to your superuser status')
+            : undefined,
+        },
+        {
           key: 'delete',
           label: t('Remove'),
           priority: 'danger',
@@ -50,14 +58,6 @@ function NoteDropdown({
             }),
           tooltip: activeUser.isSuperuser
             ? t('You can delete this comment due to your superuser status')
-            : undefined,
-        },
-        {
-          key: 'edit',
-          label: t('Edit'),
-          onAction: onEdit,
-          tooltip: activeUser.isSuperuser
-            ? t('You can edit this comment due to your superuser status')
             : undefined,
         },
       ]}

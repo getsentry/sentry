@@ -172,15 +172,15 @@ function StreamlinedNoteInput({
           appendSpaceOnAdd
         />
       </MentionsInput>
-      {isSubmitVisible && (
+      {(isSubmitVisible || existingItem) && (
         <Button
           priority="primary"
           size="xs"
           disabled={!canSubmit}
-          aria-label={t('Submit comment')}
+          aria-label={existingItem ? t('Save comment') : t('Submit comment')}
           type="submit"
         >
-          {t('Comment')}
+          {existingItem ? t('Save') : t('Comment')}
         </Button>
       )}
     </NoteInputForm>

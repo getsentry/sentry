@@ -164,7 +164,7 @@ describe('StreamlinedActivitySection', function () {
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
-    await userEvent.click(screen.getByRole('button', {name: 'Submit comment'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
 
     expect(editMock).toHaveBeenCalledTimes(1);
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
