@@ -154,14 +154,17 @@ def send_incident_alert_notification(
                 "url": e.response.api_url,
             }
 
-            log_params = {
+            log_params: dict[str, str | int] = {
                 "error": str(e),
                 "incident_id": incident.id,
-                "incident_status": new_status,
+                "incident_status": str(new_status),
                 "attachments": attachments,
-                "channel_id": channel,
-                "channel_name": action.target_display,
             }
+            if channel:
+                log_params["channel_id"] = channel
+            if action.target_display:
+                log_params["channel_name"] = action.target_display
+
             # TODO(iamrajjoshi): Remove this after we validate lifecycle
             _logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
 
@@ -174,8 +177,16 @@ def send_incident_alert_notification(
             lifecycle.add_extras(log_params)
             # If the error is a channel not found or archived, we can halt the flow
             # This means that the channel was deleted or archived after the alert rule was created
-            if unpack_slack_api_error(e) in (CHANNEL_NOT_FOUND, CHANNEL_ARCHIVED):
-                lifecycle.record_halt(e)
+            if (
+                (reason := unpack_slack_api_error(e))
+                and reason is not None
+                and reason
+                in (
+                    CHANNEL_NOT_FOUND,
+                    CHANNEL_ARCHIVED,
+                )
+            ):
+                lifecycle.record_halt(reason.message)
             else:
                 lifecycle.record_failure(e)
 

@@ -215,13 +215,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         "url": e.response.api_url,
                     }
 
-                    log_params = {
+                    log_params: dict[str, str | int] = {
                         "error": str(e),
                         "project_id": event.project_id,
                         "event_id": event.event_id,
-                        "channel_name": self.get_option("channel"),
                         "payload": json_blocks,
                     }
+                    if self.get_option("channel"):
+                        log_params["channel_name"] = self.get_option("channel")
 
                     self.logger.info(
                         "slack.issue_alert.error",
@@ -239,8 +240,16 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
                     lifecycle.add_extras(log_params)
                     # If the error is a channel not found or archived, we can halt the flow
-                    if unpack_slack_api_error(e) in (CHANNEL_NOT_FOUND, CHANNEL_ARCHIVED):
-                        lifecycle.record_halt(e)
+                    if (
+                        (reason := unpack_slack_api_error(e))
+                        and reason is not None
+                        and reason
+                        in (
+                            CHANNEL_NOT_FOUND,
+                            CHANNEL_ARCHIVED,
+                        )
+                    ):
+                        lifecycle.record_halt(reason.message)
                     else:
                         lifecycle.record_failure(e)
                 else:
