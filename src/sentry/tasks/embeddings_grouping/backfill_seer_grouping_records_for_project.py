@@ -65,13 +65,13 @@ def backfill_seer_grouping_records_for_project(
     """
 
     if cohort is None and worker_number is not None:
-        cohort = create_project_cohort(worker_number, last_processed_project_id)
+        cohort = create_project_cohort(
+            worker_number, last_processed_project_id, skip_processed_projects
+        )
         if not cohort:
             logger.info(
                 "reached the end of the projects in cohort",
-                extra={
-                    "worker_number": worker_number,
-                },
+                extra={"worker_number": worker_number},
             )
             return
         current_project_id = cohort[0]
