@@ -111,8 +111,6 @@ export default function NewProviderForm({
             onChange={setSelectedProvider}
             value={selectedProvider}
             placeholder={t('Select a provider')}
-            defaultValue={'Launchdarkly'}
-            defaultChecked
             name="provider"
             options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
             help={t(
