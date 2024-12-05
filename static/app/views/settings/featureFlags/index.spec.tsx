@@ -142,10 +142,9 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });
-
     it('does not allow to remove without permission', async function () {
       const org = OrganizationFixture({
-        access: ['org:read'],
+        access: ['org:integrations'],
       });
 
       const secrets: Secret[] = [
