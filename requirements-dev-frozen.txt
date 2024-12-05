@@ -146,7 +146,7 @@ pyflakes==3.2.0
 pyjwt==2.4.0
 pymemcache==4.0.0
 pysocks==1.7.1
-pytest==8.3.3
+pytest==8.1.2
 pytest-cov==4.0.0
 pytest-django==4.9.0
 pytest-fail-slow==0.3.0
@@ -180,7 +180,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.16.5
+sentry-arroyo==2.18.2
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2

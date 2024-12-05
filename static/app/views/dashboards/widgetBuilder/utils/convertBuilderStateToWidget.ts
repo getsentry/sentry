@@ -7,6 +7,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
 import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 
@@ -22,6 +23,13 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     ?.filter(field => 'kind' in field && field.kind === 'field')
     .map(generateFieldAsString);
 
+  // If there's no sort, use the first field as the default sort
+  const defaultSort = fields?.[0] ?? defaultQuery.orderby;
+  const sort =
+    defined(state.sort) && state.sort.length > 0
+      ? formatSort(state.sort[0])
+      : defaultSort;
+
   const widgetQueries: WidgetQuery[] = queries.map(query => {
     return {
       ...defaultQuery,
@@ -32,9 +40,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           : defaultQuery.aggregates,
       columns: defined(columns) && columns.length > 0 ? columns : defaultQuery.columns,
       conditions: query,
-      // TODO: This will be read from the state under a separate key, not derived
-      // from the fields. This is only to satisfy the type interface for now.
-      orderby: defined(fields) && fields.length > 0 ? fields[0] : defaultQuery.orderby,
+      orderby: sort,
     };
   });
 

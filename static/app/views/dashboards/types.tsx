@@ -151,6 +151,7 @@ export type DashboardDetails = {
   createdBy?: User;
   end?: string;
   environment?: string[];
+  isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
   start?: string;

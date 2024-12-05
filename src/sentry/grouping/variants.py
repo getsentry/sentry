@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+from sentry.grouping.component import (
+    AppGroupingComponent,
+    DefaultGroupingComponent,
+    SystemGroupingComponent,
+)
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
-    from sentry.grouping.component import BaseGroupingComponent
     from sentry.grouping.strategies.base import StrategyConfiguration
 
 
@@ -18,12 +23,13 @@ class FingerprintVariantMetadata(TypedDict):
     matched_rule: NotRequired[str]
 
 
-class BaseVariant:
-    # The type of the variant that is reported to the UI.
-    type: str | None = None
-
+class BaseVariant(ABC):
     # This is true if `get_hash` does not return `None`.
     contributes = True
+
+    @property
+    @abstractmethod
+    def type(self) -> str: ...
 
     def get_hash(self) -> str | None:
         return None
@@ -124,7 +130,11 @@ class ComponentVariant(BaseVariant):
 
     type = "component"
 
-    def __init__(self, component, config):
+    def __init__(
+        self,
+        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        config: StrategyConfiguration,
+    ):
         self.component = component
         self.config = config
 
@@ -206,7 +216,7 @@ class SaltedComponentVariant(ComponentVariant):
     def __init__(
         self,
         values: list[str],
-        component: BaseGroupingComponent[Any],
+        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
         config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
@@ -221,7 +231,7 @@ class SaltedComponentVariant(ComponentVariant):
     def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
-        final_values = []
+        final_values: list[str | int] = []
         for value in self.values:
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
