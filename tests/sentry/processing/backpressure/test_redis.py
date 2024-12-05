@@ -29,7 +29,7 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
     redis_service = services["redis"]
     assert isinstance(redis_service, Redis)
 
-    usage = [usage for usage in iter_cluster_memory_usage(redis_service.cluster)]
+    usage = [usage for usage, host, port in iter_cluster_memory_usage(redis_service.cluster)]
     assert len(usage) > 0
     memory = usage[0]
     assert memory.used > 0
