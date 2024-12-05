@@ -89,6 +89,7 @@ def timeseries_query(
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -110,6 +111,7 @@ def timeseries_query(
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
         query_source=query_source,
+        transform_alias_to_input_format=transform_alias_to_input_format,
     )
 
 
