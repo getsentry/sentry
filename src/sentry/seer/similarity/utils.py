@@ -232,6 +232,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             and not app_hash
         ):
             raise TooManyOnlySystemFramesException
+
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
