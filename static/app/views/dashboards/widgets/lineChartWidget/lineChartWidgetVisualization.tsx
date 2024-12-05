@@ -131,6 +131,9 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      valueFormatter: value => {
+        return formatChartValue(value, type, unit);
+      },
       truncate: true,
       utc: props.utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -179,19 +182,27 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           }),
       ].filter(defined)}
       utc={props.utc}
-      legend={{
-        top: 0,
+      grid={{
         left: 0,
+        top: props.timeseries.length > 1 ? 25 : 10,
+        right: 1,
+        bottom: 0,
+        containLabel: true,
       }}
+      legend={
+        props.timeseries.length > 1
+          ? {
+              top: 0,
+              left: 0,
+            }
+          : undefined
+      }
       tooltip={{
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
         },
         formatter,
-        valueFormatter: value => {
-          return formatChartValue(value, type, unit);
-        },
       }}
       yAxis={{
         axisLabel: {

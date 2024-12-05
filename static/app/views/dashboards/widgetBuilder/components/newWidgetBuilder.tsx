@@ -13,6 +13,7 @@ import {
   type DashboardDetails,
   type DashboardFilters,
   DisplayType,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
@@ -28,11 +29,13 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
+  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
 function WidgetBuilderV2({
   isOpen,
   onClose,
+  onSave,
   dashboardFilters,
   dashboard,
 }: WidgetBuilderV2Props) {
@@ -52,13 +55,19 @@ function WidgetBuilderV2({
       <AnimatePresence>
         {isOpen && (
           <WidgetBuilderProvider>
-            <WidgetBuilderContainer>
-              <WidgetBuilderSlideout isOpen={isOpen} onClose={onClose} />
-              <WidgetPreviewContainer
-                dashboardFilters={dashboardFilters}
-                dashboard={dashboard}
-              />
-            </WidgetBuilderContainer>
+            <ContainerWithoutSidebar>
+              <WidgetBuilderContainer>
+                <WidgetBuilderSlideout
+                  isOpen={isOpen}
+                  onClose={onClose}
+                  onSave={onSave}
+                />
+                <WidgetPreviewContainer
+                  dashboardFilters={dashboardFilters}
+                  dashboard={dashboard}
+                />
+              </WidgetBuilderContainer>
+            </ContainerWithoutSidebar>
           </WidgetBuilderProvider>
         )}
       </AnimatePresence>
@@ -136,7 +145,7 @@ const Backdrop = styled('div')`
 `;
 
 const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
-  width: 35vw;
+  width: 30vw;
   min-width: 400px;
   height: ${p => (p.isTable ? 'auto' : '400px')};
   border: 2px dashed ${p => p.theme.border};
@@ -148,11 +157,20 @@ const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
   margin: auto;
 `;
 
+const ContainerWithoutSidebar = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+`;
+
 const WidgetBuilderContainer = styled('div')`
-  ${fullPageCss}
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 100vh;
+  position: fixed;
+  width: -webkit-fill-available; /* Chrome */
+  width: -moz-available; /* Firefox */
+  width: fill-available; /* others */
 `;
