@@ -62,7 +62,6 @@ describe('WebVitalMeters', function () {
       organization,
     });
 
-    screen.logTestingPlaygroundURL();
     await screen.findByText('Largest Contentful Paint');
     screen.getByText('First Contentful Paint');
     screen.getByText('Cumulative Layout Shift');
