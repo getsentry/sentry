@@ -95,10 +95,6 @@ function DashboardCard({
                 isSolid={favorited}
                 color={favorited ? 'yellow300' : 'gray300'}
                 size="sm"
-                onClick={() => {
-                  // setFavorited(!favorited);
-                  // onFavorite?.();
-                }}
                 aria-label={favorited ? t('UnFavorite') : t('Favorite')}
                 data-test-id={favorited ? 'yellow-star' : 'empty-star'}
               />
