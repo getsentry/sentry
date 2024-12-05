@@ -11,6 +11,7 @@ import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/
 import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 
@@ -53,6 +54,9 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
         </Section>
         <Section>
           <WidgetBuilderTypeSelector />
+        </Section>
+        <Section>
+          <WidgetBuilderQueryFilterBuilder />
         </Section>
         <Section>
           <WidgetBuilderNameAndDescription />

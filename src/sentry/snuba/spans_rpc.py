@@ -13,7 +13,7 @@ from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
-from sentry.snuba.discover import OTHER_KEY, create_result_key
+from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult
 
@@ -205,6 +205,15 @@ def run_timeseries_query(
                 existing.update(new)
             for existing, new in zip(confidences, confidence):
                 existing.update(new)
+    if len(result) == 0:
+        # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
+        result = zerofill(
+            [],
+            params.start_date,
+            params.end_date,
+            granularity_secs,
+            ["time"],
+        )
     return SnubaTSResult(
         {"data": result, "confidence": confidences}, params.start, params.end, granularity_secs
     )
@@ -349,21 +358,22 @@ def run_top_events_timeseries_query(
             params.end,
             granularity_secs,
         )
-    result_data, result_confidence = _process_timeseries(
-        other_response.result_timeseries[0],
-        params,
-        granularity_secs,
-    )
-    final_result[OTHER_KEY] = SnubaTSResult(
-        {
-            "data": result_data,
-            "confidence": result_confidence,
-            "order": limit,
-        },
-        params.start,
-        params.end,
-        granularity_secs,
-    )
+    if other_response.result_timeseries:
+        result_data, result_confidence = _process_timeseries(
+            other_response.result_timeseries[0],
+            params,
+            granularity_secs,
+        )
+        final_result[OTHER_KEY] = SnubaTSResult(
+            {
+                "data": result_data,
+                "confidence": result_confidence,
+                "order": limit,
+            },
+            params.start,
+            params.end,
+            granularity_secs,
+        )
     return final_result
 
 
