@@ -14,7 +14,7 @@ import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 const MIN_HEIGHT = 0;
-const DEFAULT_HEIGHT = 100;
+const DEFAULT_HEIGHT = 200;
 const MAX_HEIGHT = 700;
 
 type Props = {
