@@ -1,9 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,6 +9,7 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {useValidateWidgetQuery} from 'sentry/views/dashboards/hooks/useValidateWidget';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
@@ -47,20 +45,13 @@ function WidgetBuilderGroupBySelector() {
 
   return (
     <Fragment>
-      <HeaderWrapper>
-        <Tooltip
-          title={t(
-            'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
-          )}
-          position="right"
-          delay={200}
-          isHoverable
-          showUnderline
-        >
-          <Header>{t('Group by')}</Header>
-        </Tooltip>
-        <OptionalHeader>{t('(optional)')}</OptionalHeader>
-      </HeaderWrapper>
+      <SectionHeader
+        title={t('Group by')}
+        tooltipText={t(
+          'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+        )}
+        optional
+      />
 
       <GroupBySelector
         columns={state.fields}
@@ -74,21 +65,3 @@ function WidgetBuilderGroupBySelector() {
 }
 
 export default WidgetBuilderGroupBySelector;
-
-const Header = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin-bottom: ${space(1)};
-`;
-
-const OptionalHeader = styled('h6')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  margin-bottom: ${space(1)};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-`;
