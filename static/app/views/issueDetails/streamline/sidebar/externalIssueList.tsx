@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
@@ -6,6 +7,7 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ExternalIssueAction} from 'sentry/components/group/externalIssuesList/hooks/types';
+import useGroupExternalIssues from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -15,10 +17,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
-import {Divider} from 'sentry/views/issueDetails/divider';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
-
-import useStreamLinedExternalIssueData from './hooks/useGroupExternalIssues';
 
 function getActionLabelAndTextValue({
   action,
@@ -55,19 +54,15 @@ function getActionLabelAndTextValue({
   };
 }
 
-interface StreamlinedExternalIssueListProps {
+interface ExternalIssueListProps {
   event: Event;
   group: Group;
   project: Project;
 }
 
-export function StreamlinedExternalIssueList({
-  group,
-  event,
-  project,
-}: StreamlinedExternalIssueListProps) {
+export function ExternalIssueList({group, event, project}: ExternalIssueListProps) {
   const organization = useOrganization();
-  const {isLoading, integrations, linkedIssues} = useStreamLinedExternalIssueData({
+  const {isLoading, integrations, linkedIssues} = useGroupExternalIssues({
     group,
     event,
     project,
@@ -89,83 +84,88 @@ export function StreamlinedExternalIssueList({
       <SidebarSectionTitle>{t('Issue Tracking')}</SidebarSectionTitle>
       <SidebarSection.Content>
         {integrations.length || linkedIssues.length ? (
-          <IssueActionWrapper>
-            {linkedIssues.map(linkedIssue => (
-              <ErrorBoundary key={linkedIssue.key} mini>
-                <Tooltip
-                  overlayStyle={{maxWidth: '400px'}}
-                  position="bottom"
-                  title={
-                    <LinkedIssueTooltipWrapper>
-                      <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
-                      <HorizontalSeparator />
-                      <UnlinkButton
-                        priority="link"
-                        size="zero"
-                        onClick={linkedIssue.onUnlink}
-                      >
-                        {t('Unlink issue')}
-                      </UnlinkButton>
-                    </LinkedIssueTooltipWrapper>
-                  }
-                  isHoverable
-                >
-                  <LinkedIssue
-                    href={linkedIssue.url}
-                    external
-                    size="zero"
-                    icon={linkedIssue.displayIcon}
+          <Fragment>
+            <IssueActionWrapper>
+              {linkedIssues.map(linkedIssue => (
+                <ErrorBoundary key={linkedIssue.key} mini>
+                  <Tooltip
+                    overlayStyle={{maxWidth: '400px'}}
+                    position="bottom"
+                    title={
+                      <LinkedIssueTooltipWrapper>
+                        <LinkedIssueName>{linkedIssue.title}</LinkedIssueName>
+                        <HorizontalSeparator />
+                        <UnlinkButton
+                          priority="link"
+                          size="zero"
+                          onClick={linkedIssue.onUnlink}
+                        >
+                          {t('Unlink issue')}
+                        </UnlinkButton>
+                      </LinkedIssueTooltipWrapper>
+                    }
+                    isHoverable
                   >
-                    <IssueActionName>{linkedIssue.displayName}</IssueActionName>
-                  </LinkedIssue>
-                </Tooltip>
-              </ErrorBoundary>
-            ))}
-            {integrations.length > 0 && linkedIssues.length > 0 ? <Divider /> : null}
-            {integrations.map(integration => {
-              const sharedButtonProps: ButtonProps = {
-                size: 'zero',
-                icon: integration.displayIcon,
-                children: <IssueActionName>{integration.displayName}</IssueActionName>,
-              };
+                    <LinkedIssue
+                      href={linkedIssue.url}
+                      external
+                      size="zero"
+                      icon={linkedIssue.displayIcon}
+                    >
+                      <IssueActionName>{linkedIssue.displayName}</IssueActionName>
+                    </LinkedIssue>
+                  </Tooltip>
+                </ErrorBoundary>
+              ))}
+            </IssueActionWrapper>
+            <IssueActionWrapper>
+              {integrations.map(integration => {
+                const sharedButtonProps: ButtonProps = {
+                  size: 'zero',
+                  icon: integration.displayIcon,
+                  children: <IssueActionName>{integration.displayName}</IssueActionName>,
+                };
 
-              if (integration.actions.length === 1) {
+                if (integration.actions.length === 1) {
+                  return (
+                    <ErrorBoundary key={integration.key} mini>
+                      <IssueActionButton
+                        {...sharedButtonProps}
+                        disabled={integration.disabled}
+                        title={
+                          integration.disabled ? integration.disabledText : undefined
+                        }
+                        onClick={integration.actions[0].onClick}
+                      />
+                    </ErrorBoundary>
+                  );
+                }
+
                 return (
                   <ErrorBoundary key={integration.key} mini>
-                    <IssueActionButton
-                      {...sharedButtonProps}
-                      disabled={integration.disabled}
-                      title={integration.disabled ? integration.disabledText : undefined}
-                      onClick={integration.actions[0].onClick}
+                    <DropdownMenu
+                      trigger={triggerProps => (
+                        <IssueActionDropdownMenu
+                          {...sharedButtonProps}
+                          {...triggerProps}
+                          showChevron={false}
+                        />
+                      )}
+                      items={integration.actions.map(action => ({
+                        key: action.id,
+                        ...getActionLabelAndTextValue({
+                          action,
+                          integrationDisplayName: integration.displayName,
+                        }),
+                        onAction: action.onClick,
+                        disabled: integration.disabled,
+                      }))}
                     />
                   </ErrorBoundary>
                 );
-              }
-
-              return (
-                <ErrorBoundary key={integration.key} mini>
-                  <DropdownMenu
-                    trigger={triggerProps => (
-                      <IssueActionDropdownMenu
-                        {...sharedButtonProps}
-                        {...triggerProps}
-                        showChevron={false}
-                      />
-                    )}
-                    items={integration.actions.map(action => ({
-                      key: action.id,
-                      ...getActionLabelAndTextValue({
-                        action,
-                        integrationDisplayName: integration.displayName,
-                      }),
-                      onAction: action.onClick,
-                      disabled: integration.disabled,
-                    }))}
-                  />
-                </ErrorBoundary>
-              );
-            })}
-          </IssueActionWrapper>
+              })}
+            </IssueActionWrapper>
+          </Fragment>
         ) : (
           <AlertLink
             priority="muted"
@@ -186,6 +186,9 @@ const IssueActionWrapper = styled('div')`
   flex-wrap: wrap;
   gap: ${space(1)};
   line-height: 1.2;
+  &:not(:last-child) {
+    margin-bottom: ${space(1)};
+  }
 `;
 
 const LinkedIssue = styled(LinkButton)`
