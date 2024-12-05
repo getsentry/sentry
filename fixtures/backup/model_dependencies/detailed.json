@@ -6321,7 +6321,7 @@
     "uniques": []
   },
   "workflow_engine.alertruledetector": {
-    "dangling": false,
+    "dangling": true,
     "foreign_keys": {
       "alert_rule": {
         "kind": "FlexibleForeignKey",
@@ -6341,7 +6341,7 @@
     },
     "model": "workflow_engine.alertruledetector",
     "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
@@ -6373,7 +6373,7 @@
     },
     "model": "workflow_engine.alertruletriggerdatacondition",
     "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],
@@ -6401,7 +6401,7 @@
     },
     "model": "workflow_engine.alertruleworkflow",
     "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
+    "relocation_scope": "Organization",
     "silos": [
       "Region"
     ],

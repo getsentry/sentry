@@ -2,6 +2,7 @@
 
 import django.db.models.deletion
 from django.db import migrations, models
+from django.db.models import Q
 
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
