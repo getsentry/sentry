@@ -61,7 +61,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         enable_ingestion = True if request.data.get("enable_ingestion") else False
         # Notice that it reads as "reprocess" rather than "skip", thus, it's the opposite of what you'd expect
         skip_processed_projects = (
-            True if request.data.get("reprocess_backfilled_projects") else False
+            False if request.data.get("reprocess_backfilled_projects") else True
         )
 
         if only_delete and enable_ingestion:
