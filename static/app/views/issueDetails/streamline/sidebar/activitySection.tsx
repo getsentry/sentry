@@ -72,8 +72,8 @@ function TimelineItem({
           {item.type === GroupActivityType.NOTE && !editing && (
             <TitleDropdown
               onDelete={() => handleDelete(item)}
-              user={item.user}
               onEdit={() => setEditing(true)}
+              user={item.user}
             />
           )}
         </Flex>
@@ -100,6 +100,7 @@ function TimelineItem({
             handleUpdate(item, n);
             setEditing(false);
           }}
+          onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
         <NoteWrapper>

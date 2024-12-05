@@ -12,6 +12,7 @@ import type {
   Mentioned,
 } from 'sentry/components/activity/note/types';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
@@ -26,6 +27,7 @@ type Props = {
    * you are editing an existing item
    */
   noteId?: string;
+  onCancel?: () => void;
   onChange?: (e: MentionChangeEvent, extra: {updating?: boolean}) => void;
   onCreate?: (data: NoteType) => void;
   onUpdate?: (data: NoteType) => void;
@@ -41,6 +43,7 @@ function StreamlinedNoteInput({
   onCreate,
   onChange,
   onUpdate,
+  onCancel,
   noteId,
   errorJSON,
   placeholder,
@@ -173,15 +176,22 @@ function StreamlinedNoteInput({
         />
       </MentionsInput>
       {(isSubmitVisible || existingItem) && (
-        <Button
-          priority="primary"
-          size="xs"
-          disabled={!canSubmit}
-          aria-label={existingItem ? t('Save comment') : t('Submit comment')}
-          type="submit"
-        >
-          {existingItem ? t('Save') : t('Comment')}
-        </Button>
+        <ButtonBar gap={0.5}>
+          {existingItem && (
+            <Button size="xs" onClick={onCancel}>
+              {t('Cancel')}
+            </Button>
+          )}
+          <Button
+            priority="primary"
+            size="xs"
+            disabled={!canSubmit}
+            aria-label={existingItem ? t('Save comment') : t('Submit comment')}
+            type="submit"
+          >
+            {existingItem ? t('Save') : t('Comment')}
+          </Button>
+        </ButtonBar>
       )}
     </NoteInputForm>
   );
