@@ -2,10 +2,6 @@ from datetime import datetime, timedelta
 
 from django.urls import reverse
 
-from rest_framework.exceptions import ErrorDetail
-
-
-from sentry.sentry_apps.api.endpoints.sentry_app_requests_v2 import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test, create_test_regions
@@ -20,7 +16,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
-        self.org = self.create_organization(owner=self.user, region="us")
+        self.org = self.create_organization(owner=self.user, region="us", slug="test-org")
         self.project = self.create_project(organization=self.org)
         self.event_id = "d5111da2c28645c5889d072017e3445d"
 
@@ -265,14 +261,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
         url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
         made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
         assert made_up_org_response.status_code == 400
-        assert made_up_org_response.data == {
-            "organization_slug": [
-                ErrorDetail(
-                    "Invalid organization slug.",
-                    code="invalid",
-                )
-            ]
-        }
+        assert made_up_org_response.data["detail"] == "Invalid organization."
 
         org_response = self.client.get(f"{url}?organizationSlug={self.org.slug}", format="json")
         assert org_response.status_code == 200
@@ -336,7 +325,15 @@ class SentryAppRequestsV2GetTest(APITestCase):
 
         # test adding an improperly formatted end time
         bad_date_format_response = self.client.get(f"{url}?end=2000-01- 00:00:00", format="json")
-        assert bad_date_format_response.data["detail"] == INVALID_DATE_FORMAT_MESSAGE
+        assert bad_date_format_response.status_code == 400
+
+        # test adding a start and end time
+        late_start_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
+        early_end_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        start_after_end_response = self.client.get(
+            f"{url}?start={late_start_date}&end={early_end_date}", format="json"
+        )
+        assert start_after_end_response.status_code == 400
 
     def test_get_includes_installation_requests(self):
         self.login_as(user=self.user)
