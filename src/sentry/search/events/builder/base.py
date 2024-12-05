@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from re import Match
@@ -1533,16 +1532,6 @@ class BaseQueryBuilder:
             flags=Flags(turbo=self.turbo),
             tenant_ids=self.tenant_ids,
         )
-
-    @classmethod
-    def handle_invalid_float(cls, value: float | None) -> float | None:
-        if value is None:
-            return value
-        elif math.isnan(value):
-            return 0
-        elif math.isinf(value):
-            return None
-        return value
 
     def run_query(
         self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
