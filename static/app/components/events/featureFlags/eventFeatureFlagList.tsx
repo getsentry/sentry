@@ -80,9 +80,9 @@ export function EventFeatureFlagList({
   });
 
   const {
-    data: events,
-    isPending: isEventsPending,
-    isError: isEventsError,
+    data: relatedEvents,
+    isPending: isRelatedEventsPending,
+    isError: isRelatedEventsError,
   } = useIssueEvents({issueId: group.id});
 
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
@@ -100,9 +100,9 @@ export function EventFeatureFlagList({
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
   const anyEventHasContext =
-    isEventsPending || isEventsError
+    isRelatedEventsPending || isRelatedEventsError
       ? false
-      : events.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
+      : relatedEvents.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
   const flagValues = useMemo(() => {
     return event.contexts?.flags?.values ?? [];
   }, [event]);
