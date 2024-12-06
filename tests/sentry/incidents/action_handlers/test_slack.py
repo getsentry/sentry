@@ -16,7 +16,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.spec import SlackMessagingSpec
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.asserts import assert_failure_metric

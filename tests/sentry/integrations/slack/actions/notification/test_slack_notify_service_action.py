@@ -6,7 +6,7 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
