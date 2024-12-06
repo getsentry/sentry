@@ -23,6 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -299,47 +300,49 @@ export function ScreensLandingPage() {
             headerActions={isProjectCrossPlatform && <PlatformSelector />}
             module={moduleName}
           />
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Container>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter onChange={handleProjectChange} />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-              </Container>
-              <PageAlert />
-              <ErrorBoundary mini>
+          <ModuleBodyUpsellHook moduleName={moduleName}>
+            <Layout.Body>
+              <Layout.Main fullWidth>
                 <Container>
-                  <Flex data-test-id="mobile-screens-top-metrics">
-                    {vitalItems.map(item => {
-                      const metricValue = metricValueFor(item);
-                      const status =
-                        (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-
-                      return (
-                        <VitalCard
-                          onClick={() => {
-                            setState({
-                              vital: item,
-                              status: status,
-                            });
-                          }}
-                          key={item.field}
-                          title={item.title}
-                          description={item.description}
-                          statusLabel={status.description}
-                          status={status.score}
-                          formattedValue={status.formattedValue}
-                        />
-                      );
-                    })}
-                  </Flex>
-                  <ScreensOverview />
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
                 </Container>
-              </ErrorBoundary>
-            </Layout.Main>
-          </Layout.Body>
+                <PageAlert />
+                <ErrorBoundary mini>
+                  <Container>
+                    <Flex data-test-id="mobile-screens-top-metrics">
+                      {vitalItems.map(item => {
+                        const metricValue = metricValueFor(item);
+                        const status =
+                          (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
+
+                        return (
+                          <VitalCard
+                            onClick={() => {
+                              setState({
+                                vital: item,
+                                status: status,
+                              });
+                            }}
+                            key={item.field}
+                            title={item.title}
+                            description={item.description}
+                            statusLabel={status.description}
+                            status={status.score}
+                            formattedValue={status.formattedValue}
+                          />
+                        );
+                      })}
+                    </Flex>
+                    <ScreensOverview />
+                  </Container>
+                </ErrorBoundary>
+              </Layout.Main>
+            </Layout.Body>
+          </ModuleBodyUpsellHook>
           <VitalDetailPanel
             vital={state.vital}
             status={state.status}
