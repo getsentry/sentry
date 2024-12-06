@@ -180,6 +180,7 @@ def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
 class FramesMetrics(TypedDict):
     frame_count: int
     html_frame_count: int  # for a temporary metric
+    has_no_filename: bool  # for a temporary metric
     is_frames_truncated: bool
     found_non_snipped_context_line: bool
 
@@ -208,7 +209,8 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
     frame_metrics: FramesMetrics = {
         "frame_count": 0,
-        "html_frame_count": 0,
+        "html_frame_count": 0,  # for a temporary metric
+        "has_no_filename": False,  # for a temporary metric
         "is_frames_truncated": False,
         "found_non_snipped_context_line": False,
     }
@@ -252,8 +254,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
 def generate_stacktrace_string(
     result_parts: Sequence[tuple[str, list[str]]],
-    found_non_snipped_context_line: bool,
-    html_frame_count: int,
+    frame_metrics: FramesMetrics,
 ) -> str:
     stacktrace_str = ""
     final_frame_count = 0
@@ -262,7 +263,7 @@ def generate_stacktrace_string(
         # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
         # result to include only the first 20 frames, since minified frames are significantly more
         # token-dense than non-minified ones
-        if not found_non_snipped_context_line:
+        if not frame_metrics["found_non_snipped_context_line"]:
             frame_strings = _discard_excess_frames(
                 frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
             )
@@ -276,11 +277,21 @@ def generate_stacktrace_string(
         tags={
             "html_frames": (
                 "none"
-                if html_frame_count == 0
-                else "all" if html_frame_count == final_frame_count else "some"
+                if frame_metrics["html_frame_count"] == 0
+                else "all" if frame_metrics["html_frame_count"] == final_frame_count else "some"
             )
         },
     )
+
+    # Metric for errors with no header, only one frame and no filename
+    # TODO: Determine how often this occurs and if we should send to seer, then remove metric
+    if frame_metrics["has_no_filename"] and len(result_parts) == 1:
+        header, frames = result_parts[0][0], result_parts[0][1]
+        if header == "" and len(frames) == 1:
+            metrics.incr(
+                "seer.grouping.no_header_one_frame_no_filename",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            )
 
     return stacktrace_str.strip()
 
@@ -332,6 +343,9 @@ def _process_frames(
 
         if not _is_snipped_context_line(frame_dict["context-line"]):
             frame_metrics["found_non_snipped_context_line"] = True
+
+        if not frame_dict["filename"]:
+            frame_metrics["has_no_filename"] = True
 
         # Not an exhaustive list of tests we could run to detect HTML, but this is only
         # meant to be a temporary, quick-and-dirty metric
