@@ -59,6 +59,7 @@ from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors.data_source import process_data_sources
+from sentry.workflow_engine.processors.detector import process_detectors
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -329,14 +330,6 @@ class SubscriptionProcessor:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
-        if features.has(
-            "organizations:workflow-engine-m3-dual-write", self.subscription.project.organization
-        ):
-            data_packet = DataPacket(
-                query_id=self.subscription.snuba_query.id, packet=subscription_update
-            )
-            process_data_sources([data_packet], query_type=self.subscription.type)
-            return
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -368,6 +361,24 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
+        if features.has(
+            "organizations:workflow-engine-m3-dual-write", self.subscription.project.organization
+        ):
+            data_packet = DataPacket(
+                query_id=self.subscription.snuba_query.id, packet=subscription_update
+            )
+            detectors = process_data_sources([data_packet], query_type=self.subscription.type)
+            results = []
+            for pair in detectors:
+                data_packet, detectors = pair
+                results.append(process_detectors(data_packet, detectors))
+            logger.info(
+                "Results from process detectors",
+                extra={
+                    "result": results,
+                },
+            )
+            return None
         self.last_update = subscription_update["timestamp"]
 
         if (
