@@ -56,6 +56,53 @@ enum ResponseKeys {
   FAVORITE = 'isFavorited',
 }
 
+type FavoriteButtonProps = {
+  api: Client;
+  dashboardId: string;
+  isFavorited: boolean;
+  organization: Organization;
+};
+
+function FavoriteButton({
+  isFavorited,
+  api,
+  organization,
+  dashboardId,
+}: FavoriteButtonProps) {
+  const [favorited, setFavorited] = useState(isFavorited);
+  return (
+    <Feature features="dashboards-favourite">
+      <StyledFavoriteButton
+        aria-label={'dashboards-favourite'}
+        size="zero"
+        borderless
+        icon={
+          <IconStar
+            color={favorited ? 'yellow300' : 'gray300'}
+            isSolid={favorited}
+            aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            size="sm"
+          />
+        }
+        onClick={async () => {
+          try {
+            setFavorited(!favorited);
+            await updateDashboardFavorite(
+              api,
+              organization.slug,
+              dashboardId,
+              !favorited
+            );
+          } catch (error) {
+            // If the api call fails, revert the state
+            setFavorited(favorited);
+          }
+        }}
+      />
+    </Feature>
+  );
+}
+
 function DashboardTable({
   api,
   organization,
@@ -64,21 +111,9 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const [favoritedStates, setFavoritedStates] = useState<Record<string, boolean>>(() =>
-    dashboards
-      ? dashboards.reduce(
-          (acc, dashboard) => {
-            acc[dashboard.id] = dashboard.isFavorited ?? false;
-            return acc;
-          },
-          {} as Record<string, boolean>
-        )
-      : {}
-  );
-
-  const columnOrder = [
+  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
     ...(organization.features.includes('dashboards-favourite')
-      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: COL_WIDTH_UNDEFINED}]
+      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: 50}]
       : []),
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
@@ -123,28 +158,6 @@ function DashboardTable({
     }
   }
 
-  const handleFavorite = async (dashboardId: string) => {
-    try {
-      setFavoritedStates({
-        ...favoritedStates,
-        [dashboardId]: !favoritedStates[dashboardId],
-      });
-      // console.log(favoritedStates[dashboardId]);
-      await updateDashboardFavorite(
-        api,
-        organization.slug,
-        dashboardId,
-        !favoritedStates[dashboardId]
-      );
-    } catch (error) {
-      // Revert the state if the API call fails
-      setFavoritedStates({
-        ...favoritedStates,
-        [dashboardId]: favoritedStates[dashboardId],
-      });
-    }
-  };
-
   // TODO(__SENTRY_USING_REACT_ROUTER_SIX): We can remove this later, react
   // router 6 handles empty query objects without appending a trailing ?
   const queryLocation = {
@@ -158,23 +171,13 @@ function DashboardTable({
     dataRow: DashboardListItem
   ) => {
     if (column.key === ResponseKeys.FAVORITE) {
-      const isFavorited = favoritedStates[dataRow.id];
       return (
-        <Feature features="dashboards-favourite">
-          <Button
-            size="zero"
-            aria-label={'dashboards-favourite'}
-            icon={
-              <IconStar
-                color={isFavorited ? 'yellow300' : 'gray300'}
-                isSolid={isFavorited}
-                aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-              />
-            }
-            onClick={() => handleFavorite(dataRow.id)}
-          />
-        </Feature>
+        <FavoriteButton
+          isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
+          api={api}
+          organization={organization}
+          dashboardId={dataRow.id}
+        />
       );
     }
 
@@ -283,12 +286,17 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
-      // necessary for edit access dropdown
       bodyStyle={{overflow: 'visible'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
         renderBodyCell,
+        renderHeadCell: column => {
+          if (column.key === ResponseKeys.FAVORITE) {
+            return <StyledIconStar color="yellow300" isSolid />;
+          }
+          return column.name;
+        },
       }}
       isLoading={isLoading}
       emptyMessage={
@@ -329,4 +337,14 @@ const ActionsIconWrapper = styled('div')`
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
+`;
+
+const StyledFavoriteButton = styled(Button)`
+  padding: 0;
+  width: 16px;
+  border: 3px solid transparent;
+`;
+
+const StyledIconStar = styled(IconStar)`
+  margin-left: ${space(0.5)};
 `;
