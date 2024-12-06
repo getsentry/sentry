@@ -981,3 +981,32 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+
+    def test_issue_alert_received_through_project_creation(self):
+        with self.feature("organizations:quick-start-updates"):
+            now = timezone.now()
+
+            first_organization = self.create_organization(owner=self.user, slug="first-org")
+            first_project = self.create_project(first_event=now, organization=first_organization)
+            # By default, the project creation will create a default rule
+            project_created.send(project=first_project, user=self.user, sender=type(first_project))
+            assert OrganizationOnboardingTask.objects.filter(
+                organization=first_project.organization,
+                task=OnboardingTask.ALERT_RULE,
+                status=OnboardingTaskStatus.COMPLETE,
+            ).exists()
+
+            second_organization = self.create_organization(owner=self.user, slug="second-org")
+            second_project = self.create_project(first_event=now, organization=second_organization)
+            # When creating a project, a user can opt out of creating a default rule
+            project_created.send(
+                project=second_project,
+                user=self.user,
+                sender=type(second_project),
+                default_rules=False,
+            )
+            assert not OrganizationOnboardingTask.objects.filter(
+                organization=second_project.organization,
+                task=OnboardingTask.ALERT_RULE,
+                status=OnboardingTaskStatus.COMPLETE,
+            ).exists()
