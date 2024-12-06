@@ -97,7 +97,7 @@ Makefile                                                 @getsentry/owners-sentr
 /src/sentry/analytics/events/relocation_*.py             @getsentry/open-source
 /src/sentry/api/endpoints/organization_fork.py           @getsentry/open-source
 /src/sentry/api/endpoints/relocation/                    @getsentry/open-source
-/src/sentry/api/serialiers/models/relocation/            @getsentry/open-source
+/src/sentry/api/serializers/models/relocation/           @getsentry/open-source
 /src/sentry/models/relocation/                           @getsentry/open-source
 /src/sentry/relocation/                                  @getsentry/open-source
 /src/sentry/tasks/relocation.py                          @getsentry/open-source
