@@ -43,6 +43,7 @@ from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_recor
 from sentry.tasks.embeddings_grouping.constants import (
     BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     BACKFILL_NAME,
+    PROJECT_BACKFILL_COMPLETED,
 )
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -54,8 +55,6 @@ SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
-
-PROJECT_BACKFILL_COMPLETED = "sentry:similarity_backfill_completed"
 
 
 class FeatureError(Exception):
