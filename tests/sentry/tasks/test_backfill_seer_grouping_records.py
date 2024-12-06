@@ -34,7 +34,6 @@ from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project
 )
 from sentry.tasks.embeddings_grouping.constants import PROJECT_BACKFILL_COMPLETED
 from sentry.tasks.embeddings_grouping.utils import (
-    PROJECT_BACKFILL_COMPLETED,
     _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
@@ -635,7 +634,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        project2 = self.create_project(organization=self.organization, platform="python")
+        project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -825,7 +824,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        project2 = self.create_project(organization=self.organization, platform="python")
+        project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -954,7 +953,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         Test that the function does not create records when there is no feature flag
         """
-        project = self.create_project(organization=self.organization, platform="python")
+        project = self.create_project(organization=self.organization)
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(project, None)
@@ -1325,7 +1324,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         if it exists
         """
 
-        project2 = self.create_project(organization=self.organization, platform="python")
+        project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={
                 "exception": EXCEPTION,
@@ -1732,7 +1731,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         the skip_processed_projects flag.
         """
         # Test that projects that are already backfilled are skipped
-        project2 = self.create_project(organization=self.organization, platform="python")
+        project2 = self.create_project(organization=self.organization)
         project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
         with TaskRunner():
@@ -1779,9 +1778,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         passed the skip_processed_projects flag.
         """
         # Test that projects that are already backfilled are skipped
-        project2 = self.create_project(organization=self.organization, platform="python")
+        project2 = self.create_project(organization=self.organization)
         project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
-        project3 = self.create_project(organization=self.organization, platform="python")
+        project3 = self.create_project(organization=self.organization)
         # Since we set the total worker count to 1, the project cohort will have all projects
         # except the one that has already been backfilled
         cohort = [self.project.id, project3.id]
@@ -2452,7 +2451,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
-        project = self.create_project(organization=self.organization, platform="python")
+        project = self.create_project(organization=self.organization)
         data = {
             **ONLY_STACKTRACE,
             "timestamp": before_now(seconds=10).isoformat(),
@@ -2473,7 +2472,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
-        project = self.create_project(organization=self.organization, platform="python")
+        project = self.create_project(organization=self.organization)
         data = {
             **EVENT_WITH_THREADS_STACKTRACE,
             "timestamp": before_now(seconds=10).isoformat(),
