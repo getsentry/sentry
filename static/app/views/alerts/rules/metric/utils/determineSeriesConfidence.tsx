@@ -1,4 +1,8 @@
-import type {Confidence, EventsStats} from 'sentry/types/organization';
+import type {
+  Confidence,
+  EventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence
@@ -43,6 +47,17 @@ export function determineSeriesConfidence(
   }
 
   return 'high';
+}
+
+export function determineMultiSeriesConfidence(
+  data: MultiSeriesEventsStats,
+  threshold = LOW_CONFIDENCE_THRESHOLD
+): Confidence {
+  return Object.values(data).reduce(
+    (acc, eventsStats) =>
+      combineConfidence(acc, determineSeriesConfidence(eventsStats, threshold)),
+    null as Confidence
+  );
 }
 
 export function combineConfidence(a: Confidence, b: Confidence): Confidence {

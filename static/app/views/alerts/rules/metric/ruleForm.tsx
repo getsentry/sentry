@@ -28,7 +28,6 @@ import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {
-  Confidence,
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
@@ -57,7 +56,7 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
-  combineConfidence,
+  determineMultiSeriesConfidence,
   determineSeriesConfidence,
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
@@ -1061,16 +1060,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (!data) {
       return;
     }
-    let confidence: Confidence | undefined;
-    if (isEventsStats(data)) {
-      confidence = determineSeriesConfidence(data);
-    } else {
-      confidence = Object.values(data).reduce(
-        (acc, eventsStats) =>
-          combineConfidence(acc, determineSeriesConfidence(eventsStats)),
-        null as Confidence
-      );
-    }
+    const confidence = isEventsStats(data)
+      ? determineSeriesConfidence(data)
+      : determineMultiSeriesConfidence(data);
     this.setState({isLowConfidenceChartData: confidence === 'low'});
   }
 
