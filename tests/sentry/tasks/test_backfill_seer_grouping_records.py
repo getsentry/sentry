@@ -1891,9 +1891,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         task continues and calls the next batch.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        project_invalid_batch = self.create_project(
-            organization=self.organization, platform="python"
-        )
+        project_invalid_batch = self.create_project(organization=self.organization)
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
         # Create batch size valid groups
