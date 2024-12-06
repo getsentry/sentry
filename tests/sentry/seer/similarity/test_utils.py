@@ -1,10 +1,12 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
 import pytest
 
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
@@ -299,7 +301,7 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
-    MOBILE_THREAD_DATA = {
+    MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
             "description": "in-app thread stack-trace",
@@ -863,6 +865,19 @@ class GetStacktraceStringTest(TestCase):
         assert (
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
+        )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_header_one_frame_no_filename(self, mock_metrics):
+        exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
+        # Remove filename
+        exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
+            "values"
+        ] = []
+        get_stacktrace_string(exception)
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
         )
 
 
