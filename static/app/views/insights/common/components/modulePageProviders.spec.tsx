@@ -35,7 +35,7 @@ describe('ModulePageProviders', () => {
     jest.resetAllMocks();
   });
 
-  it('renders without module feature but with entry points feature', async () => {
+  it('renders without module feature', async () => {
     jest.mocked(useHasFirstSpan).mockReturnValue(true);
 
     render(
@@ -43,9 +43,7 @@ describe('ModulePageProviders', () => {
         <div>Module Content</div>
       </ModulePageProviders>,
       {
-        organization: OrganizationFixture({
-          features: ['insights-entry-points'],
-        }),
+        organization: OrganizationFixture(),
       }
     );
 
