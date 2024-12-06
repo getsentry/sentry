@@ -736,6 +736,7 @@ const TraceStylingWrapper = styled('div')`
     padding-top: 44px;
 
     &:before {
+      background-color: ${p => p.theme.background};
       height: 44px;
 
       .TraceScrollbarContainer {
