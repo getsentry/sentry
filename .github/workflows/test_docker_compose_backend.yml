@@ -36,8 +36,8 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-          chmod 600 ~/.ssh/id_rsa
+          ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 -C "github actions"
+          chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           ssh -vT git@github.com
 
