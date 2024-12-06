@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
 import sentry_sdk
-from django.utils.datastructures import MultiValueDict
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -118,7 +117,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
             raise NoProjects("No projects available")  # give it a description
 
         # HACK to prevent front-end crash when release health is sessions-based:
-        query_params = MultiValueDict(request.GET)
+        query_params = request.GET.copy()
         if not release_health.backend.is_metrics_based() and request.GET.get("interval") == "10s":
             query_params["interval"] = "1m"
 
