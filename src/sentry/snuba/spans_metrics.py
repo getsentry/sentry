@@ -93,6 +93,7 @@ def timeseries_query(
     groupby: Column | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -111,6 +112,7 @@ def timeseries_query(
             functions_acl=functions_acl,
             allow_metric_aggregates=allow_metric_aggregates,
             use_metrics_layer=use_metrics_layer,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     result = metrics_query.run_query(referrer=referrer, query_source=query_source)

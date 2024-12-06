@@ -35,6 +35,7 @@ interface Props {
   onChange: (fields: QueryFieldValue[]) => void;
   validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   columns?: QueryFieldValue[];
+  style?: React.CSSProperties;
 }
 
 export function GroupBySelector({
@@ -42,6 +43,7 @@ export function GroupBySelector({
   columns = [],
   onChange,
   validatedWidgetResponse,
+  style,
 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -111,7 +113,7 @@ export function GroupBySelector({
 
   return (
     <Fragment>
-      <StyledField inline={false} flexibleControlStateSize stacked>
+      <StyledField inline={false} style={style} flexibleControlStateSize stacked>
         {columns.length === 0 ? (
           <QueryField
             value={EMPTY_FIELD}

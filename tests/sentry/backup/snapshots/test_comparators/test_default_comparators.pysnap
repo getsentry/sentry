@@ -1,5 +1,5 @@
 ---
-created: '2024-11-28T16:29:21.237667+00:00'
+created: '2024-12-03T19:31:11.333104+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -760,21 +760,9 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - incident
-    - user_id
-  model_name: sentry.incidentseen
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - event_stats_snapshot
     - incident
   model_name: sentry.incidentsnapshot
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - incident
-    - user_id
-  model_name: sentry.incidentsubscription
 - comparators:
   - class: DateUpdatedComparator
     fields:

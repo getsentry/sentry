@@ -179,9 +179,7 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if options.get("profiling.stack_trace_rules.enabled") and project.id in options.get(
-        "profiling.stack_trace_rules.allowed_project_ids"
-    ):
+    if options.get("profiling.stack_trace_rules.enabled"):
         try:
             with metrics.timer("process_profile.apply_stack_trace_rules"):
                 rules_config = project.get_option("sentry:grouping_enhancements")

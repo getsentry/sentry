@@ -40,7 +40,12 @@ export function MobileHeader({
 
   const modules = hasMobileScreens
     ? [ModuleName.MOBILE_SCREENS]
-    : [ModuleName.APP_START, ModuleName.SCREEN_LOAD, ModuleName.SCREEN_RENDERING];
+    : [
+        ModuleName.APP_START,
+        ModuleName.SCREEN_LOAD,
+        ModuleName.SCREEN_RENDERING,
+        ModuleName.HTTP,
+      ];
 
   if (!hasMobileScreens && hasMobileUi) {
     modules.push(ModuleName.MOBILE_UI);

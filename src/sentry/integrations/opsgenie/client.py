@@ -107,12 +107,12 @@ class OpsgenieClient(ApiClient):
                 notification_uuid=notification_uuid,
             )
         else:
-            # if we're acknowledging the alert—meaning that the Sentry alert was resolved
+            # if we're closing the alert—meaning that the Sentry alert was resolved
             if data.get("identifier"):
                 interaction_type = OnCallInteractionType.RESOLVE
                 alias = data["identifier"]
                 resp = self.post(
-                    f"/alerts/{alias}/acknowledge",
+                    f"/alerts/{alias}/close",
                     data={},
                     params={"identifierType": "alias"},
                     headers=headers,

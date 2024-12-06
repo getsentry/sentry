@@ -12,7 +12,6 @@ from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
-    NoFilenameOrModuleException,
     ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
@@ -302,7 +301,7 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
-    MOBILE_THREAD_DATA = {
+    MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
             "description": "in-app thread stack-trace",
@@ -855,28 +854,30 @@ class GetStacktraceStringTest(TestCase):
             == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
         )
 
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_no_filename_or_module(self, mock_metrics):
+    def test_no_filename_or_module(self):
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete module from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
-        with pytest.raises(NoFilenameOrModuleException):
-            get_stacktrace_string(exception)
-
-        stacktrace_string = get_stacktrace_string_with_metrics(
-            exception, "python", ReferrerOptions.INGEST
+        stacktrace_string = get_stacktrace_string(exception)
+        # It only includes the exception type and value because there's no filename or module
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
         )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_header_one_frame_no_filename(self, mock_metrics):
+        exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
+        # Remove filename
+        exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
+            "values"
+        ] = []
+        get_stacktrace_string(exception)
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        assert stacktrace_string is None
         mock_metrics.incr.assert_called_with(
-            "grouping.similarity.did_call_seer",
-            sample_rate=sample_rate,
-            tags={
-                "call_made": False,
-                "blocker": "no-module-or-filename",
-            },
+            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
         )
 
 

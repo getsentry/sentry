@@ -49,7 +49,6 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentSubscription,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -254,7 +253,6 @@ def create_incident_activity(
     user: RpcUser | User | None = None,
     value: str | int | None = None,
     previous_value: str | int | None = None,
-    mentioned_user_ids: Collection[int] = (),
     date_added: datetime | None = None,
 ) -> IncidentActivity:
     value = str(value) if value is not None else None
@@ -271,20 +269,6 @@ def create_incident_activity(
         notification_uuid=uuid4(),
         **kwargs,
     )
-
-    if mentioned_user_ids:
-        user_ids_to_subscribe = set(mentioned_user_ids) - set(
-            IncidentSubscription.objects.filter(
-                incident=incident, user_id__in=mentioned_user_ids
-            ).values_list("user_id", flat=True)
-        )
-        if user_ids_to_subscribe:
-            IncidentSubscription.objects.bulk_create(
-                [
-                    IncidentSubscription(incident=incident, user_id=mentioned_user_id)
-                    for mentioned_user_id in user_ids_to_subscribe
-                ]
-            )
     return activity
 
 
@@ -453,14 +437,6 @@ def get_incident_aggregates(
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
-
-
-def unsubscribe_from_incident(incident: Incident, user_id: int) -> None:
-    IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
-
-
-def get_incident_subscribers(incident: Incident) -> Iterable[IncidentSubscription]:
-    return IncidentSubscription.objects.filter(incident=incident)
 
 
 def get_incident_activity(incident: Incident) -> Iterable[IncidentActivity]:

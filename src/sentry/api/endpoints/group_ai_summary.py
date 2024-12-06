@@ -19,7 +19,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
@@ -57,9 +57,22 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
     }
 
     def _get_event(
-        self, group: Group, user: AbstractBaseUser | AnonymousUser
+        self,
+        group: Group,
+        user: AbstractBaseUser | AnonymousUser,
+        provided_event_id: str | None = None,
     ) -> tuple[dict[str, Any] | None, GroupEvent | None]:
-        event = group.get_recommended_event_for_environments()
+        event = None
+        if provided_event_id:
+            provided_event = eventstore.backend.get_event_by_id(
+                group.project.id, provided_event_id, group_id=group.id
+            )
+            if provided_event:
+                if isinstance(provided_event, Event):
+                    provided_event = provided_event.for_group(group)
+                event = provided_event
+        else:
+            event = group.get_recommended_event_for_environments()
         if not event:
             event = group.get_latest_event()
 
@@ -179,7 +192,12 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         if cached_summary := cache.get(cache_key):
             return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
 
-        serialized_event, event = self._get_event(group, request.user)
+        data = orjson.loads(request.body) if request.body else {}
+        force_event_id = data.get("event_id", None)
+
+        serialized_event, event = self._get_event(
+            group, request.user, provided_event_id=force_event_id
+        )
 
         if not serialized_event or not event:
             return Response({"detail": "Could not find an event for the issue"}, status=400)
@@ -197,9 +215,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         issue_summary = self._call_seer(
             group, serialized_event, connected_issues, serialized_events_for_connected_issues
         )
+        summary_dict = issue_summary.dict()
+        summary_dict["event_id"] = event.event_id
 
-        cache.set(cache_key, issue_summary.dict(), timeout=int(timedelta(days=7).total_seconds()))
+        cache.set(cache_key, summary_dict, timeout=int(timedelta(days=7).total_seconds()))
 
-        return Response(
-            convert_dict_key_case(issue_summary.dict(), snake_to_camel_case), status=200
-        )
+        return Response(convert_dict_key_case(summary_dict, snake_to_camel_case), status=200)
