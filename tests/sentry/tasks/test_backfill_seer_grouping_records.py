@@ -1763,53 +1763,73 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @with_feature("projects:similarity-embeddings-backfill")
+    @override_options({"similarity.backfill_total_worker_count": 1})
+    @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_reprocess_project_already_processed(
+    def test_backfill_seer_grouping_records_typical_backfill_request(
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test that projects that have a backfill completed project option are not skipped when not
-        passed the skip_processed_projects flag.
+        Test that projects that have the backfill completed option set are skipped when we backfill
+        all projects.
         """
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+        # Create two more projects and one of them is already backfilled
+        project2 = self.create_project(organization=self.organization)
+        project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+        project3 = self.create_project(organization=self.organization)
 
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+        with TaskRunner():
+            # This is the typical way of backfilling all projects
+            backfill_seer_grouping_records_for_project(
+                current_project_id=None,
+                last_processed_group_id_input=None,
+                skip_processed_projects=True,
+                enable_ingestion=True,
+                worker_number=0,
+            )
+
+        key = "backfill_seer_grouping_records"
+        # Since we set the total worker count to 1, the project cohort will have all projects
+        # except the one that has already been backfilled
+        cohort = [self.project.id, project3.id]
+        extra = {
+            "current_project_id": self.project.id,
+            "last_processed_group_id": None,
+            "cohort": cohort,
+            "last_processed_project_index": None,
+            "only_delete": False,
+            "skip_processed_projects": True,
+            "skip_project_ids": None,
+            "worker_number": 0,
+        }
         last_group_id = sorted(
             [group.id for group in Group.objects.filter(project_id=self.project.id)]
         )[0]
         expected_call_args_list = [
+            call(key, extra=extra),
             call(
-                "backfill_seer_grouping_records",
+                key,
                 extra={
-                    "current_project_id": self.project.id,
-                    "last_processed_group_id": None,
-                    "cohort": None,
-                    "last_processed_project_index": None,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
-                },
-            ),
-            call(
-                "backfill_seer_grouping_records",
-                extra={
-                    "current_project_id": self.project.id,
+                    **extra,
                     "last_processed_group_id": last_group_id,
-                    "cohort": None,
                     "last_processed_project_index": 0,
-                    "only_delete": False,
-                    "skip_processed_projects": False,
-                    "skip_project_ids": None,
-                    "worker_number": None,
                 },
             ),
-            call("backfill finished, no cohort", extra={"project_id": self.project.id}),
+            call(
+                key,
+                extra={
+                    **extra,
+                    "current_project_id": project3.id,
+                    "last_processed_project_index": 1,
+                },
+            ),
+            call("reached the end of the projects in cohort", extra={"worker_number": 0}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
+        assert project3.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
