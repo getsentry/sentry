@@ -24,4 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install tach==0.16.3
       - name: tach report upload
-        run: tach upload
+        run: |
+          cd src
+          tach upload
