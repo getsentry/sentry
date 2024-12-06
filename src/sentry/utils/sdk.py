@@ -26,8 +26,7 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
-
-# from sentry.utils.flag import FlagPoleIntegration
+from sentry.utils.flag import FlagPoleIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -466,8 +465,7 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
-            # Temporarily disabled.
-            # FlagPoleIntegration(),
+            FlagPoleIntegration(),
         ],
         **sdk_options,
     )
