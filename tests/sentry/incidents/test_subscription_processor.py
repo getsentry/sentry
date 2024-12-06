@@ -2956,6 +2956,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
 
+    @with_feature("organizations:workflow-engine-m3-dual-write")
+    def test_process_data_sources(self):
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type="metric_alert_fire")
+        data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
+        data_source.detectors.set([detector])
+        self.send_update(rule, 10)
+        # TODO: the rest of this
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
