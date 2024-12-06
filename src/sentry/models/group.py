@@ -219,11 +219,11 @@ STATUS_UPDATE_CHOICES = {
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
-    MOST_HELPFUL = [
+    RECOMMENDED = [
         "-replay.id",
-        "-profile.id",
-        "num_processing_errors",
         "-trace.sampled",
+        "num_processing_errors",
+        "-profile.id",
         "-timestamp",
         "-event_id",
     ]
@@ -298,7 +298,7 @@ def get_recommended_event_for_environments(
         end=end,
         conditions=all_conditions,
         limit=1,
-        orderby=EventOrdering.MOST_HELPFUL.value,
+        orderby=EventOrdering.RECOMMENDED.value,
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
