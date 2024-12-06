@@ -245,11 +245,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
         result_parts.append((header, frame_strings))
 
-    return generate_stacktrace_string(
-        result_parts,
-        frame_metrics["found_non_snipped_context_line"],
-        frame_metrics["html_frame_count"],
-    )
+    return generate_stacktrace_string(result_parts, frame_metrics)
 
 
 def generate_stacktrace_string(
