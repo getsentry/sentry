@@ -25,6 +25,10 @@ x-sentry-service-config:
         repo_name: sentry-shared-redis
         branch: main
         repo_link: git@github.com:getsentry/sentry-shared-redis.git
+    bigtable:
+      description: Bigtable emulator
+    redis-cluster:
+      description: Redis cluster used for testing
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
