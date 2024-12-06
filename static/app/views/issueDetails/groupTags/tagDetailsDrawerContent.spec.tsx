@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
@@ -124,6 +125,41 @@ describe('TagDetailsDrawerContent', () => {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',
       query: {query: 'user.username:david'},
+    });
+  });
+
+  it('navigates to discover with issue + tag query', async () => {
+    const {router} = init('user');
+    const discoverOrganization = OrganizationFixture({
+      features: ['discover-basic'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+    render(<TagDetailsDrawerContent group={group} />, {
+      router,
+      organization: discoverOrganization,
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
+    );
+    await userEvent.click(await screen.findByRole('link', {name: 'Open in Discover'}));
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/discover/results/',
+      query: {
+        dataset: 'errors',
+        field: ['title', 'release', 'environment', 'user.display', 'timestamp'],
+        interval: '4h',
+        name: 'RequestError: GET /issues/ 404',
+        project: '2',
+        query: 'issue:JAVASCRIPT-6QS user.username:david',
+        statsPeriod: '14d',
+        yAxis: ['count()', 'count_unique(user)'],
+      },
     });
   });
 
