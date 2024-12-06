@@ -6,7 +6,6 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from rest_framework.request import Request
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
@@ -32,7 +31,7 @@ logger = logging.getLogger(__name__)
 class TwoFactorAuthView(BaseView):
     auth_required = False
 
-    def perform_signin(self, request: Request, user, interface=None):
+    def perform_signin(self, request: HttpRequest, user, interface=None):
         assert auth.login(request, user, passed_2fa=True)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
@@ -46,12 +45,12 @@ class TwoFactorAuthView(BaseView):
                 )
         return rv
 
-    def fail_signin(self, request: Request, user, form):
+    def fail_signin(self, request: HttpRequest, user, form):
         # Ladies and gentlemen: the world's second-worst bruteforce prevention.
         time.sleep(2.0)
         form.errors["__all__"] = [_("Invalid confirmation code. Try again.")]
 
-    def negotiate_interface(self, request: Request, interfaces):
+    def negotiate_interface(self, request: HttpRequest, interfaces):
         # If there is only one interface, just pick that one.
         if len(interfaces) == 1:
             return interfaces[0]
