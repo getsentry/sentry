@@ -1154,7 +1154,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 last_processed_group_id_input=None,
                 cohort=None,
                 last_processed_project_index_input=0,
-                skip_processed_projects=True,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
@@ -1718,14 +1717,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
         """
-        Test that projects that have a backfill completed project option are skipped when passed
-        the skip_processed_projects flag.
+        Test that projects that have a backfill completed project option are skipped.
         """
         self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_processed_projects=True
-            )
+            backfill_seer_grouping_records_for_project(self.project.id, None)
 
         expected_call_args_list = [
             call(
@@ -1760,13 +1756,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test that projects that have a backfill completed project option are not skipped when not
-        passed the skip_processed_projects flag.
+        Test that projects that have a backfill completed project option are not skipped when skip_processed_projects flag is False.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(
+                self.project.id, None, skip_processed_projects=False
+            )
 
         last_group_id = sorted(
             [group.id for group in Group.objects.filter(project_id=self.project.id)]
@@ -1780,7 +1777,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": None,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": True,
+                    "skip_processed_projects": False,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
