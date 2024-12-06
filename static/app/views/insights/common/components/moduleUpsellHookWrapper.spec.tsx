@@ -6,12 +6,8 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 
 describe('ModulePageProviders', () => {
-  // beforeEach(() => {
-  // });
-
   afterEach(() => {
     jest.resetAllMocks();
   });
