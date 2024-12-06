@@ -14,7 +14,14 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
   group: Group;
-  options?: Pick<UseApiQueryOptions<IssueAttachment[]>, 'placeholderData'>;
+  options?: {
+    /**
+     * If true, the query will fetch all available attachments for the group, ignoring the
+     * current filters (for environment, date, query, etc).
+     */
+    fetchAllAvailable?: boolean;
+    placeholderData?: UseApiQueryOptions<IssueAttachment[]>['placeholderData'];
+  };
 }
 
 interface MakeFetchGroupEventAttachmentsQueryKeyOptions
@@ -102,6 +109,7 @@ export function useGroupEventAttachments({
   const eventQuery = useEventQuery({group});
   const eventView = useIssueDetailsEventView({group});
 
+  const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;
   const {
     data: attachments = [],
     isPending,
@@ -114,14 +122,14 @@ export function useGroupEventAttachments({
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      environment: eventView.environment as string[],
       // We only want to filter by date/query if we're using the Streamlined UI
-      start: hasStreamlinedUI ? eventView.start : undefined,
-      end: hasStreamlinedUI ? eventView.end : undefined,
-      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
-      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
+      environment: fetchAllAvailable ? undefined : (eventView.environment as string[]),
+      start: fetchAllAvailable ? undefined : eventView.start,
+      end: fetchAllAvailable ? undefined : eventView.end,
+      statsPeriod: fetchAllAvailable ? undefined : eventView.statsPeriod,
+      eventQuery: fetchAllAvailable ? undefined : eventQuery,
     }),
-    {...options, staleTime: 60_000}
+    {placeholderData: options?.placeholderData, staleTime: 60_000}
   );
   return {
     attachments,

@@ -54,7 +54,6 @@ describe('GroupEventAttachments', function () {
       url: `/organizations/org-slug/issues/${groupId}/attachments/`,
       body: [EventAttachmentFixture()],
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: TagsFixture(),

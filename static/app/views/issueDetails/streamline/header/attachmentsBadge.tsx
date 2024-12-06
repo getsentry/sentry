@@ -19,7 +19,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
   const attachments = useGroupEventAttachments({
     group,
     activeAttachmentsTab: 'all',
-    options: {placeholderData: keepPreviousData},
+    options: {placeholderData: keepPreviousData, fetchAllAvailable: true},
   });
 
   const attachmentPagination = parseLinkHeader(
@@ -50,7 +50,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         aria-label={t("View this issue's attachments")}
       >
         {hasManyAttachments
-          ? t('50+ Attachments')
+          ? t('100+ Attachments')
           : tn('%s Attachment', '%s Attachments', attachments.attachments.length)}
       </AttachmentButton>
     </Fragment>
