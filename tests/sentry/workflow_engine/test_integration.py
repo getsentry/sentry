@@ -51,7 +51,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
         self.group = self.create_group(
             project=self.project,
-            type=GroupCategory.METRIC_ALERT.value,
+            type=MetricAlertFire.type_id,
         )
 
         self.event = self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
@@ -86,10 +86,6 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
     def test_workflow_engine__workflows(self):
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-
-        import pdb
-        pdb.set_trace()
-
         self.call_post_process_group(self.event)
 
     # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
