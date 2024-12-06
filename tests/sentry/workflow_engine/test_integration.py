@@ -6,11 +6,9 @@ from uuid import uuid4
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
-
-# from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
 from sentry.types.group import PriorityLevel
 from sentry.utils.dates import parse_timestamp
@@ -49,23 +47,21 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         ) = self.create_detector_and_workflow()
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-        self.group = self.create_group(
-            project=self.project,
-            type=MetricAlertFire.type_id,
-        )
-
-        self.event = self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-        self.event.for_group(self.group)
-
+        self.event = self.store_event(data={}, project_id=self.project.id)
         occurrence_data = self.build_occurrence_data(
             event_id=self.event.event_id,
             project_id=self.project.id,
             fingerprint=[str(self.detector.id)],
             evidence_data={"detector_id": self.detector.id},
             type=MetricAlertFire.type_id,
-            category=GroupCategory.METRIC_ALERT.value,
         )
-        self.occurrence, _ = save_issue_occurrence(occurrence_data, self.event)
+
+        self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
+        assert group_info is not None
+
+        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
+        assert self.group is not None
+        assert self.group.type == MetricAlertFire.type_id
 
     def call_post_process_group(
         self, event, is_new=True, is_regression=False, is_new_group_environment=True, cache_key=None
@@ -86,6 +82,11 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
     def test_workflow_engine__workflows(self):
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
+
+        # import pdb
+
+        # pdb.set_trace()
+
         self.call_post_process_group(self.event)
 
     # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
