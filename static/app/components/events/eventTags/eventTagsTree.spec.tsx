@@ -1,5 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -61,7 +63,7 @@ describe('EventTagsTree', function () {
 
   const event = EventFixture({tags});
   const referrer = 'event-tags-table';
-  let mockDetailedProject;
+  let mockDetailedProject: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -106,7 +108,7 @@ describe('EventTagsTree', function () {
     for (const link of linkDropdowns) {
       await userEvent.click(link);
       expect(
-        await screen.findByLabelText('View issues with this tag value')
+        await screen.findByLabelText('Search issues with this tag value')
       ).toBeInTheDocument();
       expect(
         await screen.findByLabelText('View other events with this tag value')
@@ -188,7 +190,7 @@ describe('EventTagsTree', function () {
         renderGlobalModal();
         const linkElement = screen.getByText('https://example.com');
         await userEvent.click(linkElement);
-        expect(screen.getByTestId('external-link-warning')).toBeInTheDocument();
+        expect(await screen.findByTestId('external-link-warning')).toBeInTheDocument();
       },
     },
   ])(
@@ -204,7 +206,7 @@ describe('EventTagsTree', function () {
       const dropdown = screen.getByLabelText('Tag Actions Menu');
       await userEvent.click(dropdown);
       expect(screen.getByLabelText(labelText)).toBeInTheDocument();
-      await validateLink();
+      validateLink();
     }
   );
 
@@ -292,7 +294,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization,
     });
-    await expect(mockHighlightProject).toHaveBeenCalled();
+    expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     const normalTagRow = screen
@@ -331,7 +333,7 @@ describe('EventTagsTree', function () {
     render(<EventTags projectSlug={highlightProject.slug} event={highlightsEvent} />, {
       organization: readAccessOrganization,
     });
-    await expect(mockHighlightProject).toHaveBeenCalled();
+    expect(mockHighlightProject).toHaveBeenCalled();
     expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
 
     const normalTagRow = screen
@@ -340,5 +342,29 @@ describe('EventTagsTree', function () {
     const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
     await userEvent.click(normalTagDropdown);
     expect(screen.queryByLabelText('Add to event highlights')).not.toBeInTheDocument();
+  });
+
+  it('renders tag details link when on issue details route', async function () {
+    const highlightsEvent = EventFixture({
+      tags: [{key: 'useless-tag', value: 'not so much'}],
+    });
+    const issueDetailsRouter = RouterFixture({
+      location: LocationFixture({
+        pathname: `/organizations/${organization.slug}/issues/${event.groupID}/`,
+      }),
+    });
+
+    render(<EventTags projectSlug={project.slug} event={highlightsEvent} />, {
+      organization,
+      router: issueDetailsRouter,
+    });
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    const normalTagRow = screen
+      .getByText('useless-tag', {selector: 'div'})
+      .closest('div[data-test-id=tag-tree-row]') as HTMLElement;
+    const normalTagDropdown = within(normalTagRow).getByLabelText('Tag Actions Menu');
+    await userEvent.click(normalTagDropdown);
+    expect(await screen.findByLabelText('Tag breakdown')).toBeInTheDocument();
   });
 });

@@ -29,8 +29,6 @@ from sentry.tasks.embeddings_grouping.utils import (
 )
 from sentry.utils import metrics
 
-BACKFILL_NAME = "backfill_grouping_records"
-BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
 EVENT_INFO_EXCEPTIONS = (GroupingConfigNotFound, ResourceDoesNotExist, InvalidEnhancerConfig)
 
@@ -67,7 +65,9 @@ def backfill_seer_grouping_records_for_project(
     """
 
     if cohort is None and worker_number is not None:
-        cohort = create_project_cohort(worker_number, last_processed_project_id)
+        cohort = create_project_cohort(
+            worker_number, skip_processed_projects, last_processed_project_id
+        )
         if not cohort:
             logger.info(
                 "reached the end of the projects in cohort",
