@@ -58,7 +58,7 @@ def get_query_columns(columns, rollup):
 
 
 def resolve_axis_column(
-    column: str, index: int = 0, transform_alias_to_input_format: bool = True
+    column: str, index: int = 0, transform_alias_to_input_format: bool = False
 ) -> str:
     if is_equation(column):
         return f"equation[{index}]"
