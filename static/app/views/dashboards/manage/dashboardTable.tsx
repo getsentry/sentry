@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
@@ -6,10 +7,12 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
   updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -20,7 +23,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete} from 'sentry/icons';
+import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -50,6 +53,54 @@ enum ResponseKeys {
   OWNER = 'createdBy',
   ACCESS = 'permissions',
   CREATED = 'dateCreated',
+  FAVORITE = 'isFavorited',
+}
+
+type FavoriteButtonProps = {
+  api: Client;
+  dashboardId: string;
+  isFavorited: boolean;
+  organization: Organization;
+};
+
+function FavoriteButton({
+  isFavorited,
+  api,
+  organization,
+  dashboardId,
+}: FavoriteButtonProps) {
+  const [favorited, setFavorited] = useState(isFavorited);
+  return (
+    <Feature features="dashboards-favourite">
+      <StyledFavoriteButton
+        aria-label={t('Favorite Button')}
+        size="zero"
+        borderless
+        icon={
+          <IconStar
+            color={favorited ? 'yellow300' : 'gray300'}
+            isSolid={favorited}
+            aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            size="sm"
+          />
+        }
+        onClick={async () => {
+          try {
+            setFavorited(!favorited);
+            await updateDashboardFavorite(
+              api,
+              organization.slug,
+              dashboardId,
+              !favorited
+            );
+          } catch (error) {
+            // If the api call fails, revert the state
+            setFavorited(favorited);
+          }
+        }}
+      />
+    </Feature>
+  );
 }
 
 function DashboardTable({
@@ -60,20 +111,18 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder = organization.features.includes('dashboards-edit-access')
-    ? [
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-      ]
-    : [
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-      ];
+  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+    ...(organization.features.includes('dashboards-favourite')
+      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: 50}]
+      : []),
+    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+    {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+    ...(organization.features.includes('dashboards-edit-access')
+      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
+      : []),
+    {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+  ];
 
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
@@ -121,6 +170,17 @@ function DashboardTable({
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
   ) => {
+    if (column.key === ResponseKeys.FAVORITE) {
+      return (
+        <FavoriteButton
+          isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
+          api={api}
+          organization={organization}
+          dashboardId={dataRow.id}
+        />
+      );
+    }
+
     if (column.key === ResponseKeys.NAME) {
       return (
         <Link
@@ -232,6 +292,20 @@ function DashboardTable({
       columnSortBy={[]}
       grid={{
         renderBodyCell,
+        renderHeadCell: column => {
+          if (column.key === ResponseKeys.FAVORITE) {
+            return (
+              <Feature features="dashboards-favourite">
+                <StyledIconStar
+                  color="yellow300"
+                  isSolid
+                  aria-label={t('Favorite Column')}
+                />
+              </Feature>
+            );
+          }
+          return column.name;
+        },
       }}
       isLoading={isLoading}
       emptyMessage={
@@ -272,4 +346,14 @@ const ActionsIconWrapper = styled('div')`
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
+`;
+
+const StyledFavoriteButton = styled(Button)`
+  padding: 0;
+  width: 16px;
+  border: 3px solid transparent;
+`;
+
+const StyledIconStar = styled(IconStar)`
+  margin-left: ${space(0.5)};
 `;
