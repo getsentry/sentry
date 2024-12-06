@@ -215,19 +215,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
             return serialized
 
+        render_pre_built_dashboard = False
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
+                render_pre_built_dashboard = True
+
         return self.paginate(
             request=request,
-            sources=(
-                [dashboards]
-                if features.has(
-                    "organizations:dashboards-favourite", organization, actor=request.user
-                )
-                and filter_by
-                and filter_by == "onlyFavorites"
-                or pin_by
-                and pin_by == "favorites"
-                else [prebuilt, dashboards]
-            ),
+            sources=([dashboards] if render_pre_built_dashboard else [prebuilt, dashboards]),
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
