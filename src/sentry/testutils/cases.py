@@ -30,6 +30,7 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
+from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
@@ -275,7 +276,7 @@ class BaseTestCase(Fixtures):
         self,
         user=None,
         auth=None,
-        method=None,
+        method="get",
         is_superuser=False,
         is_staff=False,
         path="/",
@@ -284,18 +285,12 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = HttpRequest()
+        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
         if subdomain:
             setattr(request, "subdomain", subdomain)
-        if method:
-            request.method = method
-        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        if GET is not None:
-            for k, v in GET.items():
-                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
