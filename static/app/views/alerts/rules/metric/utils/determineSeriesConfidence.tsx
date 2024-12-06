@@ -4,20 +4,6 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {isEventsStats} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
-
-// Returns true if any of the time series are low confidence
-export function isLowConfidenceTimeSeries(
-  data: EventsStats | MultiSeriesEventsStats | null
-) {
-  if (data) {
-    if (isEventsStats(data)) {
-      return determineSeriesConfidence(data) === 'low';
-    }
-    return Object.values(data).some(d => determineSeriesConfidence(d) === 'low');
-  }
-  return false;
-}
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence
 const LOW_CONFIDENCE_THRESHOLD = 0.25;
@@ -63,7 +49,18 @@ export function determineSeriesConfidence(
   return 'high';
 }
 
-function combineConfidence(a: Confidence, b: Confidence): Confidence {
+export function determineMultiSeriesConfidence(
+  data: MultiSeriesEventsStats,
+  threshold = LOW_CONFIDENCE_THRESHOLD
+): Confidence {
+  return Object.values(data).reduce(
+    (acc, eventsStats) =>
+      combineConfidence(acc, determineSeriesConfidence(eventsStats, threshold)),
+    null as Confidence
+  );
+}
+
+export function combineConfidence(a: Confidence, b: Confidence): Confidence {
   if (!defined(a)) {
     return b;
   }
