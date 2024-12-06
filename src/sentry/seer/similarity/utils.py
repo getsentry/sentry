@@ -315,15 +315,16 @@ def _process_frames(
     frames: list[dict[str, Any]], frame_metrics: FramesMetrics
 ) -> tuple[list[str], FramesMetrics]:
     frame_strings = []
-    frame_count = frame_metrics["frame_count"]
 
     contributing_frames = [
         frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
     ]
-    if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
+    if len(contributing_frames) + frame_metrics["frame_count"] > MAX_FRAME_COUNT:
         frame_metrics["is_frames_truncated"] = True
-    contributing_frames = _discard_excess_frames(contributing_frames, MAX_FRAME_COUNT, frame_count)
-    frame_count += len(contributing_frames)
+    contributing_frames = _discard_excess_frames(
+        contributing_frames, MAX_FRAME_COUNT, frame_metrics["frame_count"]
+    )
+    frame_metrics["frame_count"] += len(contributing_frames)
 
     for frame in contributing_frames:
         frame_dict = extract_values_from_frame_values(frame.get("values", []))
