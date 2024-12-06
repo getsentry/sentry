@@ -1,5 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
+import {PlatformIcon} from 'platformicons';
+
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {TraceIcons} from '../traceIcons';
 import type {TraceTree} from '../traceModels/traceTree';
@@ -95,3 +99,18 @@ export function TracePerformanceIssueIcons(props: TracePerformanceIssueIconsProp
     </Fragment>
   );
 }
+
+export function SpanProjectIcon({platform}: {platform: string}) {
+  const hasTraceNewUi = useHasTraceNewUi();
+
+  if (!hasTraceNewUi) {
+    return null;
+  }
+
+  return <FaintProjectIcon platform={platform} />;
+}
+
+const FaintProjectIcon = styled(PlatformIcon)`
+  opacity: 0.2;
+  filter: grayscale(1);
+`;
