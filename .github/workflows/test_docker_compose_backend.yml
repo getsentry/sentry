@@ -39,11 +39,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh -vT git@github.com
 
       - name: Bring up devservices
-        run: |
-          git clone git@github.com:getsentry/snuba.git
-          devservices up --debug
+        run: devservices up --debug
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
