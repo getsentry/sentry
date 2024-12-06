@@ -64,9 +64,11 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
     ) -> tuple[dict[str, Any] | None, GroupEvent | None]:
         event = None
         if provided_event_id:
-            event = eventstore.backend.get_event_by_id(
+            provided_event = eventstore.backend.get_event_by_id(
                 group.project.id, provided_event_id, group_id=group.id
-            ).for_group(group)
+            )
+            if provided_event:
+                event = provided_event.for_group(group)
         else:
             event = group.get_recommended_event_for_environments()
         if not event:
