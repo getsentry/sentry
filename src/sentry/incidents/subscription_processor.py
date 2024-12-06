@@ -364,6 +364,8 @@ class SubscriptionProcessor:
         if features.has(
             "organizations:workflow-engine-m3-dual-write", self.subscription.project.organization
         ):
+            # NOTE: feed the data through the new pipeline, but don't do anything with it yet.
+            # This will change at some point.
             data_packet = DataPacket(
                 query_id=self.subscription.snuba_query.id, packet=subscription_update
             )
@@ -378,7 +380,6 @@ class SubscriptionProcessor:
                     "result": results,
                 },
             )
-            return None
         self.last_update = subscription_update["timestamp"]
 
         if (
