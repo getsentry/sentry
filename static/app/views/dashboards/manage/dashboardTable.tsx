@@ -74,7 +74,6 @@ function FavoriteButton({
     <Feature features="dashboards-favourite">
       <StyledFavoriteButton
         aria-label={t('Favorite Button')}
-        data-test-id="xx"
         size="zero"
         borderless
         icon={
@@ -300,7 +299,7 @@ function DashboardTable({
                 <StyledIconStar
                   color="yellow300"
                   isSolid
-                  aria-label={t('Favorite Header')}
+                  aria-label={t('Favorite Column')}
                 />
               </Feature>
             );
