@@ -8,7 +8,7 @@ import Count from 'sentry/components/count';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -20,7 +20,6 @@ import {
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -347,24 +346,24 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
               />
               {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                 <ChartFooter>
-                  {defined(extrapolationMetaResults.data?.[0]?.['count_sample()']) &&
-                  defined(
-                    extrapolationMetaResults.data?.[0]?.['avg_sample(sampling_rate)']
-                  )
-                    ? tct(
-                        '*[sampleCount] samples extrapolated with an average sampling rate of [sampleRate]',
-                        {
-                          sampleCount: (
-                            <Count
-                              value={extrapolationMetaResults.data[0]['count_sample()']}
-                            />
-                          ),
-                          sampleRate: formatPercentage(
-                            extrapolationMetaResults.data[0]['avg_sample(sampling_rate)']
-                          ),
-                        }
-                      )
-                    : t('foo')}
+                  {tct('Extrapolated from [sampleCount].', {
+                    sampleCount: defined(
+                      extrapolationMetaResults?.data?.[0]?.['count_sample()']
+                    ) ? (
+                      <Fragment>
+                        <Count
+                          value={extrapolationMetaResults.data[0]['count_sample()']}
+                        />
+                        {tn(
+                          ' sample',
+                          ' samples',
+                          extrapolationMetaResults.data[0]['count_sample()']
+                        )}
+                      </Fragment>
+                    ) : (
+                      '\u2026'
+                    ),
+                  })}
                 </ChartFooter>
               )}
             </ChartPanel>
@@ -395,7 +394,7 @@ function useExtrapolationMeta({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'avg_sample(sampling_rate)', 'min(sampling_rate)'],
+      fields: ['count_sample()', 'min(sampling_rate)'],
       query: search.formatString(),
       version: 2,
       dataset,
