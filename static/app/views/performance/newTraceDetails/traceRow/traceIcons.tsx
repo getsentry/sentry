@@ -1,5 +1,7 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
+import {PlatformIcon} from 'platformicons';
 
 import {TraceIcons} from '../traceIcons';
 import type {TraceTree} from '../traceModels/traceTree';
@@ -95,3 +97,8 @@ export function TracePerformanceIssueIcons(props: TracePerformanceIssueIconsProp
     </Fragment>
   );
 }
+
+export const SpanProjectIcon = styled(PlatformIcon)`
+  opacity: 0.2;
+  filter: grayscale(1);
+`;
