@@ -123,14 +123,27 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         return action_group, action
 
-    def create_group_event(self, project=None, occurrence=None) -> tuple[Group, Event, GroupEvent]:
+    def create_group_event(
+        self,
+        project=None,
+        event=None,
+        occurrence=None,
+        fingerprint: str | None = None,
+    ) -> tuple[Group, Event, GroupEvent]:
+        fingerprint = fingerprint or "test_fingerprint"
         project = project or self.project
-        group = self.create_group(project)
-        event = self.create_event(
+        group = self.create_group(project=project)
+
+        event = event or self.create_event(
             project.id,
             datetime.now(),
-            "test_fingerprint",
+            fingerprint,
         )
+
+        event.for_group = group
+
+        if occurrence is not None and occurrence.event_id is None:
+            occurrence.event_id = event.event_id
 
         group_event = GroupEvent(
             self.project.id,

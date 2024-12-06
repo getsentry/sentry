@@ -726,6 +726,9 @@ def run_post_process_job(job: PostProcessJob) -> None:
     ):
         return
 
+    import pdb
+    pdb.set_trace()
+
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
@@ -1001,8 +1004,14 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_workflow_engine(job: PostProcessJob) -> None:
+    import pdb
+
+    pdb.set_trace()
     if job["is_reprocessed"]:
         return
+
+    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
+    # If the flag is enabled, use the code below
 
     from sentry.workflow_engine.processors.workflow import process_workflows
 
@@ -1558,6 +1567,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
+        # TODO - Add process_workflow_engine to replace process_rules for issue alerts
         process_rules,
         process_service_hooks,
         process_resource_change_bounds,
