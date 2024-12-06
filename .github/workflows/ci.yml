@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    environment: tach-demo
+    env:
+      GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
+      GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +32,3 @@ jobs:
           cd src
           echo $GAUGE_API_BASE_URL
           tach upload
-        env:
-           GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
-           GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
