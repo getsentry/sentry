@@ -295,10 +295,7 @@ export type SavedQueryState = {
 
 export type Confidence = 'high' | 'low' | null;
 
-export type EventsStatsData = [
-  number,
-  {count: number; comparisonCount?: number; confidence?: Confidence}[],
-][];
+export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
 
 export type ConfidenceStatsData = [number, {count: Confidence}[]][];
 

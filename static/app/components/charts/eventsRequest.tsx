@@ -462,9 +462,6 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         data: data.map(([timestamp, countsForTimestamp]) => ({
           name: timestamp * 1000,
           value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
-          ...(countsForTimestamp[0]?.confidence
-            ? {confidence: countsForTimestamp[0].confidence}
-            : {}),
         })),
       },
     ];
