@@ -18,7 +18,7 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
+import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
 
