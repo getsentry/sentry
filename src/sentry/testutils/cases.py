@@ -1267,6 +1267,13 @@ class SnubaTestCase(BaseTestCase):
     def snuba_update_config(cls, config_vals):
         return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
 
+    def create_project(self, **kwargs) -> Project:
+        if "flags" not in kwargs:
+            # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
+            # application knows that events have been sent
+            kwargs["flags"] = Project.flags.has_transactions
+        return super().create_project(**kwargs)
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
