@@ -177,6 +177,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
             ]
+
         else:
             order_by = ["title"]
 
