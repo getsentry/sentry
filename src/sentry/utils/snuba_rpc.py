@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from typing import Protocol, TypeVar
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
@@ -35,6 +36,7 @@ SNUBA_INFO_FILE = os.environ.get("SENTRY_SNUBA_INFO_FILE", "")
 SNUBA_INFO = (
     os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1") or SNUBA_INFO_FILE
 )
+_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
 def log_snuba_info(content):
@@ -61,18 +63,46 @@ class SnubaRPCRequest(Protocol):
     ): ...
 
 
-def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
-    resp = _make_rpc_request("EndpointTraceItemTable", "v1", req.meta.referrer, req)
-    response = TraceItemTableResponse()
-    response.ParseFromString(resp.data)
-    return response
+def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
+    return make_rpc_requests(table_requests=requests)[0]
 
 
-def timeseries_rpc(req: TimeSeriesRequest) -> TimeSeriesResponse:
-    resp = _make_rpc_request("EndpointTimeSeries", "v1", req.meta.referrer, req)
-    response = TimeSeriesResponse()
-    response.ParseFromString(resp.data)
-    return response
+def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse]:
+    return make_rpc_requests(timeseries_requests=requests)[1]
+
+
+def make_rpc_requests(
+    table_requests: list[TraceItemTableRequest] | None = None,
+    timeseries_requests: list[TimeSeriesRequest] | None = None,
+) -> tuple[list[TraceItemTableResponse], list[TimeSeriesResponse]]:
+    """Given lists of requests batch and run them together"""
+    # Throw the two lists together, _make_rpc_requests will just run them all
+    table_requests = [] if table_requests is None else table_requests
+    timeseries_requests = [] if timeseries_requests is None else timeseries_requests
+    requests = table_requests + timeseries_requests
+
+    endpoint_names = [
+        "EndpointTraceItemTable" if isinstance(req, TraceItemTableRequest) else "EndpointTimeSeries"
+        for req in requests
+    ]
+    resp = _make_rpc_requests(
+        endpoint_names, "v1", [req.meta.referrer for req in requests], requests
+    )
+
+    # Split the results back up, _make_rpc_requests will return them back in order so we can use the type in the
+    # requests list to determine which request goes where
+    timeseries_results = []
+    table_results = []
+    for request, item in zip(requests, resp):
+        if isinstance(request, TraceItemTableRequest):
+            table_response = TraceItemTableResponse()
+            table_response.ParseFromString(item.data)
+            table_results.append(table_response)
+        elif isinstance(request, TimeSeriesRequest):
+            timeseries_response = TimeSeriesResponse()
+            timeseries_response.ParseFromString(item.data)
+            timeseries_results.append(timeseries_response)
+    return table_results, timeseries_results
 
 
 def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
@@ -133,38 +163,79 @@ def rpc(
     return resp
 
 
+def _make_rpc_requests(
+    endpoint_names: list[str],
+    class_version: str,
+    referrers: list[str | None],
+    requests: (
+        list[TraceItemTableRequest | TimeSeriesRequest]
+        | list[TraceItemTableRequest]
+        | list[TimeSeriesRequest]
+    ),
+) -> list[BaseHTTPResponse]:
+    assert (
+        len(referrers) == len(requests) == len(endpoint_names)
+    ), "Length of Referrers must match length of requests for making requests"
+    return [
+        result
+        for result in _query_thread_pool.map(
+            _make_rpc_request,
+            endpoint_names,
+            [class_version] * len(referrers),
+            referrers,
+            requests,
+            [sentry_sdk.Scope.get_isolation_scope()] * len(referrers),
+            [sentry_sdk.Scope.get_current_scope()] * len(referrers),
+        )
+    ]
+
+
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
     referrer: str | None,
     req: SnubaRPCRequest | CreateSubscriptionRequest,
+    thread_isolation_scope: sentry_sdk.Scope | None = None,
+    thread_current_scope: sentry_sdk.Scope | None = None,
 ) -> BaseHTTPResponse:
+    thread_isolation_scope = (
+        sentry_sdk.Scope.get_isolation_scope()
+        if thread_isolation_scope is None
+        else thread_isolation_scope
+    )
+    thread_current_scope = (
+        sentry_sdk.Scope.get_current_scope()
+        if thread_current_scope is None
+        else thread_current_scope
+    )
     if SNUBA_INFO:
         from google.protobuf.json_format import MessageToJson
 
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
-    with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
-        if referrer:
-            span.set_tag("snuba.referrer", referrer)
-        http_resp = _snuba_pool.urlopen(
-            "POST",
-            f"/rpc/{endpoint_name}/{class_version}",
-            body=req.SerializeToString(),
-            headers=(
-                {
-                    "referer": referrer,
-                }
-                if referrer
-                else {}
-            ),
-        )
-        if http_resp.status != 200 and http_resp.status != 202:
-            error = ErrorProto()
-            error.ParseFromString(http_resp.data)
-            if SNUBA_INFO:
-                log_snuba_info(f"{referrer}.error:\n{error}")
-            raise SnubaRPCError(error)
-        return http_resp
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.scope.use_scope(thread_current_scope):
+            with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
+                if referrer:
+                    span.set_tag("snuba.referrer", referrer)
+                http_resp = _snuba_pool.urlopen(
+                    "POST",
+                    f"/rpc/{endpoint_name}/{class_version}",
+                    body=req.SerializeToString(),
+                    headers=(
+                        {
+                            "referer": referrer,
+                        }
+                        if referrer
+                        else {}
+                    ),
+                )
+                if http_resp.status != 200 and http_resp.status != 202:
+                    error = ErrorProto()
+                    error.ParseFromString(http_resp.data)
+                    if SNUBA_INFO:
+                        log_snuba_info(f"{referrer}.error:\n{error}")
+                    raise SnubaRPCError(error)
+                return http_resp
 
 
 def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionResponse:

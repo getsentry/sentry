@@ -92,7 +92,7 @@ def run_table_query(
         limit=limit,
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
-    rpc_response = snuba_rpc.table_rpc(rpc_request)
+    rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
 
     """Process the results"""
     final_data: SnubaData = []
@@ -194,7 +194,7 @@ def run_timeseries_query(
     )
 
     """Run the query"""
-    rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
+    rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
 
     """Process the results"""
     result: SnubaData = []
@@ -232,7 +232,7 @@ def run_timeseries_query(
         comp_rpc_request = get_timeseries_query(
             comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
         )
-        comp_rpc_response = snuba_rpc.timeseries_rpc(comp_rpc_request)
+        comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
@@ -349,8 +349,7 @@ def run_top_events_timeseries_query(
     )
 
     """Run the query"""
-    rpc_response = snuba_rpc.timeseries_rpc(rpc_request)
-    other_response = snuba_rpc.timeseries_rpc(other_request)
+    rpc_response, other_response = snuba_rpc.timeseries_rpc([rpc_request, other_request])
 
     """Process the results"""
     map_result_key_to_timeseries = {}
