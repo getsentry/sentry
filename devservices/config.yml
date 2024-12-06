@@ -28,6 +28,7 @@ x-sentry-service-config:
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
+    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster]
 
 services:
   postgres:
@@ -54,6 +55,27 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     restart: unless-stopped
+  bigtable:
+    image: 'ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04'
+    ports:
+      - '127.0.0.1:8086:8086'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal: host-gateway
+  redis-cluster:
+    image: ghcr.io/getsentry/docker-redis-cluster:7.0.10
+    ports:
+      - '127.0.0.1:7000:7000'
+      - '127.0.0.1:7001:7001'
+      - '127.0.0.1:7002:7002'
+      - '127.0.0.1:7003:7003'
+      - '127.0.0.1:7004:7004'
+      - '127.0.0.1:7005:7005'
+    networks:
+      - devservices
+    environment:
+      - IP=0.0.0.0
 
 networks:
   devservices:
