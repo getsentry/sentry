@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 from typing import Protocol, TypeVar
 
 import sentry_protos.snuba.v1alpha.request_common_pb2
@@ -176,16 +177,21 @@ def _make_rpc_requests(
     assert (
         len(referrers) == len(requests) == len(endpoint_names)
     ), "Length of Referrers must match length of requests for making requests"
+
+    # Sets the thread parameters once so we're not doing it in the map repeatedly
+    partial_request = partial(
+        _make_rpc_request,
+        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+    )
     return [
         result
         for result in _query_thread_pool.map(
-            _make_rpc_request,
+            partial_request,
             endpoint_names,
             [class_version] * len(referrers),
             referrers,
             requests,
-            [sentry_sdk.Scope.get_isolation_scope()] * len(referrers),
-            [sentry_sdk.Scope.get_current_scope()] * len(referrers),
         )
     ]
 
