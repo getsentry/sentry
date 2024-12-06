@@ -301,11 +301,13 @@ class ClientConfigViewTest(TestCase):
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/issues/", 302)
                 ]
-                assert self.client.session["activeorg"] == other_org.slug
             else:
                 assert response.redirect_chain == [
                     (f"http://{other_org.slug}.testserver/auth/login/{other_org.slug}/", 302)
                 ]
+            if is_superuser or is_staff:
+                assert self.client.session["activeorg"] == other_org.slug
+            else:
                 assert "activeorg" not in self.client.session
 
         # lastOrganization is set

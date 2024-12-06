@@ -22,6 +22,7 @@ from sentry.types.region import (
 )
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -86,6 +87,7 @@ class ReactMixin:
         return domains
 
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
+        org_context = getattr(self, "active_organization", None)
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -97,7 +99,8 @@ class ReactMixin:
             # Rendering the layout requires serializing the active organization.
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
-            "org_context": getattr(self, "active_organization", None),
+            "org_context": org_context,
+            "react_config": get_client_config(request, org_context),
         }
 
         # Force a new CSRF token to be generated and set in user's

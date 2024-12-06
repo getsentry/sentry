@@ -74,8 +74,7 @@ def _resolve_redirect_url(request, activeorg):
 
     path = reverse(result.url_name or result.func, kwargs=kwargs)
     qs = _query_string(request)
-    redirect_url = f"{redirect_url}{path}{qs}"
-    return redirect_url
+    return f"{redirect_url}{path}{qs}"
 
 
 class CustomerDomainMiddleware:
