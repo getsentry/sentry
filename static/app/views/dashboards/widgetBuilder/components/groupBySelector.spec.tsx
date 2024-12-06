@@ -12,7 +12,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('NewWidgetBuiler', function () {
+describe('WidgetBuilderGroupBySelector', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/spans/fields/',
