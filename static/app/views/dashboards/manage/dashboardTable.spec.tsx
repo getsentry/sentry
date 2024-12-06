@@ -50,6 +50,7 @@ describe('Dashboards - DashboardTable', function () {
           isEditableByEveryone: false,
           teamsWithEditAccess: [1],
         },
+        isFavorited: true,
       }),
       DashboardListItemFixture({
         id: '2',
@@ -311,5 +312,44 @@ describe('Dashboards - DashboardTable', function () {
     expect(screen.getByText('Access')).toBeInTheDocument();
     await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]);
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+  });
+
+  it('renders favorite column', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/favorite/',
+      method: 'PUT',
+      body: {isFavorited: false},
+    });
+
+    const organizationWithFavorite = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-favourite',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithFavorite}
+        dashboards={dashboards}
+        location={router.location}
+      />,
+      {
+        organization: organizationWithFavorite,
+      }
+    );
+
+    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+
+    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
   });
 });
