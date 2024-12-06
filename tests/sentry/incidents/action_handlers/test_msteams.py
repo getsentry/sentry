@@ -23,6 +23,7 @@ from sentry.integrations.msteams.card_builder.block import (
     TextBlock,
 )
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
@@ -70,7 +71,8 @@ class MsTeamsActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def run_test(self, incident, method):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def run_test(self, incident, method, mock_record):
         from sentry.integrations.msteams.card_builder.incident_attachment import (
             build_incident_attachment,
         )
@@ -91,6 +93,11 @@ class MsTeamsActionHandlerTest(FireTest):
         assert data["attachments"][0]["content"] == build_incident_attachment(
             incident, IncidentStatus(incident.status), metric_value
         )
+
+        assert len(mock_record.mock_calls) == 2
+        start, end = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert end.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     def test_build_incident_attachment(self):
@@ -213,3 +220,28 @@ class MsTeamsActionHandlerTest(FireTest):
             handler.fire(metric_value, IncidentStatus(incident.status))
 
         assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_fire_metric_alert_failure(self, mock_record):
+        self.alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/d_s/activities",
+            status=500,
+            json={},
+        )
+
+        handler = MessagingActionHandler(self.action, incident, self.project, self.spec)
+        metric_value = 1000
+        with self.tasks():
+            getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
+
+        assert len(mock_record.mock_calls) == 2
+        start, end = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert end.args[0] == EventLifecycleOutcome.FAILURE
