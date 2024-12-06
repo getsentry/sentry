@@ -42,3 +42,23 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "percentage": FLOAT,
     "string": STRING,
 }
+
+# https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
+# The RPC limits us to 1000 points per timeseries
+MAX_ROLLUP_POINTS = 1000
+# Copied from snuba, a number of total seconds
+VALID_GRANULARITIES = frozenset(
+    {
+        15,
+        30,
+        60,  # seconds
+        2 * 60,
+        5 * 60,
+        10 * 60,
+        30 * 60,  # minutes
+        1 * 3600,
+        3 * 3600,
+        12 * 3600,
+        24 * 3600,  # hours
+    }
+)
