@@ -266,7 +266,7 @@ def build_metric_alert_chart(
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
         query_str
-        if is_crash_free_alert
+        if is_crash_free_alert or dataset == Dataset.EventsAnalyticsPlatform
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
             query_str,
