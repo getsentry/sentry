@@ -6,7 +6,7 @@ import TextArea from 'sentry/components/forms/controls/textarea';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/sectionHeader';
+import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
