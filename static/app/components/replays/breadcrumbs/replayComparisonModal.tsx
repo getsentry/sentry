@@ -2,9 +2,11 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
+import AnalyticsArea from 'sentry/components/analyticsArea';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LearnMoreButton from 'sentry/components/replays/diff/learnMoreButton';
 import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons/iconInfo';
@@ -37,55 +39,58 @@ export default function ReplayComparisonModal({
 
   return (
     <OrganizationContext.Provider value={organization}>
-      <Header closeButton>
-        <ModalHeader>
-          <Title>
-            {t('Hydration Error')}
-            <Tooltip
-              isHoverable
-              title={tct(
-                'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors]',
-                {
-                  boldBefore: <Before />,
-                  boldAfter: <After />,
-                  link: (
-                    <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
-                  ),
-                }
+      <AnalyticsArea name="hydration-error-modal">
+        <Header closeButton>
+          <ModalHeader>
+            <Title>
+              {t('Hydration Error')}
+              <Tooltip
+                isHoverable
+                title={tct(
+                  'This modal helps with debugging hydration errors by diffing the DOM before and after the app hydrated. [boldBefore:Before] refers to the HTML rendered on the server. [boldAfter:After] refers to the HTML rendered on the client. Read more about [link:resolving hydration errors].',
+                  {
+                    boldBefore: <Before />,
+                    boldAfter: <After />,
+                    link: (
+                      <ExternalLink href="https://sentry.io/answers/hydration-error-nextjs/" />
+                    ),
+                  }
+                )}
+              >
+                <IconInfo />
+              </Tooltip>
+            </Title>
+            <LearnMoreButton />
+            {focusTrap ? (
+              <FeedbackWidgetButton
+                optionOverrides={{
+                  onFormOpen: () => {
+                    focusTrap.pause();
+                  },
+                  onFormClose: () => {
+                    focusTrap.unpause();
+                  },
+                }}
+              />
+            ) : null}
+          </ModalHeader>
+        </Header>
+        <Body>
+          {isSameTimestamp ? (
+            <Alert type="warning" showIcon>
+              {t(
+                "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
               )}
-            >
-              <IconInfo />
-            </Tooltip>
-          </Title>
-          {focusTrap ? (
-            <FeedbackWidgetButton
-              optionOverrides={{
-                onFormOpen: () => {
-                  focusTrap.pause();
-                },
-                onFormClose: () => {
-                  focusTrap.unpause();
-                },
-              }}
-            />
+            </Alert>
           ) : null}
-        </ModalHeader>
-      </Header>
-      <Body>
-        {isSameTimestamp ? (
-          <Alert type="warning" showIcon>
-            {t(
-              "Cannot display diff for this hydration error. Sentry wasn't able to identify the correct event."
-            )}
-          </Alert>
-        ) : null}
 
-        <ReplayDiffChooser
-          replay={replay}
-          leftOffsetMs={leftOffsetMs}
-          rightOffsetMs={rightOffsetMs}
-        />
-      </Body>
+          <ReplayDiffChooser
+            replay={replay}
+            leftOffsetMs={leftOffsetMs}
+            rightOffsetMs={rightOffsetMs}
+          />
+        </Body>
+      </AnalyticsArea>
     </OrganizationContext.Provider>
   );
 }
