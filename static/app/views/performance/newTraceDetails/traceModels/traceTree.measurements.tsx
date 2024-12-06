@@ -125,10 +125,13 @@ export function collectTraceMeasurements(
     WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
     MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
 
+    const score = measurements[`score.${measurement}`]?.value;
+
     const vital = vitals.get(node)!;
     vital.push({
       key: measurement,
       measurement: value,
+      score,
     });
 
     if (!RENDERABLE_MEASUREMENTS[measurement]) {
@@ -141,7 +144,7 @@ export function collectTraceMeasurements(
       value.unit ?? 'millisecond'
     );
 
-    indicators.push({
+    const indicator: TraceTree.Indicator = {
       start: timestamp,
       duration: 0,
       measurement: value,
@@ -150,7 +153,9 @@ export function collectTraceMeasurements(
         : false,
       type: measurement as TraceTree.Indicator['type'],
       label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
-    });
+    };
+
+    indicators.push(indicator);
   }
 
   return indicators;
