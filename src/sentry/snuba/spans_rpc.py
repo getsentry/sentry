@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import FLOAT, INT, STRING
+from sentry.search.eap.constants import FLOAT, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -179,6 +179,22 @@ def get_timeseries_query(
     )
 
 
+def validate_granularity(
+    params: SnubaParams,
+    granularity_secs: int,
+) -> None:
+    """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
+    but the RPC adds additional rules on validation so those are checked here"""
+    if params.date_range.total_seconds() / granularity_secs > MAX_ROLLUP_POINTS:
+        raise InvalidSearchQuery(
+            "Selected interval would create too many buckets for the timeseries"
+        )
+    if granularity_secs not in VALID_GRANULARITIES:
+        raise InvalidSearchQuery(
+            f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
+        )
+
+
 def run_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -189,6 +205,7 @@ def run_timeseries_query(
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
+    validate_granularity(params, granularity_secs)
     rpc_request = get_timeseries_query(
         params, query_string, y_axes, [], referrer, config, granularity_secs
     )
@@ -306,6 +323,7 @@ def run_top_events_timeseries_query(
     This is because at time of writing, the query construction is very straightforward, if that changes perhaps we can
     change this"""
     """Make a table query first to get what we need to filter by"""
+    validate_granularity(params, granularity_secs)
     search_resolver = SearchResolver(params, config)
     top_events = run_table_query(
         params,
@@ -318,6 +336,8 @@ def run_top_events_timeseries_query(
         config,
         search_resolver=search_resolver,
     )
+    if len(top_events["data"]) == 0:
+        return {}
     # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
     groupby_columns = [col for col in raw_groupby if not is_function(col)]
     groupby_columns_without_project = [
