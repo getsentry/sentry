@@ -6,12 +6,13 @@ exclude = [
     "tests",
 ]
 source_roots = [
-    "src",
+    ".",
 ]
 
 [[modules]]
 path = "<root>"
 depends_on = [
+    { path = "sentry._importchecker" },
     { path = "sentry.db" },
     { path = "sentry.eventstore" },
     { path = "sentry.exceptions" },
@@ -26,11 +27,22 @@ depends_on = [
     { path = "sentry.options" },
     { path = "sentry.organizations" },
     { path = "sentry.plugins" },
-    { path = "sentry.runner" },
     { path = "sentry.shared_integrations" },
     { path = "sentry.tagstore" },
     { path = "sentry.users" },
     { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.__main__"
+depends_on = [
+    { path = "sentry.runner" },
+]
+
+[[modules]]
+path = "sentry._importchecker"
+depends_on = [
+    { path = "<root>" },
 ]
 
 [[modules]]
