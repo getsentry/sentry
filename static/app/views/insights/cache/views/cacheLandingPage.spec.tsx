@@ -313,7 +313,7 @@ describe('CacheLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    render(<CacheLandingPage />);
+    render(<CacheLandingPage />, {organization});
 
     await waitFor(() => {
       expect(
