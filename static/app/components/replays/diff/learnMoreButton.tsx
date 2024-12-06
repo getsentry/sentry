@@ -43,12 +43,12 @@ function Buttons() {
       <Resource
         title={t('Debugging Hydration Errors')}
         subtitle={t(
-          'Learn about the tools Sentry has to help debug why a Hydration Error is happening.'
+          'Learn about the tools Sentry offers to help debug why a Hydration Error is happening.'
         )}
         link="https://docs.sentry.io/product/issues/issue-details/replay-issues/hydration-error/#debugging-hydration-errors"
       />
       <Resource
-        title={t('Fixing hydration errors')}
+        title={t('Fixing Hydration Errors')}
         subtitle={t(
           'Read more about why Hydration Errors occur, and how to prevent them.'
         )}
