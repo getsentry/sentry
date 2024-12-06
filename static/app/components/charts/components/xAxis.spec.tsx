@@ -58,6 +58,26 @@ describe('Chart XAxis', function () {
           expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 9 12:00 AM');
         });
       });
+
+      describe('Multiline', () => {
+        beforeEach(function () {
+          xAxisObj = XAxis({
+            ...props,
+            useMultilineDate: true,
+            period: '7d',
+          });
+
+          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+        });
+
+        it('formats axis label for first data point', function () {
+          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8\n5:00 PM');
+        });
+
+        it('formats axis label for second data point', function () {
+          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8\n5:00 PM');
+        });
+      });
     });
 
     describe('With Period <= 24h', function () {
@@ -94,6 +114,27 @@ describe('Chart XAxis', function () {
 
         it('formats axis label for first data point', function () {
           expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
+        });
+
+        it('formats axis label for second data point', function () {
+          expect(axisLabelFormatter(timestamp, 1)).toEqual('12:00 AM');
+        });
+      });
+
+      describe('Multiline', () => {
+        beforeEach(function () {
+          xAxisObj = XAxis({
+            ...props,
+            useMultilineDate: true,
+            period: '24h',
+            utc: true,
+          });
+
+          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+        });
+
+        it('formats axis label for first data point', function () {
+          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9\n12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
