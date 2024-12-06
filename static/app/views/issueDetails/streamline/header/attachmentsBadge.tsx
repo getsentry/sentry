@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import {IconAttachment} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
@@ -50,7 +50,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
         aria-label={t("View this issue's attachments")}
       >
         {hasManyAttachments
-          ? t('100+ Attachments')
+          ? tct('[count]+ Attachments', {count: attachments.attachments.length})
           : tn('%s Attachment', '%s Attachments', attachments.attachments.length)}
       </AttachmentButton>
     </Fragment>
