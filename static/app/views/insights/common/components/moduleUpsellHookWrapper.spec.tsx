@@ -27,7 +27,7 @@ describe('ModulePageProviders', () => {
     await screen.findByText(`You don't have access to this feature`);
   });
 
-  it('renders module content if feature is module feature is available', async () => {
+  it('renders module content if module is enabled', async () => {
     render(
       <ModuleBodyUpsellHook moduleName={ModuleName.DB}>
         <div>Module Content</div>
