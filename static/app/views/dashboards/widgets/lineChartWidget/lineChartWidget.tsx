@@ -55,7 +55,6 @@ export function LineChartWidget(props: Props) {
           <LineChartWidgetVisualization
             timeseries={timeseries}
             releases={props.releases}
-            utc={props.utc}
             meta={props.meta}
             dataCompletenessDelay={props.dataCompletenessDelay}
           />

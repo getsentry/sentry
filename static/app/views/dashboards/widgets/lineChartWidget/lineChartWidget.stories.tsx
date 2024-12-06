@@ -69,9 +69,7 @@ export default storyBook(LineChartWidget, story => {
         <p>
           The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
           some bells and whistles including automatic axes labels, and a hover tooltip.
-          Like other widgets, it automatically fills the parent element. The{' '}
-          <code>utc</code> prop controls whether the X Axis timestamps are shown in UTC or
-          not.
+          Like other widgets, it automatically fills the parent element.
         </p>
         <SmallSizingWindow>
           <LineChartWidget
@@ -105,7 +103,6 @@ export default storyBook(LineChartWidget, story => {
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
-              utc
               meta={{
                 fields: {
                   'p99(span.duration)': 'duration',
