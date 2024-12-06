@@ -192,6 +192,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     )
                 ]
                 dashboards = dashboards.order_by(*order_by_favorites, *order_by)
+            else:
+                dashboards = dashboards.order_by(*order_by)
         else:
             dashboards = dashboards.order_by(*order_by)
 
