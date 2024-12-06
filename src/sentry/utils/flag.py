@@ -16,17 +16,11 @@ class FlagPoleIntegration(Integration):
 
 
 def flag_error_processor(event, exc_info):
-    try:
-        scope = sentry_sdk.get_current_scope()
-        event["contexts"]["flags"] = {"values": scope.flags.get()}
-        return event
-    except Exception:
-        logger.exception("Flag serialization failed")
+    scope = sentry_sdk.get_current_scope()
+    event["contexts"]["flags"] = {"values": scope.flags.get()}
+    return event
 
 
 def flag_pole_hook(flag: str, result: bool):
-    try:
-        flags = sentry_sdk.get_current_scope().flags
-        flags.set(flag, result)
-    except Exception:
-        logger.exception("Set flag failed")
+    flags = sentry_sdk.get_current_scope().flags
+    flags.set(flag, result)
