@@ -32,8 +32,8 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
     backfill_seer_grouping_records_for_project,
 )
+from sentry.tasks.embeddings_grouping.constants import PROJECT_BACKFILL_COMPLETED
 from sentry.tasks.embeddings_grouping.utils import (
-    PROJECT_BACKFILL_COMPLETED,
     _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
