@@ -1812,20 +1812,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         expected_call_args_list = [
             call(key, extra=extra),
             call(
-                f"{key}.start",
-                extra={"project_id": self.project.id, "last_processed_index": None},
-            ),
-            call(
                 key,
                 extra={
                     **extra,
                     "last_processed_group_id": last_group_id,
                     "last_processed_project_index": 0,
                 },
-            ),
-            call(
-                f"{key}.start",
-                extra={"project_id": self.project.id, "last_processed_index": 1},
             ),
             call(
                 key,
@@ -1835,13 +1827,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "last_processed_project_index": 1,
                 },
             ),
-            call(
-                f"{key}.start",
-                extra={"project_id": project3.id, "last_processed_index": None},
-            ),
             call("reached the end of the projects in cohort", extra={"worker_number": 0}),
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
+        assert project3.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
