@@ -41,7 +41,7 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Bring up devservices
-        run: devservices up
+        run: devservices up --debug
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing

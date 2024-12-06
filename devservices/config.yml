@@ -25,6 +25,13 @@ x-sentry-service-config:
         repo_name: sentry-shared-redis
         branch: main
         repo_link: git@github.com:getsentry/sentry-shared-redis.git
+    symbolicator:
+      description: A symbolication service for native stacktraces and minidumps with symbol server support
+      remote:
+        repo_name: symbolicator
+        branch: master
+        repo_link: git@github.com:getsentry/symbolicator.git
+        mode: default
     bigtable:
       description: Bigtable emulator
     redis-cluster:
@@ -32,7 +39,7 @@ x-sentry-service-config:
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
-    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster]
+    backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
 
 services:
   postgres:
