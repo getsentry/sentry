@@ -43,6 +43,7 @@ from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_recor
 from sentry.tasks.embeddings_grouping.constants import (
     BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     BACKFILL_NAME,
+    PROJECT_BACKFILL_COMPLETED,
 )
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
@@ -101,7 +102,11 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
     return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
 
 
-def create_project_cohort(worker_number: int, last_processed_project_id: int | None) -> list[int]:
+def create_project_cohort(
+    worker_number: int,
+    skip_processed_projects: bool,
+    last_processed_project_id: int | None,
+) -> list[int]:
     """
     Create project cohort by the following calculation: project_id % threads == worker_number
     to assign projects uniquely to available threads
@@ -112,9 +117,11 @@ def create_project_cohort(worker_number: int, last_processed_project_id: int | N
     total_worker_count = options.get("similarity.backfill_total_worker_count")
     cohort_size = options.get("similarity.backfill_project_cohort_size")
 
+    query = Project.objects.filter(project_id_filter)
+    if skip_processed_projects:
+        query = query.exclude(projectoption__key=PROJECT_BACKFILL_COMPLETED)
     project_cohort_list = (
-        Project.objects.filter(project_id_filter)
-        .values_list("id", flat=True)
+        query.values_list("id", flat=True)
         .extra(where=["id %% %s = %s"], params=[total_worker_count, worker_number])
         .order_by("id")[:cohort_size]
     )
@@ -215,7 +222,7 @@ def get_current_batch_groups_from_postgres(
                 "backfill_seer_grouping_records.enable_ingestion",
                 extra={"project_id": project.id},
             )
-            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+            project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
         return (
             groups_to_backfill_batch,
