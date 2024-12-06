@@ -13,7 +13,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanSummaryPage', function () {
   const organization = OrganizationFixture({
-    features: ['insights-related-issues-table'],
+    features: ['insights-related-issues-table', 'insights-initial-modules'],
   });
   const group = GroupFixture();
 
