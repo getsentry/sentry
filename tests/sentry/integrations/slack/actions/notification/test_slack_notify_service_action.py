@@ -2,14 +2,16 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import orjson
+from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
 
@@ -75,9 +77,10 @@ class TestInit(RuleTestCase):
         )
         assert instance.rule_fire_history is None
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after(self, mock_api_call, mock_post):
+    def test_after(self, mock_api_call, mock_post, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -99,8 +102,18 @@ class TestInit(RuleTestCase):
 
         assert NotificationMessage.objects.all().count() == 0
 
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_after_error(self, mock_metrics):
+    def test_after_error(self, mock_metrics, mock_record):
         # tests error flow because we're actually trying to POST
 
         rule = self.get_rule(data=self.action_data)
@@ -115,10 +128,20 @@ class TestInit(RuleTestCase):
 
         assert NotificationMessage.objects.all().count() == 0
 
-    @with_feature("organizations:slack-thread-issue-alert")
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_failure, send_notification_start, send_notification_failure = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_failure.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_failure_metric(mock_record, SlackApiError(message="", response={}))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_with_threads(self, mock_api_call, mock_post):
+    def test_after_with_threads(self, mock_api_call, mock_post, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -140,10 +163,19 @@ class TestInit(RuleTestCase):
 
         assert NotificationMessage.objects.all().count() == 1
 
-    @with_feature("organizations:slack-thread-issue-alert")
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_after_reply_in_thread(self, mock_api_call, mock_post):
+    def test_after_reply_in_thread(self, mock_api_call, mock_post, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -190,6 +222,15 @@ class TestInit(RuleTestCase):
         assert (
             NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
         )
+
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.metrics")

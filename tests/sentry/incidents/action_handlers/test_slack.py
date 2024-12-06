@@ -3,6 +3,7 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
+from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
@@ -15,8 +16,10 @@ from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
@@ -103,10 +106,11 @@ class SlackActionHandlerTest(FireTest):
         assert attachments[0]["blocks"][0] in slack_body["blocks"]
         assert mock_post.call_args.kwargs["text"] == slack_body["text"]
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("sentry.integrations.slack.utils.notifications.metrics")
-    def test_fire_metric_alert_sdk(self, mock_metrics, mock_post, mock_api_call):
+    def test_fire_metric_alert_sdk(self, mock_metrics, mock_post, mock_api_call, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -122,8 +126,18 @@ class SlackActionHandlerTest(FireTest):
             sample_rate=1.0,
         )
 
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.utils.notifications.metrics")
-    def test_fire_metric_alert_sdk_error(self, mock_metrics):
+    def test_fire_metric_alert_sdk_error(self, mock_metrics, mock_record):
         self.run_fire_test()
 
         assert NotificationMessage.objects.all().count() == 1
@@ -138,7 +152,19 @@ class SlackActionHandlerTest(FireTest):
             tags={"ok": False, "status": 200},
         )
 
-    def test_resolve_metric_alert_no_threading(self):
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_failure, send_notification_start, send_notification_failure = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_failure.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_failure_metric(mock_record, SlackApiError(message="", response={}))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_resolve_metric_alert_no_threading(self, mock_post, mock_record):
         OrganizationOption.objects.set_value(
             self.organization, "sentry:metric_alerts_thread_flag", False
         )
@@ -149,12 +175,23 @@ class SlackActionHandlerTest(FireTest):
             incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
         )
 
-        self.run_test(incident, "resolve")
+        self.run_test(incident, "resolve", mock_post=mock_post)
 
         # we still save the message even if threading is disabled
         assert NotificationMessage.objects.all().count() == 1
 
-    def test_resolve_metric_alert_with_threading(self):
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_resolve_metric_alert_with_threading(self, mock_post, mock_record):
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
         )
@@ -162,10 +199,19 @@ class SlackActionHandlerTest(FireTest):
         update_incident_status(
             incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
         )
-        self.run_test(incident, "resolve")
+        self.run_test(incident, "resolve", mock_post=mock_post)
         assert (
             NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
         )
+
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
     def test_fire_metric_alert_with_chart(self):
         self.run_fire_test(chart_url="chart-url")
