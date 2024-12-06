@@ -57,7 +57,9 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.unowned_published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.unowned_published_app.slug])
+        url = reverse(
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.unowned_published_app.slug]
+        )
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 2
@@ -77,7 +79,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
         )
 
         url = reverse(
-            "sentry-api-0-sentry-app-requests-v2", args=[self.unowned_unpublished_app.slug]
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.unowned_unpublished_app.slug]
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200
@@ -95,7 +97,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -114,7 +116,9 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.unowned_published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.unowned_published_app.slug])
+        url = reverse(
+            "sentry-api-0-sentry-app-webhook-requests", args=[self.unowned_published_app.slug]
+        )
         response = self.client.get(url, format="json")
         assert response.status_code == 403
         assert response.data["detail"] == "You do not have permission to perform this action."
@@ -130,7 +134,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.unpublished_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.unpublished_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.unpublished_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -145,7 +149,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.internal_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.internal_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.internal_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -169,7 +173,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response1 = self.client.get(f"{url}?eventType=issue.created", format="json")
         assert response1.status_code == 200
         assert len(response1.data) == 0
@@ -185,7 +189,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
     def test_invalid_event_type(self):
         self.login_as(user=self.user)
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response = self.client.get(f"{url}?eventType=invalid_type", format="json")
 
         assert response.status_code == 400
@@ -206,7 +210,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         errors_only_response = self.client.get(f"{url}?errorsOnly=true", format="json")
         assert errors_only_response.status_code == 200
         assert len(errors_only_response.data) == 1
@@ -233,7 +237,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             project_id=1000,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -258,7 +262,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
         assert made_up_org_response.status_code == 400
         assert made_up_org_response.data["detail"] == "Invalid organization."
@@ -297,7 +301,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
                 url=self.published_app.webhook_url,
             )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert len(response.data) == 3
@@ -368,7 +372,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
                 url=self.published_app.webhook_url,
             )
 
-        url = reverse("sentry-api-0-sentry-app-requests-v2", args=[self.published_app.slug])
+        url = reverse("sentry-api-0-sentry-app-webhook-requests", args=[self.published_app.slug])
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200

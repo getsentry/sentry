@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from dateutil.parser import parse as parse_date
@@ -9,17 +8,20 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.sentry_apps.api.serializers.request_v2 import RequestSerializer
+from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
+    SentryAppWebhookRequestSerializer,
+)
+from sentry.sentry_apps.api.utils.webhook_requests import (
+    BufferedRequest,
+    get_buffer_requests_from_control,
+    get_buffer_requests_from_regions,
+)
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app_request import RpcSentryAppRequest, SentryAppRequestFilterArgs
-from sentry.sentry_apps.services.app_request.serial import serialize_rpc_sentry_app_request
-from sentry.sentry_apps.services.app_request.service import app_request_service
-from sentry.types.region import find_all_region_names
-from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS
 
 
 class IncomingRequestSerializer(serializers.Serializer):
@@ -28,7 +30,7 @@ class IncomingRequestSerializer(serializers.Serializer):
         choices=EXTENDED_VALID_EVENTS,
         required=False,
     )
-    errorsOnly = serializers.BooleanField(required=False)
+    errorsOnly = serializers.BooleanField(default=False, required=False)
     organizationSlug = serializers.CharField(required=False)
     start = serializers.DateTimeField(
         format=date_format,
@@ -51,35 +53,8 @@ class IncomingRequestSerializer(serializers.Serializer):
         return end
 
 
-def filter_by_date(request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
-    date_str = request.date
-    if not date_str:
-        return False
-    timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(
-        microsecond=0, tzinfo=timezone.utc
-    )
-    return start <= timestamp <= end
-
-
-def filter_by_organization(
-    request: RpcSentryAppRequest, organization: OrganizationMapping | None
-) -> bool:
-    if not organization:
-        return True
-    return request.organization_id == organization.organization_id
-
-
-@dataclass
-class BufferedRequest:
-    id: int
-    data: RpcSentryAppRequest
-
-    def __hash__(self):
-        return self.id
-
-
 @control_silo_endpoint
-class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
+class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -112,50 +87,54 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
             except OrganizationMapping.DoesNotExist:
                 return Response({"detail": "Invalid organization."}, status=400)
 
-        requests: list[RpcSentryAppRequest] = []
+        requests: list[BufferedRequest] = []
+        control_filter: SentryAppRequestFilterArgs = {}
         region_filter: SentryAppRequestFilterArgs = {}
-        control_buffer = SentryAppWebhookRequestsBuffer(sentry_app)
-        control_errors_only = region_filter["errors_only"] = errors_only
+        control_filter["errors_only"] = region_filter["errors_only"] = errors_only
 
-        def filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
+        def _filter_by_date(request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
+            date_str = request.date
+            if not date_str:
+                return False
+            timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(
+                microsecond=0, tzinfo=timezone.utc
+            )
+            return start <= timestamp <= end
+
+        def _filter_by_organization(
+            request: RpcSentryAppRequest, organization: OrganizationMapping | None
+        ) -> bool:
+            if not organization:
+                return True
+            return request.organization_id == organization.organization_id
+
+        def _filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
             for i, req in enumerate(unfiltered_requests):
-                if filter_by_date(req, start_time, end_time) and filter_by_organization(
+                if _filter_by_date(req, start_time, end_time) and _filter_by_organization(
                     req, organization
                 ):
                     requests.append(BufferedRequest(id=i, data=req))
 
-        def get_buffer_requests_for_control(event_type) -> list[RpcSentryAppRequest]:
-            control_requests = [
-                serialize_rpc_sentry_app_request(req)
-                for req in control_buffer.get_requests(
-                    event=event_type, errors_only=control_errors_only
-                )
-            ]
-            filter_and_append_requests(control_requests)
-
-        def get_buffer_requests_for_regions() -> list[RpcSentryAppRequest]:
-            for region_name in find_all_region_names():
-                buffer_requests = app_request_service.get_buffer_requests_for_region(
-                    sentry_app_id=sentry_app.id,
-                    region_name=region_name,
-                    filter=region_filter,
-                )
-                if buffer_requests is not None:
-                    filter_and_append_requests(buffer_requests)
-
         # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
         if event_type == "installation.created" or event_type == "installation.deleted":
-            get_buffer_requests_for_control(event_type)
+            control_filter["event"] = event_type
+            _filter_and_append_requests(
+                get_buffer_requests_from_control(sentry_app, control_filter)
+            )
         # If event type has been specified, we only need to fetch requests from region buffers
         elif event_type:
             region_filter["event"] = event_type
-            get_buffer_requests_for_regions()
+            _filter_and_append_requests(
+                get_buffer_requests_from_regions(sentry_app.id, region_filter)
+            )
         else:
-            control_event_type = [
+            control_filter["event"] = [
                 "installation.created",
                 "installation.deleted",
             ]
-            get_buffer_requests_for_control(control_event_type)
+            _filter_and_append_requests(
+                get_buffer_requests_from_control(sentry_app, control_filter)
+            )
             region_filter["event"] = list(
                 set(EXTENDED_VALID_EVENTS)
                 - {
@@ -163,16 +142,12 @@ class SentryAppRequestsEndpointV2(SentryAppBaseEndpoint):
                     "installation.deleted",
                 }
             )
-            get_buffer_requests_for_regions()
+            _filter_and_append_requests(
+                get_buffer_requests_from_regions(sentry_app.id, region_filter)
+            )
 
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)
 
-        def data_fn(offset, limit):
-            page_offset = offset * limit
-            return requests[page_offset : page_offset + limit]
-
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn),
-            on_results=lambda x: serialize(x, request.user, RequestSerializer(sentry_app)),
+        return Response(
+            serialize(requests, request.user, SentryAppWebhookRequestSerializer(sentry_app))
         )
