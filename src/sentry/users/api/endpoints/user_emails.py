@@ -28,7 +28,7 @@ from sentry.utils.signing import sign
 
 logger = logging.getLogger("sentry.accounts")
 
-EMAIL_CONFIRMATION_SALT = "email-confirmation"
+EMAIL_CONFIRMATION_SALT = "signed-url-confirmation-emails-salt"
 
 
 class InvalidEmailError(Exception):

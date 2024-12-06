@@ -9,11 +9,13 @@ from django.utils import timezone
 
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.useremail import UserEmail
 from sentry.users.web.accounts import recover_confirm
+from sentry.utils.signing import sign
 
 
 @control_silo_test
@@ -549,3 +551,23 @@ class TestAccounts(TestCase):
         assert resp.status_code == 302
         assert resp.headers["location"] == "/auth/login/"
         assert self.client.session["_next"] == url
+
+    @override_options({"user-settings.signed-url-confirmation-emails": True})
+    def test_confirm_email_signed_url(self):
+        from sentry.users.api.endpoints.user_emails import EMAIL_CONFIRMATION_SALT
+
+        self.login_as(self.user)
+
+        signed_data = sign(
+            user_id=self.user.id,
+            email="newemailfromsignedurl@example.com",
+            salt=EMAIL_CONFIRMATION_SALT,
+        )
+
+        signed_url = reverse("sentry-account-confirm-signed-email", args=[signed_data])
+
+        resp = self.client.get(signed_url, follow=True)
+        assert resp.status_code == 200
+
+        useremail = UserEmail.objects.get(user=self.user, email="newemailfromsignedurl@example.com")
+        assert useremail.is_verified
