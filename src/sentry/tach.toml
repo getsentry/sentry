@@ -4,6 +4,7 @@ exclude = [
     ".*egg-info",
     "docs",
     "tests",
+    "types",
 ]
 source_roots = [
     ".",
@@ -30,15 +31,12 @@ path = "api"
 depends_on = [
     { path = "http" },
     { path = "logging" },
-    { path = "types" },
     { path = "utils" },
 ]
 
 [[modules]]
 path = "apidocs"
-depends_on = [
-    { path = "types" },
-]
+depends_on = []
 
 [[modules]]
 path = "app"
@@ -284,7 +282,6 @@ depends_on = [
 path = "integrations"
 depends_on = [
     { path = "logging" },
-    { path = "types" },
 ]
 
 [[modules]]
@@ -430,7 +427,6 @@ path = "pipeline"
 depends_on = [
     { path = "logging" },
     { path = "models" },
-    { path = "types" },
 ]
 
 [[modules]]
@@ -453,9 +449,7 @@ depends_on = [
 
 [[modules]]
 path = "profiles"
-depends_on = [
-    { path = "types" },
-]
+depends_on = []
 
 [[modules]]
 path = "projectoptions"
@@ -538,7 +532,6 @@ path = "runner"
 depends_on = [
     { path = "http" },
     { path = "logging" },
-    { path = "types" },
 ]
 
 [[modules]]
@@ -626,7 +619,6 @@ depends_on = [
     { path = "logging" },
     { path = "models" },
     { path = "release_health" },
-    { path = "types" },
 ]
 
 [[modules]]
@@ -687,7 +679,6 @@ depends_on = [
     { path = "logging" },
     { path = "shared_integrations" },
     { path = "snuba" },
-    { path = "types" },
 ]
 
 [[modules]]
@@ -703,10 +694,6 @@ path = "tsdb"
 depends_on = [
     { path = "logging" },
 ]
-
-[[modules]]
-path = "types"
-depends_on = []
 
 [[modules]]
 path = "unmerge"
@@ -735,7 +722,6 @@ path = "utils"
 depends_on = [
     { path = "logging" },
     { path = "queue" },
-    { path = "types" },
 ]
 
 [[modules]]
