@@ -177,11 +177,25 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
             ]
-
         else:
             order_by = ["title"]
 
-        dashboards = dashboards.order_by(*order_by)
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            pin_by = request.query_params.get("pin")
+
+            if True or pin_by == "favorites":
+                # order so that favorites are first
+                order_by_favorites = [
+                    Case(
+                        When(dashboardfavoriteuser__user_id=request.user.id, then=-1),
+                        default=1,
+                        output_field=IntegerField(),
+                    )
+                ]
+                dashboards = dashboards.order_by(*order_by_favorites, *order_by)
+
+        else:
+            dashboards = dashboards.order_by(*order_by)
 
         list_serializer = DashboardListSerializer()
 
@@ -212,6 +226,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 )
                 and filter_by
                 and filter_by == "onlyFavorites"
+                or pin_by
+                and pin_by == "favorites"
                 else [prebuilt, dashboards]
             ),
             paginator_cls=ChainPaginator,
