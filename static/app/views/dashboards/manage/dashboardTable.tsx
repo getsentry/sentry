@@ -73,7 +73,8 @@ function FavoriteButton({
   return (
     <Feature features="dashboards-favourite">
       <StyledFavoriteButton
-        aria-label={'dashboards-favourite'}
+        aria-label={t('Favorite Button')}
+        data-test-id="xx"
         size="zero"
         borderless
         icon={
@@ -293,7 +294,15 @@ function DashboardTable({
         renderBodyCell,
         renderHeadCell: column => {
           if (column.key === ResponseKeys.FAVORITE) {
-            return <StyledIconStar color="yellow300" isSolid />;
+            return (
+              <Feature features="dashboards-favourite">
+                <StyledIconStar
+                  color="yellow300"
+                  isSolid
+                  aria-label={t('Favorite Header')}
+                />
+              </Feature>
+            );
           }
           return column.name;
         },
