@@ -233,6 +233,7 @@ const ProjectsRendererWrapper = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
   padding: ${space(2)} ${space(2)} 0 !important;
 `;
 
