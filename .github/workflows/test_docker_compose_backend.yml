@@ -40,6 +40,7 @@ jobs:
           chmod 666 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           ssh-add ~/.ssh/id_ed25519
+          eval "$(ssh-agent -s)"
           ssh -vT git@github.com
 
       - name: Bring up devservices
