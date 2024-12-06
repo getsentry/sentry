@@ -1730,13 +1730,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that projects that have a backfill completed project option are skipped when passed
         the skip_processed_projects flag.
         """
-        # Test that projects that are already backfilled are skipped
-        project2 = self.create_project(organization=self.organization)
-        project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
+        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                current_project_id=None, skip_processed_projects=True, worker_number=0
+                self.project.id, None, skip_processed_projects=True, worker_number=0
             )
 
         expected_call_args_list = [
