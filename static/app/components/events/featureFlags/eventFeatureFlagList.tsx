@@ -103,7 +103,7 @@ export function EventFeatureFlagList({
     const rawFlags = event.contexts?.flags?.values ?? [];
     return rawFlags.filter(
       (f): f is Required<FeatureFlag> =>
-        f !== null &&
+        f &&
         typeof f === 'object' &&
         typeof f.flag === 'string' &&
         typeof f.result === 'boolean'
