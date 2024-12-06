@@ -131,8 +131,16 @@ def create_project_cohort(
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
+    last_processed_group_id: int | None,
     last_processed_project_index: int | None,
 ):
+    logger.info(
+        "backfill_seer_grouping_records.start",
+        extra={
+            "project_id": project_id,
+            "last_processed_index": last_processed_group_id,
+        },
+    )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
@@ -141,7 +149,7 @@ def initialize_backfill(
         last_processed_project_index if last_processed_project_index else 0
     )
 
-    return project, last_processed_project_index_ret
+    return project, last_processed_group_id, last_processed_project_index_ret
 
 
 def _make_postgres_call_with_filter(group_id_filter: Q, project_id: int, batch_size: int):
