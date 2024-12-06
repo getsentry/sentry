@@ -90,6 +90,14 @@ class Relocation(DefaultFieldsModelExisting):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+        def __str__(self):
+            if self.name == "SELF_HOSTED":
+                return "self-hosted"
+            elif self.name == "SAAS_TO_SAAS":
+                return "saas-to-saas"
+            else:
+                raise ValueError("Cannot extract a filename from `RelocationFile.Kind.UNKNOWN`.")
+
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
     creator_id = BoundedBigIntegerField()
