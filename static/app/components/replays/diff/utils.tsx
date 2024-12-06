@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,9 +29,27 @@ const Label = styled('div')`
   font-weight: bold;
 `;
 
-export function Before({children}: {children?: React.ReactNode}) {
+interface BeforeAfterProps {
+  offset: number;
+  startTimestampMs: number;
+  children?: React.ReactNode;
+}
+
+export function Before({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
-    <Tooltip title={t('How the initial server-rendered page looked.')}>
+    <Tooltip
+      title={
+        <LeftAligned>
+          {t('The server-rendered page')}
+          <div>
+            <ReplayTooltipTime
+              timestampMs={startTimestampMs + offset}
+              startTimestampMs={startTimestampMs}
+            />
+          </div>
+        </LeftAligned>
+      }
+    >
       <Label>
         {t('Before')}
         {children}
@@ -38,12 +57,20 @@ export function Before({children}: {children?: React.ReactNode}) {
     </Tooltip>
   );
 }
-export function After({children}: {children?: React.ReactNode}) {
+export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
     <Tooltip
-      title={t(
-        'How React re-rendered the page on your browser, after detecting a hydration error.'
-      )}
+      title={
+        <LeftAligned>
+          {t('After React re-rendered the page, and reported a hydration error')}
+          <div>
+            <ReplayTooltipTime
+              timestampMs={startTimestampMs + offset}
+              startTimestampMs={startTimestampMs}
+            />
+          </div>
+        </LeftAligned>
+      }
     >
       <Label>
         {t('After')}
@@ -52,3 +79,10 @@ export function After({children}: {children?: React.ReactNode}) {
     </Tooltip>
   );
 }
+
+const LeftAligned = styled('div')`
+  text-align: left;
+  display: flex;
+  gap: ${space(1)};
+  flex-direction: column;
+`;
