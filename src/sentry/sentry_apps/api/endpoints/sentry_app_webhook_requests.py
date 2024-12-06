@@ -61,6 +61,22 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
     }
     permission_classes = (SentryAppStatsPermission,)
 
+    def _filter_by_date(self, request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
+        date_str = request.date
+        if not date_str:
+            return False
+        timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(
+            microsecond=0, tzinfo=timezone.utc
+        )
+        return start <= timestamp <= end
+
+    def _filter_by_organization(
+        self, request: RpcSentryAppRequest, organization: OrganizationMapping | None
+    ) -> bool:
+        if not organization:
+            return True
+        return request.organization_id == organization.organization_id
+
     def get(self, request: Request, sentry_app: SentryApp) -> Response:
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests
@@ -92,25 +108,9 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         region_filter: SentryAppRequestFilterArgs = {}
         control_filter["errors_only"] = region_filter["errors_only"] = errors_only
 
-        def _filter_by_date(request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
-            date_str = request.date
-            if not date_str:
-                return False
-            timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(
-                microsecond=0, tzinfo=timezone.utc
-            )
-            return start <= timestamp <= end
-
-        def _filter_by_organization(
-            request: RpcSentryAppRequest, organization: OrganizationMapping | None
-        ) -> bool:
-            if not organization:
-                return True
-            return request.organization_id == organization.organization_id
-
-        def _filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
+        def filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
             for i, req in enumerate(unfiltered_requests):
-                if _filter_by_date(req, start_time, end_time) and _filter_by_organization(
+                if self._filter_by_date(req, start_time, end_time) and self._filter_by_organization(
                     req, organization
                 ):
                     requests.append(BufferedRequest(id=i, data=req))
@@ -118,13 +118,11 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
         if event_type == "installation.created" or event_type == "installation.deleted":
             control_filter["event"] = event_type
-            _filter_and_append_requests(
-                get_buffer_requests_from_control(sentry_app, control_filter)
-            )
+            filter_and_append_requests(get_buffer_requests_from_control(sentry_app, control_filter))
         # If event type has been specified, we only need to fetch requests from region buffers
         elif event_type:
             region_filter["event"] = event_type
-            _filter_and_append_requests(
+            filter_and_append_requests(
                 get_buffer_requests_from_regions(sentry_app.id, region_filter)
             )
         else:
@@ -132,9 +130,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
                 "installation.created",
                 "installation.deleted",
             ]
-            _filter_and_append_requests(
-                get_buffer_requests_from_control(sentry_app, control_filter)
-            )
+            filter_and_append_requests(get_buffer_requests_from_control(sentry_app, control_filter))
             region_filter["event"] = list(
                 set(EXTENDED_VALID_EVENTS)
                 - {
@@ -142,7 +138,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
                     "installation.deleted",
                 }
             )
-            _filter_and_append_requests(
+            filter_and_append_requests(
                 get_buffer_requests_from_regions(sentry_app.id, region_filter)
             )
 
