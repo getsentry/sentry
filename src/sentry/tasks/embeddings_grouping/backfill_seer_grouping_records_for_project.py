@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,
-    last_processed_group_id_input: int | None,
+    last_processed_group_id_input: int | None = None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
     only_delete: bool = False,
