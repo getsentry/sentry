@@ -23,6 +23,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
@@ -31,6 +32,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
     backfill_seer_grouping_records_for_project,
 )
+from sentry.tasks.embeddings_grouping.constants import PROJECT_BACKFILL_COMPLETED
 from sentry.tasks.embeddings_grouping.utils import (
     _make_postgres_call_with_filter,
     get_data_from_snuba,
@@ -115,6 +117,10 @@ EVENT_WITH_THREADS_STACKTRACE = {
 
 @django_db_all
 class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
+    def create_project(self, **kwargs) -> Project:
+        """We overwrite the default create_project method to make sure that all created projects are seer eligible."""
+        return super().create_project(**kwargs, platform=kwargs.get("platform", "python"))
+
     def create_exception_values(self, function_name: str, type: str, value: str):
         return {
             "values": [
@@ -175,6 +181,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     def setUp(self):
         super().setUp()
+        # Make the project seer eligible
+        self.project.platform = "python"
+        self.project.save()
         bulk_data = self.create_group_event_rows(5)
         self.bulk_rows, self.bulk_events = (
             bulk_data["rows"],
@@ -1690,7 +1699,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_seer_grouping_records.enable_ingestion",
             extra={"project_id": self.project.id},
         )
-        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1712,7 +1721,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
 
-        assert self.project.get_option("sentry:similarity_backfill_completed") is None
+        assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
@@ -1721,7 +1730,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that projects that have a backfill completed project option are skipped when passed
         the skip_processed_projects flag.
         """
-        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 self.project.id, None, skip_processed_projects=True
@@ -1764,7 +1773,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         passed the skip_processed_projects flag.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-        self.project.update_option("sentry:similarity_backfill_completed", int(time.time()))
+        self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id, None)
 
@@ -2101,8 +2110,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Create 2 seer eligible projects that project_id % thread_number == worker_number
         thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
 
         project_same_cohort = self.create_project(
             organization=self.organization, id=self.project.id + thread_number
@@ -2212,8 +2219,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Create 1 seer eligible project that project_id % thread_number == worker_number
         thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
 
         # Create 1 non seer eligible project that project_id % thread_number != worker_number
         project_same_cohort_not_eligible = self.create_project(
@@ -2314,8 +2319,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Create 2 seer eligible projects that project_id % thread_number == worker_number
         thread_number = options.get("similarity.backfill_total_worker_count")
         worker_number = self.project.id % thread_number
-        self.project.platform = "python"
-        self.project.save()
 
         project_same_worker = self.create_project(
             organization=self.organization, id=self.project.id + thread_number

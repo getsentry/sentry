@@ -29,8 +29,6 @@ from sentry.tasks.embeddings_grouping.utils import (
 )
 from sentry.utils import metrics
 
-BACKFILL_NAME = "backfill_grouping_records"
-BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SEER_ACCEPTABLE_FAILURE_REASONS = ["Gateway Timeout", "Service Unavailable"]
 EVENT_INFO_EXCEPTIONS = (GroupingConfigNotFound, ResourceDoesNotExist, InvalidEnhancerConfig)
 

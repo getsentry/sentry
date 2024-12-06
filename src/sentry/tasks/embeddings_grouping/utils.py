@@ -40,14 +40,16 @@ from sentry.seer.similarity.utils import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.delete_seer_grouping_records import delete_seer_grouping_records_by_hash
+from sentry.tasks.embeddings_grouping.constants import (
+    BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
+    BACKFILL_NAME,
+)
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
 
-BACKFILL_NAME = "backfill_grouping_records"
-BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
@@ -719,7 +721,7 @@ def delete_seer_grouping_records(
         RangeQuerySetWrapper(
             Group.objects.filter(project_id=project_id, type=ErrorGroupType.type_id)
         ),
-        BULK_DELETE_METADATA_CHUNK_SIZE,
+        BACKFILL_BULK_DELETE_METADATA_CHUNK_SIZE,
     ):
         groups_with_seer_metadata = [
             group
