@@ -200,6 +200,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     frame_count = 0
     html_frame_count = 0  # for a temporary metric
     is_frames_truncated = False
+    has_no_filename = False  # for a temporary metric
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -209,6 +210,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         nonlocal frame_count
         nonlocal html_frame_count
         nonlocal is_frames_truncated
+        nonlocal has_no_filename
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
@@ -228,6 +230,9 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
+
+            if not frame_dict["filename"]:
+                has_no_filename = True
 
             # Not an exhaustive list of tests we could run to detect HTML, but this is only
             # meant to be a temporary, quick-and-dirty metric
@@ -310,6 +315,16 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             )
         },
     )
+
+    # Metric for errors with no header, only one frame and no filename
+    # TODO: Determine how often this occurs and if we should send to seer, then remove metric
+    if has_no_filename and len(result_parts) == 1:
+        header, frames = result_parts[0][0], result_parts[0][1]
+        if header == "" and len(frames) == 1:
+            metrics.incr(
+                "seer.grouping.no_header_one_frame_no_filename",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            )
 
     return stacktrace_str.strip()
 
