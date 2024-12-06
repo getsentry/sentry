@@ -1004,6 +1004,9 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, **kwargs):
+        from sentry.models.group import GroupStatus
+        from sentry.types.group import GroupSubStatus
+
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
         if "type" not in kwargs["data"]:
@@ -1013,6 +1016,10 @@ class Factories:
         if "metadata" in kwargs:
             metadata = kwargs.pop("metadata")
             kwargs["data"].setdefault("metadata", {}).update(metadata)
+        if "status" not in kwargs:
+            kwargs["status"] = GroupStatus.UNRESOLVED
+            kwargs["substatus"] = GroupSubStatus.NEW
+
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
