@@ -26,6 +26,7 @@ jobs:
       - name: tach report upload
         run: |
           cd src
+          echo $GAUGE_API_BASE_URL
           tach upload
         env:
            GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
