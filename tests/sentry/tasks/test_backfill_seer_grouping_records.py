@@ -1772,16 +1772,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test that projects that have a backfill completed project option are not skipped when not
-        passed the skip_processed_projects flag.
+        Test that projects that have the backfill completed option set are skipped when we backfill
+        all projects.
         """
-        # Test that projects that are already backfilled are skipped
+        # Create two more projects and one of them is already backfilled
         project2 = self.create_project(organization=self.organization)
         project2.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
         project3 = self.create_project(organization=self.organization)
-        # Since we set the total worker count to 1, the project cohort will have all projects
-        # except the one that has already been backfilled
-        cohort = [self.project.id, project3.id]
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
@@ -1795,9 +1792,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
 
         key = "backfill_seer_grouping_records"
-        last_group_id = sorted(
-            [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        )[0]
+        # Since we set the total worker count to 1, the project cohort will have all projects
+        # except the one that has already been backfilled
+        cohort = [self.project.id, project3.id]
         extra = {
             "current_project_id": self.project.id,
             "last_processed_group_id": None,
@@ -1808,6 +1805,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "skip_project_ids": None,
             "worker_number": 0,
         }
+        last_group_id = sorted(
+            [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        )[0]
         expected_call_args_list = [
             call(key, extra=extra),
             call(
