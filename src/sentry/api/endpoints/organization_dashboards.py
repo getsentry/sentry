@@ -181,7 +181,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             order_by = ["title"]
 
-        dashboards = dashboards.order_by(*order_by)
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            pin_by = request.query_params.get("pin")
+            if pin_by == "favorites":
+                order_by_favorites = [
+                    Case(
+                        When(dashboardfavoriteuser__user_id=request.user.id, then=-1),
+                        default=1,
+                        output_field=IntegerField(),
+                    )
+                ]
+                dashboards = dashboards.order_by(*order_by_favorites, *order_by)
+            else:
+                dashboards = dashboards.order_by(*order_by)
+        else:
+            dashboards = dashboards.order_by(*order_by)
 
         list_serializer = DashboardListSerializer()
 
@@ -203,17 +217,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             serialized.extend(serialize(dashboards, request.user, serializer=list_serializer))
             return serialized
 
+        render_pre_built_dashboard = True
+        if features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            if filter_by and filter_by == "onlyFavorites" or pin_by and pin_by == "favorites":
+                render_pre_built_dashboard = False
+
         return self.paginate(
             request=request,
-            sources=(
-                [dashboards]
-                if features.has(
-                    "organizations:dashboards-favourite", organization, actor=request.user
-                )
-                and filter_by
-                and filter_by == "onlyFavorites"
-                else [prebuilt, dashboards]
-            ),
+            sources=([prebuilt, dashboards] if render_pre_built_dashboard else [dashboards]),
             paginator_cls=ChainPaginator,
             on_results=handle_results,
         )
