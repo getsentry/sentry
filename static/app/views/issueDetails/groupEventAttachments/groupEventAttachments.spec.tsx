@@ -1,6 +1,9 @@
+import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,6 +16,7 @@ import {
 
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
@@ -42,9 +46,19 @@ describe('GroupEventAttachments', function () {
     ProjectsStore.loadInitialData([project]);
     GroupStore.init();
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/environments/`,
+      body: EnvironmentsFixture(),
+    });
     getAttachmentsMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${groupId}/attachments/`,
       body: [EventAttachmentFixture()],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
+      body: TagsFixture(),
+      method: 'GET',
     });
   });
 
@@ -63,7 +77,7 @@ describe('GroupEventAttachments', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1'},
+        query: {screenshot: '1', environment: []},
       })
     );
   });
@@ -145,5 +159,41 @@ describe('GroupEventAttachments', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(screen.queryByText('12345678')).not.toBeInTheDocument();
+  });
+
+  it('filters by date/query when using Streamlined UI', function () {
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [parseInt(project.id, 10)],
+        environments: ['staging'],
+        datetime: {
+          period: '3d',
+          start: null,
+          end: null,
+          utc: null,
+        },
+      },
+      new Set()
+    );
+
+    const testRouter = RouterFixture();
+    testRouter.location.query = {
+      query: 'user.email:leander.rodrigues@sentry.io',
+    };
+    render(<GroupEventAttachments project={project} group={group} />, {
+      router: testRouter,
+      organization: {...organization, features: ['issue-details-streamline-enforce']},
+    });
+    expect(getAttachmentsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/group-id/attachments/',
+      expect.objectContaining({
+        query: {
+          environment: ['staging'],
+          query: 'user.email:leander.rodrigues@sentry.io',
+          statsPeriod: '3d',
+        },
+      })
+    );
   });
 });

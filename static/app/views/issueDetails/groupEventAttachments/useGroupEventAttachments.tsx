@@ -9,6 +9,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface UseGroupEventAttachmentsOptions {
   activeAttachmentsTab: 'all' | 'onlyCrash' | 'screenshot';
@@ -95,6 +96,7 @@ export function useGroupEventAttachments({
   activeAttachmentsTab,
   options,
 }: UseGroupEventAttachmentsOptions) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
   const eventQuery = useEventQuery({group});
@@ -113,10 +115,11 @@ export function useGroupEventAttachments({
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
       environment: eventView.environment as string[],
-      start: eventView.start,
-      end: eventView.end,
-      statsPeriod: eventView.statsPeriod,
-      eventQuery,
+      // We only want to filter by date/query if we're using the Streamlined UI
+      start: hasStreamlinedUI ? eventView.start : undefined,
+      end: hasStreamlinedUI ? eventView.end : undefined,
+      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
+      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
     }),
     {...options, staleTime: 60_000}
   );

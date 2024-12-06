@@ -12,6 +12,8 @@ import type {Group, IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupEventAttachmentsFilter, {
@@ -31,6 +33,8 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const eventQuery = useEventQuery({group});
+  const eventView = useIssueDetailsEventView({group});
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
     EventAttachmentFilter.ALL;
@@ -45,12 +49,17 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const handleDelete = (attachment: IssueAttachment) => {
     deleteAttachment({
       attachment,
+      projectSlug: project.slug,
+      activeAttachmentsTab,
       group,
       orgSlug: organization.slug,
-      activeAttachmentsTab,
-      projectSlug: project.slug,
       cursor: location.query.cursor as string | undefined,
-      environment: location.query.environment as string[] | string | undefined,
+      environment: eventView.environment as string[] | string | undefined,
+      // We only want to filter by date/query if we're using the Streamlined UI
+      start: hasStreamlinedUI ? eventView.start : undefined,
+      end: hasStreamlinedUI ? eventView.end : undefined,
+      statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,
+      eventQuery: hasStreamlinedUI ? eventQuery : undefined,
     });
   };
 
