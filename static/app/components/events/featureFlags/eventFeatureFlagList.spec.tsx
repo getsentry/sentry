@@ -34,6 +34,10 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
 describe('EventFeatureFlagList', function () {
   beforeEach(function () {
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/events/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
       body: {data: []},
     });
