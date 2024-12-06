@@ -1,0 +1,2231 @@
+interfaces = []
+exclude = [
+    ".*__pycache__",
+    ".*egg-info",
+    "docs",
+    "tests",
+]
+source_roots = [
+    "src",
+]
+
+[[modules]]
+path = "<root>"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.runner" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.adoption"
+depends_on = []
+
+[[modules]]
+path = "sentry.analytics"
+depends_on = [
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.api"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.app" },
+    { path = "sentry.assistant" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.autofix" },
+    { path = "sentry.backup" },
+    { path = "sentry.cache" },
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.data_export" },
+    { path = "sentry.data_secrecy" },
+    { path = "sentry.datascrubbing" },
+    { path = "sentry.db" },
+    { path = "sentry.debug_files" },
+    { path = "sentry.deletions" },
+    { path = "sentry.digests" },
+    { path = "sentry.discover" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.experiments" },
+    { path = "sentry.features" },
+    { path = "sentry.feedback" },
+    { path = "sentry.flags" },
+    { path = "sentry.grouping" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.ingest" },
+    { path = "sentry.integrations" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.lang" },
+    { path = "sentry.loader" },
+    { path = "sentry.locks" },
+    { path = "sentry.middleware" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.newsletter" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.onboarding_tasks" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.ownership" },
+    { path = "sentry.plugins" },
+    { path = "sentry.profiles" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.projects" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.relay" },
+    { path = "sentry.release_health" },
+    { path = "sentry.replays" },
+    { path = "sentry.reprocessing2" },
+    { path = "sentry.roles" },
+    { path = "sentry.rules" },
+    { path = "sentry.runner" },
+    { path = "sentry.scim" },
+    { path = "sentry.sdk_updates" },
+    { path = "sentry.search" },
+    { path = "sentry.security" },
+    { path = "sentry.seer" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.services" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.slug" },
+    { path = "sentry.snuba" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.status_checks" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.uptime" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+    { path = "sentry.workflow_engine" },
+]
+
+[[modules]]
+path = "sentry.apidocs"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.issues" },
+    { path = "sentry.snuba" },
+]
+
+[[modules]]
+path = "sentry.app"
+depends_on = [
+    { path = "sentry.buffer" },
+    { path = "sentry.digests" },
+    { path = "sentry.locks" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.search" },
+    { path = "sentry.tsdb" },
+]
+
+[[modules]]
+path = "sentry.assistant"
+depends_on = []
+
+[[modules]]
+path = "sentry.attachments"
+depends_on = [
+    { path = "sentry.cache" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.audit_log"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.db" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.auth"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.constants" },
+    { path = "sentry.data_secrecy" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.pipeline" },
+    { path = "sentry.plugins" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.roles" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.autofix"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.seer" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.backup"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.services" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.bgtasks"
+depends_on = [
+    { path = "sentry.models" },
+]
+
+[[modules]]
+path = "sentry.buffer"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.models" },
+    { path = "sentry.signals" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.build"
+depends_on = []
+
+[[modules]]
+path = "sentry.cache"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.celery"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.charts"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.conf"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.runner" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.constants"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.consumers"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.ingest" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.coreapi"
+depends_on = []
+
+[[modules]]
+path = "sentry.culprit"
+depends_on = [
+    { path = "sentry.constants" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.data"
+depends_on = []
+
+[[modules]]
+path = "sentry.data_export"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.discover" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.search" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.data_secrecy"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.organizations" },
+    { path = "sentry.silo" },
+]
+
+[[modules]]
+path = "sentry.datascrubbing"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.db"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.backup" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.slug" },
+    { path = "sentry.testutils" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.debug"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.debug_files"
+depends_on = [
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.deletions"
+depends_on = [
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.discover" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.replays" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.similarity" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.digests"
+depends_on = [
+    { path = "sentry.eventstore" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.discover"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.search" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.dynamic_sampling"
+depends_on = [
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.quotas" },
+    { path = "sentry.relay" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.event_manager"
+depends_on = [
+    { path = "sentry.attachments" },
+    { path = "sentry.constants" },
+    { path = "sentry.culprit" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.eventtypes" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.grouping" },
+    { path = "sentry.ingest" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.lang" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.plugins" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.receivers" },
+    { path = "sentry.reprocessing2" },
+    { path = "sentry.seer" },
+    { path = "sentry.signals" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.usage_accountant" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.eventstore"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.eventtypes" },
+    { path = "sentry.grouping" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.snuba" },
+    { path = "sentry.spans" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.eventstream"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.options" },
+    { path = "sentry.post_process_forwarder" },
+    { path = "sentry.queue" },
+    { path = "sentry.quotas" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.eventtypes"
+depends_on = [
+    { path = "sentry.security" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.exceptions"
+depends_on = []
+
+[[modules]]
+path = "sentry.experiments"
+depends_on = []
+
+[[modules]]
+path = "sentry.features"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.projects" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.feedback"
+depends_on = [
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.features" },
+    { path = "sentry.issues" },
+    { path = "sentry.llm" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.options" },
+    { path = "sentry.signals" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.filestore"
+depends_on = [
+    { path = "sentry.net" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.flags"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.silo" },
+]
+
+[[modules]]
+path = "sentry.grouping"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.conf" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.seer" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.http"
+depends_on = [
+    { path = "sentry.exceptions" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.hybridcloud"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.receivers" },
+    { path = "sentry.roles" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.services" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.testutils" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.identity"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.pipeline" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.incidents"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.charts" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.relay" },
+    { path = "sentry.rules" },
+    { path = "sentry.search" },
+    { path = "sentry.seer" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.uptime" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.workflow_engine" },
+]
+
+[[modules]]
+path = "sentry.ingest"
+depends_on = [
+    { path = "sentry.attachments" },
+    { path = "sentry.constants" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.features" },
+    { path = "sentry.feedback" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.processing" },
+    { path = "sentry.relay" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.signals" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.usage_accountant" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.integrations"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.autofix" },
+    { path = "sentry.backup" },
+    { path = "sentry.charts" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.digests" },
+    { path = "sentry.discover" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.identity" },
+    { path = "sentry.incidents" },
+    { path = "sentry.issues" },
+    { path = "sentry.locks" },
+    { path = "sentry.middleware" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.pipeline" },
+    { path = "sentry.plugins" },
+    { path = "sentry.projects" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.rules" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.templatetags" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.interfaces"
+depends_on = [
+    { path = "sentry.app" },
+    { path = "sentry.security" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.issues"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.grouping" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.plugins" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.search" },
+    { path = "sentry.seer" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.similarity" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.killswitches"
+depends_on = [
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.lang"
+depends_on = [
+    { path = "sentry.attachments" },
+    { path = "sentry.auth" },
+    { path = "sentry.constants" },
+    { path = "sentry.debug_files" },
+    { path = "sentry.features" },
+    { path = "sentry.http" },
+    { path = "sentry.ingest" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.plugins" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.llm"
+depends_on = [
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.loader"
+depends_on = [
+    { path = "<root>" },
+]
+
+[[modules]]
+path = "sentry.locale"
+depends_on = []
+
+[[modules]]
+path = "sentry.locks"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.logging"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.mail"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.digests" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.plugins" },
+    { path = "sentry.rules" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.management"
+depends_on = [
+    { path = "sentry.mail" },
+    { path = "sentry.models" },
+    { path = "sentry.runner" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.metrics"
+depends_on = [
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.middleware"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.auth" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.silo" },
+    { path = "sentry.status_checks" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.migrations"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.incidents" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.models"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.adoption" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.attachments" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.debug_files" },
+    { path = "sentry.deletions" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventtypes" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.identity" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.lang" },
+    { path = "sentry.locks" },
+    { path = "sentry.monitors" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.ownership" },
+    { path = "sentry.plugins" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.release_health" },
+    { path = "sentry.replays" },
+    { path = "sentry.roles" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.monitoring"
+depends_on = []
+
+[[modules]]
+path = "sentry.monitors"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.backup" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.projects" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.search" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.monkey"
+depends_on = []
+
+[[modules]]
+path = "sentry.net"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.exceptions" },
+]
+
+[[modules]]
+path = "sentry.new_migrations"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.db" },
+]
+
+[[modules]]
+path = "sentry.newsletter"
+depends_on = [
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.nodestore"
+depends_on = [
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.notifications"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.digests" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.mail" },
+    { path = "sentry.models" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.roles" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.trash" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.onboarding_tasks"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.options"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.logging" },
+    { path = "sentry.models" },
+    { path = "sentry.quotas" },
+    { path = "sentry.silo" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.organizations"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.options" },
+    { path = "sentry.projects" },
+    { path = "sentry.roles" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.ownership"
+depends_on = [
+    { path = "sentry.eventstore" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.pipeline"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.db" },
+    { path = "sentry.models" },
+    { path = "sentry.organizations" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.plugins"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.constants" },
+    { path = "sentry.digests" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.integrations" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.projects" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.post_process_forwarder"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.processing"
+depends_on = [
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.profiles"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.grouping" },
+    { path = "sentry.lang" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.processing" },
+    { path = "sentry.quotas" },
+    { path = "sentry.search" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.projectoptions"
+depends_on = [
+    { path = "sentry.constants" },
+    { path = "sentry.models" },
+]
+
+[[modules]]
+path = "sentry.projects"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.constants" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+]
+
+[[modules]]
+path = "sentry.queue"
+depends_on = [
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.quotas"
+depends_on = [
+    { path = "sentry.constants" },
+    { path = "sentry.features" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.options" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.ratelimits"
+depends_on = [
+    { path = "sentry.auth" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.receivers"
+depends_on = [
+    { path = "sentry.adoption" },
+    { path = "sentry.analytics" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.loader" },
+    { path = "sentry.models" },
+    { path = "sentry.notifications" },
+    { path = "sentry.onboarding_tasks" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.relocation" },
+    { path = "sentry.runner" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.services" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.relay"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.datascrubbing" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.features" },
+    { path = "sentry.grouping" },
+    { path = "sentry.incidents" },
+    { path = "sentry.ingest" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.quotas" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.snuba" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.release_health"
+depends_on = [
+    { path = "sentry.exceptions" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.relocation"
+depends_on = [
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.remote_subscriptions"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.db" },
+    { path = "sentry.new_migrations" },
+]
+
+[[modules]]
+path = "sentry.replays"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.backup" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.options" },
+    { path = "sentry.search" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.reprocessing2"
+depends_on = [
+    { path = "sentry.attachments" },
+    { path = "sentry.deletions" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.ingest" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.lang" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.options" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.roles"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.rules"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.buffer" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.mail" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.release_health" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.runner"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.app" },
+    { path = "sentry.backup" },
+    { path = "sentry.bgtasks" },
+    { path = "sentry.buffer" },
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.consumers" },
+    { path = "sentry.data_export" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.digests" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.flags" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.llm" },
+    { path = "sentry.locks" },
+    { path = "sentry.logging" },
+    { path = "sentry.metrics" },
+    { path = "sentry.models" },
+    { path = "sentry.monitoring" },
+    { path = "sentry.monitors" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.newsletter" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.processing" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.receivers" },
+    { path = "sentry.replays" },
+    { path = "sentry.roles" },
+    { path = "sentry.search" },
+    { path = "sentry.services" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.similarity" },
+    { path = "sentry.spans" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.taskworker" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.scim"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.models" },
+    { path = "sentry.roles" },
+    { path = "sentry.signals" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.scripts"
+depends_on = []
+
+[[modules]]
+path = "sentry.sdk_updates"
+depends_on = [
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.search"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.discover" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.quotas" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.snuba" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.security"
+depends_on = [
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.seer"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.conf" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.models" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.release_health" },
+    { path = "sentry.search" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.sentry_apps"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.coreapi" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.middleware" },
+    { path = "sentry.models" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.projects" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.silo" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.sentry_metrics"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.ingest" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.search" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.testutils" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.services"
+depends_on = [
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.logging" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.silo" },
+    { path = "sentry.types" },
+    { path = "sentry.wsgi" },
+]
+
+[[modules]]
+path = "sentry.shared_integrations"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.http" },
+    { path = "sentry.integrations" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.silo" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.signals"
+depends_on = [
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.silo"
+depends_on = [
+    { path = "sentry.db" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.net" },
+    { path = "sentry.options" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.similarity"
+depends_on = [
+    { path = "sentry.features" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.slug"
+depends_on = []
+
+[[modules]]
+path = "sentry.snuba"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.backup" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.discover" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.incidents" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.relay" },
+    { path = "sentry.release_health" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.workflow_engine" },
+]
+
+[[modules]]
+path = "sentry.spans"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.stacktraces"
+depends_on = [
+    { path = "sentry.interfaces" },
+    { path = "sentry.models" },
+    { path = "sentry.plugins" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.static"
+depends_on = []
+
+[[modules]]
+path = "sentry.statistical_detectors"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.search" },
+    { path = "sentry.seer" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.status_checks"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.monitoring" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.tagstore"
+depends_on = [
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.constants" },
+    { path = "sentry.features" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.replays" },
+    { path = "sentry.search" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.tasks"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.attachments" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.autofix" },
+    { path = "sentry.backup" },
+    { path = "sentry.buffer" },
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.culprit" },
+    { path = "sentry.datascrubbing" },
+    { path = "sentry.db" },
+    { path = "sentry.debug" },
+    { path = "sentry.debug_files" },
+    { path = "sentry.deletions" },
+    { path = "sentry.digests" },
+    { path = "sentry.dynamic_sampling" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.feedback" },
+    { path = "sentry.grouping" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.ingest" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.killswitches" },
+    { path = "sentry.lang" },
+    { path = "sentry.locks" },
+    { path = "sentry.mail" },
+    { path = "sentry.models" },
+    { path = "sentry.monitoring" },
+    { path = "sentry.net" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.profiles" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.quotas" },
+    { path = "sentry.relay" },
+    { path = "sentry.relocation" },
+    { path = "sentry.replays" },
+    { path = "sentry.reprocessing2" },
+    { path = "sentry.rules" },
+    { path = "sentry.search" },
+    { path = "sentry.seer" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.similarity" },
+    { path = "sentry.snuba" },
+    { path = "sentry.stacktraces" },
+    { path = "sentry.statistical_detectors" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.unmerge" },
+    { path = "sentry.uptime" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.taskworker"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.templates"
+depends_on = []
+
+[[modules]]
+path = "sentry.templatetags"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.api" },
+    { path = "sentry.auth" },
+    { path = "sentry.features" },
+    { path = "sentry.options" },
+    { path = "sentry.status_checks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.testutils"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.buffer" },
+    { path = "sentry.celery" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.consumers" },
+    { path = "sentry.data_secrecy" },
+    { path = "sentry.db" },
+    { path = "sentry.deletions" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.features" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.mail" },
+    { path = "sentry.middleware" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.net" },
+    { path = "sentry.newsletter" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.projects" },
+    { path = "sentry.relay" },
+    { path = "sentry.replays" },
+    { path = "sentry.rules" },
+    { path = "sentry.runner" },
+    { path = "sentry.search" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.sentry_metrics" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.spans" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.types" },
+    { path = "sentry.uptime" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+    { path = "sentry.workflow_engine" },
+]
+
+[[modules]]
+path = "sentry.toolbar"
+depends_on = [
+    { path = "sentry.models" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.trash"
+depends_on = []
+
+[[modules]]
+path = "sentry.tsdb"
+depends_on = [
+    { path = "sentry.constants" },
+    { path = "sentry.ingest" },
+    { path = "sentry.issues" },
+    { path = "sentry.snuba" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.types"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.silo" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.unmerge"
+depends_on = [
+    { path = "sentry.eventstore" },
+    { path = "sentry.eventstream" },
+    { path = "sentry.models" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.uptime"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.features" },
+    { path = "sentry.issues" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.options" },
+    { path = "sentry.remote_subscriptions" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tasks" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.usage_accountant"
+depends_on = [
+    { path = "sentry.conf" },
+    { path = "sentry.options" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.users"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.app" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.backup" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.experiments" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.identity" },
+    { path = "sentry.integrations" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.locks" },
+    { path = "sentry.models" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.pipeline" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.roles" },
+    { path = "sentry.search" },
+    { path = "sentry.security" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.utils"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.app" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.backup" },
+    { path = "sentry.buffer" },
+    { path = "sentry.cache" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.db" },
+    { path = "sentry.debug" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.feedback" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.incidents" },
+    { path = "sentry.ingest" },
+    { path = "sentry.integrations" },
+    { path = "sentry.interfaces" },
+    { path = "sentry.issues" },
+    { path = "sentry.lang" },
+    { path = "sentry.logging" },
+    { path = "sentry.metrics" },
+    { path = "sentry.models" },
+    { path = "sentry.monitors" },
+    { path = "sentry.net" },
+    { path = "sentry.nodestore" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.projectoptions" },
+    { path = "sentry.quotas" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.roles" },
+    { path = "sentry.runner" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.services" },
+    { path = "sentry.shared_integrations" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.similarity" },
+    { path = "sentry.snuba" },
+    { path = "sentry.spans" },
+    { path = "sentry.tasks" },
+    { path = "sentry.tsdb" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.web" },
+]
+
+[[modules]]
+path = "sentry.web"
+depends_on = [
+    { path = "<root>" },
+    { path = "sentry.analytics" },
+    { path = "sentry.api" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.auth" },
+    { path = "sentry.cache" },
+    { path = "sentry.charts" },
+    { path = "sentry.conf" },
+    { path = "sentry.constants" },
+    { path = "sentry.data_export" },
+    { path = "sentry.digests" },
+    { path = "sentry.event_manager" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.exceptions" },
+    { path = "sentry.features" },
+    { path = "sentry.feedback" },
+    { path = "sentry.http" },
+    { path = "sentry.hybridcloud" },
+    { path = "sentry.identity" },
+    { path = "sentry.incidents" },
+    { path = "sentry.integrations" },
+    { path = "sentry.issues" },
+    { path = "sentry.loader" },
+    { path = "sentry.mail" },
+    { path = "sentry.middleware" },
+    { path = "sentry.models" },
+    { path = "sentry.newsletter" },
+    { path = "sentry.notifications" },
+    { path = "sentry.options" },
+    { path = "sentry.organizations" },
+    { path = "sentry.plugins" },
+    { path = "sentry.projects" },
+    { path = "sentry.ratelimits" },
+    { path = "sentry.roles" },
+    { path = "sentry.security" },
+    { path = "sentry.seer" },
+    { path = "sentry.sentry_apps" },
+    { path = "sentry.signals" },
+    { path = "sentry.silo" },
+    { path = "sentry.snuba" },
+    { path = "sentry.tagstore" },
+    { path = "sentry.tasks" },
+    { path = "sentry.testutils" },
+    { path = "sentry.toolbar" },
+    { path = "sentry.types" },
+    { path = "sentry.users" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.workflow_engine"
+depends_on = [
+    { path = "sentry.api" },
+    { path = "sentry.apidocs" },
+    { path = "sentry.audit_log" },
+    { path = "sentry.backup" },
+    { path = "sentry.db" },
+    { path = "sentry.eventstore" },
+    { path = "sentry.issues" },
+    { path = "sentry.models" },
+    { path = "sentry.new_migrations" },
+    { path = "sentry.notifications" },
+    { path = "sentry.types" },
+    { path = "sentry.utils" },
+]
+
+[[modules]]
+path = "sentry.wsgi"
+depends_on = [
+    { path = "sentry.runner" },
+]
