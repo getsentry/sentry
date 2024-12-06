@@ -21,6 +21,7 @@ import {generateQueryWithTag} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
@@ -118,6 +119,7 @@ function EventTagsTreeRowDropdown({
   event,
   project,
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
+  const location = useLocation();
   const organization = useOrganization();
   const {onClick: handleCopy} = useCopyToClipboard({
     text: content.value,
@@ -142,6 +144,7 @@ function EventTagsTreeRowDropdown({
     organization,
     project,
   });
+  const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
 
   return (
     <TreeValueDropdown
@@ -157,6 +160,18 @@ function EventTagsTreeRowDropdown({
         className: 'tag-button',
       }}
       items={[
+        ...(isIssueDetailsRoute
+          ? [
+              {
+                key: 'tag-details',
+                label: t('Tag breakdown'),
+                to: {
+                  pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
+                  query: location.query,
+                },
+              },
+            ]
+          : []),
         {
           key: 'view-events',
           label: t('View other events with this tag value'),
@@ -168,7 +183,7 @@ function EventTagsTreeRowDropdown({
         },
         {
           key: 'view-issues',
-          label: t('View issues with this tag value'),
+          label: t('Search issues with this tag value'),
           to: {
             pathname: `/organizations/${organization.slug}/issues/`,
             query,

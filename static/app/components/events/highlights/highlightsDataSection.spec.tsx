@@ -105,7 +105,7 @@ describe('HighlightsDataSection', function () {
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
         expect(
-          await screen.findByLabelText('View issues with this tag value')
+          await screen.findByLabelText('Search issues with this tag value')
         ).toBeInTheDocument();
         expect(
           screen.queryByLabelText('Add to event highlights')
