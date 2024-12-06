@@ -858,6 +858,7 @@ export const TraceGrid = styled('div')<{
   --autogrouped: ${p => p.theme.blue300};
   --performance-issue: ${p => p.theme.blue300};
 
+  background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
