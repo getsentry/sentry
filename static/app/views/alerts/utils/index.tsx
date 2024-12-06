@@ -71,6 +71,9 @@ export function convertDatasetEventTypesToSource(
   dataset: Dataset,
   eventTypes: EventTypes[]
 ) {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return Datasource.EVENTS_ANALYTICS_PLATFORM;
+  }
   // transactions and generic_metrics only have one datasource option regardless of event type
   if (dataset === Dataset.TRANSACTIONS || dataset === Dataset.GENERIC_METRICS) {
     return Datasource.TRANSACTION;

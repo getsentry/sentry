@@ -58,6 +58,7 @@ export enum Datasource {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+  EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
 export enum AlertRuleSensitivity {
