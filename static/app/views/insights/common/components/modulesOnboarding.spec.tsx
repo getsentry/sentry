@@ -9,6 +9,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 import {ModulesOnboarding} from './modulesOnboarding';
 
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
