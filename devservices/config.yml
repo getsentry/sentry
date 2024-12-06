@@ -45,6 +45,11 @@ services:
         -c,
         max_wal_senders=1,
       ]
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 3
     networks:
       - devservices
     volumes:
