@@ -33,6 +33,13 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
       - name: Bring up devservices
         run: devservices up
 
