@@ -188,7 +188,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             text = str(blocks.get("text"))
             # Wrap the Slack API call with lifecycle tracking
             with MessagingInteractionEvent(
-                interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
+                interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
                 spec=SlackMessagingSpec(),
             ).capture() as lifecycle:
                 try:
