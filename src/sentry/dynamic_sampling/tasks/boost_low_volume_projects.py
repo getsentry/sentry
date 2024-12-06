@@ -398,13 +398,13 @@ def adjust_sample_rates_of_projects(
         )
         return
 
-    # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
-    if not any(count > 0 for _, count, _, _ in projects_with_tx_count):
-        return
-
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
+    # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
+    if not any(projects_with_counts.values()):
+        return
+
     # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
     # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
     # the projects of an org will be replicated consistently across replicas, because no org should continue to create
