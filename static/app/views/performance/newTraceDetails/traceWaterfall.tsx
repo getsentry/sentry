@@ -38,6 +38,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -117,6 +118,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
+  const hasTraceNewUi = useHasTraceNewUi();
 
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
@@ -797,7 +799,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onMissingInstrumentationChange={onMissingInstrumentationChange}
         />
       </TraceToolbar>
-      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
+      <TraceGrid
+        layout={traceState.preferences.layout}
+        ref={setTraceGridRef}
+        hideBottomBorder={hasTraceNewUi}
+      >
         <Trace
           trace={props.tree}
           rerender={rerender}
@@ -846,6 +852,7 @@ const TraceToolbar = styled('div')`
 
 export const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
+  hideBottomBorder?: boolean;
 }>`
   --info: ${p => p.theme.purple400};
   --warning: ${p => p.theme.yellow300};
@@ -862,7 +869,6 @@ export const TraceGrid = styled('div')<{
   border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
-  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   position: relative;
   /* false positive for grid layout */
@@ -883,4 +889,10 @@ export const TraceGrid = styled('div')<{
         ? 'min-content 1fr'
         : '1fr min-content'};
   grid-template-rows: 1fr auto;
+
+  ${p =>
+    p.hideBottomBorder
+      ? `border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;`
+      : `border-radius: ${p.theme.borderRadius};`}
+  ${p => (p.hideBottomBorder ? 'border-bottom: none;' : '')}
 `;

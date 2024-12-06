@@ -69,64 +69,109 @@ export default function WebVitalMeters({
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);
 
+  const renderVitals = () => {
+    return webVitals.map((webVital, index) => {
+      const webVitalKey = `p75(measurements.${webVital})`;
+      const score = projectScore[`${webVital}Score`];
+      const meterValue = projectData?.data?.[0]?.[webVitalKey] as number;
+
+      if (!score) {
+        return null;
+      }
+
+      return (
+        <VitalMeter
+          key={webVital}
+          webVital={webVital}
+          showTooltip={showTooltip}
+          score={score}
+          meterValue={meterValue}
+          color={colors[index]}
+          onClick={onClick}
+        />
+      );
+    });
+  };
+
   return (
     <Container>
-      <Flex>
-        {webVitals.map((webVital, index) => {
-          const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
-          const formattedMeterValueText = webVitalExists ? (
-            webVitalsConfig[webVital].formatter(
-              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
-            )
-          ) : (
-            <NoValue />
-          );
-          const headerText = webVitalsConfig[webVital].name;
-          const meterBody = (
-            <Fragment>
-              <MeterBarBody>
-                {showTooltip && (
-                  <StyledQuestionTooltip
-                    isHoverable
-                    size="xs"
-                    title={
-                      <span>
-                        {tct(
-                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
-                          Scores and values may share some (but not perfect) correlation.`,
-                          {
-                            webVital: webVital.toUpperCase(),
-                          }
-                        )}
-                        <br />
-                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
-                          {t('Find out how performance scores are calculated here.')}
-                        </ExternalLink>
-                      </span>
-                    }
-                  />
-                )}
-                <MeterHeader>{headerText}</MeterHeader>
-                <MeterValueText>
-                  <Dot color={colors[index]} />
-                  {formattedMeterValueText}
-                </MeterValueText>
-              </MeterBarBody>
-              <MeterBarFooter score={projectScore[`${webVital}Score`]} />
-            </Fragment>
-          );
-          return (
-            <VitalContainer
-              key={webVital}
-              webVital={webVital}
-              webVitalExists={webVitalExists}
-              meterBody={meterBody}
-              onClick={onClick}
-            />
-          );
-        })}
-      </Flex>
+      <Flex>{renderVitals()}</Flex>
     </Container>
+  );
+}
+
+type VitalMeterProps = {
+  color: string;
+  meterValue: number | undefined;
+  score: number | undefined;
+  showTooltip: boolean;
+  webVital: WebVitals;
+  isAggregateMode?: boolean;
+  onClick?: (webVital: WebVitals) => void;
+};
+
+export function VitalMeter({
+  webVital,
+  showTooltip,
+  score,
+  meterValue,
+  color,
+  onClick,
+  isAggregateMode = true,
+}: VitalMeterProps) {
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
+  const webVitalExists = score !== undefined;
+
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
+
+  const headerText = webVitalsConfig[webVital].name;
+  const meterBody = (
+    <Fragment>
+      <MeterBarBody>
+        {showTooltip && (
+          <StyledQuestionTooltip
+            isHoverable
+            size="xs"
+            title={
+              <span>
+                {tct(
+                  `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
+                      Scores and values may share some (but not perfect) correlation.`,
+                  {
+                    webVital: webVital.toUpperCase(),
+                  }
+                )}
+                <br />
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
+                  {t('Find out how performance scores are calculated here.')}
+                </ExternalLink>
+              </span>
+            }
+          />
+        )}
+        <MeterHeader>{headerText}</MeterHeader>
+        <MeterValueText>
+          <Dot color={color} />
+          {formattedMeterValueText}
+        </MeterValueText>
+      </MeterBarBody>
+      <MeterBarFooter score={score} />
+    </Fragment>
+  );
+  return (
+    <VitalContainer
+      key={webVital}
+      webVital={webVital}
+      webVitalExists={webVitalExists}
+      meterBody={meterBody}
+      onClick={onClick}
+      isAggregateMode={isAggregateMode}
+    />
   );
 }
 
@@ -134,6 +179,7 @@ type VitalContainerProps = {
   meterBody: React.ReactNode;
   webVital: WebVitals;
   webVitalExists: boolean;
+  isAggregateMode?: boolean;
   onClick?: (webVital: WebVitals) => void;
 };
 
@@ -142,6 +188,7 @@ function VitalContainer({
   webVitalExists,
   meterBody,
   onClick,
+  isAggregateMode = true,
 }: VitalContainerProps) {
   return (
     <MeterBarContainer
@@ -153,8 +200,9 @@ function VitalContainer({
       {webVitalExists && meterBody}
       {!webVitalExists && (
         <StyledTooltip
-          title={tct('No [webVital] data found in this project.', {
+          title={tct('No [webVital] data found in this [selection].', {
             webVital: webVital.toUpperCase(),
+            selection: isAggregateMode ? 'project' : 'trace',
           })}
         >
           {meterBody}
