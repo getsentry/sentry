@@ -139,6 +139,13 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
     })(deDupedParams, asyncTicket);
   };
 
+  let visibleSeriesCount = props.timeseries.length;
+  if (releaseSeries) {
+    visibleSeriesCount += 1;
+  }
+
+  const showLegend = visibleSeriesCount > 1;
+
   return (
     <BaseChart
       ref={e => {
@@ -184,13 +191,13 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       utc={props.utc}
       grid={{
         left: 0,
-        top: props.timeseries.length > 1 ? 25 : 10,
+        top: showLegend ? 25 : 10,
         right: 1,
         bottom: 0,
         containLabel: true,
       }}
       legend={
-        props.timeseries.length > 1
+        showLegend
           ? {
               top: 0,
               left: 0,
