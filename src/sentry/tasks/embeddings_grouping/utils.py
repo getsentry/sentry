@@ -104,8 +104,8 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 
 def create_project_cohort(
     worker_number: int,
+    skip_processed_projects: bool,
     last_processed_project_id: int | None,
-    skip_processed_projects: bool = True,
 ) -> list[int]:
     """
     Create project cohort by the following calculation: project_id % threads == worker_number
