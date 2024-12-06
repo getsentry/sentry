@@ -117,7 +117,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
         <Flex justify="space-between">
           <FilterMessage align="center" gap={space(1)}>
             <IconFilter size="xs" />
-            {t('These results are filtered by the selections above.')}
+            {t('Results are filtered by the selections above.')}
           </FilterMessage>
           <GroupEventAttachmentsFilter project={project} />
         </Flex>
