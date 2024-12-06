@@ -8,11 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
-import {
-  INSIGHTS_TITLE,
-  MODULE_FEATURE_MAP,
-  QUERY_DATE_RANGE_LIMIT,
-} from 'sentry/views/insights/settings';
+import {INSIGHTS_TITLE, QUERY_DATE_RANGE_LIMIT} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
@@ -38,8 +34,6 @@ export function ModulePageProviders({
     'insights-query-date-range-limit'
   );
 
-  const features = MODULE_FEATURE_MAP[moduleName];
-
   useHasDataTrackAnalytics(moduleName as ModuleName, analyticEventName);
 
   const moduleTitle = moduleTitles[moduleName];
@@ -55,7 +49,7 @@ export function ModulePageProviders({
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
         <Layout.Page>
           <Feature
-            features={features}
+            features={'insights-entry-points'}
             organization={organization}
             renderDisabled={NoAccess}
           >
