@@ -186,11 +186,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
     @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
     def test_project_mode_sampling_with_query_zero_metrics(self):
-        org1 = self.create_organization("test-org")
-        p1 = self.create_project(organization=org1)
+        organization = self.create_organization("test-org")
+        project = self.create_project(organization=organization)
 
-        org1.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-        p1.update_option("sentry:target_sample_rate", 0.2)
+        organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
+        project.update_option("sentry:target_sample_rate", 0.2)
 
         # make sure that no rebalancing is actually run
         with patch(
