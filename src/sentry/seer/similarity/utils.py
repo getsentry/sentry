@@ -197,7 +197,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     html_frame_count = 0  # for a temporary metric
     is_frames_truncated = False
     has_no_filename = False  # for a temporary metric
-    has_no_filename_or_module = False
     stacktrace_str = ""
     found_non_snipped_context_line = False
 
@@ -208,7 +207,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         nonlocal html_frame_count
         nonlocal is_frames_truncated
         nonlocal has_no_filename
-        nonlocal has_no_filename_or_module
         nonlocal found_non_snipped_context_line
         frame_strings = []
 
@@ -229,8 +227,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             if not _is_snipped_context_line(frame_dict["context-line"]):
                 found_non_snipped_context_line = True
 
-            if not filename:
-                has_no_filename_or_module = True
             if not frame_dict["filename"]:
                 has_no_filename = True
 
