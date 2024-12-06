@@ -30,7 +30,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -313,7 +313,7 @@ describe('CacheLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    render(<CacheLandingPage />);
+    render(<CacheLandingPage />, {organization});
 
     await waitFor(() => {
       expect(

@@ -15,7 +15,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('HTTPSummaryPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let domainChartsRequestMock, domainTransactionsListRequestMock;
 
