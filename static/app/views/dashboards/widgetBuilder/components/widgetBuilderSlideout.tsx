@@ -14,6 +14,7 @@ import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
@@ -69,6 +70,9 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
             <WidgetBuilderGroupBySelector />
           </Section>
         )}
+        <Section>
+          <WidgetBuilderSortBySelector />
+        </Section>
         <Section>
           <WidgetBuilderNameAndDescription />
         </Section>
