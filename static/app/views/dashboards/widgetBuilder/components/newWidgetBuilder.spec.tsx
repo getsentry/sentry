@@ -81,6 +81,11 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -129,6 +134,10 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
     expect(screen.getByLabelText('Widget panel')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Group by')).not.toBeInTheDocument();
+    });
   });
 
   it('edits name and description', async function () {
@@ -285,5 +294,33 @@ describe('NewWidgetBuiler', function () {
       expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
+  });
+
+  it('renders the group by field on chart widgets', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(await screen.findByText('Select group')).toBeInTheDocument();
+    expect(await screen.findByText('Add Group')).toBeInTheDocument();
   });
 });
