@@ -1792,6 +1792,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 current_project_id=None,
                 last_processed_group_id_input=None,
                 skip_processed_projects=True,
+                enable_ingestion=True,
                 worker_number=0,
             )
 
