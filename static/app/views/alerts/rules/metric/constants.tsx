@@ -34,6 +34,7 @@ export const DATASET_EVENT_TYPE_FILTERS = {
   [Dataset.ERRORS]: 'event.type:error',
   [Dataset.TRANSACTIONS]: 'event.type:transaction',
   [Dataset.GENERIC_METRICS]: 'event.type:transaction',
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: '',
 } as const;
 
 export const DATASOURCE_EVENT_TYPE_FILTERS = {
@@ -41,6 +42,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
   [Datasource.ERROR]: 'event.type:error',
   [Datasource.DEFAULT]: 'event.type:default',
   [Datasource.TRANSACTION]: 'event.type:transaction',
+  [Datasource.EVENTS_ANALYTICS_PLATFORM]: '',
 } as const;
 
 export type OptionConfig = {
