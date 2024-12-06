@@ -1,15 +1,21 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Access from 'sentry/components/acl/access';
+import {hasEveryAccess} from 'sentry/components/acl/access';
+import {PROVIDER_OPTION_TO_URLS} from 'sentry/components/events/featureFlags/utils';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import {t} from 'sentry/locale';
+import ExternalLink from 'sentry/components/links/externalLink';
+import TextCopyInput from 'sentry/components/textCopyInput';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
@@ -28,17 +34,20 @@ export type CreateSecretResponse = string;
 
 export default function NewProviderForm({
   onCreatedSecret,
+  onSetProvider,
 }: {
   onCreatedSecret: (secret: string) => void;
+  onSetProvider: (provider: string) => void;
 }) {
   const initialData = {
     provider: '',
     secret: '',
   };
   const organization = useOrganization();
-
   const api = useApi();
   const queryClient = useQueryClient();
+
+  const [selectedProvider, setSelectedProvider] = useState('<provider_name>');
 
   const handleGoBack = useCallback(() => {
     browserHistory.push(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
@@ -56,16 +65,17 @@ export default function NewProviderForm({
         {
           method: 'POST',
           data: {
-            provider,
+            provider: provider.toLowerCase(),
             secret,
           },
         }
       );
     },
 
-    onSuccess: (_response, {secret}) => {
+    onSuccess: (_response, {secret, provider}) => {
       addSuccessMessage(t('Added provider and secret.'));
       onCreatedSecret(secret);
+      onSetProvider(provider);
       queryClient.invalidateQueries({
         queryKey: makeFetchSecretQueryKey({orgSlug: organization.slug}),
       });
@@ -77,46 +87,68 @@ export default function NewProviderForm({
     },
   });
 
+  const canRead = hasEveryAccess(['org:read'], {organization});
+  const canWrite = hasEveryAccess(['org:write'], {organization});
+  const canAdmin = hasEveryAccess(['org:admin'], {organization});
+  const hasAccess = canRead || canWrite || canAdmin;
+
   return (
-    <Access access={['org:write']}>
-      {({hasAccess}) => (
-        <Form
-          apiMethod="POST"
-          initialData={initialData}
-          apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
-          onSubmit={({provider, secret}) => {
-            submitSecret({
-              provider,
-              secret,
-            });
-          }}
-          onCancel={handleGoBack}
-          submitLabel={t('Add Provider')}
-          requireChanges
-          submitDisabled={!hasAccess || isPending}
-        >
-          <SelectField
-            required
-            label={t('Provider')}
-            name="provider"
-            options={[{value: 'launchdarkly', label: 'LaunchDarkly'}]}
-            placeholder={t('Select one')}
-            help={t(
-              'If you have already linked this provider, pasting a new secret will override the existing secret.'
-            )}
-          />
-          <TextField
-            name="secret"
-            label={t('Secret')}
-            maxLength={32}
-            minLength={32}
-            required
-            help={t(
-              'Paste the signing secret given by your provider when creating the webhook.'
-            )}
-          />
-        </Form>
-      )}
-    </Access>
+    <Form
+      apiMethod="POST"
+      initialData={initialData}
+      apiEndpoint={`/organizations/${organization.slug}/flags/signing-secret/`}
+      onSubmit={({provider, secret}) => {
+        submitSecret({
+          provider,
+          secret,
+        });
+      }}
+      onCancel={handleGoBack}
+      submitLabel={t('Add Provider')}
+      requireChanges
+      submitDisabled={!hasAccess || isPending}
+    >
+      <SelectField
+        required
+        label={t('Provider')}
+        onChange={setSelectedProvider}
+        value={selectedProvider}
+        placeholder={t('Select a provider')}
+        name="provider"
+        options={[{value: 'LaunchDarkly', label: 'LaunchDarkly'}]}
+        help={t(
+          'If you have already linked this provider, pasting a new secret will override the existing secret.'
+        )}
+      />
+      <StyledFieldGroup
+        label={t('Webhook URL')}
+        help={tct(
+          "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+          {
+            link: <ExternalLink href={PROVIDER_OPTION_TO_URLS[selectedProvider]} />,
+          }
+        )}
+        inline
+        flexibleControlStateSize
+      >
+        <TextCopyInput
+          aria-label={t('Webhook URL')}
+        >{`https://sentry.io/api/0/organizations/sentry/flags/hooks/provider/${selectedProvider.toLowerCase()}/`}</TextCopyInput>
+      </StyledFieldGroup>
+      <TextField
+        name="secret"
+        label={t('Secret')}
+        maxLength={32}
+        minLength={32}
+        required
+        help={t(
+          'Paste the signing secret given by your provider when creating the webhook.'
+        )}
+      />
+    </Form>
   );
 }
+
+const StyledFieldGroup = styled(FieldGroup)`
+  padding: ${space(2)};
+`;

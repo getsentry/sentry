@@ -1521,7 +1521,7 @@ def postprocessing(uuid: UUID) -> None:
             except Exception as e:
                 capture_exception(e)
 
-        notifying_unhide.apply_async(args=[uuid])
+    notifying_unhide.apply_async(args=[uuid])
 
 
 @instrumented_task(
