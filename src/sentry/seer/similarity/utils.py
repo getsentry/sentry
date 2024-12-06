@@ -328,7 +328,7 @@ def _process_frames(
 
     for frame in contributing_frames:
         frame_dict = extract_values_from_frame_values(frame.get("values", []))
-        filename = extract_filename(frame_dict)
+        filename = extract_filename(frame_dict) or "None"
 
         if not _is_snipped_context_line(frame_dict["context-line"]):
             frame_metrics["found_non_snipped_context_line"] = True
