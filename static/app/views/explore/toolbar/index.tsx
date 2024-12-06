@@ -23,10 +23,8 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
   const [resultMode, setResultMode] = useResultMode();
 
   const [sampleFields] = useSampleFields();
-
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
-
   const fields = useMemo(() => {
     if (resultMode === 'samples') {
       return sampleFields;
@@ -52,7 +50,6 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
 
     return allFields.filter(Boolean);
   }, [resultMode, sampleFields, groupBys, visualizes]);
-
   const [sorts, setSorts] = useSorts({fields});
 
   return (
