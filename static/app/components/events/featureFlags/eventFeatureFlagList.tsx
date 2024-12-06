@@ -11,6 +11,7 @@ import {
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
+import useIssueEvents from 'sentry/components/events/featureFlags/useIssueEvents';
 import {
   FlagControlOptions,
   OrderBy,
@@ -77,6 +78,13 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+
+  const {
+    data: relatedEvents,
+    isPending: isRelatedEventsPending,
+    isError: isRelatedEventsError,
+  } = useIssueEvents({issueId: group.id});
+
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
@@ -91,6 +99,10 @@ export function EventFeatureFlagList({
   });
 
   const hasFlagContext = Boolean(event.contexts?.flags?.values);
+  const anyEventHasContext =
+    isRelatedEventsPending || isRelatedEventsError
+      ? false
+      : relatedEvents.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
   const flagValues = useMemo(() => {
     return event.contexts?.flags?.values ?? [];
   }, [event]);
@@ -98,6 +110,7 @@ export function EventFeatureFlagList({
 
   const showCTA =
     !hasFlagContext &&
+    !anyEventHasContext &&
     featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
     organization.features.includes('feature-flag-cta');
 
