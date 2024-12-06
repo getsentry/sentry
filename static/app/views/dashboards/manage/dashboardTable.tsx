@@ -287,6 +287,7 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
+      // necessary for edit access dropdown
       bodyStyle={{overflow: 'visible'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
