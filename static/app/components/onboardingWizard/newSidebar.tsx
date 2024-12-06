@@ -68,16 +68,24 @@ interface TaskCardProps {
   icon: React.ReactNode;
   title: React.ReactNode;
   actions?: React.ReactNode;
+  className?: string;
   description?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
 }
 
-function TaskCard({description, icon, title, actions, onClick}: TaskCardProps) {
+function TaskCard({
+  description,
+  icon,
+  title,
+  actions,
+  onClick,
+  className,
+}: TaskCardProps) {
   return (
     <TaskCardWrapper
       role={onClick ? 'button' : undefined}
       onClick={onClick}
-      hasProgress={false}
+      className={className}
     >
       {onClick && <InteractionStateLayer />}
       <TaskCardIcon>{icon}</TaskCardIcon>
@@ -421,12 +429,13 @@ function TaskGroup({
 
   return (
     <TaskGroupWrapper>
-      <TaskCard
+      <TaskGroupHeader
         title={<strong>{title}</strong>}
         description={tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
           totalCompletedTasks: completedTasks.length,
           totalTasks: tasks.length,
         })}
+        hasProgress={completedTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
         icon={
           <TaskStatusIcon
@@ -570,6 +579,12 @@ const TaskGroupWrapper = styled('div')`
   }
 `;
 
+const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
+  p {
+    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
+  }
+`;
+
 const TaskGroupBody = styled(motion.ul)`
   border-radius: ${p => p.theme.borderRadius};
   list-style-type: none;
@@ -594,7 +609,7 @@ const BottomLeft = styled('img')`
   margin-top: ${space(3)};
 `;
 
-const TaskCardWrapper = styled('div')<{hasProgress: boolean}>`
+const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
   grid-template-columns: max-content 1fr max-content;
@@ -605,7 +620,6 @@ const TaskCardWrapper = styled('div')<{hasProgress: boolean}>`
   p {
     margin: 0;
     font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
   }
 `;
 
