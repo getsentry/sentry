@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
 import {ReplaySideBySideImageDiff} from 'sentry/components/replays/diff/replaySideBySideImageDiff';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
@@ -43,12 +42,8 @@ export default function ReplayDiffChooser({
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>
-          <TabList.Item key={DiffType.MUTATIONS}>
-            {t('Mutations')} <FeatureBadge type={'beta'} />
-          </TabList.Item>
-          <TabList.Item key={DiffType.HTML}>
-            {t('HTML Diff')} <FeatureBadge type={'beta'} />
-          </TabList.Item>
+          <TabList.Item key={DiffType.MUTATIONS}>{t('Mutations')}</TabList.Item>
+          <TabList.Item key={DiffType.HTML}>{t('HTML Diff')}</TabList.Item>
         </TabList>
 
         <StyledTabPanels>

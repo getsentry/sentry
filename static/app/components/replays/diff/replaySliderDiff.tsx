@@ -23,6 +23,8 @@ interface Props {
   minHeight?: `${number}px` | `${number}%`;
 }
 
+const BORDER_WIDTH = 3;
+
 export function ReplaySliderDiff({
   minHeight = '0px',
   leftOffsetMs,
@@ -79,15 +81,16 @@ function DiffSides({
     initialSize: viewDimensions.width / 2,
     min: 0,
     onResize: newSize => {
+      const maxWidth = viewDimensions.width - BORDER_WIDTH;
       if (beforeElemRef.current) {
         beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
+            : toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =
-          toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
+          toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
     },
   });
@@ -153,7 +156,7 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 3px solid;
+  border: ${BORDER_WIDTH}px solid;
   border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
@@ -163,7 +166,7 @@ const Cover = styled('div')`
 
   border-color: ${p => p.theme.green300};
   & + & {
-    border: 3px solid;
+    border: ${BORDER_WIDTH}px solid;
     border-radius: ${space(0.5)} 0 0 ${space(0.5)};
     border-color: ${p => p.theme.red300};
     border-right-width: 0;

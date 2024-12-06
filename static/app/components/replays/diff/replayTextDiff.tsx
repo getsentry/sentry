@@ -2,12 +2,11 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import Alert from 'sentry/components/alert';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import ExternalLink from 'sentry/components/links/externalLink';
+import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -19,7 +18,7 @@ interface Props {
 }
 
 export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
-  const {data} = useExtractPageHtml({
+  const {data, isLoading} = useExtractPageHtml({
     replay,
     offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
   });
@@ -31,16 +30,7 @@ export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
 
   return (
     <Container>
-      <StyledAlert type="info" showIcon>
-        {tct(
-          `The HTML Diff is currently in beta and has known issues (e.g. the 'Before' is sometimes empty). We are exploring different options to replace this view. Please see [link: this ticket] for more details and share your feedback.`,
-          {
-            link: (
-              <ExternalLink href="https://github.com/getsentry/sentry/issues/80092" />
-            ),
-          }
-        )}
-      </StyledAlert>
+      {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <DiffHeader>
         <Before>
           <CopyToClipboardButton
@@ -74,10 +64,6 @@ const Container = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 const SplitDiffScrollWrapper = styled('div')`
