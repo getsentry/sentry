@@ -62,7 +62,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         user: AbstractBaseUser | AnonymousUser,
         provided_event_id: str | None = None,
     ) -> tuple[dict[str, Any] | None, GroupEvent | None]:
-        event = None
+        event: GroupEvent | None = None
         if provided_event_id:
             event = eventstore.backend.get_event_by_id(
                 group.project.id, provided_event_id, group_id=group.id
