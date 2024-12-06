@@ -13,9 +13,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 
-import {StreamlinedExternalIssueList} from './streamlinedExternalIssueList';
+import {ExternalIssueList} from './externalIssueList';
 
-describe('StreamlinedExternalIssueList', () => {
+describe('ExternalIssueList', () => {
   const organization = OrganizationFixture();
   const event = EventFixture();
   const group = GroupFixture();
@@ -57,9 +57,7 @@ describe('StreamlinedExternalIssueList', () => {
       method: 'DELETE',
     });
 
-    render(
-      <StreamlinedExternalIssueList event={event} group={group} project={project} />
-    );
+    render(<ExternalIssueList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: issueKey})).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('button', {name: issueKey}));
@@ -121,9 +119,7 @@ describe('StreamlinedExternalIssueList', () => {
       }),
     ]);
 
-    render(
-      <StreamlinedExternalIssueList event={event} group={group} project={project} />
-    );
+    render(<ExternalIssueList event={event} group={group} project={project} />);
 
     expect(
       await screen.findByRole('button', {name: 'ClickUp: hello#1'})
@@ -162,9 +158,7 @@ describe('StreamlinedExternalIssueList', () => {
       ],
     });
 
-    render(
-      <StreamlinedExternalIssueList event={event} group={group} project={project} />
-    );
+    render(<ExternalIssueList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: 'GitHub'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
@@ -188,9 +182,7 @@ describe('StreamlinedExternalIssueList', () => {
       body: [],
     });
 
-    render(
-      <StreamlinedExternalIssueList event={event} group={group} project={project} />
-    );
+    render(<ExternalIssueList event={event} group={group} project={project} />);
 
     expect(
       await screen.findByText('Track this issue in Jira, GitHub, etc.')
@@ -223,9 +215,7 @@ describe('StreamlinedExternalIssueList', () => {
       ],
     });
 
-    render(
-      <StreamlinedExternalIssueList event={event} group={group} project={project} />
-    );
+    render(<ExternalIssueList event={event} group={group} project={project} />);
 
     expect(await screen.findByRole('button', {name: 'Jira'})).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', {name: 'Jira'}));

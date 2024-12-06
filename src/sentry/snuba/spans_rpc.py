@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import Any
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
@@ -7,6 +8,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
 from sentry.search.eap.constants import FLOAT, INT, STRING
 from sentry.search.eap.spans import SearchResolver
@@ -15,7 +17,7 @@ from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba import SnubaTSResult
+from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -129,6 +131,7 @@ def run_table_query(
                 result_value = result.val_int
             elif resolved_column.proto_type == FLOAT:
                 result_value = result.val_float
+            result_value = process_value(result_value)
             final_data[index][attribute] = resolved_column.process_column(result_value)
             if has_reliability:
                 final_confidence[index][attribute] = CONFIDENCES.get(
@@ -183,6 +186,7 @@ def run_timeseries_query(
     referrer: str,
     granularity_secs: int,
     config: SearchResolverConfig,
+    comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
     rpc_request = get_timeseries_query(
@@ -214,6 +218,32 @@ def run_timeseries_query(
             granularity_secs,
             ["time"],
         )
+
+    if comparison_delta is not None:
+        if len(rpc_request.aggregations) != 1:
+            raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+
+        comp_query_params = params.copy()
+        assert comp_query_params.start is not None, "start is required"
+        assert comp_query_params.end is not None, "end is required"
+        comp_query_params.start = comp_query_params.start_date - comparison_delta
+        comp_query_params.end = comp_query_params.end_date - comparison_delta
+
+        comp_rpc_request = get_timeseries_query(
+            comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
+        )
+        comp_rpc_response = snuba_rpc.timeseries_rpc(comp_rpc_request)
+
+        if comp_rpc_response.result_timeseries:
+            timeseries = comp_rpc_response.result_timeseries[0]
+            processed, _ = _process_timeseries(timeseries, params, granularity_secs)
+            label = get_function_alias(timeseries.label)
+            for existing, new in zip(result, processed):
+                existing["comparisonCount"] = new[label]
+        else:
+            for existing in result:
+                existing["comparisonCount"] = 0
+
     return SnubaTSResult(
         {"data": result, "confidence": confidences}, params.start, params.end, granularity_secs
     )
@@ -389,7 +419,7 @@ def _process_timeseries(
             result.append({"time": bucket.seconds})
             confidence.append({"time": bucket.seconds})
     for index, data_point in enumerate(timeseries.data_points):
-        result[index][label] = data_point.data
+        result[index][label] = process_value(data_point.data)
         confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
 
     return result, confidence
