@@ -19,7 +19,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
@@ -68,7 +68,9 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 group.project.id, provided_event_id, group_id=group.id
             )
             if provided_event:
-                event = provided_event.for_group(group)
+                if isinstance(provided_event, Event):
+                    provided_event = provided_event.for_group(group)
+                event = provided_event
         else:
             event = group.get_recommended_event_for_environments()
         if not event:
