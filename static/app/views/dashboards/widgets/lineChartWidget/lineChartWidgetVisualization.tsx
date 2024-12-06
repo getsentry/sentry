@@ -194,7 +194,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       grid={{
         left: 0,
         top: showLegend ? 25 : 10,
-        right: 1,
+        right: 4,
         bottom: 0,
         containLabel: true,
       }}
@@ -212,6 +212,13 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           type: 'cross',
         },
         formatter,
+      }}
+      xAxis={{
+        axisLabel: {
+          padding: [0, 10, 0, 10],
+          width: 60,
+        },
+        splitNumber: 0,
       }}
       yAxis={{
         axisLabel: {
@@ -233,6 +240,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       }}
       {...chartZoomProps}
       isGroupedByDate
+      useMultilineDate
       start={start ? new Date(start) : undefined}
       end={end ? new Date(end) : undefined}
       period={period}
