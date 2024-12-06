@@ -409,7 +409,7 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart):
-        # Using the transactions dataset
+        # Using the EventsAnalyticsPlatform dataset
         alert_rule = self.create_alert_rule(
             query="span.op:foo", dataset=Dataset.EventsAnalyticsPlatform
         )
@@ -473,7 +473,7 @@ class UnfurlTest(TestCase):
     def test_unfurl_metric_alerts_chart_eap_spans_events_stats_call(
         self, mock_generate_chart, mock_get_event_stats_data
     ):
-        # Using the transactions dataset
+        # Using the EventsAnalyticsPlatform dataset
         alert_rule = self.create_alert_rule(
             query="span.op:foo", dataset=Dataset.EventsAnalyticsPlatform
         )
