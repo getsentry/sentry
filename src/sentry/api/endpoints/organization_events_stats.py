@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -283,7 +283,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None,
+            comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 if use_rpc and dataset == spans_eap:
@@ -336,7 +336,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=False,
                     ),
+                    comparison_delta=comparison_delta,
                 )
+
+            transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
+
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -366,6 +370,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                     actor=request.user,
                 ),
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -383,7 +388,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
-                comparison_delta: datetime | None,
+                comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
