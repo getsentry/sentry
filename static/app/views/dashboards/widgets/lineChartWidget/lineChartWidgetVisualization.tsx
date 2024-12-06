@@ -16,6 +16,7 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {ReleaseSeries} from '../common/releaseSeries';
@@ -29,12 +30,14 @@ export interface LineChartWidgetVisualizationProps {
   dataCompletenessDelay?: number;
   meta?: Meta;
   releases?: Release[];
-  utc?: boolean;
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
+
+  const pageFilters = usePageFilters();
+  const {start, end, period, utc} = pageFilters.selection.datetime;
   const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
@@ -55,7 +58,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       );
     };
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, props.utc ?? false);
+    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
   const chartZoomProps = useChartZoom({
@@ -135,7 +138,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         return formatChartValue(value, type, unit);
       },
       truncate: true,
-      utc: props.utc ?? false,
+      utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
 
@@ -188,7 +191,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
             data: [],
           }),
       ].filter(defined)}
-      utc={props.utc}
       grid={{
         left: 0,
         top: showLegend ? 25 : 10,
@@ -231,6 +233,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       }}
       {...chartZoomProps}
       isGroupedByDate
+      start={start ? new Date(start) : undefined}
+      end={end ? new Date(end) : undefined}
+      period={period}
+      utc={utc ?? undefined}
     />
   );
 }
