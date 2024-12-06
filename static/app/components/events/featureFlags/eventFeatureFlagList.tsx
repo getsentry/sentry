@@ -122,7 +122,7 @@ export function EventFeatureFlagList({
         typeof f.result === 'boolean'
     );
   }, [event]);
-  
+
   const hasFlags = hasFlagContext && eventFlags.length > 0;
 
   const showCTA =
