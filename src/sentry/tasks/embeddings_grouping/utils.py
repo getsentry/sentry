@@ -50,6 +50,7 @@ BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
+PROJECT_BACKFILL_COMPLETED = "sentry:similarity_backfill_completed"
 
 logger = logging.getLogger(__name__)
 
