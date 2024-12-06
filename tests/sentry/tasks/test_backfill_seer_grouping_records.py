@@ -1731,7 +1731,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         the skip_processed_projects flag.
         """
         self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
-
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 self.project.id, None, skip_processed_projects=True, worker_number=0
