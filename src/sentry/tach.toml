@@ -1,0 +1,755 @@
+interfaces = []
+exclude = [
+    ".*__pycache__",
+    ".*egg-info",
+    "docs",
+    "tests",
+]
+source_roots = [
+    ".",
+]
+
+[[modules]]
+path = "<root>"
+depends_on = [
+    { path = "runner" },
+]
+
+[[modules]]
+path = "adoption"
+depends_on = []
+
+[[modules]]
+path = "analytics"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "api"
+depends_on = [
+    { path = "http" },
+    { path = "logging" },
+    { path = "types" },
+    { path = "utils" },
+]
+
+[[modules]]
+path = "apidocs"
+depends_on = [
+    { path = "types" },
+]
+
+[[modules]]
+path = "app"
+depends_on = []
+
+[[modules]]
+path = "assistant"
+depends_on = []
+
+[[modules]]
+path = "attachments"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "audit_log"
+depends_on = []
+
+[[modules]]
+path = "auth"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "autofix"
+depends_on = []
+
+[[modules]]
+path = "backup"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "bgtasks"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "buffer"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "build"
+depends_on = []
+
+[[modules]]
+path = "cache"
+depends_on = []
+
+[[modules]]
+path = "celery"
+depends_on = []
+
+[[modules]]
+path = "charts"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "conf"
+depends_on = []
+
+[[modules]]
+path = "constants"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "consumers"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "coreapi"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "culprit"
+depends_on = []
+
+[[modules]]
+path = "data"
+depends_on = []
+
+[[modules]]
+path = "data_export"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+]
+
+[[modules]]
+path = "data_secrecy"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "datascrubbing"
+depends_on = []
+
+[[modules]]
+path = "db"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "debug"
+depends_on = []
+
+[[modules]]
+path = "debug_files"
+depends_on = []
+
+[[modules]]
+path = "deletions"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+]
+
+[[modules]]
+path = "digests"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "discover"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "dynamic_sampling"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "event_manager"
+depends_on = [
+    { path = "ingest" },
+    { path = "logging" },
+    { path = "utils" },
+]
+
+[[modules]]
+path = "eventstore"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "eventstream"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "eventtypes"
+depends_on = []
+
+[[modules]]
+path = "exceptions"
+depends_on = []
+
+[[modules]]
+path = "experiments"
+depends_on = []
+
+[[modules]]
+path = "features"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "feedback"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "filestore"
+depends_on = []
+
+[[modules]]
+path = "flags"
+depends_on = []
+
+[[modules]]
+path = "grouping"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "http"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "hybridcloud"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+]
+
+[[modules]]
+path = "identity"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "incidents"
+depends_on = [
+    { path = "logging" },
+    { path = "snuba" },
+]
+
+[[modules]]
+path = "ingest"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "integrations"
+depends_on = [
+    { path = "logging" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "interfaces"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "issues"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "killswitches"
+depends_on = []
+
+[[modules]]
+path = "lang"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "llm"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "loader"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "locale"
+depends_on = []
+
+[[modules]]
+path = "locks"
+depends_on = []
+
+[[modules]]
+path = "logging"
+depends_on = []
+
+[[modules]]
+path = "mail"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "management"
+depends_on = []
+
+[[modules]]
+path = "metrics"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "middleware"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "migrations"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "models"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "monitoring"
+depends_on = []
+
+[[modules]]
+path = "monitors"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "monkey"
+depends_on = []
+
+[[modules]]
+path = "net"
+depends_on = []
+
+[[modules]]
+path = "new_migrations"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "newsletter"
+depends_on = []
+
+[[modules]]
+path = "nodestore"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "notifications"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "onboarding_tasks"
+depends_on = []
+
+[[modules]]
+path = "options"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "organizations"
+depends_on = []
+
+[[modules]]
+path = "ownership"
+depends_on = []
+
+[[modules]]
+path = "pipeline"
+depends_on = [
+    { path = "logging" },
+    { path = "models" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "plugins"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "post_process_forwarder"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "processing"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "profiles"
+depends_on = [
+    { path = "types" },
+]
+
+[[modules]]
+path = "projectoptions"
+depends_on = []
+
+[[modules]]
+path = "projects"
+depends_on = []
+
+[[modules]]
+path = "queue"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "quotas"
+depends_on = []
+
+[[modules]]
+path = "ratelimits"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "receivers"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "relay"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "release_health"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "relocation"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "remote_subscriptions"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "replays"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "reprocessing2"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "roles"
+depends_on = []
+
+[[modules]]
+path = "rules"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "runner"
+depends_on = [
+    { path = "http" },
+    { path = "logging" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "scim"
+depends_on = [
+    { path = "logging" },
+    { path = "signals" },
+    { path = "utils" },
+]
+
+[[modules]]
+path = "scripts"
+depends_on = []
+
+[[modules]]
+path = "sdk_updates"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "search"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "security"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "seer"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "sentry_apps"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+]
+
+[[modules]]
+path = "sentry_metrics"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "services"
+depends_on = []
+
+[[modules]]
+path = "shared_integrations"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "signals"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "silo"
+depends_on = []
+
+[[modules]]
+path = "similarity"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "slug"
+depends_on = []
+
+[[modules]]
+path = "snuba"
+depends_on = [
+    { path = "logging" },
+    { path = "models" },
+    { path = "release_health" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "spans"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "stacktraces"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "static"
+depends_on = []
+
+[[modules]]
+path = "statistical_detectors"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "status_checks"
+depends_on = []
+
+[[modules]]
+path = "tagstore"
+depends_on = []
+
+[[modules]]
+path = "tasks"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+]
+
+[[modules]]
+path = "taskworker"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "templates"
+depends_on = []
+
+[[modules]]
+path = "templatetags"
+depends_on = []
+
+[[modules]]
+path = "testutils"
+depends_on = [
+    { path = "celery" },
+    { path = "logging" },
+    { path = "shared_integrations" },
+    { path = "snuba" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "toolbar"
+depends_on = []
+
+[[modules]]
+path = "trash"
+depends_on = []
+
+[[modules]]
+path = "tsdb"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "types"
+depends_on = []
+
+[[modules]]
+path = "unmerge"
+depends_on = []
+
+[[modules]]
+path = "uptime"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "usage_accountant"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "users"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "utils"
+depends_on = [
+    { path = "logging" },
+    { path = "queue" },
+    { path = "types" },
+]
+
+[[modules]]
+path = "web"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "workflow_engine"
+depends_on = [
+    { path = "logging" },
+]
+
+[[modules]]
+path = "wsgi"
+depends_on = []
