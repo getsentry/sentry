@@ -183,9 +183,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         if features.has("organizations:dashboards-favourite", organization, actor=request.user):
             pin_by = request.query_params.get("pin")
-
-            if True or pin_by == "favorites":
-                # order so that favorites are first
+            if pin_by == "favorites":
                 order_by_favorites = [
                     Case(
                         When(dashboardfavoriteuser__user_id=request.user.id, then=-1),
