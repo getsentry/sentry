@@ -37,8 +37,9 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519 -C "github actions"
-          chmod 660 ~/.ssh/id_ed25519
+          chmod 666 ~/.ssh/id_ed25519
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh-add ~/.ssh/id_ed25519
           ssh -vT git@github.com
 
       - name: Bring up devservices
