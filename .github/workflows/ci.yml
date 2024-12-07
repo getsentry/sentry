@@ -30,5 +30,4 @@ jobs:
           GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
         run: |
           cd src
-          echo $GAUGE_API_BASE_URL
           tach upload
