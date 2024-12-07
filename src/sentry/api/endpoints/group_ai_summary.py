@@ -188,12 +188,12 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         ):
             return Response({"detail": "Feature flag not enabled"}, status=400)
 
-        cache_key = "ai-group-summary-v2:" + str(group.id)
-        if cached_summary := cache.get(cache_key):
-            return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
-
         data = orjson.loads(request.body) if request.body else {}
         force_event_id = data.get("event_id", None)
+
+        cache_key = "ai-group-summary-v2:" + str(group.id)
+        if not force_event_id and (cached_summary := cache.get(cache_key)):
+            return Response(convert_dict_key_case(cached_summary, snake_to_camel_case), status=200)
 
         serialized_event, event = self._get_event(
             group, request.user, provided_event_id=force_event_id
