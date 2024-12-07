@@ -389,6 +389,7 @@ module = [
     "sentry.identity.github_enterprise.*",
     "sentry.ingest.slicing",
     "sentry.integrations.models.integration_feature",
+    "sentry.interfaces.contexts",
     "sentry.issues",
     "sentry.issues.analytics",
     "sentry.issues.apps",
