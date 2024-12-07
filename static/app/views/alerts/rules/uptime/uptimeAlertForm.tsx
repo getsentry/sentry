@@ -31,6 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 
+import {AllowedResponseCodeField} from './allowedResponseCodeField';
 import {HTTPSnippet} from './httpSnippet';
 import {UptimeHeadersField} from './uptimeHeadersField';
 
@@ -205,6 +206,14 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               defaultValue={5_000}
               showTickLabels
               formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+              flexibleControlStateSize
+              required
+            />
+            <AllowedResponseCodeField
+              name="expectedResponseCodes"
+              label={t('Allowed Response')}
+              placeholder={t('Select allowed HTTP response codes')}
+              backspaceRemovesValue
               flexibleControlStateSize
               required
             />
