@@ -27,7 +27,7 @@ depends_on = [
     { path = "bitfield" },
     { path = "django_picklefield" },
     { path = "flagpole" },
-    { path = "sentry_plugins" },
+    { path = "sentry_plugins", deprecated = true },
     { path = "social_auth" },
     { path = "sudo" },
 ]
