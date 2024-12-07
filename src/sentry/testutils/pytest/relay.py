@@ -69,7 +69,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     relay_port = 33331
 
     redis_db = TEST_REDIS_DB
-    use_new_dev_services = environ.get("USE_NEW_DEV_SERVICES", False) == "1"
+    use_new_dev_services = environ.get("USE_NEW_DEVSERVICES", False) == "1"
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
