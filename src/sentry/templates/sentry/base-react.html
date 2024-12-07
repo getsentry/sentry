@@ -19,17 +19,4 @@
   </div>
 {% endblock %}
 
-{% block scripts_bottom %}
-<script>
-  function setBodyTheme() {
-    if (window.__initialData.user.options.theme) {
-      document.body.classList.add(`theme-${window.__initialData.user.options.theme}`)
-    }
-  }
-
-  try {
-    setBodyTheme();
-  } catch (_) {
-  }
-</script>
-{% endblock %}
+{% block wrapperclass %}{{ user_theme }}{% endblock %}
