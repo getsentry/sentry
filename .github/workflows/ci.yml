@@ -10,9 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     environment: tach-demo
-    env:
-      GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
-      GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,6 +25,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install tach==0.16.3
       - name: tach report upload
+        env:
+          GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
+          GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
         run: |
           cd src
           echo $GAUGE_API_BASE_URL
