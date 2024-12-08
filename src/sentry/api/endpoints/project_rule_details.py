@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -27,6 +28,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.exceptions import SentryAppIntegratorError
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
@@ -285,7 +287,21 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
+            try:
+                trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
+            except SentryAppIntegratorError as e:
+                return Response(
+                    {"error": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            except Exception as e:
+                error_id = sentry_sdk.capture_exception(e)
+                return Response(
+                    {
+                        "error": f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}"
+                    },
+                    status=500,
+                )
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,

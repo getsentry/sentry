@@ -251,10 +251,7 @@ class DatabaseBackedAppService(AppService):
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
-        try:
-            install = SentryAppInstallation.objects.get(uuid=install_uuid)
-        except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
+        install = SentryAppInstallation.objects.get(uuid=install_uuid)
         result = AlertRuleActionCreator(install=install, fields=fields).run()
         return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
 

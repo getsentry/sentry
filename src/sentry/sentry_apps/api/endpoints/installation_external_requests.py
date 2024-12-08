@@ -1,13 +1,13 @@
 import logging
 
-from jsonschema import ValidationError
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.coreapi import APIError
+from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
@@ -42,16 +42,18 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
 
         try:
             choices = SelectRequester(**kwargs).run()
-        except ValidationError as e:
+        except (SentryAppIntegratorError, SentryAppError) as e:
             return Response(
-                {"error": e.message},
+                {"error": str(e)},
                 status=400,
             )
-        except APIError:
-            message = f'Error retrieving select field options from {request.GET.get("uri")}'
+        except Exception as e:
+            error_id = sentry_sdk.capture_exception(e)
             return Response(
-                {"error": message},
-                status=400,
+                {
+                    "error": f"Something went wrong while trying to get Select FormField options. Sentry error ID: {error_id}"
+                },
+                status=500,
             )
 
         return Response(choices)
