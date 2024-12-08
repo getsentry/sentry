@@ -64,6 +64,7 @@ import {
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
+import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
@@ -789,6 +790,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TraceActionsMenu
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
         <TracePreferencesDropdown
           autogroup={
             traceState.preferences.autogroup.parent &&
