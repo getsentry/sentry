@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -33,15 +31,13 @@ function TraceActionsMenu({
   const {projects} = useProjects();
   const navigate = useNavigate();
 
-  const traceProject = useMemo(() => {
-    return rootEventResults.data
-      ? projects.find(p => p.id === rootEventResults.data.projectID)
-      : undefined;
-  }, [projects, rootEventResults.data]);
-
   if (!hasTraceNewUi) {
     return null;
   }
+
+  const traceProject = rootEventResults.data
+    ? projects.find(p => p.id === rootEventResults.data.projectID)
+    : undefined;
 
   return (
     <DropdownMenu
