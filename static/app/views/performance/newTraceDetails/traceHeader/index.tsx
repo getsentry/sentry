@@ -134,7 +134,7 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
               props.organization.slug,
               false,
               hasDatasetSelector(props.organization)
-                ? SavedQueryDatasets.ERRORS
+                ? SavedQueryDatasets.TRANSACTIONS
                 : undefined
             )}
             onClick={trackOpenInDiscover}
