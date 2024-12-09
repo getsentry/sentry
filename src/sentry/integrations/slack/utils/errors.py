@@ -20,6 +20,15 @@ SLACK_SDK_ERROR_CATEGORIES = (
     RATE_LIMITED := SlackSdkErrorCategory("ratelimited"),
 )
 
+"""
+Errors that are user configuration errors and should be recorded as a halt for SLOs.
+"""
+SLACK_SDK_HALT_ERROR_CATEGORIES = (
+    ACCOUNT_INACTIVE,
+    CHANNEL_NOT_FOUND,
+    CHANNEL_ARCHIVED,
+)
+
 _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}
 
 
