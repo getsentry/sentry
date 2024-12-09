@@ -245,7 +245,7 @@ class Strategy(Generic[ConcreteInterface]):
 
         final_components_by_variant = {}
         has_mandatory_hashes = False
-        mandatory_contributing_variants_by_hash = {}
+        priority_contributing_variants_by_hash = {}
         optional_contributing_variants = []
         prevent_contribution = None
 
@@ -258,13 +258,13 @@ class Strategy(Generic[ConcreteInterface]):
 
             if component.contributes:
                 if is_mandatory:
-                    mandatory_contributing_variants_by_hash[component.get_hash()] = variant_name
+                    priority_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
                     optional_contributing_variants.append(variant_name)
 
             final_components_by_variant[variant_name] = component
 
-        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_variants_by_hash
+        prevent_contribution = has_mandatory_hashes and not priority_contributing_variants_by_hash
 
         for variant_name in optional_contributing_variants:
             component = final_components_by_variant[variant_name]
@@ -279,14 +279,14 @@ class Strategy(Generic[ConcreteInterface]):
                     contributes=False,
                     hint="ignored because %s variant is not used"
                     % (
-                        list(mandatory_contributing_variants_by_hash.values())[0]
-                        if len(mandatory_contributing_variants_by_hash) == 1
+                        list(priority_contributing_variants_by_hash.values())[0]
+                        if len(priority_contributing_variants_by_hash) == 1
                         else "other mandatory"
                     ),
                 )
             else:
                 hash_value = component.get_hash()
-                duplicate_of = mandatory_contributing_variants_by_hash.get(hash_value)
+                duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,
