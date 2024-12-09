@@ -552,7 +552,7 @@ def single_exception(
 
     rv = {}
 
-    for variant, stacktrace_component in stacktrace_variants.items():
+    for variant_name, stacktrace_component in stacktrace_variants.items():
         values: list[
             ErrorTypeGroupingComponent
             | ErrorValueGroupingComponent
@@ -560,7 +560,7 @@ def single_exception(
             | StacktraceGroupingComponent
         ] = [
             stacktrace_component,
-            system_type_component if variant == "system" else type_component,
+            system_type_component if variant_name == "system" else type_component,
         ]
 
         if ns_error_component is not None:
@@ -599,7 +599,7 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant] = ExceptionGroupingComponent(
+        rv[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
         )
 
