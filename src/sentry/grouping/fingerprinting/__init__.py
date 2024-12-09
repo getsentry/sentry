@@ -273,9 +273,9 @@ class FingerprintingRules:
             return None
         access = EventAccess(event)
         for rule in self.iter_rules():
-            new_values = rule.get_fingerprint_values_for_event_access(access)
-            if new_values is not None:
-                return FingerprintRuleMatch(rule, new_values.fingerprint, new_values.attributes)
+            match = rule.get_fingerprint_values_for_event_access(access)
+            if match is not None:
+                return FingerprintRuleMatch(rule, match.fingerprint, match.attributes)
         return None
 
     @classmethod
