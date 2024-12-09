@@ -427,7 +427,7 @@ def _single_stacktrace_variant(
 
     frames = stacktrace.frames
 
-    values = []
+    frame_components = []
     prev_frame = None
     frames_for_filtering = []
     found_in_app_frame = False
@@ -445,7 +445,7 @@ def _single_stacktrace_variant(
                 # the rust enhancer doesn't know about system vs app variants
                 frame_component.update(contributes=False, hint="non app frame")
 
-        values.append(frame_component)
+        frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
@@ -454,15 +454,17 @@ def _single_stacktrace_variant(
     # for grouping.
     if (
         len(frames) == 1
-        and values[0].contributes
+        and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
         and frames[0].is_url()
     ):
-        values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
+        frame_components[0].update(
+            contributes=False, hint="ignored single non-URL JavaScript frame"
+        )
 
     stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
-        values,
+        frame_components,
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
