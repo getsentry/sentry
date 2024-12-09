@@ -170,7 +170,7 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     if user_email and not ret_event["tags"].get("user.email"):
         ret_event["tags"]["user.email"] = user_email
 
-    # Set the trace.id tag to expose it for the feedback UI and alert conditions.
+    # Set the trace.id tag to expose it for the feedback UI.
     trace_id = get_path(ret_event, "contexts", "trace", "trace_id")
     if trace_id:
         ret_event["tags"]["trace.id"] = trace_id
