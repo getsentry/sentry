@@ -276,9 +276,8 @@ function EditAccessSelector({
           ? [triggerAvatars]
           : [
               <StyledFeatureBadge
-                key="beta-badge"
-                type="beta"
-                title={t('This feature is available for early adopters and may change')}
+                key="new-badge"
+                type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
               t('Edit Access:'),
