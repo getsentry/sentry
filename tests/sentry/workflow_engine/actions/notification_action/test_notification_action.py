@@ -6,7 +6,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.actions.action_handlers_registry import trigger_action
-from sentry.workflow_engine.actions.notification_action.logic import (
+from sentry.workflow_engine.actions.notification_action.notification_action import (
     create_rule_fire_history_from_action,
     create_rule_from_action,
 )

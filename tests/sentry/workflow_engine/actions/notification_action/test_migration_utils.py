@@ -1,17 +1,17 @@
 from sentry.models.group import GroupEvent
 from sentry.models.rule import Rule
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.actions.notification_action.mappings import (
-    ACTION_TYPE_2_INTEGRATION_ID_KEY,
-    ACTION_TYPE_2_TARGET_DISPLAY_KEY,
-    ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
-    RULE_REGISTRY_ID_2_ACTION_TYPE,
-)
-from sentry.workflow_engine.actions.notification_action.migration_utils import (
+from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.scripts.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
     build_notification_actions_from_rule_data,
 )
-from sentry.workflow_engine.models.action import Action
+from sentry.workflow_engine.typings.notification_action import (
+    ACTION_TYPE_2_INTEGRATION_ID_KEY,
+    ACTION_TYPE_2_TARGET_DISPLAY_KEY,
+    ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
+    RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
+)
 
 
 class TestNotificationActionMigrationUtils(TestCase):
@@ -58,7 +58,7 @@ class TestNotificationActionMigrationUtils(TestCase):
             assert isinstance(action, Action)
 
             # Check if the action type is correct
-            assert action.type == RULE_REGISTRY_ID_2_ACTION_TYPE[rule_data["id"]]
+            assert action.type == RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER[rule_data["id"]]
 
             # Check if the integration_id is correct
             assert action.integration_id == rule_data.get(
