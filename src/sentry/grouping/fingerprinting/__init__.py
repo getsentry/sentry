@@ -507,11 +507,11 @@ class FingerprintRule:
     def test_for_match_with_event(
         self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        by_match_type: dict[str, list[FingerprintMatcher]] = {}
+        matchers_by_match_type: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
-            by_match_type.setdefault(matcher.match_type, []).append(matcher)
+            matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
-        for match_type, matchers in by_match_type.items():
+        for match_type, matchers in matchers_by_match_type.items():
             for values in event_datastore.get_values(match_type):
                 if all(x.matches(values) for x in matchers):
                     break
