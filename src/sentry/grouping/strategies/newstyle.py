@@ -648,7 +648,7 @@ def chained_exception(
         for variant_name, component in exception_components_by_exception[id(exception)].items():
             exception_components_by_variant.setdefault(variant_name, []).append(component)
 
-    rv = {}
+    chained_exception_components_by_variant = {}
 
     for variant_name, variant_exception_components in exception_components_by_variant.items():
         # Calculate an aggregate tally of the different types of frames (in-app vs system,
@@ -657,12 +657,12 @@ def chained_exception(
         for exception_component in variant_exception_components:
             total_frame_counts += exception_component.frame_counts
 
-        rv[variant_name] = ChainedExceptionGroupingComponent(
+        chained_exception_components_by_variant[variant_name] = ChainedExceptionGroupingComponent(
             values=variant_exception_components,
             frame_counts=total_frame_counts,
         )
 
-    return rv
+    return chained_exception_components_by_variant
 
 
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
