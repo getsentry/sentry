@@ -374,7 +374,7 @@ MATCHERS = {
 }
 
 
-class FingerprintMatch:
+class FingerprintMatcher:
     def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
         if key.startswith("tags."):
             self.key = key
@@ -494,7 +494,7 @@ class FingerprintMatch:
 class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[FingerprintMatch],
+        matchers: Sequence[FingerprintMatcher],
         fingerprint: list[str],
         attributes: FingerprintRuleAttributes,
         is_builtin: bool = False,
@@ -507,7 +507,7 @@ class FingerprintRule:
     def get_fingerprint_values_for_event_access(
         self, event_access: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        by_match_group: dict[str, list[FingerprintMatch]] = {}
+        by_match_group: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
             by_match_group.setdefault(matcher.match_group, []).append(matcher)
 
@@ -536,7 +536,7 @@ class FingerprintRule:
     @classmethod
     def _from_config_structure(cls, config: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls(
-            [FingerprintMatch._from_config_structure(x) for x in config["matchers"]],
+            [FingerprintMatcher._from_config_structure(x) for x in config["matchers"]],
             config["fingerprint"],
             config.get("attributes") or {},
             config.get("is_builtin") or False,
@@ -609,7 +609,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         self,
         _: object,
         children: tuple[
-            object, list[FingerprintMatch], object, object, object, FingerprintWithAttributes
+            object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
         ],
     ) -> FingerprintRule:
         _, matcher, _, _, _, (fingerprint, attributes) = children
@@ -617,9 +617,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
-    ) -> FingerprintMatch:
+    ) -> FingerprintMatcher:
         _, negation, key, _, pattern = children
-        return FingerprintMatch(key, pattern, bool(negation))
+        return FingerprintMatcher(key, pattern, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:
         return children[0]
