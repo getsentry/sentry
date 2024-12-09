@@ -430,7 +430,7 @@ def stacktrace_legacy(
             contributes = False
             hint = "less than 10% of frames are in-app"
 
-    values = []
+    frame_components = []
     prev_frame: Frame | None = None
     frames_for_filtering = []
     for frame in frames:
@@ -443,12 +443,12 @@ def stacktrace_legacy(
             frame_component.update(contributes=False, hint="ignored due to recursion")
         elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
             frame_component.update(hint="frame considered in-app because no frame is in-app")
-        values.append(frame_component)
+        frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
     stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, event.platform
+        frame_components, frames_for_filtering, event.platform
     )
     stacktrace_component.update(contributes=contributes, hint=hint)
     return {variant: stacktrace_component}
