@@ -311,10 +311,10 @@ def _get_calculated_grouping_variants_for_event(
             "default": DefaultGroupingComponent,
             "system": SystemGroupingComponent,
         }
-        component = component_class_by_variant[variant](values=components)
-        if not component.contributes and precedence_hint:
-            component.update(hint=precedence_hint)
-        rv[variant] = component
+        root_component = component_class_by_variant[variant](values=components)
+        if not root_component.contributes and precedence_hint:
+            root_component.update(hint=precedence_hint)
+        rv[variant] = root_component
 
     return rv
 
