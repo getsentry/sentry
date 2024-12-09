@@ -6,6 +6,7 @@ import random
 import shutil
 import string
 import sys
+import time
 from datetime import datetime
 from hashlib import md5
 from typing import TypeVar
@@ -367,7 +368,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     sentry_sdk.Scope.get_global_scope().set_client(None)
 
 
-def _shuffle(items: list[pytest.Item]) -> None:
+def _shuffle(items: list[pytest.Item], r: random.Random) -> None:
     # goal: keep classes together, keep modules together but otherwise shuffle
     # this prevents duplicate setup/teardown work
     nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
@@ -384,7 +385,7 @@ def _shuffle(items: list[pytest.Item]) -> None:
             raise AssertionError(f"unexpected nodeid: {item.nodeid}")
 
     def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
-        return dict(random.sample(tuple(dct.items()), len(dct)))
+        return dict(r.sample(tuple(dct.items()), len(dct)))
 
     new_items = []
     for first_v in _shuffle_d(nodes).values():
@@ -428,7 +429,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     items[:] = keep
 
     if os.environ.get("SENTRY_SHUFFLE_TESTS"):
-        _shuffle(items)
+        seed = int(os.environ.get("SENTRY_SHUFFLE_TESTS_SEED", time.time()))
+        config.get_terminal_writer().line(f"SENTRY_SHUFFLE_TESTS_SEED: {seed}")
+        _shuffle(items, random.Random(seed))
 
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
