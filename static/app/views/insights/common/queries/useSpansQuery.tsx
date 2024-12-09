@@ -70,6 +70,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   referrer,
   cursor,
   overriddenRoute,
+  useRpc,
 }: {
   eventView: EventView;
   cursor?: string;
@@ -77,10 +78,17 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   initialData?: any;
   overriddenRoute?: string;
   referrer?: string;
+  useRpc?: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
+
+  const queryExtras: Record<string, string> = {};
+
+  if (useRpc) {
+    queryExtras.useRPC = '1';
+  }
   const result = useGenericDiscoverQuery<
     {
       data: any[];
@@ -90,6 +98,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   >({
     route: overriddenRoute ?? 'events-stats',
     eventView,
+    queryExtras,
     location,
     orgSlug: organization.slug,
     getRequestPayload: () => ({
@@ -138,6 +147,7 @@ export function useWrappedDiscoverQuery<T>({
   cursor,
   noPagination,
   allowAggregateConditions,
+  useRpc,
 }: {
   eventView: EventView;
   allowAggregateConditions?: boolean;
@@ -147,6 +157,7 @@ export function useWrappedDiscoverQuery<T>({
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
+  useRpc?: boolean;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -156,6 +167,10 @@ export function useWrappedDiscoverQuery<T>({
 
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
+  }
+
+  if (useRpc) {
+    queryExtras.useRPC = '1';
   }
 
   const result = useDiscoverQuery({
