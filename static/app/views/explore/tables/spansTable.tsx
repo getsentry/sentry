@@ -100,6 +100,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
   }, [setError, result.error?.message]);
 
   useAnalytics({
+    dataset,
     resultLength: result.data?.length,
     resultMode: 'span samples',
     resultStatus: result.status,
