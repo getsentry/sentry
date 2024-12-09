@@ -204,9 +204,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    const newTabs = [TRACE_TAB];
+    // New trace UI has the trace info and web vitalsin the bottom drawer
+    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
 
-    if (props.tree.vitals.size > 0) {
+    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
 
