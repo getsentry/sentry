@@ -250,14 +250,14 @@ class Strategy(Generic[ConcreteInterface]):
         prevent_contribution = None
 
         for variant_name, component in components_by_variant.items():
-            is_mandatory = variant_name.startswith("!")
+            is_priority = variant_name.startswith("!")
             variant_name = variant_name.lstrip("!")
 
-            if is_mandatory:
+            if is_priority:
                 has_mandatory_hashes = True
 
             if component.contributes:
-                if is_mandatory:
+                if is_priority:
                     priority_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
                     optional_contributing_variants.append(variant_name)
