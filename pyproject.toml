@@ -320,7 +320,6 @@ module = [
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
-    "sentry.web.frontend.twofactor",
     "sentry_plugins.bitbucket.client",
     "sentry_plugins.bitbucket.mixins",
     "sentry_plugins.github.plugin",
