@@ -245,7 +245,7 @@ class Strategy(Generic[ConcreteInterface]):
 
         assert isinstance(components_by_variant, dict)
 
-        rv = {}
+        final_components_by_variant = {}
         has_mandatory_hashes = False
         mandatory_contributing_variants_by_hash = {}
         optional_contributing_variants = []
@@ -264,12 +264,12 @@ class Strategy(Generic[ConcreteInterface]):
                 else:
                     optional_contributing_variants.append(variant_name)
 
-            rv[variant_name] = component
+            final_components_by_variant[variant_name] = component
 
         prevent_contribution = has_mandatory_hashes and not mandatory_contributing_variants_by_hash
 
         for variant_name in optional_contributing_variants:
-            component = rv[variant_name]
+            component = final_components_by_variant[variant_name]
 
             # In case this variant contributes we need to check two things
             # here: if we did not have a system match we need to prevent
@@ -296,8 +296,13 @@ class Strategy(Generic[ConcreteInterface]):
                     )
 
         if self.variant_processor_func is not None:
-            rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
-        return rv
+            final_components_by_variant = self._invoke(
+                self.variant_processor_func,
+                final_components_by_variant,
+                event=event,
+                context=context,
+            )
+        return final_components_by_variant
 
 
 class StrategyConfiguration:
