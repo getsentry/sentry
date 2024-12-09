@@ -148,31 +148,31 @@ def test_sdk_crash_is_reported_with_android_paths(
     [
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "__pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclockid(void*)",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclocki",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.s",
+            "/apex/com.android.runtime/lib64/bionic/libc.s",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
