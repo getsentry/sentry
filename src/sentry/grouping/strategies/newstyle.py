@@ -818,14 +818,16 @@ def _filtered_threads(
     if not stacktrace:
         return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
 
-    rv = {}
+    thread_components_by_variant = {}
 
     for variant_name, stacktrace_component in context.get_grouping_component(
         stacktrace, event=event, **meta
     ).items():
-        rv[variant_name] = ThreadsGroupingComponent(values=[stacktrace_component])
+        thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
+            values=[stacktrace_component]
+        )
 
-    return rv
+    return thread_components_by_variant
 
 
 @threads.variant_processor
