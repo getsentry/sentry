@@ -90,7 +90,6 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "node-profiling-onboarding-2-configure-performance",
         "node-profiling-onboarding-3-configure-profiling",
         "node-serverlesscloud",
-        "perl",
         "PHP",
         "php",
         "php-laravel",
@@ -157,6 +156,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "java-logback",
         "java-spring",
         "java-spring-boot",
+        "perl",
     ]
 )
 BASE64_ENCODED_PREFIXES = [
