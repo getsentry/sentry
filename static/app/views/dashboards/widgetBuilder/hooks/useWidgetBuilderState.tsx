@@ -107,6 +107,9 @@ function useWidgetBuilderState(): {
           setDescription(action.payload);
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
+          if (action.payload === DisplayType.BIG_NUMBER) {
+            setSort([]);
+          }
           setDisplayType(action.payload);
           break;
         case BuilderStateAction.SET_DATASET:

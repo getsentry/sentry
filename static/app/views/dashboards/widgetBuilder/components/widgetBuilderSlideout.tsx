@@ -14,6 +14,7 @@ import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -32,6 +33,8 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
   const isChartWidget =
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
+
+  const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
 
   return (
     <SlideOverPanel
@@ -71,6 +74,11 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
         {isChartWidget && (
           <Section>
             <WidgetBuilderGroupBySelector />
+          </Section>
+        )}
+        {isNotBigNumberWidget && (
+          <Section>
+            <WidgetBuilderSortBySelector />
           </Section>
         )}
         <Section>
