@@ -58,6 +58,8 @@ services:
       - 127.0.0.1:5432:5432
     extra_hosts:
       - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
     restart: unless-stopped
 
 networks:
