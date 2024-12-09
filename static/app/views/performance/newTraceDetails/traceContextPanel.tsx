@@ -155,6 +155,7 @@ const VitalMetersContainer = styled('div')`
 `;
 
 const TraceTagsContainer = styled('div')`
+  background-color: ${p => p.theme.background};
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
