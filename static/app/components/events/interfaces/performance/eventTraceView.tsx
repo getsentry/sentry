@@ -133,7 +133,9 @@ function IssuesTraceOverlay({event}: {event: Event}) {
         icon={<IconOpen />}
         aria-label={t('Open Trace')}
         to={traceTarget}
-      />
+      >
+        {t('View Full Trace')}
+      </LinkButton>
     </IssuesTraceOverlayContainer>
   );
 }
