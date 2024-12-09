@@ -8,7 +8,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import Badge from 'sentry/components/badge/badge';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -271,20 +270,7 @@ function EditAccessSelector({
       searchable
       options={allDropdownOptions}
       value={selectedOptions}
-      triggerLabel={
-        listOnly
-          ? [triggerAvatars]
-          : [
-              <StyledFeatureBadge
-                key="beta-badge"
-                type="beta"
-                title={t('This feature is available for early adopters and may change')}
-                tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
-              />,
-              t('Edit Access:'),
-              triggerAvatars,
-            ]
-      }
+      triggerLabel={listOnly ? [triggerAvatars] : [t('Edit Access:'), triggerAvatars]}
       triggerProps={{borderless: listOnly}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
@@ -330,11 +316,6 @@ const StyledDisplayName = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
   margin-right: -3px;
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-left: 0px;
-  margin-right: 6px;
 `;
 
 const StyledBadge = styled(Badge)<{size: number}>`
