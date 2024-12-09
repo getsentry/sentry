@@ -236,9 +236,9 @@ def get_fingerprinting_config_for_project(
     from sentry.utils.hashlib import md5_text
 
     cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
-    rv = cache.get(cache_key)
-    if rv is not None:
-        return FingerprintingRules.from_json(rv, bases=bases)
+    config_json = cache.get(cache_key)
+    if config_json is not None:
+        return FingerprintingRules.from_json(config_json, bases=bases)
 
     try:
         rv = FingerprintingRules.from_config_string(rules, bases=bases)
