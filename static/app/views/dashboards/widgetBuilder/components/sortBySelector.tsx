@@ -97,6 +97,7 @@ function WidgetBuilderSortBySelector() {
               })}
               value={limit}
               onChange={(option: SelectValue<number>) => {
+                // TODO: implement this when limit is implemented in widget builder state
                 setLimit(option.value);
               }}
             />
