@@ -611,7 +611,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -652,7 +652,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort=[self.project.id, project2.id],
                 last_processed_project_index_input=0,
             )
@@ -679,7 +678,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -692,7 +691,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -705,7 +704,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -718,7 +717,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -750,7 +749,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=99999999999999,
-                last_processed_group_id_input=None,
                 cohort=[99999999999999, self.project.id],
                 last_processed_project_index_input=0,
             )
@@ -768,7 +766,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [99999999999999, self.project.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -785,7 +783,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [99999999999999, self.project.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -798,7 +796,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [99999999999999, self.project.id],
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -847,7 +845,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort="test",
                 last_processed_project_index_input=0,
             )
@@ -874,7 +871,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": "test",
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -887,7 +884,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": "test",
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -900,7 +897,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": "test",
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -913,7 +910,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": "test",
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -944,7 +941,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that the group metadata isn't updated on a failure.
         """
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
@@ -987,7 +984,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             groups_seen_once.append(event.group)
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1045,7 +1042,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         }
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         for group in groups:
@@ -1106,7 +1103,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         }
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         for group in groups:
@@ -1160,10 +1157,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort=None,
                 last_processed_project_index_input=0,
-                skip_processed_projects=True,
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
@@ -1343,7 +1338,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_id_input=None,
                 cohort=[self.project.id, project2.id],
                 last_processed_project_index_input=0,
                 only_delete=True,
@@ -1357,7 +1351,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 0,
                     "only_delete": True,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -1374,7 +1368,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id, project2.id],
                     "last_processed_project_index": 1,
                     "only_delete": True,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -1429,7 +1423,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         deleted_group_ids.append(event.group.id)
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id__in=deleted_group_ids)
         for group in groups:
@@ -1500,7 +1494,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_snuba_queries.return_value = result
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         for group in Group.objects.filter(project_id=self.project.id).order_by("id")[1:]:
             assert group.data["metadata"].get("seer_similarity") is not None
@@ -1543,7 +1537,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         old_group_id = event.group.id
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id=old_group_id)
         for group in groups:
@@ -1571,7 +1565,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_lookup_group_data_stacktrace_bulk.return_value = []
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.all()
         group_ids_sorted = sorted([group.id for group in groups], reverse=True)
@@ -1588,7 +1582,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             last_processed_project_index=0,
             cohort=None,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
             worker_number=None,
         )
@@ -1611,7 +1605,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             mock_lookup_group_data_stacktrace_bulk.side_effect = exception
 
             with TaskRunner():
-                backfill_seer_grouping_records_for_project(self.project.id, None)
+                backfill_seer_grouping_records_for_project(self.project.id)
 
             groups = Group.objects.all()
             group_ids_sorted = sorted([group.id for group in groups], reverse=True)
@@ -1621,7 +1615,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 last_processed_project_index=0,
                 cohort=None,
                 enable_ingestion=False,
-                skip_processed_projects=False,
+                skip_processed_projects=True,
                 skip_project_ids=None,
                 worker_number=None,
             )
@@ -1644,7 +1638,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event.group.save()
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id).exclude(id=event.group.id)
         for group in groups:
@@ -1664,7 +1658,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         Test that the metadata is not set for groups when the backfill killswitch is true.
         """
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1686,7 +1680,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None, enable_ingestion=True)
+            backfill_seer_grouping_records_for_project(self.project.id, enable_ingestion=True)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1712,7 +1706,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1727,14 +1721,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
         """
-        Test that projects that have a backfill completed project option are skipped when passed
-        the skip_processed_projects flag.
+        Test that projects that have a backfill completed project option are skipped.
         """
         self.project.update_option(PROJECT_BACKFILL_COMPLETED, int(time.time()))
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_processed_projects=True
-            )
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         expected_call_args_list = [
             call(
@@ -1784,8 +1775,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             # This is the typical way of backfilling all projects
             backfill_seer_grouping_records_for_project(
                 current_project_id=None,
-                last_processed_group_id_input=None,
-                skip_processed_projects=True,
                 enable_ingestion=True,
                 worker_number=0,
             )
@@ -1839,7 +1828,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                self.project.id, None, skip_project_ids=[self.project.id]
+                self.project.id, skip_project_ids=[self.project.id]
             )
 
         expected_call_args_list = [
@@ -1851,7 +1840,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": None,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": [self.project.id],
                     "worker_number": None,
                 },
@@ -1930,7 +1919,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_ids_invalid.sort()
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(project_invalid_batch.id, None)
+            backfill_seer_grouping_records_for_project(project_invalid_batch.id)
 
         expected_call_args_list = [
             call(
@@ -2028,7 +2017,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             status=500,
         )
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         project_group_ids = sorted(
             [group.id for group in Group.objects.filter(project_id=self.project.id)], reverse=True
@@ -2042,7 +2031,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": None,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -2064,7 +2053,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": None,
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -2087,7 +2076,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             status=500,
         )
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id)
 
         expected_call_args_list = [
             call(
@@ -2098,7 +2087,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": None,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": None,
                 },
@@ -2154,9 +2143,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
-                current_project_id=None,
-                last_processed_group_id_input=None,
-                worker_number=worker_number,
+                current_project_id=None, worker_number=worker_number
             )
 
         project_last_group_id = sorted(
@@ -2175,7 +2162,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2188,7 +2175,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2201,7 +2188,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2214,7 +2201,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2265,7 +2252,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=None,
-                last_processed_group_id_input=None,
                 worker_number=worker_number,
             )
 
@@ -2283,7 +2269,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2296,7 +2282,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2309,7 +2295,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": expected_cohort,
                     "last_processed_project_index": 1,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2364,7 +2350,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=None,
-                last_processed_group_id_input=None,
                 worker_number=worker_number,
             )
 
@@ -2383,7 +2368,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id],
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2396,7 +2381,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [self.project.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2409,7 +2394,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [project_same_worker.id],
                     "last_processed_project_index": None,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2422,7 +2407,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "cohort": [project_same_worker.id],
                     "last_processed_project_index": 0,
                     "only_delete": False,
-                    "skip_processed_projects": False,
+                    "skip_processed_projects": True,
                     "skip_project_ids": None,
                     "worker_number": worker_number,
                 },
@@ -2468,7 +2453,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event.group.save()
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(project.id, None)
+            backfill_seer_grouping_records_for_project(project.id)
 
         group = Group.objects.get(id=event.group.id)
         assert group.data["metadata"].get("seer_similarity") == {

@@ -46,12 +46,12 @@ logger = logging.getLogger(__name__)
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int | None,
-    last_processed_group_id_input: int | None,
+    last_processed_group_id_input: int | None = None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
     only_delete: bool = False,
     enable_ingestion: bool = False,
-    skip_processed_projects: bool = False,
+    skip_processed_projects: bool = True,
     skip_project_ids: list[int] | None = None,
     worker_number: int | None = None,
     last_processed_project_id: int | None = None,
@@ -123,7 +123,6 @@ def backfill_seer_grouping_records_for_project(
         )
         assert last_processed_project_index_input is not None
         call_next_backfill(
-            last_processed_group_id=None,
             project_id=current_project_id,
             last_processed_project_index=last_processed_project_index_input,
             cohort=cohort,
@@ -170,7 +169,6 @@ def backfill_seer_grouping_records_for_project(
 
     if is_project_processed or is_project_skipped or only_delete or not is_project_seer_eligible:
         call_next_backfill(
-            last_processed_group_id=None,
             project_id=current_project_id,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
@@ -297,16 +295,16 @@ def backfill_seer_grouping_records_for_project(
 
 def call_next_backfill(
     *,
-    last_processed_group_id: int | None,
     project_id: int,
     last_processed_project_index: int,
-    cohort: str | list[int] | None = None,
+    cohort: str | list[int] | None,
+    enable_ingestion: bool,
+    skip_processed_projects: bool,
+    skip_project_ids: list[int] | None,
+    worker_number: int | None,
     only_delete: bool = False,
-    enable_ingestion: bool = False,
-    skip_processed_projects: bool = False,
-    skip_project_ids: list[int] | None = None,
+    last_processed_group_id: int | None = None,
     last_processed_project_id: int | None = None,
-    worker_number: int | None = None,
 ):
     if last_processed_group_id is not None:
         backfill_seer_grouping_records_for_project.apply_async(
