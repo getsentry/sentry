@@ -507,15 +507,17 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
+    exception = interface
+
     type_component = ErrorTypeGroupingComponent(
-        values=[interface.type] if interface.type else [],
+        values=[exception.type] if exception.type else [],
     )
     system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
-    if interface.mechanism:
-        if interface.mechanism.synthetic:
+    if exception.mechanism:
+        if exception.mechanism.synthetic:
             # Ignore synthetic exceptions as they are produced from platform
             # specific error codes.
             #
@@ -529,19 +531,19 @@ def single_exception(
             system_type_component.update(
                 contributes=False, hint="ignored because exception is synthetic"
             )
-        if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
+        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = NSErrorGroupingComponent(
                 values=[
-                    interface.mechanism.meta["ns_error"].get("domain"),
-                    interface.mechanism.meta["ns_error"].get("code"),
+                    exception.mechanism.meta["ns_error"].get("domain"),
+                    exception.mechanism.meta["ns_error"].get("code"),
                 ],
             )
 
-    if interface.stacktrace is not None:
+    if exception.stacktrace is not None:
         with context:
-            context["exception_data"] = interface.to_json()
+            context["exception_data"] = exception.to_json()
             stacktrace_variants: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_component(interface.stacktrace, event=event, **meta)
+                context.get_grouping_component(exception.stacktrace, event=event, **meta)
             )
     else:
         stacktrace_variants = {
@@ -567,7 +569,7 @@ def single_exception(
         if context["with_exception_value_fallback"]:
             value_component = ErrorValueGroupingComponent()
 
-            raw = interface.value
+            raw = exception.value
             if raw is not None:
                 favors_other_component = stacktrace_component.contributes or (
                     ns_error_component is not None and ns_error_component.contributes
