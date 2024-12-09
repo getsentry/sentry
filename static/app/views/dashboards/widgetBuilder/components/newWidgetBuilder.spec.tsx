@@ -86,6 +86,11 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/spans/fields/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
