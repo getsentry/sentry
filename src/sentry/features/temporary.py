@@ -590,9 +590,6 @@ def register_temporary_features(manager: FeatureManager):
     # EAP: extremely experimental flag that makes DDM page use EAP tables
     manager.add("projects:use-eap-spans-for-metrics-explorer", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # Ecosystem: Enable verbose alert reporting when triggering test alerts
-    manager.add("projects:verbose-test-alert-reporting", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE,
-                default=True, api_expose=False)
     # Project plugin features
     manager.add("projects:plugins", ProjectPluginFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
 
