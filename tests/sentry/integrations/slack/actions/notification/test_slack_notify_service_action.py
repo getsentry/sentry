@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import orjson
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
@@ -110,6 +111,46 @@ class TestInit(RuleTestCase):
         assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_after_slo_halt(self, mock_post, mock_record):
+        mock_post.side_effect = SlackApiError(
+            message="account_inactive",
+            response=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": False, "error": "account_inactive"},
+                headers={},
+                status_code=200,
+            ),
+        )
+
+        rule = self.get_rule(data=self.action_data)
+        results = list(rule.after(event=self.event))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+        blocks = mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(blocks)
+
+        assert (
+            blocks[0]["text"]["text"]
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
+        )
+
+        assert NotificationMessage.objects.all().count() == 0
+
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_success.args[0] == EventLifecycleOutcome.HALTED
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.metrics")
