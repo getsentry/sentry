@@ -65,7 +65,9 @@ function EditAccessSelector({
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
-      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+      selectedOptions[1] && selectedOptions[1] !== '_allUsers'
+        ? [selectedOptions[1]]
+        : [],
   });
 
   // Gets selected options for the dropdown from dashboard object
