@@ -8,14 +8,14 @@ x-sentry-service-config:
       remote:
         repo_name: snuba
         branch: master
-        repo_link: git@github.com:getsentry/snuba.git
+        repo_link: https://github.com/getsentry/snuba.git
         mode: containerized
     relay:
       description: Service event forwarding and ingestion service
       remote:
         repo_name: relay
         branch: master
-        repo_link: git@github.com:getsentry/relay.git
+        repo_link: https://github.com/getsentry/relay.git
         mode: containerized
     postgres:
       description: Database used to store Sentry data
@@ -24,7 +24,7 @@ x-sentry-service-config:
       remote:
         repo_name: sentry-shared-redis
         branch: main
-        repo_link: git@github.com:getsentry/sentry-shared-redis.git
+        repo_link: https://github.com/getsentry/sentry-shared-redis.git
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
