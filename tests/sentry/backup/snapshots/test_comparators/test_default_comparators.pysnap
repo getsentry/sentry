@@ -1,5 +1,5 @@
 ---
-created: '2024-12-03T19:31:11.333104+00:00'
+created: '2024-12-09T17:40:04.889774+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1651,6 +1651,38 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - integration_id
   model_name: workflow_engine.action
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - alert_rule
+    - detector
+    - rule
+  model_name: workflow_engine.alertruledetector
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - alert_rule_trigger
+    - data_condition
+  model_name: workflow_engine.alertruletriggerdatacondition
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - alert_rule
+    - rule
+    - workflow
+  model_name: workflow_engine.alertruleworkflow
 - comparators:
   - class: DateUpdatedComparator
     fields:
