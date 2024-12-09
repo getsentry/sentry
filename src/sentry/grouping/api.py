@@ -262,9 +262,9 @@ def apply_server_fingerprinting(
     if client_fingerprint and not client_fingerprint_is_default:
         fingerprint_info["client_fingerprint"] = client_fingerprint
 
-    rv = fingerprinting_config.get_fingerprint_values_for_event(event)
-    if rv is not None:
-        rule, new_fingerprint, attributes = rv
+    fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
+    if fingerprint_match is not None:
+        rule, new_fingerprint, attributes = fingerprint_match
 
         # A custom title attribute is stored in the event to override the
         # default title.
