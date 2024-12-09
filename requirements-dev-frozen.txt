@@ -36,7 +36,7 @@ cryptography==43.0.1
 cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.49.1
-devservices==1.0.4
+devservices==1.0.5
 distlib==0.3.8
 distro==1.8.0
 django==5.1.1
