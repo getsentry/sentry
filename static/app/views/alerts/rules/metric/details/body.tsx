@@ -102,7 +102,11 @@ export default function MetricDetailsBody({
 
     const {aggregate, dataset, query} = rule;
 
-    if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
+    if (
+      isCrashFreeAlert(dataset) ||
+      isCustomMetricAlert(aggregate) ||
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+    ) {
       return query.trim().split(' ');
     }
 
