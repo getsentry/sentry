@@ -559,8 +559,8 @@ class BuiltInFingerprintingTest(TestCase):
     def test_built_in_chunkload_rules_variants(self):
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         variants = {
-            k: v.as_dict()
-            for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+            k: variant.as_dict()
+            for k, variant in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
         }
         assert "built_in_fingerprint" in variants
 
@@ -706,8 +706,8 @@ class BuiltInFingerprintingTest(TestCase):
             data=data_transaction_no_tx, project_id=self.project
         )
         variants = {
-            k: v.as_dict()
-            for k, v in event_transaction_no_tx.get_grouping_variants(
+            k: variant.as_dict()
+            for k, variant in event_transaction_no_tx.get_grouping_variants(
                 force_config=GROUPING_CONFIG
             ).items()
         }
