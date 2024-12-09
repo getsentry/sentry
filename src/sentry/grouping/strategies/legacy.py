@@ -447,11 +447,11 @@ def stacktrace_legacy(
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv, _ = context.config.enhancements.assemble_stacktrace_component(
+    stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
         values, frames_for_filtering, event.platform
     )
-    rv.update(contributes=contributes, hint=hint)
-    return {variant: rv}
+    stacktrace_component.update(contributes=contributes, hint=hint)
+    return {variant: stacktrace_component}
 
 
 @strategy(ids=["threads:legacy"], interface=Threads, score=1900)
