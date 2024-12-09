@@ -190,7 +190,6 @@ def test_fix_for_issue_platform():
     fixed_event = fix_for_issue_platform(event)
     validate_issue_platform_event_schema(fixed_event)
     assert fixed_event["contexts"]["replay"]["replay_id"] == "3d621c61593c4ff9b43f8490a78ae18e"
-
     assert fixed_event["contexts"]["feedback"] == {
         "contact_email": "josh.ferge@sentry.io",
         "name": "Josh Ferge",
@@ -199,6 +198,11 @@ def test_fix_for_issue_platform():
         "url": "https://sentry.sentry.io/feedback/?statsPeriod=14d",
     }
     assert fixed_event["logentry"]["message"] == event["contexts"]["feedback"]["message"]
+
+    # Assert the contact-email is set as the user-email when no user-email exists.
+    event["user"].pop("email")
+    fixed_event = fix_for_issue_platform(event)
+    assert fixed_event["user"]["email"] == event["contexts"]["feedback"]["contact_email"]
 
 
 def test_corrected_still_works():
