@@ -9,6 +9,7 @@ import responses
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -95,10 +96,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             alert_id=None,
         )
 
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record_event)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -154,10 +152,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             alert_id=None,
         )
 
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

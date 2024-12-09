@@ -20,6 +20,7 @@ from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiTimeoutError
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
@@ -72,20 +73,14 @@ class DiscordIssueAlertTest(RuleTestCase):
         notification_uuid = str(uuid4())
         self.rule.after(self.event, notification_uuid=notification_uuid)
 
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record_event)
 
     @mock.patch(
         "sentry.integrations.discord.client.DiscordClient.send_message", side_effect=Exception
     )
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics_failure(self, mock_record_event, mock_send_message):
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @responses.activate
     @mock.patch("sentry.analytics.record")

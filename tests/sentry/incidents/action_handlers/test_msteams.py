@@ -26,6 +26,7 @@ from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -94,10 +95,7 @@ class MsTeamsActionHandlerTest(FireTest):
             incident, IncidentStatus(incident.status), metric_value
         )
 
-        assert len(mock_record.mock_calls) == 2
-        start, end = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record)
 
     @responses.activate
     def test_build_incident_attachment(self):
@@ -241,7 +239,4 @@ class MsTeamsActionHandlerTest(FireTest):
         with self.tasks():
             getattr(handler, "fire")(metric_value, IncidentStatus(incident.status))
 
-        assert len(mock_record.mock_calls) == 2
-        start, end = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)

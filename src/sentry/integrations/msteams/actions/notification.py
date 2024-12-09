@@ -64,7 +64,6 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                 interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
                 spec=MsTeamsMessagingSpec(),
             ).capture() as lifecycle:
-                lifecycle.add_extras({"integration_id": integration.id, "channel": channel})
                 try:
                     client.send_card(channel, card)
                 except ApiError as e:
