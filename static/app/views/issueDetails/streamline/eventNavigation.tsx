@@ -143,7 +143,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({
-    groupId: group.id,
+    group,
     activeAttachmentsTab: 'all',
     options: {placeholderData: keepPreviousData},
   });
