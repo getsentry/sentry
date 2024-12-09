@@ -46,7 +46,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         scope.set_tag("sentry_app_slug", installation.sentry_app.slug)
 
         try:
-            if request.json_body.get("grant_type") == GrantTypes.AUTHORIZATION:
+            if request.data.get("grant_type") == GrantTypes.AUTHORIZATION:
                 auth_serializer: SentryAppAuthorizationSerializer = (
                     SentryAppAuthorizationSerializer(data=request.data)
                 )
@@ -60,7 +60,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     client_id=auth_serializer.validated_data.get("client_id"),
                     user=promote_request_api_user(request),
                 ).run()
-            elif request.json_body.get("grant_type") == GrantTypes.REFRESH:
+            elif request.data.get("grant_type") == GrantTypes.REFRESH:
                 refresh_serializer = SentryAppRefreshAuthorizationSerializer(data=request.data)
 
                 if not refresh_serializer.is_valid():
@@ -87,7 +87,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
             )
             return Response({"error": e.msg or "Unauthorized"}, status=403)
 
-        attrs = {"state": request.json_body.get("state"), "application": None}
+        attrs = {"state": request.data.get("state"), "application": None}
 
         body = ApiTokenSerializer().serialize(token, attrs, promote_request_api_user(request))
 
