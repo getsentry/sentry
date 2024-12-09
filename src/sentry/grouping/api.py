@@ -245,7 +245,9 @@ def get_fingerprinting_config_for_project(
 
 
 def apply_server_fingerprinting(
-    event: MutableMapping[str, Any], config: FingerprintingRules, allow_custom_title: bool = True
+    event: MutableMapping[str, Any],
+    fingerprinting_config: FingerprintingRules,
+    allow_custom_title: bool = True,
 ) -> None:
     fingerprint_info = {}
 
@@ -256,7 +258,7 @@ def apply_server_fingerprinting(
     if client_fingerprint and not client_fingerprint_is_default:
         fingerprint_info["client_fingerprint"] = client_fingerprint
 
-    rv = config.get_fingerprint_values_for_event(event)
+    rv = fingerprinting_config.get_fingerprint_values_for_event(event)
     if rv is not None:
         rule, new_fingerprint, attributes = rv
 
