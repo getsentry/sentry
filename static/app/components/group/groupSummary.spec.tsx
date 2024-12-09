@@ -1,8 +1,15 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 
 describe('GroupSummary', function () {
+  const mockEvent = EventFixture();
+  const mockGroup = GroupFixture();
+  const mockProject = ProjectFixture();
   const mockSummaryData = {
     groupId: '1',
     whatsWrong: 'Test whats wrong',
@@ -11,51 +18,104 @@ describe('GroupSummary', function () {
     headline: 'Test headline',
   };
 
-  it('renders the summary with all sections', function () {
-    render(<GroupSummary data={mockSummaryData} isError={false} isPending={false} />);
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
 
-    expect(screen.getByText("What's wrong")).toBeInTheDocument();
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.getByText('In the trace')).toBeInTheDocument();
-    expect(screen.getByText('Test trace')).toBeInTheDocument();
-    expect(screen.getByText('Possible cause')).toBeInTheDocument();
-    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    MockApiClient.addMockResponse({
+      url: `/issues/${mockGroup.id}/autofix/setup/`,
+      method: 'GET',
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+        },
+      },
+    });
+  });
+
+  it('renders the summary with all sections', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: mockSummaryData,
+    });
+
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+      expect(screen.getByText('In the trace')).toBeInTheDocument();
+      expect(screen.getByText('Test trace')).toBeInTheDocument();
+      expect(screen.getByText('Possible cause')).toBeInTheDocument();
+      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    });
   });
 
   it('shows loading state', function () {
-    render(<GroupSummary data={undefined} isError={false} isPending />);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
 
     // Should show loading placeholders
     expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
   });
 
-  it('shows error state', function () {
-    render(<GroupSummary data={undefined} isError isPending={false} />);
+  it('shows error state', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {},
+      statusCode: 400,
+    });
 
-    expect(screen.getByText('Error loading summary')).toBeInTheDocument();
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Error loading summary')).toBeInTheDocument();
+    });
   });
 
-  it('hides cards with no content', function () {
-    const dataWithNulls = {
-      ...mockSummaryData,
-      trace: null,
-    };
+  it('hides cards with no content', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: {
+        ...mockSummaryData,
+        trace: null,
+      },
+    });
 
-    render(<GroupSummary data={dataWithNulls} isError={false} isPending={false} />);
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
 
-    expect(screen.getByText("What's wrong")).toBeInTheDocument();
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-    expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
-    expect(screen.getByText('Possible cause')).toBeInTheDocument();
-    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+      expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
+      expect(screen.getByText('Possible cause')).toBeInTheDocument();
+      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
+    });
   });
 
-  it('renders in preview mode', function () {
+  it('renders in preview mode', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
+      method: 'POST',
+      body: mockSummaryData,
+    });
+
     render(
-      <GroupSummary data={mockSummaryData} isError={false} isPending={false} preview />
+      <GroupSummary event={mockEvent} group={mockGroup} project={mockProject} preview />
     );
 
-    expect(screen.getByText("What's wrong")).toBeInTheDocument();
-    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("What's wrong")).toBeInTheDocument();
+      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    });
   });
 });
