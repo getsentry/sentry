@@ -550,7 +550,7 @@ def single_exception(
             "app": StacktraceGroupingComponent(),
         }
 
-    rv = {}
+    exception_components_by_variant = {}
 
     for variant_name, stacktrace_component in stacktrace_variants.items():
         values: list[
@@ -599,11 +599,11 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant_name] = ExceptionGroupingComponent(
+        exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
         )
 
-    return rv
+    return exception_components_by_variant
 
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
