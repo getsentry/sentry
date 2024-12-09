@@ -318,7 +318,6 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.base",
     "sentry.web.frontend.oauth_authorize",
-    "sentry.web.frontend.oauth_token",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.setup_wizard",
     "sentry.web.frontend.shared_group_details",
