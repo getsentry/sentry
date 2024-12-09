@@ -117,7 +117,7 @@ class GroupingContext:
     def pop(self) -> None:
         self._stack.pop()
 
-    def get_grouping_component(
+    def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
@@ -189,7 +189,7 @@ class Strategy(Generic[ConcreteInterface]):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
-        self.interface = interface
+        self.interface_name = interface
         self.score = score
         self.func = func
         self.variant_processor_func: VariantProcessor | None = None
@@ -221,7 +221,7 @@ class Strategy(Generic[ConcreteInterface]):
     ) -> None | BaseGroupingComponent | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
-        iface = event.interfaces.get(self.interface)
+        iface = event.interfaces.get(self.interface_name)
         if iface is None:
             return None
         args.append(iface)
@@ -231,45 +231,43 @@ class Strategy(Generic[ConcreteInterface]):
                 context["variant"] = variant
             return self(event=event, context=context, *args)
 
-    def get_grouping_component_variants(
-        self, event: Event, context: GroupingContext
-    ) -> ReturnedVariants:
+    def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
 
         # strategy can decide on its own which variants to produce and which contribute
-        variants = self.get_grouping_component(event, variant=None, context=context)
-        if variants is None:
+        components_by_variant = self.get_grouping_component(event, variant=None, context=context)
+        if components_by_variant is None:
             return {}
 
-        assert isinstance(variants, dict)
+        assert isinstance(components_by_variant, dict)
 
-        rv = {}
+        final_components_by_variant = {}
         has_mandatory_hashes = False
-        mandatory_contributing_hashes = {}
+        mandatory_contributing_variants_by_hash = {}
         optional_contributing_variants = []
         prevent_contribution = None
 
-        for variant, component in variants.items():
-            is_mandatory = variant.startswith("!")
-            variant = variant.lstrip("!")
+        for variant_name, component in components_by_variant.items():
+            is_mandatory = variant_name.startswith("!")
+            variant_name = variant_name.lstrip("!")
 
             if is_mandatory:
                 has_mandatory_hashes = True
 
             if component.contributes:
                 if is_mandatory:
-                    mandatory_contributing_hashes[component.get_hash()] = variant
+                    mandatory_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
-                    optional_contributing_variants.append(variant)
+                    optional_contributing_variants.append(variant_name)
 
-            rv[variant] = component
+            final_components_by_variant[variant_name] = component
 
-        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
+        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_variants_by_hash
 
-        for variant in optional_contributing_variants:
-            component = rv[variant]
+        for variant_name in optional_contributing_variants:
+            component = final_components_by_variant[variant_name]
 
             # In case this variant contributes we need to check two things
             # here: if we did not have a system match we need to prevent
@@ -281,14 +279,14 @@ class Strategy(Generic[ConcreteInterface]):
                     contributes=False,
                     hint="ignored because %s variant is not used"
                     % (
-                        list(mandatory_contributing_hashes.values())[0]
-                        if len(mandatory_contributing_hashes) == 1
+                        list(mandatory_contributing_variants_by_hash.values())[0]
+                        if len(mandatory_contributing_variants_by_hash) == 1
                         else "other mandatory"
                     ),
                 )
             else:
                 hash_value = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash_value)
+                duplicate_of = mandatory_contributing_variants_by_hash.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,
@@ -296,8 +294,13 @@ class Strategy(Generic[ConcreteInterface]):
                     )
 
         if self.variant_processor_func is not None:
-            rv = self._invoke(self.variant_processor_func, rv, event=event, context=context)
-        return rv
+            final_components_by_variant = self._invoke(
+                self.variant_processor_func,
+                final_components_by_variant,
+                event=event,
+                context=context,
+            )
+        return final_components_by_variant
 
 
 class StrategyConfiguration:
@@ -400,13 +403,13 @@ def create_strategy_configuration(
     new_delegates = set()
     for strategy_id in delegates or ():
         strategy = lookup_strategy(strategy_id)
-        if strategy.interface in new_delegates:
+        if strategy.interface_name in new_delegates:
             raise RuntimeError(
                 "duplicate interface match for "
-                "delegate %r (conflict on %r)" % (id, strategy.interface)
+                "delegate %r (conflict on %r)" % (id, strategy.interface_name)
             )
-        NewStrategyConfiguration.delegates[strategy.interface] = strategy
-        new_delegates.add(strategy.interface)
+        NewStrategyConfiguration.delegates[strategy.interface_name] = strategy
+        new_delegates.add(strategy.interface_name)
 
     if initial_context:
         NewStrategyConfiguration.initial_context.update(initial_context)
@@ -464,7 +467,10 @@ def produces_variants(
 
 
 def call_with_variants(
-    f: Callable[..., ReturnedVariants], variants: Sequence[str], *args: Any, **kwargs: Any
+    f: Callable[..., ReturnedVariants],
+    variants_to_produce: Sequence[str],
+    *args: Any,
+    **kwargs: Any,
 ) -> ReturnedVariants:
     context = kwargs["context"]
     if context["variant"] is not None:
@@ -473,18 +479,21 @@ def call_with_variants(
         #
         # To ensure the function can deal with the particular value we assert
         # the variant name is one of our own though.
-        assert context["variant"] in variants or "!" + context["variant"] in variants
+        assert (
+            context["variant"] in variants_to_produce
+            or "!" + context["variant"] in variants_to_produce
+        )
         return f(*args, **kwargs)
 
     rv = {}
 
-    for variant in variants:
+    for variant_name in variants_to_produce:
         with context:
-            context["variant"] = variant.lstrip("!")
+            context["variant"] = variant_name.lstrip("!")
             rv_variants = f(*args, **kwargs)
             assert len(rv_variants) == 1
-            component = rv_variants[variant.lstrip("!")]
+            component = rv_variants[variant_name.lstrip("!")]
 
-        rv[variant] = component
+        rv[variant_name] = component
 
     return rv
