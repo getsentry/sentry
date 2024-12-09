@@ -2343,6 +2343,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
+  FieldKey.TRACE,
   FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
