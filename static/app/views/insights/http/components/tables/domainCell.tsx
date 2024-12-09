@@ -11,9 +11,10 @@ import {NULL_DOMAIN_DESCRIPTION} from 'sentry/views/insights/http/settings';
 interface Props {
   domain?: string[];
   projectId?: string;
+  url?: string;
 }
 
-export function DomainCell({projectId, domain}: Props) {
+export function DomainCell({projectId, domain, url}: Props) {
   const moduleURL = useModuleURL('http');
   const location = useLocation();
 
@@ -21,15 +22,16 @@ export function DomainCell({projectId, domain}: Props) {
     ...location.query,
     project: projectId,
     'span.domain': undefined,
+    url,
     domain,
   };
+
+  const text = url ? url : domain && domain.length > 0 ? domain : NULL_DOMAIN_DESCRIPTION;
 
   return (
     <DomainDescription>
       <OverflowEllipsisTextContainer>
-        <Link to={`${moduleURL}/domains/?${qs.stringify(queryString)}`}>
-          {domain && domain.length > 0 ? domain : NULL_DOMAIN_DESCRIPTION}
-        </Link>
+        <Link to={`${moduleURL}/domains/?${qs.stringify(queryString)}`}>{text}</Link>
       </OverflowEllipsisTextContainer>
     </DomainDescription>
   );
