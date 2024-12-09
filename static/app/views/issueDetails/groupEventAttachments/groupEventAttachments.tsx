@@ -54,8 +54,8 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      environment: eventView.environment as string[] | string | undefined,
-      // We only want to filter by date/query if we're using the Streamlined UI
+      // We only want to filter by date/query/environment if we're using the Streamlined UI
+      environment: hasStreamlinedUI ? (eventView.environment as string[]) : undefined,
       start: hasStreamlinedUI ? eventView.start : undefined,
       end: hasStreamlinedUI ? eventView.end : undefined,
       statsPeriod: hasStreamlinedUI ? eventView.statsPeriod : undefined,

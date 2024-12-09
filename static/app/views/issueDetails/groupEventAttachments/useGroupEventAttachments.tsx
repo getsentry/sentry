@@ -122,7 +122,7 @@ export function useGroupEventAttachments({
       group,
       orgSlug: organization.slug,
       cursor: location.query.cursor as string | undefined,
-      // We only want to filter by date/query if we're using the Streamlined UI
+      // We only want to filter by date/query/environment if we're using the Streamlined UI
       environment: fetchAllAvailable ? undefined : (eventView.environment as string[]),
       start: fetchAllAvailable ? undefined : eventView.start,
       end: fetchAllAvailable ? undefined : eventView.end,

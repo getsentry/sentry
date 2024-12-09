@@ -76,7 +76,7 @@ describe('GroupEventAttachments', function () {
     expect(getAttachmentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/group-id/attachments/',
       expect.objectContaining({
-        query: {screenshot: '1', environment: []},
+        query: {screenshot: '1'},
       })
     );
   });
