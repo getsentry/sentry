@@ -246,7 +246,7 @@ class Strategy(Generic[ConcreteInterface]):
         final_components_by_variant = {}
         has_mandatory_hashes = False
         priority_contributing_variants_by_hash = {}
-        optional_contributing_variants = []
+        non_priority_contributing_variants = []
         prevent_contribution = None
 
         for variant_name, component in components_by_variant.items():
@@ -260,13 +260,13 @@ class Strategy(Generic[ConcreteInterface]):
                 if is_priority:
                     priority_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
-                    optional_contributing_variants.append(variant_name)
+                    non_priority_contributing_variants.append(variant_name)
 
             final_components_by_variant[variant_name] = component
 
         prevent_contribution = has_mandatory_hashes and not priority_contributing_variants_by_hash
 
-        for variant_name in optional_contributing_variants:
+        for variant_name in non_priority_contributing_variants:
             component = final_components_by_variant[variant_name]
 
             # In case this variant contributes we need to check two things
