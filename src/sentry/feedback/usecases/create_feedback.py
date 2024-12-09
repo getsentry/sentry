@@ -100,12 +100,11 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     """
     The issue platform has slightly different requirements than ingest for event schema,
     so we need to massage the data a bit.
-
-    - We also fill in some missing fields here using the feedback context, such as user email.
-    - We also add tags deemed useful to display in the frontend, or use in alert rules.
+    * event["tags"] is coerced to a dict.
+    * If event["user"]["email"] is missing we try to set using the feedback context.
 
     Returns:
-        A dict conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA. ret_event["tags"] is coerced to a dict.
+        A dict[str, Any] conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA.
     """
     ret_event: dict[str, Any] = {}
 
@@ -163,17 +162,6 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     else:
         tags_dict = tags
     ret_event["tags"] = tags_dict
-
-    # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
-    # as well as be able to write alert conditions on it
-    user_email = get_path(ret_event, "user", "email")
-    if user_email and not ret_event["tags"].get("user.email"):
-        ret_event["tags"]["user.email"] = user_email
-
-    # Set the trace.id tag to expose it for the feedback UI.
-    trace_id = get_path(ret_event, "contexts", "trace", "trace_id")
-    if trace_id:
-        ret_event["tags"]["trace.id"] = trace_id
 
     # Set the event message to the feedback message.
     ret_event["logentry"] = {"message": feedback_obj.get("message")}
@@ -330,6 +318,17 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         **event,
     }
     event_fixed = fix_for_issue_platform(event_data)
+
+    # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
+    # as well as be able to write alert conditions on it
+    user_email = get_path(event_fixed, "user", "email")
+    if user_email and not event_fixed["tags"].get("user.email"):
+        event_fixed["tags"]["user.email"] = user_email
+
+    # Set the trace.id tag to expose it for the feedback UI.
+    trace_id = get_path(event_fixed, "contexts", "trace", "trace_id")
+    if trace_id:
+        event_fixed["tags"]["trace.id"] = trace_id
 
     # make sure event data is valid for issue platform
     validate_issue_platform_event_schema(event_fixed)
