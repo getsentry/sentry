@@ -347,7 +347,7 @@ def get_grouping_variants_for_event(
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
 
-        rv: dict[str, BaseVariant] = {
+        variants: dict[str, BaseVariant] = {
             "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
         }
 
@@ -355,9 +355,9 @@ def get_grouping_variants_for_event(
         # it will blow up if it results in more than 32 bytes of data
         # as this cannot be inserted into the database.  (See GroupHash.hash)
         if len(checksum) <= 32:
-            rv["checksum"] = ChecksumVariant(checksum)
+            variants["checksum"] = ChecksumVariant(checksum)
 
-        return rv
+        return variants
 
     # Otherwise we go to the various forms of fingerprint handling.  If the event carries
     # a materialized fingerprint info from server side fingerprinting we forward it to the
@@ -377,37 +377,39 @@ def get_grouping_variants_for_event(
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
-        rv = {}
+        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
             root_component.update(
                 contributes=False,
                 hint="custom fingerprint takes precedence",
             )
-            rv[variant_name] = ComponentVariant(root_component, context.config)
+            variants[variant_name] = ComponentVariant(root_component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
-            rv["built_in_fingerprint"] = BuiltInFingerprintVariant(fingerprint, fingerprint_info)
+            variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
+                fingerprint, fingerprint_info
+            )
         else:
-            rv["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
+            variants["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
-        rv = {}
+        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
-            rv[variant_name] = ComponentVariant(root_component, context.config)
+            variants[variant_name] = ComponentVariant(root_component, context.config)
 
     # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
-        rv = {}
+        variants = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
-            rv[variant_name] = SaltedComponentVariant(
+            variants[variant_name] = SaltedComponentVariant(
                 fingerprint, root_component, context.config, fingerprint_info
             )
 
     # Ensure we have a fallback hash if nothing else works out
-    if not any(x.contributes for x in rv.values()):
-        rv["fallback"] = FallbackVariant()
+    if not any(x.contributes for x in variants.values()):
+        variants["fallback"] = FallbackVariant()
 
-    return rv
+    return variants
