@@ -96,9 +96,17 @@ def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: boo
     return evidence_data, evidence_display
 
 
-def fix_for_issue_platform(event_data):
-    # the issue platform has slightly different requirements than ingest
-    # for event schema, so we need to massage the data a bit
+def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
+    """
+    The issue platform has slightly different requirements than ingest for event schema,
+    so we need to massage the data a bit.
+
+    - We also fill in some missing fields here using the feedback context, such as user email.
+    - We also add tags deemed useful to display in the frontend, or use in alert rules.
+
+    Returns:
+        A dict conforming to sentry.issues.json_schemas.EVENT_PAYLOAD_SCHEMA. ret_event["tags"] is coerced to a dict.
+    """
     ret_event: dict[str, Any] = {}
 
     ret_event["timestamp"] = datetime.fromtimestamp(event_data["timestamp"], UTC).isoformat()
@@ -147,7 +155,6 @@ def fix_for_issue_platform(event_data):
 
     # Force `tags` to be a dict if it's initially a list,
     # since we can't guarantee its type here.
-
     tags = event_data.get("tags", {})
     tags_dict = {}
     if isinstance(tags, list):
@@ -159,8 +166,14 @@ def fix_for_issue_platform(event_data):
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
-    if not ret_event["tags"].get("user.email"):
-        ret_event["tags"]["user.email"] = contact_email
+    user_email = get_path(ret_event, "user", "email")
+    if user_email and not ret_event["tags"].get("user.email"):
+        ret_event["tags"]["user.email"] = user_email
+
+    # Set the trace.id tag to expose it for the feedback UI and alert conditions.
+    trace_id = get_path(ret_event, "contexts", "trace", "trace_id")
+    if trace_id:
+        ret_event["tags"]["trace.id"] = trace_id
 
     # Set the event message to the feedback message.
     ret_event["logentry"] = {"message": feedback_obj.get("message")}
