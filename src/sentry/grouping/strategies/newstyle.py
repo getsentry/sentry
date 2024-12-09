@@ -342,7 +342,7 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    rv = FrameGroupingComponent(values=values, in_app=frame.in_app)
+    frame_component = FrameGroupingComponent(values=values, in_app=frame.in_app)
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together
@@ -368,12 +368,12 @@ def frame(
             "eval code",
             "<anonymous>",
         ):
-            rv.update(contributes=False, hint="ignored low quality javascript frame")
+            frame_component.update(contributes=False, hint="ignored low quality javascript frame")
 
     if context["is_recursion"]:
-        rv.update(contributes=False, hint="ignored due to recursion")
+        frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant"]: rv}
+    return {context["variant"]: frame_component}
 
 
 def get_contextline_component(
