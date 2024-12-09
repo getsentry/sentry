@@ -239,8 +239,8 @@ class EventDatastore:
         self._release = self._release or [{"release": self.event.get("release")}]
         return self._release
 
-    def get_values(self, match_group: str) -> list[dict[str, Any]]:
-        return getattr(self, "_get_" + match_group)()
+    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        return getattr(self, "_get_" + match_type)()
 
 
 class FingerprintingRules:
@@ -387,7 +387,7 @@ class FingerprintMatcher:
         self.negated = negated
 
     @property
-    def match_group(self) -> str:
+    def match_type(self) -> str:
         if self.key == "message":
             return "toplevel"
         if self.key in ("logger", "level"):
@@ -507,12 +507,12 @@ class FingerprintRule:
     def get_fingerprint_values_for_event_access(
         self, event_access: EventDatastore
     ) -> None | FingerprintWithAttributes:
-        by_match_group: dict[str, list[FingerprintMatcher]] = {}
+        by_match_type: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
-            by_match_group.setdefault(matcher.match_group, []).append(matcher)
+            by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
-        for match_group, matchers in by_match_group.items():
-            for values in event_access.get_values(match_group):
+        for match_type, matchers in by_match_type.items():
+            for values in event_access.get_values(match_type):
                 if all(x.matches(values) for x in matchers):
                     break
             else:
