@@ -861,7 +861,6 @@ class GetStacktraceStringTest(TestCase):
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
         stacktrace_string = get_stacktrace_string(exception)
-        # It only includes the exception type and value because there's no filename or module
         assert (
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
