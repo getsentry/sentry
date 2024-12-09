@@ -423,7 +423,7 @@ def stacktrace(
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> ReturnedVariants:
-    variant = context["variant"]
+    variant_name = context["variant"]
 
     frames = stacktrace.frames
 
@@ -437,7 +437,7 @@ def _single_stacktrace_variant(
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if variant == "app":
+        if variant_name == "app":
             if frame.in_app:
                 found_in_app_frame = True
             else:
@@ -478,9 +478,9 @@ def _single_stacktrace_variant(
     if not stacktrace_component.hint and not stacktrace_component.contributes:
         if len(frames) == 0:
             frames_description = "frames"
-        elif variant == "system":
+        elif variant_name == "system":
             frames_description = "contributing frames"
-        elif variant == "app":
+        elif variant_name == "app":
             # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
             # be because all of the frames got marked as non-contributing in the enhancer
             if found_in_app_frame:
@@ -490,7 +490,7 @@ def _single_stacktrace_variant(
 
         stacktrace_component.hint = f"ignored because it contains no {frames_description}"
 
-    return {variant: stacktrace_component}
+    return {variant_name: stacktrace_component}
 
 
 @stacktrace.variant_processor
