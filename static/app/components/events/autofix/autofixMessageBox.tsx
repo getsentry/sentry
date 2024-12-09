@@ -354,7 +354,8 @@ function AutofixMessageBox({
 
   const isDisabled =
     step?.status === AutofixStatus.ERROR ||
-    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
+    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0) ||
+    (step?.type === AutofixStepType.CHANGES && changes.length === 0);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -436,45 +437,47 @@ function AutofixMessageBox({
               }}
             />
           </ContentArea>
-          <ActionBar>
-            {isRootCauseSelectionStep && (
-              <Fragment>
-                <SegmentedControl
-                  size="xs"
-                  value={rootCauseMode}
-                  onChange={setRootCauseMode}
-                  aria-label={t('Root cause selection')}
-                >
-                  <SegmentedControl.Item key="suggested_root_cause">
-                    {t('Use suggested root cause')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="custom_root_cause">
-                    {t('Propose your own root cause')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Fragment>
-            )}
-            {isChangesStep && !prsMade && (
-              <Fragment>
-                <SegmentedControl
-                  size="xs"
-                  value={changesMode}
-                  onChange={setChangesMode}
-                  aria-label={t('Changes selection')}
-                >
-                  <SegmentedControl.Item key="give_feedback">
-                    {t('Give feedback')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="add_tests">
-                    {t('Add tests')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="create_prs">
-                    {t('Approve changes')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Fragment>
-            )}
-          </ActionBar>
+          {!isDisabled && (
+            <ActionBar>
+              {isRootCauseSelectionStep && (
+                <Fragment>
+                  <SegmentedControl
+                    size="xs"
+                    value={rootCauseMode}
+                    onChange={setRootCauseMode}
+                    aria-label={t('Root cause selection')}
+                  >
+                    <SegmentedControl.Item key="suggested_root_cause">
+                      {t('Use suggested root cause')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="custom_root_cause">
+                      {t('Propose your own root cause')}
+                    </SegmentedControl.Item>
+                  </SegmentedControl>
+                </Fragment>
+              )}
+              {isChangesStep && !prsMade && (
+                <Fragment>
+                  <SegmentedControl
+                    size="xs"
+                    value={changesMode}
+                    onChange={setChangesMode}
+                    aria-label={t('Changes selection')}
+                  >
+                    <SegmentedControl.Item key="give_feedback">
+                      {t('Give feedback')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="add_tests">
+                      {t('Add tests')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="create_prs">
+                      {t('Approve changes')}
+                    </SegmentedControl.Item>
+                  </SegmentedControl>
+                </Fragment>
+              )}
+            </ActionBar>
+          )}
         </ContentWrapper>
       </AnimatedContent>
       <InputSection>
