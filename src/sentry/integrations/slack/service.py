@@ -36,7 +36,7 @@ from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
-from sentry.integrations.slack.utils.notifications import (
+from sentry.integrations.slack.utils.errors import (
     SLACK_SDK_HALT_ERROR_CATEGORIES,
     unpack_slack_api_error,
 )
@@ -296,7 +296,7 @@ class SlackService:
                     sample_rate=1.0,
                     tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
                 )
-                lifecycle.add_extras(extra)
+                lifecycle.add_extras({"rule_action_uuid": parent_notification.rule_action_uuid})
                 if (
                     (reason := unpack_slack_api_error(e))
                     and reason is not None
