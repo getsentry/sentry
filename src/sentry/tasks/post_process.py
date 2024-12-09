@@ -560,12 +560,6 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 processing_store.delete_by_key(cache_key)
-            if eventstream_type == EventStreamEventType.Transaction.value:
-                track_sampled_event(
-                    data["event_id"],
-                    ConsumerType.Transactions,
-                    TransactionStageStatus.REDIS_DELETED,
-                )
             occurrence = None
             event = process_event(data, group_id)
         else:
