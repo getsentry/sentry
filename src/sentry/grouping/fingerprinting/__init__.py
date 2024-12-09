@@ -143,7 +143,7 @@ class FingerprintRuleMatch(NamedTuple):
     attributes: FingerprintRuleAttributes
 
 
-class EventAccess:
+class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
         self._exceptions: list[_ExceptionInfo] | None = None
@@ -271,7 +271,7 @@ class FingerprintingRules:
     ) -> None | FingerprintRuleMatch:
         if not (self.bases or self.rules):
             return None
-        access = EventAccess(event)
+        access = EventDatastore(event)
         for rule in self.iter_rules():
             match = rule.get_fingerprint_values_for_event_access(access)
             if match is not None:
@@ -505,7 +505,7 @@ class FingerprintRule:
         self.is_builtin = is_builtin
 
     def get_fingerprint_values_for_event_access(
-        self, event_access: EventAccess
+        self, event_access: EventDatastore
     ) -> None | FingerprintWithAttributes:
         by_match_group: dict[str, list[FingerprintMatch]] = {}
         for matcher in self.matchers:
