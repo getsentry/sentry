@@ -14,7 +14,7 @@ import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetup
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
-import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -134,11 +134,6 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
-  const {
-    data: summaryData,
-    isError,
-    isPending: isSummaryLoading,
-  } = useGroupSummary(group, event, project);
   const aiConfig = useAiConfig(group, event, project);
 
   useRouteAnalyticsParams({
@@ -225,11 +220,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <Fragment>
             {aiConfig.hasSummary && (
               <StyledCard>
-                <GroupSummary
-                  data={summaryData}
-                  isError={isError}
-                  isPending={isSummaryLoading}
-                />
+                <GroupSummary group={group} event={event} project={project} />
               </StyledCard>
             )}
             {aiConfig.hasAutofix && (
