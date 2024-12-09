@@ -239,11 +239,11 @@ class Strategy(Generic[ConcreteInterface]):
         """
 
         # strategy can decide on its own which variants to produce and which contribute
-        variants = self.get_grouping_component(event, variant=None, context=context)
-        if variants is None:
+        components_by_variant = self.get_grouping_component(event, variant=None, context=context)
+        if components_by_variant is None:
             return {}
 
-        assert isinstance(variants, dict)
+        assert isinstance(components_by_variant, dict)
 
         rv = {}
         has_mandatory_hashes = False
@@ -251,7 +251,7 @@ class Strategy(Generic[ConcreteInterface]):
         optional_contributing_variants = []
         prevent_contribution = None
 
-        for variant, component in variants.items():
+        for variant, component in components_by_variant.items():
             is_mandatory = variant.startswith("!")
             variant = variant.lstrip("!")
 
