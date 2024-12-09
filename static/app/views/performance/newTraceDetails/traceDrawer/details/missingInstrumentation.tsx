@@ -72,7 +72,7 @@ export function MissingInstrumentationNodeDetails(
       {event?.projectSlug ? (
         <ProfilesProvider
           orgSlug={organization.slug}
-          projectSlug={node.event?.projectSlug ?? ''}
+          projectSlug={event?.projectSlug ?? ''}
           profileId={profileId || ''}
         >
           <ProfileContext.Consumer>
