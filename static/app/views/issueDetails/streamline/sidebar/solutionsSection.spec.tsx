@@ -24,7 +24,11 @@ describe('SolutionsSection', () => {
   });
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
-  const organization = OrganizationFixture({genAIConsent: true, hideAiFeatures: false});
+  const organization = OrganizationFixture({
+    genAIConsent: true,
+    hideAiFeatures: false,
+    features: ['gen-ai-features'],
+  });
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -125,6 +129,7 @@ describe('SolutionsSection', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
       genAIConsent: false,
+      features: ['gen-ai-features'],
     });
 
     render(
@@ -168,6 +173,7 @@ describe('SolutionsSection', () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
+        features: ['gen-ai-features'],
       });
 
       MockApiClient.addMockResponse({
