@@ -24,7 +24,6 @@ from sentry.sentry_apps.models.sentry_app_installation import (
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.app import (
     AppService,
-    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppComponentContext,
@@ -250,10 +249,9 @@ class DatabaseBackedAppService(AppService):
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
-    ) -> RpcAlertRuleActionResult:
+    ) -> None:
         install = SentryAppInstallation.objects.get(uuid=install_uuid)
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+        AlertRuleActionCreator(install=install, fields=fields).run()
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:

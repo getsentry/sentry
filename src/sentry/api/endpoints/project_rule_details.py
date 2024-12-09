@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -12,7 +11,11 @@ from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
+from sentry.api.endpoints.project_rules import (
+    create_sentry_app_alert_rule_issues_component,
+    find_duplicate_rule,
+    send_confirmation_notification,
+)
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -28,14 +31,12 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.exceptions import SentryAppIntegratorError
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
-from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
@@ -287,21 +288,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            try:
-                trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
-            except SentryAppIntegratorError as e:
-                return Response(
-                    {"error": str(e)},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            except Exception as e:
-                error_id = sentry_sdk.capture_exception(e)
-                return Response(
-                    {
-                        "error": f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}"
-                    },
-                    status=500,
-                )
+            create_sentry_app_alert_rule_issues_component(actions=kwargs["actions"])
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,

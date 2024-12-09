@@ -1,7 +1,8 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+import sentry_sdk
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -25,6 +26,7 @@ from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -50,6 +52,29 @@ def clean_rule_data(data):
     for datum in data:
         if datum.get("name"):
             del datum["name"]
+
+
+def create_sentry_app_alert_rule_issues_component(
+    actions: Sequence[Mapping[str, Any]]
+) -> str | None:
+    try:
+        created = trigger_sentry_app_action_creators_for_issues(actions)
+    except (SentryAppError, SentryAppIntegratorError) as e:
+        return Response(
+            {"actions": [str(e)]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as e:
+        error_id = sentry_sdk.capture_exception(e)
+        return Response(
+            {
+                "actions": [
+                    f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}"
+                ]
+            },
+            status=500,
+        )
+    return created
 
 
 @receiver(pre_save, sender=Rule)
@@ -841,8 +866,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             find_channel_id_for_rule.apply_async(kwargs=kwargs)
             return Response(uuid_context, status=202)
 
-        created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
-            kwargs["actions"]
+        created_alert_rule_ui_component = create_sentry_app_alert_rule_issues_component(
+            actions=kwargs["actions"]
         )
         rule = ProjectRuleCreator(
             name=kwargs["name"],

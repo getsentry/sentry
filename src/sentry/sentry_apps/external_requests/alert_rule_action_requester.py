@@ -14,7 +14,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.utils import json
 
-DEFAULT_SUCCESS_MESSAGE = "Success!"
+DEFAULT_ERROR_MESSAGE = "Something went wrong while setting up alert for"
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
@@ -31,7 +31,7 @@ class AlertRuleActionRequester:
     fields: Sequence[Mapping[str, str]] = field(default_factory=list)
     http_method: str | None = "POST"
 
-    def run(self) -> AlertRuleActionResult:
+    def run(self) -> None:
         try:
             response = send_and_save_sentry_app_request(
                 url=self._build_url(),
@@ -51,15 +51,15 @@ class AlertRuleActionRequester:
                     "install_uuid": self.install.uuid,
                     "uri": self.uri,
                     "error_message": str(e),
+                    "response": str(json.loads(response)),
                 },
             )
 
             raise SentryAppIntegratorError(
-                f"Something went wrong while setting up alert for {self.sentry_app.slug}"
+                self._get_response_message(
+                    e.response, f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
+                )
             ) from e
-        return AlertRuleActionResult(
-            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
-        )
 
     def _build_url(self) -> str:
         urlparts = list(urlparse(self.sentry_app.webhook_url))
