@@ -93,3 +93,12 @@ def assert_success_metric(mock_record):
         call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.SUCCESS
     )
     assert event_success
+
+
+def assert_slo_metric(
+    mock_record, event_outcome: EventLifecycleOutcome = EventLifecycleOutcome.SUCCESS
+):
+    assert len(mock_record.mock_calls) == 2
+    start, end = mock_record.mock_calls
+    assert start.args[0] == EventLifecycleOutcome.STARTED
+    assert end.args[0] == event_outcome
