@@ -33,6 +33,7 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
 SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
     [
         "bun",
+        "cordova",
         "deno",
         "django",
         "go",
@@ -44,6 +45,7 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
+        "ionic",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -88,6 +90,7 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "node-profiling-onboarding-2-configure-performance",
         "node-profiling-onboarding-3-configure-profiling",
         "node-serverlesscloud",
+        "perl",
         "PHP",
         "php",
         "php-laravel",
