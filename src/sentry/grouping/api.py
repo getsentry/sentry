@@ -300,8 +300,8 @@ def _get_component_trees_for_variants(
                     winning_strategy = strategy.name
                     variant_descriptor = "/".join(
                         sorted(
-                            k
-                            for k, v in current_strategy_components_by_variant.items()
+                            variant_name
+                            for variant_name, v in current_strategy_components_by_variant.items()
                             if v.contributes
                         )
                     )
