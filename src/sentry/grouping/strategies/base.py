@@ -189,7 +189,7 @@ class Strategy(Generic[ConcreteInterface]):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
-        self.interface = interface
+        self.interface_name = interface
         self.score = score
         self.func = func
         self.variant_processor_func: VariantProcessor | None = None
@@ -221,7 +221,7 @@ class Strategy(Generic[ConcreteInterface]):
     ) -> None | BaseGroupingComponent | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
-        iface = event.interfaces.get(self.interface)
+        iface = event.interfaces.get(self.interface_name)
         if iface is None:
             return None
         args.append(iface)
@@ -400,13 +400,13 @@ def create_strategy_configuration(
     new_delegates = set()
     for strategy_id in delegates or ():
         strategy = lookup_strategy(strategy_id)
-        if strategy.interface in new_delegates:
+        if strategy.interface_name in new_delegates:
             raise RuntimeError(
                 "duplicate interface match for "
-                "delegate %r (conflict on %r)" % (id, strategy.interface)
+                "delegate %r (conflict on %r)" % (id, strategy.interface_name)
             )
-        NewStrategyConfiguration.delegates[strategy.interface] = strategy
-        new_delegates.add(strategy.interface)
+        NewStrategyConfiguration.delegates[strategy.interface_name] = strategy
+        new_delegates.add(strategy.interface_name)
 
     if initial_context:
         NewStrategyConfiguration.initial_context.update(initial_context)
