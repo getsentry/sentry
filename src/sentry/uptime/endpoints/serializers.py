@@ -51,12 +51,6 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
     def serialize(
         self, obj: ProjectUptimeSubscription, attrs, user, **kwargs
     ) -> ProjectUptimeSubscriptionSerializerResponse:
-        headers = obj.uptime_subscription.headers
-
-        # XXX: Temporary translation code. We want to support headers with the same keys, so convert to a list
-        if isinstance(headers, dict):
-            headers = [[key, val] for key, val in headers.items()]
-
         return {
             "id": str(obj.id),
             "projectSlug": obj.project.slug,
@@ -65,7 +59,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "status": obj.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,
-            "headers": headers,
+            "headers": obj.uptime_subscription.headers,
             "body": obj.uptime_subscription.body,
             "method": obj.uptime_subscription.method,
             "intervalSeconds": obj.uptime_subscription.interval_seconds,
