@@ -505,14 +505,14 @@ class FingerprintRule:
         self.is_builtin = is_builtin
 
     def get_fingerprint_values_for_event_access(
-        self, event_access: EventDatastore
+        self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
         by_match_type: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
             by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
         for match_type, matchers in by_match_type.items():
-            for values in event_access.get_values(match_type):
+            for values in event_datastore.get_values(match_type):
                 if all(x.matches(values) for x in matchers):
                     break
             else:
