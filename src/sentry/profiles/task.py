@@ -966,13 +966,17 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             if response.status == 204:
                 return True
             elif response.status == 429:
-                raise
+                raise VroomTimeout
             elif response.status == 412:
                 reason = "duplicate profile"
 
             metrics.incr(
                 "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": reason},
+                tags={
+                    "platform": profile["platform"],
+                    "reason": reason,
+                    "status_code": response.status,
+                },
                 sample_rate=1.0,
             )
             return False
