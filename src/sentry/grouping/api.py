@@ -276,7 +276,7 @@ def apply_server_fingerprinting(
         event["_fingerprint_info"] = fingerprint_info
 
 
-def _get_calculated_grouping_variants_for_event(
+def _get_component_trees_for_variants(
     event: Event, context: GroupingContext
 ) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
@@ -364,7 +364,7 @@ def get_grouping_variants_for_event(
 
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
-    components = _get_calculated_grouping_variants_for_event(event, context)
+    components = _get_component_trees_for_variants(event, context)
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
