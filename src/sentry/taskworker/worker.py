@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import grpc
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from sentry_protos.sentry.v1.taskworker_pb2 import (
@@ -30,11 +31,20 @@ logger = logging.getLogger("sentry.taskworker.worker")
 mp_context = multiprocessing.get_context("fork")
 
 
-def _process_activation(
-    namespace: str, task_name: str, args: list[Any], kwargs: dict[str, Any]
-) -> None:
+def _process_activation(activation: TaskActivation) -> None:
     """multiprocess worker method"""
-    taskregistry.get(namespace).get(task_name)(*args, **kwargs)
+    parameters = orjson.loads(activation.parameters)
+    args = parameters.get("args", [])
+    kwargs = parameters.get("kwargs", {})
+    headers = {k: v for k, v in activation.headers.items()}
+
+    transaction = sentry_sdk.continue_trace(
+        environ_or_headers=headers,
+        op="task.taskworker",
+        name=f"{activation.namespace}:{activation.taskname}",
+    )
+    with sentry_sdk.start_transaction(transaction):
+        taskregistry.get(activation.namespace).get(activation.taskname)(*args, **kwargs)
 
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
@@ -187,17 +197,11 @@ class TaskWorker:
         result = None
         execution_start_time = 0.0
         try:
-            task_data_parameters = orjson.loads(activation.parameters)
             execution_start_time = time.time()
 
             result = self._pool.apply_async(
                 func=_process_activation,
-                args=(
-                    activation.namespace,
-                    activation.taskname,
-                    task_data_parameters["args"],
-                    task_data_parameters["kwargs"],
-                ),
+                args=(activation,),
             )
             # Will trigger a TimeoutError if the task execution runs long
             result.get(timeout=processing_timeout)
