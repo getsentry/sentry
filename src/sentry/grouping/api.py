@@ -84,7 +84,7 @@ class GroupingConfigLoader:
         }
 
     def _get_enhancements(self, project) -> str:
-        enhancements = project.get_option("sentry:grouping_enhancements")
+        project_enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
         enhancements_base = CONFIGURATIONS[config_id].enhancements_base
@@ -96,13 +96,17 @@ class GroupingConfigLoader:
 
         cache_prefix = self.cache_prefix
         cache_prefix += f"{LATEST_VERSION}:"
-        cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
+        cache_key = (
+            cache_prefix + md5_text(f"{enhancements_base}|{project_enhancements}").hexdigest()
+        )
         rv = cache.get(cache_key)
         if rv is not None:
             return rv
 
         try:
-            rv = Enhancements.from_config_string(enhancements, bases=[enhancements_base]).dumps()
+            rv = Enhancements.from_config_string(
+                project_enhancements, bases=[enhancements_base]
+            ).dumps()
         except InvalidEnhancerConfig:
             rv = get_default_enhancements()
         cache.set(cache_key, rv)
