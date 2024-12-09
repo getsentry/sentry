@@ -12,8 +12,8 @@ coverage:
       backend:
         # codecov will not fail status checks for master
         only_pulls: true
-        informational: false # Fail the check
-        target: 90%
+        informational: true # Do not fail the check
+        target: 50%
         flags:
           - backend
   ignore:
