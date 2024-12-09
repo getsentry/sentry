@@ -73,7 +73,7 @@ function Visualize() {
       <SectionHeader
         title={t('Visualize')}
         tooltipText={t(
-          "This is the data you'd be visualizing in the display. If the overlay units conflict, the charts will always base it off of the first line."
+          'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
         )}
       />
       <Fields>
