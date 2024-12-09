@@ -310,7 +310,6 @@ module = [
     "sentry.tasks.auth",
     "sentry.tasks.base",
     "sentry.testutils.cases",
-    "sentry.testutils.helpers.notifications",
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.web.forms.accounts",
