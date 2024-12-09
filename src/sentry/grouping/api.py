@@ -312,7 +312,7 @@ def _get_component_trees_for_variants(
             elif component.contributes and winning_strategy != strategy.name:
                 component.update(contributes=False, hint=precedence_hint)
 
-    rv = {}
+    component_trees_by_variant = {}
     for variant_name, components in all_strategies_components_by_variant.items():
         component_class_by_variant = {
             "app": AppGroupingComponent,
@@ -322,9 +322,9 @@ def _get_component_trees_for_variants(
         root_component = component_class_by_variant[variant_name](values=components)
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
-        rv[variant_name] = root_component
+        component_trees_by_variant[variant_name] = root_component
 
-    return rv
+    return component_trees_by_variant
 
 
 # This is called by the Event model in get_grouping_variants()
