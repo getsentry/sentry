@@ -228,20 +228,20 @@ def get_fingerprinting_config_for_project(
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 
     bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
-    rules = project.get_option("sentry:fingerprinting_rules")
-    if not rules:
+    raw_rules = project.get_option("sentry:fingerprinting_rules")
+    if not raw_rules:
         return FingerprintingRules([], bases=bases)
 
     from sentry.utils.cache import cache
     from sentry.utils.hashlib import md5_text
 
-    cache_key = "fingerprinting-rules:" + md5_text(rules).hexdigest()
+    cache_key = "fingerprinting-rules:" + md5_text(raw_rules).hexdigest()
     config_json = cache.get(cache_key)
     if config_json is not None:
         return FingerprintingRules.from_json(config_json, bases=bases)
 
     try:
-        rv = FingerprintingRules.from_config_string(rules, bases=bases)
+        rv = FingerprintingRules.from_config_string(raw_rules, bases=bases)
     except InvalidFingerprintingConfig:
         rv = FingerprintingRules([], bases=bases)
     cache.set(cache_key, rv.to_json())
