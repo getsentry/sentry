@@ -185,10 +185,6 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
     return None
 
 
-def is_sample_event(job):
-    return get_tag(job["data"], "sample_event") == "yes"
-
-
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     """
     Returns a metadata dictionary with "sdk" field populated, including a normalized name
