@@ -288,8 +288,8 @@ def _get_component_trees_for_variants(
         current_strategy_components_by_variant = strategy.get_grouping_component_variants(
             event, context=context
         )
-        for variant, component in current_strategy_components_by_variant.items():
-            all_strategies_components_by_variant.setdefault(variant, []).append(component)
+        for variant_name, component in current_strategy_components_by_variant.items():
+            all_strategies_components_by_variant.setdefault(variant_name, []).append(component)
 
             if winning_strategy is None:
                 if component.contributes:
@@ -304,7 +304,7 @@ def _get_component_trees_for_variants(
                     precedence_hint = "{} take{} precedence".format(
                         (
                             f"{strategy.name} of {variant_descriptor}"
-                            if variant != "default"
+                            if variant_name != "default"
                             else strategy.name
                         ),
                         "" if strategy.name.endswith("s") else "s",
@@ -313,16 +313,16 @@ def _get_component_trees_for_variants(
                 component.update(contributes=False, hint=precedence_hint)
 
     rv = {}
-    for variant, components in all_strategies_components_by_variant.items():
+    for variant_name, components in all_strategies_components_by_variant.items():
         component_class_by_variant = {
             "app": AppGroupingComponent,
             "default": DefaultGroupingComponent,
             "system": SystemGroupingComponent,
         }
-        root_component = component_class_by_variant[variant](values=components)
+        root_component = component_class_by_variant[variant_name](values=components)
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
-        rv[variant] = root_component
+        rv[variant_name] = root_component
 
     return rv
 
