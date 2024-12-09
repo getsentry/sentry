@@ -278,7 +278,6 @@ function EditAccessSelector({
               <StyledFeatureBadge
                 key="new-badge"
                 type="new"
-                title={t('This feature is available for early adopters and may change')}
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
               t('Edit Access:'),
