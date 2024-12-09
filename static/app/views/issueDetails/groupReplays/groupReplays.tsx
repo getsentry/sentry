@@ -20,11 +20,11 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/useIssueDetailsEventCount';
+import {useIssueDetailsEventCount} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsEventCount';
 import {
   type ReplayCount,
   useIssueDetailsReplayCount,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsReplayCount';
+} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsReplayCount';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';

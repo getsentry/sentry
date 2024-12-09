@@ -5,7 +5,7 @@ import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 export function useIssueDetailsEventCount({group}: {group: Group}) {
   const eventView = useIssueDetailsEventView({group});
