@@ -388,14 +388,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has over MAX_FRAME_COUNT system only frames
         exception = copy.deepcopy(EXCEPTION)
-        exception["values"][0]["stacktrace"]["frames"] += [
+        exception["values"][0]["stacktrace"]["frames"] = [
             {
                 "function": f"divide_by_zero_{i}",
                 "module": "__main__",
-                "filename": "python_onboarding_{i}.py",
-                "abs_path": "/Users/user/python_onboarding/python_onboarding_{i}.py",
+                "filename": "java_onboarding_{i}.java",
+                "abs_path": "/Users/user/java_onboarding/java_onboarding_{i}.java",
                 "lineno": i,
-                "in_app": True,
+                "in_app": False,
             }
             for i in range(MAX_FRAME_COUNT + 1)
         ]
