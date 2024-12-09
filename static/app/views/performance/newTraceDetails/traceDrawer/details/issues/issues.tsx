@@ -127,7 +127,11 @@ function Issue(props: IssueProps) {
       </IconWrapper>
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
-          <EventOrGroupHeader data={fetchedIssue} organization={organization} />
+          <EventOrGroupHeader
+            data={fetchedIssue}
+            organization={organization}
+            eventId={props.issue.event_id}
+          />
           <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
@@ -645,6 +649,7 @@ const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
 
 const StyledLoadingIndicatorWrapper = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
   padding: ${space(2)} 0;
@@ -732,7 +737,8 @@ const StyledPanelItem = styled(StyledLegacyPanelItem)`
   justify-content: left;
   align-items: center;
   gap: ${space(1.5)};
-  padding: 0 ${space(2)};
+  height: fit-content;
+  padding: ${space(1)} ${space(2)};
 `;
 
 const StyledIssueStreamHeaderLabel = styled(IssueStreamHeaderLabel)`

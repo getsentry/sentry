@@ -1,13 +1,18 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
+  updateDashboardPermissions,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -18,13 +23,18 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCopy, IconDelete} from 'sentry/icons';
+import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
-import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
+import type {
+  DashboardDetails,
+  DashboardListItem,
+  DashboardPermissions,
+} from 'sentry/views/dashboards/types';
 
 import {cloneDashboard} from '../utils';
 
@@ -41,7 +51,56 @@ enum ResponseKeys {
   NAME = 'title',
   WIDGETS = 'widgetDisplay',
   OWNER = 'createdBy',
+  ACCESS = 'permissions',
   CREATED = 'dateCreated',
+  FAVORITE = 'isFavorited',
+}
+
+type FavoriteButtonProps = {
+  api: Client;
+  dashboardId: string;
+  isFavorited: boolean;
+  organization: Organization;
+};
+
+function FavoriteButton({
+  isFavorited,
+  api,
+  organization,
+  dashboardId,
+}: FavoriteButtonProps) {
+  const [favorited, setFavorited] = useState(isFavorited);
+  return (
+    <Feature features="dashboards-favourite">
+      <StyledFavoriteButton
+        aria-label={t('Favorite Button')}
+        size="zero"
+        borderless
+        icon={
+          <IconStar
+            color={favorited ? 'yellow300' : 'gray300'}
+            isSolid={favorited}
+            aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+            size="sm"
+          />
+        }
+        onClick={async () => {
+          try {
+            setFavorited(!favorited);
+            await updateDashboardFavorite(
+              api,
+              organization.slug,
+              dashboardId,
+              !favorited
+            );
+          } catch (error) {
+            // If the api call fails, revert the state
+            setFavorited(favorited);
+          }
+        }}
+      />
+    </Feature>
+  );
 }
 
 function DashboardTable({
@@ -52,10 +111,16 @@ function DashboardTable({
   onDashboardsChange,
   isLoading,
 }: Props) {
-  const columnOrder = [
+  const columnOrder: GridColumnOrder<ResponseKeys>[] = [
+    ...(organization.features.includes('dashboards-favourite')
+      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: 50}]
+      : []),
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+    ...(organization.features.includes('dashboards-edit-access')
+      ? [{key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED}]
+      : []),
     {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
   ];
 
@@ -65,6 +130,7 @@ function DashboardTable({
         trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
+          view_type: 'table',
         });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -83,6 +149,7 @@ function DashboardTable({
       trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
+        view_type: 'table',
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
@@ -103,6 +170,17 @@ function DashboardTable({
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
   ) => {
+    if (column.key === ResponseKeys.FAVORITE) {
+      return (
+        <FavoriteButton
+          isFavorited={dataRow[ResponseKeys.FAVORITE] ?? false}
+          api={api}
+          organization={organization}
+          dashboardId={dataRow.id}
+        />
+      );
+    }
+
     if (column.key === ResponseKeys.NAME) {
       return (
         <Link
@@ -128,6 +206,33 @@ function DashboardTable({
       );
     }
 
+    if (
+      column.key === ResponseKeys.ACCESS &&
+      organization.features.includes('dashboards-edit-access')
+    ) {
+      /* Handles POST request for Edit Access Selector Changes */
+      const onChangeEditAccess = (newDashboardPermissions: DashboardPermissions) => {
+        const dashboardCopy = cloneDeep(dataRow);
+        dashboardCopy.permissions = newDashboardPermissions;
+
+        updateDashboardPermissions(api, organization.slug, dashboardCopy).then(
+          (newDashboard: DashboardDetails) => {
+            onDashboardsChange();
+            addSuccessMessage(t('Dashboard Edit Access updated.'));
+            return newDashboard;
+          }
+        );
+      };
+
+      return (
+        <EditAccessSelector
+          dashboard={dataRow}
+          onChangeEditAccess={onChangeEditAccess}
+          listOnly
+        />
+      );
+    }
+
     if (column.key === ResponseKeys.CREATED) {
       return (
         <DateActionsContainer>
@@ -144,7 +249,11 @@ function DashboardTable({
             <StyledButton
               onClick={e => {
                 e.stopPropagation();
-                handleDuplicate(dataRow);
+                openConfirmModal({
+                  message: t('Are you sure you want to duplicate this dashboard?'),
+                  priority: 'primary',
+                  onConfirm: () => handleDuplicate(dataRow),
+                });
               }}
               aria-label={t('Duplicate Dashboard')}
               data-test-id={'dashboard-duplicate'}
@@ -177,10 +286,26 @@ function DashboardTable({
   return (
     <GridEditable
       data={dashboards ?? []}
+      // necessary for edit access dropdown
+      bodyStyle={{overflow: 'visible'}}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
         renderBodyCell,
+        renderHeadCell: column => {
+          if (column.key === ResponseKeys.FAVORITE) {
+            return (
+              <Feature features="dashboards-favourite">
+                <StyledIconStar
+                  color="yellow300"
+                  isSolid
+                  aria-label={t('Favorite Column')}
+                />
+              </Feature>
+            );
+          }
+          return column.name;
+        },
       }}
       isLoading={isLoading}
       emptyMessage={
@@ -221,4 +346,14 @@ const ActionsIconWrapper = styled('div')`
 const StyledButton = styled(Button)`
   border: none;
   box-shadow: none;
+`;
+
+const StyledFavoriteButton = styled(Button)`
+  padding: 0;
+  width: 16px;
+  border: 3px solid transparent;
+`;
+
+const StyledIconStar = styled(IconStar)`
+  margin-left: ${space(0.5)};
 `;

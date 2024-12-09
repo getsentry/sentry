@@ -2,10 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -26,7 +23,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {SETUP_CONTENT as TTFD_SETUP} from 'sentry/views/insights/mobile/screenload/data/setupContent';
@@ -37,7 +34,6 @@ import {Referrer} from 'sentry/views/insights/mobile/screens/referrers';
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  MODULE_FEATURE,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
@@ -50,13 +46,10 @@ import {
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreensLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const moduleName = ModuleName.MOBILE_SCREENS;
-  const crumbs = useModuleBreadcrumbs(moduleName);
   const location = useLocation();
   const organization = useOrganization();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
@@ -291,86 +284,65 @@ export function ScreensLandingPage() {
   };
 
   return (
-    <ModulePageProviders moduleName="mobile-screens" features={[MODULE_FEATURE]}>
+    <ModulePageProviders moduleName="mobile-screens">
       <Layout.Page>
         <PageAlertProvider>
-          {!isInDomainView && (
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs crumbs={crumbs} />
-                <Layout.Title>
-                  {MODULE_TITLE}
-                  <PageHeadingQuestionTooltip
-                    docsUrl={MODULE_DOC_LINK}
-                    title={MODULE_DESCRIPTION}
-                  />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  {isProjectCrossPlatform && <PlatformSelector />}
-                  <FeedbackWidgetButton />
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-          )}
-          {isInDomainView && (
-            <MobileHeader
-              headerTitle={
-                <Fragment>
-                  {MODULE_TITLE}
-                  <PageHeadingQuestionTooltip
-                    docsUrl={MODULE_DOC_LINK}
-                    title={MODULE_DESCRIPTION}
-                  />
-                </Fragment>
-              }
-              headerActions={isProjectCrossPlatform && <PlatformSelector />}
-              module={ModuleName.MOBILE_SCREENS}
-            />
-          )}
-
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              <Container>
-                <PageFilterBar condensed>
-                  <ProjectPageFilter onChange={handleProjectChange} />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-              </Container>
-              <PageAlert />
-              <ErrorBoundary mini>
+          <MobileHeader
+            headerTitle={
+              <Fragment>
+                {MODULE_TITLE}
+                <PageHeadingQuestionTooltip
+                  docsUrl={MODULE_DOC_LINK}
+                  title={MODULE_DESCRIPTION}
+                />
+              </Fragment>
+            }
+            headerActions={isProjectCrossPlatform && <PlatformSelector />}
+            module={moduleName}
+          />
+          <ModuleBodyUpsellHook moduleName={moduleName}>
+            <Layout.Body>
+              <Layout.Main fullWidth>
                 <Container>
-                  <Flex data-test-id="mobile-screens-top-metrics">
-                    {vitalItems.map(item => {
-                      const metricValue = metricValueFor(item);
-                      const status =
-                        (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
-
-                      return (
-                        <VitalCard
-                          onClick={() => {
-                            setState({
-                              vital: item,
-                              status: status,
-                            });
-                          }}
-                          key={item.field}
-                          title={item.title}
-                          description={item.description}
-                          statusLabel={status.description}
-                          status={status.score}
-                          formattedValue={status.formattedValue}
-                        />
-                      );
-                    })}
-                  </Flex>
-                  <ScreensOverview />
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter onChange={handleProjectChange} />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
                 </Container>
-              </ErrorBoundary>
-            </Layout.Main>
-          </Layout.Body>
+                <PageAlert />
+                <ErrorBoundary mini>
+                  <Container>
+                    <Flex data-test-id="mobile-screens-top-metrics">
+                      {vitalItems.map(item => {
+                        const metricValue = metricValueFor(item);
+                        const status =
+                          (metricValue && item.getStatus(metricValue)) ?? STATUS_UNKNOWN;
+
+                        return (
+                          <VitalCard
+                            onClick={() => {
+                              setState({
+                                vital: item,
+                                status: status,
+                              });
+                            }}
+                            key={item.field}
+                            title={item.title}
+                            description={item.description}
+                            statusLabel={status.description}
+                            status={status.score}
+                            formattedValue={status.formattedValue}
+                          />
+                        );
+                      })}
+                    </Flex>
+                    <ScreensOverview />
+                  </Container>
+                </ErrorBoundary>
+              </Layout.Main>
+            </Layout.Body>
+          </ModuleBodyUpsellHook>
           <VitalDetailPanel
             vital={state.vital}
             status={state.status}

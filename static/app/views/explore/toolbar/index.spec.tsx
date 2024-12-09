@@ -38,7 +38,7 @@ describe('ExploreToolbar', function () {
     }
 
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -98,7 +98,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -202,7 +202,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}
@@ -219,9 +219,9 @@ describe('ExploreToolbar', function () {
     const fields = [
       'id',
       'project',
-      'span.op',
       'span.description',
       'span.duration',
+      'span.op',
       'timestamp',
     ];
     await userEvent.click(within(section).getByRole('button', {name: 'timestamp'}));
@@ -259,7 +259,7 @@ describe('ExploreToolbar', function () {
       return <ExploreToolbar />;
     }
     render(
-      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+      <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
         <Component />
       </SpanTagsProvider>,
       {disableRouterMocks: true}

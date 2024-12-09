@@ -10,7 +10,7 @@ import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useAiConfig} from 'sentry/views/issueDetails/streamline/useAiConfig';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface GroupSummaryData {
   groupId: string;
@@ -68,18 +68,21 @@ export function GroupSummary({
       title: t("What's wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
+      showWhenLoading: true,
     },
     {
       id: 'trace',
       title: t('In the trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
+      showWhenLoading: false,
     },
     {
       id: 'possible_cause',
       title: t('Possible cause'),
       insight: data?.possibleCause,
       icon: <IconFocus size="sm" />,
+      showWhenLoading: true,
     },
   ];
 
@@ -90,7 +93,8 @@ export function GroupSummary({
         <InsightGrid>
           {insightCards.map(card => {
             // Hide the card if we're not loading and there's no insight
-            if (!isPending && !card.insight) {
+            // Also hide if we're loading and the card shouldn't show when loading
+            if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
               return null;
             }
 

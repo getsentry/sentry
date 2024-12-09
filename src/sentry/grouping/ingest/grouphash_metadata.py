@@ -41,6 +41,7 @@ from sentry.types.grouphash_metadata import (
     TemplateHashingMetadata,
 )
 from sentry.utils import metrics
+from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,8 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     # Security reports (CSP, expect-ct, and the like)
     "URL": HashBasis.SECURITY_VIOLATION,
     "hostname": HashBasis.SECURITY_VIOLATION,
+    # CSP reports of `unsafe-inline` and `unsafe-eval` violations
+    "violation": HashBasis.SECURITY_VIOLATION,
     # Django template errors, which don't report a full stacktrace
     "template": HashBasis.TEMPLATE,
     # Hash set directly on the event by the client, under the key `checksum`
@@ -93,7 +96,7 @@ METRICS_TAGS_BY_HASH_BASIS = {
 }
 
 
-def create_or_update_grouphash_metadata(
+def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
     grouphash: GroupHash,
@@ -105,7 +108,12 @@ def create_or_update_grouphash_metadata(
     # we'll have to override the metadata creation date for them.
 
     if created:
-        hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
+        with metrics.timer(
+            "grouping.grouphashmetadata.get_hash_basis_and_metadata"
+        ) as metrics_timer_tags:
+            hash_basis, hashing_metadata = get_hash_basis_and_metadata(
+                event, project, variants, metrics_timer_tags
+            )
 
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
@@ -121,7 +129,10 @@ def create_or_update_grouphash_metadata(
 
 
 def get_hash_basis_and_metadata(
-    event: Event, project: Project, variants: dict[str, BaseVariant]
+    event: Event,
+    project: Project,
+    variants: dict[str, BaseVariant],
+    metrics_timer_tags: MutableTags,
 ) -> tuple[HashBasis, HashingMetadata]:
     hashing_metadata: HashingMetadata = {}
 
@@ -164,9 +175,11 @@ def get_hash_basis_and_metadata(
         logger.exception(
             "Encountered unknown grouping method '%s'.",
             contributing_variant.description,
-            extra={"project": project.id, "event": event.event_id},
+            extra={"project": project.id, "event_id": event.event_id},
         )
         return (HashBasis.UNKNOWN, {})
+
+    metrics_timer_tags["hash_basis"] = hash_basis
 
     # Gather different metadata depending on the grouping method
 

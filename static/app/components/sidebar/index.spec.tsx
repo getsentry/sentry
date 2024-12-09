@@ -369,7 +369,7 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(31);
+      expect(links).toHaveLength(25);
 
       [
         'Issues',
@@ -381,16 +381,10 @@ describe('Sidebar', function () {
         'Replays',
         'Discover',
         /Insights/,
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Screen Loads',
-        'Web Vitals',
-        /Caches/,
-        /Queues/,
-        /Mobile UI/,
-        /LLM Monitoring/,
+        'Frontend',
+        'Backend',
+        'Mobile',
+        'AI',
         'Performance',
         'User Feedback',
         'Crons',
@@ -407,35 +401,20 @@ describe('Sidebar', function () {
       });
     });
 
-    it('mobile screens module hides all other mobile modules', async function () {
-      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
-      renderSidebarWithFeatures([
-        'insights-entry-points',
-        'starfish-mobile-ui-module',
-        'insights-mobile-screens-module',
-      ]);
-
-      await waitFor(function () {
-        expect(apiMocks.broadcasts).toHaveBeenCalled();
-      });
-
-      ['App Starts', 'Screen Loads', /Mobile UI/].forEach(title => {
-        expect(screen.queryByText(title)).not.toBeInTheDocument();
-      });
-
-      expect(screen.getByText(/Mobile Screens/)).toBeInTheDocument();
-    });
-
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
     });
 
     it('should render floating accordion when collapsed', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
     });
   });
@@ -448,12 +427,12 @@ describe('Sidebar', function () {
     it('should render the sidebar banner with no dismissed prompts and an existing rollback', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       renderSidebarWithFeatures(['sentry-rollback-2024']);
@@ -464,7 +443,7 @@ describe('Sidebar', function () {
     it('will not render anything if the user does not have a rollback', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
@@ -484,12 +463,12 @@ describe('Sidebar', function () {
     it('will not render sidebar banner when collapsed', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       renderSidebarWithFeatures(['sentry-rollback-2024']);
@@ -504,12 +483,12 @@ describe('Sidebar', function () {
     it('should show dot on org dropdown after dismissing sidebar banner', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/prompts-activity/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/user-rollback/`,
-        body: {data: {}},
+        body: {data: null},
       });
 
       const dismissMock = MockApiClient.addMockResponse({

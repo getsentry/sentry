@@ -4,10 +4,12 @@ import orjson
 import responses
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
@@ -330,4 +332,5 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(mock_record.mock_calls) == 2
         start, halt = mock_record.mock_calls
         assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.FAILURE
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, OnCallIntegrationsHaltReason.INVALID_SERVICE.value)

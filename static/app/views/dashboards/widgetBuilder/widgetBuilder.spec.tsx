@@ -266,6 +266,10 @@ describe('WidgetBuilder', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
@@ -2656,7 +2660,7 @@ describe('WidgetBuilder', function () {
       });
       renderTestComponent({
         dashboard,
-        orgFeatures: [...defaultOrgFeatures],
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
         params: {
           widgetIndex: '0',
         },

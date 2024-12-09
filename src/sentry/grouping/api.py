@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import sentry_sdk
 
 from sentry import options
-from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.component import (
+    AppGroupingComponent,
+    BaseGroupingComponent,
+    DefaultGroupingComponent,
+    SystemGroupingComponent,
+)
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
@@ -33,11 +38,16 @@ from sentry.models.grouphash import GroupHash
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
-    from sentry.grouping.fingerprinting import FingerprintingRules
+    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
     from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
 
 HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+class FingerprintInfo(TypedDict):
+    client_fingerprint: NotRequired[list[str]]
+    matched_rule: NotRequired[FingerprintRuleJSON]
 
 
 @dataclass
@@ -234,7 +244,9 @@ def get_fingerprinting_config_for_project(
     return rv
 
 
-def apply_server_fingerprinting(event, config, allow_custom_title=True):
+def apply_server_fingerprinting(
+    event: MutableMapping[str, Any], config: FingerprintingRules, allow_custom_title: bool = True
+) -> None:
     fingerprint_info = {}
 
     client_fingerprint = event.get("fingerprint", [])
@@ -264,7 +276,7 @@ def apply_server_fingerprinting(event, config, allow_custom_title=True):
 
 def _get_calculated_grouping_variants_for_event(
     event: Event, context: GroupingContext
-) -> dict[str, BaseGroupingComponent]:
+) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
     per_variant_components: dict[str, list[BaseGroupingComponent]] = {}
@@ -292,7 +304,12 @@ def _get_calculated_grouping_variants_for_event(
 
     rv = {}
     for variant, components in per_variant_components.items():
-        component = BaseGroupingComponent(id=variant, values=components)
+        component_class_by_variant = {
+            "app": AppGroupingComponent,
+            "default": DefaultGroupingComponent,
+            "system": SystemGroupingComponent,
+        }
+        component = component_class_by_variant[variant](values=components)
         if not component.contributes and precedence_hint:
             component.update(hint=precedence_hint)
         rv[variant] = component

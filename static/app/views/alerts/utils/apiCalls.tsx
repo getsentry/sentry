@@ -30,7 +30,7 @@ export function fetchIncidentsForRule(
       includeSnapshots: true,
       start,
       end,
-      expand: ['activities', 'seen_by', 'original_alert_rule'],
+      expand: ['activities', 'original_alert_rule'],
     },
   });
 }

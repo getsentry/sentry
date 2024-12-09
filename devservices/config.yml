@@ -45,6 +45,11 @@ services:
         -c,
         max_wal_senders=1,
       ]
+    healthcheck:
+      test: pg_isready -U postgres
+      interval: 5s
+      timeout: 5s
+      retries: 3
     networks:
       - devservices
     volumes:
@@ -53,6 +58,8 @@ services:
       - 127.0.0.1:5432:5432
     extra_hosts:
       - host.docker.internal:host-gateway
+    labels:
+      - orchestrator=devservices
     restart: unless-stopped
 
 networks:

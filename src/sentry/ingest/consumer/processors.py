@@ -108,11 +108,6 @@ def process_event(
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
-    if consumer_type == ConsumerType.Transactions:
-        processing_store = transaction_processing_store
-    else:
-        processing_store = event_processing_store
-
     sentry_sdk.set_extra("event_id", event_id)
     sentry_sdk.set_extra("len_attachments", len(attachments))
 
@@ -167,6 +162,13 @@ def process_event(
     with sentry_sdk.start_span(op="orjson.loads"):
         data = orjson.loads(payload)
 
+    # We also need to check "type" as transactions are also sent to ingest-attachments
+    # along with other event types if they have attachments.
+    if consumer_type == ConsumerType.Transactions or data.get("type") == "transaction":
+        processing_store = transaction_processing_store
+    else:
+        processing_store = event_processing_store
+
     sentry_sdk.set_extra("event_type", data.get("type"))
 
     with sentry_sdk.start_span(
@@ -203,9 +205,9 @@ def process_event(
         else:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
-            if data.get("type") == "transaction":
+            if consumer_type == ConsumerType.Transactions:
                 track_sampled_event(
-                    data["event_id"], "transaction", TransactionStageStatus.REDIS_PUT
+                    data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
                 )
 
             save_attachments(attachments, cache_key)

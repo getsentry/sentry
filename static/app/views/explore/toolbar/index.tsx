@@ -23,16 +23,14 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
   const [resultMode, setResultMode] = useResultMode();
 
   const [sampleFields] = useSampleFields();
-
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
-
   const fields = useMemo(() => {
     if (resultMode === 'samples') {
       return sampleFields;
     }
 
-    const allFields = [...groupBys];
+    const allFields: string[] = [];
 
     for (const visualize of visualizes) {
       for (const yAxis of visualize.yAxes) {
@@ -43,9 +41,15 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       }
     }
 
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
     return allFields.filter(Boolean);
   }, [resultMode, sampleFields, groupBys, visualizes]);
-
   const [sorts, setSorts] = useSorts({fields});
 
   return (

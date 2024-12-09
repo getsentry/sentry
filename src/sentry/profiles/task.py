@@ -179,9 +179,7 @@ def process_profile_task(
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    if options.get("profiling.stack_trace_rules.enabled") and project.id in options.get(
-        "profiling.stack_trace_rules.allowed_project_ids"
-    ):
+    if options.get("profiling.stack_trace_rules.enabled"):
         try:
             with metrics.timer("process_profile.apply_stack_trace_rules"):
                 rules_config = project.get_option("sentry:grouping_enhancements")
@@ -205,22 +203,15 @@ def process_profile_task(
             except Exception as e:
                 sentry_sdk.capture_exception(e)
             if "profiler_id" not in profile:
-                if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
-                    _track_outcome(
-                        profile=profile,
-                        project=project,
-                        outcome=Outcome.ACCEPTED,
-                        categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                    )
-                else:
-                    _track_outcome_legacy(
-                        profile=profile, project=project, outcome=Outcome.ACCEPTED
-                    )
+                _track_outcome(
+                    profile=profile,
+                    project=project,
+                    outcome=Outcome.ACCEPTED,
+                    categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+                )
+
     else:
-        if (
-            options.get("profiling.emit_outcomes_in_profiling_consumer.enabled")
-            and "profiler_id" not in profile
-        ):
+        if "profiler_id" not in profile:
             _track_outcome(
                 profile=profile,
                 project=project,
@@ -506,6 +497,7 @@ def symbolicate(
 ) -> Any:
     if platform in SHOULD_SYMBOLICATE_JS:
         return symbolicator.process_js(
+            platform=platform,
             stacktraces=stacktraces,
             modules=modules,
             release=profile.get("release"),
@@ -514,6 +506,7 @@ def symbolicate(
         )
     elif platform == "android":
         return symbolicator.process_jvm(
+            platform=platform,
             exceptions=[],
             stacktraces=stacktraces,
             modules=modules,
@@ -522,7 +515,7 @@ def symbolicate(
             classes=[],
         )
     return symbolicator.process_payload(
-        stacktraces=stacktraces, modules=modules, apply_source_context=False
+        platform=platform, stacktraces=stacktraces, modules=modules, apply_source_context=False
     )
 
 
@@ -917,26 +910,6 @@ def get_data_category(profile: Profile) -> DataCategory:
 
 
 @metrics.wraps("process_profile.track_outcome")
-def _track_outcome_legacy(
-    profile: Profile,
-    project: Project,
-    outcome: Outcome,
-    reason: str | None = None,
-) -> None:
-    track_outcome(
-        org_id=project.organization_id,
-        project_id=project.id,
-        key_id=None,
-        outcome=outcome,
-        reason=reason,
-        timestamp=datetime.now(timezone.utc),
-        event_id=get_event_id(profile),
-        category=get_data_category(profile),
-        quantity=1,
-    )
-
-
-@metrics.wraps("process_profile.track_outcome")
 def _track_outcome(
     profile: Profile,
     project: Project,
@@ -960,28 +933,20 @@ def _track_outcome(
 
 
 def _track_failed_outcome(profile: Profile, project: Project, reason: str) -> None:
-    if options.get("profiling.emit_outcomes_in_profiling_consumer.enabled"):
-        categories = []
-        if "profiler_id" not in profile:
-            categories.append(DataCategory.PROFILE)
-            if profile.get("sampled"):
-                categories.append(DataCategory.PROFILE_INDEXED)
-        else:
-            categories.append(DataCategory.PROFILE_CHUNK)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            categories=categories,
-            reason=reason,
-        )
+    categories = []
+    if "profiler_id" not in profile:
+        categories.append(DataCategory.PROFILE)
+        if profile.get("sampled"):
+            categories.append(DataCategory.PROFILE_INDEXED)
     else:
-        _track_outcome_legacy(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason=reason,
-        )
+        categories.append(DataCategory.PROFILE_CHUNK)
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.INVALID,
+        categories=categories,
+        reason=reason,
+    )
 
 
 @metrics.wraps("process_profile.insert_vroom_profile")

@@ -9,12 +9,13 @@ import {
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type AutofixDiffProps = {
@@ -101,7 +102,7 @@ function HunkHeader({lines, sectionHeader}: {lines: DiffLine[]; sectionHeader: s
 
 function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
-
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: {
       fileName: string;
@@ -122,6 +123,9 @@ function useUpdateHunk({groupId, runId}: {groupId: string; runId: string}) {
           },
         },
       });
+    },
+    onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when updating changes.'));

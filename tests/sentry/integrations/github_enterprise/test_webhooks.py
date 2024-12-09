@@ -14,6 +14,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 
@@ -247,6 +248,8 @@ class WebhookTest(APITestCase):
         assert b"Missing headers X-Hub-Signature-256 or X-Hub-Signature" in response.content
 
 
+@patch("sentry.integrations.github_enterprise.client.get_jwt")
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PushEventWebhookTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/github-enterprise/webhook/"
@@ -266,9 +269,8 @@ class PushEventWebhookTest(APITestCase):
         )
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt")
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_simple(self, mock_get_installation_metadata, mock_get_jwt):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple(self, mock_record, mock_get_installation_metadata, mock_get_jwt):
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -335,8 +337,56 @@ class PushEventWebhookTest(APITestCase):
         assert commit.author.external_id is None
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_anonymous_lookup(self, mock_get_installation_metadata):
+        assert_success_metric(mock_record)
+
+    @responses.activate
+    @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(
+        self, mock_record, mock_event, mock_get_installation_metadata, mock_get_jwt
+    ):
+        responses.add(
+            responses.POST,
+            "https://35.232.149.196/extensions/github-enterprise/webhook/",
+            status=204,
+        )
+
+        mock_get_jwt.return_value = ""
+        mock_get_installation_metadata.return_value = self.metadata
+
+        self.create_integration(
+            external_id="35.232.149.196:12345",
+            organization=self.project.organization,
+            provider="github_enterprise",
+            metadata={
+                "domain_name": "35.232.149.196/baxterthehacker",
+                "installation_id": "12345",
+                "installation": {
+                    "id": "2",
+                    "private_key": "private_key",
+                    "verify_ssl": True,
+                },
+            },
+        )
+
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=2a0586cc46490b17441834e1e143ec3d8c1fe032",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
+
+    def test_anonymous_lookup(self, mock_get_installation_metadata, mock_get_jwt):
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -401,8 +451,6 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt")
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_multiple_orgs(self, mock_get_installation_metadata, mock_get_jwt):
         responses.add(
             responses.POST,
@@ -481,6 +529,7 @@ class PushEventWebhookTest(APITestCase):
         assert len(commit_list) == 0
 
 
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PullRequestEventWebhook(APITestCase):
     def setUp(self):
         self.url = "/extensions/github-enterprise/webhook/"
@@ -513,8 +562,8 @@ class PullRequestEventWebhook(APITestCase):
             name="baxterthehacker/public-repo",
         )
 
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_opened(self, mock_get_installation_metadata):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_opened(self, mock_record, mock_get_installation_metadata):
         mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(
@@ -543,7 +592,29 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+        assert_success_metric(mock_record)
+
+    @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_webhook_error_metric(self, mock_record, mock_event, mock_get_installation_metadata):
+        mock_get_installation_metadata.return_value = self.metadata
+        error = Exception("error")
+        mock_event.side_effect = error
+
+        response = self.client.post(
+            path=self.url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE="sha1=aa5b11bc52b9fac082cb59f9ee8667cb222c3aff",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 500
+
+        assert_failure_metric(mock_record, error)
+
     def test_edited(self, mock_get_installation_metadata):
         mock_get_installation_metadata.return_value = self.metadata
 
@@ -573,7 +644,6 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
-    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_closed(self, mock_get_installation_metadata):
         mock_get_installation_metadata.return_value = self.metadata
 

@@ -26,6 +26,7 @@ from sentry.conf.types.logging_config import LoggingConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
+from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import crontab_with_minute_jitter, make_split_task_queues
 from sentry.utils.types import Type, type_from_value
@@ -322,7 +323,6 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
-    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -1546,31 +1546,31 @@ SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_FRONTEND_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for transactions in the backend
-SENTRY_BACKEND_APM_SAMPLING = 0
+SENTRY_BACKEND_APM_SAMPLING = 1 if DEBUG else 0
 
 # Sample rate for symbolicate_event task transactions
-SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 1 if DEBUG else 0
 
 # Sample rate for the process_event task transactions
-SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for relay's cache invalidation task
-SENTRY_RELAY_TASK_APM_SAMPLING = 0
+SENTRY_RELAY_TASK_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for ingest consumer processing functions
-SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
+SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for suspect commits task
-SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for post_process_group task
-SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
-SENTRY_REPROCESSING_APM_SAMPLING = 0
+SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
 # ----
 # end APM config
@@ -2493,7 +2493,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.11.0"
+SELF_HOSTED_STABLE_VERSION = "24.11.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2545,7 +2545,7 @@ if SENTRY_DEV_DSN:
 # traces_sample_rate. So that means the true sample rate will be approximately
 # traces_sample_rate * profiles_sample_rate
 # (subject to things like the traces_sampler)
-SENTRY_PROFILES_SAMPLE_RATE = 0
+SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
 # specific, and each have their own pros/cons. See the sdk for more details.
@@ -2882,6 +2882,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
+    "eap-spans-subscription-results": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -3161,12 +3162,12 @@ SNOWFLAKE_VERSION_ID = 1
 SENTRY_SNOWFLAKE_EPOCH_START = datetime(2022, 8, 8, 0, 0).timestamp()
 SENTRY_USE_SNOWFLAKE = False
 
-SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS = {
+SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
 
-SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS = {
+SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
     "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
     "options": {"cluster": "default"},
 }
@@ -3244,7 +3245,7 @@ SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organiza
 # lost as a result of toggling this setting.
 SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP = True
 
-SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
+SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS: ServiceOptions = {
     "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
     "options": {"cluster": "default"},
 }

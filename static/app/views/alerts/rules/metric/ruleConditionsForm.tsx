@@ -8,6 +8,7 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
@@ -74,6 +75,7 @@ import {
   SpanTagsContext,
   SpanTagsProvider,
 } from 'sentry/views/explore/contexts/spanTagsContext';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getProjectOptions} from '../utils';
 
@@ -125,6 +127,7 @@ type Props = {
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isForLlmMetric?: boolean;
+  isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
   monitorType?: number;
@@ -261,7 +264,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     let options: Record<string, string> = TIME_WINDOW_MAP;
     const {alertType} = this.props;
 
-    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
+    if (alertType === 'custom_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
       options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }
@@ -651,6 +654,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       aggregate,
       project,
       comparisonType,
+      isLowConfidenceChartData,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -665,6 +669,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const confidenceEnabled = hasEAPAlerts(organization);
+
     return (
       <Fragment>
         <ChartPanel>
@@ -678,73 +684,85 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            {isExtrapolatedChartData && (
-              <OnDemandMetricAlert
-                message={t(
-                  'The chart data above is an estimate based on the stored transactions that match the filters specified.'
-                )}
-              />
-            )}
-            {hasActivatedAlerts && this.renderMonitorTypeSelect()}
-            {!isErrorMigration && this.renderInterval()}
-            <StyledListItem>{t('Filter events')}</StyledListItem>
-            <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-              {this.renderProjectSelector()}
-              <SelectField
-                name="environment"
-                placeholder={t('All Environments')}
-                style={{
-                  ...this.formElemBaseStyle,
-                  minWidth: 230,
-                  flex: 1,
-                }}
-                styles={{
-                  singleValue: (base: any) => ({
-                    ...base,
-                  }),
-                  option: (base: any) => ({
-                    ...base,
-                  }),
-                }}
-                options={environmentOptions}
-                isDisabled={
-                  disabled || this.state.environments === null || isErrorMigration
-                }
-                isClearable
-                inline={false}
-                flexibleControlStateSize
-              />
-              {allowChangeEventTypes && this.renderEventTypeFilter()}
-            </FormRow>
-            <FormRow noMargin>
-              <FormField
-                name="query"
-                inline={false}
-                style={{
-                  ...this.formElemBaseStyle,
-                  flex: '6 0 500px',
-                }}
-                flexibleControlStateSize
-              >
-                {({onChange, onBlur, initialData, value}) => {
-                  return (hasCustomMetrics(organization) &&
-                    alertType === 'custom_metrics') ||
-                    alertType === 'insights_metrics' ? (
-                    <MetricSearchBar
-                      mri={getMRI(aggregate)}
-                      projectIds={[project.id]}
-                      placeholder={this.searchPlaceholder}
-                      query={initialData.query}
-                      defaultQuery={initialData?.query ?? ''}
-                      useFormWrapper={false}
-                      searchSource="alert_builder"
-                      onChange={query => {
-                        onFilterSearch(query, true);
-                        onChange(query, {});
-                      }}
-                    />
-                  ) : alertType === 'eap_metrics' ? (
-                    <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP}>
+            <SpanTagsProvider
+              dataset={DiscoverDatasets.SPANS_EAP}
+              enabled={
+                organization.features.includes('alerts-eap') &&
+                alertType === 'eap_metrics'
+              }
+            >
+              {isExtrapolatedChartData && (
+                <OnDemandMetricAlert
+                  message={t(
+                    'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+                  )}
+                />
+              )}
+              {confidenceEnabled && isLowConfidenceChartData && (
+                <Alert showIcon type="warning">
+                  {t(
+                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                  )}
+                </Alert>
+              )}
+              {hasActivatedAlerts && this.renderMonitorTypeSelect()}
+              {!isErrorMigration && this.renderInterval()}
+              <StyledListItem>{t('Filter events')}</StyledListItem>
+              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+                {this.renderProjectSelector()}
+                <SelectField
+                  name="environment"
+                  placeholder={t('All Environments')}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    minWidth: 230,
+                    flex: 1,
+                  }}
+                  styles={{
+                    singleValue: (base: any) => ({
+                      ...base,
+                    }),
+                    option: (base: any) => ({
+                      ...base,
+                    }),
+                  }}
+                  options={environmentOptions}
+                  isDisabled={
+                    disabled || this.state.environments === null || isErrorMigration
+                  }
+                  isClearable
+                  inline={false}
+                  flexibleControlStateSize
+                />
+                {allowChangeEventTypes && this.renderEventTypeFilter()}
+              </FormRow>
+              <FormRow noMargin>
+                <FormField
+                  name="query"
+                  inline={false}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    flex: '6 0 500px',
+                  }}
+                  flexibleControlStateSize
+                >
+                  {({onChange, onBlur, initialData, value}) => {
+                    return hasCustomMetrics(organization) &&
+                      alertType === 'custom_metrics' ? (
+                      <MetricSearchBar
+                        mri={getMRI(aggregate)}
+                        projectIds={[project.id]}
+                        placeholder={this.searchPlaceholder}
+                        query={initialData.query}
+                        defaultQuery={initialData?.query ?? ''}
+                        useFormWrapper={false}
+                        searchSource="alert_builder"
+                        onChange={query => {
+                          onFilterSearch(query, true);
+                          onChange(query, {});
+                        }}
+                      />
+                    ) : alertType === 'eap_metrics' ? (
                       <SpanTagsContext.Consumer>
                         {tags => (
                           <EAPSpanSearchQueryBuilder
@@ -765,92 +783,92 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           />
                         )}
                       </SpanTagsContext.Consumer>
-                    </SpanTagsProvider>
-                  ) : (
-                    <SearchContainer>
-                      <SearchQueryBuilder
-                        initialQuery={initialData?.query ?? ''}
-                        getTagValues={this.getEventFieldValues}
-                        placeholder={this.searchPlaceholder}
-                        searchSource="alert_builder"
-                        filterKeys={filterKeys}
-                        disabled={disabled || isErrorMigration}
-                        onChange={onChange}
-                        invalidMessages={{
-                          [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                            'The wildcard operator is not supported here.'
-                          ),
-                          [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                            'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                          ),
-                        }}
-                        onSearch={query => {
-                          onFilterSearch(query, true);
-                          onChange(query, {});
-                        }}
-                        onBlur={(query, {parsedQuery}) => {
-                          onFilterSearch(query, parsedQuery);
-                          onBlur(query);
-                        }}
-                        // We only need strict validation for Transaction queries, everything else is fine
-                        disallowUnsupportedFilters={
-                          organization.features.includes('alert-allow-indexed') ||
-                          (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(value))
-                            ? false
-                            : dataset === Dataset.GENERIC_METRICS
-                        }
-                      />
-                      {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                        <OnDemandWarningIcon
-                          color="gray500"
-                          msg={tct(
-                            `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                            {
-                              fields: (
-                                <strong>
-                                  {getOnDemandKeys(value)
-                                    .map(key => `"${key}"`)
-                                    .join(', ')}
-                                </strong>
-                              ),
-                              strong: <strong />,
-                            }
+                    ) : (
+                      <SearchContainer>
+                        <SearchQueryBuilder
+                          initialQuery={initialData?.query ?? ''}
+                          getTagValues={this.getEventFieldValues}
+                          placeholder={this.searchPlaceholder}
+                          searchSource="alert_builder"
+                          filterKeys={filterKeys}
+                          disabled={disabled || isErrorMigration}
+                          onChange={onChange}
+                          invalidMessages={{
+                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
+                              'The wildcard operator is not supported here.'
+                            ),
+                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
+                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
+                            ),
+                          }}
+                          onSearch={query => {
+                            onFilterSearch(query, true);
+                            onChange(query, {});
+                          }}
+                          onBlur={(query, {parsedQuery}) => {
+                            onFilterSearch(query, parsedQuery);
+                            onBlur(query);
+                          }}
+                          // We only need strict validation for Transaction queries, everything else is fine
+                          disallowUnsupportedFilters={
+                            organization.features.includes('alert-allow-indexed') ||
+                            (hasOnDemandMetricAlertFeature(organization) &&
+                              isOnDemandQueryString(value))
+                              ? false
+                              : dataset === Dataset.GENERIC_METRICS
+                          }
+                        />
+                        {isExtrapolatedChartData && isOnDemandQueryString(value) && (
+                          <OnDemandWarningIcon
+                            color="gray500"
+                            msg={tct(
+                              `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                strong: <strong />,
+                              }
+                            )}
+                          />
+                        )}
+                      </SearchContainer>
+                    );
+                  }}
+                </FormField>
+              </FormRow>
+              <FormRow noMargin>
+                <FormField
+                  name="query"
+                  inline={false}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    flex: '6 0 500px',
+                  }}
+                  flexibleControlStateSize
+                >
+                  {args => {
+                    if (
+                      args.value?.includes('is:unresolved') &&
+                      comparisonType === AlertRuleComparisonType.DYNAMIC
+                    ) {
+                      return (
+                        <OnDemandMetricAlert
+                          message={t(
+                            "'is:unresolved' queries are not supported by Anomaly Detection alerts."
                           )}
                         />
-                      )}
-                    </SearchContainer>
-                  );
-                }}
-              </FormField>
-            </FormRow>
-            <FormRow noMargin>
-              <FormField
-                name="query"
-                inline={false}
-                style={{
-                  ...this.formElemBaseStyle,
-                  flex: '6 0 500px',
-                }}
-                flexibleControlStateSize
-              >
-                {args => {
-                  if (
-                    args.value?.includes('is:unresolved') &&
-                    comparisonType === AlertRuleComparisonType.DYNAMIC
-                  ) {
-                    return (
-                      <OnDemandMetricAlert
-                        message={t(
-                          "'is:unresolved' queries are not supported by Anomaly Detection alerts."
-                        )}
-                      />
-                    );
-                  }
-                  return null;
-                }}
-              </FormField>
-            </FormRow>
+                      );
+                    }
+                    return null;
+                  }}
+                </FormField>
+              </FormRow>
+            </SpanTagsProvider>
           </Fragment>
         )}
       </Fragment>
