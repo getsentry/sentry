@@ -289,7 +289,7 @@ def _get_component_trees_for_variants(
 
     for strategy in context.config.iter_strategies():
         # Defined in src/sentry/grouping/strategies/base.py
-        current_strategy_components_by_variant = strategy.get_grouping_component_variants(
+        current_strategy_components_by_variant = strategy.get_grouping_components(
             event, context=context
         )
         for variant_name, component in current_strategy_components_by_variant.items():

@@ -231,9 +231,7 @@ class Strategy(Generic[ConcreteInterface]):
                 context["variant"] = variant
             return self(event=event, context=context, *args)
 
-    def get_grouping_component_variants(
-        self, event: Event, context: GroupingContext
-    ) -> ReturnedVariants:
+    def get_grouping_components(self, event: Event, context: GroupingContext) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
