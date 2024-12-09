@@ -273,7 +273,7 @@ class FingerprintingRules:
             return None
         event_datastore = EventDatastore(event)
         for rule in self.iter_rules():
-            match = rule.get_fingerprint_values_for_event_access(event_datastore)
+            match = rule.test_for_match_with_event(event_datastore)
             if match is not None:
                 return FingerprintRuleMatch(rule, match.fingerprint, match.attributes)
         return None
@@ -504,7 +504,7 @@ class FingerprintRule:
         self.attributes = attributes
         self.is_builtin = is_builtin
 
-    def get_fingerprint_values_for_event_access(
+    def test_for_match_with_event(
         self, event_datastore: EventDatastore
     ) -> None | FingerprintWithAttributes:
         by_match_type: dict[str, list[FingerprintMatcher]] = {}
