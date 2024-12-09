@@ -60,13 +60,6 @@ function WidgetBuilderTypeSelector() {
               payload: [state.query[0]],
             });
           }
-
-          if (newValue.value === DisplayType.BIG_NUMBER) {
-            dispatch({
-              type: BuilderStateAction.SET_SORT,
-              payload: [],
-            });
-          }
         }}
         components={{
           SingleValue: containerProps => {
