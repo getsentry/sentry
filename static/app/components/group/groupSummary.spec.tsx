@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,6 +11,12 @@ describe('GroupSummary', function () {
   const mockEvent = EventFixture();
   const mockGroup = GroupFixture();
   const mockProject = ProjectFixture();
+  const organization = OrganizationFixture({
+    genAIConsent: true,
+    hideAiFeatures: false,
+    features: ['gen-ai-features'],
+  });
+
   const mockSummaryData = {
     groupId: '1',
     whatsWrong: 'Test whats wrong',
@@ -41,7 +48,9 @@ describe('GroupSummary', function () {
       body: mockSummaryData,
     });
 
-    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
@@ -60,7 +69,9 @@ describe('GroupSummary', function () {
       body: {},
     });
 
-    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     // Should show loading placeholders
     expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
@@ -74,7 +85,9 @@ describe('GroupSummary', function () {
       statusCode: 400,
     });
 
-    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(screen.getByText('Error loading summary')).toBeInTheDocument();
@@ -91,7 +104,9 @@ describe('GroupSummary', function () {
       },
     });
 
-    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />);
+    render(<GroupSummary event={mockEvent} group={mockGroup} project={mockProject} />, {
+      organization,
+    });
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
@@ -110,7 +125,8 @@ describe('GroupSummary', function () {
     });
 
     render(
-      <GroupSummary event={mockEvent} group={mockGroup} project={mockProject} preview />
+      <GroupSummary event={mockEvent} group={mockGroup} project={mockProject} preview />,
+      {organization}
     );
 
     await waitFor(() => {
