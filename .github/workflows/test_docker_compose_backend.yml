@@ -16,6 +16,7 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   USE_NEW_DEV_SERVICES: 1
+  IS_DEV: 1
 
 jobs:
   docker-compose-api-docs:
