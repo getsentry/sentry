@@ -32,7 +32,8 @@ def test_default_bases(default_bases):
     assert FINGERPRINTING_BASES
     assert set(default_bases) == set(FINGERPRINTING_BASES.keys())
     assert {
-        k: [r._to_config_structure() for r in rs] for k, rs in FINGERPRINTING_BASES.items()
+        fingerprinting_base: [rule._to_config_structure() for rule in ruleset]
+        for fingerprinting_base, ruleset in FINGERPRINTING_BASES.items()
     } == {
         "javascript@2024-02-02": [
             {
@@ -419,7 +420,7 @@ def test_load_configs_empty_doesnt_blow_up(tmp_path):
         assert _load_configs() == {}
 
 
-def test_load_configs_nx_path_doesnt_blow_up(tmp_path):
+def test_load_configs_non_existent_path_doesnt_blow_up(tmp_path):
     tmp_path.rmdir()
     with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
@@ -558,8 +559,10 @@ class BuiltInFingerprintingTest(TestCase):
     def test_built_in_chunkload_rules_variants(self):
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         variants = {
-            k: v.as_dict()
-            for k, v in event.get_grouping_variants(force_config=GROUPING_CONFIG).items()
+            variant_name: variant.as_dict()
+            for variant_name, variant in event.get_grouping_variants(
+                force_config=GROUPING_CONFIG
+            ).items()
         }
         assert "built_in_fingerprint" in variants
 
@@ -705,8 +708,8 @@ class BuiltInFingerprintingTest(TestCase):
             data=data_transaction_no_tx, project_id=self.project
         )
         variants = {
-            k: v.as_dict()
-            for k, v in event_transaction_no_tx.get_grouping_variants(
+            variant_name: variant.as_dict()
+            for variant_name, variant in event_transaction_no_tx.get_grouping_variants(
                 force_config=GROUPING_CONFIG
             ).items()
         }

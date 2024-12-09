@@ -100,14 +100,14 @@ def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
     grouphash: GroupHash,
-    created: bool,
+    grouphash_is_new: bool,
     grouping_config: str,
     variants: dict[str, BaseVariant],
 ) -> None:
     # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
     # we'll have to override the metadata creation date for them.
 
-    if created:
+    if grouphash_is_new:
         with metrics.timer(
             "grouping.grouphashmetadata.get_hash_basis_and_metadata"
         ) as metrics_timer_tags:
