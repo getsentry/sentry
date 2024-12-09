@@ -194,7 +194,7 @@ export function GroupSummary({
             <Button
               ref={buttonRef}
               size="xs"
-              icon={<IconEllipsis size="xs" />}
+              icon={<StyledIconEllipsis size="xs" />}
               aria-label={t('Event details')}
               borderless
               onClick={() => setShowEventDetails(!showEventDetails)}
@@ -355,4 +355,8 @@ const EventDetailsPopup = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   z-index: 0;
   white-space: nowrap;
+`;
+
+const StyledIconEllipsis = styled(IconEllipsis)`
+  color: ${p => p.theme.subText};
 `;
