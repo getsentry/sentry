@@ -241,11 +241,11 @@ def get_fingerprinting_config_for_project(
         return FingerprintingRules.from_json(config_json, bases=bases)
 
     try:
-        rv = FingerprintingRules.from_config_string(raw_rules, bases=bases)
+        rules = FingerprintingRules.from_config_string(raw_rules, bases=bases)
     except InvalidFingerprintingConfig:
-        rv = FingerprintingRules([], bases=bases)
-    cache.set(cache_key, rv.to_json())
-    return rv
+        rules = FingerprintingRules([], bases=bases)
+    cache.set(cache_key, rules.to_json())
+    return rules
 
 
 def apply_server_fingerprinting(
