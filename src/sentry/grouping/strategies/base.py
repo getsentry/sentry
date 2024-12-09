@@ -252,6 +252,8 @@ class Strategy(Generic[ConcreteInterface]):
             variant_name = variant_name.lstrip("!")
 
             if component.contributes:
+                # Track priority and non-priority contributing hashes separately, so the latter can
+                # be deduped against the former
                 if is_priority:
                     priority_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
@@ -259,14 +261,9 @@ class Strategy(Generic[ConcreteInterface]):
 
             final_components_by_variant[variant_name] = component
 
+        # Mark any non-priority duplicates of priority hashes as non-contributing
         for variant_name in non_priority_contributing_variants:
             component = final_components_by_variant[variant_name]
-
-            # In case this variant contributes we need to check two things
-            # here: if we did not have a system match we need to prevent
-            # it from contributing.  Additionally if it matches the system
-            # component we also do not want the variant to contribute but
-            # with a different message.
             hash_value = component.get_hash()
             duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
             if duplicate_of is not None:
