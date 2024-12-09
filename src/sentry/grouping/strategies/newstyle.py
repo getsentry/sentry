@@ -542,17 +542,17 @@ def single_exception(
     if exception.stacktrace is not None:
         with context:
             context["exception_data"] = exception.to_json()
-            stacktrace_variants: dict[str, StacktraceGroupingComponent] = (
+            stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
                 context.get_grouping_component(exception.stacktrace, event=event, **meta)
             )
     else:
-        stacktrace_variants = {
+        stacktrace_components_by_variant = {
             "app": StacktraceGroupingComponent(),
         }
 
     exception_components_by_variant = {}
 
-    for variant_name, stacktrace_component in stacktrace_variants.items():
+    for variant_name, stacktrace_component in stacktrace_components_by_variant.items():
         values: list[
             ErrorTypeGroupingComponent
             | ErrorValueGroupingComponent
