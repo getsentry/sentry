@@ -76,6 +76,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
   }, [setError, result.error?.message]);
 
   useAnalytics({
+    dataset,
     resultLength: result.data?.data?.length,
     resultMode: 'trace samples',
     resultStatus: result.status,

@@ -144,6 +144,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   }, [setError, result.error?.message]);
 
   useAnalytics({
+    dataset,
     resultLength: result.data?.length,
     resultMode: 'aggregates',
     resultStatus: result.status,
