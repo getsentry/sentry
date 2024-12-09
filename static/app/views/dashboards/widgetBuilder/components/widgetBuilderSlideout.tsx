@@ -33,6 +33,8 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
 
+  const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
+
   return (
     <SlideOverPanel
       collapsed={!isOpen}
@@ -70,9 +72,11 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
             <WidgetBuilderGroupBySelector />
           </Section>
         )}
-        <Section>
-          <WidgetBuilderSortBySelector />
-        </Section>
+        {isNotBigNumberWidget && (
+          <Section>
+            <WidgetBuilderSortBySelector />
+          </Section>
+        )}
         <Section>
           <WidgetBuilderNameAndDescription />
         </Section>

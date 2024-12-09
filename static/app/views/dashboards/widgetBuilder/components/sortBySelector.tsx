@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import trimStart from 'lodash/trimStart';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -28,7 +27,7 @@ function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
   const widget = convertBuilderStateToWidget(state);
 
-  const [limit, setLimit] = useState(widget.limit ?? DEFAULT_RESULTS_LIMIT);
+  const [limit, setLimit] = useState(DEFAULT_RESULTS_LIMIT);
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -56,8 +55,6 @@ function WidgetBuilderSortBySelector() {
     DisplayType.AREA,
   ].includes(displayType);
 
-  const orderBy = widget.queries[0].orderby;
-  const strippedOrderBy = trimStart(orderBy, '-');
   const maxLimit = getResultsLimit(
     widget.queries.length,
     widget.queries[0].aggregates.length
@@ -114,10 +111,10 @@ function WidgetBuilderSortBySelector() {
             widgetQuery={widget.queries[0]}
             values={{
               sortDirection:
-                orderBy[0] === '-'
-                  ? SortDirection.HIGH_TO_LOW
-                  : SortDirection.LOW_TO_HIGH,
-              sortBy: strippedOrderBy,
+                state.sort?.[0]?.kind === 'asc'
+                  ? SortDirection.LOW_TO_HIGH
+                  : SortDirection.HIGH_TO_LOW,
+              sortBy: state.sort?.length ? state.sort?.[0]?.field : '',
             }}
             onChange={({sortDirection, sortBy}) => {
               const newSortDirection =
