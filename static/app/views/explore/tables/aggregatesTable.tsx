@@ -62,6 +62,31 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
   const fields = useMemo(() => {
+    // When rendering the table, we want the group bys first
+    // then the aggregates.
+    const allFields: string[] = [];
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    return allFields.filter(Boolean);
+  }, [groupBys, visualizes]);
+  const orderByFields = useMemo(() => {
+    // When rendering the order by, we want the aggregates
+    // first then the group bys.
     const allFields: string[] = [];
 
     for (const visualize of visualizes) {
@@ -82,7 +107,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
 
     return allFields.filter(Boolean);
   }, [groupBys, visualizes]);
-  const [sorts, setSorts] = useSorts({fields});
+  const [sorts, setSorts] = useSorts({fields: orderByFields});
   const [query] = useUserQuery();
 
   const eventView = useMemo(() => {
