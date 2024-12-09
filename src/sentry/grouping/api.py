@@ -301,8 +301,8 @@ def _get_component_trees_for_variants(
                     variant_descriptor = "/".join(
                         sorted(
                             variant_name
-                            for variant_name, v in current_strategy_components_by_variant.items()
-                            if v.contributes
+                            for variant_name, component in current_strategy_components_by_variant.items()
+                            if component.contributes
                         )
                     )
                     precedence_hint = "{} take{} precedence".format(
