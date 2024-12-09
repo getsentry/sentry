@@ -1,11 +1,10 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
+import {IconEllipsis, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -91,6 +90,7 @@ export function GroupSummary({
 }) {
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
+  const [showEventDetails, setShowEventDetails] = useState(false);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
@@ -98,12 +98,34 @@ export function GroupSummary({
     forceEvent
   );
 
+  const popupRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     if (forceEvent && !isPending) {
       refresh();
       setForceEvent(false);
     }
   }, [forceEvent, isPending, refresh]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        showEventDetails &&
+        popupRef.current &&
+        buttonRef.current &&
+        !popupRef.current.contains(e.target as Node) &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setShowEventDetails(false);
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showEventDetails]);
 
   const tooltipContent = data?.eventId ? (
     event?.id === data.eventId ? (
@@ -169,12 +191,17 @@ export function GroupSummary({
       <Content>
         {data?.eventId && !isPending && (
           <TooltipWrapper id="group-summary-tooltip-wrapper">
-            <QuestionTooltip
-              size="sm"
-              position="left"
-              isHoverable
-              title={tooltipContent}
+            <Button
+              ref={buttonRef}
+              size="xs"
+              icon={<IconEllipsis size="xs" />}
+              aria-label={t('Event details')}
+              borderless
+              onClick={() => setShowEventDetails(!showEventDetails)}
             />
+            {showEventDetails && (
+              <EventDetailsPopup ref={popupRef}>{tooltipContent}</EventDetailsPopup>
+            )}
           </TooltipWrapper>
         )}
         <InsightGrid>
@@ -314,4 +341,18 @@ const TooltipContentWrapper = styled('div')`
   flex-direction: row;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const EventDetailsPopup = styled('div')`
+  position: absolute;
+  right: calc(100% + ${space(0.5)});
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(1.5)};
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  z-index: 0;
+  white-space: nowrap;
 `;
