@@ -251,25 +251,25 @@ class Strategy(Generic[ConcreteInterface]):
         optional_contributing_variants = []
         prevent_contribution = None
 
-        for variant, component in components_by_variant.items():
-            is_mandatory = variant.startswith("!")
-            variant = variant.lstrip("!")
+        for variant_name, component in components_by_variant.items():
+            is_mandatory = variant_name.startswith("!")
+            variant_name = variant_name.lstrip("!")
 
             if is_mandatory:
                 has_mandatory_hashes = True
 
             if component.contributes:
                 if is_mandatory:
-                    mandatory_contributing_hashes[component.get_hash()] = variant
+                    mandatory_contributing_hashes[component.get_hash()] = variant_name
                 else:
-                    optional_contributing_variants.append(variant)
+                    optional_contributing_variants.append(variant_name)
 
-            rv[variant] = component
+            rv[variant_name] = component
 
         prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
 
-        for variant in optional_contributing_variants:
-            component = rv[variant]
+        for variant_name in optional_contributing_variants:
+            component = rv[variant_name]
 
             # In case this variant contributes we need to check two things
             # here: if we did not have a system match we need to prevent
