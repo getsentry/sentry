@@ -12,7 +12,6 @@ from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_wi
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.sentry_apps.services.app import (
-    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -166,7 +165,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
-    ) -> RpcAlertRuleActionResult:
+    ) -> None:
         pass
 
     @rpc_method

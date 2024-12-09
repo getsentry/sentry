@@ -11,7 +11,7 @@ from sentry import analytics, audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.coreapi import APIUnauthorized
-from sentry.exceptions import ApiTokenLimitError
+from sentry.exceptions import ApiTokenLimitError, SentryAppError
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -193,8 +193,10 @@ class SentryAppInstallationNotifier:
 
     def run(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise APIUnauthorized(
-                f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
+            raise SentryAppError(
+                APIUnauthorized(
+                    f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
+                )
             )
 
         send_and_save_webhook_request(self.sentry_app, self.request)

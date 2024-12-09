@@ -4,6 +4,7 @@ from typing import Any
 from django.db import router, transaction
 
 from sentry.coreapi import APIUnauthorized
+from sentry.exceptions import SentryAppError
 from sentry.models.group import Group
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
@@ -32,7 +33,7 @@ class IssueLinkCreator:
 
     def _verify_action(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise APIUnauthorized(f"Invalid action '{self.action}'")
+            raise SentryAppError(APIUnauthorized(f"Invalid action '{self.action}'"))
 
     def _make_external_request(self) -> dict[str, Any]:
         response = IssueLinkRequester(

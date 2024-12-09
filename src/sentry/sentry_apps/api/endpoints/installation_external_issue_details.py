@@ -24,7 +24,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
-            return Response(status=404)
+            return Response({"error": "Could not find requested external issue"}, status=404)
 
         deletions.exec_sync(platform_external_issue)
 

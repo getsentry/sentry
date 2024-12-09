@@ -31,6 +31,9 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
+from sentry.incidents.endpoints.organization_alert_rule_details import (
+    create_sentry_app_alert_rule_component,
+)
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
@@ -41,7 +44,6 @@ from sentry.incidents.logic import get_slack_actions_with_async_lookups
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
@@ -120,7 +122,7 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        create_sentry_app_alert_rule_component(serializer.validated_data)
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()

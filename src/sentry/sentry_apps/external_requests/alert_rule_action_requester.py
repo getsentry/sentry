@@ -6,16 +6,15 @@ from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
-from requests import RequestException
 from requests.models import Response
 
+from sentry.exceptions import SentryAppIntegratorError
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.utils import json
 
-DEFAULT_SUCCESS_MESSAGE = "Success!"
-DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+DEFAULT_ERROR_MESSAGE = "Something went wrong while setting up alert for"
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
@@ -32,7 +31,7 @@ class AlertRuleActionRequester:
     fields: Sequence[Mapping[str, str]] = field(default_factory=list)
     http_method: str | None = "POST"
 
-    def run(self) -> AlertRuleActionResult:
+    def run(self) -> None:
         try:
             response = send_and_save_sentry_app_request(
                 url=self._build_url(),
@@ -44,7 +43,7 @@ class AlertRuleActionRequester:
                 data=self.body,
             )
 
-        except RequestException as e:
+        except Exception as e:
             logger.info(
                 "alert_rule_action.error",
                 extra={
@@ -52,15 +51,15 @@ class AlertRuleActionRequester:
                     "install_uuid": self.install.uuid,
                     "uri": self.uri,
                     "error_message": str(e),
+                    "response": str(json.loads(response)),
                 },
             )
 
-            return AlertRuleActionResult(
-                success=False, message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE)
-            )
-        return AlertRuleActionResult(
-            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
-        )
+            raise SentryAppIntegratorError(
+                self._get_response_message(
+                    e.response, f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
+                )
+            ) from e
 
     def _build_url(self) -> str:
         urlparts = list(urlparse(self.sentry_app.webhook_url))

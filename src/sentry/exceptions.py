@@ -91,3 +91,13 @@ class HashDiscarded(Exception):
 
 class InvalidParams(Exception):
     pass
+
+
+# Represents a user/client error that occured during a Sentry App process
+class SentryAppError(Exception):
+    pass
+
+
+# Represents an error caused by a 3p integrator during a Sentry App process
+class SentryAppIntegratorError(Exception):
+    pass
