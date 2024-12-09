@@ -543,7 +543,9 @@ def single_exception(
         with context:
             context["exception_data"] = exception.to_json()
             stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_component(exception.stacktrace, event=event, **meta)
+                context.get_grouping_components_by_variant(
+                    exception.stacktrace, event=event, **meta
+                )
             )
     else:
         stacktrace_components_by_variant = {
@@ -615,7 +617,7 @@ def chained_exception(
 
     # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
     exception_components_by_exception = {
-        id(exception): context.get_grouping_component(exception, event=event, **meta)
+        id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
         for exception in all_exceptions
     }
 
@@ -820,7 +822,7 @@ def _filtered_threads(
 
     thread_components_by_variant = {}
 
-    for variant_name, stacktrace_component in context.get_grouping_component(
+    for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
         stacktrace, event=event, **meta
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(

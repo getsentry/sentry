@@ -117,7 +117,7 @@ class GroupingContext:
     def pop(self) -> None:
         self._stack.pop()
 
-    def get_grouping_component(
+    def get_grouping_components_by_variant(
         self, interface: Interface, *, event: Event, **kwargs: Any
     ) -> ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
