@@ -271,9 +271,9 @@ class FingerprintingRules:
     ) -> None | FingerprintRuleMatch:
         if not (self.bases or self.rules):
             return None
-        access = EventDatastore(event)
+        event_datastore = EventDatastore(event)
         for rule in self.iter_rules():
-            match = rule.get_fingerprint_values_for_event_access(access)
+            match = rule.get_fingerprint_values_for_event_access(event_datastore)
             if match is not None:
                 return FingerprintRuleMatch(rule, match.fingerprint, match.attributes)
         return None
