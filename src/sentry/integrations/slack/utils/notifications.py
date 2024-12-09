@@ -35,8 +35,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import (
-    CHANNEL_ARCHIVED,
-    CHANNEL_NOT_FOUND,
+    SLACK_SDK_HALT_ERROR_CATEGORIES,
     unpack_slack_api_error,
 )
 from sentry.models.options.organization_option import OrganizationOption
@@ -180,11 +179,7 @@ def send_incident_alert_notification(
             if (
                 (reason := unpack_slack_api_error(e))
                 and reason is not None
-                and reason
-                in (
-                    CHANNEL_NOT_FOUND,
-                    CHANNEL_ARCHIVED,
-                )
+                and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
             ):
                 lifecycle.record_halt(reason.message)
             else:
