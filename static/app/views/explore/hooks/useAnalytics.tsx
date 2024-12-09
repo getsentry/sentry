@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 
 import type {Confidence, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -9,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Visualize} from './useVisualizes';
 
 export function useAnalytics({
+  dataset,
   resultLength,
   resultMissingRoot,
   resultMode,
@@ -21,6 +23,7 @@ export function useAnalytics({
 }: {
   columns: string[];
   confidence: Confidence;
+  dataset: DiscoverDatasets;
   organization: Organization;
   resultLength: number | undefined;
   resultMode: 'span samples' | 'trace samples' | 'aggregates';
@@ -40,6 +43,7 @@ export function useAnalytics({
       columns,
       columns_count: columns.filter(Boolean).length,
       confidence,
+      dataset,
       query_status: resultStatus,
       result_length: resultLength || 0,
       result_missing_root: resultMissingRoot || 0,
@@ -61,5 +65,6 @@ export function useAnalytics({
     columns,
     userQuery,
     confidence,
+    dataset,
   ]);
 }
