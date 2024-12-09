@@ -35,6 +35,7 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import (
+    ACCOUNT_INACTIVE,
     CHANNEL_ARCHIVED,
     CHANNEL_NOT_FOUND,
     unpack_slack_api_error,
@@ -184,6 +185,7 @@ def send_incident_alert_notification(
                 in (
                     CHANNEL_NOT_FOUND,
                     CHANNEL_ARCHIVED,
+                    ACCOUNT_INACTIVE,
                 )
             ):
                 lifecycle.record_halt(reason.message)
