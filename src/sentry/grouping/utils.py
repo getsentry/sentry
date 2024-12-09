@@ -26,7 +26,7 @@ def hash_from_values(values):
     return result.hexdigest()
 
 
-def get_rule_bool(value):
+def bool_from_string(value):
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):

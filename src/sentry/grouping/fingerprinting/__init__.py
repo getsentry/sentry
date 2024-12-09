@@ -11,7 +11,7 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import get_rule_bool
+from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
@@ -459,7 +459,7 @@ class FingerprintMatcher:
             if self._positive_path_match(value):
                 return True
         elif self.key == "app":
-            ref_val = get_rule_bool(self.pattern)
+            ref_val = bool_from_string(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
         elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
