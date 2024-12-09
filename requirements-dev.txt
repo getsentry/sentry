@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.14.2
-devservices>=1.0.4
+devservices>=1.0.5
 
 covdefaults>=2.3.0
 sentry-covdefaults-disable-branch-coverage>=1.0.2
