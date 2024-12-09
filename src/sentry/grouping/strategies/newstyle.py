@@ -461,7 +461,7 @@ def _single_stacktrace_variant(
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    main_variant, _ = context.config.enhancements.assemble_stacktrace_component(
+    stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
         values,
         frames_for_filtering,
         event.platform,
@@ -473,7 +473,7 @@ def _single_stacktrace_variant(
     # number of contributing frames isn't big enough. In that case it also sets `contributes` to
     # false, as it does when there are no contributing frames. In this latter case it doesn't set a
     # hint, though, so we do it here.
-    if not main_variant.hint and not main_variant.contributes:
+    if not stacktrace_component.hint and not stacktrace_component.contributes:
         if len(frames) == 0:
             frames_description = "frames"
         elif variant == "system":
@@ -486,9 +486,9 @@ def _single_stacktrace_variant(
             else:
                 frames_description = "in-app frames"
 
-        main_variant.hint = f"ignored because it contains no {frames_description}"
+        stacktrace_component.hint = f"ignored because it contains no {frames_description}"
 
-    return {variant: main_variant}
+    return {variant: stacktrace_component}
 
 
 @stacktrace.variant_processor
