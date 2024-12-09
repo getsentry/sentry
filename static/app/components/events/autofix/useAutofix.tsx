@@ -19,7 +19,7 @@ export type AutofixResponse = {
   autofix: AutofixData | null;
 };
 
-const POLL_INTERVAL = 2500;
+const POLL_INTERVAL = 1000;
 
 export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
   `/issues/${groupId}/autofix/`,
