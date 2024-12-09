@@ -6320,6 +6320,103 @@
     "table_name": "workflow_engine_action",
     "uniques": []
   },
+  "workflow_engine.alertruledetector": {
+    "dangling": true,
+    "foreign_keys": {
+      "alert_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertrule",
+        "nullable": true
+      },
+      "detector": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.detector",
+        "nullable": false
+      },
+      "rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.rule",
+        "nullable": true
+      }
+    },
+    "model": "workflow_engine.alertruledetector",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_alertruledetector",
+    "uniques": [
+      [
+        "alert_rule",
+        "detector"
+      ],
+      [
+        "detector",
+        "rule"
+      ]
+    ]
+  },
+  "workflow_engine.alertruletriggerdatacondition": {
+    "dangling": false,
+    "foreign_keys": {
+      "alert_rule_trigger": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertruletrigger",
+        "nullable": false
+      },
+      "data_condition": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.datacondition",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.alertruletriggerdatacondition",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_alertruletriggerdatacondition",
+    "uniques": []
+  },
+  "workflow_engine.alertruleworkflow": {
+    "dangling": false,
+    "foreign_keys": {
+      "alert_rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.alertrule",
+        "nullable": true
+      },
+      "rule": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.rule",
+        "nullable": true
+      },
+      "workflow": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.workflow",
+        "nullable": false
+      }
+    },
+    "model": "workflow_engine.alertruleworkflow",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_alertruleworkflow",
+    "uniques": [
+      [
+        "alert_rule",
+        "workflow"
+      ],
+      [
+        "rule",
+        "workflow"
+      ]
+    ]
+  },
   "workflow_engine.datacondition": {
     "dangling": false,
     "foreign_keys": {
