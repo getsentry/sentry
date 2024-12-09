@@ -231,6 +231,7 @@ const Flex = styled('div')<{gap?: number}>`
 `;
 
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
+  background-color: ${p => p.theme.background};
   flex: 1;
   position: relative;
   padding: 0;
