@@ -43,7 +43,8 @@ export const useAiConfig = (
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures &&
-    getRegionDataFromOrganization(organization)?.name !== 'de';
+    getRegionDataFromOrganization(organization)?.name !== 'de' &&
+    organization.features.includes('gen-ai-features');
 
   const isSummaryEnabled = issueTypeConfig.issueSummary.enabled;
   const isAutofixEnabled = issueTypeConfig.autofix;
