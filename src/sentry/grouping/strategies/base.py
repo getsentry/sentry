@@ -247,7 +247,7 @@ class Strategy(Generic[ConcreteInterface]):
 
         rv = {}
         has_mandatory_hashes = False
-        mandatory_contributing_hashes = {}
+        mandatory_contributing_variants_by_hash = {}
         optional_contributing_variants = []
         prevent_contribution = None
 
@@ -260,13 +260,13 @@ class Strategy(Generic[ConcreteInterface]):
 
             if component.contributes:
                 if is_mandatory:
-                    mandatory_contributing_hashes[component.get_hash()] = variant_name
+                    mandatory_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
                     optional_contributing_variants.append(variant_name)
 
             rv[variant_name] = component
 
-        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_hashes
+        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_variants_by_hash
 
         for variant_name in optional_contributing_variants:
             component = rv[variant_name]
@@ -281,14 +281,14 @@ class Strategy(Generic[ConcreteInterface]):
                     contributes=False,
                     hint="ignored because %s variant is not used"
                     % (
-                        list(mandatory_contributing_hashes.values())[0]
-                        if len(mandatory_contributing_hashes) == 1
+                        list(mandatory_contributing_variants_by_hash.values())[0]
+                        if len(mandatory_contributing_variants_by_hash) == 1
                         else "other mandatory"
                     ),
                 )
             else:
                 hash_value = component.get_hash()
-                duplicate_of = mandatory_contributing_hashes.get(hash_value)
+                duplicate_of = mandatory_contributing_variants_by_hash.get(hash_value)
                 if duplicate_of is not None:
                     component.update(
                         contributes=False,
