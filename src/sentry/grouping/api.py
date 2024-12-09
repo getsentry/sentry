@@ -378,12 +378,12 @@ def get_grouping_variants_for_event(
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
         rv = {}
-        for key, component in components.items():
+        for variant_name, component in components.items():
             component.update(
                 contributes=False,
                 hint="custom fingerprint takes precedence",
             )
-            rv[key] = ComponentVariant(component, context.config)
+            rv[variant_name] = ComponentVariant(component, context.config)
 
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
@@ -394,15 +394,15 @@ def get_grouping_variants_for_event(
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
-        for key, component in components.items():
-            rv[key] = ComponentVariant(component, context.config)
+        for variant_name, component in components.items():
+            rv[variant_name] = ComponentVariant(component, context.config)
 
     # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for key, component in components.items():
-            rv[key] = SaltedComponentVariant(
+        for variant_name, component in components.items():
+            rv[variant_name] = SaltedComponentVariant(
                 fingerprint, component, context.config, fingerprint_info
             )
 
