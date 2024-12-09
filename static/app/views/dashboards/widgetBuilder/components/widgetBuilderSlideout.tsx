@@ -15,6 +15,7 @@ import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuild
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
+import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
@@ -60,6 +61,9 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
         </Section>
         <Section>
           <WidgetBuilderTypeSelector />
+        </Section>
+        <Section>
+          <Visualize />
         </Section>
         <Section>
           <WidgetBuilderQueryFilterBuilder />
