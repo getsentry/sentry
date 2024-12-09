@@ -1,13 +1,13 @@
 ---
-created: '2024-03-22T11:57:57.243126+00:00'
+created: '2024-12-06T19:38:41.166212+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "ff6c4ee7c54f118a9647ee86f0c2b0b0"
   component:
-    app (threads of system take precedence)
-      threads (ignored because hash matches system variant)
+    app*
+      threads*
         stacktrace*
           frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
@@ -22,15 +22,15 @@ app:
 default:
   hash: null
   component:
-    default (threads of system take precedence)
-      message (threads of system take precedence)
+    default (threads of app take precedence)
+      message (threads of app take precedence)
         "Foo"
 --------------------------------------------------------------------------
 system:
-  hash: "ff6c4ee7c54f118a9647ee86f0c2b0b0"
+  hash: null
   component:
-    system*
-      threads*
+    system (threads of app take precedence)
+      threads (ignored because hash matches app variant)
         stacktrace*
           frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
             function*
