@@ -264,7 +264,7 @@ def apply_server_fingerprinting(
 
     fingerprint_match = fingerprinting_config.get_fingerprint_values_for_event(event)
     if fingerprint_match is not None:
-        rule, new_fingerprint, attributes = fingerprint_match
+        matched_rule, new_fingerprint, attributes = fingerprint_match
 
         # A custom title attribute is stored in the event to override the
         # default title.
@@ -274,7 +274,7 @@ def apply_server_fingerprinting(
 
         # Persist the rule that matched with the fingerprint in the event
         # dictionary for later debugging.
-        fingerprint_info["matched_rule"] = rule.to_json()
+        fingerprint_info["matched_rule"] = matched_rule.to_json()
 
     if fingerprint_info:
         event["_fingerprint_info"] = fingerprint_info
