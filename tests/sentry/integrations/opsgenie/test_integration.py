@@ -15,6 +15,7 @@ from sentry.integrations.opsgenie.tasks import (
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -325,10 +326,7 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert plugin2.is_enabled(project2) is False
         assert plugin2.is_configured(self.project) is False
 
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     def test_no_duplicate_keys(self):
         """
