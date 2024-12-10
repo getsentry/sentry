@@ -180,7 +180,7 @@ export function GroupSummary({
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
         {data?.eventId && !isPending && (
-          <TooltipWrapper id="group-summary-tooltip-wrapper">
+          <TooltipWrapper id="group-summary-tooltip-wrapper" preview={preview}>
             <DropdownMenu
               items={eventDetailsItems}
               triggerProps={{
@@ -315,9 +315,9 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const TooltipWrapper = styled('div')`
+const TooltipWrapper = styled('div')<{preview?: boolean}>`
   position: absolute;
-  top: -${space(0.5)};
+  top: ${p => (p.preview ? `-32px` : `-${space(0.5)}`)};
   right: 0;
 `;
 
