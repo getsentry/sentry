@@ -18,18 +18,18 @@ import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 const notSearchable = [
-  'sdk.blockAllMedia',
-  'sdk.errorSampleRate ',
-  'sdk.maskAllInputs',
-  'sdk.maskAllText',
-  'sdk.networkCaptureBodies',
-  'sdk.networkDetailHasUrls',
-  'sdk.networkRequestHasHeaders',
-  'sdk.networkResponseHasHeaders',
-  'sdk.sessionSampleRate',
-  'sdk.shouldRecordCanvas',
-  'sdk.useCompression',
-  'sdk.useCompressionOption',
+  'sdk.replay.blockAllMedia',
+  'sdk.replay.errorSampleRate ',
+  'sdk.replay.maskAllInputs',
+  'sdk.replay.maskAllText',
+  'sdk.replay.networkCaptureBodies',
+  'sdk.replay.networkDetailHasUrls',
+  'sdk.replay.networkRequestHasHeaders',
+  'sdk.replay.networkResponseHasHeaders',
+  'sdk.replay.sessionSampleRate',
+  'sdk.replay.shouldRecordCanvas',
+  'sdk.replay.useCompression',
+  'sdk.replay.useCompressionOption',
 ];
 
 function TagPanel() {
@@ -43,7 +43,11 @@ function TagPanel() {
     const unorderedTags = {
       ...tags,
       ...Object.fromEntries(
-        Object.entries(sdkOptions ?? {}).map(([key, value]) => ['sdk.' + key, [value]])
+        Object.entries(sdkOptions ?? {}).map(([key, value]) =>
+          key === 'name' || key === 'version'
+            ? ['sdk.' + key, [value]]
+            : ['sdk.replay.' + key, [value]]
+        )
       ),
     };
 
