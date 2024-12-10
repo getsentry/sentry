@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
-from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.issues.grouptype import GroupCategory, GroupType, MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
@@ -30,18 +31,44 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
     def build_occurrence_and_event_data(
         self, group_key: str | None, value: int, new_status: PriorityLevel
     ) -> tuple[IssueOccurrence, dict[str, Any]]:
-        return super().build_occurrence_and_event_data(group_key, value, new_status)
+        # placeholder return for now
+        occurrence = IssueOccurrence(
+            id="eb4b0acffadb4d098d48cb14165ab578",
+            project_id=123,
+            event_id="43878ab4419f4ab181f6379ac376d5aa",
+            fingerprint=["abc123"],
+            issue_title="Some Issue",
+            subtitle="Some subtitle",
+            resource_id=None,
+            evidence_data={},
+            evidence_display=[],
+            type=MetricIssuePOC,
+            detection_time=datetime.now(timezone.utc),
+            level="error",
+            culprit="Some culprit",
+            initial_issue_priority=new_status.value,
+        )
+        event_data = {
+            "timestamp": occurrence.detection_time,
+            "project_id": occurrence.project_id,
+            "event_id": occurrence.event_id,
+            "platform": "python",
+            "received": occurrence.detection_time,
+            "tags": {},
+        }
+        return occurrence, event_data
 
-    def counter_names(self):
-        return []
+    @property
+    def counter_names(self) -> list[str]:
+        return []  # placeholder return for now
 
     def get_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
-        return super().get_dedupe_value(data_packet)
+        return 0  # placeholder return for now
 
     def get_group_key_values(
         self, data_packet: DataPacket[QuerySubscriptionUpdate]
     ) -> dict[str, int]:
-        return super().get_group_key_values(data_packet)
+        return {"dummy": 0}  # placeholder return for now
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
