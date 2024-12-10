@@ -151,6 +151,7 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        showText={!shouldAccordionFloat}
         onMouseEnter={() => {
           refetch();
         }}
@@ -242,11 +243,11 @@ const hoverCss = (p: {theme: Theme}) => css`
   }
 `;
 
-const Container = styled('div')<{isActive: boolean}>`
-  padding: 9px 19px 9px 16px;
+const Container = styled('div')<{isActive: boolean; showText: boolean}>`
+  padding: 9px 16px;
   cursor: pointer;
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: ${p => (p.showText ? 'max-content 1fr' : 'max-content')};
   gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;
