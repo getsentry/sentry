@@ -269,6 +269,12 @@ register(
 
 # User Settings
 register(
+    "user-settings.signed-url-confirmation-emails-salt",
+    type=String,
+    default="signed-url-confirmation-emails-salt",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "user-settings.signed-url-confirmation-emails",
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,

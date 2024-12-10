@@ -49,9 +49,6 @@ ERR_SIGNATURE_EXPIRED = _(
 WARN_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
 
 
-EMAIL_CONFIRMATION_SALT = "email-confirmation"
-
-
 class InvalidRequest(Exception):
     pass
 
@@ -404,12 +401,13 @@ def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponse
 def confirm_signed_email(
     request: HttpRequest, signed_data: str
 ) -> HttpResponseRedirect | HttpResponse:
+    EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
 
     use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
     if not use_signed_urls:
         return HttpResponseNotFound()
 
-    msg = _("Thank you for confirming your email.")
+    msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
 
     try:
@@ -421,12 +419,13 @@ def confirm_signed_email(
             raise InvalidRequest
 
         # check to see if the email has already been verified
-        email = UserEmail.objects.get(user=request.user.id, email=data["email"])
-        if email:
-            raise VerifiedEmailAlreadyExists()
-    except UserEmail.DoesNotExist:
-        # user email does not exist, so we can create it
-        pass
+        try:
+            email = UserEmail.objects.get(user=request.user.id, email=data["email"])
+            if email.is_verified:
+                raise VerifiedEmailAlreadyExists()
+        except UserEmail.DoesNotExist:
+            # user email does not exist, so we can create it
+            pass
     except VerifiedEmailAlreadyExists:
         msg = WARN_EMAIL_ALREADY_VERIFIED
         level = messages.INFO
