@@ -9,12 +9,19 @@ from sentry.search.events.builder.metrics import (
 from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import SelectType
 
+SIZE_FIELDS = {
+    "http.decoded_response_content_length": "byte",
+    "http.response_content_length": "byte",
+    "http.response_transfer_size": "byte",
+}
+
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
     config_class = SpansMetricsDatasetConfig
+    size_fields = SIZE_FIELDS
 
     column_remapping = {
         # We want to remap `message` to `span.description` for the free
@@ -32,6 +39,9 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
             return self.meta_resolver_map[field]
         if field in ["span.duration", "span.self_time"]:
             return "duration"
+
+        if unit := self.size_fields.get(field):
+            return unit
 
         return None
 
