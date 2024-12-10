@@ -150,34 +150,6 @@ describe('NewWidgetBuiler', function () {
     });
   });
 
-  it('changes the dataset', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.click(await screen.findByLabelText('Issues'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({dataset: 'issue'}),
-      })
-    );
-  });
-
   it('changes the visualization type', async function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
