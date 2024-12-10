@@ -11,15 +11,16 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_list
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.sentry_apps.services.app import (
+from sentry.sentry_apps.services.app.model import (
+    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
+    RpcSentryAppComponentContext,
     RpcSentryAppEventData,
     RpcSentryAppInstallation,
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -165,7 +166,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
-    ) -> None:
+    ) -> RpcAlertRuleActionResult:
         pass
 
     @rpc_method
