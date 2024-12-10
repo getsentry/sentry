@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
@@ -27,3 +28,8 @@ class MetricAlertFire(GroupType):
     detector_handler = MetricAlertDetectorHandler
     detector_validator = MetricAlertsDetectorValidator
     detector_config_schema = {}  # TODO(colleen): update this
+
+    @classmethod
+    def allow_post_process_group(cls, organization: Organization) -> bool:
+        # TODO - Figure out how to do this correctly
+        return True

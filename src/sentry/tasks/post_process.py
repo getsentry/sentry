@@ -711,6 +711,7 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -720,15 +721,12 @@ def run_post_process_job(job: PostProcessJob) -> None:
     ):
         return
 
-    import pdb
-    pdb.set_trace()
-
-    if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
-        # pipeline for generic issues
-        pipeline = GENERIC_POST_PROCESS_PIPELINE
-    else:
+    if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # specific pipelines for issue types
         pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
+    else:
+        # pipeline for generic issues
+        pipeline = GENERIC_POST_PROCESS_PIPELINE
 
     for pipeline_step in pipeline:
         try:
@@ -998,15 +996,11 @@ def process_replay_link(job: PostProcessJob) -> None:
 
 
 def process_workflow_engine(job: PostProcessJob) -> None:
-    import pdb
-
-    pdb.set_trace()
     if job["is_reprocessed"]:
         return
 
     # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
     # If the flag is enabled, use the code below
-
     from sentry.workflow_engine.processors.workflow import process_workflows
 
     evt = job["event"]
