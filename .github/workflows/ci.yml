@@ -23,13 +23,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install tach==0.16.5
+          pip install tach==0.16.7
       - name: tach report upload
         env:
           GAUGE_API_KEY: ${{ secrets.GAUGE_API_KEY }}
           GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
         run: |
           cd src
-#          tach upload
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+          tach upload
