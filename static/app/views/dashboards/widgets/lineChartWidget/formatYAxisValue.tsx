@@ -10,7 +10,7 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-export function formatChartValue(value: number, type: string, unit?: string): string {
+export function formatYAxisValue(value: number, type: string, unit?: string): string {
   switch (type) {
     case 'integer':
     case 'number':
