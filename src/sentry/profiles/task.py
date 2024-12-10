@@ -42,19 +42,14 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
 
-class VroomTimeout(Exception):
-    pass
-
-
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
     queue="profiles.process",
-    autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
     retry_backoff=True,
-    retry_backoff_max=60,  # up to 1 min
+    retry_backoff_max=20,
     retry_jitter=True,
     default_retry_delay=5,  # retries after 5s
-    max_retries=5,
+    max_retries=2,
     acks_late=True,
     task_time_limit=60,
     task_acks_on_failure_or_timeout=False,
@@ -515,7 +510,10 @@ def symbolicate(
             classes=[],
         )
     return symbolicator.process_payload(
-        platform=platform, stacktraces=stacktraces, modules=modules, apply_source_context=False
+        platform=platform,
+        stacktraces=stacktraces,
+        modules=modules,
+        apply_source_context=False,
     )
 
 
@@ -956,29 +954,27 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             path = "/chunk" if "profiler_id" in profile else "/profile"
             response = get_from_profiling_service(method="POST", path=path, json_data=profile)
 
+            sentry_sdk.set_tag("vroom.response.status_code", str(response.status))
+
+            reason = "bad status"
+
             if response.status == 204:
                 return True
             elif response.status == 429:
-                raise VroomTimeout
+                reason = "gcs timeout"
             elif response.status == 412:
-                metrics.incr(
-                    "process_profile.insert_vroom_profile.error",
-                    tags={
-                        "platform": profile["platform"],
-                        "reason": "duplicate profile",
-                    },
-                    sample_rate=1.0,
-                )
-                return False
-            else:
-                metrics.incr(
-                    "process_profile.insert_vroom_profile.error",
-                    tags={"platform": profile["platform"], "reason": "bad status"},
-                    sample_rate=1.0,
-                )
-                return False
-        except VroomTimeout:
-            raise
+                reason = "duplicate profile"
+
+            metrics.incr(
+                "process_profile.insert_vroom_profile.error",
+                tags={
+                    "platform": profile["platform"],
+                    "reason": reason,
+                    "status_code": response.status,
+                },
+                sample_rate=1.0,
+            )
+            return False
         except Exception as e:
             sentry_sdk.capture_exception(e)
             metrics.incr(
