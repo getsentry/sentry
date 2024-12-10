@@ -187,6 +187,12 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
   getSelectedProject(): Project | undefined {
     const {selection, projects} = this.props;
 
+    // Return the first project when 'All Projects' is displayed.
+    // This ensures the onboarding panel is shown correctly, for example.
+    if (selection.projects.length === 0) {
+      return projects[0];
+    }
+
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
     return projects?.find(p => p.id === `${selectedProjectId}`);
