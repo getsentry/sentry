@@ -760,6 +760,7 @@ function WidgetBuilder({
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
       } else if (!newQuery.orderby) {
+        // THIS ONE #############################
         const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? defaultWidgetType,
           columns: query.columns,
