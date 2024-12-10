@@ -6,7 +6,7 @@ import {
   useEffect,
   useRef,
 } from 'react';
-import type {FeedbackModalIntegration} from '@sentry/types';
+import type {FeedbackModalIntegration} from '@sentry/core';
 
 import {
   useFeedback,

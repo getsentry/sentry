@@ -1,4 +1,4 @@
-import type {CloudResourceContext} from '@sentry/types';
+import type {CloudResourceContext} from '@sentry/core';
 
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';

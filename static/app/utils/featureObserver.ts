@@ -1,4 +1,4 @@
-import type {FeatureFlagContext} from '@sentry/types/build/types/context';
+import type {FeatureFlagContext} from '@sentry/core/build/types/types-hoist/context';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

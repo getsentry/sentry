@@ -1,7 +1,6 @@
 // eslint-disable-next-line simple-import-sort/imports
 import * as Sentry from '@sentry/react';
-import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import type {Event} from '@sentry/types';
+import {type Event, _browserPerformanceTimeOriginMode} from '@sentry/core';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
