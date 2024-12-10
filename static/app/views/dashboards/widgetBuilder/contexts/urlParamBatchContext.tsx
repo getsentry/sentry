@@ -37,7 +37,6 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
     if (Object.keys(pendingUpdates).length === 0) {
       return;
     }
-
     navigate({
       ...location,
       query: {

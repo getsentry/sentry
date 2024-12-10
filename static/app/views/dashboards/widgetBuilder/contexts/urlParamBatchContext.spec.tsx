@@ -32,8 +32,6 @@ describe('UrlParamBatchProvider', () => {
 
     act(() => {
       batchUrlParamUpdates({foo: 'bar'});
-    });
-    act(() => {
       batchUrlParamUpdates({potato: 'test'});
     });
 
