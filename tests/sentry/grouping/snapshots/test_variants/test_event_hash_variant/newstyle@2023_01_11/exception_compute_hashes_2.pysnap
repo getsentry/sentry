@@ -1,13 +1,13 @@
 ---
-created: '2023-01-11T11:41:28.150918Z'
+created: '2024-12-06T19:38:42.696655+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "9509e122c6175606d52862fa4f64853c"
   component:
-    app (exception of system takes precedence)
-      exception (ignored because hash matches system variant)
+    app*
+      exception*
         stacktrace*
           frame*
             filename*
@@ -18,10 +18,10 @@ app:
           "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: "9509e122c6175606d52862fa4f64853c"
+  hash: null
   component:
-    system*
-      exception*
+    system (exception of app takes precedence)
+      exception (ignored because hash matches app variant)
         stacktrace*
           frame*
             filename*

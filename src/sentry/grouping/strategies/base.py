@@ -244,54 +244,33 @@ class Strategy(Generic[ConcreteInterface]):
         assert isinstance(components_by_variant, dict)
 
         final_components_by_variant = {}
-        has_mandatory_hashes = False
-        mandatory_contributing_variants_by_hash = {}
-        optional_contributing_variants = []
-        prevent_contribution = None
+        priority_contributing_variants_by_hash = {}
+        non_priority_contributing_variants = []
 
         for variant_name, component in components_by_variant.items():
-            is_mandatory = variant_name.startswith("!")
+            is_priority = variant_name.startswith("!")
             variant_name = variant_name.lstrip("!")
 
-            if is_mandatory:
-                has_mandatory_hashes = True
-
             if component.contributes:
-                if is_mandatory:
-                    mandatory_contributing_variants_by_hash[component.get_hash()] = variant_name
+                # Track priority and non-priority contributing hashes separately, so the latter can
+                # be deduped against the former
+                if is_priority:
+                    priority_contributing_variants_by_hash[component.get_hash()] = variant_name
                 else:
-                    optional_contributing_variants.append(variant_name)
+                    non_priority_contributing_variants.append(variant_name)
 
             final_components_by_variant[variant_name] = component
 
-        prevent_contribution = has_mandatory_hashes and not mandatory_contributing_variants_by_hash
-
-        for variant_name in optional_contributing_variants:
+        # Mark any non-priority duplicates of priority hashes as non-contributing
+        for variant_name in non_priority_contributing_variants:
             component = final_components_by_variant[variant_name]
-
-            # In case this variant contributes we need to check two things
-            # here: if we did not have a system match we need to prevent
-            # it from contributing.  Additionally if it matches the system
-            # component we also do not want the variant to contribute but
-            # with a different message.
-            if prevent_contribution:
+            hash_value = component.get_hash()
+            duplicate_of = priority_contributing_variants_by_hash.get(hash_value)
+            if duplicate_of is not None:
                 component.update(
                     contributes=False,
-                    hint="ignored because %s variant is not used"
-                    % (
-                        list(mandatory_contributing_variants_by_hash.values())[0]
-                        if len(mandatory_contributing_variants_by_hash) == 1
-                        else "other mandatory"
-                    ),
+                    hint="ignored because hash matches %s variant" % duplicate_of,
                 )
-            else:
-                hash_value = component.get_hash()
-                duplicate_of = mandatory_contributing_variants_by_hash.get(hash_value)
-                if duplicate_of is not None:
-                    component.update(
-                        contributes=False,
-                        hint="ignored because hash matches %s variant" % duplicate_of,
-                    )
 
         if self.variant_processor_func is not None:
             final_components_by_variant = self._invoke(
