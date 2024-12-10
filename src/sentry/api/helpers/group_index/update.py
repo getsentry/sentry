@@ -177,13 +177,7 @@ def update_groups(
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
-    try:
-        group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
-    except ValidationError:
-        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
-        return Response(
-            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
-        )
+    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
 
     if not group_ids or not group_list:
         return Response({"detail": "No groups found"}, status=204)
@@ -267,13 +261,20 @@ def update_groups_with_search_fn(
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     if search_fn and not group_ids:
-        # It can raise ValidationError
-        cursor_result, _ = search_fn(
-            {
-                "limit": BULK_MUTATION_LIMIT,
-                "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-            }
-        )
+        try:
+            # It can raise ValidationError
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
+        except ValidationError:
+            logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+            return Response(
+                {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+            )
+
         group_ids = [g.id for g in list(cursor_result)]
     else:
         group_ids, _ = get_group_ids_and_group_list(organization_id, projects, group_ids)
