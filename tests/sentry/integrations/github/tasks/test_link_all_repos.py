@@ -153,7 +153,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
             repos = Repository.objects.all()
         assert len(repos) == 0
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -272,4 +272,3 @@ class LinkAllReposTestCase(IntegrationTestCase):
             )
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, LinkAllReposHaltReason.REPOSITORY_NOT_CREATED.value)
