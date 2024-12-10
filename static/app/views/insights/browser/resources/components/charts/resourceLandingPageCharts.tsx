@@ -38,6 +38,7 @@ type Props = {
 type ChartProps = {
   filters: ModuleFilters;
   throughputUnit: RateUnit;
+  title: string;
   extraQuery?: string[];
 };
 
@@ -62,35 +63,35 @@ export function ResourceLandingPageCharts({
 
   useSynchronizeCharts(1, !isPending);
 
-  const charts = [
-    {
-      title: getThroughputChartTitle(moduleName, throughputUnit),
-      Comp: ThroughputChart,
-    },
-    {
-      title: getDurationChartTitle(moduleName),
-      Comp: DurationChart,
-    },
-  ];
-
   return (
     <ChartsContainer>
-      {charts.map(({title, Comp}) => (
-        <ChartsContainerItem key={title}>
-          <ChartPanel title={title}>
-            <Comp
-              filters={appliedFilters}
-              throughputUnit={throughputUnit}
-              extraQuery={extraQuery}
-            />
-          </ChartPanel>
-        </ChartsContainerItem>
-      ))}
+      <ChartsContainerItem>
+        <ThroughputChart
+          title={getThroughputChartTitle(moduleName, throughputUnit)}
+          filters={appliedFilters}
+          throughputUnit={throughputUnit}
+          extraQuery={extraQuery}
+        />
+      </ChartsContainerItem>
+
+      <ChartsContainerItem>
+        <DurationChart
+          title={getDurationChartTitle(moduleName)}
+          filters={appliedFilters}
+          throughputUnit={throughputUnit}
+          extraQuery={extraQuery}
+        />
+      </ChartsContainerItem>
     </ChartsContainer>
   );
 }
 
-function ThroughputChart({filters, throughputUnit, extraQuery}: ChartProps): JSX.Element {
+function ThroughputChart({
+  title,
+  filters,
+  throughputUnit,
+  extraQuery,
+}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
@@ -131,30 +132,32 @@ function ThroughputChart({filters, throughputUnit, extraQuery}: ChartProps): JSX
   });
 
   return (
-    <Chart
-      height={CHART_HEIGHT}
-      data={throughputTimeSeries}
-      loading={isPending}
-      grid={{
-        left: '0',
-        right: '0',
-        top: '8px',
-        bottom: '0',
-      }}
-      definedAxisTicks={4}
-      aggregateOutputFormat="rate"
-      rateUnit={throughputUnit}
-      stacked
-      type={ChartType.LINE}
-      chartColors={[THROUGHPUT_COLOR]}
-      tooltipFormatterOptions={{
-        valueFormatter: value => formatRate(value, throughputUnit),
-      }}
-    />
+    <ChartPanel title={title}>
+      <Chart
+        height={CHART_HEIGHT}
+        data={throughputTimeSeries}
+        loading={isPending}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        definedAxisTicks={4}
+        aggregateOutputFormat="rate"
+        rateUnit={throughputUnit}
+        stacked
+        type={ChartType.LINE}
+        chartColors={[THROUGHPUT_COLOR]}
+        tooltipFormatterOptions={{
+          valueFormatter: value => formatRate(value, throughputUnit),
+        }}
+      />
+    </ChartPanel>
   );
 }
 
-function DurationChart({filters, extraQuery}: ChartProps): JSX.Element {
+function DurationChart({title, filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
@@ -189,21 +192,23 @@ function DurationChart({filters, extraQuery}: ChartProps): JSX.Element {
   });
 
   return (
-    <Chart
-      height={CHART_HEIGHT}
-      data={[...avgSeries]}
-      loading={isPending}
-      grid={{
-        left: '0',
-        right: '0',
-        top: '8px',
-        bottom: '0',
-      }}
-      definedAxisTicks={4}
-      stacked
-      type={ChartType.LINE}
-      chartColors={[AVG_COLOR]}
-    />
+    <ChartPanel title={title}>
+      <Chart
+        height={CHART_HEIGHT}
+        data={[...avgSeries]}
+        loading={isPending}
+        grid={{
+          left: '0',
+          right: '0',
+          top: '8px',
+          bottom: '0',
+        }}
+        definedAxisTicks={4}
+        stacked
+        type={ChartType.LINE}
+        chartColors={[AVG_COLOR]}
+      />
+    </ChartPanel>
   );
 }
 
