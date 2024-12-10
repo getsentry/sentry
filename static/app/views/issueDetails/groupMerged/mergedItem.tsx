@@ -1,16 +1,19 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
+import {Flex} from 'sentry/components/container/flex';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {createIssueLink} from 'sentry/views/issueList/utils';
 
 interface Props {
   fingerprint: Fingerprint;
@@ -19,6 +22,7 @@ interface Props {
 
 export function MergedItem({fingerprint, totalFingerprint}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
   const [busy, setBusy] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -90,6 +94,16 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
   const {latestEvent, id, label} = fingerprint;
   const checkboxDisabled = busy || totalFingerprint === 1;
 
+  const issueLink = latestEvent
+    ? createIssueLink({
+        organization,
+        location,
+        data: latestEvent,
+        eventId: latestEvent.id,
+        referrer: 'merged-item',
+      })
+    : null;
+
   // `latestEvent` can be null if last event w/ fingerprint is not within retention period
   return (
     <MergedGroup busy={busy}>
@@ -127,18 +141,28 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
       </Controls>
 
       {!collapsed && (
-        <MergedEventList className="event-list">
-          {latestEvent && (
-            <EventDetails className="event-details">
-              <EventOrGroupHeader
-                data={latestEvent}
-                organization={organization}
-                hideIcons
-                hideLevel
-                source="merged-item"
+        <MergedEventList>
+          {issueLink ? (
+            <Flex align="center" gap={space(0.5)}>
+              <LinkButton
+                to={issueLink}
+                icon={<IconLink color={'linkColor'} />}
+                aria-label={t('Latest Event')}
+                borderless
+                size="xs"
+                style={{marginLeft: space(1)}}
               />
-            </EventDetails>
-          )}
+              <EventDetails>
+                <EventOrGroupHeader
+                  data={latestEvent}
+                  organization={organization}
+                  hideIcons
+                  hideLevel
+                  source="merged-item"
+                />
+              </EventDetails>
+            </Flex>
+          ) : null}
         </MergedEventList>
       )}
     </MergedGroup>
@@ -187,10 +211,7 @@ const MergedEventList = styled('div')`
 const EventDetails = styled('div')`
   display: flex;
   justify-content: space-between;
-
-  .event-list & {
-    padding: ${space(1)};
-  }
+  padding: ${space(1)};
 `;
 
 export default MergedItem;
