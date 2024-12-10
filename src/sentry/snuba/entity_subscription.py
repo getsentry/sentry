@@ -293,7 +293,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
-        referrer: str | None = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+        referrer: str = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     ) -> TimeSeriesRequest:
         if params is None:
             params = {}
