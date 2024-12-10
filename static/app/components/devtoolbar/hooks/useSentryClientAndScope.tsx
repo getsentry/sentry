@@ -1,4 +1,4 @@
-import type {Client, Scope} from '@sentry/types';
+import type {Client, Scope} from '@sentry/core';
 
 type V8Carrier = {
   stack: {
