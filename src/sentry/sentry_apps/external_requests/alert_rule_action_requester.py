@@ -6,9 +6,11 @@ from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from django.utils.functional import cached_property
-from requests import RequestException
+from requests.exceptions import RequestException
 from requests.models import Response
 
+from sentry.coreapi import APIError
+from sentry.exceptions import SentryAppIntegratorError
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
@@ -43,23 +45,24 @@ class AlertRuleActionRequester:
                 method=self.http_method,
                 data=self.body,
             )
-
         except RequestException as e:
-            logger.info(
-                "alert_rule_action.error",
-                extra={
-                    "sentry_app_slug": self.sentry_app.slug,
-                    "install_uuid": self.install.uuid,
-                    "uri": self.uri,
-                    "error_message": str(e),
-                },
-            )
+            self._log_exceptions(e)
+            raise SentryAppIntegratorError(
+                self._get_response_message(
+                    e.response, f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
+                )
+            ) from e
 
-            return AlertRuleActionResult(
-                success=False, message=self._get_response_message(e.response, DEFAULT_ERROR_MESSAGE)
-            )
+        except Exception as e:
+            self._log_exceptions(e)
+            raise APIError(
+                self._get_response_message(
+                    e.response, f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
+                )
+            ) from e
+
         return AlertRuleActionResult(
-            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
+            success=True, message=self._get_response_message(response, "poggers")
         )
 
     def _build_url(self) -> str:
@@ -91,6 +94,17 @@ class AlertRuleActionRequester:
                 message = default_message
 
         return f"{self.sentry_app.name}: {message}"
+
+    def _log_exceptions(self, error: Exception) -> None:
+        logger.info(
+            "alert_rule_action.error",
+            extra={
+                "sentry_app_slug": self.sentry_app.slug,
+                "install_uuid": self.install.uuid,
+                "uri": self.uri,
+                "error_message": str(error),
+            },
+        )
 
     @cached_property
     def body(self):
