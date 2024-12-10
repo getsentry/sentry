@@ -135,6 +135,11 @@ describe('NewWidgetBuiler', function () {
 
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
 
+    // Test sort by selector for table display type
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('High to low')).toBeInTheDocument();
+    expect(screen.getByText(`Select a column\u{2026}`)).toBeInTheDocument();
+
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
@@ -327,5 +332,61 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
     expect(await screen.findByText('Add Group')).toBeInTheDocument();
+  });
+
+  it('renders the limit sort by field on chart widgets', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
+  });
+
+  it('does not render sort by field on big number widgets', async function () {
+    const bigNumberRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'big_number'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: bigNumberRouter,
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
+    });
   });
 });
