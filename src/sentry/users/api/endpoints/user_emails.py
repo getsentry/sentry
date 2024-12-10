@@ -28,8 +28,6 @@ from sentry.utils.signing import sign
 
 logger = logging.getLogger("sentry.accounts")
 
-EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
-
 
 class InvalidEmailError(Exception):
     pass
@@ -45,6 +43,9 @@ class EmailValidator(serializers.Serializer[UserEmail]):
 
 def add_email_signed(email: str, user: User) -> None:
     """New path for adding email - uses signed URLs"""
+
+    EMAIL_CONFIRMATION_SALT = options.get("user-settings.signed-url-confirmation-emails-salt")
+
     if email is None:
         raise InvalidEmailError
 
