@@ -15,10 +15,7 @@ import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/insights/browser/resources/constants';
-import {
-  DEFAULT_RESOURCE_TYPES,
-  RESOURCE_THROUGHPUT_UNIT,
-} from 'sentry/views/insights/browser/resources/settings';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {
   BrowserStarfishFields,
@@ -27,9 +24,9 @@ import {
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
-import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
-import {ModuleName} from 'sentry/views/insights/types';
+
+import {ResourceLandingPageCharts} from './charts/resourceLandingPageCharts';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
@@ -63,10 +60,8 @@ function ResourceView() {
   return (
     <Fragment>
       <SpanTimeChartsContainer>
-        <SpanTimeCharts
-          moduleName={ModuleName.RESOURCE}
+        <ResourceLandingPageCharts
           appliedFilters={spanTimeChartsFilters}
-          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
           extraQuery={extraQuery}
         />
       </SpanTimeChartsContainer>
