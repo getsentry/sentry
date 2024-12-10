@@ -237,6 +237,7 @@ class SubscriptionProcessor:
                         "organization_id": self.subscription.project.organization.id,
                         "project_id": project_ids,
                     },
+                    referrer="subscription_processor.comparison_query",
                 )
 
                 rpc_time_series_request = add_start_end_conditions(
