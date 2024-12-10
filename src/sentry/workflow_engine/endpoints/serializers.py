@@ -3,7 +3,6 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.workflow_engine.detectors.error import ErrorDetector
 from sentry.workflow_engine.models import (
@@ -101,6 +100,8 @@ class DetectorSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Detector], user, **kwargs
     ) -> MutableMapping[Detector, dict[str, Any]]:
+        from sentry.grouping.types import ErrorGroupType
+
         attrs: MutableMapping[Detector, dict[str, Any]] = defaultdict(dict)
 
         dsd_list = list(
@@ -129,7 +130,7 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
-        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.type_id]
+        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
         project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(
