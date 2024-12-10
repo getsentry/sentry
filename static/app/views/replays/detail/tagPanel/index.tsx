@@ -43,7 +43,11 @@ function TagPanel() {
     const unorderedTags = {
       ...tags,
       ...Object.fromEntries(
-        Object.entries(sdkOptions ?? {}).map(([key, value]) => ['sdk.' + key, [value]])
+        Object.entries(sdkOptions ?? {}).map(([key, value]) =>
+          key === 'name' || key === 'version'
+            ? ['sdk.' + key, [value]]
+            : ['sdk.replay.' + key, [value]]
+        )
       ),
     };
 
