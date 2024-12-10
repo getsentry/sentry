@@ -165,9 +165,7 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int | str] | None,
-    projects: Sequence[Project],
-    organization_id: int,
+    groups: Sequence[Group],
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -176,10 +174,12 @@ def update_groups(
     user = user or request.user
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
+    # XXX: Validate that all groups belong to the same organization and project
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in groups}
+    projects = list(project_lookup.values())
 
-    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
-
-    if not group_ids or not group_list:
+    if not groups:
         return Response({"detail": "No groups found"}, status=204)
 
     serializer = validate_request(request, projects, data)
@@ -192,17 +192,9 @@ def update_groups(
 
     acting_user = user if user.is_authenticated else None
 
-    # so we won't have to requery for each group
-    project_lookup = {g.project_id: g.project for g in group_list}
-    group_project_ids = {g.project_id for g in group_list}
-    # filter projects down to only those that have groups in the search results
-    projects = [p for p in projects if p.id in group_project_ids]
-
-    queryset = Group.objects.filter(id__in=group_ids)
-
     discard = result.get("discard")
     if discard:
-        return handle_discard(request, list(queryset), projects, acting_user)
+        return handle_discard(request, groups, projects, acting_user)
 
     status_details = result.pop("statusDetails", result)
     status = result.get("status")
@@ -210,7 +202,7 @@ def update_groups(
     if "priority" in result:
         handle_priority(
             priority=result["priority"],
-            group_list=group_list,
+            group_list=groups,
             acting_user=acting_user,
             project_lookup=project_lookup,
         )
@@ -219,7 +211,7 @@ def update_groups(
             result, res_type = handle_resolve_in_release(
                 status,
                 status_details,
-                group_list,
+                groups,
                 projects,
                 project_lookup,
                 acting_user,
@@ -231,7 +223,7 @@ def update_groups(
     elif status:
         result = handle_other_status_updates(
             result,
-            group_list,
+            groups,
             projects,
             project_lookup,
             status_details,
@@ -241,7 +233,7 @@ def update_groups(
 
     return prepare_response(
         result,
-        group_list,
+        groups,
         project_lookup,
         projects,
         acting_user,
@@ -260,6 +252,7 @@ def update_groups_with_search_fn(
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
+    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
     if search_fn and not group_ids:
         try:
             # It can raise ValidationError
@@ -276,10 +269,11 @@ def update_groups_with_search_fn(
             )
 
         group_ids = [g.id for g in list(cursor_result)]
-    else:
-        group_ids, _ = get_group_ids_and_group_list(organization_id, projects, group_ids)
 
-    return update_groups(request, group_ids, projects, organization_id, user, data)
+    if not group_ids or not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    return update_groups(request, group_list, user, data)
 
 
 def validate_request(
