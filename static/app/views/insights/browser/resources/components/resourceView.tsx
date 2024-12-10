@@ -15,10 +15,7 @@ import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/insights/browser/resources/constants';
-import {
-  DEFAULT_RESOURCE_TYPES,
-  RESOURCE_THROUGHPUT_UNIT,
-} from 'sentry/views/insights/browser/resources/settings';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {
   BrowserStarfishFields,
@@ -65,7 +62,6 @@ function ResourceView() {
       <SpanTimeChartsContainer>
         <ResourceLandingPageCharts
           appliedFilters={spanTimeChartsFilters}
-          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
           extraQuery={extraQuery}
         />
       </SpanTimeChartsContainer>

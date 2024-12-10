@@ -4,7 +4,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
-import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
@@ -24,6 +23,8 @@ import {
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {RESOURCE_THROUGHPUT_UNIT} from '../../settings';
+
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
@@ -32,25 +33,20 @@ type Props = {
   appliedFilters: ModuleFilters;
   eventView?: EventView;
   extraQuery?: string[];
-  throughputUnit?: RateUnit;
 };
 
 type ChartProps = {
   filters: ModuleFilters;
-  throughputUnit: RateUnit;
   title: string;
   extraQuery?: string[];
 };
 
-export function ResourceLandingPageCharts({
-  appliedFilters,
-  throughputUnit = RateUnit.PER_MINUTE,
-  extraQuery,
-}: Props) {
+export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
   const moduleName = ModuleName.RESOURCE;
   const {selection} = usePageFilters();
 
   const eventView = getEventView(selection, appliedFilters);
+
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
@@ -67,9 +63,8 @@ export function ResourceLandingPageCharts({
     <ChartsContainer>
       <ChartsContainerItem>
         <ThroughputChart
-          title={getThroughputChartTitle(moduleName, throughputUnit)}
+          title={getThroughputChartTitle(moduleName, RESOURCE_THROUGHPUT_UNIT)}
           filters={appliedFilters}
-          throughputUnit={throughputUnit}
           extraQuery={extraQuery}
         />
       </ChartsContainerItem>
@@ -78,7 +73,6 @@ export function ResourceLandingPageCharts({
         <DurationChart
           title={getDurationChartTitle(moduleName)}
           filters={appliedFilters}
-          throughputUnit={throughputUnit}
           extraQuery={extraQuery}
         />
       </ChartsContainerItem>
@@ -86,12 +80,7 @@ export function ResourceLandingPageCharts({
   );
 }
 
-function ThroughputChart({
-  title,
-  filters,
-  throughputUnit,
-  extraQuery,
-}: ChartProps): JSX.Element {
+function ThroughputChart({title, filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
@@ -115,17 +104,10 @@ function ThroughputChart({
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
-    let throughputMultiplier = 1; // We're fetching per minute, so default is 1
-    if (throughputUnit === RateUnit.PER_SECOND) {
-      throughputMultiplier = 1 / 60;
-    } else if (throughputUnit === RateUnit.PER_HOUR) {
-      throughputMultiplier = 60;
-    }
-
     return {
       seriesName: label ?? 'Throughput',
       data: (groupData ?? []).map(datum => ({
-        value: datum['spm()'] * throughputMultiplier,
+        value: datum['spm()'],
         name: datum.interval,
       })),
     };
@@ -145,12 +127,12 @@ function ThroughputChart({
         }}
         definedAxisTicks={4}
         aggregateOutputFormat="rate"
-        rateUnit={throughputUnit}
+        rateUnit={RESOURCE_THROUGHPUT_UNIT}
         stacked
         type={ChartType.LINE}
         chartColors={[THROUGHPUT_COLOR]}
         tooltipFormatterOptions={{
-          valueFormatter: value => formatRate(value, throughputUnit),
+          valueFormatter: value => formatRate(value, RESOURCE_THROUGHPUT_UNIT),
         }}
       />
     </ChartPanel>
