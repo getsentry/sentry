@@ -362,7 +362,7 @@ class SubscriptionProcessor:
             return
 
         if features.has(
-            "organizations:workflow-engine-m3-dual-write", self.subscription.project.organization
+            "organizations:workflow-engine-m3-process", self.subscription.project.organization
         ):
             # NOTE: feed the data through the new pipeline, but don't do anything with it yet.
             # This will change at some point.
