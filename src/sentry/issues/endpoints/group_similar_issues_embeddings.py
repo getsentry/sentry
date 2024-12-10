@@ -27,7 +27,6 @@ from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-MAX_FRAME_COUNT = 50
 
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
