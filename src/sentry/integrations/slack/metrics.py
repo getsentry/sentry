@@ -1,5 +1,13 @@
 # metrics constants
 
+from slack_sdk.errors import SlackApiError
+
+from sentry.integrations.slack.utils.errors import (
+    SLACK_SDK_HALT_ERROR_CATEGORIES,
+    unpack_slack_api_error,
+)
+from sentry.integrations.utils.metrics import EventLifecycle
+
 SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.success"
 SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.failure"
 SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.activity_thread.success"
@@ -79,3 +87,14 @@ SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.ch
 # Middleware Parsers
 SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC = "sentry.middleware.integrations.slack.parsers.success"
 SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC = "sentry.middleware.integrations.slack.parsers.failure"
+
+
+def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: SlackApiError) -> None:
+    if (
+        (reason := unpack_slack_api_error(error))
+        and reason is not None
+        and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
+    ):
+        lifecycle.record_halt(reason.message)
+    else:
+        lifecycle.record_failure(error)

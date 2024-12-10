@@ -9,11 +9,13 @@ from slack_sdk.errors import SlackApiError
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import RuleDataError, SlackService
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -157,8 +159,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_handle.called
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
-    def test_calls_handle_parent_notification_sdk_client(self, mock_handle):
+    def test_calls_handle_parent_notification_sdk_client(self, mock_handle, mock_record):
         parent_notification = IssueAlertNotificationMessage.from_model(
             instance=self.parent_notification
         )
@@ -169,6 +172,8 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         # check client type
         assert isinstance(mock_handle.call_args.kwargs["client"], SlackSdkClient)
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
 
 class TestHandleParentNotification(TestCase):
@@ -233,8 +238,9 @@ class TestHandleParentNotification(TestCase):
             rule_fire_history=self.slack_rule_fire_history,
         )
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_handles_parent_notification_sdk(self, mock_api_call):
+    def test_handles_parent_notification_sdk(self, mock_api_call, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -246,8 +252,12 @@ class TestHandleParentNotification(TestCase):
             client=SlackSdkClient(integration_id=self.integration.id),
         )
 
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_handles_parent_notification_sdk_error(
         self,
+        mock_record,
     ) -> None:
         with pytest.raises(SlackApiError):
             self.service._handle_parent_notification(
@@ -255,6 +265,8 @@ class TestHandleParentNotification(TestCase):
                 notification_to_send="hello",
                 client=SlackSdkClient(integration_id=self.integration.id),
             )
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
     def test_raises_exception_when_parent_notification_does_not_have_rule_fire_history_data(
         self,
