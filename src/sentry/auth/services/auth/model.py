@@ -40,6 +40,7 @@ class RpcApiToken(RpcModel):
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
+    scoping_organization_id: int | None = None
 
 
 class RpcMemberSsoState(RpcModel):
@@ -200,7 +201,13 @@ class RpcAuthProvider(RpcModel):
         return hash((self.id, self.organization_id, self.provider))
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"provider": self.provider, "config": self.config}
+        provider = self.provider
+        # NOTE(isabella): for both standard fly SSO and fly-non-partner SSO, we should record the
+        # provider as "fly" in the audit log entry data; the only difference between the two is
+        # that the latter can be disabled by customers
+        if "fly" in self.provider:
+            provider = "fly"
+        return {"provider": provider, "config": self.config}
 
     def get_provider(self) -> "Provider":
         from sentry.auth import manager

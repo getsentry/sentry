@@ -81,7 +81,7 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             (key, list(group))
             for key, group in itertools.groupby(result.data["data"], key=lambda r: r["time"])
         ]
-        attrs = None
+        attrs = {}
         if self.lookup:
             attrs = self.get_attrs(
                 [value_from_row(r, self.lookup.columns) for _, v in data for r in v]
@@ -101,16 +101,35 @@ class SnubaTSResultSerializer(BaseSnubaSerializer):
             rv.append((k, row))
 
         res = {
-            "data": zerofill(
-                rv,
-                result.start,
-                result.end,
-                result.rollup,
-                allow_partial_buckets=allow_partial_buckets,
+            "data": (
+                zerofill(
+                    rv,
+                    result.start,
+                    result.end,
+                    result.rollup,
+                    allow_partial_buckets=allow_partial_buckets,
+                )
+                if zerofill_results
+                else rv
             )
-            if zerofill_results
-            else rv
         }
+
+        confidence_values = []
+        if "confidence" in result.data:
+            for key, group in itertools.groupby(result.data["confidence"], key=lambda r: r["time"]):
+                result_row = []
+                for confidence_row in group:
+                    item = {"count": confidence_row.get(column, None)}
+                    if extra_columns is not None:
+                        for extra_column in extra_columns:
+                            item[extra_column] = confidence_row.get(extra_column, 0)
+                    if self.lookup:
+                        value = value_from_row(confidence_row, self.lookup.columns)
+                        item[self.lookup.name] = (attrs.get(value),)
+                    result_row.append(item)
+                confidence_values.append((key, result_row))
+            # confidence only comes from the RPC which already helps us zerofill by returning all buckets
+            res["confidence"] = confidence_values
 
         if result.data.get("totals"):
             res["totals"] = {"count": result.data["totals"][column]}

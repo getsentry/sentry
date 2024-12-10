@@ -8,11 +8,12 @@ import pick from 'lodash/pick';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
+import Alert from 'sentry/components/alert';
 import {
   OnDemandMetricAlert,
   OnDemandWarningIcon,
 } from 'sentry/components/alerts/onDemandMetricAlert';
-import SearchBar, {getHasTag} from 'sentry/components/events/searchBar';
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {
   STATIC_FIELD_TAGS,
   STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
@@ -30,9 +31,9 @@ import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import {EAPSpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {SearchInvalidTag} from 'sentry/components/smartSearchBar/searchInvalidTag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
@@ -43,8 +44,14 @@ import type {Organization} from 'sentry/types/organization';
 import type {Environment, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {DEVICE_CLASS_TAG_VALUES, FieldKind, isDeviceClass} from 'sentry/utils/fields';
+import {
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import {
   getMeasurements,
   type MeasurementCollection,
@@ -64,6 +71,11 @@ import {
 } from 'sentry/views/alerts/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {getSupportedAndOmittedTags} from 'sentry/views/alerts/wizard/options';
+import {
+  SpanTagsContext,
+  SpanTagsProvider,
+} from 'sentry/views/explore/contexts/spanTagsContext';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getProjectOptions} from '../utils';
 
@@ -115,6 +127,7 @@ type Props = {
   isErrorMigration?: boolean;
   isExtrapolatedChartData?: boolean;
   isForLlmMetric?: boolean;
+  isLowConfidenceChartData?: boolean;
   isTransactionMigration?: boolean;
   loadingProjects?: boolean;
   monitorType?: number;
@@ -251,7 +264,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     let options: Record<string, string> = TIME_WINDOW_MAP;
     const {alertType} = this.props;
 
-    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
+    if (alertType === 'custom_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
       options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }
@@ -268,6 +281,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (this.props.comparisonType === AlertRuleComparisonType.DYNAMIC) {
       options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIVE_MINUTES,
         TimeWindow.FIFTEEN_MINUTES,
         TimeWindow.THIRTY_MINUTES,
         TimeWindow.ONE_HOUR,
@@ -639,6 +653,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       isErrorMigration,
       aggregate,
       project,
+      comparisonType,
+      isLowConfidenceChartData,
     } = this.props;
 
     const {environments, filterKeys} = this.state;
@@ -653,6 +669,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
+    const confidenceEnabled = hasEAPAlerts(organization);
+
     return (
       <Fragment>
         <ChartPanel>
@@ -666,74 +684,107 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           </Fragment>
         ) : (
           <Fragment>
-            {isExtrapolatedChartData && (
-              <OnDemandMetricAlert
-                message={t(
-                  'The chart data above is an estimate based on the stored transactions that match the filters specified.'
-                )}
-              />
-            )}
-            {hasActivatedAlerts && this.renderMonitorTypeSelect()}
-            {!isErrorMigration && this.renderInterval()}
-            <StyledListItem>{t('Filter events')}</StyledListItem>
-            <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
-              {this.renderProjectSelector()}
-              <SelectField
-                name="environment"
-                placeholder={t('All Environments')}
-                style={{
-                  ...this.formElemBaseStyle,
-                  minWidth: 230,
-                  flex: 1,
-                }}
-                styles={{
-                  singleValue: (base: any) => ({
-                    ...base,
-                  }),
-                  option: (base: any) => ({
-                    ...base,
-                  }),
-                }}
-                options={environmentOptions}
-                isDisabled={
-                  disabled || this.state.environments === null || isErrorMigration
-                }
-                isClearable
-                inline={false}
-                flexibleControlStateSize
-              />
-              {allowChangeEventTypes && this.renderEventTypeFilter()}
-            </FormRow>
-            <FormRow>
-              <FormField
-                name="query"
-                inline={false}
-                style={{
-                  ...this.formElemBaseStyle,
-                  flex: '6 0 500px',
-                }}
-                flexibleControlStateSize
-              >
-                {({onChange, onBlur, onKeyDown, initialData, value}) => {
-                  return (hasCustomMetrics(organization) &&
-                    alertType === 'custom_metrics') ||
-                    alertType === 'insights_metrics' ? (
-                    <MetricSearchBar
-                      mri={getMRI(aggregate)}
-                      projectIds={[project.id]}
-                      placeholder={this.searchPlaceholder}
-                      query={initialData.query}
-                      defaultQuery={initialData?.query ?? ''}
-                      useFormWrapper={false}
-                      searchSource="alert_builder"
-                      onChange={query => {
-                        onFilterSearch(query, true);
-                        onChange(query, {});
-                      }}
-                    />
-                  ) : (
-                    <SearchContainer>
-                      {organization.features.includes('search-query-builder-alerts') ? (
+            <SpanTagsProvider
+              dataset={DiscoverDatasets.SPANS_EAP}
+              enabled={
+                organization.features.includes('alerts-eap') &&
+                alertType === 'eap_metrics'
+              }
+            >
+              {isExtrapolatedChartData && (
+                <OnDemandMetricAlert
+                  message={t(
+                    'The chart data above is an estimate based on the stored transactions that match the filters specified.'
+                  )}
+                />
+              )}
+              {confidenceEnabled && isLowConfidenceChartData && (
+                <Alert showIcon type="warning">
+                  {t(
+                    'Your low sample count may impact the accuracy of this alert. Edit your query or increase your sampling rate.'
+                  )}
+                </Alert>
+              )}
+              {hasActivatedAlerts && this.renderMonitorTypeSelect()}
+              {!isErrorMigration && this.renderInterval()}
+              <StyledListItem>{t('Filter events')}</StyledListItem>
+              <FormRow noMargin columns={1 + (allowChangeEventTypes ? 1 : 0) + 1}>
+                {this.renderProjectSelector()}
+                <SelectField
+                  name="environment"
+                  placeholder={t('All Environments')}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    minWidth: 230,
+                    flex: 1,
+                  }}
+                  styles={{
+                    singleValue: (base: any) => ({
+                      ...base,
+                    }),
+                    option: (base: any) => ({
+                      ...base,
+                    }),
+                  }}
+                  options={environmentOptions}
+                  isDisabled={
+                    disabled || this.state.environments === null || isErrorMigration
+                  }
+                  isClearable
+                  inline={false}
+                  flexibleControlStateSize
+                />
+                {allowChangeEventTypes && this.renderEventTypeFilter()}
+              </FormRow>
+              <FormRow noMargin>
+                <FormField
+                  name="query"
+                  inline={false}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    flex: '6 0 500px',
+                  }}
+                  flexibleControlStateSize
+                >
+                  {({onChange, onBlur, initialData, value}) => {
+                    return hasCustomMetrics(organization) &&
+                      alertType === 'custom_metrics' ? (
+                      <MetricSearchBar
+                        mri={getMRI(aggregate)}
+                        projectIds={[project.id]}
+                        placeholder={this.searchPlaceholder}
+                        query={initialData.query}
+                        defaultQuery={initialData?.query ?? ''}
+                        useFormWrapper={false}
+                        searchSource="alert_builder"
+                        onChange={query => {
+                          onFilterSearch(query, true);
+                          onChange(query, {});
+                        }}
+                      />
+                    ) : alertType === 'eap_metrics' ? (
+                      <SpanTagsContext.Consumer>
+                        {tags => (
+                          <EAPSpanSearchQueryBuilder
+                            numberTags={tags?.number ?? {}}
+                            stringTags={tags?.string ?? {}}
+                            initialQuery={initialData?.query ?? ''}
+                            searchSource="alerts"
+                            onSearch={(query, {parsedQuery}) => {
+                              onFilterSearch(query, parsedQuery);
+                              onChange(query, {});
+                            }}
+                            onBlur={(query, {parsedQuery}) => {
+                              onFilterSearch(query, parsedQuery);
+                              onBlur(query);
+                            }}
+                            supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
+                            projects={[parseInt(project.id, 10)]}
+                          />
+                        )}
+                      </SpanTagsContext.Consumer>
+                    ) : (
+                      <SearchContainer>
                         <SearchQueryBuilder
                           initialQuery={initialData?.query ?? ''}
                           getTagValues={this.getEventFieldValues}
@@ -767,100 +818,57 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                               : dataset === Dataset.GENERIC_METRICS
                           }
                         />
-                      ) : (
-                        <StyledSearchBar
-                          disallowWildcard={dataset === Dataset.SESSIONS}
-                          disallowFreeText={[
-                            Dataset.GENERIC_METRICS,
-                            Dataset.TRANSACTIONS,
-                          ].includes(dataset)}
-                          invalidMessages={{
-                            [InvalidReason.WILDCARD_NOT_ALLOWED]: t(
-                              'The wildcard operator is not supported here.'
-                            ),
-                            [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t(
-                              'Free text search is not allowed. If you want to partially match transaction names, use glob patterns like "transaction:*transaction-name*"'
-                            ),
-                          }}
-                          customInvalidTagMessage={item => {
-                            if (dataset !== Dataset.GENERIC_METRICS) {
-                              return null;
-                            }
-                            return (
-                              <SearchInvalidTag
-                                message={tct(
-                                  "The field [field] isn't supported for performance alerts.",
-                                  {
-                                    field: <code>{item.desc}</code>,
-                                  }
-                                )}
-                                docLink="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#tags--properties"
-                              />
-                            );
-                          }}
-                          searchSource="alert_builder"
-                          defaultQuery={initialData?.query ?? ''}
-                          {...getSupportedAndOmittedTags(dataset, organization)}
-                          includeSessionTagsValues={dataset === Dataset.SESSIONS}
-                          disabled={disabled || isErrorMigration}
-                          useFormWrapper={false}
-                          organization={organization}
-                          placeholder={this.searchPlaceholder}
-                          onChange={onChange}
-                          query={initialData.query}
-                          // We only need strict validation for Transaction queries, everything else is fine
-                          highlightUnsupportedTags={
-                            organization.features.includes('alert-allow-indexed') ||
-                            (hasOnDemandMetricAlertFeature(organization) &&
-                              isOnDemandQueryString(value))
-                              ? false
-                              : dataset === Dataset.GENERIC_METRICS
-                          }
-                          onKeyDown={e => {
-                            /**
-                             * Do not allow enter key to submit the alerts form since it is unlikely
-                             * users will be ready to create the rule as this sits above required fields.
-                             */
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }
-                            onKeyDown?.(e);
-                          }}
-                          onClose={(query, {validSearch}) => {
-                            onFilterSearch(query, validSearch);
-                            onBlur(query);
-                          }}
-                          onSearch={query => {
-                            onFilterSearch(query, true);
-                            onChange(query, {});
-                          }}
-                          hasRecentSearches={dataset !== Dataset.SESSIONS}
-                        />
-                      )}
-                      {isExtrapolatedChartData && isOnDemandQueryString(value) && (
-                        <OnDemandWarningIcon
-                          color="gray500"
-                          msg={tct(
-                            `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
-                            {
-                              fields: (
-                                <strong>
-                                  {getOnDemandKeys(value)
-                                    .map(key => `"${key}"`)
-                                    .join(', ')}
-                                </strong>
-                              ),
-                              strong: <strong />,
-                            }
+                        {isExtrapolatedChartData && isOnDemandQueryString(value) && (
+                          <OnDemandWarningIcon
+                            color="gray500"
+                            msg={tct(
+                              `We don’t routinely collect metrics from [fields]. However, we’ll do so [strong:once this alert has been saved.]`,
+                              {
+                                fields: (
+                                  <strong>
+                                    {getOnDemandKeys(value)
+                                      .map(key => `"${key}"`)
+                                      .join(', ')}
+                                  </strong>
+                                ),
+                                strong: <strong />,
+                              }
+                            )}
+                          />
+                        )}
+                      </SearchContainer>
+                    );
+                  }}
+                </FormField>
+              </FormRow>
+              <FormRow noMargin>
+                <FormField
+                  name="query"
+                  inline={false}
+                  style={{
+                    ...this.formElemBaseStyle,
+                    flex: '6 0 500px',
+                  }}
+                  flexibleControlStateSize
+                >
+                  {args => {
+                    if (
+                      args.value?.includes('is:unresolved') &&
+                      comparisonType === AlertRuleComparisonType.DYNAMIC
+                    ) {
+                      return (
+                        <OnDemandMetricAlert
+                          message={t(
+                            "'is:unresolved' queries are not supported by Anomaly Detection alerts."
                           )}
                         />
-                      )}
-                    </SearchContainer>
-                  );
-                }}
-              </FormField>
-            </FormRow>
+                      );
+                    }
+                    return null;
+                  }}
+                </FormField>
+              </FormRow>
+            </SpanTagsProvider>
           </Fragment>
         )}
       </Fragment>
@@ -904,18 +912,6 @@ const SearchContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-
-  ${p =>
-    p.disabled &&
-    `
-    background: ${p.theme.backgroundSecondary};
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
-  `}
 `;
 
 const StyledListItem = styled(ListItem)`

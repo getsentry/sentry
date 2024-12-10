@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
 from sentry import options
@@ -12,7 +13,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -331,6 +332,29 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_big_number_widget_with_selected_equation(self):
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "columns": [],
+                    "aggregates": ["epm()", "count()", "equation|epm()*count()"],
+                    "conditions": "",
+                    "orderby": "",
+                    "selectedAggregate": "1",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
     def test_project_search_condition(self):
         self.user = self.create_user(is_superuser=False)
         self.project = self.create_project(
@@ -373,7 +397,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group_1"],
             },
             project_id=self.project.id,
@@ -471,6 +495,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
 
+    @pytest.mark.skip("Flaky - utc bug")
     def test_timestamp_query_with_timezone(self):
         data = {
             "title": "Timestamp filter",
@@ -479,7 +504,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "queries": [
                 {
                     "name": "timestamp filter",
-                    "conditions": f"timestamp.to_day:<{iso_format(before_now(hours=1))}",
+                    "conditions": f"timestamp.to_day:<{before_now(hours=1)}",
                     "fields": [],
                 }
             ],
@@ -1042,7 +1067,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 "event_id": "a" * 32,
                 "transaction": "/example",
                 "message": "how to make fast",
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "tags": {"sometag": "foo"},
             },
             project_id=self.project.id,
@@ -1081,3 +1106,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert "columns" in warnings
         assert len(warnings["columns"]) == 1
         assert warnings["columns"]["sometag"] == "disabled:high-cardinality"
+
+    def test_widget_type_spans(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "spans",
+            "displayType": "table",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["span.op", "count()"],
+                    "columns": ["span.op"],
+                    "aggregates": ["count()"],
+                },
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

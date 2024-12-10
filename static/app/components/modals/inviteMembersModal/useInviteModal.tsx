@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {
   InviteRow,
+  InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
@@ -162,19 +163,52 @@ export default function useInviteModal({organization, initialData, source}: Prop
     [api, organization, willInvite]
   );
 
-  const sendInvites = useCallback(async () => {
-    setState(prev => ({...prev, sendingInvites: true}));
-    await Promise.all(invites.map(sendInvite));
-    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  const removeSentInvites = useCallback(() => {
+    setState(prev => {
+      const emails = prev.pendingInvites[0].emails;
+      const filteredEmails = Array.from(emails).filter(
+        email => !prev.inviteStatus[email]?.sent
+      );
+      return {
+        ...prev,
+        pendingInvites: [
+          {
+            ...prev.pendingInvites[0],
+            emails: new Set(filteredEmails),
+          },
+        ],
+      };
+    });
+  }, []);
 
+  useEffect(() => {
+    const statuses = Object.values(state.inviteStatus) as InviteStatus[];
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
+    // Don't track if no invites have been sent or invites are still sending
+    if ((sentCount === 0 && errorCount === 0) || state.sendingInvites) {
+      return;
+    }
     trackAnalytics(
       willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
       {
         organization,
         modal_session: sessionId.current,
+        sent_invites: sentCount,
+        failed_invites: errorCount,
+        is_new_modal: organization.features.includes('invite-members-new-modal'),
       }
     );
-  }, [organization, invites, sendInvite, willInvite]);
+  }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
+
+  const sendInvites = useCallback(async () => {
+    setState(prev => ({...prev, sendingInvites: true}));
+    await Promise.all(invites.map(sendInvite));
+    if (organization.features.includes('invite-members-new-modal')) {
+      removeSentInvites();
+    }
+    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  }, [organization, invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({
@@ -210,6 +244,12 @@ export default function useInviteModal({organization, initialData, source}: Prop
     });
   }, []);
 
+  const setInviteStatus = useCallback((inviteStatus: InviteStatus) => {
+    setState(prev => {
+      return {...prev, inviteStatus};
+    });
+  }, []);
+
   const removeInviteRow = useCallback((index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
@@ -229,6 +269,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setEmails,
     setRole,
     setTeams,
+    setInviteStatus,
     willInvite,
     complete: state.complete,
     inviteStatus: state.inviteStatus,

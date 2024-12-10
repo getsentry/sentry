@@ -2,16 +2,15 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.tasks.groupowner import PREFERRED_GROUP_OWNER_AGE, process_suspect_commits
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import TaskRunner
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -38,7 +37,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -101,7 +100,6 @@ class TestGroupOwners(TestCase):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
 
-    @override_options({"hybrid_cloud.allow_cross_db_tombstones": True})
     def test_user_deletion_cascade(self):
         other_user = self.create_user()
         group = self.create_group()
@@ -183,7 +181,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BANG!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -205,7 +203,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOP!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -330,7 +328,7 @@ class TestGroupOwners(TestCase):
             data={
                 "message": "BOOM!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

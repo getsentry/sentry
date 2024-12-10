@@ -30,7 +30,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -85,11 +85,11 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -195,7 +195,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         project = self.create_project()
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         event = self.store_event(data=event_data, project_id=project.id)
@@ -398,7 +398,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
-    def test_onboarding_complete(self):
+    @patch("sentry.analytics.record")
+    def test_onboarding_complete(self, record_analytics):
         now = timezone.now()
         user = self.create_user(email="test@example.org")
         project = self.create_project(first_event=now)
@@ -411,11 +412,11 @@ class OrganizationOnboardingTaskTest(TestCase):
             data={
                 "event_id": "a" * 32,
                 "platform": "javascript",
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "tags": {
-                    "sentry:release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                     "sentry:user": "id:41656",
                 },
+                "release": "e1b5d1900526feaf20fe2bc9cad83d392136030a",
                 "user": {"ip_address": "0.0.0.0", "id": "41656", "email": "test@example.com"},
                 "exception": {
                     "values": [
@@ -438,7 +439,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         event_data = load_data("transaction")
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data.update({"start_timestamp": min_ago, "timestamp": min_ago})
 
         transaction = self.store_event(data=event_data, project_id=project.id)
@@ -503,6 +504,13 @@ class OrganizationOnboardingTaskTest(TestCase):
                 organization=self.organization, key="onboarding:complete"
             ).count()
             == 1
+        )
+
+        record_analytics.assert_called_with(
+            "onboarding.complete",
+            user_id=self.organization.default_owner_id,
+            organization_id=self.organization.id,
+            referrer="onboarding_tasks",
         )
 
     @patch("sentry.analytics.record")
@@ -887,3 +895,89 @@ class OrganizationOnboardingTaskTest(TestCase):
                 count += 1
 
         assert count == 0
+
+    @patch("sentry.analytics.record")
+    def test_real_time_notifications_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("slack", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.REAL_TIME_NOTIFICATIONS,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="slack",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_source_code_management_added(self, record_analytics):
+        with self.feature("organizations:quick-start-updates"):
+            integration_id = self.create_integration("github", 123).id
+            integration_added.send(
+                integration_id=integration_id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+            record_analytics.assert_called_with(
+                "integration.added",
+                user_id=self.user.id,
+                default_user_id=self.organization.default_owner_id,
+                organization_id=self.organization.id,
+                id=integration_id,
+                provider="github",
+            )
+
+    def test_second_platform_complete(self):
+        with self.feature("organizations:quick-start-updates"):
+            now = timezone.now()
+            project = self.create_project(first_event=now)
+            second_project = self.create_project(first_event=now)
+
+            project_created.send(project=project, user=self.user, sender=type(project))
+            project_created.send(
+                project=second_project, user=self.user, sender=type(second_project)
+            )
+
+            task = OrganizationOnboardingTask.objects.get(
+                organization=self.organization,
+                task=OnboardingTask.SECOND_PLATFORM,
+                status=OnboardingTaskStatus.COMPLETE,
+            )
+            assert task is not None
+
+    def test_release_received_through_transaction_event(self):
+        project = self.create_project()
+
+        event_data = load_data("transaction")
+        event_data.update({"release": "my-first-release", "tags": []})
+
+        event = self.store_event(data=event_data, project_id=project.id)
+        event_processed.send(project=project, event=event, sender=type(project))
+
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.RELEASE_TRACKING,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None

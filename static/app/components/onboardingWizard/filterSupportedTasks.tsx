@@ -18,9 +18,11 @@ export function filterSupportedTasks(
   projects: Project[] | undefined,
   allTasks: OnboardingTask[]
 ): OnboardingTask[] {
-  if (!projects) {
-    return [];
+  // If no projects, we can not know which tasks are supported
+  if (!projects || (Array.isArray(projects) && projects.length === 0)) {
+    return allTasks;
   }
+
   // Remove tasks for features that are not supported
   const excludeList = allTasks.filter(
     task =>

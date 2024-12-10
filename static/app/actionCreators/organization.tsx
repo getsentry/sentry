@@ -15,6 +15,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
+import FeatureObserver from 'sentry/utils/featureObserver';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 
@@ -41,6 +42,9 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
+  FeatureObserver.singleton({}).observeOrganizationFlags({
+    organization: org,
+  });
 
   OrganizationStore.onUpdate(org, {replace: true});
   setActiveOrganization(org);

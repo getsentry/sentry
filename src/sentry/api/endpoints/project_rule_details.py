@@ -26,13 +26,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
-from sentry.mediators.project_rules.updater import Updater
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
@@ -287,7 +287,19 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
 
-            updated_rule = Updater.run(rule=rule, request=request, **kwargs)
+            updated_rule = ProjectRuleUpdater(
+                rule=rule,
+                project=project,
+                name=kwargs["name"],
+                owner=owner,
+                environment=kwargs["environment"],
+                action_match=kwargs["action_match"],
+                filter_match=kwargs["filter_match"],
+                actions=kwargs["actions"],
+                conditions=conditions,
+                frequency=kwargs["frequency"],
+                request=request,
+            ).run()
 
             RuleActivity.objects.create(
                 rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

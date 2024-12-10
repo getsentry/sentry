@@ -51,6 +51,8 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT
 # NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
     "organizations:continuous-profiling",
+    "organizations:continuous-profiling-beta",
+    "organizations:continuous-profiling-beta-ingest",
     "organizations:custom-metrics",
     "organizations:device-class-synthesis",
     "organizations:performance-queries-mongodb-extraction",
@@ -60,14 +62,12 @@ EXPOSABLE_FEATURES = [
     "organizations:session-replay-video-disabled",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
-    "organizations:transaction-name-mark-scrubbed-as-sanitized",
-    "organizations:transaction-name-normalize",
-    "organizations:user-feedback-ingest",
     "projects:discard-transaction",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
     "organizations:indexed-spans-extraction",
+    "organizations:ingest-spans-in-eap",
     "projects:relay-otel-endpoint",
 ]
 
@@ -93,12 +93,14 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
         if has_feature:
             metrics.incr(
-                "sentry.relay.config.features", tags={"outcome": "enabled", "feature": feature}
+                "sentry.relay.config.features",
+                tags={"outcome": "enabled", "feature": feature},
             )
             active_features.append(feature)
         else:
             metrics.incr(
-                "sentry.relay.config.features", tags={"outcome": "disabled", "feature": feature}
+                "sentry.relay.config.features",
+                tags={"outcome": "disabled", "feature": feature},
             )
 
     return active_features
@@ -374,11 +376,14 @@ class SpanDescriptionRule(TypedDict):
 
 def _should_extract_abnormal_mechanism(project: Project) -> bool:
     return sample_modulo(
-        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
+        "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
+        project.organization_id,
     )
 
 
-def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_desktop_browser_performance_profiles(
+    organization: Organization,
+) -> list[dict[str, Any]]:
     return [
         {
             "name": "Chrome",
@@ -634,7 +639,9 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
     ]
 
 
-def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_mobile_browser_performance_profiles(
+    organization: Organization,
+) -> list[dict[str, Any]]:
     return [
         {
             "name": "Chrome Mobile",
@@ -885,7 +892,9 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
     ]
 
 
-def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_default_browser_performance_profiles(
+    organization: Organization,
+) -> list[dict[str, Any]]:
     return [
         {
             "name": "Default",
@@ -943,7 +952,9 @@ def _get_default_browser_performance_profiles(organization: Organization) -> lis
     ]
 
 
-def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_mobile_performance_profiles(
+    organization: Organization,
+) -> list[dict[str, Any]]:
     if not features.has(
         "organizations:performance-calculate-mobile-perf-score-relay", organization
     ):
@@ -989,8 +1000,16 @@ def _get_mobile_performance_profiles(organization: Organization) -> list[dict[st
                     {
                         "op": "or",
                         "inner": [
-                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.cocoa"},
-                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.java.android"},
+                            {
+                                "op": "eq",
+                                "name": "event.sdk.name",
+                                "value": "sentry.cocoa",
+                            },
+                            {
+                                "op": "eq",
+                                "name": "event.sdk.name",
+                                "value": "sentry.java.android",
+                            },
                         ],
                     },
                     {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
@@ -1067,7 +1086,10 @@ def _get_project_config(
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
         add_experimental_config(
-            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
+            config,
+            "metricConditionalTagging",
+            get_metric_conditional_tagging_rules,
+            project,
         )
 
         if metric_extraction := get_metric_extraction_config(project):

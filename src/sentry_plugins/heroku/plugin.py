@@ -5,8 +5,7 @@ import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
@@ -51,7 +50,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> HttpResponse | None:
+    def handle(self, request: HttpRequest) -> HttpResponse | None:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):

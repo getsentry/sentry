@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
@@ -76,7 +76,7 @@ export default function BreadcrumbsTimeline({
     const timeDate = new Date(breadcrumb.timestamp ?? '');
     const startTimeDate = new Date(startTimeString ?? '');
 
-    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS A';
     const timestampComponent = isValidDate(timeDate) ? (
       <Timestamp>
         <Tooltip

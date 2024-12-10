@@ -148,6 +148,12 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
+
+        if not guild_id.isdigit():
+            raise IntegrationError(
+                "Invalid guild ID. The Discord guild ID must be entirely numeric."
+            )
+
         try:
             guild_name = self.client.get_guild_name(guild_id=guild_id)
         except (ApiError, AttributeError):
@@ -163,9 +169,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         auth_code = str(state.get("code"))
         if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
-            if options.get(
-                "discord.validate-user"
-            ) and not self.client.check_user_bot_installation_permission(
+            if not self.client.check_user_bot_installation_permission(
                 access_token=self.access_token, guild_id=guild_id
             ):
                 raise IntegrationError("User does not have permissions to install bot.")

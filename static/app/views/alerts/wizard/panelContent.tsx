@@ -11,6 +11,7 @@ import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
+import diagramUptime from 'sentry-images/spot/alerts-wizard-uptime.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
 import {t} from 'sentry/locale';
@@ -156,14 +157,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     examples: [t('When there are more than $100 used by LLM  within an hour')],
     illustration: diagramCustomMetrics,
   },
-  insights_metrics: {
-    description: t('Alert on insights metrics.'),
-    examples: [
-      t('When your average time in queue exceeds 100ms.'),
-      t('When your app runs more than 1000 queries in a minute.'),
-    ],
-    illustration: diagramCustomMetrics,
-  },
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
@@ -181,5 +174,24 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the Crash Free Rate is below 97%, send an email notification to yourself.'),
     ],
     illustration: diagramCrashFreeUsers,
+  },
+  uptime_monitor: {
+    description: t(
+      'Alert when the availability or reliability of a monitored URL changes, providing instant notifications and insights to quickly detect and resolve issues.'
+    ),
+    examples: [
+      t('When the URL returns a response status code other than 200.'),
+      t('When the URL response times out after 20 seconds.'),
+      t('When a DNS resolution error is detected for the URL.'),
+    ],
+    illustration: diagramUptime,
+  },
+  eap_metrics: {
+    description: t('Alert on eap metrics.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
+    ],
+    illustration: diagramCustomMetrics,
   },
 };

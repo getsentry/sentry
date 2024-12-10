@@ -216,10 +216,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Open up [applicationPropertiesCode:src/main/application.properties] (or [applicationYmlCode:src/main/application.yml]) and configure the DSN, and any other settings you need:',
+        'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
         {
-          applicationPropertiesCode: <code />,
-          applicationYmlCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -288,14 +287,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       name: t('Examples'),
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/tracing/',
     },
   ],
 };

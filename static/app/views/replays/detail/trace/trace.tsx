@@ -12,17 +12,15 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  getTraceViewQueryStatus,
-  TraceViewWaterfall,
-} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceTree';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -93,13 +91,18 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     },
     layoutOptions: [],
   },
+  missing_instrumentation: true,
+  autogroup: {
+    parent: true,
+    sibling: true,
+  },
   layout: 'drawer bottom',
   list: {
     width: 0.5,
   },
 };
 
-function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
+function Trace({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {
@@ -121,7 +124,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
     );
   }
 
-  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
+  if (!replay || !didInit || (isFetching && !traces?.length) || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -130,7 +133,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
     );
   }
 
-  const project = projects.find(p => p.id === replayRecord.project_id);
+  const project = projects.find(p => p.id === replay.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
@@ -150,11 +153,11 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
   );
 }
 
-export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
+export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
-    replayRecord,
+    replayRecord: replay,
   });
 
   const firstTrace = replayTraces?.[0];
@@ -163,7 +166,12 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     timestamp: firstTrace?.timestamp,
   });
   const rootEvent = useTraceRootEvent(trace.data ?? null);
-  const metaResults = useReplayTraceMeta(replayRecord);
+  const meta = useReplayTraceMeta(replay);
+  const tree = useTraceTree({
+    trace,
+    meta,
+    replay: replay ?? null,
+  });
 
   const preferences = useMemo(
     () =>
@@ -191,7 +199,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     );
   }
 
-  if (!replayRecord || !indexComplete || !replayTraces || !eventView) {
+  if (!replay || !indexComplete || !replayTraces || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -200,7 +208,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     );
   }
 
-  const project = projects.find(p => p.id === replayRecord.project_id);
+  const project = projects.find(p => p.id === replay.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
@@ -215,17 +223,17 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       preferencesStorageKey="replay-trace-view-preferences"
     >
       <TraceViewWaterfallWrapper>
-        <TraceViewWaterfall
+        <TraceWaterfall
           traceSlug={undefined}
-          trace={trace.data ?? null}
-          status={getTraceViewQueryStatus(trace.status, metaResults.status)}
+          trace={trace}
+          tree={tree}
           rootEvent={rootEvent}
           replayTraces={otherReplayTraces}
           organization={organization}
           traceEventView={eventView}
-          metaResults={metaResults}
+          meta={meta}
           source="replay"
-          replayRecord={replayRecord}
+          replay={replay}
         />
       </TraceViewWaterfallWrapper>
     </TraceStateProvider>

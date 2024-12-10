@@ -20,6 +20,13 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
+    USER_ID = OpenApiParameter(
+        name="user_id",
+        description="The ID of the user the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
         description="The ID or slug of the organization the resource belongs to.",
@@ -37,6 +44,13 @@ class GlobalParams:
     TEAM_ID_OR_SLUG = OpenApiParameter(
         name="team_id_or_slug",
         description="The ID or slug of the team the resource belongs to.",
+        required=True,
+        type=str,
+        location="path",
+    )
+    INTEGRATION_ID = OpenApiParameter(
+        name="integration_id",
+        description="The ID of the integration installed on the organization.",
         required=True,
         type=str,
         location="path",
@@ -90,12 +104,20 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
 
 
 class EnvironmentParams:
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
+        location="path",
+        required=True,
+        type=str,
+        description="The name of the environment.",
+    )
     VISIBILITY = OpenApiParameter(
         name="visibility",
         location="query",
         required=False,
         type=str,
-        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+        description="""The visibility of the environments to filter by. Defaults to `visible`.""",
+        enum=["all", "hidden", "visible"],
     )
 
 
@@ -179,6 +201,14 @@ Valid fields include:
         description="The ID of the external user object. This is returned when creating an external user.",
     )
 
+    EXTERNAL_TEAM_ID = OpenApiParameter(
+        name="external_team_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the external team object. This is returned when creating an external team.",
+    )
+
 
 class ReleaseParams:
     VERSION = OpenApiParameter(
@@ -250,6 +280,23 @@ class SCIMParams:
         required=True,
         type=int,
         description="The ID of the team you'd like to query / update.",
+    )
+
+
+class IssueParams:
+    ISSUES_OR_GROUPS = OpenApiParameter(
+        name="var",
+        location="path",
+        required=False,
+        type=str,
+        description="Issue URLs may be accessed with either `issues` or `groups`. This parameter is will be removed when building the API docs.",
+    )
+    ISSUE_ID = OpenApiParameter(
+        name="issue_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the issue you'd like to query.",
     )
 
 

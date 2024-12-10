@@ -27,7 +27,6 @@ from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
@@ -40,6 +39,7 @@ from sentry.search.snuba.executors import (
     PostgresSnubaQueryExecutor,
     TrendsSortWeights,
 )
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult

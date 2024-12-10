@@ -1,7 +1,7 @@
 from rest_framework import status
 
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,

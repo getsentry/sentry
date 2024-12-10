@@ -301,3 +301,111 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
                 )
             ]
         }
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_updated_deleted_view(self) -> None:
+        views = self.client.get(self.url).data
+
+        updated_views = views[1:]
+
+        # First delete a view
+        self.get_success_response(self.organization.slug, views=updated_views)
+
+        # Then reorder the tabs as if the deleted view is still there
+        view_one = views[0]
+        view_two = views[1]
+        views[0] = view_two
+        views[1] = view_one
+
+        # Then save the views as if the deleted view is still there
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        # We should expect the position of these two views to be swapped in the response
+        view_one["position"] = 1
+        view_two["position"] = 0
+
+        assert len(response.data) == 3
+        # Unlike in the plain reordering test, the ids are going to be different here but the views are otherwise the same,
+        # So we need to check for equality of the fields instead of the objects themselves
+        assert response.data[0]["query"] == view_two["query"]
+        assert response.data[0]["querySort"] == view_two["querySort"]
+        assert response.data[1]["query"] == view_one["query"]
+        assert response.data[1]["querySort"] == view_one["querySort"]
+        assert response.data[2] == views[2]
+
+
+class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-views"
+    method = "put"
+
+    def setUp(self) -> None:
+        self.user_2 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_2)
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_cannot_rename_other_users_views(self) -> None:
+        self.login_as(user=self.user)
+        views = self.client.get(self.url).data
+        view = views[0]
+
+        # ensure we only have the default view
+        assert len(views) == 1
+        assert view["name"] == "Prioritized"
+        assert view["query"] == "is:unresolved issue.priority:[high, medium]"
+        assert view["querySort"] == "date"
+        assert view["position"] == 0
+
+        # create a new custom view
+        views.append(
+            {
+                "name": "Custom View Two",
+                "query": "is:unresolved",
+                "query_sort": "date",
+            }
+        )
+
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert len(response.data) == 2  # 1 existing default view + 1 new view
+        assert response.data[1]["name"] == "Custom View Two"
+        assert response.data[1]["query"] == "is:unresolved"
+        assert response.data[1]["querySort"] == "date"
+
+        # now "delete" the custom view so the default view gets a proper ID
+        views = self.client.get(self.url).data
+        views.pop(1)
+
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        # we should only have the default view now
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Prioritized"
+        assert response.data[0]["id"]  # and it should now have an ID
+
+        # attempt to change user's 1 view from user 2
+        views = self.client.get(self.url).data
+        default_view = views[0]
+        default_view["name"] = "New Name"
+
+        self.login_as(user=self.user_2)
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        # instead of editing the original view, it should create a new view for user 2
+        assert len(response.data) == 1
+        assert response.data[0]["id"] != default_view["id"]
+        assert response.data[0]["name"] == "New Name"
+
+        # as user 1, verify the name has not been changed
+        self.login_as(user=self.user)
+        response = self.client.get(self.url)
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == default_view["id"]
+        assert response.data[0]["name"] == "Prioritized"
+        assert response.data[0]["query"] == view["query"]
+        assert response.data[0]["querySort"] == view["querySort"]

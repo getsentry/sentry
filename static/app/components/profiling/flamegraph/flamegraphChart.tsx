@@ -266,7 +266,9 @@ export function FlamegraphChart({
   );
 
   const isInsufficientDuration = useMemo(() => {
-    if (!chart) return false;
+    if (!chart) {
+      return false;
+    }
     return formatTo(chart?.configSpace.width, configViewUnit, 'millisecond') < 200;
   }, [chart, configViewUnit]);
 

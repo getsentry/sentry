@@ -70,8 +70,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Edit your [mixCode:mix.exs] file to add it as a dependency and add the [sentryCode::sentry] package to your applications:',
-        {sentryCode: <code />, mixCode: <code />}
+        'Edit your [code:mix.exs] file to add it as a dependency and add the [code::sentry] package to your applications:',
+        {code: <code />}
       ),
       configurations: [
         {
@@ -111,10 +111,9 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'You can capture errors in Plug (and Phoenix) applications with [plugContext:Sentry.PlugContext] and [plugCapture:Sentry.PlugCapture]:',
+              'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
               {
-                plugContext: <code />,
-                plugCapture: <code />,
+                code: <code />,
               }
             )}
           </p>
@@ -127,10 +126,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: tct(
-        '[sentryPlugContextCode:Sentry.PlugContext] gathers the contextual information for errors, and [sentryPlugCaptureCode:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
+        '[code:Sentry.PlugContext] gathers the contextual information for errors, and [code:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
         {
-          sentryPlugCaptureCode: <code />,
-          sentryPlugContextCode: <code />,
+          code: <code />,
         }
       ),
     },

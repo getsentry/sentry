@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import JSONField
+from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -28,13 +30,13 @@ from sentry.auth.access import Access
 from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     METRIC_ALERTS_THREAD_DEFAULT,
@@ -45,18 +47,29 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
+    ROLLBACK_ENABLED_DEFAULT,
     SAFE_FIELDS_DEFAULT,
+    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    TARGET_SAMPLE_RATE_DEFAULT,
     UPTIME_AUTODETECTION,
     ObjectStatus,
 )
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_org_sample_rate
+from sentry.dynamic_sampling.tasks.helpers.sample_rate import get_org_sample_rate
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_organization_mode_sampling,
+    is_project_mode_sampling,
+)
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
@@ -67,12 +80,17 @@ from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
+# This cut-off date ensures that only new organizations created after this date go
+# through the logic that checks for the 'onboarding:complete' key in OrganizationOption.
+# This prevents older organizations from seeing the Quick Start again if they haven't completed it.
+START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION = datetime(2024, 10, 30, tzinfo=timezone.utc)
+
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+    from sentry.users.api.serializers.user import UserSerializerResponse, UserSerializerResponseSelf
 
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
@@ -101,7 +119,7 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # 3. cannot end with a dash
     slug = SentrySerializerSlugField(
         org_slug=True,
-        max_length=50,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
     )
 
     def validate_slug(self, value: str) -> str:
@@ -265,7 +283,7 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
-        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+        with sentry_sdk.start_span(op="features.check", name="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
 
@@ -281,19 +299,27 @@ class OrganizationSerializer(Serializer):
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+        with sentry_sdk.start_span(op="features.check", name="check individual features"):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):
                     # Remove the organization scope prefix
                     feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
 
-        # Do not include the onboarding feature if OrganizationOptions exist
-        if (
-            "onboarding" in feature_set
-            and OrganizationOption.objects.filter(organization=obj).exists()
-        ):
-            feature_set.remove("onboarding")
+        if "onboarding" in feature_set:
+            if obj.date_added > START_DATE_FOR_CHECKING_ONBOARDING_COMPLETION:
+                all_required_onboarding_tasks_complete = OrganizationOption.objects.filter(
+                    organization_id=obj.id, key="onboarding:complete"
+                ).exists()
+
+                # Do not include the onboarding feature if all required onboarding tasks are completed
+                # The required tasks are defined in https://github.com/getsentry/sentry/blob/797e317dadcec25b0426851c6b29c0e1d2d0c3c2/src/sentry/models/organizationonboardingtask.py#L147
+                if all_required_onboarding_tasks_complete:
+                    feature_set.remove("onboarding")
+            else:
+                # Retaining the old logic to prevent older organizations from seeing the quick start sidebar again
+                if OrganizationOption.objects.filter(organization=obj).exists():
+                    feature_set.remove("onboarding")
 
         # Include api-keys feature if they previously had any api-keys
         if "api-keys" not in feature_set and attrs["has_api_key"]:
@@ -322,8 +348,6 @@ class OrganizationSerializer(Serializer):
     def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
-        from sentry import features
-
         if attrs.get("avatar"):
             avatar = {
                 "avatarType": attrs["avatar"].get_avatar_type_display(),
@@ -347,10 +371,8 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            "requireEmailVerification": bool(
-                features.has("organizations:required-email-verification", obj)
-                and obj.flags.require_email_verification
-            ),
+            # requireEmailVerification has been deprecated
+            "requireEmailVerification": False,
             "avatar": avatar,
             "allowMemberInvite": not obj.flags.disable_member_invite,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
@@ -424,7 +446,7 @@ class OnboardingTasksSerializer(Serializer):
 
 
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
-    role: Any  # TODO replace with enum/literal
+    role: Any  # TODO: replace with enum/literal
     orgRole: str
     uptimeAutodetection: bool
 
@@ -459,7 +481,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     pendingAccessRequests: int
     onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
-    aiSuggestedSolution: bool
+    hideAiFeatures: bool
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
@@ -471,6 +493,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
     requiresSso: bool
+    rollbackEnabled: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -531,10 +554,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
-                "requireEmailVerification": bool(
-                    features.has("organizations:required-email-verification", obj)
-                    and obj.flags.require_email_verification
-                ),
+                # The requireEmailVerification feature has been removed, this field is deprecated.
+                "requireEmailVerification": False,
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
                 "dataScrubber": bool(
@@ -576,8 +597,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
                 "relayPiiConfig": str(obj.get_option("sentry:relay_pii_config") or "") or None,
                 "codecovAccess": bool(obj.flags.codecov_access),
-                "aiSuggestedSolution": bool(
-                    obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
+                "hideAiFeatures": bool(
+                    obj.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
                 ),
                 "githubPRBot": bool(
                     obj.get_option("sentry:github_pr_bot", GITHUB_COMMENT_BOT_DEFAULT)
@@ -588,7 +609,9 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
-                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "genAIConsent": bool(
+                    obj.get_option("sentry:gen_ai_consent_v2024_11_14", DATA_CONSENT_DEFAULT)
+                ),
                 "aggregatedDataConsent": bool(
                     obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
                 ),
@@ -609,12 +632,23 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
                     )
                 ),
+                "rollbackEnabled": bool(
+                    obj.get_option("sentry:rollback_enabled", ROLLBACK_ENABLED_DEFAULT)
+                ),
             }
         )
 
         if features.has("organizations:uptime-settings", obj):
             context["uptimeAutodetection"] = bool(
                 obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
+            )
+
+        if has_custom_dynamic_sampling(obj, actor=user):
+            context["targetSampleRate"] = float(
+                obj.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
+            )
+            context["samplingMode"] = str(
+                obj.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
             )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
@@ -629,12 +663,30 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
 
-        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
-        context["isDynamicallySampled"] = (
-            features.has("organizations:dynamic-sampling", obj)
-            and sample_rate is not None
-            and sample_rate < 1.0
-        )
+        is_dynamically_sampled = False
+        sample_rate = None
+        if has_custom_dynamic_sampling(obj):
+            if is_organization_mode_sampling(obj):
+                sample_rate = obj.get_option(
+                    "sentry:target_sample_rate",
+                    quotas.backend.get_blended_sample_rate(organization_id=obj.id),
+                )
+                is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+            elif is_project_mode_sampling(obj):
+                is_dynamically_sampled = (
+                    ProjectOption.objects.filter(
+                        project__organization=obj,
+                        key="sentry:target_sample_rate",
+                    )
+                    .annotate(value_as_json=Cast("value", output_field=JSONField(null=True)))
+                    .filter(value_as_json__lt=1.0)
+                    .exists()
+                )
+        elif has_dynamic_sampling(obj):
+            sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
+            is_dynamically_sampled = sample_rate is not None and sample_rate < 1.0
+
+        context["isDynamicallySampled"] = is_dynamically_sampled
 
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
@@ -643,9 +695,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if sample_rate is not None:
             context["planSampleRate"] = sample_rate
 
-        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
-            org_id=obj.id, default_sample_rate=sample_rate
-        )
+        if is_project_mode_sampling(obj):
+            desired_sample_rate = None
+        else:
+            desired_sample_rate, _ = get_org_sample_rate(
+                org_id=obj.id, default_sample_rate=sample_rate
+            )
+
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
@@ -660,6 +716,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
         "quota",
+        "rollbackEnabled",
     ]
 )
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(

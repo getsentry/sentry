@@ -15,7 +15,7 @@ from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
 from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleDetectionType
 from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -155,6 +155,31 @@ def fetch_metric_alert_incidents(
         return []
 
 
+def fetch_metric_alert_anomalies(
+    organization: Organization,
+    alert_rule: AlertRule,
+    time_period: Mapping[str, str],
+    user: Optional["User"] = None,
+) -> list[Any]:
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
+            user=user,
+            path=f"/organizations/{organization.slug}/alert-rules/{alert_rule.id}/anomalies/",
+            params={
+                **time_period,
+            },
+        )
+        return resp.data
+    except Exception as exc:
+        logger.error(
+            "Failed to load anomalies for chart: %s",
+            exc,
+            exc_info=True,
+        )
+        return []
+
+
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
@@ -203,9 +228,28 @@ def build_metric_alert_chart(
             user,
         ),
     }
+    # Flag can be enabled IF we want to enable marked lines/areas for anomalies in the future
+    # For now, we defer to incident lines as indicators for anomalies
+    if (
+        features.has(
+            "organizations:anomaly-detection-alerts-charts",
+            organization,
+        )
+        and alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+    ):
+        chart_data["anomalies"] = fetch_metric_alert_anomalies(
+            organization,
+            alert_rule,
+            time_period,
+            user,
+        )
 
     allow_mri = features.has(
         "organizations:custom-metrics",
+        organization,
+        actor=user,
+    ) or features.has(
+        "organizations:insights-alerts",
         organization,
         actor=user,
     )
@@ -222,7 +266,7 @@ def build_metric_alert_chart(
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
         query_str
-        if is_crash_free_alert
+        if is_crash_free_alert or dataset == Dataset.EventsAnalyticsPlatform
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
             query_str,
@@ -248,6 +292,11 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif (
+            query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
+        ):
+            query_params["dataset"] = "spans"
+            query_params["useRpc"] = "1"
         elif query_type == SnubaQuery.Type.ERROR:
             query_params["dataset"] = "errors"
         else:

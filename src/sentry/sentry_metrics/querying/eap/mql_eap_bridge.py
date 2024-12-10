@@ -8,11 +8,7 @@ from sentry_protos.snuba.v1alpha.endpoint_aggregate_bucket_pb2 import (
     AggregateBucketResponse,
 )
 from sentry_protos.snuba.v1alpha.request_common_pb2 import RequestMeta
-from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import (
-    AttributeKey,
-    AttributeKeyTransformContext,
-    AttributeValue,
-)
+from sentry_protos.snuba.v1alpha.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1alpha.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -28,7 +24,7 @@ from snuba_sdk.conditions import Or as MQLOr
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils import snuba
+from sentry.utils import snuba_rpc
 
 
 def parse_mql_filters(group: ConditionGroup) -> Iterable[TraceItemFilter]:
@@ -97,11 +93,8 @@ def make_eap_request(
         key=AttributeKey(
             name=ts.metric.mri.split("/")[1].split("@")[0], type=AttributeKey.TYPE_FLOAT
         ),
-        attribute_key_transform_context=AttributeKeyTransformContext(
-            project_ids_to_names={project.id: project.slug for project in projects}
-        ),
     )
-    aggregate_resp = snuba.rpc(aggregate_req, AggregateBucketResponse)
+    aggregate_resp = snuba_rpc.rpc(aggregate_req, AggregateBucketResponse)
 
     series_data = list(aggregate_resp.result)
     duration = end - start

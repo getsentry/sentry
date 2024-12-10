@@ -1,103 +1,271 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/button';
+import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
+import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
 import {
-  ALLOWED_VISUALIZE_AGGREGATES,
-  ALLOWED_VISUALIZE_FIELDS,
   DEFAULT_VISUALIZATION,
+  MAX_VISUALIZES,
   useVisualizes,
 } from 'sentry/views/explore/hooks/useVisualizes';
-import type {SpanIndexedField} from 'sentry/views/insights/types';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
+  ToolbarFooter,
+  ToolbarFooterButton,
   ToolbarHeader,
   ToolbarHeaderButton,
-  ToolbarHeading,
+  ToolbarLabel,
+  ToolbarRow,
   ToolbarSection,
 } from './styles';
+
+type ParsedVisualize = {
+  func: ParsedFunction;
+  label: string;
+};
 
 interface ToolbarVisualizeProps {}
 
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
   const [visualizes, setVisualizes] = useVisualizes();
 
-  const parsedVisualizes: ParsedFunction[] = useMemo(() => {
-    return visualizes.map(parseFunction).filter(defined);
+  const numberTags = useSpanTags('number');
+
+  const parsedVisualizeGroups: ParsedVisualize[][] = useMemo(() => {
+    return visualizes.map(visualize =>
+      visualize.yAxes
+        .map(parseFunction)
+        .filter(defined)
+        .map(func => {
+          return {
+            func,
+            label: visualize.label,
+          };
+        })
+    );
   }, [visualizes]);
 
-  const fieldOptions: SelectOption<SpanIndexedField>[] = ALLOWED_VISUALIZE_FIELDS.map(
-    field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }
-  );
+  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+    const unknownOptions = parsedVisualizeGroups
+      .flatMap(group =>
+        group.flatMap(entry => {
+          return entry.func.arguments;
+        })
+      )
+      .filter(option => {
+        return !numberTags.hasOwnProperty(option);
+      });
 
-  const aggregateOptions: SelectOption<string>[] = ALLOWED_VISUALIZE_AGGREGATES.map(
-    aggregate => {
+    const options = [
+      ...unknownOptions.map(option => ({
+        label: prettifyTagKey(option),
+        value: option,
+        textValue: option,
+      })),
+      ...Object.values(numberTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+        };
+      }),
+    ];
+
+    options.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    return options;
+  }, [numberTags, parsedVisualizeGroups]);
+
+  const aggregateOptions: SelectOption<string>[] = useMemo(() => {
+    return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
       return {
         label: aggregate,
         value: aggregate,
+        textValue: aggregate,
       };
-    }
-  );
+    });
+  }, []);
 
   const addChart = useCallback(() => {
-    setVisualizes([...visualizes, DEFAULT_VISUALIZATION]);
+    setVisualizes([
+      ...visualizes,
+      {yAxes: [DEFAULT_VISUALIZATION], chartType: ChartType.LINE},
+    ]);
   }, [setVisualizes, visualizes]);
 
-  const setChartField = useCallback(
-    (index: number, {value}: SelectOption<string>) => {
-      const newVisualizes = [...visualizes];
-      newVisualizes[index] = `${parsedVisualizes[index].name}(${value})`;
+  const addOverlay = useCallback(
+    (group: number) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes.push(DEFAULT_VISUALIZATION);
       setVisualizes(newVisualizes);
     },
-    [parsedVisualizes, setVisualizes, visualizes]
+    [setVisualizes, visualizes]
+  );
+
+  const setChartField = useCallback(
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes[index] =
+        `${parsedVisualizeGroups[group][index].func.name}(${value})`;
+      setVisualizes(newVisualizes);
+    },
+    [parsedVisualizeGroups, setVisualizes, visualizes]
   );
 
   const setChartAggregate = useCallback(
-    (index: number, {value}: SelectOption<string>) => {
-      const newVisualizes = [...visualizes];
-      newVisualizes[index] = `${value}(${parsedVisualizes[index].arguments[0]})`;
+    (group: number, index: number, {value}: SelectOption<SelectKey>) => {
+      const newVisualizes = visualizes.slice();
+      newVisualizes[group].yAxes[index] =
+        `${value}(${parsedVisualizeGroups[group][index].func.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
-    [parsedVisualizes, setVisualizes, visualizes]
+    [parsedVisualizeGroups, setVisualizes, visualizes]
   );
+
+  const deleteOverlay = useCallback(
+    (group: number, index: number) => {
+      const newVisualizes: Visualize[] = visualizes
+        .map((visualize, orgGroup) => {
+          if (group !== orgGroup) {
+            return visualize;
+          }
+
+          return {
+            ...visualize,
+            yAxes: visualize.yAxes.filter((_, orgIndex) => index !== orgIndex),
+          };
+        })
+        .filter(visualize => visualize.yAxes.length > 0);
+      setVisualizes(newVisualizes);
+    },
+    [setVisualizes, visualizes]
+  );
+
+  const lastVisualization =
+    parsedVisualizeGroups
+      .map(parsedVisualizeGroup => parsedVisualizeGroup.length)
+      .reduce((a, b) => a + b, 0) <= 1;
+
+  const shouldRenderLabel = visualizes.length > 1;
 
   return (
     <ToolbarSection data-test-id="section-visualizes">
       <ToolbarHeader>
-        <ToolbarHeading>{t('Visualize')}</ToolbarHeading>
-        <ToolbarHeaderButton size="xs" onClick={addChart} borderless>
-          {t('+Add Chart')}
-        </ToolbarHeaderButton>
+        <Tooltip
+          position="right"
+          title={t(
+            'Primary metric that appears in your chart. You can also overlay a series onto an existing chart or add an equation.'
+          )}
+        >
+          <ToolbarLabel>{t('Visualize')}</ToolbarLabel>
+        </Tooltip>
+        <Tooltip title={t('Add a new chart')}>
+          <ToolbarHeaderButton
+            size="zero"
+            icon={<IconAdd />}
+            onClick={addChart}
+            aria-label={t('Add Chart')}
+            borderless
+            disabled={visualizes.length >= MAX_VISUALIZES}
+          />
+        </Tooltip>
       </ToolbarHeader>
-      {parsedVisualizes.map((parsedVisualize, index) => (
-        <VisualizeOption key={index}>
-          <CompactSelect
-            size="md"
-            options={fieldOptions}
-            value={parsedVisualize.arguments[0]}
-            onChange={newField => setChartField(index, newField)}
-          />
-          <CompactSelect
-            size="md"
-            options={aggregateOptions}
-            value={parsedVisualize?.name}
-            onChange={newAggregate => setChartAggregate(index, newAggregate)}
-          />
-        </VisualizeOption>
-      ))}
+      <div>
+        {parsedVisualizeGroups.map((parsedVisualizeGroup, group) => {
+          return (
+            <Fragment key={group}>
+              {parsedVisualizeGroup.map((parsedVisualize, index) => (
+                <ToolbarRow key={index}>
+                  {shouldRenderLabel && <ChartLabel>{parsedVisualize.label}</ChartLabel>}
+                  <ColumnCompactSelect
+                    searchable
+                    options={fieldOptions}
+                    value={parsedVisualize.func.arguments[0]}
+                    onChange={newField => setChartField(group, index, newField)}
+                  />
+                  <AggregateCompactSelect
+                    options={aggregateOptions}
+                    value={parsedVisualize.func.name}
+                    onChange={newAggregate =>
+                      setChartAggregate(group, index, newAggregate)
+                    }
+                  />
+                  <Button
+                    borderless
+                    icon={<IconDelete />}
+                    size="zero"
+                    disabled={lastVisualization}
+                    onClick={() => deleteOverlay(group, index)}
+                    aria-label={t('Remove Overlay')}
+                  />
+                </ToolbarRow>
+              ))}
+              <ToolbarFooter>
+                <ToolbarFooterButton
+                  borderless
+                  size="zero"
+                  icon={<IconAdd />}
+                  onClick={() => addOverlay(group)}
+                  priority="link"
+                  aria-label={t('Add Series')}
+                >
+                  {t('Add Series')}
+                </ToolbarFooterButton>
+              </ToolbarFooter>
+            </Fragment>
+          );
+        })}
+      </div>
     </ToolbarSection>
   );
 }
 
-const VisualizeOption = styled('div')`
-  display: flex;
+const ChartLabel = styled('div')`
+  background-color: ${p => p.theme.purple100};
+  border-radius: ${p => p.theme.borderRadius};
+  text-align: center;
+  width: 38px;
+  color: ${p => p.theme.purple400};
+  white-space: nowrap;
+  font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
+`;
+
+const ColumnCompactSelect = styled(CompactSelect)`
+  flex: 1 1;
+  min-width: 0;
+
+  > button {
+    width: 100%;
+  }
+`;
+
+const AggregateCompactSelect = styled(CompactSelect)`
+  width: 100px;
+
+  > button {
+    width: 100%;
+  }
 `;

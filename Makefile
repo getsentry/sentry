@@ -3,7 +3,6 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
-POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -20,8 +19,7 @@ run-dependent-services \
 drop-db \
 create-db \
 apply-migrations \
-reset-db \
-node-version-check :
+reset-db :
 	@./scripts/do.sh $@
 
 develop \
@@ -35,7 +33,7 @@ install-py-dev :
 devenv-sync:
 	devenv sync
 
-build-js-po: node-version-check
+build-js-po:
 	mkdir -p build
 	rm -rf node_modules/.cache/babel-loader
 	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
@@ -107,18 +105,18 @@ test-cli: create-db
 	rm -r test_cli
 	@echo ""
 
-test-js-build: node-version-check
+test-js-build:
 	@echo "--> Running type check"
 	@yarn run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
 	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
 
-test-js: node-version-check
+test-js:
 	@echo "--> Running JavaScript tests"
 	@yarn run test
 	@echo ""
 
-test-js-ci: node-version-check
+test-js-ci:
 	@echo "--> Running CI JavaScript tests"
 	@yarn run test-ci
 	@echo ""
@@ -159,7 +157,6 @@ test-monolith-dbs:
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
-	  tests/sentry/backup/test_releases.py \
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
@@ -186,7 +183,7 @@ test-symbolicator:
 	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
-test-acceptance: node-version-check
+test-acceptance:
 	@echo "--> Building static assets"
 	@$(WEBPACK)
 	make run-acceptance

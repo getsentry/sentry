@@ -129,8 +129,7 @@ class RedisClusterManager:
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
         **config: Any,
-    ) -> RedisCluster[bytes] | StrictRedis[bytes]:
-        ...
+    ) -> RedisCluster[bytes] | StrictRedis[bytes]: ...
 
     @overload
     def _factory(
@@ -142,8 +141,7 @@ class RedisClusterManager:
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
         **config: Any,
-    ) -> RedisCluster[str] | StrictRedis[str]:
-        ...
+    ) -> RedisCluster[str] | StrictRedis[str]: ...
 
     def _factory(
         self,
@@ -171,9 +169,9 @@ class RedisClusterManager:
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
-        def cluster_factory() -> RedisCluster[
-            bytes
-        ] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
+        def cluster_factory() -> (
+            RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
+        ):
             if is_redis_cluster:
                 return RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py

@@ -20,15 +20,15 @@ export function DebugIdBundleDeleteButton({
       {({hasAccess}) => (
         <Tooltip
           disabled={hasAccess}
-          title={t('You do not have permission to delete bundles.')}
+          title={t('You do not have permission to delete source maps.')}
         >
           <Confirm
             onConfirm={onDelete}
-            message={t('Are you sure you want to delete this bundle?')}
+            message={t('Are you sure you want to delete these source maps?')}
             disabled={!hasAccess}
           >
             <Button icon={<IconDelete size="xs" />} size={size} disabled={!hasAccess}>
-              {t('Delete Bundle')}
+              {t('Delete Source Maps')}
             </Button>
           </Confirm>
         </Tooltip>

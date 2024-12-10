@@ -6,6 +6,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.base import disable_integration, is_response_error, is_response_success
 from sentry.integrations.models import Integration
@@ -119,9 +120,13 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
             # this is a read operation.
             """
             with in_test_hide_transaction_boundary():
-                integration = integration_service.get_integration(integration_id=integration_id)
+                integration = integration_service.get_integration(
+                    integration_id=integration_id, status=ObjectStatus.ACTIVE
+                )
         else:  # control or monolith (local)
-            integration = Integration.objects.filter(id=integration_id).first()
+            integration = Integration.objects.filter(
+                id=integration_id, status=ObjectStatus.ACTIVE
+            ).first()
 
         if integration is None:
             raise ValueError(f"Integration with id {integration_id} not found")

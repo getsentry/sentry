@@ -50,13 +50,13 @@ export function isSentryContinuousProfileChunk(
 }
 
 export function isContinuousProfileReference(
-  ref: Profiling.ProfileReference
-): ref is Profiling.ContinuousProfileReference {
+  ref: Profiling.BaseProfileReference
+): ref is Profiling.BaseContinuousProfileReference {
   return typeof ref !== 'string' && 'profiler_id' in ref;
 }
 
 export function isTransactionProfileReference(
-  ref: Profiling.ProfileReference
-): ref is Profiling.TransactionProfileReference {
+  ref: Profiling.BaseProfileReference
+): ref is Profiling.BaseTransactionProfileReference {
   return typeof ref !== 'string' && 'profile_id' in ref;
 }

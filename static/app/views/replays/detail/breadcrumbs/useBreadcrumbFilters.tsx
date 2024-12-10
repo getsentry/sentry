@@ -52,6 +52,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   tap: 'User Tap',
   device: 'Device',
   app: 'App',
+  custom: 'Custom',
 };
 
 const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
@@ -102,7 +103,7 @@ const FILTERS = {
 function useBreadcrumbFilters({frames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
-  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // Keep a reference of object paths that are expanded (via <StructuredEventData>)
   // by log row, so they they can be restored as the Console pane is scrolling.
   // Due to virtualization, components can be unmounted as the user scrolls, so
   // state needs to be remembered.
@@ -113,6 +114,13 @@ function useBreadcrumbFilters({frames}: Options): Return {
 
   const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
+
+  // add custom breadcrumbs to filter
+  frames.forEach(frame => {
+    if (!(getFrameOpOrCategory(frame) in OPORCATEGORY_TO_TYPE)) {
+      OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
+    }
+  });
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']

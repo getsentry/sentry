@@ -60,8 +60,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -91,8 +91,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": "spm()",
                 "project": self.project.id,
@@ -123,8 +123,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         for axis in ["epm()", "tpm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=24),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -151,8 +151,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         for axis in ["tpm()", "epm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
+                    "start": self.day_ago + timedelta(minutes=30),
+                    "end": self.day_ago + timedelta(hours=6, minutes=30),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -181,8 +181,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         for axis in ["eps()", "tps()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(minutes=6),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -210,8 +210,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": ["failure_rate()"],
                 "project": self.project.id,
@@ -240,8 +240,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": ["p75(measurements.lcp)", "p75(transaction.duration)"],
                 "project": self.project.id,
@@ -266,8 +266,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": ["epm()", "eps()", "tpm()", "p50(transaction.duration)"],
                 "dataset": "metricsEnhanced",
@@ -286,8 +286,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "count_unique(user)",
                 "dataset": "metricsEnhanced",
@@ -305,8 +305,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             response = self.do_request(
                 data={
                     "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
                     "interval": "1h",
                     "query": query,
                     "yAxis": ["epm()"],
@@ -333,8 +333,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "query": "p95():<5s",
                 "yAxis": ["epm()"],
@@ -352,8 +352,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 # Should be a mep able query
                 "query": "",
@@ -373,8 +373,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.store_transaction_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "sum(transaction.duration)",
                 "dataset": "metricsEnhanced",
@@ -405,8 +405,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.store_transaction_metric(456, timestamp=self.day_ago + timedelta(minutes=30))
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(days=1)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(days=1),
                 "interval": "1d",
                 "yAxis": "sum(transaction.duration)",
                 "comparisonDelta": 86400,
@@ -454,8 +454,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "sum(measurements.datacenter_memory)",
                 "dataset": "metricsEnhanced",
@@ -482,8 +482,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "dataset": "metricsEnhanced",
@@ -524,8 +524,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": [
                     "sum(measurements.datacenter_memory)",
@@ -581,8 +581,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.store_transaction_metric(789, timestamp=self.day_ago + timedelta(hours=1, minutes=30))
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "query": "transaction.duration:<5s",
                 "yAxis": "sum(transaction.duration)",
@@ -600,8 +600,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "query": "title:foo_transaction",
                 "yAxis": [
@@ -626,8 +626,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "query": "transaction.status:unknown_error",
                 "yAxis": [
@@ -653,8 +653,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "p99(measurements.custom)",
                 "query": "",
@@ -682,8 +682,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         )
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": [
                     "p95(measurements.custom)",
@@ -718,8 +718,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data={
                 # make sure to query the project with 0 events
                 "project": project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "yAxis": "count()",
                 "orderby": ["-count()"],
@@ -750,8 +750,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data={
                 # make sure to query the project with 0 events
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "interval": "1h",
                 "yAxis": "p75(transaction.duration)",
                 "orderby": ["-p75(transaction.duration)"],
@@ -779,8 +779,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             data={
                 # make sure to query the project with 0 events
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "interval": "1h",
                 "yAxis": "p75(transaction.duration)",
                 "orderby": ["-p75(transaction.duration)"],
@@ -976,8 +976,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": ["p75(measurements.inp)"],
                 "project": self.project.id,
@@ -992,6 +992,50 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert data["meta"]["fields"]["p75_measurements_inp"] == "duration"
         for item in data["data"]:
             assert item[1][0]["count"] == 111
+
+    def test_metrics_enhanced_defaults_to_transactions_with_feature_flag(self):
+        # Store an error
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "user": {"email": self.user.email},
+                "timestamp": before_now(days=1, minutes=1).isoformat(),
+                "tags": {"notMetrics": "this makes it not metrics"},
+            },
+            project_id=self.project.id,
+        )
+
+        # Store a transaction
+        transaction_data = load_data("transaction")
+        self.store_event(
+            {
+                **transaction_data,
+                "tags": {"notMetrics": "this makes it not metrics"},
+                "start_timestamp": before_now(days=1, minutes=1).isoformat(),
+                "timestamp": before_now(days=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        features = {
+            "organizations:performance-discover-dataset-selector": True,
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+        }
+        query = {
+            "field": ["count()"],
+            "query": 'notMetrics:"this makes it not metrics"',
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "dataset": "metricsEnhanced",
+        }
+        response = self.do_request(query, features=features)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+
+        # First bucket, where the transaction should be
+        assert response.data["data"][0][1][0]["count"] == 1
 
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -1016,8 +1060,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1m",
                 "yAxis": [f"sum({mri})"],
                 "project": self.project.id,
@@ -1045,8 +1089,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": [f"sum({mri})"],
                 "project": self.project.id,
@@ -1075,8 +1119,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": [f"min({mri})", f"max({mri})", f"p90({mri})"],
                 "project": self.project.id,
@@ -1115,8 +1159,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": [f"count_unique({mri})"],
                 "project": self.project.id,
@@ -1147,8 +1191,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": [
                     f"min({mri})",
@@ -1198,8 +1242,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
                 "interval": "1h",
                 "yAxis": "spm()",
                 "project": self.project.id,
@@ -1256,8 +1300,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "environment": "production",
@@ -1281,8 +1325,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "environment": "production",
@@ -1338,8 +1382,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "environment": "production",
@@ -1414,8 +1458,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "query": query,
@@ -1496,8 +1540,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "query": query,
@@ -1564,8 +1608,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "query": query,
@@ -1656,8 +1700,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "query": query,
@@ -1729,8 +1773,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             response = self.do_request(
                 data={
                     "project": self.project.id,
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
                     "interval": "1h",
                     "orderby": ["-count()"],
                     "query": query,
@@ -1802,8 +1846,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": [field],
                 "query": query,
@@ -1868,8 +1912,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "environment": "production",
                 "excludeOther": 1,
                 "field": [field, "group_tag"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": f"-{field}",
                 "partial": 1,
@@ -1944,8 +1988,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metricsEnhanced",
                 "field": [network_id_tag, agg],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": f"-{agg}",
                 "interval": "1d",
@@ -2018,8 +2062,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
 
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "fields": {"time": "date", "epm_900": "rate"},
-            "units": {"time": None, "epm_900": None},
+            "fields": {"time": "date", "epm": "rate"},
+            "units": {"time": None, "epm": None},
             "isMetricsData": True,
             "isMetricsExtractedData": False,
             "tips": {},
@@ -2055,8 +2099,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "environment": "production",
                 "excludeOther": 1,
                 "field": [field, "transaction"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": f"-{field}",
                 "partial": 1,
@@ -2125,8 +2169,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metricsEnhanced",
                 "field": ["networkId", "count()"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": "-count()",
                 "interval": "1d",
@@ -2167,8 +2211,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metricsEnhanced",
                 "field": ["networkId", "count()"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": "count()",
                 "interval": "1d",
@@ -2209,8 +2253,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metricsEnhanced",
                 "field": ["networkId", "count()"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": "count()",
                 "interval": "1d",
@@ -2251,8 +2295,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metrics",
                 "field": ["networkId", "count()"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": "-networkId",
                 "interval": "1d",
@@ -2276,8 +2320,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             data={
                 "dataset": "metrics",
                 "field": ["networkId", "count()", "p95(transaction.duration)"],
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=5)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=5),
                 "onDemandType": "dynamic_query",
                 "orderby": ["count()", "p95(transaction.duration)"],
                 "interval": "1d",
@@ -2313,8 +2357,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
         response = self.do_request(
             data={
                 "project": self.project.id,
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
                 "interval": "1h",
                 "orderby": ["-count()"],
                 "environment": "production",

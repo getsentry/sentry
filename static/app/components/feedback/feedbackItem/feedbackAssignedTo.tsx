@@ -52,7 +52,7 @@ export default function FeedbackAssignedTo({
     projectIds: [feedbackIssue.project.id],
   });
 
-  const owners = getOwnerList([], eventOwners ?? null, feedbackIssue.assignedTo);
+  const owners = getOwnerList([], eventOwners, feedbackIssue.assignedTo);
 
   // A new `key` will make the component re-render when showActorName changes
   const key = showActorName ? 'showActor' : 'hideActor';
@@ -72,7 +72,7 @@ export default function FeedbackAssignedTo({
       }}
       owners={owners}
       group={feedbackIssue}
-      alignMenu="left"
+      alignMenu="right"
     >
       {({isOpen, getActorProps}) => (
         <Button size="xs" aria-label={t('Assigned dropdown')} {...getActorProps({})}>

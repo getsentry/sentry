@@ -3,23 +3,24 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from sentry.discover.dataset_split import (
+    SplitDataset,
     _dataset_split_decision_inferred_from_query,
     _get_and_save_split_decision_for_query,
-    _get_snuba_dataclass,
+    _get_snuba_dataclass_for_saved_query,
 )
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 from sentry.utils.samples import load_data
 
 
@@ -45,7 +46,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
 
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.dry_run = False
 
     def test_errors_query(self):
         errors_query = DiscoverSavedQuery.objects.create(
@@ -65,9 +66,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(errors_query, False)
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_errors_query_top_level_and_condition(self):
         errors_query = DiscoverSavedQuery.objects.create(
@@ -87,9 +88,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         errors_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(errors_query, False)
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_top_level_or_condition_with_no_data(self):
         transaction_query = DiscoverSavedQuery.objects.create(
@@ -109,9 +110,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(transaction_query, False)
+        _get_and_save_split_decision_for_query(transaction_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_conflicting_or_conditions_favor_errors(self):
         transaction_query = DiscoverSavedQuery.objects.create(
@@ -131,9 +132,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         transaction_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(transaction_query, False)
+        _get_and_save_split_decision_for_query(transaction_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=transaction_query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_array_condition(self):
         array_query = DiscoverSavedQuery.objects.create(
@@ -153,9 +154,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         array_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(array_query, False)
+        _get_and_save_split_decision_for_query(array_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=array_query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_measurements_condition(self):
         measurements_query = DiscoverSavedQuery.objects.create(
@@ -182,9 +183,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         measurements_query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(measurements_query, False)
+        _get_and_save_split_decision_for_query(measurements_query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=measurements_query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_spans_condition(self):
         query = DiscoverSavedQuery.objects.create(
@@ -210,9 +211,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_measurements_columns(self):
         query = DiscoverSavedQuery.objects.create(
@@ -239,9 +240,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_spans_column(self):
         query = DiscoverSavedQuery.objects.create(
@@ -266,9 +267,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_ambiguous_query_with_error_data(self):
         data = load_data("javascript", timestamp=self.ten_mins_ago)
@@ -300,24 +301,26 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_ambiguous_query_with_transactions_data(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/"
+        data["environment"] = self.environment.name
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         data = load_data("transaction", timestamp=self.ten_mins_ago)
         data["transaction"] = "/to_other/2"
+        data["environment"] = self.environment.name
         self.store_event(data, project_id=self.project.id, assert_no_errors=False)
 
         query = DiscoverSavedQuery.objects.create(
             organization_id=self.organization.id,
             name="",
             query={
-                "environment": [],
+                "environment": [f"{self.environment.name}"],
                 "range": "7d",
                 "fields": [
                     "transaction",
@@ -334,9 +337,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_ambiguous_query_with_no_data(self):
         query = DiscoverSavedQuery.objects.create(
@@ -360,9 +363,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_ambiguous_query_with_error_and_transaction_data(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -394,9 +397,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     def test_ambiguous_query_with_tags(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -429,9 +432,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 2
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 2
 
     def test_ambiguous_error_query_with_tags(self):
         data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -465,9 +468,9 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
         query.set_projects(self.project_ids)
 
-        _get_and_save_split_decision_for_query(query, False)
+        _get_and_save_split_decision_for_query(query, self.dry_run)
         saved_query = DiscoverSavedQuery.objects.get(id=query.id)
-        assert saved_query.dataset == 1
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
 
     @freeze_time("2024-05-01 12:00:00")
     def test_out_of_range_defaults_to_seven_days(self):
@@ -493,7 +496,7 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
         )
 
         with self.options({"system.event-retention-days": 90}):
-            snuba_dataclass = _get_snuba_dataclass(query, self.projects)
+            snuba_dataclass = _get_snuba_dataclass_for_saved_query(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 4, 24, 12, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
@@ -520,19 +523,145 @@ class DiscoverSavedQueryDatasetSplitTestCase(TestCase, SnubaTestCase):
             is_homepage=True,
         )
 
-        snuba_dataclass = _get_snuba_dataclass(query, self.projects)
+        snuba_dataclass = _get_snuba_dataclass_for_saved_query(query, self.projects)
 
         assert snuba_dataclass.start == datetime(2024, 5, 1, 11, 0, tzinfo=timezone.utc)
         assert snuba_dataclass.end == datetime(2024, 5, 1, 12, 0, tzinfo=timezone.utc)
 
+    def test_errors_query_fallback(self):
+        errors_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "query": "(error.unhandled:true message:testing) OR message:test",
+                "fields": ["title", "issue", "project", "release", "count()", "count_unique(user)"],
+                "range": "90d",
+                "orderby": "-count",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+            is_homepage=True,
+        )
+        errors_query.set_projects(self.project_ids)
+
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
+        saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
+
+        if not self.dry_run:
+            assert errors_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_saved_query_org_with_no_projects(self):
+        # An org with no projects
+        self.organization = self.create_organization()
+
+        errors_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "query": "stack.filename:'../../sentry/scripts/views.js'",
+                "fields": ["title", "issue", "project", "release", "count()", "count_unique(user)"],
+                "range": "90d",
+                "orderby": "-count",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+            is_homepage=True,
+        )
+
+        _get_and_save_split_decision_for_query(errors_query, self.dry_run)
+        saved_query = DiscoverSavedQuery.objects.get(id=errors_query.id)
+        assert saved_query.dataset == 0 if self.dry_run else saved_query.dataset == 1
+
+    def test_dashboard_split_transaction_status_error_events_dataset(self):
+        transaction_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": ["transaction", "p75(transaction.duration)", "total.count"],
+                "query": "event.type:transaction transaction.status:ok",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(transaction_query, self.dry_run)
+        transaction_query.refresh_from_db()
+        assert transaction_query.dataset == 0 if self.dry_run else transaction_query.dataset == 2
+        if not self.dry_run:
+            assert transaction_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_unhandled_filter_sets_error_events_dataset(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "environment": [],
+                "fields": [
+                    "equation|count() / total.count * 100",
+                    "release",
+                    "error_event",
+                    "count()",
+                    "total.count",
+                ],
+                "query": "error.unhandled:false",
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.FORCED.value
+
+    def test_empty_equation_is_filtered_out(self):
+        error_query = DiscoverSavedQuery.objects.create(
+            organization_id=self.organization.id,
+            name="",
+            query={
+                "fields": [
+                    "count()",
+                    "equation|",
+                ],
+                "query": 'message:"Testing"',
+                "range": "90d",
+            },
+            version=2,
+            dataset=0,
+            dataset_source=0,
+        )
+
+        _get_and_save_split_decision_for_query(error_query, self.dry_run)
+        error_query.refresh_from_db()
+        assert error_query.dataset == 0 if self.dry_run else error_query.dataset == 1
+        if not self.dry_run:
+            assert error_query.dataset_source == DatasetSourcesTypes.INFERRED.value
+
+
+class DiscoverSavedQueryDatasetSplitDryRunTestCase(DiscoverSavedQueryDatasetSplitTestCase):
+    def setUp(self):
+        super().setUp()
+        self.dry_run = True
+
 
 @pytest.fixture
-def owner() -> None:
+def owner() -> User:
     return Factories.create_user()
 
 
 @pytest.fixture
-def organization(owner: User) -> None:
+def organization(owner: User) -> Organization:
     return Factories.create_organization(owner=owner)
 
 
@@ -548,12 +677,12 @@ def project(organization: Organization) -> Project:
         pytest.param(
             "stack.filename:'../../sentry/scripts/views.js' AND (branch:foo OR branch:bar)",
             ["count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "error.unhandled:true",
             ["count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "(event:type:error AND branch:foo) OR (event:type:transaction AND branch:bar)",
@@ -568,37 +697,37 @@ def project(organization: Organization) -> Project:
         pytest.param(
             "branch:foo branch:bar",
             ["stack.function", "avg(transaction.duration)"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "",
             ["error.handled", "count()"],
-            DiscoverSavedQueryTypes.ERROR_EVENTS,
+            SplitDataset.Errors,
         ),
         pytest.param(
             "transaction.duration:>100ms",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "tag:value event.type:transaction",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "(tag:value OR branch:foo) AND event.type:transaction",
             ["count()"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "branch:foo branch:bar",
             ["avg(transaction.duration)"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
         pytest.param(
             "branch:foo branch:bar",
             ["p95(measurements.app_start_cold)"],
-            DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            SplitDataset.Transactions,
         ),
     ],
 )

@@ -417,7 +417,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
 };
 
 /**
@@ -648,6 +648,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   }),
+  // https://css-tricks.com/inclusively-hidden/
+  visuallyHidden: css({
+    clip: 'rect(0 0 0 0)',
+    clipPath: 'inset(50%)',
+    height: '1px',
+    overflow: 'hidden',
+    position: 'absolute',
+    whiteSpace: 'nowrap',
+    width: '1px',
+  }),
 });
 
 const generatePrismVariables = (
@@ -733,6 +743,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
+    // needs to be below sidebar
+    widgetBuilderDrawer: 1016,
+
     settingsSidebarNavMask: 1017,
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
@@ -754,9 +767,9 @@ const commonTheme = {
 
     // On mobile views issue list dropdowns overlap
     issuesList: {
-      stickyHeader: 1,
-      sortOptions: 2,
-      displayOptions: 3,
+      stickyHeader: 2,
+      sortOptions: 3,
+      displayOptions: 4,
     },
   },
 

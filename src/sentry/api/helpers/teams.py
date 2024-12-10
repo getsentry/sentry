@@ -41,7 +41,7 @@ def get_teams(request, organization, teams=None):
             raise InvalidParams(f"Invalid Team ID: {team_id}")
     requested_teams.update(verified_ids)
 
-    teams_query = Team.objects.filter(id__in=requested_teams)
+    teams_query = Team.objects.filter(id__in=requested_teams, organization=organization)
     for team in teams_query:
         if team.id in verified_ids:
             continue

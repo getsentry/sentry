@@ -109,6 +109,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         if self.org_integration is None:
             logger.info("integration_proxy.invalid_org_integration", extra=self.log_extra)
+            metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_org_integration")
             return False
         self.log_extra["integration_id"] = self.org_integration.integration_id
 
@@ -116,6 +117,8 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self.integration = self.org_integration.integration
         if not self.integration or self.integration.status is not ObjectStatus.ACTIVE:
             logger.info("integration_proxy.invalid_integration", extra=self.log_extra)
+            if self.integration and self.integration.status is not ObjectStatus.ACTIVE:
+                metrics.incr("hybrid_cloud.integration_proxy.failure.invalid_integration")
             return False
 
         # Get the integration client
@@ -218,7 +221,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         )
         return response
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: DRFRequest,
         exc: Exception,
@@ -237,4 +240,4 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
             return self.respond(status=exc.code)
 
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)

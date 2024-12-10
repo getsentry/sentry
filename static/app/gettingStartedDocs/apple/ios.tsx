@@ -11,7 +11,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -76,7 +79,8 @@ func application(_ application: UIApplication,
         options.tracesSampleRate = 1.0`
             : ''
         }${
-          params.isProfilingSelected
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
             ? `
 
         // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -84,6 +88,20 @@ func application(_ application: UIApplication,
         options.profilesSampleRate = 1.0`
             : ''
         }
+    }${
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+
+    // Manually call startProfiler and stopProfiler
+    // to profile the code in between
+    SentrySDK.startProfiler()
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiler is called.
+    SentrySDK.stopProfiler()`
+        : ''
     }
 
     return true
@@ -106,7 +124,8 @@ struct SwiftUIApp: App {
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-              params.isProfilingSelected
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode !== 'continuous'
                 ? `
 
             // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -114,6 +133,20 @@ struct SwiftUIApp: App {
             options.profilesSampleRate = 1.0`
                 : ''
             }
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+            ? `
+
+        // Manually call startProfiler and stopProfiler
+        // to profile the code in between
+        SentrySDK.startProfiler()
+        // this code will be profiled
+        //
+        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+        // your application until the process exits or stopProfiler is called.
+        SentrySDK.stopProfiler()`
+            : ''
         }
     }
 }`;
@@ -346,19 +379,17 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                     </ListItem>
                     <ListItem>
                       {tct(
-                        'Add a new [phase: Upload Debug Symbols] phase to your [xcodebuild: xcodebuild] build script',
+                        'Add a new [code: Upload Debug Symbols] phase to your [code: xcodebuild] build script',
                         {
-                          phase: <code />,
-                          xcodebuild: <code />,
+                          code: <code />,
                         }
                       )}
                     </ListItem>
                     <ListItem>
                       {tct(
-                        'Create [sentryclirc: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [gitignore: .gitignore])',
+                        'Create [code: .sentryclirc] with an auth token to upload debug symbols (this file is automatically added to [code: .gitignore])',
                         {
-                          sentryclirc: <code />,
-                          gitignore: <code />,
+                          code: <code />,
                         }
                       )}
                     </ListItem>
@@ -520,14 +551,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Learn about our first class integration with SwiftUI.'),
       link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
-    {
-      id: 'profiling',
-      name: t('Profiling'),
-      description: t(
-        'Collect and analyze performance profiles from real user devices in production.'
-      ),
-      link: 'https://docs.sentry.io/platforms/apple/profiling/',
-    },
   ],
 };
 
@@ -581,13 +604,9 @@ const metricsOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:SentrySDK.metrics()] namespace.",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges]. These are available under the [code:SentrySDK.metrics()] namespace.",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -713,7 +732,12 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep({
+    replayOnErrorSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+  }),
   nextSteps: () => [],
 };
 

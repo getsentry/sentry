@@ -1,11 +1,11 @@
 from sentry.models.organization import Organization
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.uptime.detectors.detector import detect_base_url_for_project
 from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
 
 
-class DetectBaseUrlForProjectTest(TestCase):
+class DetectBaseUrlForProjectTest(UptimeTestCase):
     def assert_organization_key(self, organization: Organization, exists: bool) -> None:
         key = get_organization_bucket_key(organization)
         cluster = _get_cluster()

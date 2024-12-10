@@ -10,8 +10,9 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.sentry_apps.apps import consolidate_events
+from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
+from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -22,7 +23,6 @@ from sentry.signals import (
     issue_resolved,
     issue_unresolved,
 )
-from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -152,7 +152,7 @@ def send_workflow_webhooks(
 def installations_to_notify(
     organization: Organization, resource_type: str
 ) -> list[RpcSentryAppInstallation]:
-    installations = app_service.get_installed_for_organization(organization_id=organization.id)
+    installations = app_service.installations_for_organization(organization_id=organization.id)
     # All issue webhooks are under one subscription, so if an intallation is subscribed to any issue
     # events it should get notified for all the issue events
     # TODO: Refactor sentry_app model so it doesn't store event, instead it stores subscription

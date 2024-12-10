@@ -3,6 +3,7 @@ from collections.abc import MutableMapping
 import psutil
 import pytest
 import responses
+from django.core.cache import cache
 from django.db import connections
 
 from sentry.silo.base import SiloMode
@@ -102,6 +103,12 @@ def audit_hybrid_cloud_writes_and_deletes(request):
             conn.force_debug_cursor = debug_cursor_state[conn.alias]
 
             validate_protected_queries(conn.queries)
+
+
+@pytest.fixture(autouse=True)
+def clear_caches():
+    yield
+    cache.clear()
 
 
 @pytest.fixture(autouse=True)

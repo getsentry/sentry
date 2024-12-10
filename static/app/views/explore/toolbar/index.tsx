@@ -8,7 +8,6 @@ import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ToolbarDataset} from 'sentry/views/explore/toolbar/toolbarDataset';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
-import {ToolbarLimitTo} from 'sentry/views/explore/toolbar/toolbarLimitTo';
 import {ToolbarResults} from 'sentry/views/explore/toolbar/toolbarResults';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
@@ -20,21 +19,37 @@ interface ExploreToolbarProps {
 }
 
 export function ExploreToolbar({extras}: ExploreToolbarProps) {
-  const [dataset, setDataset] = useDataset();
+  const [dataset, setDataset] = useDataset({allowRPC: true});
   const [resultMode, setResultMode] = useResultMode();
 
   const [sampleFields] = useSampleFields();
-
-  const [groupBys] = useGroupBys();
+  const {groupBys} = useGroupBys();
   const [visualizes] = useVisualizes();
-
   const fields = useMemo(() => {
     if (resultMode === 'samples') {
       return sampleFields;
     }
-    return [...groupBys, ...visualizes].filter(Boolean);
-  }, [resultMode, sampleFields, groupBys, visualizes]);
 
+    const allFields: string[] = [];
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    return allFields.filter(Boolean);
+  }, [resultMode, sampleFields, groupBys, visualizes]);
   const [sorts, setSorts] = useSorts({fields});
 
   return (
@@ -44,9 +59,8 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
       )}
       <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
       <ToolbarVisualize />
+      <ToolbarGroupBy disabled={resultMode !== 'aggregate'} />
       <ToolbarSortBy fields={fields} sorts={sorts} setSorts={setSorts} />
-      <ToolbarLimitTo />
-      <ToolbarGroupBy />
     </div>
   );
 }

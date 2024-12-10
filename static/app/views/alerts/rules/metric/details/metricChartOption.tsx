@@ -16,7 +16,8 @@ import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {Incident} from 'sentry/views/alerts/types';
+import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -139,6 +140,7 @@ function createIncidentSeries(
 export type MetricChartData = {
   rule: MetricRule;
   timeseriesData: Series[];
+  anomalies?: Anomaly[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
@@ -162,6 +164,7 @@ export function getMetricAlertChartOption({
   selectedIncident,
   handleIncidentClick,
   showWaitingForData,
+  anomalies,
 }: MetricChartData): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
@@ -215,8 +218,11 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const firstPoint = new Date(dataArr[0]?.name).getTime();
-  const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
+  const startDate = new Date(dataArr[0]?.name);
+  const endDate =
+    dataArr.length > 1 ? new Date(dataArr[dataArr.length - 1]?.name) : new Date();
+  const firstPoint = startDate.getTime();
+  const lastPoint = endDate.getTime();
   const totalDuration = lastPoint - firstPoint;
   let waitingForDataDuration = 0;
   let criticalDuration = 0;
@@ -237,7 +243,6 @@ export function getMetricAlertChartOption({
   }
 
   if (incidents) {
-    // select incidents that fall within the graph range
     incidents
       .filter(
         incident =>
@@ -339,6 +344,7 @@ export function getMetricAlertChartOption({
           const selectedIncidentColor =
             incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
 
+          // Is areaSeries used anywhere?
           areaSeries.push({
             seriesName: '',
             type: 'line',
@@ -354,7 +360,9 @@ export function getMetricAlertChartOption({
         }
       });
   }
-
+  if (anomalies) {
+    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate}));
+  }
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {
     const {alertThreshold} = warningTrigger;

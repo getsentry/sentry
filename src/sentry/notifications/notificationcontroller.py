@@ -14,8 +14,6 @@ from sentry.integrations.types import (
     ExternalProviderEnum,
     ExternalProviders,
 )
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.team import Team
 from sentry.notifications.helpers import (
@@ -26,6 +24,8 @@ from sentry.notifications.helpers import (
     recipient_is_user,
     team_is_valid_recipient,
 )
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     GroupSubscriptionStatus,
     NotificationScopeEnum,
@@ -245,9 +245,9 @@ class NotificationController:
                         continue
 
                 # sort the settings by scope type, with the most specific scope last so we override with the most specific value
-                most_specific_recipient_options[
-                    NotificationSettingEnum(setting.type)
-                ] = NotificationSettingsOptionEnum(setting.value)
+                most_specific_recipient_options[NotificationSettingEnum(setting.type)] = (
+                    NotificationSettingsOptionEnum(setting.value)
+                )
 
             # if we have no settings for this user/team, use the defaults
             for type, default in get_type_defaults().items():
@@ -334,9 +334,9 @@ class NotificationController:
                                 provider_str
                             ] = NotificationSettingsOptionEnum.NEVER
                         else:
-                            most_specific_recipient_providers[type][
-                                provider_str
-                            ] = get_default_for_provider(type, provider)
+                            most_specific_recipient_providers[type][provider_str] = (
+                                get_default_for_provider(type, provider)
+                            )
 
         return most_specific_setting_providers
 

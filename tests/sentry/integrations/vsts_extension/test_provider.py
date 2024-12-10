@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 from django.urls import reverse
@@ -17,6 +17,8 @@ from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 @control_silo_test
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
     provider = VstsExtensionIntegrationProvider()
+    provider.pipeline = Mock()
+    provider.pipeline.organization.id = 1
 
     @patch(
         "sentry.integrations.vsts.integration.VstsIntegrationProvider.get_scopes",

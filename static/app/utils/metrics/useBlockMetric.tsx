@@ -32,7 +32,7 @@ export const useBlockMetric = (project: Project) => {
   const {slug} = useOrganization();
   const queryClient = useQueryClient();
 
-  const options = {
+  return useMutation({
     mutationFn: (data: BlockMutationData) => {
       return api.requestPromise(`/projects/${slug}/${project.slug}/metrics/visibility/`, {
         method: 'PUT',
@@ -84,7 +84,5 @@ export const useBlockMetric = (project: Project) => {
     onError: () => {
       addErrorMessage(t('An error occurred while updating the metric'));
     },
-  };
-
-  return useMutation(options);
+  });
 };

@@ -3,12 +3,14 @@ from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
 from httpx import HTTPError
 from rest_framework import status
+from rest_framework.exceptions import ErrorDetail
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
@@ -17,6 +19,7 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.conf.server import SEER_ANOMALY_DETECTION_STORE_DATA_URL
 from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.incidents.logic import INVALID_TIME_WINDOW
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
@@ -35,6 +38,7 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.silo.base import SiloMode
@@ -43,7 +47,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -269,38 +273,64 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
 
+    @with_feature("organizations:incidents")
+    def test_invalid_threshold_type(self):
+        """
+        Test that a comparison alert (percent based) can't use the above and below threshold type
+        """
+        data = {
+            **self.alert_rule_dict,
+            "comparisonDelta": 10080.0,
+            "thresholdType": AlertRuleThresholdType.ABOVE_AND_BELOW.value,
+        }
+
+        with outbox_runner():
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                **data,
+            )
+        assert not AlertRule.objects.filter(
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW.value
+        ).exists()
+        assert (
+            "Invalid threshold type: Allowed types for comparison alerts are above OR below"
+            in resp.data["nonFieldErrors"][0]
+        )
+
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_anomaly_detection_alert(self, mock_seer_request):
         data = self.dynamic_alert_rule_dict
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         two_weeks_ago = before_now(days=14).replace(hour=10, minute=0, second=0, microsecond=0)
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            self.store_event(
-                data={
-                    "event_id": "a" * 32,
-                    "message": "super duper bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(minutes=1)),
-                    "fingerprint": ["group1"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
-            self.store_event(
-                data={
-                    "event_id": "b" * 32,
-                    "message": "super bad",
-                    "timestamp": iso_format(two_weeks_ago + timedelta(days=10)),
-                    "fingerprint": ["group2"],
-                    "tags": {"sentry:user": self.user.email},
-                },
-                event_type=EventType.ERROR,
-                project_id=self.project.id,
-            )
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "super duper bad",
+                "timestamp": (two_weeks_ago + timedelta(minutes=1)).isoformat(),
+                "fingerprint": ["group1"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "super bad",
+                "timestamp": (two_weeks_ago + timedelta(days=10)).isoformat(),
+                "fingerprint": ["group2"],
+                "tags": {"sentry:user": self.user.email},
+            },
+            default_event_type=EventType.ERROR,
+            project_id=self.project.id,
+        )
 
         with outbox_runner():
             resp = self.get_success_response(
@@ -316,6 +346,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -334,6 +365,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -354,6 +386,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
@@ -371,10 +404,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert resp.data["detail"]["message"] == "Invalid request"
+        assert resp.data[0] == ErrorDetail(
+            string="Failed to send data to Seer - cannot create alert rule.", code="invalid"
+        )
+
         assert mock_seer_request.call_count == 1
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @with_feature("organizations:incidents")
     def test_anomaly_detection_alert_validation_error(self):
         data = self.dynamic_alert_rule_dict
@@ -386,10 +423,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 **data,
             )
         assert not AlertRule.objects.filter(detection_type=AlertRuleDetectionType.DYNAMIC).exists()
-        assert (
-            resp.data[0]
-            == "Invalid time window for dynamic alert (valid windows are 60, 30, 15 minutes)"
-        )
+        assert resp.data[0] == INVALID_TIME_WINDOW
 
     def test_monitor_type_with_condition(self):
         data = {
@@ -886,12 +920,41 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         }
 
         with self.feature("organizations:incidents"):
-            resp = self.get_success_response(
-                self.organization.slug, status_code=201, **rule_one_trigger_only_critical_no_action
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_only_critical_no_action
             )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
+        assert resp.data == {
+            "nonFieldErrors": [
+                "Each trigger must have an associated action for this alert to fire."
+            ]
+        }
+
+    def test_critical_trigger_action_no_target_id(self):
+        rule_one_trigger_no_target_id = {
+            "aggregate": "count()",
+            "query": "",
+            "timeWindow": "300",
+            "projects": [self.project.slug],
+            "name": "OneTriggerOnlyCritical",
+            "owner": self.user.id,
+            "resolveThreshold": 200,
+            "thresholdType": 1,
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 100,
+                    "actions": [{"type": "email", "targetType": "team", "targetIdentifier": ""}],
+                }
+            ],
+        }
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **rule_one_trigger_no_target_id
+            )
+        assert resp.data[0] == ErrorDetail(
+            string="One or more of your actions is missing a target identifier.", code="invalid"
+        )
 
     def test_invalid_projects(self):
         with self.feature("organizations:incidents"):
@@ -953,6 +1016,63 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
         assert resp.status_code == 403
 
+    def test_team_admin_create(self):
+        team_admin_user = self.create_user()
+        self.create_member(
+            team_roles=[(self.team, "admin")],
+            user=team_admin_user,
+            role="member",
+            organization=self.organization,
+        )
+
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user, organization=self.organization, role="member", teams=[self.team]
+        )
+
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.login_as(team_admin_user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 201
+
+        # verify that a team admin cannot create an alert for a project their team doesn't own
+        with self.feature("organizations:incidents"):
+            resp = self.get_error_response(
+                self.organization.slug,
+                status_code=400,
+                projects=[
+                    self.create_project(organization=self.create_organization()).slug,
+                ],
+                name="an alert",
+                owner=team_admin_user.id,
+                thresholdType=1,
+                query="hi",
+                aggregate="count()",
+                timeWindow=10,
+                alertThreshold=1000,
+                resolveThreshold=100,
+                triggers=[
+                    {
+                        "label": "critical",
+                        "alertThreshold": 200,
+                        "actions": [
+                            {
+                                "type": "email",
+                                "targetType": "team",
+                                "targetIdentifier": self.team.id,
+                            }
+                        ],
+                    }
+                ],
+            )
+            assert resp.json() == {"projects": ["Invalid project"]}
+
+        # verify that a regular team member cannot create an alert
+        self.login_as(member_user)
+        resp = self.get_response(self.organization.slug, **self.alert_rule_dict)
+        assert resp.status_code == 403
+
     def test_member_create(self):
         member_user = self.create_user()
         self.create_member(
@@ -974,7 +1094,15 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             "name": "JustATestRule",
             "resolveThreshold": 100,
             "thresholdType": 1,
-            "triggers": [{"label": "critical", "alertThreshold": 75}],
+            "triggers": [
+                {
+                    "label": "critical",
+                    "alertThreshold": 75,
+                    "actions": [
+                        {"type": "email", "targetType": "team", "targetIdentifier": self.team.id}
+                    ],
+                }
+            ],
         }
 
         with self.feature("organizations:incidents"):
@@ -1270,6 +1398,18 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 self.organization.slug, status_code=400, **alert_rule_dict
             )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    @patch("sentry.analytics.record")
+    def test_performance_alert(self, record_analytics):
+        valid_alert_rule = {
+            **self.alert_rule_dict,
+            "queryType": 1,
+            "dataset": "transactions",
+            "eventTypes": ["transaction"],
+        }
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(self.organization.slug, **valid_alert_rule)
+            assert resp.status_code == 201
 
 
 @freeze_time()

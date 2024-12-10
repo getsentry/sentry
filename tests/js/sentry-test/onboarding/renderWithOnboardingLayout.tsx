@@ -1,3 +1,5 @@
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
@@ -9,6 +11,7 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {Organization} from 'sentry/types/organization';
 import type {DeepPartial} from 'sentry/types/utils';
 
 interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
@@ -17,9 +20,17 @@ interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOpti
   selectedProducts?: ProductSolution[];
 }
 
+type RenderOptions = {
+  organization?: Organization;
+};
+
 export function renderWithOnboardingLayout<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
->(docsConfig: Docs<PlatformOptions>, options: Options<PlatformOptions> = {}) {
+>(
+  docsConfig: Docs<PlatformOptions>,
+  options: Options<PlatformOptions> = {},
+  renderOptions: RenderOptions = {}
+) {
   const {
     releaseRegistry = {},
     selectedProducts = [
@@ -30,7 +41,8 @@ export function renderWithOnboardingLayout<
     selectedOptions = {},
   } = options;
 
-  const {organization, router} = initializeOrg({
+  const {organization, project, router} = initializeOrg({
+    organization: renderOptions.organization,
     router: {
       location: {
         query: selectedOptions,
@@ -38,15 +50,23 @@ export function renderWithOnboardingLayout<
     },
   });
 
+  const projectKey = 'test-project-key-id';
+
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sdks/`,
     body: releaseRegistry,
   });
 
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey}/`,
+    method: 'PUT',
+    body: [ProjectKeysFixture()[0]],
+  });
+
   render(
     <OnboardingLayout
       docsConfig={docsConfig}
-      projectSlug="test-project-slug"
+      projectSlug={project.slug}
       dsn={{
         public: 'test-dsn',
         secret: 'test-secret',
@@ -60,6 +80,7 @@ export function renderWithOnboardingLayout<
       platformKey="java-spring-boot"
       projectId="test-project-id"
       activeProductSelection={selectedProducts}
+      projectKeyId={projectKey}
     />,
     {
       organization,

@@ -126,10 +126,11 @@ def attach_custom_severity(
     data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
 ) -> dict[str, Any]:
     # use custom severity (overrides default in build_incident_attachment)
-    if new_status == IncidentStatus.CLOSED or action.sentry_app_config is None:
+    app_config = action.get_single_sentry_app_config()
+    if new_status == IncidentStatus.CLOSED or app_config is None:
         return data
 
-    severity = action.sentry_app_config.get("priority", None)
+    severity = app_config.get("priority", None)
     if severity is not None:
         data["payload"]["severity"] = severity
 

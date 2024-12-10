@@ -91,6 +91,7 @@ def process_spans_strategy():
     )
 
 
+@django_db_all
 @override_options(
     {
         "standalone-spans.process-spans-consumer.enable": True,

@@ -7,7 +7,7 @@ from sentry import audit_log
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models.scheduledeletion import RegionScheduledDeletion
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 
 

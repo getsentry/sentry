@@ -14,10 +14,11 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {traceAnalytics} from '../traceAnalytics';
 import type {TraceTree} from '../traceModels/traceTree';
-import {TraceType} from '../traceType';
+import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
@@ -33,7 +34,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (tree.project_ids.has(Number(project.id))) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {
@@ -81,7 +83,7 @@ function PerformanceSetupBanner({
     return (
       <Alert type="info" showIcon>
         {tct(
-          "Some of the projects associated with this trace aren't set up for tracing so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentation].",
+          "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
           {
             documentationLink: (
               <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
@@ -98,7 +100,7 @@ function PerformanceSetupBanner({
     <TraceWarningComponents.Banner
       title={t('Your setup is incomplete')}
       description={t(
-        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
+        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events across your services.'
       )}
       image={emptyTraceImg}
       onPrimaryButtonClick={() => {
@@ -119,7 +121,7 @@ function PerformanceSetupBanner({
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
       organization={organization}
-      primaryButtonText={t('Start Checklist')}
+      primaryButtonText={t('Set Up Tracing')}
     />
   );
 }
@@ -139,6 +141,7 @@ type Subscription = {
   planDetails: {
     billingInterval: 'monthly' | 'annual';
   };
+  planTier: string;
   onDemandBudgets?: {
     enabled: boolean;
   };
@@ -191,7 +194,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
 
   const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? t('pay-as-you-go budget')
+      ? ['am1', 'am2'].includes(subscription.planTier)
+        ? t('on-demand budget')
+        : t('pay-as-you-go budget')
       : t('quota'),
   });
 
@@ -206,7 +211,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
       image={emptyTraceImg}
       title={title}
       description={tct(
-        'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
+        'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
         {
           billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
         }
@@ -223,13 +228,15 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
           props.tree.shape
         );
         browserHistory.push({
-          pathname: `/settings/billing/checkout/`,
+          pathname: `/settings/billing/checkout/?referrer=trace-view`,
           query: {
             skipBundles: true,
           },
         });
       }}
-      docsRoute="https://docs.sentry.io/pricing/quotas/"
+      docsRoute={getDocsLinkForEventType(
+        dataCategories && 'spans' in dataCategories ? 'span' : 'transaction'
+      )}
       primaryButtonText={ctaText}
     />
   );
@@ -246,7 +253,7 @@ export function ErrorsOnlyWarnings({
     return filterProjects(projects, tree);
   }, [projects, tree]);
 
-  if (tree.type !== 'trace' || tree.shape !== TraceType.ONLY_ERRORS) {
+  if (tree.type !== 'trace' || tree.shape !== TraceShape.ONLY_ERRORS) {
     return null;
   }
 

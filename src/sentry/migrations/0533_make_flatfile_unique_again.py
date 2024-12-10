@@ -31,8 +31,4 @@ class Migration(CheckedMigration):
             name="flatfileindexstate",
             unique_together={("flat_file_index", "artifact_bundle")},
         ),
-        migrations.AlterIndexTogether(
-            name="artifactbundleflatfileindex",
-            index_together=set(),
-        ),
     ]

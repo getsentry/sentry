@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
     add_base_url_to_rank,
@@ -19,7 +19,7 @@ from sentry.uptime.detectors.ranking import (
 )
 
 
-class AddBaseUrlToRankTest(TestCase):
+class AddBaseUrlToRankTest(UptimeTestCase):
     def assert_project_count(
         self, project: Project, count: int | None, expiry: int | None
     ) -> int | None:
@@ -86,8 +86,9 @@ class AddBaseUrlToRankTest(TestCase):
         self.assert_url_count(project_2, url_2, 1, project_2_url_expiry)
 
     def test_trim(self):
-        with mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1), mock.patch(
-            "sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2
+        with (
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1),
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2),
         ):
             key = get_project_base_url_rank_key(self.project)
             url_1 = "https://sentry.io"
@@ -106,7 +107,7 @@ class AddBaseUrlToRankTest(TestCase):
             assert cluster.zrange(key, 0, -1) == [url_2, url_1]
 
 
-class GetCandidateProjectsForOrgTest(TestCase):
+class GetCandidateProjectsForOrgTest(UptimeTestCase):
     def test(self):
         assert get_candidate_projects_for_org(self.organization) == []
         url_1 = "https://sentry.io"
@@ -122,7 +123,7 @@ class GetCandidateProjectsForOrgTest(TestCase):
         ]
 
 
-class GetCandidateUrlsForProjectTest(TestCase):
+class GetCandidateUrlsForProjectTest(UptimeTestCase):
     def test(self):
         assert get_candidate_urls_for_project(self.project) == []
         url_1 = "https://sentry.io"
@@ -134,7 +135,7 @@ class GetCandidateUrlsForProjectTest(TestCase):
         assert get_candidate_urls_for_project(self.project) == [(url_2, 2), (url_1, 1)]
 
 
-class DeleteCandidateUrlsForProjectTest(TestCase):
+class DeleteCandidateUrlsForProjectTest(UptimeTestCase):
     def test(self):
         delete_candidate_urls_for_project(self.project)
         url_1 = "https://sentry.io"
@@ -144,7 +145,7 @@ class DeleteCandidateUrlsForProjectTest(TestCase):
         assert get_candidate_urls_for_project(self.project) == []
 
 
-class GetOrganizationBucketTest(TestCase):
+class GetOrganizationBucketTest(UptimeTestCase):
     def test(self):
         bucket = datetime(2024, 7, 18, 0, 47)
         assert get_organization_bucket(bucket) == set()
@@ -155,7 +156,7 @@ class GetOrganizationBucketTest(TestCase):
         assert get_organization_bucket(bucket) == {self.project.organization_id}
 
 
-class DeleteOrganizationBucketTest(TestCase):
+class DeleteOrganizationBucketTest(UptimeTestCase):
     def test(self):
         bucket = datetime(2024, 7, 18, 0, 47)
         delete_organization_bucket(bucket)
@@ -168,7 +169,7 @@ class DeleteOrganizationBucketTest(TestCase):
         assert get_organization_bucket(bucket) == set()
 
 
-class ShouldDetectForProjectTest(TestCase):
+class ShouldDetectForProjectTest(UptimeTestCase):
     def test(self):
         assert should_detect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", False)
@@ -177,7 +178,7 @@ class ShouldDetectForProjectTest(TestCase):
         assert should_detect_for_project(self.project)
 
 
-class ShouldDetectForOrgTest(TestCase):
+class ShouldDetectForOrgTest(UptimeTestCase):
     def test(self):
         assert should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", False)

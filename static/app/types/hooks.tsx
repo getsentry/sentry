@@ -1,6 +1,8 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
+import type {FormPanelProps} from 'sentry/components/forms/formPanel';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import type {
   ProductSelectionProps,
   ProductSolution,
@@ -17,7 +19,6 @@ import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProv
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
-import type {Group} from './group';
 import type {Integration, IntegrationProvider} from './integrations';
 import type {
   Route,
@@ -62,16 +63,18 @@ export type HookName = keyof Hooks;
  * Route hooks.
  */
 export type RouteHooks = {
-  'routes:api': RoutesHook;
-  'routes:organization': RoutesHook;
+  'routes:legacy-organization-redirects': RoutesHook;
   'routes:root': RoutesHook;
+  'routes:settings': RoutesHook;
 };
 
 /**
  * Component specific hooks for DateRange and SelectorItems
  * These components have plan specific overrides in getsentry
  */
-type AutofixSetupConsentStepProps = {hasConsented: boolean};
+type AiSetupDataConsentProps = {
+  groupId: string;
+};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -123,12 +126,10 @@ type OrganizationHeaderProps = {
   organization: Organization;
 };
 
-type ProductSelectionAvailabilityProps = Pick<
+type ProductSelectionAvailabilityProps = Omit<
   ProductSelectionProps,
-  'platform' | 'withBottomMargin' | 'projectId'
-> & {
-  organization: Organization;
-};
+  'disabledProducts' | 'productsPerPlatform'
+>;
 
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
@@ -146,11 +147,6 @@ type AttemptCloseAttemptProps = {
 };
 
 type CodecovLinkProps = {
-  organization: Organization;
-};
-
-type QualitativeIssueFeedbackProps = {
-  group: Group;
   organization: Organization;
 };
 
@@ -178,11 +174,19 @@ export type PartnershipAgreementProps = {
   organizationSlug?: string;
 };
 
+export type MembershipSettingsProps = {
+  forms: JsonFormObject[];
+  jsonFormSettings: Omit<
+    FormPanelProps,
+    'highlighted' | 'fields' | 'additionalFieldProps'
+  >;
+};
+
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
+  'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
@@ -196,16 +200,17 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
-  'component:escalating-issues-banner-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:insights-date-range-query-limit-footer': () => React.ComponentType<{}>;
   'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:organization-header': () => React.ComponentType<OrganizationHeaderProps>;
+  'component:organization-membership-settings': () => React.ComponentType<MembershipSettingsProps>;
   'component:partnership-agreement': React.ComponentType<PartnershipAgreementProps>;
   'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
@@ -668,6 +673,7 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
 type InsightsUpsellHook = {
   children: React.ReactNode;
   moduleName: TitleableModuleNames;
+  fullPage?: boolean;
 };
 
 /**
@@ -681,6 +687,11 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      * invites may currently be sent.
      */
     canSend: boolean;
+    /**
+     * Indicates that the account has reached the maximum member limit. Future invitations
+     * are limited to Billing roles
+     */
+    isOverMemberLimit: boolean;
     /**
      * Trigger sending invites
      */

@@ -107,7 +107,7 @@ describe('Discover -> CellAction', function () {
   });
 
   describe('per cell actions', function () {
-    let handleCellAction;
+    let handleCellAction!: jest.Mock;
 
     beforeEach(function () {
       handleCellAction = jest.fn();

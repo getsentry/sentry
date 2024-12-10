@@ -19,11 +19,11 @@ import {
   pickBarColor,
   rectOfContent,
 } from 'sentry/components/performance/waterfall/utils';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
@@ -50,6 +50,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  isEmbedded: boolean;
   minimapInteractiveRef: React.RefObject<HTMLDivElement>;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
@@ -475,6 +476,7 @@ class TraceViewHeader extends Component<PropType, State> {
             <HeaderContainer
               ref={this.props.traceViewHeaderRef}
               hasProfileMeasurementsChart={hasProfileMeasurementsChart}
+              isEmbedded={this.props.isEmbedded}
             >
               <DividerHandlerManager.Consumer>
                 {dividerHandlerChildrenProps => {
@@ -801,12 +803,15 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
+export const HeaderContainer = styled('div')<{
+  hasProfileMeasurementsChart: boolean;
+  isEmbedded: boolean;
+}>`
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
-  z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
+  top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
+  z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${p =>

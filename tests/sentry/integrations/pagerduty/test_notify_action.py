@@ -4,11 +4,14 @@ import orjson
 import responses
 
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -56,7 +59,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "ohhhhhh noooooo",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -142,7 +145,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -296,7 +299,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["event_action"] == "trigger"
 
     @responses.activate
-    def test_invalid_service_selected(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_invalid_service_selected(self, mock_record):
         # make a service associated with a different pagerduty account
         service_info = {
             "type": "service",
@@ -312,7 +316,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 metadata={"services": [service_info]},
             )
             integration.add_organization(self.organization, self.user)
-            org_integration = integration.organizationintegration_set.first()
+            org_integration = integration.organizationintegration_set.get()
             service = add_service(
                 org_integration,
                 service_name=service_info["service_name"],
@@ -325,3 +329,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         form = rule.get_form_instance()
         assert not form.is_valid()
         assert len(form.errors) == 1
+        assert len(mock_record.mock_calls) == 2
+        start, halt = mock_record.mock_calls
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert halt.args[0] == EventLifecycleOutcome.HALTED
+        assert_halt_metric(mock_record, OnCallIntegrationsHaltReason.INVALID_SERVICE.value)

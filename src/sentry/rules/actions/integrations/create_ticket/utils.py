@@ -5,11 +5,14 @@ from collections.abc import Callable, Sequence
 
 from rest_framework.response import Response
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
@@ -116,32 +119,34 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
                 },
             )
             return
-        try:
-            response = installation.create_issue(data)
-        except IntegrationFormError as e:
-            logger.info(
-                "%s.rule_trigger.create_ticket.failure",
-                provider,
-                extra={
-                    "rule_id": rule_id,
-                    "provider": provider,
-                    "integration_id": integration.id,
-                    "error_message": str(e),
-                },
-            )
-            metrics.incr(
-                f"{provider}.rule_trigger.create_ticket.failure",
-                tags={
-                    "provider": provider,
-                },
-            )
 
-            # Testing out if this results in a lot of noisy sentry issues
-            # when enabled.
-            if options.get("ecosystem:enable_integration_form_error_raise"):
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("provider", provider)
+            lifecycle.add_extra("integration_id", integration.id)
+            lifecycle.add_extra("rule_id", rule_id)
+
+            try:
+                response = installation.create_issue(data)
+            except Exception as e:
+                if isinstance(e, IntegrationFormError):
+                    # Most of the time, these aren't explicit failures, they're
+                    # some misconfiguration of an issue field - typically Jira.
+                    lifecycle.record_halt(str(e))
+                else:
+                    # Don't pass the full exception here, as it can contain a
+                    # massive request response along with its stacktrace
+                    lifecycle.record_failure(str(e))
+
+                metrics.incr(
+                    f"{provider}.rule_trigger.create_ticket.failure",
+                    tags={
+                        "provider": provider,
+                    },
+                )
+
                 raise
-            else:
-                return
 
-        if not event.get_tag("sample_event") == "yes":
-            create_link(integration, installation, event, response)
+        create_link(integration, installation, event, response)

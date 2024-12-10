@@ -1,9 +1,6 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
-
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useSampleFields', function () {
   it('allows changing sample fields', function () {
@@ -14,26 +11,11 @@ describe('useSampleFields', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
+    render(<TestPage />, {disableRouterMocks: true});
 
     expect(sampleFields).toEqual([
-      'project',
       'id',
+      'project',
       'span.op',
       'span.description',
       'span.duration',
@@ -45,8 +27,8 @@ describe('useSampleFields', function () {
 
     act(() => setSampleFields([]));
     expect(sampleFields).toEqual([
-      'project',
       'id',
+      'project',
       'span.op',
       'span.description',
       'span.duration',

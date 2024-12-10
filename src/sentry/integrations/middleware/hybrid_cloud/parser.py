@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import abc
 import logging
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
@@ -53,22 +52,16 @@ class RegionResult:
         self.error = error
 
 
-class BaseRequestParser(abc.ABC):
+class BaseRequestParser:
     """Base Class for Integration Request Parsers"""
 
     _METRIC_SUCCESS_KEY = "integrations.middleware.request_parser.success"
     _METRIC_FAILURE_KEY = "integrations.middleware.request_parser.failure"
     _METRICS_INFO_KEY = "integrations.middleware.request_parser.info"
 
-    @property
-    def provider(self) -> str:
-        raise NotImplementedError("'provider' property is required by IntegrationClassification")
-
-    @property
-    def webhook_identifier(self) -> WebhookProviderIdentifier:
-        raise NotImplementedError(
-            "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
-        )
+    # abstract
+    provider: ClassVar[str]
+    webhook_identifier: ClassVar[WebhookProviderIdentifier]
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -246,7 +239,9 @@ class BaseRequestParser(abc.ABC):
             regions=regions, identifier=integration.id, integration_id=integration.id
         )
 
-    def get_mailbox_identifier(self, integration: RpcIntegration, data: Mapping[str, Any]) -> str:
+    def get_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: Mapping[str, Any]
+    ) -> str:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement

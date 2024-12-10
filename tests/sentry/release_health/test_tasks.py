@@ -16,7 +16,7 @@ from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBa
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -77,7 +77,7 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {

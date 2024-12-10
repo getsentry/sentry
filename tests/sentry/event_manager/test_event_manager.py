@@ -49,6 +49,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
@@ -74,6 +75,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -83,7 +85,7 @@ from sentry.testutils.cases import (
     TransactionTestCase,
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -178,7 +180,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
-    @pytest.mark.skip(reason="Flaky test")
     def test_react_error_picks_cause_error_title_subtitle(self) -> None:
         cause_error_value = "Load failed"
         # React 19 hydration error include the hydration error and a cause
@@ -217,7 +218,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
-    @pytest.mark.skip(reason="Flaky test")
     def test_react_hydration_error_picks_cause_error_title_subtitle(self) -> None:
         cause_error_value = "Cannot read properties of undefined (reading 'nodeName')"
         # React 19 hydration error include the hydration error and a cause
@@ -1000,14 +1000,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -1548,6 +1541,140 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    def test_transaction_sampler_and_receive(self) -> None:
+        # make sure with the option on we don't get any errors
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "transaction_info": {
+                        "source": "url",
+                    },
+                }
+            )
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    @patch("sentry.event_manager.record_event_processed")
+    @patch("sentry.event_manager.record_user_context_received")
+    @patch("sentry.event_manager.record_release_received")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+    def test_transaction_sampler_and_receive_mock_called(
+        self,
+        mock_record_sample: mock.MagicMock,
+        mock_record_release: mock.MagicMock,
+        mock_record_user: mock.MagicMock,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "transaction_info": {
+                        "source": "url",
+                    },
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        mock_record_event.assert_called_once_with(self.project, event)
+        mock_record_user.assert_called_once_with(self.project, event)
+        mock_record_release.assert_called_once_with(self.project, event)
+        assert mock_record_sample.mock_calls == [
+            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
+        ]
+
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
         manager.normalize()
@@ -1920,6 +2047,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with Sentry installations that do not have a metrics pipeline.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -1932,8 +2060,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
-                start_timestamp=iso_format(before_now(minutes=5)),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -1957,6 +2085,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ``billing_metrics_consumer``.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -1969,8 +2098,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
-                start_timestamp=iso_format(before_now(minutes=5)),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -2020,6 +2149,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @freeze_time()
     def test_save_issueless_event(self) -> None:
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2032,8 +2162,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=iso_format(before_now(minutes=5)),
-                start_timestamp=iso_format(before_now(minutes=5)),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -2069,14 +2199,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2151,14 +2274,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        # TODO: Really we should use DEFAULT_GROUPING_CONFIG here as the id (so that we don't have
-        # to update the test every time we change the default), but there's something about the
-        # mobile config, over and above the enhancements hardcoded above, that makes this test pass.
-        # We'll have to figure this out before we can delete the config.
-        grouping_config = {
-            "id": "mobile:2021-02-12",
-            "enhancements": enhancements_str,
-        }
+        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -2191,10 +2307,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event1 = manager.save(self.project.id)
             event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-            assert (
-                event1.get_hashes().hashes
-                == event2.get_hashes(load_grouping_config(grouping_config)).hashes
-            )
+            assert event1.get_hashes() == event2.get_hashes(load_grouping_config(grouping_config))
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})

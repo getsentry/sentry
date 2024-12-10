@@ -1,10 +1,11 @@
 import {type ForwardedRef, forwardRef, useCallback} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
-import type {Key} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
+import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
+import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
@@ -12,32 +13,6 @@ type SelectionKeyHandlerProps = {
   state: ListState<ParseResultToken>;
   undo: () => void;
 };
-
-function findNearestFreeTextKey(
-  state: ListState<ParseResultToken>,
-  startKey: Key | null,
-  direction: 'right' | 'left'
-): Key | null {
-  let key: Key | null = startKey;
-  while (key) {
-    const item = state.collection.getItem(key);
-    if (!item) {
-      break;
-    }
-    if (item.value?.type === Token.FREE_TEXT) {
-      return key;
-    }
-    key = (direction === 'right' ? item.nextKey : item.prevKey) ?? null;
-  }
-
-  if (key) {
-    return key;
-  }
-
-  return direction === 'right'
-    ? state.collection.getLastKey()
-    : state.collection.getFirstKey();
-}
 
 /**
  * SelectionKeyHandler is used to handle keyboard events when a selection is
@@ -50,8 +25,10 @@ function findNearestFreeTextKey(
 export const SelectionKeyHandler = forwardRef(
   ({state, undo}: SelectionKeyHandlerProps, ref: ForwardedRef<HTMLInputElement>) => {
     const {dispatch, disabled} = useSearchQueryBuilder();
+    const {selectInDirection} = useKeyboardSelection();
 
-    const selectedTokens = Array.from(state.selectionManager.selectedKeys)
+    const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
+      .filter(key => state.selectionManager.selectedKeys.has(key))
       .map(key => state.collection.getItem(key)?.value)
       .filter(defined);
 
@@ -96,6 +73,12 @@ export const SelectionKeyHandler = forwardRef(
           case 'ArrowRight':
             e.preventDefault();
             e.stopPropagation();
+
+            if (e.shiftKey) {
+              selectInDirection({state, direction: 'right'});
+              return;
+            }
+
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -108,6 +91,12 @@ export const SelectionKeyHandler = forwardRef(
           case 'ArrowLeft':
             e.preventDefault();
             e.stopPropagation();
+
+            if (e.shiftKey) {
+              selectInDirection({state, direction: 'left'});
+              return;
+            }
+
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -168,14 +157,13 @@ export const SelectionKeyHandler = forwardRef(
             return;
         }
       },
-      [dispatch, selectedTokens, state, undo]
+      [dispatch, selectInDirection, selectedTokens, state, undo]
     );
 
     // Using VisuallyHidden because display: none will not allow the input to be focused
     return (
       <VisuallyHidden>
         <input
-          aria-hidden
           data-test-id="selection-key-handler"
           ref={ref}
           tabIndex={-1}

@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -59,10 +61,19 @@ export function Message({data, event}: Props) {
 
   return (
     <InterimSection title={t('Message')} type={SectionKey.MESSAGE}>
-      <pre className="plain">
-        {<AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />}
-      </pre>
+      <PlainPre>
+        <AnnotatedText value={messageData} meta={meta?.data?.formatted?.['']} />
+      </PlainPre>
       {renderParams(data.params, meta)}
     </InterimSection>
   );
 }
+
+const PlainPre = styled('pre')`
+  background-color: inherit;
+  padding: 0;
+  border: 0;
+  margin-bottom: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+`;

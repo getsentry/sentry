@@ -29,7 +29,6 @@ class DiscordSetupTestCase(IntegrationTestCase):
         options.set("discord.public-key", self.public_key)
         options.set("discord.bot-token", self.bot_token)
         options.set("discord.client-secret", self.client_secret)
-        options.set("discord.validate-user", True)
 
     @mock.patch("sentry.integrations.discord.client.DiscordClient.set_application_command")
     def assert_setup_flow(
@@ -308,7 +307,7 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
     def test_get_guild_name_failure(self):
         provider = self.provider()
 
-        responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),
+        (responses.add(responses.GET, "https://discord.com/api/v10/guilds/guild_name", status=500),)
         responses.add(
             responses.POST,
             url="https://discord.com/api/v10/oauth2/token",
@@ -474,3 +473,17 @@ class DiscordIntegrationTest(DiscordSetupTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(integration=self.integration, organization=self.organization)
+
+    def test_build_integration_invalid_guild_id(self):
+        provider = self.provider()
+
+        with pytest.raises(
+            IntegrationError,
+            match="Invalid guild ID. The Discord guild ID must be entirely numeric.",
+        ):
+            provider.build_integration(
+                {
+                    "guild_id": "123abc",  # Invalid guild ID (contains non-numeric characters)
+                    "code": "some_auth_code",
+                }
+            )

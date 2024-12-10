@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs from './angular';
+import docs, {AngularConfigType} from './angular';
 
 describe('javascript-angular onboarding docs', function () {
   it('renders onboarding docs correctly', () => {
@@ -18,14 +18,17 @@ describe('javascript-angular onboarding docs', function () {
 
     // Includes import statement
     expect(
-      screen.getByText(
-        textWithMarkupMatcher(/import { enableProdMode } from "@angular\/core"/)
+      screen.getAllByText(
+        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/angular";/)
       )
-    ).toBeInTheDocument();
+    ).toHaveLength(2);
   });
 
   it('displays sample rates by default', () => {
     renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
@@ -46,6 +49,9 @@ describe('javascript-angular onboarding docs', function () {
 
   it('enables performance setting the tracesSampleRate to 1', () => {
     renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.PERFORMANCE_MONITORING,
@@ -59,6 +65,9 @@ describe('javascript-angular onboarding docs', function () {
 
   it('enables replay by setting replay samplerates', () => {
     renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
         ProductSolution.SESSION_REPLAY,
@@ -75,6 +84,9 @@ describe('javascript-angular onboarding docs', function () {
 
   it('enables profiling by setting profiling sample rates', () => {
     renderWithOnboardingLayout(docs, {
+      selectedOptions: {
+        configType: AngularConfigType.APP,
+      },
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
     });
 

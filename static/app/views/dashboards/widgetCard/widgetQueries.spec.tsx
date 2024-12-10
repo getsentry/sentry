@@ -8,7 +8,10 @@ import type {PageFilters} from 'sentry/types/core';
 import {MetricsResultsMetaProvider} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
-import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {
+  DashboardsMEPContext,
+  DashboardsMEPProvider,
+} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import type {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
@@ -20,7 +23,9 @@ describe('Dashboards > WidgetQueries', function () {
   const renderWithProviders = component =>
     render(
       <MetricsResultsMetaProvider>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
+        </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
     );
 
@@ -690,31 +695,33 @@ describe('Dashboards > WidgetQueries', function () {
     // Simulate a re-render with a new query alias
     rerender(
       <MetricsResultsMetaProvider>
-        <MEPSettingProvider forceTransactions={false}>
-          <WidgetQueries
-            api={new MockApiClient()}
-            widget={{
-              ...lineWidget,
-              queries: [
-                {
-                  conditions: 'event.type:error',
-                  fields: ['count()'],
-                  aggregates: ['count()'],
-                  columns: [],
-                  name: 'this query alias changed',
-                  orderby: '',
-                },
-              ],
-            }}
-            organization={initialData.organization}
-            selection={selection}
-          >
-            {props => {
-              childProps = props;
-              return <div data-test-id="child" />;
-            }}
-          </WidgetQueries>
-        </MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>
+            <WidgetQueries
+              api={new MockApiClient()}
+              widget={{
+                ...lineWidget,
+                queries: [
+                  {
+                    conditions: 'event.type:error',
+                    fields: ['count()'],
+                    aggregates: ['count()'],
+                    columns: [],
+                    name: 'this query alias changed',
+                    orderby: '',
+                  },
+                ],
+              }}
+              organization={initialData.organization}
+              selection={selection}
+            >
+              {props => {
+                childProps = props;
+                return <div data-test-id="child" />;
+              }}
+            </WidgetQueries>
+          </MEPSettingProvider>
+        </DashboardsMEPProvider>
       </MetricsResultsMetaProvider>
     );
 

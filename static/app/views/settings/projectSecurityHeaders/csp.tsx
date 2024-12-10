@@ -102,7 +102,7 @@ export default function ProjectCspReports() {
         initialData={project.options}
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
       >
-        <Access access={['project:write']}>
+        <Access access={['project:write']} project={project}>
           {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
         </Access>
       </Form>

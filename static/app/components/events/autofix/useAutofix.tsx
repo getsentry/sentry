@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 
 import {
   type AutofixData,
+  AutofixStatus,
   AutofixStepType,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
@@ -18,7 +19,7 @@ export type AutofixResponse = {
   autofix: AutofixData | null;
 };
 
-const POLL_INTERVAL = 2500;
+const POLL_INTERVAL = 1000;
 
 export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
   `/issues/${groupId}/autofix/`,
@@ -26,15 +27,16 @@ export const makeAutofixQueryKey = (groupId: string): ApiQueryKey => [
 
 const makeInitialAutofixData = (): AutofixResponse => ({
   autofix: {
-    status: 'PROCESSING',
+    status: AutofixStatus.PROCESSING,
     run_id: '',
     steps: [
       {
         type: AutofixStepType.DEFAULT,
         id: '1',
         index: 0,
-        status: 'PROCESSING',
+        status: AutofixStatus.PROCESSING,
         title: 'Starting Autofix...',
+        insights: [],
         progress: [],
       },
     ],
@@ -47,15 +49,16 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
   const data = makeInitialAutofixData();
 
   if (data.autofix) {
-    data.autofix.status = 'ERROR';
+    data.autofix.status = AutofixStatus.ERROR;
     data.autofix.steps = [
       {
         type: AutofixStepType.DEFAULT,
         id: '1',
         index: 0,
-        status: 'ERROR',
+        status: AutofixStatus.ERROR,
         title: 'Something went wrong',
         completedMessage: errorMessage,
+        insights: [],
         progress: [],
       },
     ];
@@ -64,10 +67,12 @@ const makeErrorAutofixData = (errorMessage: string): AutofixResponse => {
   return data;
 };
 
+/** Will not poll when the autofix is in an error state or has completed */
 const isPolling = (autofixData?: AutofixData | null) =>
-  autofixData?.status === 'PROCESSING' ||
-  autofixData?.status === 'PENDING' ||
-  autofixData?.status === 'NEED_MORE_INFORMATION';
+  !autofixData ||
+  ![AutofixStatus.ERROR, AutofixStatus.COMPLETED, AutofixStatus.CANCELLED].includes(
+    autofixData.status
+  );
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {
   const {data} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(groupId), {
@@ -88,8 +93,8 @@ export const useAiAutofix = (group: GroupWithAutofix, event: Event) => {
   const {data: apiData} = useApiQuery<AutofixResponse>(makeAutofixQueryKey(group.id), {
     staleTime: 0,
     retry: false,
-    refetchInterval: data => {
-      if (isPolling(data?.[0]?.autofix)) {
+    refetchInterval: query => {
+      if (isPolling(query.state.data?.[0]?.autofix)) {
         return POLL_INTERVAL;
       }
       return false;

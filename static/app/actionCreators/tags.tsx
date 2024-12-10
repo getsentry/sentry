@@ -10,6 +10,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagValue} from 'sentry/types/group';
 import {
   type ApiQueryKey,
+  keepPreviousData,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
@@ -170,10 +171,12 @@ export function fetchSpanFieldValues({
   endpointParams,
   projectIds,
   search,
+  dataset,
 }: {
   api: Client;
   fieldKey: string;
   orgSlug: string;
+  dataset?: 'spans' | 'spansIndexed';
   endpointParams?: Query;
   projectIds?: string[];
   search?: string;
@@ -197,6 +200,10 @@ export function fetchSpanFieldValues({
     if (endpointParams.statsPeriod) {
       query.statsPeriod = endpointParams.statsPeriod;
     }
+  }
+  if (dataset === 'spans') {
+    query.dataset = 'spans';
+    query.type = 'string';
   }
 
   return api.requestPromise(url, {
@@ -250,7 +257,7 @@ export const useFetchOrganizationTags = (
 ) => {
   return useApiQuery<Tag[]>(makeFetchOrganizationTags(params), {
     staleTime: Infinity,
-    keepPreviousData: params.keepPreviousData,
+    placeholderData: params.keepPreviousData ? keepPreviousData : undefined,
     enabled: params.enabled,
     ...options,
   });

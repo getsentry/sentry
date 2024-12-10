@@ -11,7 +11,7 @@ from uuid import uuid4
 import jsonschema
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -31,13 +31,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH, SentrySlugField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.constants import MAX_SLUG_LENGTH
 from sentry.monitors.types import CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
@@ -124,7 +123,11 @@ class MonitorStatus:
 
 class CheckInStatus:
     UNKNOWN = 0
-    """No status was passed"""
+    """
+    Checkin may have lost data and we cannot know the resulting status of the
+    check-in. This can happen when an incident is detected using clock-tick
+    volume anomoly detection.
+    """
 
     OK = 1
     """Checkin had no issues during execution"""
@@ -147,10 +150,13 @@ class CheckInStatus:
     status was reported by the monitor itself (was not synthetic)
     """
 
-    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT)
+    SYNTHETIC_TERMINAL_VALUES = (MISSED, TIMEOUT, UNKNOWN)
     """
     Values indicating the montior is in a terminal "synthetic" status. These
     status are not sent by the monitor themselve but are a side effect result.
+
+    For some values such as UNKNOWN it is possible for it to transition to a
+    USER_TERMINAL_VALUES.
     """
 
     FINISHED_VALUES = (OK, ERROR, MISSED, TIMEOUT)
@@ -168,6 +174,20 @@ class CheckInStatus:
             (cls.MISSED, "missed"),
             (cls.TIMEOUT, "timeout"),
         )
+
+
+DEFAULT_STATUS_ORDER = [
+    MonitorStatus.ERROR,
+    MonitorStatus.OK,
+    MonitorStatus.ACTIVE,
+    MonitorStatus.DISABLED,
+]
+
+MONITOR_ENVIRONMENT_ORDERING = Case(
+    When(is_muted=True, then=Value(len(DEFAULT_STATUS_ORDER) + 1)),
+    *[When(status=s, then=Value(i)) for i, s in enumerate(DEFAULT_STATUS_ORDER)],
+    output_field=IntegerField(),
+)
 
 
 class MonitorType:
@@ -275,7 +295,7 @@ class Monitor(Model):
         ]
         constraints = [
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(owner_team_id__isnull=False, owner_user_id__isnull=True)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=False)
                     | models.Q(owner_team_id__isnull=True, owner_user_id__isnull=True)
@@ -296,14 +316,12 @@ class Monitor(Model):
                     self,
                     self.name,
                     organization_id=self.organization_id,
-                    max_length=MAX_SLUG_LENGTH,
+                    max_length=DEFAULT_SLUG_MAX_LENGTH,
                 )
         return super().save(*args, **kwargs)
 
     @property
     def owner_actor(self) -> Actor | None:
-        if not (self.owner_user_id or self.owner_team_id):
-            return None
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
 
     @property
@@ -545,6 +563,8 @@ class MonitorCheckIn(Model):
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(fields=["status", "timeout_at"]),
+            # used for dispatch_mark_unknown
+            models.Index(fields=["status", "date_added"]),
             # used for check-in list
             models.Index(fields=["trace_id"]),
         ]

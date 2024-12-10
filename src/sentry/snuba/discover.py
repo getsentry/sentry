@@ -20,12 +20,7 @@ from sentry.search.events.builder.discover import (
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.fields import (
-    FIELD_ALIASES,
-    get_function_alias,
-    get_json_meta_type,
-    is_function,
-)
+from sentry.search.events.fields import FIELD_ALIASES, get_function_alias, is_function
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -311,6 +306,8 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -334,13 +331,17 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     allow_metric_aggregates - Ignored here, only used in metric enhanced performance
+    fallback_to_transactions - Whether to fallback to the transactions dataset if the query
+                    fails in metrics enhanced requests. To be removed once the discover dataset is split.
+    transform_alias_to_input_format - Whether aggregate columns should be returned in the originally
+                                requested function format.
     """
     assert dataset in [
         Dataset.Discover,
         Dataset.Transactions,
     ], "A dataset is required to query discover"
 
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
             dataset,
@@ -353,6 +354,7 @@ def timeseries_query(
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         query_list = [base_builder]
@@ -379,7 +381,7 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
         results = []
         for snql_query, snuba_result in zip(query_list, query_results):
             results.append(
@@ -408,20 +410,10 @@ def timeseries_query(
             compared_value = compared_row.get(col_name, 0)
             row["comparisonCount"] = compared_value
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
-        {
-            "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
-        },
+        {"data": result["data"], "meta": result["meta"]},
         snuba_params.start_date,
         snuba_params.end_date,
         rollup,
@@ -477,6 +469,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -506,7 +499,7 @@ def top_events_timeseries(
     ], "A dataset is required to query discover"
 
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="discover.discover", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -577,9 +570,7 @@ def top_events_timeseries(
             snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(
-        op="discover.discover", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
@@ -637,7 +628,7 @@ def top_events_timeseries(
 
 
 def get_facets(
-    query: str,
+    query: str | None,
     snuba_params: SnubaParams,
     referrer: str,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
@@ -660,7 +651,7 @@ def get_facets(
     sample = len(snuba_params.project_ids) > 2
     fetch_projects = len(snuba_params.project_ids) > 1
 
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
+    with sentry_sdk.start_span(op="discover.discover", name="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params={},
@@ -706,7 +697,7 @@ def get_facets(
     project_results = []
     # Inject project data on the first page if multiple projects are selected
     if fetch_projects and cursor == 0:
-        with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
+        with sentry_sdk.start_span(op="discover.discover", name="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params={},
@@ -740,9 +731,7 @@ def get_facets(
         else:
             individual_tags.append(tag)
 
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.individual_tags"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", name="facets.individual_tags") as span:
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
@@ -767,7 +756,7 @@ def get_facets(
             )
 
     if aggregate_tags:
-        with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
+        with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params={},
@@ -1397,8 +1386,7 @@ def find_histogram_min_max(
 
         max_fence_value = max(fences) if fences else None
 
-        candidates = [max_fence_value, max_value]
-        candidates = list(filter(lambda v: v is not None, candidates))
+        candidates = [cand for cand in (max_fence_value, max_value) if cand is not None]
         max_value = min(candidates) if candidates else None
         if max_value is not None and min_value is not None:
             # min_value may be either queried or provided by the user. max_value was queried.

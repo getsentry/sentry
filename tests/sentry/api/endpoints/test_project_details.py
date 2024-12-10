@@ -13,8 +13,10 @@ from sentry_relay.processing import normalize_cardinality_limit_config
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
@@ -28,7 +30,6 @@ from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
@@ -257,6 +258,75 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["highlightPreset"] == expected_preset
         assert resp.data["highlightContext"] == expected_preset["context"]
         assert resp.data["highlightTags"] == expected_preset["tags"]
+
+    def test_is_dynamically_sampled_pan_rate(self):
+        # test with feature flags disabled
+        with self.feature("organizations:dynamic-sampling"):
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+            with mock.patch(
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
+                return_value=None,
+            ):
+                resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+                assert not resp.data["isDynamicallySampled"]
+
+    def test_is_dynamically_sampled(self):
+        # test with feature flags disabled
+        with self.feature(
+            {
+                "organizations:dynamic-sampling": False,
+                "organizations:dynamic-sampling-custom": False,
+            }
+        ):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = organization
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+
+        # test not sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test dynamically sampled organization
+        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
+
+        # test with sampling_mode = project
+        self.project.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
+        )
+
+        # test with not sampled project
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert not resp.data["isDynamicallySampled"]
+
+        # test with sampled project
+        self.project.update_option("sentry:target_sample_rate", 0.1)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert resp.data["isDynamicallySampled"]
 
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
@@ -619,6 +689,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
             "sentry:replay_hydration_error_issues": True,
+            "sentry:toolbar_allowed_origins": "*.sentry.io\nexample.net  \nnugettrends.com",
             "sentry:replay_rage_click_issues": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
@@ -736,6 +807,11 @@ class ProjectUpdateTest(APITestCase):
             ).exists()
         assert project.get_option("feedback:branding") == "0"
         assert project.get_option("sentry:replay_hydration_error_issues") is True
+        assert project.get_option("sentry:toolbar_allowed_origins") == [
+            "*.sentry.io",
+            "example.net",
+            "nugettrends.com",
+        ]
         assert project.get_option("sentry:replay_rage_click_issues") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
@@ -1336,6 +1412,42 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:uptime_autodetection") is True
         assert resp.data["uptimeAutodetection"] is True
 
+    @with_feature({"organizations:dynamic-sampling-custom": False})
+    def test_target_sample_rate_without_feature(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_automatic_mode(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        # automatic mode is called "organization" in code
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate_invalid(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_error_response(
+            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
+        )
+        assert self.project.get_option("sentry:target_sample_rate") == 1.0
+
+    @with_feature({"organizations:dynamic-sampling-custom": True})
+    def test_target_sample_rate(self):
+        self.project.update_option("sentry:target_sample_rate", 1.0)
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
+        assert self.project.get_option("sentry:target_sample_rate") == 0.1
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
@@ -1413,7 +1525,7 @@ class CopyProjectSettingsTest(APITestCase):
         # default rule
         rules = Rule.objects.filter(project_id=project.id)
         assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
+        assert rules[0].label == "Send a notification for high priority issues"
 
     def test_simple(self):
         project = self.create_project()
@@ -1591,13 +1703,13 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
     def test_delete_project_and_delete_grouping_records(
         self, mock_call_seer_delete_project_grouping_records
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         self._delete_project_and_assert_deleted()
         mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 

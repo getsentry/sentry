@@ -3,6 +3,7 @@ import * as qs from 'query-string';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 
+// Syncs query params with URL state. Only performs a state sync if the query params have changed.
 export function useTraceQueryParamStateSync(query: Record<string, string | undefined>) {
   const previousQueryRef = useRef<Record<string, string | undefined>>(query);
   const syncStateTimeoutRef = useRef<number | null>(null);

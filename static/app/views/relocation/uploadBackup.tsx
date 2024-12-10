@@ -8,10 +8,10 @@ import {Button} from 'sentry/components/button';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 
 import type {StepProps} from './types';
@@ -43,7 +43,7 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   const [file, setFile] = useState<File>();
   const [dragCounter, setDragCounter] = useState(0);
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const user = ConfigStore.get('user');
+  const user = useUser();
 
   const handleDragEnter = event => {
     event.preventDefault();

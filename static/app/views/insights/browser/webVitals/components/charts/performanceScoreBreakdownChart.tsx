@@ -15,6 +15,7 @@ import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webV
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import type {SubregionCode} from 'sentry/views/insights/types';
 
 type Props = {
@@ -91,8 +92,7 @@ export function PerformanceScoreBreakdownChart({
   });
 
   return (
-    <ChartContainer>
-      <PerformanceScoreLabel>{t('Score Breakdown')}</PerformanceScoreLabel>
+    <StyledChartPanel title={t('Score Breakdown')}>
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
       <Chart
         stacked
@@ -135,24 +135,12 @@ export function PerformanceScoreBreakdownChart({
           },
         }}
       />
-    </ChartContainer>
+    </StyledChartPanel>
   );
 }
 
-const ChartContainer = styled('div')`
-  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+const StyledChartPanel = styled(ChartPanel)`
   flex: 1;
-  border: 1px solid ${p => p.theme.gray200};
-  border-radius: ${p => p.theme.borderRadius};
-  position: relative;
-  min-width: 320px;
-`;
-
-const PerformanceScoreLabel = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`

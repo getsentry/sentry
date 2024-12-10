@@ -5,7 +5,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.rules.conditions.new_high_priority_issue import has_high_priority_issue_alerts
 from sentry.types.activity import ActivityType
 from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.types.group import PriorityLevel
@@ -16,9 +15,6 @@ class ExistingHighPriorityIssueCondition(EventCondition):
     label = "Sentry marks an existing issue as high priority"
 
     def passes(self, event: GroupEvent, state: EventState) -> bool:
-        if not has_high_priority_issue_alerts(self.project):
-            return False
-
         if state.is_new:
             return False
 

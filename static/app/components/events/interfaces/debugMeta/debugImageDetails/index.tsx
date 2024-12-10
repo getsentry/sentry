@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature} from 'sentry/types/debugFiles';
-import type {Image, ImageCandidate, ImageStatus} from 'sentry/types/debugImage';
+import type {ImageCandidate, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus} from 'sentry/types/debugImage';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
@@ -38,7 +38,7 @@ type DebugImageDetailsProps = ModalRenderProps & {
   event: Event;
   organization: Organization;
   projSlug: Project['slug'];
-  image?: Image & {status: ImageStatus};
+  image?: ImageWithCombinedStatus;
   onReprocessEvent?: () => void;
 };
 

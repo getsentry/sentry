@@ -31,6 +31,7 @@ import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/web
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   ModuleName,
   SpanIndexedField,
@@ -66,6 +67,7 @@ const DEFAULT_SORT: Sort = {
 export function PagePerformanceTable() {
   const location = useLocation();
   const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
 
   const columnOrder = COLUMN_ORDER;
 
@@ -210,7 +212,7 @@ export function PagePerformanceTable() {
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -305,11 +307,20 @@ export function PagePerformanceTable() {
           onSearch={handleSearch}
           defaultQuery={query}
         />
-        <StyledPagination
-          pageLinks={pageLinks}
-          disabled={isTransactionWebVitalsQueryLoading}
-          size="md"
+      </SearchBarContainer>
+      <GridContainer>
+        <GridEditable
+          aria-label={t('Pages')}
+          isLoading={isTransactionWebVitalsQueryLoading}
+          columnOrder={columnOrder}
+          columnSortBy={[]}
+          data={tableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
         />
+        <Pagination pageLinks={pageLinks} disabled={isTransactionWebVitalsQueryLoading} />
         {/* The Pagination component disappears if pageLinks is not defined,
         which happens any time the table data is loading. So we render a
         disabled button bar if pageLinks is not defined to minimize ui shifting */}
@@ -329,19 +340,6 @@ export function PagePerformanceTable() {
             </ButtonBar>
           </Wrapper>
         )}
-      </SearchBarContainer>
-      <GridContainer>
-        <GridEditable
-          aria-label={t('Pages')}
-          isLoading={isTransactionWebVitalsQueryLoading}
-          columnOrder={columnOrder}
-          columnSortBy={[]}
-          data={tableData}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
-        />
       </GridContainer>
     </span>
   );
@@ -367,9 +365,7 @@ const AlignCenter = styled('span')`
 `;
 
 const SearchBarContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const GridContainer = styled('div')`
@@ -382,10 +378,6 @@ const TooltipHeader = styled('span')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
 `;
 
 const Wrapper = styled('div')`

@@ -18,7 +18,6 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
-  USER_RESPONSE = 'user_response',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -27,6 +26,15 @@ export enum AutofixCodebaseIndexingStatus {
   NOT_INDEXED = 'not_indexed',
   OUT_OF_DATE = 'out_of_date',
   ERRORED = 'errored',
+}
+
+export enum AutofixStatus {
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
+  PROCESSING = 'PROCESSING',
+  NEED_MORE_INFORMATION = 'NEED_MORE_INFORMATION',
+  CANCELLED = 'CANCELLED',
+  WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
 export type AutofixPullRequestDetails = {
@@ -50,13 +58,7 @@ export type AutofixData = {
   created_at: string;
   repositories: AutofixRepository[];
   run_id: string;
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'NOFIX'
-    | 'ERROR'
-    | 'NEED_MORE_INFORMATION';
+  status: AutofixStatus;
   actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
@@ -71,27 +73,58 @@ export type AutofixData = {
 export type AutofixProgressItem = {
   message: string;
   timestamp: string;
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION' | 'USER_RESPONSE';
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
 };
 
-export type AutofixStep =
-  | AutofixDefaultStep
-  | AutofixRootCauseStep
-  | AutofixChangesStep
-  | AutofixUserResponseStep;
+export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
 
 interface BaseStep {
   id: string;
   index: number;
   progress: AutofixProgressItem[];
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
+  status: AutofixStatus;
   title: string;
   type: AutofixStepType;
   completedMessage?: string;
 }
 
+export type CodeSnippetContext = {
+  file_path: string;
+  repo_name: string;
+  snippet: string;
+  end_line?: number;
+  start_line?: number;
+};
+
+export type StacktraceContext = {
+  code_snippet: string;
+  col_no: number;
+  file_name: string;
+  function: string;
+  line_no: number;
+  repo_name: string;
+  vars_as_json: string;
+};
+
+export type BreadcrumbContext = {
+  body: string;
+  category: string;
+  data_as_json: string;
+  level: string;
+  type: string;
+};
+
+export type AutofixInsight = {
+  breadcrumb_context: BreadcrumbContext[];
+  codebase_context: CodeSnippetContext[];
+  insight: string;
+  justification: string;
+  stacktrace_context: StacktraceContext[];
+};
+
 export interface AutofixDefaultStep extends BaseStep {
+  insights: AutofixInsight[];
   type: AutofixStepType.DEFAULT;
 }
 
@@ -106,6 +139,7 @@ export interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+  termination_reason?: string;
 }
 
 export type AutofixCodebaseChange = {
@@ -124,32 +158,26 @@ export interface AutofixChangesStep extends BaseStep {
   type: AutofixStepType.CHANGES;
 }
 
-export interface AutofixUserResponseStep extends BaseStep {
-  text: string;
-  type: AutofixStepType.USER_RESPONSE;
-  user_id: number;
-}
-
-export type AutofixRootCauseCodeContextSnippet = {
-  file_path: string;
-  repo_name: string;
-  snippet: string;
-};
-
 export type AutofixRootCauseCodeContext = {
   description: string;
   id: string;
   title: string;
-  snippet?: AutofixRootCauseCodeContextSnippet;
+  snippet?: CodeSnippetContext;
+};
+
+export type AutofixRootCauseUnitTest = {
+  description: string;
+  file_path: string;
+  snippet: string;
 };
 
 export type AutofixRootCauseData = {
-  actionability: number;
   code_context: AutofixRootCauseCodeContext[];
   description: string;
   id: string;
-  likelihood: number;
   title: string;
+  reproduction?: string;
+  unit_test?: AutofixRootCauseUnitTest;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {

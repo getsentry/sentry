@@ -47,7 +47,7 @@ def test_ensure_http_headers_match() -> None:
 
         https://docs.djangoproject.com/en/4.0/topics/testing/tools/#making-requests
         """
-        return f"{HttpHeaders.HTTP_PREFIX}{s.replace('-','_')}".upper()
+        return f"{HttpHeaders.HTTP_PREFIX}{s.replace('-', '_')}".upper()
 
     expected = {cgi_header(s) for s in (PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER)}
     assert set(headers) == expected

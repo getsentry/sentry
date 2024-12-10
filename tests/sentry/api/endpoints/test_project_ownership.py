@@ -8,7 +8,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.projectownership import ProjectOwnership
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -48,7 +48,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         return {
             "message": "Kaboom!",
             "platform": "python",
-            "timestamp": iso_format(before_now(seconds=10)),
+            "timestamp": before_now(seconds=10),
             "stacktrace": {
                 "frames": [
                     {
@@ -372,7 +372,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
     def test_max_raw_length(self):
         new_raw = f"*.py admin@localhost #{self.team.slug}"
-        with mock.patch("sentry.api.endpoints.project_ownership.MAX_RAW_LENGTH", 10):
+        with mock.patch("sentry.api.endpoints.project_ownership.DEFAULT_MAX_RAW_LENGTH", 10):
             resp = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,

@@ -67,7 +67,5 @@ describe('ProjectInstallPlatform', function () {
     ).toBeInTheDocument();
 
     expect(screen.getByText('Take me to Issues')).toBeInTheDocument();
-    expect(screen.getByText('Take me to Performance')).toBeInTheDocument();
-    expect(screen.getByText('Take me to Session Replay')).toBeInTheDocument();
   });
 });

@@ -7,8 +7,8 @@ import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoRepl
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {Dimensions} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -428,7 +428,8 @@ export function Provider({
         speed: prefs.playbackSpeed,
         // rrweb specific
         theme,
-        events: events ?? [],
+        eventsWithSnapshots: replay?.getRRWebFramesWithSnapshots() ?? [],
+        touchEvents: replay?.getRRwebTouchEvents() ?? [],
         // common to both
         root,
         context: {
@@ -448,7 +449,6 @@ export function Provider({
       applyInitialOffset,
       clipWindow,
       durationMs,
-      events,
       isFetching,
       isVideoReplay,
       organization.slug,
@@ -468,7 +468,8 @@ export function Provider({
       return;
     }
     if (isPlaying) {
-      replayer.pause();
+      // we need to pass in the current time when pausing for mobile replays
+      replayer.pause(getCurrentPlayerTime());
       replayer.setConfig({speed: prefs.playbackSpeed});
       replayer.play(getCurrentPlayerTime());
     } else {

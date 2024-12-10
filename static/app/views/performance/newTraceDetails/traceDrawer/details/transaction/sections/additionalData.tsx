@@ -40,9 +40,13 @@ function getEventExtraDataKnownDataDetails({
     default:
       return {
         subject: type,
-        value: data[type],
+        value: [type],
       };
   }
+}
+
+export function hasAdditionalData(event: EventTransaction) {
+  return !!event.context && !isEmptyObject(event.context);
 }
 
 export function AdditionalData({event}: {event: EventTransaction}) {

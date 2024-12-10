@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -48,8 +48,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -79,8 +79,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=24),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -108,8 +108,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
+                    "start": self.day_ago + timedelta(minutes=30),
+                    "end": self.day_ago + timedelta(hours=6, minutes=30),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -139,8 +139,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["eps()", "sps()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(minutes=6),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -168,8 +168,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
                 "interval": "1m",
                 "yAxis": "count()",
                 "field": ["transaction", "sum(span.self_time)"],
@@ -196,8 +196,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,
@@ -223,8 +223,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.decoded_response_content_length)",
                 "project": self.project.id,
@@ -249,8 +249,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_transfer_size)",
                 "project": self.project.id,
@@ -275,8 +275,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(cache.item_size)",
                 "field": ["cache.hit"],
@@ -310,8 +310,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "query": "messaging.destination.name:foo",
                 "yAxis": "avg(messaging.message.receive.latency)",
@@ -346,8 +346,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
 
         self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,

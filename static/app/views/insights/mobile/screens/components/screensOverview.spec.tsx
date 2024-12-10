@@ -5,12 +5,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {ScreensOverview} from 'sentry/views/insights/mobile/screens/components/screensOverview';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/views/insights/mobile/common/queries/useCrossPlatformProject');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -55,8 +53,6 @@ describe('ScreensOverview', () => {
     isProjectCrossPlatform: true,
     selectedPlatform: 'Android',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 
   it('renders search bar and table', async () => {
     MockApiClient.addMockResponse({

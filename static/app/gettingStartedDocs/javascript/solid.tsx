@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -23,7 +25,9 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -87,14 +91,18 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 }
 });
 
-const app = document.getElementById("app");
+const root = document.getElementById("root");
 
-if (!app) throw new Error("No #app element found in the DOM.");
+if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
+  throw new Error(
+    "Root element not found. Did you forget to add it to your index.html? Or maybe the id attribute got misspelled?"
+  );
+}
 
-render(() => <App />, app);
+render(() => <App />, root);
 `;
 
-const getVerifySolidSnippet = () => `
+const getVerifySnippet = () => `
 <button
   type="button"
   onClick={() => {
@@ -125,15 +133,23 @@ const getInstallConfig = () => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: params => (
+    <Fragment>
+      <MaybeBrowserProfilingBetaWarning {...params} />
+      <p>
+        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+          strong: <strong />,
+        })}
+      </p>
+    </Fragment>
+  ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn]:',
+        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
         {
-          codeYarn: <code />,
-          codeNpm: <code />,
+          code: <code />,
         }
       ),
       configurations: getInstallConfig(),
@@ -164,6 +180,7 @@ const onboarding: OnboardingConfig = {
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/',
+      ...params,
     }),
   ],
   verify: () => [
@@ -179,7 +196,7 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getVerifySolidSnippet(),
+              code: getVerifySnippet(),
             },
           ],
         },
@@ -192,22 +209,6 @@ const onboarding: OnboardingConfig = {
       name: t('Solid Features'),
       description: t('Learn about our first class integration with the Solid framework.'),
       link: 'https://docs.sentry.io/platforms/javascript/guides/solid/features/',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Tracing'),
-      description: t(
-        'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/tracing/',
-    },
-    {
-      id: 'session-replay',
-      name: t('Session Replay'),
-      description: t(
-        'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/solid/session-replay/',
     },
   ],
 };
@@ -246,7 +247,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -311,12 +312,19 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: params => <MaybeBrowserProfilingBetaWarning {...params} />,
+};
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  profilingOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

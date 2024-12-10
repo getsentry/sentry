@@ -254,6 +254,7 @@ export type Tag = {
   maxSuggestedValues?: number;
   predefined?: boolean;
   totalValues?: number;
+  uniqueValues?: number;
   /**
    * Usually values are strings, but a predefined tag can define its SearchGroups
    */

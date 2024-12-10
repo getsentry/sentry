@@ -46,7 +46,7 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -63,6 +63,14 @@ function getOrganizationReleases(
     query,
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
+
+const getOrganizationReleasesMemoized = memoize(
+  getOrganizationReleases,
+  (_, __, conditions) =>
+    Object.values(conditions)
+      .map(val => JSON.stringify(val))
+      .join('-')
+);
 
 export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
@@ -130,15 +138,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   _isMounted: boolean = false;
 
-  getOrganizationReleasesMemoized = memoize(
-    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
-      getOrganizationReleases(api, organization, conditions),
-    (_, __, conditions) =>
-      Object.values(conditions)
-        .map(val => JSON.stringify(val))
-        .join('-')
-  );
-
   async fetchData() {
     const {
       api,
@@ -164,7 +163,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     while (hasMore) {
       try {
         const getReleases = memoized
-          ? this.getOrganizationReleasesMemoized
+          ? getOrganizationReleasesMemoized
           : getOrganizationReleases;
         const [newReleases, , resp] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
@@ -292,7 +291,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             '</div>',
             '<div class="tooltip-footer">',
             time,
-            '</div>',
             '</div>',
             '<div class="tooltip-arrow"></div>',
           ].join('');

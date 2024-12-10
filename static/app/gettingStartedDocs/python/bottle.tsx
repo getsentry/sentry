@@ -8,7 +8,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+  featureFlagOnboarding,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -27,13 +31,23 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    _experiments={
+        # Set continuous_profiling_auto_start to True
+        # to automatically start the profiler on when
+        # possible.
+        "continuous_profiling_auto_start": True,
+    },`
+          : ''
     }
 )
 `;
@@ -47,10 +61,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryBotteCode:bottle] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:bottle] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryBotteCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -58,10 +71,9 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
                   {
-                    codeVersion: <code />,
-                    codePackage: <code />,
+                    code: <code />,
                   }
                 )
               : undefined,
@@ -86,9 +98,13 @@ const onboarding: OnboardingConfig = {
           code: `from bottle import Bottle
 ${getSdkSetupSnippet(params)}
 app = Bottle()
-      `,
+`,
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: (params: Params) => [
@@ -111,7 +127,7 @@ def hello():
     return "Hello World!"
 
 run(app, host='localhost', port=8000)
-      `,
+`,
         },
       ],
       additionalInfo: (
@@ -144,6 +160,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

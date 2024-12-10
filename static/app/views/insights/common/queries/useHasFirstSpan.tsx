@@ -25,6 +25,7 @@ const modulePropertyMap: Record<
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.AI]: 'hasInsightsLlmMonitoring',
+  [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
 };
 
 /**
@@ -38,7 +39,9 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   const pageFilters = usePageFilters();
 
   // Unsupported modules. Remove MOBILE_UI from this list once released.
-  if ((excludedModuleNames as readonly ModuleName[]).includes(module)) return false;
+  if ((excludedModuleNames as readonly ModuleName[]).includes(module)) {
+    return false;
+  }
 
   if (projects) {
     return projects.some(p => p[modulePropertyMap[module]] === true);

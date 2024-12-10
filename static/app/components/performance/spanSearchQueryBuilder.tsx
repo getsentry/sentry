@@ -9,7 +9,13 @@ import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
-import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  DEVICE_CLASS_TAG_VALUES,
+  FieldKind,
+  getFieldDefinition,
+  isDeviceClass,
+} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -24,9 +30,31 @@ interface SpanSearchQueryBuilderProps {
   searchSource: string;
   datetime?: PageFilters['datetime'];
   disableLoadingTags?: boolean;
+  onBlur?: (query: string, state: CallbackSearchState) => void;
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+}
+
+const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+  if (!supportedAggregates?.length) {
+    return {};
+  }
+
+  return supportedAggregates.reduce((acc, item) => {
+    acc[item] = {
+      key: item,
+      name: item,
+      kind: FieldKind.FUNCTION,
+    };
+    return acc;
+  }, {});
+};
+
+function getSpanFieldDefinitionFunction(tags: TagCollection) {
+  return (key: string) => {
+    return getFieldDefinition(key, 'span', tags[key]?.kind);
+  };
 }
 
 export function SpanSearchQueryBuilder({
@@ -34,6 +62,7 @@ export function SpanSearchQueryBuilder({
   searchSource,
   datetime,
   onSearch,
+  onBlur,
   placeholder,
   projects,
 }: SpanSearchQueryBuilderProps) {
@@ -41,21 +70,25 @@ export function SpanSearchQueryBuilder({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const functionTags = useMemo(() => {
+    return getFunctionTags();
+  }, []);
+
   const placeholderText = useMemo(() => {
     return placeholder ?? t('Search for spans, users, tags, and more');
   }, [placeholder]);
 
-  const customTags = useSpanFieldCustomTags({
+  const {data: customTags} = useSpanFieldCustomTags({
     projects: projects ?? selection.projects,
   });
 
-  const supportedTags = useSpanFieldSupportedTags({
+  const {data: supportedTags} = useSpanFieldSupportedTags({
     projects: projects ?? selection.projects,
   });
 
   const filterTags: TagCollection = useMemo(() => {
-    return {...supportedTags};
-  }, [supportedTags]);
+    return {...functionTags, ...supportedTags};
+  }, [supportedTags, functionTags]);
 
   const filterKeySections = useMemo(() => {
     return [
@@ -104,13 +137,111 @@ export function SpanSearchQueryBuilder({
       placeholder={placeholderText}
       filterKeys={filterTags}
       initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
+      onBlur={onBlur}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
-      disallowFreeText
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
+    />
+  );
+}
+
+interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+  numberTags: TagCollection;
+  stringTags: TagCollection;
+  getFilterTokenWarning?: (key: string) => React.ReactNode;
+  supportedAggregates?: AggregationKey[];
+}
+
+export function EAPSpanSearchQueryBuilder({
+  initialQuery,
+  placeholder,
+  onSearch,
+  onBlur,
+  searchSource,
+  numberTags,
+  stringTags,
+  getFilterTokenWarning,
+  supportedAggregates = [],
+}: EAPSpanSearchQueryBuilderProps) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const placeholderText = placeholder ?? t('Search for spans, users, tags, and more');
+
+  const functionTags = useMemo(() => {
+    return getFunctionTags(supportedAggregates);
+  }, [supportedAggregates]);
+
+  const tags = useMemo(() => {
+    return {...functionTags, ...numberTags, ...stringTags};
+  }, [numberTags, stringTags, functionTags]);
+
+  const filterKeySections = useMemo(() => {
+    const predefined = new Set(
+      SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children)
+    );
+    return [
+      ...SPANS_FILTER_KEY_SECTIONS.map(section => {
+        return {
+          ...section,
+          children: section.children.filter(key => stringTags.hasOwnProperty(key)),
+        };
+      }),
+      {
+        value: 'custom_fields',
+        label: 'Custom Tags',
+        children: Object.keys(stringTags).filter(key => !predefined.has(key)),
+      },
+    ];
+  }, [stringTags]);
+
+  const getSpanFilterTagValues = useCallback(
+    async (tag: Tag, queryString: string) => {
+      if (isAggregateField(tag.key) || numberTags.hasOwnProperty(tag.key)) {
+        // We can't really auto suggest values for aggregate fields
+        // or measurements, so we simply don't
+        return Promise.resolve([]);
+      }
+
+      try {
+        const results = await fetchSpanFieldValues({
+          api,
+          orgSlug: organization.slug,
+          fieldKey: tag.key,
+          search: queryString,
+          projectIds: selection.projects.map(String),
+          endpointParams: normalizeDateTimeParams(selection.datetime),
+          dataset: 'spans',
+        });
+        return results.filter(({name}) => defined(name)).map(({name}) => name);
+      } catch (e) {
+        throw new Error(`Unable to fetch event field values: ${e}`);
+      }
+    },
+    [api, organization.slug, selection.projects, selection.datetime, numberTags]
+  );
+
+  return (
+    <SearchQueryBuilder
+      placeholder={placeholderText}
+      filterKeys={tags}
+      initialQuery={initialQuery}
+      fieldDefinitionGetter={getSpanFieldDefinitionFunction(tags)}
+      onSearch={onSearch}
+      onBlur={onBlur}
+      getFilterTokenWarning={getFilterTokenWarning}
+      searchSource={searchSource}
+      filterKeySections={filterKeySections}
+      getTagValues={getSpanFilterTagValues}
+      disallowUnsupportedFilters
+      recentSearches={SavedSearchType.SPAN}
+      showUnsubmittedIndicator
     />
   );
 }

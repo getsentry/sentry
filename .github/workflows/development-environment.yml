@@ -27,17 +27,17 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
-          python-version: 3.12.3
+          python-version: 3.12.6
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: test-tools
         run: make test-tools
       - name: Handle artifacts
@@ -46,17 +46,17 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           commit_sha: ${{ github.event.pull_request.head.sha }}
   devenv:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
-          python-version: 3.12.3
+          python-version: 3.12.6
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: devenv sync
         run: |
           devenv --nocoderoot sync

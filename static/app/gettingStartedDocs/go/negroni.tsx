@@ -170,8 +170,8 @@ const onboarding: OnboardingConfig = {
               <strong>{t('Options')}</strong>
               <p>
                 {tct(
-                  '[sentryNegroniCode:sentrynegroni] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                  {sentryNegroniCode: <code />, optionsCode: <code />}
+                  '[code:sentrynegroni] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+                  {code: <code />}
                 )}
               </p>
               {t('Currently it respects 3 options:')}
@@ -188,22 +188,19 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "[sentryNegroniCode:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              "[code:sentrynegroni] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
               {
-                sentryNegroniCode: <code />,
+                code: <code />,
                 sentryHubLink: (
                   <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
-                getHubFromContextCode: <code />,
-                captureMessageCode: <code />,
-                captureExceptionCode: <code />,
               }
             )}
           </p>
           <AlertWithoutMarginBottom>
             {tct(
-              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryNegroniCode:sentrynegroni]!",
-              {sentryNegroniCode: <code />, sentryHubCode: <code />}
+              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentrynegroni]!",
+              {code: <code />}
             )}
           </AlertWithoutMarginBottom>
         </Fragment>
@@ -232,10 +229,9 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "Negroni provides an option called [panicHandlerFuncCode:PanicHandlerFunc], which lets you 'plug-in' to its default [recoveryCode:Recovery] middleware.",
+              "Negroni provides an option called [code:PanicHandlerFunc], which lets you 'plug-in' to its default [code:Recovery] middleware.",
               {
-                panicHandlerFuncCode: <code />,
-                recoveryCode: <code />,
+                code: <code />,
               }
             )}
           </p>

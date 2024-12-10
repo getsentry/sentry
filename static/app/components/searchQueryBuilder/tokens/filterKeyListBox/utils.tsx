@@ -1,9 +1,13 @@
+import styled from '@emotion/styled';
+
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
+  FilterValueItem,
   KeyItem,
   KeySectionItem,
+  RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import type {
@@ -13,6 +17,7 @@ import type {
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 export const ALL_CATEGORY_VALUE = '__all' as const;
 export const RECENT_SEARCH_CATEGORY_VALUE = '__recent_searches' as const;
@@ -25,6 +30,10 @@ export const RECENT_SEARCH_CATEGORY = {
 
 const RECENT_FILTER_KEY_PREFIX = '__recent_filter_key__';
 const RECENT_QUERY_KEY_PREFIX = '__recent_search__';
+
+function trimQuotes(value) {
+  return value.replace(/^"+|"+$/g, '');
+}
 
 export function createRecentFilterOptionKey(filter: string) {
   return getEscapedKey(`${RECENT_FILTER_KEY_PREFIX}${filter}`);
@@ -90,6 +99,37 @@ export function createItem(
   };
 }
 
+export function createRawSearchItem(value: string): RawSearchItem {
+  const quoted = `"${trimQuotes(value)}"`;
+
+  return {
+    key: getEscapedKey(quoted),
+    label: quoted,
+    value: quoted,
+    textValue: quoted,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search',
+    trailingItems: <SearchItemLabel>{t('Raw Search')}</SearchItemLabel>,
+  };
+}
+
+export function createFilterValueItem(key: string, value: string): FilterValueItem {
+  const filter = `${key}:${escapeFilterValue(value)}`;
+
+  return {
+    key: getEscapedKey(`${key}:${value}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'filter-value',
+  };
+}
+
 export function createRecentFilterItem({filter}: {filter: string}) {
   return {
     key: createRecentFilterOptionKey(filter),
@@ -124,3 +164,8 @@ export function createRecentQueryItem({
     hideCheck: true,
   };
 }
+
+const SearchItemLabel = styled('div')`
+  color: ${p => p.theme.subText};
+  white-space: nowrap;
+`;

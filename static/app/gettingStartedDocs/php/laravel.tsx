@@ -60,18 +60,21 @@ composer install sentry/sentry-laravel
 composer update sentry/sentry-laravel -W`;
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-      {
-        otherVersionsLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-        ),
-        lumenSpecificLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-        ),
-      }
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -126,8 +129,8 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'It creates the config file ([sentryPHPCode:config/sentry.php]) and adds the [dsnCode:DSN] to your [envCode:.env] file where you can add further configuration options:',
-            {sentryPHPCode: <code />, dsnCode: <code />, envCode: <code />}
+            'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
+            {code: <code />}
           ),
           language: 'shell',
           code: getConfigureSnippet(params),
@@ -172,10 +175,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version [codeVersionLaravel:4.2.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
+        'You need a minimum version [code:4.2.0] of the Laravel SDK and a minimum version [code:4.3.0] of the PHP SDK installed',
         {
-          codeVersionLaravel: <code />,
-          codeVersion: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -213,13 +215,9 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
+        "Then you'll be able to add metrics as [code:counters], [code:sets], [code:distributions], and [code:gauges].",
         {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
+          code: <code />,
         }
       ),
       configurations: [

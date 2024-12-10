@@ -16,8 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
-  event_id: string;
   organization: Organization;
+  event_id?: string;
 }
 
 /**
@@ -51,7 +51,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
 
 interface IssueTitleProps {
   data: Group;
-  event_id: string;
+  event_id?: string;
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
@@ -71,7 +71,9 @@ function IssueTitle(props: IssueTitleProps) {
     <TitleWithLink
       {...commonEleProps}
       to={{
-        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
+        pathname: props.event_id
+          ? `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`
+          : `/organizations/${organization.slug}/issues/${props.data.id}/`,
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
@@ -81,6 +83,9 @@ function IssueTitle(props: IssueTitleProps) {
 
 export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
   const eventLocation = getLocation(data);
+  const organization = useOrganization();
+
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   return (
     <div data-test-id="event-issue-header">
@@ -88,12 +93,15 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
         <IssueTitle data={data} event_id={event_id} />
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
-      <StyledEventMessage
-        level={'level' in data ? data.level : undefined}
-        message={getMessage(data)}
-        type={data.type}
-        levelIndicatorSize="9px"
-      />
+      {!hasNewLayout ? (
+        <StyledEventMessage
+          data={data}
+          level={'level' in data ? data.level : undefined}
+          message={getMessage(data)}
+          type={data.type}
+          levelIndicatorSize="9px"
+        />
+      ) : null}
     </div>
   );
 }
@@ -145,11 +153,11 @@ const IconWrapper = styled('span')`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
   align-items: center;
+  ${p => p.theme.overflowEllipsis}
 `;
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

@@ -1,4 +1,4 @@
-import {Children, isValidElement, type ReactNode, useRef, useState} from 'react';
+import {Children, type ReactNode, useRef, useState} from 'react';
 import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -36,6 +36,15 @@ export interface KeyValueDataContentProps {
    */
   errors?: MetaError[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
+   * Used for the feature flag section.
+   * If true, then the row will be highlighted in red.
+   */
+  isSuspectFlag?: boolean;
+  /**
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
@@ -47,6 +56,8 @@ export function Content({
   errors = [],
   disableLink = false,
   disableFormattedData = false,
+  isSuspectFlag = false,
+  expandLeft,
   ...props
 }: KeyValueDataContentProps) {
   const {
@@ -78,7 +89,12 @@ export function Content({
   );
 
   return (
-    <ContentWrapper hasErrors={hasErrors} {...props}>
+    <ContentWrapper
+      expandLeft={expandLeft}
+      hasErrors={hasErrors}
+      isSuspectFlag={isSuspectFlag}
+      {...props}
+    >
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
@@ -109,6 +125,10 @@ export interface KeyValueDataCardProps {
    */
   contentItems: KeyValueDataContentProps[];
   /**
+   * If true, expands the left side of the cards to take up more space.
+   */
+  expandLeft?: boolean;
+  /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
   sortAlphabetically?: boolean;
@@ -127,6 +147,7 @@ export function Card({
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
+  expandLeft = false,
 }: KeyValueDataCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -143,7 +164,7 @@ export function Card({
     : truncatedItems;
 
   const componentItems = orderedItems.map((itemProps, i) => (
-    <Content key={`content-card-${title}-${i}`} {...itemProps} />
+    <Content expandLeft={expandLeft} key={`content-card-${title}-${i}`} {...itemProps} />
   ));
 
   return (
@@ -159,36 +180,21 @@ export function Card({
   );
 }
 
-type ReactFCWithProps = React.FC<KeyValueDataCardProps>;
-
-const isReactComponent = (type): type is ReactFCWithProps => {
-  return (
-    typeof type === 'function' ||
-    (typeof type === 'object' && type !== null && 'render' in type)
-  );
-};
-
-// Returns an array of children where null/undefined children and children returning null are filtered out.
+// Returns an array of children where null/undefined children are filtered out.
 // For example:
 // <Component1/> --> returns a <Card/>
 // {null}
-// <Component2/> --> returns null
-// Gives us back [<Component1/>]
+// <Component2/> --> returns a <Card/>
+// Gives us back [<Component1/>, <Component2/>]
 const filterChildren = (children: ReactNode): ReactNode[] => {
-  return Children.toArray(children).filter((child: React.ReactNode) => {
-    if (isValidElement(child) && isReactComponent(child.type)) {
-      // Render the child and check if it returns null
-      const renderedChild = child.type(child.props);
-      return renderedChild !== null;
-    }
-
-    return child != null;
-  });
+  return Children.toArray(children).filter(
+    (child: ReactNode) => child !== null && child !== undefined
+  );
 };
 
-// Note: When rendered children have hooks, we need to ensure that there are no hook count mismatches between renders.
-// Instead of rendering rendering {condition ? <Component/> : null}, we should render
-// if(!condition) return null inside Component itself, where Component renders a Card.
+// Note: When conditionally rendering children, instead of returning
+// if(!condition) return null inside Component, we should render  {condition ? <Component/> : null}
+// where Component returns a <Card/>. {null} is ignored when distributing cards into columns.
 export function Container({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
@@ -227,21 +233,39 @@ const Title = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const ContentWrapper = styled('div')<{hasErrors: boolean}>`
+const ContentWrapper = styled('div')<{
+  hasErrors: boolean;
+  isSuspectFlag: boolean;
+  expandLeft?: boolean;
+}>`
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: ${p => (p.expandLeft ? '2fr 0.8fr' : 'subgrid')};
   grid-column: span 2;
   column-gap: ${space(1.5)};
   padding: ${space(0.25)} ${space(0.75)};
   border-radius: 4px;
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
+  color: ${p =>
+    p.hasErrors
+      ? p.theme.alert.error.color
+      : p.isSuspectFlag
+        ? p.theme.yellow400
+        : p.theme.subText};
   box-shadow: inset 0 0 0 1px
-    ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
+    ${p =>
+      p.hasErrors ? p.theme.red100 : p.isSuspectFlag ? p.theme.yellow100 : 'transparent'};
   background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
+    p.hasErrors
+      ? p.theme.alert.error.backgroundLight
+      : p.isSuspectFlag
+        ? p.theme.yellow100
+        : p.theme.background};
   &:nth-child(odd) {
     background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
+      p.hasErrors
+        ? p.theme.alert.error.backgroundLight
+        : p.isSuspectFlag
+          ? p.theme.yellow100
+          : p.theme.backgroundSecondary};
   }
 `;
 
@@ -302,8 +326,10 @@ const ActionButtonWrapper = styled('div')<{actionButtonAlwaysVisible?: boolean}>
 `;
 
 export const KeyValueData = {
+  Title,
   Content,
   Card,
+  CardPanel,
   Container,
 };
 

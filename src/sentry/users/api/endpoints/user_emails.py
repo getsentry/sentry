@@ -2,16 +2,23 @@ import logging
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.validators import AllowedEmailField
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
+from sentry.apidocs.examples.user_examples import UserExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.api.serializers.useremail import UserEmailSerializer, UserEmailSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
@@ -28,7 +35,7 @@ class DuplicateEmailError(Exception):
 
 
 class EmailValidator(serializers.Serializer[UserEmail]):
-    email = AllowedEmailField(required=True)
+    email = AllowedEmailField(required=True, help_text="The email address to add/remove.")
 
 
 def add_email(email: str, user: User) -> UserEmail:
@@ -57,39 +64,60 @@ def add_email(email: str, user: User) -> UserEmail:
     return new_email
 
 
+@extend_schema(tags=["Users"])
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.UNOWNED
 
+    @extend_schema(
+        operation_id="List user emails",
+        parameters=[GlobalParams.USER_ID],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=UserExamples.LIST_USER_EMAILS,
+    )
     def get(self, request: Request, user: User) -> Response:
         """
-        Get list of emails
-        ``````````````````
-
         Returns a list of emails. Primary email will have `isPrimary: true`
-
-        :auth required:
         """
 
         emails = user.emails.all()
 
-        return self.respond(serialize(list(emails), user=user))
+        return self.respond(
+            serialize(list(emails), user=user, serializer=UserEmailSerializer()),
+            status=200,
+        )
 
+    @extend_schema(
+        operation_id="Add a secondary email address",
+        parameters=[GlobalParams.USER_ID],
+        request=EmailValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
+            ),
+            201: inline_sentry_response_serializer(
+                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=UserExamples.ADD_SECONDARY_EMAIL,
+    )
     @sudo_required
     def post(self, request: Request, user: User) -> Response:
         """
-        Adds a secondary email address
-        ``````````````````````````````
-
-        Adds a secondary email address to account.
-
-        :param string email: email to add
-        :auth required:
+        Add a secondary email address to account
         """
 
         validator = EmailValidator(data=request.data)
@@ -103,7 +131,10 @@ class UserEmailsEndpoint(UserEndpoint):
             new_useremail = add_email(email, user)
         except DuplicateEmailError:
             new_useremail = user.emails.get(email__iexact=email)
-            return self.respond(serialize(new_useremail, user=request.user), status=200)
+            return self.respond(
+                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                status=200,
+            )
         else:
             logger.info(
                 "user.email.add",
@@ -113,18 +144,27 @@ class UserEmailsEndpoint(UserEndpoint):
                     "email": new_useremail.email,
                 },
             )
-            return self.respond(serialize(new_useremail, user=request.user), status=201)
+            return self.respond(
+                serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+                status=201,
+            )
 
+    @extend_schema(
+        operation_id="Update a primary email address",
+        parameters=[GlobalParams.USER_ID],
+        request=EmailValidator,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UserEmailSerializerResponse", list[UserEmailSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+            400: RESPONSE_BAD_REQUEST,
+        },
+    )
     @sudo_required
     def put(self, request: Request, user: User) -> Response:
         """
-        Updates primary email
-        `````````````````````
-
-        Changes primary email
-
-        :param string email: the email to set as primary email
-        :auth required:
+        Update a primary email address
         """
 
         validator = EmailValidator(data=request.data)
@@ -207,18 +247,25 @@ class UserEmailsEndpoint(UserEndpoint):
             },
         )
 
-        return self.respond(serialize(new_useremail, user=request.user))
+        return self.respond(
+            serialize(new_useremail, user=request.user, serializer=UserEmailSerializer()),
+            status=200,
+        )
 
+    @extend_schema(
+        operation_id="Remove an email address",
+        parameters=[GlobalParams.USER_ID],
+        request=UserEmailSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            400: RESPONSE_BAD_REQUEST,
+        },
+    )
     @sudo_required
     def delete(self, request: Request, user: User) -> Response:
         """
-        Removes an email from account
-        `````````````````````````````
-
-        Removes an email from account, can not remove primary email
-
-        :param string email: email to remove
-        :auth required:
+        Removes an email associated with the user account
         """
         validator = EmailValidator(data=request.data)
         if not validator.is_valid():

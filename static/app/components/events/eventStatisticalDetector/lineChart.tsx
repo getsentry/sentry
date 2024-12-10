@@ -8,7 +8,6 @@ import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart'
 import getBreakpointChartOptionsFromData from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsData} from 'sentry/types/organization';
-import useRouter from 'sentry/utils/useRouter';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 interface ChartProps {
@@ -21,7 +20,6 @@ interface ChartProps {
 
 function LineChart({datetime, percentileData, evidenceData, chartType}: ChartProps) {
   const theme = useTheme();
-  const router = useRouter();
 
   const {series, chartOptions} = useMemo(() => {
     return getBreakpointChartOptionsFromData(
@@ -32,7 +30,7 @@ function LineChart({datetime, percentileData, evidenceData, chartType}: ChartPro
   }, [percentileData, evidenceData, chartType, theme]);
 
   return (
-    <ChartZoom router={router} {...datetime}>
+    <ChartZoom {...datetime}>
       {zoomRenderProps => (
         <EChartsLineChart {...zoomRenderProps} {...chartOptions} series={series} />
       )}

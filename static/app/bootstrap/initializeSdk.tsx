@@ -1,5 +1,4 @@
 // eslint-disable-next-line simple-import-sort/imports
-import {browserHistory, createRoutes, match} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import type {Event} from '@sentry/types';
@@ -16,6 +15,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
+import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -55,31 +55,19 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(routes?: Function) {
-  const reactRouterIntegration = window.__SENTRY_USING_REACT_ROUTER_SIX
-    ? Sentry.reactRouterV6BrowserTracingIntegration({
-        useEffect: useEffect,
-        useLocation: useLocation,
-        useNavigationType: useNavigationType,
-        createRoutesFromChildren: createRoutesFromChildren,
-        matchRoutes: matchRoutes,
-      })
-    : Sentry.reactRouterV3BrowserTracingIntegration({
-        history: browserHistory as any,
-        routes: typeof routes === 'function' ? createRoutes(routes()) : [],
-        match,
-        enableLongAnimationFrame: true,
-        _experiments: {
-          enableInteractions: false,
-        },
-      });
-
+function getSentryIntegrations() {
   const integrations = [
     Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    reactRouterIntegration,
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect: useEffect,
+      useLocation: useLocation,
+      useNavigationType: useNavigationType,
+      createRoutesFromChildren: createRoutesFromChildren,
+      matchRoutes: matchRoutes,
+    }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
@@ -96,7 +84,7 @@ function getSentryIntegrations(routes?: Function) {
  * If `routes` is passed, we will instrument react-router. Not all
  * entrypoints require this.
  */
-export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
+export function initializeSdk(config: Config) {
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
@@ -117,7 +105,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    integrations: getSentryIntegrations(routes),
+    integrations: getSentryIntegrations(),
     tracesSampleRate,
     profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
@@ -195,13 +183,25 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
       lastEventId = event.event_id || hint.event_id;
 
+      // attach feature flags to the event context
+      if (event.contexts) {
+        const flags = FeatureObserver.singleton({}).getFeatureFlags();
+        event.contexts.flags = flags;
+      }
+
       return event;
     },
   });
 
   if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
+    if (
+      sentryConfig.environment === 'development' &&
+      process.env.SENTRY_SPOTLIGHT &&
+      !['false', 'f', 'n', 'no', 'off', '0'].includes(process.env.SENTRY_SPOTLIGHT)
+    ) {
       import('@spotlightjs/spotlight').then(Spotlight => {
+        // TODO: use the value of `process.env.SENTRY_SPOTLIGHT` for the `sidecarUrl` below when it is not "truthy"
+        //       Truthy is defined in https://github.com/getsentry/sentry-javascript/pull/13325/files#diff-a139d0f6c10ca33f2b0264da406662f90061cd7e8f707c197a02460a7f666e87R2
         /* #__PURE__ */ Spotlight.init();
       });
     }

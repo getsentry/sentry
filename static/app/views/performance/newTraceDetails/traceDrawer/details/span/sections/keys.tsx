@@ -16,16 +16,15 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  type TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+} from '../../../../traceDrawer/details/styles';
+import {isSpanNode} from '../../../../traceGuards';
+import {TraceTree} from '../../../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -67,6 +66,52 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
+function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
+  if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
+    return [];
+  }
+
+  let sum = 0;
+  TraceTree.ForEachChild(node, n => {
+    if (
+      isSpanNode(n) &&
+      typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
+    ) {
+      sum += n.value.measurements.ai_total_tokens_used.value;
+    }
+  });
+  return [
+    {
+      key: 'ai.pipeline',
+      subject: 'sum(ai_total_tokens_used)',
+      value: sum,
+    },
+  ];
+}
+
+export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
+  const span = node.value;
+  const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
+  const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
+    value => value === 0
+  );
+  const unknownKeys = Object.keys(span).filter(key => {
+    return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
+  });
+  const timingKeys = getSpanSubTimings(span) ?? [];
+  const aggregateMeasurements: SectionCardKeyValueList =
+    getSpanAggregateMeasurements(node);
+
+  return (
+    allZeroSizes ||
+    unknownKeys.length > 0 ||
+    timingKeys.length > 0 ||
+    aggregateMeasurements.length > 0 ||
+    Object.keys(nonSizeKeys).length > 0 ||
+    Object.keys(sizeKeys).length > 0
+  );
+}
+
 export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
@@ -81,26 +126,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
-    if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
-      return [];
-    }
-
-    let sum = 0;
-    TraceTreeNode.ForEachChild(node, n => {
-      if (
-        isSpanNode(n) &&
-        typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
-      ) {
-        sum += n.value.measurements.ai_total_tokens_used.value;
-      }
-    });
-    return [
-      {
-        key: 'ai.pipeline',
-        subject: 'sum(ai_total_tokens_used)',
-        value: sum,
-      },
-    ];
+    return getSpanAggregateMeasurements(node);
   }, [node]);
 
   if (allZeroSizes) {
@@ -142,13 +168,11 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
     }
   });
   unknownKeys.forEach(key => {
-    if (key !== 'event' && key !== 'childTransactions') {
-      items.push({
-        key: key,
-        subject: key,
-        value: span[key],
-      });
-    }
+    items.push({
+      key: key,
+      subject: key,
+      value: span[key],
+    });
   });
   timingKeys.forEach(timing => {
     items.push({

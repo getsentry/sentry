@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {QueryFunctionContext} from '@tanstack/react-query';
 import {stringifyUrl} from 'query-string';
 
 import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
@@ -14,16 +15,14 @@ function parsePageParam<Data>(dir: 'previous' | 'next') {
   };
 }
 
-const getNextPageParam = parsePageParam('next');
-const getPreviousPageParam = parsePageParam('previous');
+const getNextPageParam: any = parsePageParam('next');
+const getPreviousPageParam: any = parsePageParam('previous');
 
 interface FetchParams {
   queryKey: ApiEndpointQueryKey;
 }
 
-interface InfiniteFetchParams extends FetchParams {
-  pageParam: ParsedHeader;
-}
+export type PageParam = ParsedHeader | undefined;
 
 export default function useApiEndpoint() {
   const {apiPrefix} = useConfiguration();
@@ -59,7 +58,9 @@ export default function useApiEndpoint() {
       <Data,>({
         queryKey: [ns, endpoint, options],
         pageParam,
-      }: InfiniteFetchParams): Promise<ApiResult<Data>> => {
+      }: QueryFunctionContext<ApiEndpointQueryKey, PageParam>): Promise<
+        ApiResult<Data>
+      > => {
         const query = {
           ...options?.query,
           cursor: pageParam?.cursor,

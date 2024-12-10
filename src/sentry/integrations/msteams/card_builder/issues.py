@@ -5,8 +5,8 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.eventstore.models import Event
-from sentry.integrations.message_builder import (
+from sentry.eventstore.models import Event, GroupEvent
+from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
     build_footer,
@@ -53,7 +53,11 @@ logger = logging.getLogger(__name__)
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, group: Group, event: Event, rules: Sequence[Rule], integration: RpcIntegration
+        self,
+        group: Group,
+        event: Event | GroupEvent,
+        rules: Sequence[Rule],
+        integration: RpcIntegration,
     ):
         self.group = group
         self.event = event
@@ -205,15 +209,15 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         ignore_action = self.create_issue_action_block(
             toggled=GroupStatus.IGNORED == status,
-            action=ACTION_TYPE.IGNORE,
-            action_title=IssueConstants.IGNORE,
+            action=ACTION_TYPE.ARCHIVE,
+            action_title=IssueConstants.ARCHIVE,
             reverse_action=ACTION_TYPE.UNRESOLVE,
-            reverse_action_title=IssueConstants.STOP_IGNORING,
+            reverse_action_title=IssueConstants.UNARCHIVE,
             # card_kwargs
-            card_title=IssueConstants.IGNORE_INPUT_TITLE,
-            submit_button_title=IssueConstants.IGNORE,
-            input_id=IssueConstants.IGNORE_INPUT_ID,
-            choices=IssueConstants.IGNORE_INPUT_CHOICES,
+            card_title=IssueConstants.ARCHIVE_INPUT_TITLE,
+            submit_button_title=IssueConstants.ARCHIVE,
+            input_id=IssueConstants.ARCHIVE_INPUT_ID,
+            choices=IssueConstants.ARCHIVE_INPUT_CHOICES,
         )
 
         teams_choices = self.get_teams_choices()

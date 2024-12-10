@@ -7,10 +7,10 @@ from rest_framework import serializers
 from sentry.api.serializers import Serializer, register
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
-from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.sentry_apps.models.sentry_app_installation import prepare_ui_component
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.users.services.user.service import user_service
 
@@ -258,8 +258,8 @@ class RuleSerializer(Serializer):
             created_by = None
             if user.id == snooze.get("owner_id"):
                 created_by = "You"
-            else:
-                creator = user_service.get_user(snooze.get("owner_id"))
+            elif owner_id := snooze.get("owner_id"):
+                creator = user_service.get_user(owner_id)
                 if creator:
                     created_by = creator.get_display_name()
 

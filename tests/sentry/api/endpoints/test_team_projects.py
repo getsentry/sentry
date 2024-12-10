@@ -68,14 +68,6 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert project.platform == "python"
         assert project.teams.first() == self.team
 
-        # Assert project option is not set for non-EA organizations
-        assert (
-            ProjectOption.objects.get_value(
-                project=project, key="sentry:similarity_backfill_completed"
-            )
-            is None
-        )
-
     def test_invalid_numeric_slug(self):
         response = self.get_error_response(
             self.organization.slug,
@@ -243,11 +235,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_valid(self):
         """
-        Test that project option for similarity grouping is created for EA organizations
-        where the project platform is Seer-eligible.
+        Test that project option for similarity grouping is created when the project platform is
+        Seer-eligible.
         """
-        self.organization.flags.early_adopter = True
-        self.organization.save()
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -270,12 +260,9 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
     def test_similarity_project_option_invalid(self):
         """
-        Test that project option for similarity grouping is not created for EA organizations
-        where the project platform is not seer eligible.
+        Test that project option for similarity grouping is not created when the project platform
+        is not seer eligible.
         """
-
-        self.organization.flags.early_adopter = True
-        self.organization.save()
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -297,3 +284,44 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             )
             is None
         )
+
+    def test_builtin_symbol_sources_electron(self):
+        """
+        Test that project option for builtin symbol sources contains ["electron"] when creating
+        an Electron project, but uses defaults for other platforms.
+        """
+        # Test Electron project
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="electron-app",
+            slug="electron-app",
+            platform="electron",
+            status_code=201,
+        )
+
+        electron_project = Project.objects.get(id=response.data["id"])
+        assert electron_project.platform == "electron"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=electron_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["ios", "microsoft", "electron"]
+
+    def test_builtin_symbol_sources_not_electron(self):
+        # Test non-Electron project (e.g. Python)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="python-app",
+            slug="python-app",
+            platform="python",
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=response.data["id"])
+        assert python_project.platform == "python"
+        # Should use default value, not ["electron"]
+        symbol_sources = ProjectOption.objects.get_value(
+            project=python_project, key="sentry:builtin_symbol_sources"
+        )
+        assert "electron" not in symbol_sources

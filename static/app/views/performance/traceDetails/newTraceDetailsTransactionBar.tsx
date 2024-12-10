@@ -56,7 +56,6 @@ import {
   getDurationDisplay,
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
@@ -65,7 +64,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -81,7 +79,7 @@ import {
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -138,7 +136,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
   const transactionRowDOMRef = createRef<HTMLDivElement>();
   const transactionTitleRef = createRef<HTMLDivElement>();
   let spanContentRef: HTMLDivElement | null = null;
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -293,19 +291,22 @@ function NewTraceDetailsTransactionBar(props: Props) {
     const {transaction, organization, location} = props;
 
     if (isTraceError(transaction)) {
-      browserHistory.push(generateIssueEventTarget(transaction, organization));
+      navigate(generateIssueEventTarget(transaction, organization));
       return;
     }
 
     if (isTraceTransaction<TraceFullDetailed>(transaction)) {
-      router.replace({
-        ...location,
-        hash: transactionTargetHash(transaction.event_id),
-        query: {
-          ...location.query,
-          openPanel: 'open',
+      navigate(
+        {
+          ...location,
+          hash: transactionTargetHash(transaction.event_id),
+          query: {
+            ...location.query,
+            openPanel: 'open',
+          },
         },
-      });
+        {replace: true}
+      );
     }
   };
 
@@ -493,52 +494,44 @@ function NewTraceDetailsTransactionBar(props: Props) {
                     input={profiles?.type === 'resolved' ? profiles.data : null}
                     traceID={profileId || ''}
                   >
-                    <TransactionProfileIdProvider
-                      projectId={embeddedChildren.projectID}
-                      timestamp={embeddedChildren.dateReceived}
-                      transactionId={embeddedChildren.id}
-                    >
-                      <SpanContext.Provider>
-                        <SpanContext.Consumer>
-                          {spanContextProps => (
-                            <Observer>
-                              {() => (
-                                <NewTraceDetailsSpanTree
-                                  measurements={props.measurements}
-                                  quickTrace={results}
-                                  location={props.location}
-                                  onRowClick={props.onRowClick}
-                                  traceInfo={traceInfo}
-                                  traceViewHeaderRef={traceViewRef}
-                                  traceViewRef={traceViewRef}
-                                  parentContinuingDepths={props.continuingDepths}
-                                  traceHasMultipleRoots={props.continuingDepths.some(
-                                    c => c.depth === 0 && c.isOrphanDepth
-                                  )}
-                                  parentIsOrphan={props.isOrphan}
-                                  parentIsLast={isLast}
-                                  parentGeneration={transaction.generation ?? 0}
-                                  organization={organization}
-                                  waterfallModel={waterfallModel}
-                                  filterSpans={waterfallModel.filterSpans}
-                                  spans={waterfallModel
-                                    .getWaterfall({
-                                      viewStart: 0,
-                                      viewEnd: 1,
-                                    })
-                                    .slice(1)}
-                                  focusedSpanIds={waterfallModel.focusedSpanIds}
-                                  spanContextProps={spanContextProps}
-                                  operationNameFilters={
-                                    waterfallModel.operationNameFilters
-                                  }
-                                />
-                              )}
-                            </Observer>
-                          )}
-                        </SpanContext.Consumer>
-                      </SpanContext.Provider>
-                    </TransactionProfileIdProvider>
+                    <SpanContext.Provider>
+                      <SpanContext.Consumer>
+                        {spanContextProps => (
+                          <Observer>
+                            {() => (
+                              <NewTraceDetailsSpanTree
+                                measurements={props.measurements}
+                                quickTrace={results}
+                                location={props.location}
+                                onRowClick={props.onRowClick}
+                                traceInfo={traceInfo}
+                                traceViewHeaderRef={traceViewRef}
+                                traceViewRef={traceViewRef}
+                                parentContinuingDepths={props.continuingDepths}
+                                traceHasMultipleRoots={props.continuingDepths.some(
+                                  c => c.depth === 0 && c.isOrphanDepth
+                                )}
+                                parentIsOrphan={props.isOrphan}
+                                parentIsLast={isLast}
+                                parentGeneration={transaction.generation ?? 0}
+                                organization={organization}
+                                waterfallModel={waterfallModel}
+                                filterSpans={waterfallModel.filterSpans}
+                                spans={waterfallModel
+                                  .getWaterfall({
+                                    viewStart: 0,
+                                    viewEnd: 1,
+                                  })
+                                  .slice(1)}
+                                focusedSpanIds={waterfallModel.focusedSpanIds}
+                                spanContextProps={spanContextProps}
+                                operationNameFilters={waterfallModel.operationNameFilters}
+                              />
+                            )}
+                          </Observer>
+                        )}
+                      </SpanContext.Consumer>
+                    </SpanContext.Provider>
                   </ProfileGroupProvider>
                 )}
               </ProfileContext.Consumer>

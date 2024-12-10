@@ -1,17 +1,33 @@
 from __future__ import annotations
 
 import abc
+import logging
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.integrations.messaging import commands
+from sentry.integrations.messaging.commands import (
+    CommandHandler,
+    CommandInput,
+    CommandNotMatchedError,
+    MessagingIntegrationCommand,
+    MessagingIntegrationCommandDispatcher,
+)
+from sentry.integrations.messaging.metrics import MessageCommandHaltReason
+from sentry.integrations.messaging.spec import MessagingIntegrationSpec
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC,
     SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
+from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.types import EventLifecycleOutcome, IntegrationResponse
+from sentry.utils import metrics
 
 LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
@@ -24,9 +40,6 @@ UNLINK_USER_MESSAGE = (
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 
-import logging
-
-from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -42,32 +55,20 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
-        command, args = request.get_command_and_args()
-
-        if command in ["help", "", "support", "docs"]:
-            return self.respond(SlackHelpMessageBuilder(command=command).build())
-
-        if command == "link":
-            if not args:
-                return self.link_user(request)
-
-            if args[0] == "team":
-                return self.link_team(request)
-
-        if command == "unlink":
-            if not args:
-                return self.unlink_user(request)
-
-            if args[0] == "team":
-                return self.unlink_team(request)
-
-        # If we cannot interpret the command, print help text.
-        request_data = request.data
-        unknown_command = request_data.get("text", "").lower()
-        return self.respond(SlackHelpMessageBuilder(unknown_command).build())
+        cmd_input = request.get_command_input()
+        try:
+            return SlackCommandDispatcher(self, request).dispatch(cmd_input)
+        except CommandNotMatchedError:
+            # If we cannot interpret the command, print help text.
+            request_data = request.data
+            unknown_command = request_data.get("text", "").lower()
+            return self.help(unknown_command)
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         raise NotImplementedError
+
+    def help(self, command: str) -> Response:
+        return self.respond(SlackHelpMessageBuilder(command).build())
 
     def link_user(self, slack_request: SlackDMRequest) -> Response:
         from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -124,3 +125,113 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 
     def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
+    endpoint: SlackDMEndpoint
+    request: SlackDMRequest
+
+    # Define mapping of messages to halt reasons
+    @property
+    def TEAM_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
+        from sentry.integrations.slack.webhooks.command import (
+            CHANNEL_ALREADY_LINKED_MESSAGE,
+            INSUFFICIENT_ROLE_MESSAGE,
+            LINK_FROM_CHANNEL_MESSAGE,
+            LINK_USER_FIRST_MESSAGE,
+            TEAM_NOT_LINKED_MESSAGE,
+        )
+
+        return {
+            LINK_FROM_CHANNEL_MESSAGE: MessageCommandHaltReason.LINK_FROM_CHANNEL,
+            LINK_USER_FIRST_MESSAGE: MessageCommandHaltReason.LINK_USER_FIRST,
+            INSUFFICIENT_ROLE_MESSAGE: MessageCommandHaltReason.INSUFFICIENT_ROLE,
+            CHANNEL_ALREADY_LINKED_MESSAGE: MessageCommandHaltReason.CHANNEL_ALREADY_LINKED,
+            TEAM_NOT_LINKED_MESSAGE: MessageCommandHaltReason.TEAM_NOT_LINKED,
+        }
+
+    @property
+    def integration_spec(self) -> MessagingIntegrationSpec:
+        return SlackMessagingSpec()
+
+    def help_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.help(input.cmd_value)
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def link_user_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.link_user(self.request)
+        if ALREADY_LINKED_MESSAGE.format(username=self.request.identity_str) in str(response.data):
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=response,
+                outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
+                context_data={
+                    "email": self.request.identity_str,
+                },
+            )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def unlink_user_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.unlink_user(self.request)
+        if NOT_LINKED_MESSAGE in str(response.data):
+            return IntegrationResponse(
+                interaction_result=EventLifecycleOutcome.SUCCESS,
+                response=response,
+                outcome_reason=str(MessageCommandHaltReason.NOT_LINKED),
+                context_data={
+                    "email": self.request.identity_str,
+                },
+            )
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def link_team_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.link_team(self.request)
+
+        for message, reason in self.TEAM_HALT_MAPPINGS.items():
+            if message in str(response.data):
+                return IntegrationResponse(
+                    interaction_result=EventLifecycleOutcome.SUCCESS,
+                    response=response,
+                    outcome_reason=str(reason),
+                )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    def unlink_team_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
+        response = self.endpoint.unlink_team(self.request)
+        for message, reason in self.TEAM_HALT_MAPPINGS.items():
+            if message in str(response.data):
+                return IntegrationResponse(
+                    interaction_result=EventLifecycleOutcome.SUCCESS,
+                    response=response,
+                    outcome_reason=str(reason),
+                )
+
+        return IntegrationResponse(
+            interaction_result=EventLifecycleOutcome.SUCCESS,
+            response=response,
+        )
+
+    @property
+    def command_handlers(
+        self,
+    ) -> Iterable[tuple[MessagingIntegrationCommand, CommandHandler[Response]]]:
+
+        yield commands.HELP, self.help_handler
+        yield commands.LINK_IDENTITY, self.link_user_handler
+        yield commands.UNLINK_IDENTITY, self.unlink_user_handler
+        yield commands.LINK_TEAM, self.link_team_handler
+        yield commands.UNLINK_TEAM, self.unlink_team_handler

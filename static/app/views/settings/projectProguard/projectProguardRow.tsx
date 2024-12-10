@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
+import {useRole} from 'sentry/components/acl/useRole';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
@@ -18,7 +18,6 @@ import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProg
 import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
-  downloadRole: string;
   downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
@@ -31,9 +30,9 @@ function ProjectProguardRow({
   mapping,
   onDelete,
   downloadUrl,
-  downloadRole,
   orgSlug,
 }: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -55,31 +54,27 @@ function ProjectProguardRow({
       </SizeColumn>
       <ActionsColumn>
         <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                title={tct(
-                  'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                disabled={hasRole}
-                isHoverable
-              >
-                <LinkButton
-                  size="sm"
-                  icon={<IconDownload size="sm" />}
-                  disabled={!hasRole}
-                  href={downloadUrl}
-                  title={hasRole ? t('Download Mapping') : undefined}
-                  aria-label={t('Download Mapping')}
-                />
-              </Tooltip>
+          <Tooltip
+            title={tct(
+              'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
+            disabled={hasRole}
+            isHoverable
+          >
+            <LinkButton
+              size="sm"
+              icon={<IconDownload size="sm" />}
+              disabled={!hasRole}
+              href={downloadUrl}
+              title={hasRole ? t('Download Mapping') : undefined}
+              aria-label={t('Download Mapping')}
+            />
+          </Tooltip>
 
           <Access access={['project:releases']}>
             {({hasAccess}) => (

@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,11 +12,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
 import {
   SpanSortOthers,
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
   const {query, additionalFeatures} = options;
@@ -42,10 +48,13 @@ function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
 }
 
 describe('Performance > Transaction Spans', function () {
-  let eventsMock;
-  let eventsSpanOpsMock;
-  let eventsSpansPerformanceMock;
+  let eventsMock: jest.Mock;
+  let eventsSpanOpsMock: jest.Mock;
+  let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

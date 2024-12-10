@@ -8,7 +8,11 @@ import moment from 'moment-timezone';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {
+  EventsStats,
+  GroupedMultiSeriesEventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -52,7 +56,7 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-function computeShortInterval(datetimeObj: DateTimeObject): boolean {
+export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
@@ -98,7 +102,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -108,6 +112,7 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     medium: mediumFidelityLadder,
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
+    issues: issuesFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
 
@@ -141,6 +146,18 @@ const metricsFidelityLadder = new GranularityLadder([
   [THIRTY_DAYS, '12h'],
   [TWO_WEEKS, '4h'],
   [TWENTY_FOUR_HOURS, '30m'],
+  [SIX_HOURS, '5m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const issuesFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
@@ -216,7 +233,7 @@ export function getSeriesSelection(
 }
 
 function isSingleSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats
+  data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
   return (
     (defined(data.data) || defined(data.totals)) &&
@@ -226,7 +243,12 @@ function isSingleSeriesStats(
 }
 
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  data:
+    | MultiSeriesEventsStats
+    | EventsStats
+    | GroupedMultiSeriesEventsStats
+    | null
+    | undefined,
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (

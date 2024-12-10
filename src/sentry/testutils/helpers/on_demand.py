@@ -20,6 +20,7 @@ def create_widget(
     dashboard: Dashboard | None = None,
     widget: DashboardWidget | None = None,
     discover_widget_split: int | None = None,
+    widget_type: int = DashboardWidgetTypes.DISCOVER,
 ) -> tuple[DashboardWidgetQuery, DashboardWidget, Dashboard]:
     columns = columns or []
     dashboard = dashboard or Dashboard.objects.create(
@@ -31,7 +32,7 @@ def create_widget(
     widget = widget or DashboardWidget.objects.create(
         dashboard=dashboard,
         order=order,
-        widget_type=DashboardWidgetTypes.DISCOVER,
+        widget_type=widget_type,
         display_type=DashboardWidgetDisplayTypes.LINE_CHART,
         discover_widget_split=discover_widget_split,
     )

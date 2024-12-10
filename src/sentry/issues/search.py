@@ -8,7 +8,13 @@ from typing import Any, Optional, Protocol, TypedDict
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    GroupCategory,
+    GroupType,
+    get_all_group_type_ids,
+    get_group_type_by_type_id,
+)
+from sentry.issues.grouptype import registry as GT_REGISTRY
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
@@ -27,8 +33,7 @@ class IntermediateSearchQueryPartial(Protocol):
         groupby: Sequence[str],
         having: Sequence[Any],
         orderby: Sequence[str],
-    ) -> Mapping[str, Any]:
-        ...
+    ) -> Mapping[str, Any]: ...
 
 
 class SearchQueryPartial(Protocol):
@@ -40,8 +45,7 @@ class SearchQueryPartial(Protocol):
         conditions: Sequence[Any],
         aggregations: Sequence[Any],
         condition_resolver: Any,
-    ) -> Mapping[str, Any]:
-        ...
+    ) -> Mapping[str, Any]: ...
 
 
 GroupSearchFilterUpdater = Callable[[Sequence[SearchFilter]], Sequence[SearchFilter]]
@@ -98,14 +102,18 @@ def group_categories_from(
 
 def group_types_from(
     search_filters: Sequence[SearchFilter] | None,
-) -> set[int] | None:
+) -> set[int]:
     """
     Return the set of group type ids to include in the query, or None if all group types should be included.
     """
 
     # if no relevant filters, return none to signify we should query all group types
     if not any(sf.key.name in ("issue.category", "issue.type") for sf in search_filters or ()):
-        return None
+        # Filters some types from the default search
+        all_group_type_objs: list[GroupType] = [
+            GT_REGISTRY.get_by_type_id(id) for id in GT_REGISTRY.get_all_group_type_ids()
+        ]
+        return {gt.type_id for gt in all_group_type_objs if gt.in_default_search}
 
     # start by including all group types
     include_group_types = set(get_all_group_type_ids())

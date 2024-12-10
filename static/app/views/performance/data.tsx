@@ -39,7 +39,7 @@ export const COLUMN_TITLES = [
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
-  if (organization?.features?.includes('performance-landing-page-stats-period')) {
+  if (organization.features.includes('performance-landing-page-stats-period')) {
     return '14d';
   }
   return DEFAULT_STATS_PERIOD;
@@ -438,7 +438,7 @@ export function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
   return conditions.formatString();
 }
 
-function generateGenericPerformanceEventView(
+export function generateGenericPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -499,7 +499,7 @@ function generateGenericPerformanceEventView(
   return eventView;
 }
 
-function generateBackendPerformanceEventView(
+export function generateBackendPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -508,10 +508,10 @@ function generateBackendPerformanceEventView(
 
   const fields = [
     'team_key_transaction',
-    'transaction',
-    'project',
-    'transaction.op',
     'http.method',
+    'transaction',
+    'transaction.op',
+    'project',
     'tpm()',
     'p50()',
     'p95()',
@@ -551,7 +551,7 @@ function generateBackendPerformanceEventView(
   return eventView;
 }
 
-function generateMobilePerformanceEventView(
+export function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
@@ -563,8 +563,8 @@ function generateMobilePerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
@@ -669,7 +669,7 @@ function generateFrontendPageloadPerformanceEventView(
   return eventView;
 }
 
-function generateFrontendOtherPerformanceEventView(
+export function generateFrontendOtherPerformanceEventView(
   location: Location,
   withStaticFilters: boolean,
   organization: Organization
@@ -679,8 +679,8 @@ function generateFrontendOtherPerformanceEventView(
   const fields = [
     'team_key_transaction',
     'transaction',
-    'project',
     'transaction.op',
+    'project',
     'tpm()',
     'p50(transaction.duration)',
     'p75(transaction.duration)',

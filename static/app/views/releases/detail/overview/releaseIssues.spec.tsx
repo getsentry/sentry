@@ -11,10 +11,10 @@ import ReleaseIssues from 'sentry/views/releases/detail/overview/releaseIssues';
 import {getReleaseBounds} from 'sentry/views/releases/utils';
 
 describe('ReleaseIssues', function () {
-  let newIssuesEndpoint,
-    resolvedIssuesEndpoint,
-    unhandledIssuesEndpoint,
-    allIssuesEndpoint;
+  let newIssuesEndpoint: jest.Mock;
+  let resolvedIssuesEndpoint: jest.Mock;
+  let unhandledIssuesEndpoint: jest.Mock;
+  let allIssuesEndpoint: jest.Mock;
 
   const props = {
     orgId: 'org',

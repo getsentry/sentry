@@ -167,6 +167,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
     background-color: ${theme.backgroundSecondary};
     white-space: pre-wrap;
     overflow-x: auto;
+
+    &:focus-visible {
+      outline: ${theme.focusBorder} auto 1px;
+    }
   }
 
   code {
@@ -307,10 +311,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
               }
             }
           }
-        }
-
-        .exc-message {
-          color: ${theme.subText};
         }
         .group-detail h3 em {
           color: ${theme.subText};

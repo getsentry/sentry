@@ -6,6 +6,7 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/insights/http/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 interface Props {
@@ -30,6 +31,7 @@ export function SpanIdCell({
   location,
 }: Props) {
   const organization = useOrganization();
+  const domainViewFilters = useDomainViewFilters();
   const url = normalizeUrl(
     generateLinkToEventInTraceView({
       eventId: transactionId,
@@ -40,6 +42,7 @@ export function SpanIdCell({
       location,
       spanId,
       source,
+      view: domainViewFilters.view,
     })
   );
 

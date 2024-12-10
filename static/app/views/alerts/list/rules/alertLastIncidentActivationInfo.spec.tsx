@@ -63,6 +63,6 @@ describe('AlertLastIncidentActivationInfo', function () {
     } as const;
 
     render(<AlertLastIncidentActivationInfo rule={rule} />);
-    expect(screen.getByText('Actively monitoring every 5 seconds')).toBeInTheDocument();
+    expect(screen.getByText('Actively monitoring every 1 minute')).toBeInTheDocument();
   });
 });

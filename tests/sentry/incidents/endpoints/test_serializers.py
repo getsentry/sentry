@@ -4,6 +4,7 @@ from functools import cached_property
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.test import override_settings
@@ -16,6 +17,7 @@ from sentry.auth.access import from_user
 from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
+    AlertTarget,
     ChannelLookupTimeoutError,
     create_alert_rule_trigger,
 )
@@ -41,6 +43,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -117,7 +120,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             "organization": self.organization,
             "access": self.access,
             "user": self.user,
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=self.organization.id
             ),
             "integrations": integration_service.get_integrations(
@@ -425,6 +428,14 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid(), serializer.errors
 
     def test_boundary_off_by_one(self):
+        actions = [
+            {
+                "type": "slack",
+                "targetIdentifier": "my-channel",
+                "targetType": "specific",
+                "integration": self.integration.id,
+            }
+        ]
         self.run_fail_validation_test(
             {
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
@@ -433,7 +444,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 0,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -454,7 +465,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
                     {
                         "label": "critical",
                         "alertThreshold": 2,
-                        "actions": [],
+                        "actions": actions,
                     },
                 ],
             },
@@ -469,6 +480,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -476,7 +488,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         """
         Anomaly detection alerts cannot have a nonzero alert rule threshold
         """
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         params = self.valid_params.copy()
         params["detection_type"] = AlertRuleDetectionType.DYNAMIC
@@ -714,7 +727,10 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.team_id is None
 
     def test_invalid_detection_type(self):
-        with self.feature("organizations:anomaly-detection-alerts"):
+        with (
+            self.feature("organizations:anomaly-detection-alerts"),
+            self.feature("organizations:anomaly-detection-rollout"),
+        ):
             params = self.valid_params.copy()
             params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
             serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
@@ -812,6 +828,34 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.snuba_query is not None
         assert alert_rule.snuba_query.query == "status:unresolved"
 
+    def test_http_response_rate(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "span.module:http span.op:http.client"
+            params["aggregate"] = "http_response_rate(3)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "span.module:http span.op:http.client"
+            assert alert_rule.snuba_query.aggregate == "http_response_rate(3)"
+
+    def test_performance_score(self):
+        with self.feature("organizations:mep-rollout-flag"):
+            params = self.valid_params.copy()
+            params["query"] = "has:measurements.score.total"
+            params["aggregate"] = "performance_score(measurements.score.lcp)"
+            params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
+            params["dataset"] = Dataset.PerformanceMetrics.value
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid(), serializer.errors
+            alert_rule = serializer.save()
+            assert alert_rule.snuba_query is not None
+            assert alert_rule.snuba_query.query == "has:measurements.score.total"
+            assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
+
 
 class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
     @cached_property
@@ -829,7 +873,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
             "threshold_type": 0,
             "resolve_threshold": 1,
             "alert_threshold": 0,
-            "excluded_projects": [self.project.slug],
             "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
         }
 
@@ -1044,7 +1087,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_pagerduty_valid_priority(self, mock_get):
         params = {
@@ -1062,7 +1105,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("test", "test"),
+        return_value=AlertTarget("test", "test"),
     )
     def test_opsgenie_valid_priority(self, mock_get):
         params = {

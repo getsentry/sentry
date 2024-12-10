@@ -25,6 +25,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.api.exceptions import DataSecrecyError
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
@@ -124,8 +125,7 @@ class _HasRespond(Protocol):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponseBase:
-        ...
+    ) -> HttpResponseBase: ...
 
 
 class OrganizationMixin:
@@ -364,12 +364,6 @@ class BaseView(View, OrganizationMixin):
             if response:
                 return response
 
-        if self.is_auth_required(request, *args, **kwargs):
-            return self.handle_auth_required(request, *args, **kwargs)
-
-        if self.is_sudo_required(request):
-            return self.handle_sudo_required(request, *args, **kwargs)
-
         if (
             is_using_customer_domain(request)
             and "organization_slug" in inspect.signature(self.convert_args).parameters
@@ -378,9 +372,23 @@ class BaseView(View, OrganizationMixin):
             # In customer domain contexts, we will need to pre-populate the organization_slug keyword argument.
             kwargs["organization_slug"] = organization_slug
 
+        if self.is_auth_required(request, *args, **kwargs):
+            return self.handle_auth_required(request, *args, **kwargs)
+
+        if self.is_sudo_required(request):
+            return self.handle_sudo_required(request, *args, **kwargs)
+
         args, kwargs = self.convert_args(request, *args, **kwargs)
 
-        request.access = self.get_access(request, *args, **kwargs)
+        try:
+            request.access = self.get_access(request, *args, **kwargs)
+        except DataSecrecyError:
+            return render_to_response(
+                "sentry/data-secrecy.html",
+                context={"organization_slug": organization_slug},
+                status=403,
+                request=request,
+            )
 
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
@@ -459,8 +467,7 @@ class BaseView(View, OrganizationMixin):
         return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request: HttpRequest, **kwargs: Any) -> dict[str, Any]:
-        context = csrf(request)
-        return context
+        return csrf(request)
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200

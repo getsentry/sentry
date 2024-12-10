@@ -8,7 +8,7 @@ from openapi_core.spec import Spec
 from openapi_core.validation.response.validators import V30ResponseDataValidator
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 
@@ -41,7 +41,7 @@ class APIDocsTestCase(APITestCase):
             "event_id": (name * 32)[:32],
             "fingerprint": ["1"],
             "sdk": {"version": "5.17.0", "name": "sentry.javascript.browser"},
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
             "user": {"id": self.user.id, "email": self.user.email},
             "release": name,
         }

@@ -76,7 +76,7 @@ class Rule(Model):
         )
         constraints = (
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
                     | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
                     | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)

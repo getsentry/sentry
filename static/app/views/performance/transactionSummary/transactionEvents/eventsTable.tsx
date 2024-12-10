@@ -1,4 +1,5 @@
-import {Component, Fragment} from 'react';
+import type React from 'react';
+import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -37,9 +38,10 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import type {DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
 import {COLUMN_TITLES} from '../../data';
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import Tab from '../tabs';
 import {
   generateProfileLink,
@@ -92,12 +94,20 @@ type Props = {
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
+  domainViewFilters?: DomainViewFilters;
   excludedTags?: string[];
+  hidePagination?: boolean;
   isEventLoading?: boolean;
   isRegressionIssue?: boolean;
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
+  renderTableHeader?: (props: {
+    isPending: boolean;
+    pageEventsCount: number;
+    pageLinks: string | null;
+    totalEventsCount: ReactNode;
+  }) => ReactNode;
 };
 
 type State = {
@@ -198,9 +208,10 @@ class EventsTable extends Component<Props, State> {
             organization,
             transactionName: transactionName,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+            view: this.props.domainViewFilters?.view,
           });
         } else {
-          target = generateTraceLink(transactionName)(
+          target = generateTraceLink(transactionName, this.props.domainViewFilters?.view)(
             organization,
             dataRow,
             locationWithTab
@@ -536,6 +547,14 @@ class EventsTable extends Component<Props, State> {
                         id="TransactionEvents-EventsTable"
                         hasData={!!tableData?.data?.length}
                       >
+                        {this.props.renderTableHeader
+                          ? this.props.renderTableHeader({
+                              isPending: isDiscoverQueryLoading,
+                              pageLinks,
+                              pageEventsCount,
+                              totalEventsCount,
+                            })
+                          : null}
                         <GridEditable
                           isLoading={
                             isTotalEventsLoading ||
@@ -555,11 +574,13 @@ class EventsTable extends Component<Props, State> {
                           }}
                         />
                       </VisuallyCompleteWithData>
-                      <Pagination
-                        disabled={isDiscoverQueryLoading}
-                        caption={paginationCaption}
-                        pageLinks={pageLinks}
-                      />
+                      {this.props.hidePagination ? null : (
+                        <Pagination
+                          disabled={isDiscoverQueryLoading}
+                          caption={paginationCaption}
+                          pageLinks={pageLinks}
+                        />
+                      )}
                     </Fragment>
                   );
                 }}

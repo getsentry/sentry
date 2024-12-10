@@ -6,7 +6,11 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
+import type {
+  SpanIndexedField,
+  SpanIndexedProperty,
+  SpanIndexedResponse,
+} from 'sentry/views/insights/types';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;
@@ -17,7 +21,7 @@ interface UseSpanSamplesOptions<Fields> {
   search?: MutableSearch;
 }
 
-export const useSpanSamples = <Fields extends SpanIndexedField[]>(
+export const useSpanSamples = <Fields extends SpanIndexedProperty[]>(
   options: UseSpanSamplesOptions<Fields> = {}
 ) => {
   const {
@@ -57,7 +61,7 @@ export const useSpanSamples = <Fields extends SpanIndexedField[]>(
           | SpanIndexedField.SPAN_SELF_TIME
         >[]
       // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-      // eslint-disable-next-line @typescript-eslint/ban-types
+      // eslint-disable-next-line @typescript-eslint/no-restricted-types
       | [];
   }>(
     [

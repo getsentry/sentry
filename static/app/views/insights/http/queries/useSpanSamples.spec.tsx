@@ -8,7 +8,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanIndexedField, type SpanIndexedProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/usePageFilters');
@@ -59,7 +59,10 @@ describe('useSpanSamples', () => {
       {
         wrapper: Wrapper,
         initialProps: {
-          fields: [SpanIndexedField.TRANSACTION_ID, SpanIndexedField.ID],
+          fields: [
+            SpanIndexedField.TRANSACTION_ID,
+            SpanIndexedField.ID,
+          ] as SpanIndexedProperty[],
           enabled: false,
         },
       }
@@ -100,7 +103,10 @@ describe('useSpanSamples', () => {
             release: '0.0.1',
             environment: undefined,
           },
-          fields: [SpanIndexedField.TRANSACTION_ID, SpanIndexedField.ID],
+          fields: [
+            SpanIndexedField.TRANSACTION_ID,
+            SpanIndexedField.ID,
+          ] as SpanIndexedProperty[],
           referrer: 'api-spec',
         },
       }

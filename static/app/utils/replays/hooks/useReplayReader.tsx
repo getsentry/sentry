@@ -15,10 +15,20 @@ type Props = {
   group?: Group;
 };
 
-export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}: Props) {
+interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
+  replay: ReplayReader | null;
+  replayId: string;
+}
+
+export default function useReplayReader({
+  orgSlug,
+  replaySlug,
+  clipWindow,
+  group,
+}: Props): ReplayReaderResult {
   const replayId = parseReplayId(replaySlug);
 
-  const {attachments, errors, replayRecord, ...replayData} = useReplayData({
+  const {attachments, errors, replayRecord, fetching, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });
@@ -53,15 +63,17 @@ export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}
         clipWindow: memoizedClipWindow,
         errors,
         featureFlags,
+        fetching,
         replayRecord,
       }),
-    [attachments, memoizedClipWindow, errors, featureFlags, replayRecord]
+    [attachments, memoizedClipWindow, errors, featureFlags, fetching, replayRecord]
   );
 
   return {
     ...replayData,
     attachments,
     errors,
+    fetching,
     replay,
     replayId,
     replayRecord,

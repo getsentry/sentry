@@ -8,7 +8,7 @@ from collections.abc import Generator
 from hashlib import md5
 from typing import Any, Literal, TypedDict
 
-from sentry import features
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.issue_creation import (
@@ -62,15 +62,16 @@ class ReplayActionsEvent(TypedDict):
 
 
 def parse_and_emit_replay_actions(
-    project_id: int,
+    project: Project,
     replay_id: str,
     retention_days: int,
     segment_data: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
         message = parse_replay_actions(
-            project_id, replay_id, retention_days, segment_data, replay_event
+            project, replay_id, retention_days, segment_data, replay_event, org_id=org_id
         )
         if message is not None:
             emit_replay_actions(message)
@@ -82,19 +83,20 @@ def emit_replay_actions(action: ReplayActionsEvent) -> None:
 
 
 def parse_replay_actions(
-    project_id: int,
+    project: Project,
     replay_id: str,
     retention_days: int,
     segment_data: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> ReplayActionsEvent | None:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(project_id, replay_id, segment_data, replay_event)
+    actions = get_user_actions(project, replay_id, segment_data, replay_event, org_id=org_id)
     if len(actions) == 0:
         return None
 
     payload = create_replay_actions_payload(replay_id, actions)
-    return create_replay_actions_event(replay_id, project_id, retention_days, payload)
+    return create_replay_actions_event(replay_id, project.id, retention_days, payload)
 
 
 def create_replay_actions_event(
@@ -153,10 +155,11 @@ def log_canvas_size(
 
 
 def get_user_actions(
-    project_id: int,
+    project: Project,
     replay_id: str,
     events: list[dict[str, Any]],
     replay_event: dict[str, Any] | None,
+    org_id: int | None = None,
 ) -> list[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types.
 
@@ -177,6 +180,11 @@ def get_user_actions(
             "textContent": "Helloworld!"
         }
     """
+    # Project option and Sentry option queries
+    should_report_rage = _should_report_rage_click_issue(project)
+    should_report_hydration = _should_report_hydration_error_issue(project)
+    rage_click_timeout_ms = _get_rage_click_timeout(org_id)
+
     result: list[ReplayActionsEventPayloadClick] = []
     for event in _iter_custom_events(events):
         if len(result) == 20:
@@ -185,7 +193,15 @@ def get_user_actions(
         tag = event.get("data", {}).get("tag")
 
         if tag == "breadcrumb":
-            click = _handle_breadcrumb(event, project_id, replay_id, replay_event)
+            click = _handle_breadcrumb(
+                event,
+                project.id,
+                replay_id,
+                replay_event,
+                rage_click_timeout_ms,
+                should_report_rage_click_issue=should_report_rage,
+                should_report_hydration_error_issue=should_report_hydration,
+            )
             if click is not None:
                 result.append(click)
         # look for request / response breadcrumbs and report metrics on them
@@ -193,7 +209,7 @@ def get_user_actions(
             _handle_resource_metric_event(event)
         # log the SDK options sent from the SDK 1/500 times
         if tag == "options" and random.randint(0, 499) < 1:
-            _handle_options_logging_event(project_id, replay_id, event)
+            _handle_options_logging_event(project.id, replay_id, event)
         # log large dom mutation breadcrumb events 1/100 times
 
         payload = event.get("data", {}).get("payload", {})
@@ -203,7 +219,7 @@ def get_user_actions(
             and payload.get("category") == "replay.mutations"
             and random.randint(0, 500) < 1
         ):
-            _handle_mutations_event(project_id, replay_id, event)
+            _handle_mutations_event(project.id, replay_id, event)
 
     return result
 
@@ -287,40 +303,26 @@ def _parse_classes(classes: str) -> list[str]:
     return list(filter(lambda n: n != "", classes.split(" ")))[:10]
 
 
-def _should_report_hydration_error_issue(project_id: int) -> bool:
-    project = Project.objects.get(id=project_id)
+def _should_report_hydration_error_issue(project: Project) -> bool:
     """
-    The feature is controlled by Sentry admins for release of the feature,
-    while the project option is controlled by the project owner, and is a
-    permanent setting
+    Checks the project option, controlled by a project owner.
     """
-    return features.has(
-        "organizations:session-replay-hydration-error-issue-creation",
-        project.organization,
-    ) and project.get_option("sentry:replay_hydration_error_issues")
+    return project.get_option("sentry:replay_hydration_error_issues")
 
 
-def _should_report_rage_click_issue(project_id: int) -> bool:
-    project = Project.objects.get(id=project_id)
+def _should_report_rage_click_issue(project: Project) -> bool:
+    """
+    Checks the project option, controlled by a project owner.
+    """
+    return project.get_option("sentry:replay_rage_click_issues")
 
-    def _project_has_feature_enabled() -> bool:
-        """
-        Check if the project has the feature flag enabled,
-        This is controlled by Sentry admins for release of the feature
-        """
-        return features.has(
-            "organizations:session-replay-rage-click-issue-creation",
-            project.organization,
-        )
 
-    def _project_has_option_enabled() -> bool:
-        """
-        Check if the project has the option enabled,
-        This is controlled by the project owner, and is a permanent setting
-        """
-        return project.get_option("sentry:replay_rage_click_issues")
-
-    return all([_project_has_feature_enabled(), _project_has_option_enabled()])
+def _get_rage_click_timeout(org_id: int | None) -> int | float:
+    """Returns the rage click timeout in milliseconds. Queries Sentry options if org_id is not None."""
+    default_timeout = 7000
+    if org_id and org_id in options.get("replay.rage-click.experimental-timeout.org-id-list"):
+        return options.get("replay.rage-click.experimental-timeout.milliseconds")
+    return default_timeout
 
 
 def _iter_custom_events(events: list[dict[str, Any]]) -> Generator[dict[str, Any]]:
@@ -392,7 +394,13 @@ def _handle_mutations_event(project_id: int, replay_id: str, event: dict[str, An
 
 
 def _handle_breadcrumb(
-    event: dict[str, Any], project_id: int, replay_id: str, replay_event: dict[str, Any] | None
+    event: dict[str, Any],
+    project_id: int,
+    replay_id: str,
+    replay_event: dict[str, Any] | None,
+    rage_click_timeout_ms: int | float,
+    should_report_rage_click_issue=False,
+    should_report_hydration_error_issue=False,
 ) -> ReplayActionsEventPayloadClick | None:
 
     click = None
@@ -412,7 +420,7 @@ def _handle_breadcrumb(
         timeout = payload["data"].get("timeAfterClickMs", 0) or payload["data"].get(
             "timeafterclickms", 0
         )
-        if is_timeout_reason and is_target_tagname and timeout >= 7000:
+        if is_timeout_reason and is_target_tagname and timeout >= rage_click_timeout_ms:
             is_rage = (
                 payload["data"].get("clickCount", 0) or payload["data"].get("clickcount", 0)
             ) >= 5
@@ -422,7 +430,7 @@ def _handle_breadcrumb(
             if click is not None:
                 if is_rage:
                     metrics.incr("replay.rage_click_detected")
-                    if _should_report_rage_click_issue(project_id):
+                    if should_report_rage_click_issue:
                         if replay_event is not None:
                             report_rage_click_issue_with_replay_event(
                                 project_id,
@@ -451,7 +459,7 @@ def _handle_breadcrumb(
 
     elif category == "replay.hydrate-error":
         metrics.incr("replay.hydration_error_breadcrumb")
-        if replay_event is not None and _should_report_hydration_error_issue(project_id):
+        if replay_event is not None and should_report_hydration_error_issue:
             report_hydration_error_issue_with_replay_event(
                 project_id,
                 replay_id,

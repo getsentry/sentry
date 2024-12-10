@@ -49,9 +49,7 @@ export function SpanTable({
   const location = useLocation();
   const organization = useOrganization();
 
-  const {queries, metricsMax, metricsMin, metricsOp, metricsQuery, mri} =
-    usePageParams(location);
-  const hasMetric = metricsOp && mri;
+  const {queries} = usePageParams(location);
 
   const spansQuery = useTraceSpans({
     trace,
@@ -71,14 +69,9 @@ export function SpanTable({
     limit: 10,
     query: queries,
     sort: SORTS,
-    mri: hasMetric ? mri : undefined,
-    metricsMax: hasMetric ? metricsMax : undefined,
-    metricsMin: hasMetric ? metricsMin : undefined,
-    metricsOp: hasMetric ? metricsOp : undefined,
-    metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
-  const isLoading = spansQuery.isFetching;
+  const isLoading = spansQuery.isPending;
   const isError = !isLoading && spansQuery.isError;
   const hasData = !isLoading && !isError && (spansQuery?.data?.data?.length ?? 0) > 0;
   const spans = spansQuery.data?.data ?? [];
@@ -161,6 +154,7 @@ function SpanRow({
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace_span', {
               organization,
+              source: 'trace explorer',
             })
           }
         />

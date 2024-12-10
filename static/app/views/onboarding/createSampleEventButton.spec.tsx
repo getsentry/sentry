@@ -8,7 +8,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 

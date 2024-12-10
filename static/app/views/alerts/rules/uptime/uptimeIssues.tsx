@@ -11,9 +11,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface Props {
   project: Project;
+  ruleId: string;
 }
 
-export function UptimeIssues({project}: Props) {
+export function UptimeIssues({project, ruleId}: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
@@ -28,7 +29,7 @@ export function UptimeIssues({project}: Props) {
         };
 
   // TODO(davidenwang): Replace this with an actual query for the specific uptime alert rule
-  const query = `issue.category:${IssueCategory.UPTIME}`;
+  const query = `issue.category:${IssueCategory.UPTIME} tags[uptime_rule]:${ruleId}`;
 
   const emptyMessage = () => {
     return (

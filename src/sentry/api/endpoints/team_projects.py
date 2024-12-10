@@ -6,13 +6,14 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -21,10 +22,10 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.seer.similarity.utils import SEER_ELIGIBLE_PLATFORMS
+from sentry.seer.similarity.utils import project_is_seer_eligible
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
@@ -38,7 +39,7 @@ class ProjectPostSerializer(serializers.Serializer):
     slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
-        max_length=50,
+        max_length=PROJECT_SLUG_MAX_LENGTH,
         required=False,
         allow_null=True,
     )
@@ -203,6 +204,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             if project.platform and project.platform.startswith("javascript"):
                 set_default_inbound_filters(project, team.organization)
 
+            set_default_symbol_sources(project)
+
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -219,13 +222,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             )
 
             # Create project option to turn on ML similarity feature for new EA projects
-            is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
-            if (
-                hasattr(project.organization, "flags")
-                and project.organization.flags.early_adopter
-                and is_seer_eligible_platform
-                and options.get("similarity.new_project_seer_grouping.enabled")
-            ):
+            if project_is_seer_eligible(project):
                 project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return Response(serialize(project, request.user), status=201)

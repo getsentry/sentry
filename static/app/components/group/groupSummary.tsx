@@ -1,253 +1,362 @@
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Panel from 'sentry/components/panels/panel';
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import * as SidebarSection from 'sentry/components/sidebarSection';
-import {IconMegaphone} from 'sentry/icons';
+import {IconEllipsis, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueCategory} from 'sentry/types/group';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-interface GroupSummaryProps {
-  groupCategory: IssueCategory;
-  groupId: string;
-}
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
 interface GroupSummaryData {
   groupId: string;
-  impact: string;
-  summary: string;
-  headline?: string;
+  headline: string;
+  eventId?: string | null;
+  possibleCause?: string | null;
+  trace?: string | null;
+  whatsWrong?: string | null;
 }
-
-const isSummaryEnabled = (hasGenAIConsent: boolean, groupCategory: IssueCategory) => {
-  return hasGenAIConsent && groupCategory === IssueCategory.ERROR;
-};
 
 export const makeGroupSummaryQueryKey = (
   organizationSlug: string,
-  groupId: string
+  groupId: string,
+  eventId?: string
 ): ApiQueryKey => [
   `/organizations/${organizationSlug}/issues/${groupId}/summarize/`,
-  {method: 'POST'},
+  {
+    method: 'POST',
+    data: eventId ? {event_id: eventId} : undefined,
+  },
 ];
 
-export function useGroupSummary(groupId: string, groupCategory: IssueCategory) {
+export function useGroupSummary(
+  group: Group,
+  event: Event | null | undefined,
+  project: Project,
+  forceEvent: boolean = false
+) {
   const organization = useOrganization();
-  // We piggyback and use autofix's genai consent check for now.
-  const {
-    data: autofixSetupData,
-    isPending: isAutofixSetupLoading,
-    isError: isAutofixSetupError,
-  } = useAutofixSetup({groupId});
+  const aiConfig = useAiConfig(group, event, project);
+  const enabled = aiConfig.hasSummary;
+  const queryClient = useQueryClient();
+  const queryKey = makeGroupSummaryQueryKey(
+    organization.slug,
+    group.id,
+    forceEvent ? event?.id : undefined
+  );
 
-  const hasGenAIConsent = autofixSetupData?.genAIConsent.ok ?? false;
-
-  const queryData = useApiQuery<GroupSummaryData>(
-    makeGroupSummaryQueryKey(organization.slug, groupId),
+  const {data, isLoading, isFetching, isError, refetch} = useApiQuery<GroupSummaryData>(
+    queryKey,
     {
-      staleTime: Infinity, // Cache the result indefinitely as it's unlikely to change if it's already computed
-      enabled: isSummaryEnabled(hasGenAIConsent, groupCategory),
+      staleTime: Infinity,
+      enabled,
     }
   );
+
+  const refresh = () => {
+    queryClient.invalidateQueries({
+      queryKey: [`/organizations/${organization.slug}/issues/${group.id}/summarize/`],
+      exact: false,
+    });
+    refetch();
+  };
+
   return {
-    ...queryData,
-    isPending: isAutofixSetupLoading || queryData.isPending,
-    isError: queryData.isError || isAutofixSetupError,
-    hasGenAIConsent,
+    data,
+    isPending: aiConfig.isAutofixSetupLoading || isLoading || isFetching,
+    isError,
+    refresh,
   };
 }
 
-function GroupSummaryFeatureBadge() {
-  return (
-    <StyledFeatureBadge
-      type="experimental"
-      title={t(
-        'This feature is experimental and may produce inaccurate results. Please share feedback to help us improve the experience.'
-      )}
-    />
+export function GroupSummary({
+  group,
+  event,
+  project,
+  preview = false,
+}: {
+  event: Event | null | undefined;
+  group: Group;
+  project: Project;
+  preview?: boolean;
+}) {
+  const organization = useOrganization();
+  const [forceEvent, setForceEvent] = useState(false);
+  const [showEventDetails, setShowEventDetails] = useState(false);
+  const {data, isPending, isError, refresh} = useGroupSummary(
+    group,
+    event,
+    project,
+    forceEvent
   );
-}
 
-export function GroupSummaryHeader({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
-    groupId,
-    groupCategory
-  );
-  const isStreamlined = useHasStreamlinedUI();
+  const popupRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  if (
-    isError ||
-    (!isPending && !data?.headline) ||
-    !isSummaryEnabled(hasGenAIConsent, groupCategory)
-  ) {
-    // Don't render the summary headline if there's an error, the error is already shown in the sidebar
-    // If there is no headline we also don't want to render anything
-    return null;
-  }
+  useEffect(() => {
+    if (forceEvent && !isPending) {
+      refresh();
+      setForceEvent(false);
+    }
+  }, [forceEvent, isPending, refresh]);
 
-  const renderContent = () => {
-    if (isPending) {
-      return <Placeholder height="19px" width="256px" />;
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        showEventDetails &&
+        popupRef.current &&
+        buttonRef.current &&
+        !popupRef.current.contains(e.target as Node) &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        setShowEventDetails(false);
+      }
     }
 
-    return <span>{data?.headline}</span>;
-  };
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showEventDetails]);
+
+  const tooltipContent = data?.eventId ? (
+    event?.id === data.eventId ? (
+      t('Based on this event')
+    ) : (
+      <TooltipContentWrapper>
+        <span>
+          {t('Based on event ')}
+          <EventLink
+            to={
+              window.location.origin +
+              normalizeUrl(
+                `/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`
+              )
+            }
+          >
+            {data.eventId.substring(0, 8)}
+          </EventLink>
+        </span>
+        <Button
+          size="xs"
+          icon={<IconRefresh size="xs" />}
+          busy={isPending}
+          aria-label={t('Summarize this event instead')}
+          title={t('Summarize this event instead')}
+          onClick={() => {
+            setForceEvent(true);
+          }}
+        />
+      </TooltipContentWrapper>
+    )
+  ) : (
+    ''
+  );
+
+  const insightCards = [
+    {
+      id: 'whats_wrong',
+      title: t("What's wrong"),
+      insight: data?.whatsWrong,
+      icon: <IconFatal size="sm" />,
+      showWhenLoading: true,
+    },
+    {
+      id: 'trace',
+      title: t('In the trace'),
+      insight: data?.trace,
+      icon: <IconSpan size="sm" />,
+      showWhenLoading: false,
+    },
+    {
+      id: 'possible_cause',
+      title: t('Possible cause'),
+      insight: data?.possibleCause,
+      icon: <IconFocus size="sm" />,
+      showWhenLoading: true,
+    },
+  ];
 
   return (
-    <SummaryHeaderContainer isStreamlined={isStreamlined}>
-      {renderContent()}
-      <GroupSummaryFeatureBadge />
-    </SummaryHeaderContainer>
-  );
-}
-
-export function GroupSummary({groupId, groupCategory}: GroupSummaryProps) {
-  const {data, isPending, isError, hasGenAIConsent} = useGroupSummary(
-    groupId,
-    groupCategory
-  );
-
-  const openForm = useFeedbackForm();
-
-  if (!isSummaryEnabled(hasGenAIConsent, groupCategory)) {
-    // TODO: Render a banner for needing genai consent
-    return null;
-  }
-
-  return (
-    <SidebarSection.Wrap>
-      <Wrapper>
-        <StyledTitleRow>
-          <StyledTitle>
-            <span>{t('Issue Summary')}</span>
-            <GroupSummaryFeatureBadge />
-          </StyledTitle>
-          {isPending && <StyledLoadingIndicator size={16} mini />}
-        </StyledTitleRow>
-        <div>
-          {isError ? <div>{t('Error loading summary')}</div> : null}
-          {data && (
-            <Content>
-              <SummaryContent
-                dangerouslySetInnerHTML={{
-                  __html: marked(data.summary),
-                }}
-              />
-              <ImpactContent>
-                <StyledTitle>{t('Potential Impact')}</StyledTitle>
-                <SummaryContent
-                  dangerouslySetInnerHTML={{
-                    __html: marked(data.impact),
-                  }}
-                />
-              </ImpactContent>
-            </Content>
-          )}
-        </div>
-        {openForm && !isPending && (
-          <ButtonContainer>
+    <div data-testid="group-summary">
+      {isError ? <div>{t('Error loading summary')}</div> : null}
+      <Content>
+        {data?.eventId && !isPending && (
+          <TooltipWrapper id="group-summary-tooltip-wrapper">
             <Button
-              onClick={() => {
-                openForm({
-                  messagePlaceholder: t(
-                    'How can we make this issue summary more useful?'
-                  ),
-                  tags: {
-                    ['feedback.source']: 'issue_details_ai_issue_summary',
-                    ['feedback.owner']: 'ml-ai',
-                  },
-                });
-              }}
+              ref={buttonRef}
               size="xs"
-              icon={<IconMegaphone />}
-            >
-              Give Feedback
-            </Button>
-          </ButtonContainer>
+              icon={<StyledIconEllipsis size="xs" />}
+              aria-label={t('Event details')}
+              borderless
+              onClick={() => setShowEventDetails(!showEventDetails)}
+            />
+            {showEventDetails && (
+              <EventDetailsPopup ref={popupRef}>{tooltipContent}</EventDetailsPopup>
+            )}
+          </TooltipWrapper>
         )}
-      </Wrapper>
-    </SidebarSection.Wrap>
+        <InsightGrid>
+          {insightCards.map(card => {
+            if ((!isPending && !card.insight) || (isPending && !card.showWhenLoading)) {
+              return null;
+            }
+
+            return (
+              <InsightCard key={card.id}>
+                <CardTitle preview={preview}>
+                  <CardTitleIcon>{card.icon}</CardTitleIcon>
+                  <CardTitleText>{card.title}</CardTitleText>
+                </CardTitle>
+                <CardContentContainer>
+                  <CardLineDecorationWrapper>
+                    <CardLineDecoration />
+                  </CardLineDecorationWrapper>
+                  {isPending ? (
+                    <CardContent>
+                      <Placeholder height="1.5rem" />
+                    </CardContent>
+                  ) : (
+                    card.insight && (
+                      <CardContent
+                        dangerouslySetInnerHTML={{
+                          __html: marked(
+                            preview
+                              ? card.insight.replace(/\*\*/g, '') ?? ''
+                              : card.insight ?? ''
+                          ),
+                        }}
+                      />
+                    )
+                  )}
+                </CardContentContainer>
+              </InsightCard>
+            );
+          })}
+        </InsightGrid>
+      </Content>
+    </div>
   );
 }
-
-const Wrapper = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 0;
-  background: linear-gradient(
-    269.35deg,
-    ${p => p.theme.backgroundTertiary} 0.32%,
-    rgba(245, 243, 247, 0) 99.69%
-  );
-  padding: ${space(1.5)} ${space(2)};
-`;
-
-const StyledTitleRow = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const StyledTitle = styled('div')`
-  margin: 0;
-  color: ${p => p.theme.text};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
-  align-items: center;
-  display: flex;
-`;
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-top: -1px;
-`;
-
-const SummaryContent = styled('div')`
-  overflow-wrap: break-word;
-  p {
-    margin: 0;
-  }
-  code {
-    word-break: break-all;
-  }
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  max-height: 16px;
-`;
-
-const ImpactContent = styled('div')`
-  display: flex;
-  flex-direction: column;
-`;
 
 const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  position: relative;
 `;
 
-const ButtonContainer = styled('div')`
-  margin-top: ${space(1.5)};
-  margin-bottom: ${space(0.5)};
+const InsightGrid = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
-const SummaryHeaderContainer = styled('div')<{isStreamlined: boolean}>`
+const InsightCard = styled('div')`
+  display: flex;
+  flex-direction: column;
+  border-radius: ${p => p.theme.borderRadius};
+  background: ${p => p.theme.background};
+  width: 100%;
+  min-height: 0;
+`;
+
+const CardTitle = styled('div')<{preview?: boolean}>`
   display: flex;
   align-items: center;
-  margin-top: ${space(1)};
-  color: ${p => (p.isStreamlined ? p.theme.subText : p.theme.text)};
+  gap: ${space(1)};
+  color: ${p => p.theme.subText};
+  padding-bottom: ${space(0.5)};
+`;
+
+const CardTitleText = styled('p')`
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const CardTitleIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.subText};
+`;
+
+const CardContentContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CardLineDecorationWrapper = styled('div')`
+  display: flex;
+  width: 14px;
+  align-self: stretch;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0.275rem 0;
+`;
+
+const CardLineDecoration = styled('div')`
+  width: 2px;
+  align-self: stretch;
+  background-color: ${p => p.theme.border};
+`;
+
+const CardContent = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-word;
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+  code {
+    word-break: break-all;
+  }
+  flex: 1;
+`;
+
+const TooltipWrapper = styled('div')`
+  position: absolute;
+  top: 0;
+  right: 0;
+`;
+
+const EventLink = styled(Link)`
+  color: ${p => p.theme.linkColor};
+  :hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
+`;
+
+const TooltipContentWrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const EventDetailsPopup = styled('div')`
+  position: absolute;
+  right: calc(100% + ${space(0.5)});
+  top: 50%;
+  transform: translateY(-50%);
+  padding: ${space(1.5)};
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  z-index: 0;
+  white-space: nowrap;
+`;
+
+const StyledIconEllipsis = styled(IconEllipsis)`
+  color: ${p => p.theme.subText};
 `;

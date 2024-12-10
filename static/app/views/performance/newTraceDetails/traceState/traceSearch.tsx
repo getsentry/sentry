@@ -1,12 +1,10 @@
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceSearchResult} from '../traceSearch/traceSearchEvaluator';
+import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export type TraceSearchAction =
-  | {query: string | undefined; type: 'set query'}
+  | {query: string; type: 'set query'; source?: 'external'}
   | {type: 'go to first match'}
   | {type: 'go to last match'}
   | {type: 'go to next match'}
@@ -16,7 +14,6 @@ export type TraceSearchAction =
       resultIteratorIndex: number;
       type: 'set search iterator index';
     }
-  | {type: 'clear'}
   | {type: 'clear search iterator index'}
   | {type: 'clear query'}
   | {
@@ -100,7 +97,9 @@ export function traceSearchReducer(
           node: state.results[0].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let next = state.resultIteratorIndex + 1;
       if (next > state.results.length - 1) {
@@ -127,7 +126,9 @@ export function traceSearchReducer(
           node: state.results[state.results.length - 1].value,
         };
       }
-      if (!state.results) return state;
+      if (!state.results) {
+        return state;
+      }
 
       let previous = state.resultIteratorIndex - 1;
       if (previous < 0) {
@@ -177,10 +178,6 @@ export function traceSearchReducer(
         resultIndex: null,
         node: null,
       };
-
-    case 'clear': {
-      return {...state, node: null, resultIteratorIndex: null, resultIndex: null};
-    }
 
     default: {
       traceReducerExhaustiveActionCheck(action);

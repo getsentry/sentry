@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge/badge';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -11,7 +10,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import {GroupSummaryHeader} from 'sentry/components/group/groupSummary';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -38,15 +36,14 @@ import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHe
 
 import GroupActions from './actions';
 import {Tab} from './types';
-import type {ReprocessingStatus} from './utils';
+import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
+  event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
-  event?: Event;
 };
 
 interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
@@ -134,7 +131,7 @@ export function GroupHeaderTabs({
       </TabList.Item>
       <TabList.Item
         key={Tab.TAGS}
-        hidden={!issueTypeConfig.tags.enabled}
+        hidden={!issueTypeConfig.tagsTab.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
         to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
@@ -179,15 +176,9 @@ export function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({
-  baseUrl,
-  group,
-  groupReprocessingStatus,
-  organization,
-  event,
-  project,
-}: Props) {
+function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {
     disabledTabs,
@@ -250,18 +241,13 @@ function GroupHeader({
               />
             </TitleHeading>
             <EventMessage
+              data={group}
               message={message}
               level={group.level}
               levelIndicatorSize="11px"
               type={group.type}
               showUnhandled={group.isUnhandled}
             />
-            <Feature features={['organizations:ai-summary']}>
-              <GroupSummaryHeader
-                groupId={group.id}
-                groupCategory={group.issueCategory}
-              />
-            </Feature>
           </TitleWrapper>
           <StatsWrapper>
             {issueTypeConfig.stats.enabled && (

@@ -15,16 +15,14 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 @region_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
     publish_status = {
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
 
     def put(self, request: Request, organization) -> Response:
         """
         Update Project Slugs
         ````````````````````
-
         Updates the slugs of projects within the organization.
-
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           short ID should be looked up in.
         :param slugs: a dictionary of project IDs to their intended slugs.

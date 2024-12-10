@@ -1,9 +1,6 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
-
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useUserQuery', function () {
   it('allows changing user query', function () {
@@ -14,22 +11,7 @@ describe('useUserQuery', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
+    render(<TestPage />, {disableRouterMocks: true});
 
     expect(userQuery).toEqual(''); // default
 

@@ -51,9 +51,6 @@ export interface TimeWindowConfig {
   timelineWidth: number;
 }
 
-// TODO(davidenwang): Remove this type as its a little too specific
-export type MonitorBucketData = MonitorBucket[];
-
 export type MonitorBucket = [timestamp: number, envData: MonitorBucketEnvMapping];
 
 export interface JobTickData {
@@ -71,6 +68,7 @@ export type StatsBucket = {
   [CheckInStatus.MISSED]: number;
   [CheckInStatus.TIMEOUT]: number;
   [CheckInStatus.ERROR]: number;
+  [CheckInStatus.UNKNOWN]: number;
 };
 
 export type MonitorBucketEnvMapping = Record<string, StatsBucket>;

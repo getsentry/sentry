@@ -17,7 +17,7 @@ import type {OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -30,11 +30,12 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAnalytics('onboarding.wizard_clicked', {
+  trackAnalytics('quick_start.task_card_clicked', {
     organization,
     todo_id: task.task,
     todo_title: task.title,
     action,
+    new_experience: false,
   });
 
 type Props = {
@@ -70,7 +71,7 @@ function Task(props: Props) {
     recordAnalytics(task, organization, 'clickthrough');
     e.stopPropagation();
 
-    if (isDemoWalkthrough()) {
+    if (isDemoModeEnabled()) {
       DemoWalkthroughStore.activateGuideAnchor(task.task);
     }
 
@@ -83,9 +84,13 @@ function Task(props: Props) {
     }
 
     if (task.actionType === 'app') {
-      const url = new URL(task.location, window.location.origin);
-      url.searchParams.append('referrer', 'onboarding_task');
-      navigateTo(url.toString(), router);
+      // Convert all paths to a location object
+      let to =
+        typeof task.location === 'string' ? {pathname: task.location} : task.location;
+      // Add referrer to all links
+      to = {...to, query: {...to.query, referrer: 'onboarding_task'}};
+
+      navigateTo(to, router);
     }
     hidePanel();
   };

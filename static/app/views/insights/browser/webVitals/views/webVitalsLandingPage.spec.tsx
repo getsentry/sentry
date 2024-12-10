@@ -106,7 +106,7 @@ describe('WebVitalsLandingPage', function () {
             'total_opportunity_score()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -132,7 +132,7 @@ describe('WebVitalsLandingPage', function () {
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -164,7 +164,7 @@ describe('WebVitalsLandingPage', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );

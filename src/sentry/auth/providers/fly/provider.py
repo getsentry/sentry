@@ -94,5 +94,10 @@ class FlyOAuth2Provider(OAuth2Provider):
 
 
 class NonPartnerFlyOAuth2Provider(FlyOAuth2Provider):
+    """
+    When a customer is no longer on a Fly.io sponsored plan, we change their provider
+    to the "non-partner" version of Fly SSO so that it can be disabled.
+    """
+
     name = SPONSOR_OAUTH_NAME[ChannelName.FLY_NON_PARTNER]
     is_partner = False

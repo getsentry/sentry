@@ -72,7 +72,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="histogram"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data

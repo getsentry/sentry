@@ -24,7 +24,7 @@ from sentry.search.utils import (
     tokenize_query,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -493,7 +493,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -516,7 +516,7 @@ class ParseQueryTest(APITestCase, SnubaTestCase):
                     "username": "foobar",
                     "ip_address": "127.0.0.1",
                 },
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
         )

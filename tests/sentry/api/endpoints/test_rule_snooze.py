@@ -30,6 +30,20 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     endpoint = "sentry-api-0-rule-snooze"
     method = "post"
 
+    def test_cannot_mute_unowned_alert(self):
+        user2 = self.create_user("foo@example.com")
+        org2 = self.create_organization(name="Other Org", owner=user2)
+        project2 = self.create_project(organization=org2, name="Other Project")
+        self.login_as(user2)
+        response = self.get_error_response(
+            org2.slug,
+            project2.slug,
+            self.issue_alert_rule.id,
+            target="everyone",
+            status_code=404,
+        )
+        assert response.data["detail"] == "Rule does not exist"
+
     def test_mute_issue_alert_user_forever(self):
         """Test that a user can mute an issue alert rule for themselves forever"""
         response = self.get_success_response(
@@ -277,11 +291,10 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_no_issue_alert(self):
         """Test that we throw an error when an issue alert rule doesn't exist"""
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, 777, target="me", status_code=400
+            self.organization.slug, self.project.slug, 777, target="me", status_code=404
         )
         assert not RuleSnooze.objects.filter(alert_rule=self.issue_alert_rule.id).exists()
-        assert response.status_code == 400
-        assert "Rule does not exist" in response.data
+        assert response.data["detail"] == "Rule does not exist"
 
     def test_invalid_data_issue_alert(self):
         """Test that we throw an error when passed invalid data"""
@@ -289,7 +302,7 @@ class PostRuleSnoozeTest(BaseRuleSnoozeTest):
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,
-            self.metric_alert_rule.id,
+            self.issue_alert_rule.id,
             **data,
             status_code=400,
         )
@@ -573,10 +586,10 @@ class PostMetricRuleSnoozeTest(BaseRuleSnoozeTest):
     def test_no_metric_alert(self):
         """Test that we throw an error when a metric alert rule doesn't exist"""
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, 777, target="me", status_code=400
+            self.organization.slug, self.project.slug, 777, target="me", status_code=404
         )
         assert not RuleSnooze.objects.filter(alert_rule=self.metric_alert_rule.id).exists()
-        assert "Rule does not exist" in response.data
+        assert response.data["detail"] == "Rule does not exist"
 
 
 class DeleteMetricRuleSnoozeTest(BaseRuleSnoozeTest):

@@ -67,6 +67,7 @@ class ReleaseFile(Model):
     The ident of the file should be sha1(name) or
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = BoundedBigIntegerField()

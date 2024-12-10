@@ -4,70 +4,58 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventOrGroupType, type Level} from 'sentry/types/event';
+import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
+import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
+import {eventTypeHasLogLevel, getTitle} from 'sentry/utils/events';
+import useOrganization from 'sentry/utils/useOrganization';
+import {Divider} from 'sentry/views/issueDetails/divider';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
+  data: Event | BaseGroup | GroupTombstoneHelper;
+  message: React.ReactNode;
   type: EventOrGroupType;
-  annotations?: React.ReactNode;
   className?: string;
-  hasGuideAnchor?: boolean;
   level?: Level;
-  levelIndicatorSize?: string;
-  message?: React.ReactNode;
+  /**
+   * Size of the level indicator.
+   */
+  levelIndicatorSize?: '9px' | '10px' | '11px';
   showUnhandled?: boolean;
 };
 
-const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
-  EventOrGroupType.ERROR,
-  EventOrGroupType.CSP,
-  EventOrGroupType.EXPECTCT,
-  EventOrGroupType.DEFAULT,
-  EventOrGroupType.EXPECTSTAPLE,
-  EventOrGroupType.HPKP,
-  EventOrGroupType.NEL,
-]);
-
-function EventOrGroupLevel({
-  level,
-  levelIndicatorSize,
-  type,
-  showUnhandled,
-}: Pick<Props, 'level' | 'levelIndicatorSize' | 'type' | 'showUnhandled'>) {
-  if (level && EVENT_TYPES_WITH_LOG_LEVEL.has(type)) {
-    return (
-      <ErrorLevel level={level} size={levelIndicatorSize} showUnhandled={showUnhandled} />
-    );
-  }
-
-  return null;
-}
-
 function EventMessage({
+  data,
   className,
-  annotations,
   level,
   levelIndicatorSize,
   message,
   type,
   showUnhandled = false,
 }: Props) {
+  const organization = useOrganization({allowNull: true});
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  // TODO(malwilley): When the new layout is GA'd, this component should be renamed
+  const hasNewIssueStreamTableLayout = organization?.features.includes(
+    'issue-stream-table-layout'
+  );
+
+  const showEventLevel = level && eventTypeHasLogLevel(type);
+  const {subtitle} = getTitle(data);
+  const renderedMessage = message ? (
+    <Message>{message}</Message>
+  ) : (
+    <NoMessage>({t('No error message')})</NoMessage>
+  );
+
   return (
     <LevelMessageContainer className={className}>
-      <EventOrGroupLevel
-        level={level}
-        levelIndicatorSize={levelIndicatorSize}
-        type={type}
-        showUnhandled={showUnhandled}
-      />
-      {showUnhandled && !hasStreamlinedUI ? <UnhandledTag /> : null}
-      {message ? (
-        <Message>{message}</Message>
-      ) : (
-        <NoMessage>({t('No error message')})</NoMessage>
-      )}
-      {annotations}
+      {showEventLevel && <ErrorLevel level={level} size={levelIndicatorSize} />}
+      {hasStreamlinedUI && showEventLevel ? <Divider /> : null}
+      {showUnhandled ? <UnhandledTag /> : null}
+      {hasStreamlinedUI && showUnhandled ? <Divider /> : null}
+      {hasNewIssueStreamTableLayout ? subtitle : renderedMessage}
     </LevelMessageContainer>
   );
 }

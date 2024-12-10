@@ -17,9 +17,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEAPSpans,
+  useSpansIndexed,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Column = GridColumnHeader<
   | SpanIndexedField.ID
@@ -70,8 +74,10 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 
 interface Props {
   groupId: string;
+  useEAP: boolean;
+  referrer?: string;
 }
-export function PipelineSpansTable({groupId}: Props) {
+export function PipelineSpansTable({groupId, useEAP}: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -101,21 +107,46 @@ export function PipelineSpansTable({groupId}: Props) {
         SpanIndexedField.PROJECT,
       ],
       search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+      enabled: !useEAP,
     },
     'api.ai-pipelines.view'
   );
-  const data = rawData || [];
-  const meta = rawMeta as EventsMetaType;
+
+  const {
+    data: eapData,
+    meta: eapMeta,
+    error: eapError,
+    isPending: eapPending,
+  } = useEAPSpans(
+    {
+      limit: 30,
+      sorts: [sort],
+      fields: [
+        SpanIndexedField.ID,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.SPAN_DURATION,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.USER,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.PROJECT,
+      ],
+      search: new MutableSearch(`span.category:ai.pipeline span.group:"${groupId}"`),
+      enabled: useEAP,
+    },
+    'api.ai-pipelines.view'
+  );
+  const data = (useEAP ? eapData : rawData) ?? [];
+  const meta = (useEAP ? eapMeta : rawMeta) as EventsMetaType;
 
   return (
     <VisuallyCompleteWithData
       id="PipelineSpansTable"
       hasData={data.length > 0}
-      isLoading={isPending}
+      isLoading={useEAP ? eapPending : isPending}
     >
       <GridEditable
-        isLoading={isPending}
-        error={error}
+        isLoading={useEAP ? eapPending : isPending}
+        error={useEAP ? eapError : error}
         data={data}
         columnOrder={COLUMN_ORDER}
         columnSortBy={[
@@ -133,7 +164,7 @@ export function PipelineSpansTable({groupId}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, groupId),
         }}
       />
     </VisuallyCompleteWithData>
@@ -145,7 +176,8 @@ function renderBodyCell(
   row: any,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  groupId: string
 ) {
   if (column.key === SpanIndexedField.ID) {
     if (!row[SpanIndexedField.ID]) {
@@ -162,9 +194,16 @@ function renderBodyCell(
           projectSlug: row[SpanIndexedField.PROJECT],
           traceSlug: row[SpanIndexedField.TRACE],
           timestamp: row[SpanIndexedField.TIMESTAMP],
-          location,
+          location: {
+            ...location,
+            query: {
+              ...location.query,
+              groupId,
+            },
+          },
           eventView: EventView.fromLocation(location),
           spanId: row[SpanIndexedField.ID],
+          source: TraceViewSources.LLM_MODULE,
         })}
       >
         {row[SpanIndexedField.ID]}

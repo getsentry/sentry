@@ -8,6 +8,7 @@ type Data = [number, {count: number}[]][];
 export enum AlertRuleType {
   METRIC = 'metric',
   ISSUE = 'issue',
+  UPTIME = 'uptime',
 }
 
 export type Incident = {
@@ -111,3 +112,16 @@ export interface UptimeAlert extends UptimeRule {
 export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
 
 export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert;
+
+export type Anomaly = {
+  anomaly: {anomaly_score: number; anomaly_type: AnomalyType};
+  timestamp: string | number;
+  value: number;
+};
+
+export enum AnomalyType {
+  HIGH_CONFIDENCE = 'anomaly_higher_confidence',
+  LOW_CONFIDENCE = 'anomaly_lower_confidence',
+  NONE = 'none',
+  NO_DATA = 'no_data',
+}

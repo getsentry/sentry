@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

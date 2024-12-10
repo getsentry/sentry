@@ -12,7 +12,7 @@ jobs:
   # TODO(billy): Move this into an external action as we add more functionality
   test-getsentry:
     name: test getsentry
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     # Ensure this bot only responds for pull requests and only for the main repository
     if: >-

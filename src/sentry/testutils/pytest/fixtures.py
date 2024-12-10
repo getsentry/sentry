@@ -9,8 +9,10 @@ import difflib
 import os
 import re
 import sys
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
+from typing import Any, Protocol
 
 import pytest
 import requests
@@ -70,7 +72,7 @@ def task_runner():
 def default_user(factories):
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
 
-    :returns: A :class:`sentry.models.user.User` instance.
+    :returns: A :class:`sentry.users.models.user.User` instance.
     """
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
@@ -193,14 +195,28 @@ def read_snapshot_file(reference_file: str) -> tuple[str, str]:
         return (header, refval)
 
 
+InequalityComparator = Callable[[str, str], bool | str]
+default_comparator = lambda refval, output: refval != output
+
+
+class InstaSnapshotter(Protocol):
+    def __call__(
+        self,
+        output: str | Any,
+        reference_file: str | None = None,
+        subname: str | None = None,
+        inequality_comparator: InequalityComparator = default_comparator,
+    ) -> None: ...
+
+
 @pytest.fixture
-def insta_snapshot(request, log):
+def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter]:
     def inner(
-        output,
-        reference_file=None,
-        subname=None,
-        inequality_comparator=lambda refval, output: refval != output,
-    ):
+        output: str | Any,
+        reference_file: str | None = None,
+        subname: str | None = None,
+        inequality_comparator: InequalityComparator = default_comparator,
+    ) -> None:
         from sentry.testutils.silo import strip_silo_mode_test_suffix
 
         if reference_file is None:

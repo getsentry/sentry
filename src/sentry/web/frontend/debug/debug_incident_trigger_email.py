@@ -23,7 +23,9 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
         "sentry.incidents.models.incident.IncidentTrigger.objects.get",
         return_value=MockedIncidentTrigger(),
     )
-    @mock.patch("sentry.models.UserOption.objects.get_value", return_value="US/Pacific")
+    @mock.patch(
+        "sentry.users.models.user_option.UserOption.objects.get_value", return_value="US/Pacific"
+    )
     def get_context(self, request, incident_trigger_mock, user_option_mock):
         organization = Organization(slug="myorg")
         project = Project(slug="myproject", organization=organization)
@@ -39,7 +41,7 @@ class DebugIncidentTriggerEmailView(MailPreviewView):
             organization=organization,
             title="Something broke",
             alert_rule=alert_rule,
-            status=IncidentStatus.CRITICAL,
+            status=IncidentStatus.CRITICAL.value,
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)
 

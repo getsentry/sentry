@@ -7,7 +7,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, region_silo_model
-from sentry.db.models.base import DefaultFieldsModel, sane_repr
+from sentry.db.models.base import DefaultFieldsModelExisting, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.uuid import UUIDField
 
@@ -17,7 +17,7 @@ def default_guid():
 
 
 @region_silo_model
-class Relocation(DefaultFieldsModel):
+class Relocation(DefaultFieldsModelExisting):
     """
     Represents a single relocation instance. The relocation may be attempted multiple times, but we
     keep a mapping of 1 `Relocation` model per file upload.
@@ -89,6 +89,14 @@ class Relocation(DefaultFieldsModel):
         @classmethod
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
+
+        def __str__(self):
+            if self.name == "SELF_HOSTED":
+                return "self-hosted"
+            elif self.name == "SAAS_TO_SAAS":
+                return "saas-to-saas"
+            else:
+                raise ValueError("Cannot extract a filename from `RelocationFile.Kind.UNKNOWN`.")
 
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
@@ -169,19 +177,19 @@ class Relocation(DefaultFieldsModel):
         constraints = [
             models.CheckConstraint(
                 name="scheduled_pause_at_step_greater_than_current_step",
-                check=models.Q(scheduled_pause_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_pause_at_step__gt=models.F("step"))
                 | models.Q(scheduled_pause_at_step__isnull=True),
             ),
             models.CheckConstraint(
                 name="scheduled_cancel_at_step_greater_than_current_step",
-                check=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
+                condition=models.Q(scheduled_cancel_at_step__gt=models.F("step"))
                 | models.Q(scheduled_cancel_at_step__isnull=True),
             ),
         ]
 
 
 @region_silo_model
-class RelocationFile(DefaultFieldsModel):
+class RelocationFile(DefaultFieldsModelExisting):
     """
     A `RelocationFile` is an association between a `Relocation` and a `File`.
 
@@ -274,7 +282,7 @@ class ValidationStatus(Enum):
 
 
 @region_silo_model
-class RelocationValidation(DefaultFieldsModel):
+class RelocationValidation(DefaultFieldsModelExisting):
     """
     Stores general information about whether or not the associated `Relocation` passed its
     validation run.
@@ -302,7 +310,7 @@ class RelocationValidation(DefaultFieldsModel):
 
 
 @region_silo_model
-class RelocationValidationAttempt(DefaultFieldsModel):
+class RelocationValidationAttempt(DefaultFieldsModelExisting):
     """
     Represents a single Google CloudBuild validation run invocation, and tracks it over its
     lifetime.

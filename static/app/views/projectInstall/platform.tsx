@@ -13,10 +13,7 @@ import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/s
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {setPageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {
-  performance as performancePlatforms,
-  replayPlatforms,
-} from 'sentry/data/platformCategories';
+import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -32,7 +29,6 @@ import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
@@ -61,8 +57,6 @@ export function ProjectInstallPlatform({
   const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
-  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
-  const showLoaderOnboarding = location.query.showLoader === 'true';
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -160,10 +154,7 @@ export function ProjectInstallPlatform({
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const performanceOverviewLink = `/organizations/${organization.slug}/performance/`;
-  const replayLink = `/organizations/${organization.slug}/replays/`;
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
-  const showReplayButton = replayPlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.key] ?? []).length > 0;
@@ -178,13 +169,6 @@ export function ProjectInstallPlatform({
         <OtherPlatformsInfo
           projectSlug={project.slug}
           platform={platform.name ?? 'other'}
-        />
-      ) : showLoaderOnboarding ? (
-        <SetupDocsLoader
-          organization={organization}
-          project={project}
-          location={location}
-          platform={currentPlatform.id}
         />
       ) : (
         <SdkDocumentation
@@ -224,6 +208,7 @@ export function ProjectInstallPlatform({
                 organization,
                 platform: platform.name ?? 'unknown',
                 project_id: project.id,
+                products,
               });
               redirectWithProjectSelection({
                 pathname: issueStreamLink,
@@ -233,40 +218,6 @@ export function ProjectInstallPlatform({
           >
             {t('Take me to Issues')}
           </Button>
-          {!isSelfHostedErrorsOnly && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                trackAnalytics('onboarding.take_me_to_performance_clicked', {
-                  organization,
-                  platform: platform.name ?? 'unknown',
-                  project_id: project.id,
-                });
-                redirectWithProjectSelection({
-                  pathname: performanceOverviewLink,
-                });
-              }}
-            >
-              {t('Take me to Performance')}
-            </Button>
-          )}
-          {!isSelfHostedErrorsOnly && showReplayButton && (
-            <Button
-              busy={loading}
-              onClick={() => {
-                trackAnalytics('onboarding.take_me_to_session_replay_clicked', {
-                  organization,
-                  platform: platform.name ?? 'unknown',
-                  project_id: project.id,
-                });
-                redirectWithProjectSelection({
-                  pathname: replayLink,
-                });
-              }}
-            >
-              {t('Take me to Session Replay')}
-            </Button>
-          )}
         </StyledButtonBar>
       </div>
     </Fragment>

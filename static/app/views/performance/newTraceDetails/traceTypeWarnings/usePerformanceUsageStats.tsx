@@ -48,7 +48,7 @@ export function usePerformanceUsageStats({
       field: 'sum(quantity)',
       utc: true,
       category: 'transaction_indexed',
-      project: Array.from(tree.project_ids),
+      project: Array.from(tree.projects.keys()),
       referrer: 'trace-view-warnings',
     },
   };

@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_post_deployment = True
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0548_add_is_unclaimed_boolean_to_user"),
     ]
@@ -61,7 +63,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="groupsubscription",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(("team_id__isnull", False), ("user_id__isnull", True)),
                     models.Q(("team_id__isnull", True), ("user_id__isnull", False)),
                     _connector="OR",

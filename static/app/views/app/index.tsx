@@ -22,6 +22,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
@@ -32,6 +33,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
+import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 
@@ -241,22 +243,24 @@ function App({children, params}: Props) {
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <RouteAnalyticsContextProvider>
-        <OrganizationContextProvider>
-          <AsyncSDKIntegrationContextProvider>
-            <GlobalDrawer>
+      <LastKnownRouteContextProvider>
+        <RouteAnalyticsContextProvider>
+          <OrganizationContextProvider>
+            <AsyncSDKIntegrationContextProvider>
               <GlobalFeedbackForm>
-                <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                  <GlobalModal onClose={handleModalClose} />
-                  <SystemAlerts className="messages-container" />
-                  <Indicators className="indicators-container" />
-                  <ErrorBoundary>{renderBody()}</ErrorBoundary>
-                </MainContainer>
+                <GlobalDrawer>
+                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                    <GlobalModal onClose={handleModalClose} />
+                    <SystemAlerts className="messages-container" />
+                    <Indicators className="indicators-container" />
+                    <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                  </MainContainer>
+                </GlobalDrawer>
               </GlobalFeedbackForm>
-            </GlobalDrawer>
-          </AsyncSDKIntegrationContextProvider>
-        </OrganizationContextProvider>
-      </RouteAnalyticsContextProvider>
+            </AsyncSDKIntegrationContextProvider>
+          </OrganizationContextProvider>
+        </RouteAnalyticsContextProvider>
+      </LastKnownRouteContextProvider>
     </Profiler>
   );
 }
@@ -268,5 +272,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
 `;

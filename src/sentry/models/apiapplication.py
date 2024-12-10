@@ -19,6 +19,7 @@ from sentry.db.models import (
     control_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.array import ArrayField
 from sentry.db.models.manager.base import BaseManager
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
@@ -66,6 +67,13 @@ class ApiApplication(Model):
     terms_url = models.URLField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
+    scopes = ArrayField(
+        models.TextField(),
+        null=True,
+    )
+    # ApiApplication by default provides user level access
+    # This field is true if a certain application is limited to access only a specific org
+    requires_org_level_access = models.BooleanField(default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 

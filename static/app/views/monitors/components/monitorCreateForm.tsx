@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
@@ -101,7 +102,7 @@ export default function MonitorCreateForm() {
     >
       <FieldContainer>
         <ProjectOwnerNameInputs>
-          <StyledSentryProjectSelectorField
+          <SentryProjectSelectorField
             name="project"
             projects={filteredProjects}
             placeholder={t('Choose Project')}
@@ -111,14 +112,14 @@ export default function MonitorCreateForm() {
             stacked
             inline={false}
           />
-          <StyledSentryMemberTeamSelectorField
+          <SentryMemberTeamSelectorField
             name="owner"
             placeholder={t('Assign Ownership')}
             stacked
             inline={false}
             menuPlacement="auto"
           />
-          <StyledTextField
+          <TextField
             name="name"
             placeholder={t('My Cron Job')}
             required
@@ -126,7 +127,7 @@ export default function MonitorCreateForm() {
             inline={false}
           />
         </ProjectOwnerNameInputs>
-        <LabelText>{t('SCHEDULE')}</LabelText>
+        <SubHeading>{t('Schedule')}</SubHeading>
         <ScheduleOptions>
           <Observer>
             {() => {
@@ -147,7 +148,7 @@ export default function MonitorCreateForm() {
                     <PanelBody withPadding>
                       <ScheduleLabel>{t('Crontab Schedule')}</ScheduleLabel>
                       <CrontabInputs>
-                        <StyledTextField
+                        <TextField
                           name="config.schedule"
                           placeholder="* * * * *"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
@@ -157,7 +158,7 @@ export default function MonitorCreateForm() {
                           inline={false}
                           hideControlState={!selectedCrontab}
                         />
-                        <StyledSelectField
+                        <SelectField
                           name="config.timezone"
                           defaultValue="UTC"
                           options={timezoneOptions}
@@ -179,7 +180,7 @@ export default function MonitorCreateForm() {
                       <ScheduleLabel>{t('Interval Schedule')}</ScheduleLabel>
                       <IntervalInputs>
                         <Label>{t('Every')}</Label>
-                        <StyledNumberField
+                        <NumberField
                           name="config.schedule.frequency"
                           placeholder="e.g. 1"
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.intervalFrequency}
@@ -188,7 +189,7 @@ export default function MonitorCreateForm() {
                           inline={false}
                           hideControlState={selectedCrontab}
                         />
-                        <StyledSelectField
+                        <SelectField
                           name="config.schedule.interval"
                           options={getScheduleIntervals(
                             Number(
@@ -234,6 +235,10 @@ export default function MonitorCreateForm() {
 
 const FieldContainer = styled('div')`
   max-width: 800px;
+
+  ${FieldWrapper} {
+    padding: 0;
+  }
 `;
 
 const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
@@ -263,9 +268,12 @@ const Label = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const LabelText = styled(Label)`
+const SubHeading = styled('div')`
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme.subText};
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
+  text-transform: uppercase;
 `;
 
 const ScheduleOptions = styled('div')`
@@ -291,29 +299,9 @@ const IntervalInputs = styled(MultiColumnInput)`
   grid-template-columns: auto 1fr 2fr;
 `;
 
-const CronstrueText = styled(LabelText)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+const CronstrueText = styled('div')`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;
-`;
-
-const StyledNumberField = styled(NumberField)`
-  padding: 0;
-`;
-
-const StyledSelectField = styled(SelectField)`
-  padding: 0;
-`;
-
-const StyledSentryMemberTeamSelectorField = styled(SentryMemberTeamSelectorField)`
-  padding: 0;
-`;
-
-const StyledTextField = styled(TextField)`
-  padding: 0;
-`;
-
-const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
-  padding: 0;
 `;

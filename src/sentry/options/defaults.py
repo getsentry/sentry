@@ -424,6 +424,20 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Flag Options
+register(
+    "flags:options-audit-log-is-enabled",
+    default=True,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Bool,
+)
+register(
+    "flags:options-audit-log-organization-id",
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+    type=Int,
+)
+
 # Replay Options
 #
 # Replay storage backend configuration (only applicable if the direct-storage driver is used)
@@ -436,18 +450,6 @@ register(
     "replay.storage.options",
     type=Dict,
     default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Replay Analyzer service.
-register(
-    "replay.analyzer_service_url",
-    default=None,
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "organizations:session-replay-accessibility-issues-enabled",
-    type=Bool,
-    default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Globally disables replay-video.
@@ -464,6 +466,19 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for internal dogfooding of a reduced timeout on rage/dead clicks.
+register(
+    "replay.rage-click.experimental-timeout.org-id-list",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "replay.rage-click.experimental-timeout.milliseconds",
+    type=Int,
+    default=5000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -471,6 +486,20 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "feedback.message.max-size",
+    type=Int,
+    default=4096,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Dev Toolbar Options
+register(
+    "devtoolbar.analytics.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -501,8 +530,6 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
-# Discord
-register("discord.validate-user", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -571,9 +598,22 @@ register(
 # VSTS Integration
 register("vsts.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# New VSTS Integration
+register("vsts_new.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("vsts_new.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # VSTS Integration - with limited scopes
 register("vsts-limited.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("vsts-limited.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
+# Azure DevOps Integration Social Login Flow
+register(
+    "vsts.social-auth-migration",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # PagerDuty Integration
 register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -876,18 +916,11 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# TODO: The default error limit here was estimated based on EA traffic. (In an average 10 min
-# period, there are roughly 35K events without matching hashes. About 2% of orgs are EA, so for
-# simplicity, assume 2% of those events are from EA orgs. If we're willing to tolerate up to a 95%
-# failure rate, then we need 35K * 0.02 * 0.95 events to fail to trip the breaker.)
-#
-# When we GA, we should multiply both the limits by 50 (to remove the 2% part of the current
-# calculation), and remove this TODO.
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 666,
+        "error_limit": 33250,
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
@@ -1000,19 +1033,6 @@ register(
 register(
     "store.save-event-highcpu-platforms", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register(
-    "store.symbolicate-event-lpq-never", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register(
-    "store.symbolicate-event-lpq-always", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Rate at which to send eligible projects to LPQ symbolicators. This is
-# intended to test gradually phasing out the LPQ.
-register(
-    "store.symbolicate-event-lpq-rate", type=Float, default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 register(
     "post_process.get-autoassign-owners", type=Sequence, default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1208,6 +1228,12 @@ register(
 )
 register(
     "project-abuse-quota.session-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "project-abuse-quota.span-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -1774,6 +1800,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-skip-recent-seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
@@ -1834,6 +1866,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for the z-score when calculating the margin of error in performance
+register(
+    "performance.extrapolation.confidence.z-score",
+    type=Float,
+    default=1.96,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1869,12 +1908,20 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Enables a feature flag check in dynamic sampling tasks that switches
+# organizations between transactions and spans for rebalancing. This check is
+# expensive, so it can be disabled using this option.
+register(
+    "dynamic-sampling.check_span_feature_flag",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
+)
+
 # === Hybrid cloud subsystem options ===
 # UI rollout
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-register("hybrid_cloud.allow_cross_db_tombstones", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybrid_cloud.disable_tombstone_cleanup", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Flagpole Configuration (used in getsentry)
@@ -1954,22 +2001,74 @@ register(
     default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "backpressure.high_watermarks.processing-store-transactions",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+
+# Temporary killswitch to enable dispatching incident occurrences into the
+# incident_occurrence_consumer
+register(
+    "crons.dispatch_incident_occurrences_to_consumer",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables recording tick volume metrics and tick decisions based on those
+# metrics. Decisions are used to delay notifications in a system incident.
+register(
+    "crons.system_incidents.collect_metrics",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enables the the crons incident occurrence consumer to consider the clock-tick
+# decision made based on volume metrics to determine if a incident occurrence
+# should be processed, delayed, or dropped entirely.
+register(
+    "crons.system_incidents.use_decisions",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The threshold that the tick metric must surpass for a tick to be determined
+# as anomalous. This value should be negative, since we will only determine an
+# incident based on a decrease in volume.
+#
+# See the `monitors.system_incidents` module for more details
+register(
+    "crons.system_incidents.pct_deviation_anomaly_threshold",
+    default=-10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# The threshold that the tick metric must surpass to transition to an incident
+# state. This should be a fairly high value to avoid false positive incidents.
+register(
+    "crons.system_incidents.pct_deviation_incident_threshold",
+    default=-30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# This is the number of previous ticks we will consider the tick metrics and
+# tick decisions for to determine a decision about the tick being evaluated.
+register(
+    "crons.system_incidents.tick_decision_window",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(
     "sentry-apps.webhook.timeout.sec",
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# The flag activates whether to send group attributes messages to kafka
-register(
-    "issues.group_attributes.send_kafka",
-    default=True,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Enables statistical detectors for a project
@@ -2267,8 +2366,25 @@ register(
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
+# DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
 register(
     "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.self-hosted",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.saas-to-saas",
     default="",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2379,12 +2495,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "grouping.config_transition.killswitch_enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Sample rate for double writing to experimental dsn
 register(
@@ -2499,13 +2609,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Deobfuscate profiles using Symbolicator
-register(
-    "profiling.deobfuscate-using-symbolicator.enable-for-project",
-    type=Sequence,
-    default=[],
-    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "traces.sample-list.sample-rate",
     type=Float,
@@ -2661,6 +2764,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "similarity.backfill_project_cohort_size",
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_total_worker_count",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "similarity.new_project_seer_grouping.enabled",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2675,6 +2788,11 @@ register(
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "celery_split_queue_task_rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 register(
     "grouping.grouphash_metadata.ingestion_writes_enabled",
@@ -2684,5 +2802,160 @@ register(
 )
 
 register(
-    "ecosystem:enable_integration_form_error_raise", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "ecosystem:enable_integration_form_error_raise", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-nonce-signature",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Restrict uptime issue creation for specific host provider identifiers. Items
+# in this list map to the `host_provider_id` column in the UptimeSubscription
+# table.
+#
+# This may be used to stop issue creation in the event that a network / hosting
+# provider blocks the uptime checker causing false positives.
+register(
+    "uptime.restrict-issue-creation-by-hosting-provider-id",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "releases.no_snuba_for_release_creation",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_legacy_mode",
+    default=["post_process_transactions"],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "celery_split_queue_rollout",
+    default={"post_process_transactions": 1.0},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Secret Scanning. Allows to temporarily disable signature verification.
+register(
+    "secret-scanning.github.enable-signature-verification",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rate limiting for the occurrence consumer
+register(
+    "issues.occurrence-consumer.rate-limit.quota",
+    type=Dict,
+    default={"window_seconds": 3600, "granularity_seconds": 60, "limit": 1000},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.occurrence-consumer.rate-limit.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "eventstore.adjacent_event_ids_use_snql",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Demo mode
+register(
+    "demo-mode.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.orgs",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "demo-mode.users",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for sample size when fetching project tag keys
+register(
+    "visibility.tag-key-sample-size",
+    default=1_000_000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option for clamping project tag key date range
+register(
+    "visibility.tag-key-max-date-range.days",
+    default=14,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# option used to enable/disable applying
+# stack trace rules in profiles
+register(
+    "profiling.stack_trace_rules.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# list of project IDs for which we'll apply
+# stack trace rules to the profiles in case
+# there are any rules defined
+register(
+    "profiling.stack_trace_rules.allowed_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.event-tracker.sample-rate.transactions",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# migrating send_alert_event task to not pass Event
+register(
+    "sentryapps.send_alert_event.use-eventid",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "transactions.do_post_process_in_save",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_RATE,
+)
+
+# allows us to disable indexing during maintenance events
+register(
+    "sentry.similarity.indexing.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforces a QueryBuilder check that the first relevant event has been sent for each project
+register(
+    "sentry.search.events.project.check_event",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

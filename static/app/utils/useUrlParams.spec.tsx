@@ -6,8 +6,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 
 import useUrlParams from './useUrlParams';
 
-jest.mock('react-router');
-
 describe('useUrlParams', () => {
   beforeEach(() => {
     window.location.search = qs.stringify({

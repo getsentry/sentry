@@ -1,9 +1,6 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
-
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useSorts', function () {
   it('allows changing sorts', function () {
@@ -16,22 +13,7 @@ describe('useSorts', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
+    render(<TestPage />, {disableRouterMocks: true});
 
     expect(sorts).toEqual([
       {
@@ -81,22 +63,8 @@ describe('useSorts', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
+    render(<TestPage />, {disableRouterMocks: true});
 
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
     act(() =>
       setSorts([
         {
@@ -123,22 +91,8 @@ describe('useSorts', function () {
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
+    render(<TestPage />, {disableRouterMocks: true});
 
-    render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={TestPage} />
-      </Router>
-    );
     act(() =>
       setSorts([
         {

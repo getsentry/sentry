@@ -1,0 +1,186 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`autogrouping parent autogrouping assigns children to tail node 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      http.request - browser
+"
+`;
+
+exports[`autogrouping parent autogrouping autogrouped chain points to tail 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      http - request
+"
+`;
+
+exports[`autogrouping parent autogrouping autogroups siblings when they are children of a parent autogroup chain 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping parent autogrouping can expand and collapse 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      db - redis
+        db - redis
+          db - redis
+            http.request - browser
+"
+`;
+
+exports[`autogrouping parent autogrouping collapsing parent autogroup removes its children 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      db - redis
+        db - redis
+          db - redis
+"
+`;
+
+exports[`autogrouping parent autogrouping collapsing parent autogroup removes its children 2`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+"
+`;
+
+exports[`autogrouping parent autogrouping expanding parent autogroup renders head to tail chain 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      db - redis
+        db - redis
+          db - redis
+"
+`;
+
+exports[`autogrouping parent autogrouping groups parent chain with same op 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+"
+`;
+
+exports[`autogrouping parent autogrouping removes collapsed parent autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      db - redis
+        db - redis
+          http - request
+"
+`;
+
+exports[`autogrouping parent autogrouping removes expanded parent autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    parent autogroup (db: 3)
+      db - redis
+        db - redis
+          db - redis
+            http - request
+"
+`;
+
+exports[`autogrouping parent autogrouping removes expanded parent autogroup 2`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+      db - redis
+        db - redis
+          http - request
+"
+`;
+
+exports[`autogrouping sibling autogrouping autogroups multiple consecutive groups 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+    sibling autogroup (mysql: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping collapsing sibling autogroup removes its children 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping collapsing sibling autogroup removes its children 2`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping does not autogroup if count is less 5 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping expanding sibling autogroup renders its children 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping groups spans with the same op and description 1`] = `
+"
+trace root
+  transaction - transaction.op
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping removes sibling autogroup 1`] = `
+"
+trace root
+  transaction - transaction.op
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;

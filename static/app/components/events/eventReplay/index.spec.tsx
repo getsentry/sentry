@@ -64,6 +64,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: mockErrors,
+  fetching: false,
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
@@ -82,19 +83,6 @@ jest.mocked(useReplayReader).mockImplementation(() => {
     replayRecord: ReplayRecordFixture(),
   };
 });
-
-const mockIsFullscreen = jest.fn();
-
-jest.mock('screenfull', () => ({
-  enabled: true,
-  get isFullscreen() {
-    return mockIsFullscreen();
-  },
-  request: jest.fn(),
-  exit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
-}));
 
 describe('EventReplay', function () {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(

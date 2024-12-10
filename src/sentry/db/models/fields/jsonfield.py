@@ -25,6 +25,7 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+
 from __future__ import annotations
 
 from django.core.exceptions import ValidationError
@@ -56,7 +57,8 @@ class JSONField(models.TextField):
     description = "JSON object"
     no_creator_hook = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, json_dumps=json.dumps, **kwargs):
+        self.json_dumps = json_dumps
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
         super().__init__(*args, **kwargs)
@@ -88,7 +90,7 @@ class JSONField(models.TextField):
                 default = default()
             if isinstance(default, str):
                 return json.loads(default)
-            return json.loads(json.dumps(default))
+            return json.loads(self.json_dumps(default))
         return super().get_default()
 
     def get_internal_type(self):
@@ -120,7 +122,7 @@ class JSONField(models.TextField):
             if not self.null and self.blank:
                 return ""
             return None
-        return json.dumps(value)
+        return self.json_dumps(value)
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)

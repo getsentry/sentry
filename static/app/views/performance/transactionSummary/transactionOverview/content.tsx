@@ -42,6 +42,7 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -103,6 +104,7 @@ function SummaryContent({
 }: Props) {
   const routes = useRoutes();
   const mepDataContext = useMEPDataContext();
+  const domainViewFilters = useDomainViewFilters();
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -418,8 +420,11 @@ function SummaryContent({
             titles={transactionsListTitles}
             handleDropdownChange={handleTransactionsListSortChange}
             generateLink={{
-              id: generateTransactionIdLink(transactionName),
-              trace: generateTraceLink(eventView.normalizeDateSelection(location)),
+              id: generateTransactionIdLink(transactionName, domainViewFilters.view),
+              trace: generateTraceLink(
+                eventView.normalizeDateSelection(location),
+                domainViewFilters.view
+              ),
               replayId: generateReplayLink(routes),
               'profile.id': generateProfileLink(),
             }}
@@ -428,6 +433,7 @@ function SummaryContent({
               p95: totalValues?.['p95()'] ?? 0,
               spanOperationBreakdownFilter,
             })}
+            domainViewFilters={domainViewFilters}
             forceLoading={isLoading}
             referrer="performance.transactions_summary"
             supportsInvestigationRule
@@ -456,12 +462,13 @@ function SummaryContent({
           projects={projects}
           transactionName={transactionName}
           currentFilter={spanOperationBreakdownFilter}
+          domainViewFilters={domainViewFilters}
         />
 
         <SuspectFunctionsTable
-          project={project}
-          transaction={transactionName}
+          eventView={eventView}
           analyticsPageSource="performance_transaction"
+          project={project}
         />
         <RelatedIssues
           organization={organization}

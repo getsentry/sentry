@@ -114,7 +114,7 @@ class Repository(Model, PendingDeletionMixin):
 def on_delete(instance, actor: RpcUser | None = None, **kwargs):
     """
     Remove webhooks for repository providers that use repository level webhooks.
-    This is called from sentry.tasks.deletion.run_deletion()
+    This is called from sentry.deletions.tasks.run_deletion()
     """
     # If there is no provider, we don't have any webhooks, etc to delete
     if not instance.provider:

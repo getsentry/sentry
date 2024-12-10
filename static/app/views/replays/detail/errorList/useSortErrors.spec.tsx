@@ -6,7 +6,6 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
   return (name, dflt) => {

@@ -128,18 +128,10 @@ describe('ProjectPageFilter', function () {
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
 
-    // TODO(__SENTRY_USING_REACT_ROUTER_SIX): This first variant can be removed
-    // once react-router 3 has been removed.
-    try {
-      expect(router.push).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/projects/project-1/?project=1`
-      );
-    } catch {
-      expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/projects/project-1/',
-        query: {project: '1'},
-      });
-    }
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/projects/project-1/',
+      query: {project: '1'},
+    });
 
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
@@ -155,14 +147,12 @@ describe('ProjectPageFilter', function () {
 
     // Move focus to "Bookmark Project" button
     await userEvent.keyboard('{ArrowRight}');
-    expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
-    ).toHaveFocus();
+    expect(within(optionOne).getByRole('button', {name: 'Bookmark'})).toHaveFocus();
 
     // Activate the button
     await userEvent.keyboard('{Enter}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
+      within(optionOne).getByRole('button', {name: 'Remove Bookmark'})
     ).toHaveAttribute('aria-pressed', 'true');
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project-1/`,

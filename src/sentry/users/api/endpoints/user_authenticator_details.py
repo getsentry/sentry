@@ -9,15 +9,15 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import OrganizationUserPermission, UserEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
-from sentry.auth.authenticators.sms import SmsInterface
 from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.security.utils import capture_security_activity
+from sentry.users.api.bases.user import OrganizationUserPermission, UserEndpoint
+from sentry.users.api.serializers.authenticator import get_interface_serializer
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
 from sentry.utils.auth import MFA_SESSION_KEY
@@ -73,7 +73,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 context={"authenticator": authenticator},
                 send_email=True,
             )
-        return Response(serialize(interface))
+        return Response(serialize(interface, serializer=get_interface_serializer(interface)))
 
     @sudo_required
     def get(self, request: Request, user: User, auth_id: str) -> Response:
@@ -102,18 +102,12 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
         #    - created at, last used dates
         #    - phone number for SMS
         #    - recovery codes
-        response = serialize(interface)
-
+        response = serialize(interface, serializer=get_interface_serializer(interface))
         if interface.interface_id == "recovery":
             assert isinstance(
                 interface, RecoveryCodeInterface
             ), "Interace must be RecoveryCodeInterface to get unused codes"
             response["codes"] = interface.get_unused_codes()
-        if interface.interface_id == "sms":
-            assert isinstance(
-                interface, SmsInterface
-            ), "Interace must be SmsInterface to get phone number"
-            response["phone"] = interface.phone_number
         if interface.interface_id == "u2f":
             assert isinstance(
                 interface, U2fInterface
@@ -137,7 +131,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
 
         :auth required:
         """
-        # TODO temporary solution for both renaming and regenerating recovery code.
+        # TODO: temporary solution for both renaming and regenerating recovery code.
         # Need to find new home for regenerating recovery codes as it doesn't really do what put is supposed to do
         try:
             authenticator = Authenticator.objects.get(user=user, id=auth_id)

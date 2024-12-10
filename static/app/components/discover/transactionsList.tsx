@@ -26,6 +26,7 @@ import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
@@ -85,6 +86,7 @@ type Props = {
    */
   selected: DropdownOption;
   breakdown?: SpanOperationBreakdownFilter;
+  domainViewFilters?: DomainViewFilters;
   /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
@@ -270,10 +272,12 @@ class _TransactionsList extends Component<Props> {
     cursor,
     numSamples,
     supportsInvestigationRule,
+    view,
   }: {
     numSamples: number | null | undefined;
     cursor?: string | undefined;
     supportsInvestigationRule?: boolean;
+    view?: DomainView;
   }): React.ReactNode {
     const {
       organization,
@@ -318,6 +322,7 @@ class _TransactionsList extends Component<Props> {
                   {
                     showTransactions: mapShowTransactionToPercentile(showTransactions),
                     breakdown,
+                    view,
                   }
                 )}
                 size="xs"
@@ -359,6 +364,7 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
       referrer,
+      domainViewFilters,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -389,7 +395,10 @@ class _TransactionsList extends Component<Props> {
           isLoading
           pageLinks={null}
           tableData={null}
-          header={this.renderHeader({numSamples: null})}
+          header={this.renderHeader({
+            numSamples: null,
+            view: domainViewFilters?.view,
+          })}
         />
       );
     }
@@ -413,6 +422,7 @@ class _TransactionsList extends Component<Props> {
               numSamples: tableData?.data?.length ?? null,
               supportsInvestigationRule: this.props.supportsInvestigationRule,
               cursor,
+              view: domainViewFilters?.view,
             })}
           />
         )}
@@ -421,8 +431,15 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, cursorName, generateLink} =
-      this.props;
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      generateLink,
+      domainViewFilters,
+    } = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -455,6 +472,7 @@ class _TransactionsList extends Component<Props> {
             header={this.renderHeader({
               numSamples: null,
               supportsInvestigationRule: false,
+              view: domainViewFilters?.view,
             })}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([

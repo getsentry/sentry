@@ -76,11 +76,14 @@ export function SpanTimeCharts({
     referrer: 'api.starfish.span-time-charts',
   });
 
-  useSynchronizeCharts([!isPending]);
+  useSynchronizeCharts(1, !isPending);
 
   const moduleCharts: Record<
     ModuleName,
-    {Comp: (props: ChartProps) => JSX.Element; title: string}[]
+    {
+      Comp: (props: ChartProps) => JSX.Element;
+      title: string;
+    }[]
   > = {
     [ModuleName.DB]: [],
     [ModuleName.CACHE]: [],
@@ -97,12 +100,19 @@ export function SpanTimeCharts({
     [ModuleName.AI]: [],
     [ModuleName.MOBILE_UI]: [],
     [ModuleName.MOBILE_SCREENS]: [],
+    [ModuleName.SCREEN_RENDERING]: [],
     [ModuleName.OTHER]: [],
   };
 
   const charts = [
-    {title: getThroughputChartTitle(moduleName, throughputUnit), Comp: ThroughputChart},
-    {title: getDurationChartTitle(moduleName), Comp: DurationChart},
+    {
+      title: getThroughputChartTitle(moduleName, throughputUnit),
+      Comp: ThroughputChart,
+    },
+    {
+      title: getDurationChartTitle(moduleName),
+      Comp: DurationChart,
+    },
     ...moduleCharts[moduleName],
   ];
 
@@ -280,7 +290,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
 }
 
 /** This fucntion is just to generate mock data based on other time stamps we have found */
-const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
+const useMockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
   const pageFilters = usePageFilters();
   const eventView = getEventView(moduleName, pageFilters.selection, filters);
   if (extraQuery) {
@@ -331,7 +341,7 @@ const mockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
 };
 
 function BundleSizeChart(props: ChartProps) {
-  const {isPending, data} = mockSeries(props);
+  const {isPending, data} = useMockSeries(props);
   return (
     <Chart
       stacked

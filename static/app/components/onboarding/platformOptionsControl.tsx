@@ -70,13 +70,21 @@ export type PlatformOptionsControlProps = {
    * Object with default value for each option
    */
   defaultOptions?: Record<string, string[]>;
+  /**
+   * Fired when the value changes
+   */
+  onChange?: (options: SelectedPlatformOptions) => void;
 };
 
-export function PlatformOptionsControl({platformOptions}: PlatformOptionsControlProps) {
+export function PlatformOptionsControl({
+  platformOptions,
+  onChange,
+}: PlatformOptionsControlProps) {
   const router = useRouter();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
+    onChange?.({[key]: value});
     router.replace({
       ...router.location,
       query: {

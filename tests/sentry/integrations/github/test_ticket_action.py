@@ -6,7 +6,8 @@ from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.eventstore.models import Event
-from sentry.integrations.github import GitHubCreateTicketAction, client
+from sentry.integrations.github import client
+from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule

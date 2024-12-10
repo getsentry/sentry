@@ -61,3 +61,6 @@ bin/rrweb-output
 model-manifest.json
 .mypy_cache
 .devenv
+.yalc/
+yalc.lock
+ngrok.yml

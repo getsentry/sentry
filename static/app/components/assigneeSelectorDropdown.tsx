@@ -19,7 +19,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -29,6 +28,7 @@ import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
+import {useUser} from 'sentry/utils/useUser';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -68,6 +68,10 @@ export interface AssigneeSelectorDropdownProps {
    * If true, there will be a loading indicator in the menu header.
    */
   loading: boolean;
+  /**
+   * Additional items to render in the menu footer
+   */
+  additionalMenuFooterItems?: React.ReactNode;
   /**
    * Additional styles to apply to the dropdown
    */
@@ -213,9 +217,10 @@ export default function AssigneeSelectorDropdown({
   owners,
   sizeLimit = 150,
   trigger,
+  additionalMenuFooterItems,
 }: AssigneeSelectorDropdownProps) {
   const memberLists = useLegacyStore(MemberListStore);
-  const sessionUser = ConfigStore.get('user');
+  const sessionUser = useUser();
 
   const currentMemberList = memberList ?? memberLists?.members ?? [];
 
@@ -536,18 +541,21 @@ export default function AssigneeSelectorDropdown({
   };
 
   const footerInviteButton = (
-    <Button
-      size="xs"
-      aria-label={t('Invite Member')}
-      disabled={loading}
-      onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        event.preventDefault();
-        openInviteMembersModal({source: 'assignee_selector'});
-      }}
-      icon={<IconAdd isCircled />}
-    >
-      {t('Invite Member')}
-    </Button>
+    <FooterWrapper>
+      <Button
+        size="xs"
+        aria-label={t('Invite Member')}
+        disabled={loading}
+        onClick={(event: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+          event.preventDefault();
+          openInviteMembersModal({source: 'assignee_selector'});
+        }}
+        icon={<IconAdd isCircled />}
+      >
+        {t('Invite Member')}
+      </Button>
+      {additionalMenuFooterItems}
+    </FooterWrapper>
   );
 
   return (
@@ -610,4 +618,10 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};
+`;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;

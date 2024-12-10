@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.utils import json
 
 
@@ -26,10 +26,10 @@ class AutofixRequest(TypedDict):
 class AutofixStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     ERROR = "ERROR"
-    PENDING = "PENDING"
     PROCESSING = "PROCESSING"
     NEED_MORE_INFORMATION = "NEED_MORE_INFORMATION"
     CANCELLED = "CANCELLED"
+    WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
 class AutofixState(BaseModel):
@@ -80,13 +80,15 @@ def get_autofix_state(
             "run_id": run_id,
         }
     )
+
+    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        url,
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(
-                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                salt,
                 body=body,
             ),
         },
@@ -116,13 +118,15 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
             "pr_id": pr_id,
         }
     ).encode("utf-8")
+
+    url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        url,
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(
-                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                salt=salt,
                 body=body,
             ),
         },

@@ -9,12 +9,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry import options
+from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
@@ -42,7 +45,6 @@ from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -53,17 +55,19 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import Feature, apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from tests.sentry.feedback.usecases.test_create_feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
@@ -79,7 +83,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        options.set("issues.group_attributes.send_kafka", True)
 
     def _parse_links(self, header):
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
@@ -749,6 +752,48 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
+    def test_release_package_in(self, _: MagicMock) -> None:
+        self.login_as(self.user)
+        project = self.project
+        release1 = Release.objects.create(organization=project.organization, version="foo@1.0.0.0")
+        release2 = Release.objects.create(organization=project.organization, version="bar@1.2.0.0")
+        release3 = Release.objects.create(organization=project.organization, version="cat@1.2.0.0")
+
+        release1.add_project(project)
+        release2.add_project(project)
+
+        event1 = self.store_event(
+            data={
+                "release": release1.version,
+                "timestamp": iso_format(before_now(seconds=3)),
+                "fingerprint": ["1"],
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "release": release2.version,
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["2"],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "release": release3.version,
+                "timestamp": iso_format(before_now(seconds=2)),
+                "fingerprint": ["3"],
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
+        issues = json.loads(response.content)
+        assert len(issues) == 2
+        assert int(issues[0]["id"]) == event2.group.id
+        assert int(issues[1]["id"]) == event1.group.id
+
     def test_lookup_by_release_wildcard(self, _: MagicMock) -> None:
         self.login_as(self.user)
         project = self.project
@@ -1187,7 +1232,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": False})
     @with_feature({"organizations:issue-search-snuba": False})
     def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
         event = self.store_event(
@@ -3145,10 +3189,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="user.email:myemail@example.com",
-        )
+        with self.feature([ProfileFileIOGroupType.build_visible_feature_name()]):
+            response = self.get_success_response(
+                sort="new",
+                query="user.email:myemail@example.com",
+            )
         assert len(response.data) == 2
         assert {r["id"] for r in response.data} == {
             str(perf_group_id),
@@ -3917,6 +3962,76 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
 
+    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(useGroupSnubaDataset=use_group_snuba_dataset)
+
+        # test that the issue returned is NOT the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) != feedback_group.id
+        assert issue["issueCategory"] != "feedback"
+
+    def test_feedback_filtered_by_default_no_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(False)
+
+    def test_feedback_filtered_by_default_use_snuba_search(self, _):
+        self.run_feedback_filtered_by_default_test(True)
+
+    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+                "organizations:issue-search-snuba": use_group_snuba_dataset,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(
+                query="issue.category:feedback", useGroupSnubaDataset=use_group_snuba_dataset
+            )
+
+        # test that the issue returned IS the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) == feedback_group.id
+        assert issue["issueCategory"] == "feedback"
+
+    def test_feedback_category_filter_no_snuba_search(self, _):
+        self.run_feedback_category_filter_test(False)
+
+    def test_feedback_category_filter_use_snuba_search(self, _):
+        self.run_feedback_category_filter_test(True)
+
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
@@ -4233,15 +4348,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         GroupResolution.current_release_version is set to the latest release associated with a
         Group, when the project follows semantic versioning scheme
         """
-        release_1 = self.create_release(version="fake_package@21.1.0")
-        release_2 = self.create_release(version="fake_package@21.1.1")
-        release_3 = self.create_release(version="fake_package@21.1.2")
+        release_21_1_0 = self.create_release(version="fake_package@21.1.0")
+        release_21_1_1 = self.create_release(version="fake_package@21.1.1")
+        release_21_1_2 = self.create_release(version="fake_package@21.1.2")
 
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
                 "fingerprint": ["group-1"],
-                "release": release_2.version,
+                "release": release_21_1_1.version,
             },
             project_id=self.project.id,
         )
@@ -4249,7 +4364,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             data={
                 "timestamp": iso_format(before_now(seconds=12)),
                 "fingerprint": ["group-1"],
-                "release": release_1.version,
+                "release": release_21_1_0.version,
             },
             project_id=self.project.id,
         ).group
@@ -4266,7 +4381,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # a group
         grp_resolution = GroupResolution.objects.get(group=group)
 
-        assert grp_resolution.current_release_version == release_2.version
+        assert grp_resolution.current_release_version == release_21_1_2.version
 
         # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
         assert grp_resolution.type == GroupResolution.Type.in_release
@@ -4274,12 +4389,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Add release that is between 2 and 3 to ensure that any release after release 2 should
         # not have a resolution
-        release_4 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_1_plus_1 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_3 = self.create_release(version="fake_package@21.1.3")
 
-        for release in [release_1, release_2]:
+        for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
             assert GroupResolution.has_resolution(group=group, release=release)
 
-        for release in [release_3, release_4]:
+        for release in [release_21_1_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
@@ -4289,7 +4405,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert activity.data["current_release_version"] == release_2.version
+        assert activity.data["current_release_version"] == release_21_1_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
         """
@@ -4767,7 +4883,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.IGNORED)
         GroupResolution.objects.create(group=group, release=release)
 
         self.login_as(user=self.user)
@@ -4818,7 +4934,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
-        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.IGNORED).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ARCHIVED_FOREVER
+        ).exists()
 
         assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
@@ -5254,7 +5372,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group1, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
         assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.UNRESOLVED
+            group=group2, status=GroupHistoryStatus.REGRESSED
         ).exists()
 
     def test_update_priority(self) -> None:

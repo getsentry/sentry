@@ -1,6 +1,6 @@
 import {CheckInStatus} from 'sentry/views/monitors/types';
 
-import type {MonitorBucketData} from '../types';
+import type {MonitorBucket} from '../types';
 
 import {mergeBuckets} from './mergeBuckets';
 
@@ -10,12 +10,13 @@ type StatusCounts = [
   missed: number,
   timeout: number,
   error: number,
+  unknown: number,
 ];
 
 export function generateEnvMapping(name: string, counts: StatusCounts) {
-  const [in_progress, ok, missed, timeout, error] = counts;
+  const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
-    [name]: {in_progress, ok, missed, timeout, error},
+    [name]: {in_progress, ok, missed, timeout, error, unknown},
   };
 }
 
@@ -26,16 +27,16 @@ function generateJobRun(envName: string, jobStatus: CheckInStatus) {
     CheckInStatus.MISSED,
     CheckInStatus.TIMEOUT,
     CheckInStatus.ERROR,
-    CheckInStatus.IN_PROGRESS,
+    CheckInStatus.UNKNOWN,
   ];
-  const counts: StatusCounts = [0, 0, 0, 0, 0];
+  const counts: StatusCounts = [0, 0, 0, 0, 0, 0];
   counts[sortedStatuses.indexOf(jobStatus)] = 1;
   return generateEnvMapping(envName, counts);
 }
 
 describe('mergeBuckets', function () {
   it('does not generate ticks less than 3px width', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.OK)],
       [2, generateJobRun('prod', CheckInStatus.OK)],
       [3, generateJobRun('prod', CheckInStatus.OK)],
@@ -53,7 +54,7 @@ describe('mergeBuckets', function () {
         width: 8,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [0, 7, 0, 0, 0]),
+        envMapping: generateEnvMapping('prod', [0, 7, 0, 0, 0, 0]),
       },
     ];
 
@@ -61,7 +62,7 @@ describe('mergeBuckets', function () {
   });
 
   it('generates adjacent ticks without border radius', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.OK)],
       [2, generateJobRun('prod', CheckInStatus.OK)],
       [3, generateJobRun('prod', CheckInStatus.OK)],
@@ -79,7 +80,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: true,
         roundedRight: false,
-        envMapping: generateEnvMapping('prod', [0, 4, 0, 0, 0]),
+        envMapping: generateEnvMapping('prod', [0, 4, 0, 0, 0, 0]),
       },
       {
         startTs: 5,
@@ -87,7 +88,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: false,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [0, 0, 3, 1, 0]),
+        envMapping: generateEnvMapping('prod', [0, 0, 3, 1, 0, 0]),
       },
     ];
 
@@ -95,7 +96,7 @@ describe('mergeBuckets', function () {
   });
 
   it('does not generate a separate tick if the next generated tick would be the same status', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [1, generateJobRun('prod', CheckInStatus.TIMEOUT)],
       [2, generateJobRun('prod', CheckInStatus.TIMEOUT)],
       [3, generateJobRun('prod', CheckInStatus.TIMEOUT)],
@@ -113,7 +114,7 @@ describe('mergeBuckets', function () {
         width: 8,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('prod', [0, 1, 2, 5, 0]),
+        envMapping: generateEnvMapping('prod', [0, 1, 2, 5, 0, 0]),
       },
     ];
 
@@ -121,7 +122,7 @@ describe('mergeBuckets', function () {
   });
 
   it('filters off environment', function () {
-    const bucketData: MonitorBucketData = [
+    const bucketData: MonitorBucket[] = [
       [
         1,
         {
@@ -158,7 +159,7 @@ describe('mergeBuckets', function () {
         width: 4,
         roundedLeft: true,
         roundedRight: true,
-        envMapping: generateEnvMapping('dev', [0, 1, 1, 1, 0]),
+        envMapping: generateEnvMapping('dev', [0, 1, 1, 1, 0, 0]),
       },
     ];
 

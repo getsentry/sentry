@@ -8,7 +8,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);

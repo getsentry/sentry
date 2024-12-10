@@ -1,3 +1,131 @@
+24.11.1
+-------
+
+### Various fixes & improvements
+
+- feat(toolbar): Make the login-success page have styles that blend with the login flow (#81230) by @ryan953
+- fix(issues): Revert to app external issue name (#81277) by @scttcper
+- Revert "chore(similarity): Do not send > 30 system frames to seer (#81259)" (104352cb) by @getsentry-bot
+- :wrench: chore(slos): Update Halt to Success for Bot Commands (#81271) by @iamrajjoshi
+- fix(auth): Adding scoping_organization_id to replica (#81213) by @sentaur-athena
+- chore(similarity): Do not send > 30 system frames to seer (#81259) by @jangjodi
+- fix(issues): Animate dropdown chevrons, button sizes (#81262) by @scttcper
+- feat(eap): Add missing profile.id column to EAP (#81263) by @Zylphrex
+- ref(dashboards): Modify how permissions are handled for editing/deleting dashboards (#80684) by @harshithadurai
+- feat(explore): Format numeric tags nicely in explore (#81255) by @Zylphrex
+- fix(explore): Preserve sort when adding group by (#81258) by @Zylphrex
+- ref(insights): remove insights-domain-view flag part 1 (#81241) by @DominikB2014
+- chore(alerts): Drop included and excluded projects (#81250) by @ceorourke
+- ref: fix flaky digests test (#81256) by @asottile-sentry
+- chore(sentryapps) Remove option for sentryapp RPC transition (#81245) by @markstory
+- fix(grouping): Only collect metadata timing metric when actually getting metadata (#81252) by @lobsterkatie
+- chore(performance): Remove old anomaly detection backend (#80696) by @gggritso
+- Revert "chore(similarity): Add logging for over 30 system frames (#81130)" (7b7e7955) by @getsentry-bot
+- ♻️ chore(slo): SLOs for CommitContextIntegration (#81225) by @iamrajjoshi
+- chore(widget-builder): Remove organization props (#81248) by @narsaynorath
+- chore(integrations): SourceCodeSearchEndpoint metrics (#80956) by @mifu67
+- chore(vsts): vsts installation step metrics (#80789) by @cathteng
+- Remove excluded_projects & include_all_projects columns (#81204) by @ceorourke
+- fix(issues): Wrap solutions in error boundary (#81244) by @scttcper
+
+_Plus 338 more_
+
+24.11.0
+-------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add support link to dropdown (#80804) by @roggenkemper
+- fix(issues): Show 50+ Replays whenever the count is maxed out like that (#80809) by @ryan953
+- ref(replay): Refactor extractDomNodes stepper strategy into extractDomNodes.tsx (#80810) by @ryan953
+- ref: make condition_data / action_data param names match for create_project_rule (#80781) by @asottile-sentry
+- ref: explicitly install libexpat1 (#80742) by @asottile-sentry
+- ref(dashboards): Fixes and refactoring for edit access selector button (#80633) by @harshithadurai
+- feat(flamegraphs): Support functions flamegraphs for continuous profi… (#80822) by @Zylphrex
+- feature(dashboards): added grid icon (#80806) by @doralchan
+- fix(charts): Respect stacked prop in area chart (#80824) by @Zylphrex
+- fix(insights): filter out ui.action in backend, and add to mobile (#80823) by @DominikB2014
+- chore(flamegraph): Remove transactions from differential flamegraphs (#80807) by @Zylphrex
+- feat(functions): Use flamegraph as data source for slowest functions (#80791) by @Zylphrex
+- feat(dashboards): Dashboards landing page layout toggle (#80790) by @nikkikapadia
+- ref(grouping): Rename `GroupingComponent` to `BaseGroupingComponent` (#80725) by @lobsterkatie
+- feat(dynamic-sampling): Show project as active if not 100 percent (#80819) by @ArthurKnaus
+- feat(dynamic-sampling): Copy changes and doc links (#80818) by @ArthurKnaus
+- fix(releases): For semver releases, get latest release as the resolving one (#80737) by @armenzg
+- feat(dynamic-sampling): Use new span count endpoint (#80732) by @ArthurKnaus
+- feat(dynamic-sampling): Show stored span per sub-project (#80816) by @ArthurKnaus
+- fix(dynamic-sampling): set dynamic sampling project span count mql query limit (#80812) by @shellmayr
+- chore(codeowners): update telemetry experience ownership (#80813) by @shellmayr
+- fix(crons): Move limit back onto QuerySet for incident detection (#80805) by @evanpurkhiser
+- fix(grouping): Small types fixes (#80724) by @lobsterkatie
+- feat(backup): Add export checkpointer (#80711) by @azaslavsky
+
+_Plus 1276 more_
+
+24.10.0
+-------
+
+### Various fixes & improvements
+
+- feat(releases): Split release commit from shared component (#78538) by @scttcper
+- chore(alerts): Add info log when sending subscription update data to Seer (#79049) by @ceorourke
+- feat(anomaly detection): add preview chart to new alert form (#78238) by @natemoo-re
+- feat(issue-stream): Use stacked primary secondary counts designs (#79070) by @MichaelSun48
+- feat(alerts): Add new feature flag to enable EAP alerts (#78985) by @edwardgou-sentry
+- feat(discover): Update EAP dataset and entity key for discover builders (#78967) by @edwardgou-sentry
+- fix: add info to post process TypeErrors for debugging (#79099) by @mjq
+- ref(ingest): annotate transaction consumer with spans (#79101) by @mjq
+- ref(rr6): Replace many useRouter's with useNavigate's (#78804) by @evanpurkhiser
+- chore(feedback): Analytics for error rendering feedback item (#78978) by @c298lee
+- feat(explore): Linking to spans in traceview from all tables (#78984) by @Abdkhan14
+- fix(eap): Count takes arg (#79066) by @Zylphrex
+- feat(quick-start): Add analytics code to the backend to track quick start completion (#79089) by @priscilawebdev
+- feat(quick-start): Add new feature flag for the new updates (#79094) by @priscilawebdev
+- fix(dashboard): OnDemand widget creation also includes transaction type (#79059) by @narsaynorath
+- fix(dashboard): OnDemand extraction for Transaction widgets (#79055) by @narsaynorath
+- feat(quick-start): Add analytics code to the frontend to track quick start completion (#79092) by @priscilawebdev
+- ref(quick-start): Update 'project to set up' logic to default to the first project (#78460) by @priscilawebdev
+- ref(onboarding): Add pnpm to express js install step (#79093) by @priscilawebdev
+- feat(dynamic-sampling): add feature flag (#79084) by @constantinius
+- fix(loader): Catch errors in `sentryOnLoad` separately (#78993) by @mydea
+- ref(feedback): 401 for unauth'd POSTs to projectUserReports (#79069) by @aliu39
+- fix(issue-stream): reduce font size of events and user counts (#79028) by @MichaelSun48
+- fix(issue-stream): Fix bug where replay divider was shown despite no replays (#79068) by @MichaelSun48
+
+_Plus 1020 more_
+
+24.9.0
+------
+
+### Various fixes & improvements
+
+- fix(custom-views): Align hover state of overflow menu with add view button (#77526) by @MichaelSun48
+- fix(issues): Align streamlined event id (#77529) by @scttcper
+- fix(similarity): Return failure reason from multithread seer call (#77522) by @jangjodi
+- test(performance): Rearrange trace keyboard test (#77519) by @scttcper
+- fix(anomaly detection): get aggregation key from snuba data (#77498) by @mifu67
+- fix(ui): Remove team slug from settings search (#77520) by @scttcper
+- fix(issues): Fix incorrect API docs for statsPeriod (#77523) by @mrduncan
+- analytics(flags): add initial analytics (#77489) by @michellewzhang
+- chore(users): Move User base endpoint file to users directory (#77501) by @Christinarlong
+- chore(apidocs): Fix inconsistencies in replay docs (#77506) by @isabellaenriquez
+- chore(apidocs): id -> ID (#77505) by @isabellaenriquez
+- fix(onboarding): Open replay panel in quick start action (#77516) by @scttcper
+- fix(anomaly detection): update alert list status to be the same as details page (#77500) by @mifu67
+- ref(js): Remove default export of DateTime (#77493) by @evanpurkhiser
+- chore(similarity): Increase seer delay and add to log (#77474) by @jangjodi
+- chore(apidocs): Make UserRole related endpoints private (#77504) by @isabellaenriquez
+- fix(custom-views): Change cursor for tab to pointer everywhere (#77513) by @MichaelSun48
+- ref: fix test pollution integrity errors due to cache leaks between tests (#77476) by @asottile-sentry
+- chore(crons): Remove sentry monitor decorator from run_escalating_forcast job (#77499) by @MichaelSun48
+- ref(js): Missed one DateTime defualt export (#77497) by @evanpurkhiser
+- feat(flags): hide flags from context and add feedback button (#77488) by @michellewzhang
+- publish api endpoints (#77179) by @nhsiehgit
+- ref(js): Remove usage of DateTime default export (#77494) by @evanpurkhiser
+- fix(ui): Inmprove spacing on code snippet header (#77492) by @evanpurkhiser
+
+_Plus 853 more_
+
 24.8.0
 ------
 

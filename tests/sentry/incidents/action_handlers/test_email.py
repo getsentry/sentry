@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.conf import settings
@@ -25,7 +26,8 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
@@ -347,11 +349,14 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_dynamic_alert(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,
@@ -382,7 +387,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
-            "threshold": f"({alert_rule.sensitivity} sensitivity)",
+            "threshold": f"({alert_rule.sensitivity} responsiveness)",
             "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
             "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
             "environment": "All",

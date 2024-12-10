@@ -22,6 +22,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
@@ -32,16 +33,15 @@ type Period = {
   start: DateString;
 };
 
-const ZoomPropKeys = [
-  'period',
-  'xAxis',
-  'onChartReady',
-  'onDataZoom',
-  'onRestore',
-  'onFinished',
-] as const;
+type ZoomPropKeys =
+  | 'period'
+  | 'xAxis'
+  | 'onChartReady'
+  | 'onDataZoom'
+  | 'onRestore'
+  | 'onFinished';
 
-export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
+export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -108,7 +108,7 @@ class ChartZoom extends Component<Props> {
   }
 
   chart?: ECharts;
-  $chart?: HTMLDivElement;
+  $chart?: HTMLElement;
   isCancellingZoom?: boolean;
   history: Period[];
   currentPeriod?: Period;
@@ -194,15 +194,11 @@ class ChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
 
-    // The DOM element is also available via chart._dom but TypeScript hates that, since
-    // _dom is technically private. Instead, use `querySelector` to get the element
     this.chart = chart;
-    this.$chart = document.querySelector(
-      `div[_echarts_instance_="${chart.id}"]`
-    ) as HTMLDivElement;
+    this.$chart = chart.getDom();
 
     this.$chart.addEventListener('mousedown', this.handleMouseDown);
   };
@@ -402,4 +398,4 @@ class ChartZoom extends Component<Props> {
   }
 }
 
-export default ChartZoom;
+export default withSentryRouter(ChartZoom);

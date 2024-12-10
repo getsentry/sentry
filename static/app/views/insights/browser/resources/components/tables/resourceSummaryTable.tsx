@@ -27,7 +27,11 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
@@ -126,7 +130,7 @@ function ResourceSummaryTable() {
                 <TitleWrapper>{t('Example')}</TitleWrapper>
                 <FullSpanDescription
                   group={groupId}
-                  language="http"
+                  moduleName={ModuleName.RESOURCE}
                   filters={{
                     [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],

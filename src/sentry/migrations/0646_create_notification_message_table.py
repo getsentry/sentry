@@ -84,7 +84,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="notificationmessage",
             constraint=models.CheckConstraint(
-                check=models.Q(
+                condition=models.Q(
                     models.Q(
                         ("incident__isnull", False),
                         ("trigger_action__isnull", False),

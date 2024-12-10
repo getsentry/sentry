@@ -7,6 +7,8 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -30,16 +32,82 @@ interface DataExportProps {
   icon?: React.ReactNode;
 }
 
+export function useDataExport({
+  payload,
+  inProgressCallback,
+  unmountedRef,
+}: {
+  payload: DataExportPayload;
+  inProgressCallback?: (inProgress: boolean) => void;
+  unmountedRef?: React.RefObject<boolean>;
+}) {
+  const organization = useOrganization();
+  const api = useApi();
+
+  return useCallback(() => {
+    inProgressCallback?.(true);
+
+    // This is a fire and forget request.
+    api
+      .requestPromise(`/organizations/${organization.slug}/data-export/`, {
+        includeAllArgs: true,
+        method: 'POST',
+        data: {
+          query_type: payload.queryType,
+          query_info: payload.queryInfo,
+        },
+      })
+      .then(([_data, _, response]) => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef?.current) {
+          return;
+        }
+
+        addSuccessMessage(
+          response?.status === 201
+            ? t(
+                "Sit tight. We'll shoot you an email when your data is ready for download."
+              )
+            : t("It looks like we're already working on it. Sit tight, we'll email you.")
+        );
+      })
+      .catch(err => {
+        // If component has unmounted, don't do anything
+        if (unmountedRef?.current) {
+          return;
+        }
+        const message =
+          err?.responseJSON?.detail ??
+          t(
+            "We tried our hardest, but we couldn't export your data. Give it another go."
+          );
+
+        addErrorMessage(message);
+        inProgressCallback?.(false);
+      });
+  }, [
+    payload.queryInfo,
+    payload.queryType,
+    organization.slug,
+    api,
+    inProgressCallback,
+    unmountedRef,
+  ]);
+}
+
 function DataExport({
-  api,
   children,
   disabled,
-  organization,
   payload,
   icon,
 }: DataExportProps): React.ReactElement {
   const unmountedRef = useRef(false);
   const [inProgress, setInProgress] = useState(false);
+  const handleDataExport = useDataExport({
+    payload,
+    unmountedRef,
+    inProgressCallback: setInProgress,
+  });
 
   // We clear the indicator if export props change so that the user
   // can fire another export without having to wait for the previous one to finish.
@@ -60,49 +128,6 @@ function DataExport({
       unmountedRef.current = true;
     };
   }, []);
-
-  const handleDataExport = useCallback(() => {
-    setInProgress(true);
-
-    // This is a fire and forget request.
-    api
-      .requestPromise(`/organizations/${organization.slug}/data-export/`, {
-        includeAllArgs: true,
-        method: 'POST',
-        data: {
-          query_type: payload.queryType,
-          query_info: payload.queryInfo,
-        },
-      })
-      .then(([_data, _, response]) => {
-        // If component has unmounted, don't do anything
-        if (unmountedRef.current) {
-          return;
-        }
-
-        addSuccessMessage(
-          response?.status === 201
-            ? t(
-                "Sit tight. We'll shoot you an email when your data is ready for download."
-              )
-            : t("It looks like we're already working on it. Sit tight, we'll email you.")
-        );
-      })
-      .catch(err => {
-        // If component has unmounted, don't do anything
-        if (unmountedRef.current) {
-          return;
-        }
-        const message =
-          err?.responseJSON?.detail ??
-          t(
-            "We tried our hardest, but we couldn't export your data. Give it another go."
-          );
-
-        addErrorMessage(message);
-        setInProgress(false);
-      });
-  }, [payload.queryInfo, payload.queryType, organization.slug, api]);
 
   return (
     <Feature features="organizations:discover-query">

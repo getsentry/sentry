@@ -1,17 +1,25 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+import {
+  isValidJson,
+  prettyPrintJsonString,
+} from 'sentry/views/insights/database/utils/jsonUtils';
 import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -37,6 +45,9 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
     {
       search: MutableSearch.fromQueryObject({'span.group': groupId}),
@@ -58,23 +69,65 @@ export function DatabaseSpanDescription({
     Boolean(indexedSpan)
   );
 
-  const rawDescription =
-    rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+  // isExpanded is a query param that is meant to be accessed only when clicking on the
+  // "View full query" button from the hover tooltip. It is removed from the query params
+  // on the initial load so the value is not persisted through the link
+  const [isExpanded] = useState<boolean>(() => Boolean(location.query.isExpanded));
+  useEffect(() => {
+    navigate(
+      {...location, query: {...location.query, isExpanded: undefined}},
+      {replace: true}
+    );
+    // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
+    // `navigate` will update the location within this effect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
-  const formatterDescription = useMemo(() => {
+  const system = rawSpan?.data?.['db.system'];
+
+  const formattedDescription = useMemo(() => {
+    const rawDescription =
+      rawSpan?.description || indexedSpan?.['span.description'] || preliminaryDescription;
+
+    if (system === SupportedDatabaseSystem.MONGODB) {
+      let bestDescription = '';
+
+      if (
+        rawSpan?.sentry_tags?.description &&
+        isValidJson(rawSpan.sentry_tags.description)
+      ) {
+        bestDescription = rawSpan.sentry_tags.description;
+      } else if (preliminaryDescription && isValidJson(preliminaryDescription)) {
+        bestDescription = preliminaryDescription;
+      } else if (
+        indexedSpan?.['span.description'] &&
+        isValidJson(indexedSpan?.['span.description'])
+      ) {
+        bestDescription = indexedSpan?.['span.description'];
+      } else if (rawSpan?.description && isValidJson(rawSpan.description)) {
+        bestDescription = rawSpan?.description;
+      } else {
+        return rawDescription ?? 'N/A';
+      }
+
+      return prettyPrintJsonString(bestDescription).prettifiedQuery;
+    }
+
     return formatter.toString(rawDescription ?? '');
-  }, [rawDescription]);
+  }, [preliminaryDescription, rawSpan, indexedSpan, system]);
 
   return (
     <Frame>
-      {areIndexedSpansLoading ? (
+      {areIndexedSpansLoading || isRawSpanLoading ? (
         <WithPadding>
           <LoadingIndicator mini />
         </WithPadding>
       ) : (
-        <CodeSnippet language="sql" isRounded={false}>
-          {formatterDescription}
-        </CodeSnippet>
+        <QueryClippedBox clipHeight={500} isExpanded={isExpanded}>
+          <CodeSnippet language={system === 'mongodb' ? 'json' : 'sql'} isRounded={false}>
+            {formattedDescription ?? ''}
+          </CodeSnippet>
+        </QueryClippedBox>
       )}
 
       {!areIndexedSpansLoading && !isRawSpanLoading && (
@@ -90,12 +143,22 @@ export function DatabaseSpanDescription({
               }}
             />
           ) : (
-            <MissingFrame />
+            <MissingFrame system={system} />
           )}
         </Fragment>
       )}
     </Frame>
   );
+}
+
+function QueryClippedBox(props) {
+  const {isExpanded, children} = props;
+
+  if (isExpanded) {
+    return children;
+  }
+
+  return <StyledClippedBox {...props} />;
 }
 
 const INDEXED_SPAN_SORT = {
@@ -116,4 +179,12 @@ const WithPadding = styled('div')`
 
 const WordBreak = styled('div')`
   word-break: break-word;
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+
+  > div > div {
+    z-index: 1;
+  }
 `;

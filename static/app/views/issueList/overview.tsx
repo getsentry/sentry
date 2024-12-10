@@ -12,17 +12,12 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
-import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -31,13 +26,7 @@ import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  BaseGroup,
-  Group,
-  PriorityLevel,
-  SavedSearch,
-  TagCollection,
-} from 'sentry/types/group';
+import type {BaseGroup, Group, PriorityLevel, SavedSearch} from 'sentry/types/group';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -49,27 +38,24 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import {
-  makeIssuesINPObserver,
-  VisuallyCompleteWithData,
-} from 'sentry/utils/performanceForSentry';
+import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import withIssueTags from 'sentry/utils/withIssueTags';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
 import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
+import IssueListTable from 'sentry/views/issueList/issueListTable';
+import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 
-import IssueListActions from './actions';
 import IssueListFilters from './filters';
-import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import type {QueryCounts} from './utils';
 import {
@@ -104,7 +90,6 @@ type Props = {
   savedSearches: SavedSearch[];
   selectedSearchId: string;
   selection: PageFilters;
-  tags: TagCollection;
 } & RouteComponentProps<{}, {searchId?: string}> &
   WithRouteAnalyticsProps;
 
@@ -149,11 +134,6 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
   expand?: string | string[];
 };
-
-const DataConsentBanner = HookOrDefault({
-  hookName: 'component:data-consent-banner',
-  defaultComponent: null,
-});
 
 class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
@@ -201,8 +181,12 @@ class IssueListOverview extends Component<Props, State> {
         this.fetchData();
       }
     }
-    this.fetchTags();
     this.fetchMemberList();
+    this.props.setRouteAnalyticsParams?.({
+      issue_views_enabled: this.props.organization.features.includes(
+        'issue-stream-custom-views'
+      ),
+    });
     // let custom analytics take control
     this.props.setDisableRouteAnalytics?.();
   }
@@ -222,7 +206,6 @@ class IssueListOverview extends Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.loadFromCache();
       this.fetchMemberList();
-      this.fetchTags();
     }
 
     const selectionChanged = !isEqual(prevProps.selection, this.props.selection);
@@ -468,13 +451,6 @@ class IssueListOverview extends Component<Props, State> {
         this.setState({memberList: indexMembersByProject(members)});
       }
     );
-  }
-
-  fetchTags() {
-    if (!this.props.organization.features.includes('issue-stream-search-query-builder')) {
-      const {api, organization, selection} = this.props;
-      loadOrganizationTags(api, organization.slug, selection);
-    }
   }
 
   fetchStats = (groups: string[]) => {
@@ -851,6 +827,7 @@ class IssueListOverview extends Component<Props, State> {
       num_new_issues: numNewIssues,
       num_issues: data.length,
       total_issues_count: numHits,
+      issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
       sort: this.getSort(),
     });
   }
@@ -1151,21 +1128,6 @@ class IssueListOverview extends Component<Props, State> {
     }
   };
 
-  tagValueLoader = (key: string, search: string) => {
-    const {organization} = this.props;
-    const projectIds = this.getSelectedProjectIds();
-    const endpointParams = this.getEndpointParams();
-
-    return fetchTagValues({
-      api: this.props.api,
-      orgSlug: organization.slug,
-      tagKey: key,
-      search,
-      projectIds,
-      endpointParams: endpointParams as any,
-    });
-  };
-
   getPageCounts = () => {
     const {location} = this.props;
     const {pageLinks, queryCount, groupIds} = this.state;
@@ -1225,102 +1187,95 @@ class IssueListOverview extends Component<Props, State> {
     const {numPreviousIssues, numIssuesOnPage} = this.getPageCounts();
 
     return (
-      <Layout.Page>
-        {organization.features.includes('issue-stream-custom-views') ? (
-          <ErrorBoundary message={'Failed to load custom tabs'}>
-            <CustomViewsIssueListHeader
+      <NewTabContextProvider>
+        <Layout.Page>
+          {organization.features.includes('issue-stream-custom-views') ? (
+            <ErrorBoundary message={'Failed to load custom tabs'} mini>
+              <CustomViewsIssueListHeader
+                organization={organization}
+                router={router}
+                selectedProjectIds={selection.projects}
+                realtimeActive={realtimeActive}
+                onRealtimeChange={this.onRealtimeChange}
+              />
+            </ErrorBoundary>
+          ) : (
+            <IssueListHeader
               organization={organization}
+              query={query}
+              sort={this.getSort()}
+              queryCount={queryCount}
+              queryCounts={queryCounts}
+              realtimeActive={realtimeActive}
               router={router}
+              displayReprocessingTab={showReprocessingTab}
               selectedProjectIds={selection.projects}
+              onRealtimeChange={this.onRealtimeChange}
             />
-          </ErrorBoundary>
-        ) : (
-          <IssueListHeader
-            organization={organization}
-            query={query}
-            sort={this.getSort()}
-            queryCount={queryCount}
-            queryCounts={queryCounts}
-            realtimeActive={realtimeActive}
-            onRealtimeChange={this.onRealtimeChange}
-            router={router}
-            displayReprocessingTab={showReprocessingTab}
-            selectedProjectIds={selection.projects}
-          />
-        )}
+          )}
 
-        <StyledBody>
-          <StyledMain>
-            <DataConsentBanner source="issues" />
-            <IssueListFilters query={query} onSearch={this.onSearch} />
-
-            <Panel>
-              {groupIds.length !== 0 && (
-                <IssueListActions
-                  selection={selection}
-                  query={query}
-                  queryCount={modifiedQueryCount}
-                  onSelectStatsPeriod={this.onSelectStatsPeriod}
-                  onActionTaken={this.onActionTaken}
-                  onDelete={this.onDelete}
-                  statsPeriod={this.getGroupStatsPeriod()}
-                  groupIds={groupIds}
-                  allResultsVisible={this.allResultsVisible()}
-                  displayReprocessingActions={displayReprocessingActions}
-                  sort={this.getSort()}
-                  onSortChange={this.onSortChange}
-                />
-              )}
-              <PanelBody>
-                <VisuallyCompleteWithData
-                  hasData={this.state.groupIds.length > 0}
-                  id="IssueList-Body"
-                  isLoading={this.state.issuesLoading}
-                >
-                  <GroupListBody
-                    memberList={this.state.memberList}
-                    groupStatsPeriod={this.getGroupStatsPeriod()}
-                    groupIds={groupIds}
-                    displayReprocessingLayout={displayReprocessingActions}
-                    query={query}
-                    selectedProjectIds={selection.projects}
-                    loading={issuesLoading}
-                    error={error}
-                    refetchGroups={this.fetchData}
-                    onActionTaken={this.onActionTaken}
-                  />
-                </VisuallyCompleteWithData>
-              </PanelBody>
-            </Panel>
-            <StyledPagination
-              caption={
-                !issuesLoading && modifiedQueryCount > 0
-                  ? tct('[start]-[end] of [total]', {
-                      start: numPreviousIssues + 1,
-                      end: numPreviousIssues + numIssuesOnPage,
-                      total: (
-                        <StyledQueryCount
-                          hideParens
-                          hideIfEmpty={false}
-                          count={modifiedQueryCount}
-                          max={queryMaxCount || 100}
-                        />
-                      ),
-                    })
-                  : null
-              }
-              pageLinks={pageLinks}
-              onCursor={this.onCursorChange}
-              paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+          <StyledBody>
+            <StyledMain>
+              <IssuesDataConsentBanner source="issues" />
+              <IssueListFilters
+                query={query}
+                sort={this.getSort()}
+                onSortChange={this.onSortChange}
+                onSearch={this.onSearch}
+              />
+              <IssueListTable
+                selection={selection}
+                query={query}
+                queryCount={modifiedQueryCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onActionTaken={this.onActionTaken}
+                onDelete={this.onDelete}
+                statsPeriod={this.getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={this.allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+                sort={this.getSort()}
+                onSortChange={this.onSortChange}
+                memberList={this.state.memberList}
+                selectedProjectIds={selection.projects}
+                issuesLoading={issuesLoading}
+                error={error}
+                refetchGroups={this.fetchData}
+                paginationCaption={
+                  !issuesLoading && modifiedQueryCount > 0
+                    ? tct('[start]-[end] of [total]', {
+                        start: numPreviousIssues + 1,
+                        end: numPreviousIssues + numIssuesOnPage,
+                        total: (
+                          <StyledQueryCount
+                            hideParens
+                            hideIfEmpty={false}
+                            count={modifiedQueryCount}
+                            max={queryMaxCount || 100}
+                          />
+                        ),
+                      })
+                    : null
+                }
+                pageLinks={pageLinks}
+                onCursor={this.onCursorChange}
+                paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                personalSavedSearches={this.props.savedSearches?.filter(
+                  search => search.visibility === 'owner'
+                )}
+                organizationSavedSearches={this.props.savedSearches?.filter(
+                  search => search.visibility === 'organization'
+                )}
+              />
+            </StyledMain>
+            <SavedIssueSearches
+              {...{organization, query}}
+              onSavedSearchSelect={this.onSavedSearchSelect}
+              sort={this.getSort()}
             />
-          </StyledMain>
-          <SavedIssueSearches
-            {...{organization, query}}
-            onSavedSearchSelect={this.onSavedSearchSelect}
-            sort={this.getSort()}
-          />
-        </StyledBody>
-      </Layout.Page>
+          </StyledBody>
+        </Layout.Page>
+      </NewTabContextProvider>
     );
   }
 }
@@ -1328,9 +1283,7 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(
-        withOrganization(withIssueTags(Sentry.withProfiler(IssueListOverview)))
-      )
+      withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverview)))
     )
   )
 );
@@ -1357,10 +1310,6 @@ const StyledMain = styled('section')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};
   }
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin-top: 0;
 `;
 
 const StyledQueryCount = styled(QueryCount)`

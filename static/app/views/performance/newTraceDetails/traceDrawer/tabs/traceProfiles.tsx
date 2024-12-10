@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -7,17 +7,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+
+import {isSpanNode, isTransactionNode} from '../../traceGuards';
+import {TraceTree} from '../../traceModels/traceTree';
+import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 
 export function TraceProfiles({
   tree,
@@ -44,25 +44,63 @@ export function TraceProfiles({
     [tree.profiled_events]
   );
 
+  const onProfileLinkClick = useCallback(
+    (profile: TraceTree.Profile) => {
+      if ('profiler_id' in profile) {
+        traceAnalytics.trackViewContinuousProfile(organization);
+      } else {
+        trackAnalytics('profiling_views.go_to_flamegraph', {
+          organization,
+          source: 'performance.trace_view',
+        });
+      }
+    },
+    [organization]
+  );
+
   return (
     <ProfilesTable>
       <ProfilesTableRow>
-        <ProfilesTableTitle>{t('Profiled Transaction')}</ProfilesTableTitle>
+        <ProfilesTableTitle>{t('Profiled Events')}</ProfilesTableTitle>
         <ProfilesTableTitle>{t('Profile')}</ProfilesTableTitle>
       </ProfilesTableRow>
 
       {profiles.map((node, index) => {
-        const link = generateProfileFlamechartRouteWithQuery({
-          orgSlug: organization.slug,
-          projectSlug: node.metadata.project_slug as string,
-          profileId: node.profiles?.[0].profile_id as string,
-        });
-        const onClick = () => {
-          trackAnalytics('profiling_views.go_to_flamegraph', {
-            organization,
-            source: 'performance.trace_view',
-          });
-        };
+        const profile = node.profiles?.[0];
+
+        if (!profile) {
+          return null;
+        }
+
+        const query = isTransactionNode(node)
+          ? {
+              eventId: node.value.event_id,
+            }
+          : isSpanNode(node)
+            ? {
+                eventId: TraceTree.ParentTransaction(node)?.value?.event_id,
+              }
+            : {};
+
+        const link =
+          'profiler_id' in profile
+            ? generateContinuousProfileFlamechartRouteWithQuery({
+                orgSlug: organization.slug,
+                profilerId: profile.profiler_id,
+                start: new Date(node.space[0]).toISOString(),
+                end: new Date(node.space[0] + node.space[1]).toISOString(),
+                projectSlug: node.metadata.project_slug as string,
+                query: query,
+              })
+            : generateProfileFlamechartRouteWithQuery({
+                orgSlug: organization.slug,
+                projectSlug: node.metadata.project_slug as string,
+                profileId: profile.profile_id,
+                query,
+              });
+
+        const profileOrProfilerId =
+          'profiler_id' in profile ? profile.profiler_id : profile.profile_id;
 
         if (isTransactionNode(node)) {
           return (
@@ -77,8 +115,8 @@ export function TraceProfiles({
                 </a>
               </div>
               <div>
-                <Link to={link} onClick={onClick}>
-                  {node.profiles?.[0].profile_id?.substring(0, 8)}
+                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
+                  {profileOrProfilerId.substring(0, 8)}
                 </Link>
               </div>
             </ProfilesTableRow>
@@ -100,8 +138,8 @@ export function TraceProfiles({
                 </a>
               </div>
               <div>
-                <Link to={link} onClick={onClick}>
-                  {node.profiles?.[0].profile_id?.substring(0, 8)}
+                <Link to={link} onClick={() => onProfileLinkClick(profile)}>
+                  {profileOrProfilerId.substring(0, 8)}
                 </Link>
               </div>
             </ProfilesTableRow>

@@ -97,6 +97,36 @@ export function updateDashboardVisit(
   return promise;
 }
 
+export async function updateDashboardFavorite(
+  api: Client,
+  orgId: string,
+  dashboardId: string | string[],
+  isFavorited: boolean
+): Promise<void> {
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
+      {
+        method: 'PUT',
+        data: {
+          isFavorited,
+        },
+      }
+    );
+  } catch (response) {
+    const errorResponse = response?.responseJSON ?? null;
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else if (isFavorited) {
+      addErrorMessage(t('Unable to favorite dashboard'));
+    } else {
+      addErrorMessage(t('Unable to unfavorite dashboard'));
+    }
+    throw response;
+  }
+}
+
 export function fetchDashboard(
   api: Client,
   orgId: string,
@@ -215,6 +245,37 @@ export function validateWidgetRequest(
       },
     },
   ] as const;
+}
+
+export function updateDashboardPermissions(
+  api: Client,
+  orgId: string,
+  dashboard: DashboardDetails | DashboardListItem
+): Promise<DashboardDetails> {
+  const {permissions} = dashboard;
+  const data = {
+    permissions,
+  };
+  const promise: Promise<DashboardDetails> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    {
+      method: 'PUT',
+      data,
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else {
+      addErrorMessage(t('Unable to update dashboard permissions'));
+    }
+  });
+
+  return promise;
 }
 
 export function validateWidget(

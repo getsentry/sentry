@@ -16,9 +16,6 @@ MAX_THRESHOLD = 720
 # being marked as missed
 DEFAULT_CHECKIN_MARGIN = 1
 
-# Enforced maximum length of the monitor slug
-MAX_SLUG_LENGTH = 50
-
 
 class PermitCheckInStatus(Enum):
     ACCEPT = 0

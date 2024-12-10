@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
@@ -16,8 +17,10 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -33,7 +36,13 @@ PROVIDER_NAME = "integrations:gitlab"
 GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
-class Webhook:
+class Webhook(ABC):
+    @property
+    @abstractmethod
+    def event_type(self) -> IntegrationWebhookEventType:
+        raise NotImplementedError
+
+    @abstractmethod
     def __call__(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
@@ -91,6 +100,10 @@ class MergeEventWebhook(Webhook):
 
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
     """
+
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PULL_REQUEST
 
     def __call__(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
@@ -156,6 +169,10 @@ class PushEventWebhook(Webhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
     """
 
+    @property
+    def event_type(self) -> IntegrationWebhookEventType:
+        return IntegrationWebhookEventType.PUSH
+
     def __call__(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
@@ -168,7 +185,7 @@ class PushEventWebhook(Webhook):
 
         authors = {}
 
-        # TODO gitlab only sends a max of 20 commits. If a push contains
+        # TODO: gitlab only sends a max of 20 commits. If a push contains
         # more commits they provide a total count and require additional API
         # requests to fetch the commit details
         for commit in event.get("commits", []):
@@ -244,7 +261,10 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     permission_classes = ()
     provider = "gitlab"
 
-    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
+    _handlers: dict[str, type[Webhook]] = {
+        "Push Hook": PushEventWebhook,
+        "Merge Request Hook": MergeEventWebhook,
+    }
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -314,9 +334,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
             logger.info("We only support these kinds of events: %s", supported_events)
-            extra[
-                "reason"
-            ] = "The customer has edited the webhook in Gitlab to include other types of events."
+            extra["reason"] = (
+                "The customer has edited the webhook in Gitlab to include other types of events."
+            )
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
@@ -326,5 +346,13 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             )
             if org_context:
                 organization = org_context.organization
-                handler()(integration, organization, event)
+                event_handler = handler()
+
+                with IntegrationWebhookEvent(
+                    interaction_type=event_handler.event_type,
+                    domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                    provider_key="gitlab",
+                ).capture():
+                    event_handler(integration, organization, event)
+
         return HttpResponse(status=204)

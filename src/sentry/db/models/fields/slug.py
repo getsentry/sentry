@@ -3,6 +3,8 @@ from django.db.models.lookups import Lookup
 
 from sentry.slug.validators import no_numeric_validator, org_slug_validator
 
+DEFAULT_SLUG_MAX_LENGTH = 50
+
 
 class SentrySlugField(SlugField):
     default_validators = [*SlugField.default_validators, no_numeric_validator]

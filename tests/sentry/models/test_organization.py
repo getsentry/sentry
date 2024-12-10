@@ -13,18 +13,18 @@ from sentry.api.endpoints.organization_details import (
     update_tracked_data,
 )
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.models.apikey import ApiKey
-from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
-from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import (
+from sentry.deletions.tasks.hybrid_cloud import (
     schedule_hybrid_cloud_foreign_key_jobs,
     schedule_hybrid_cloud_foreign_key_jobs_control,
 )
+from sentry.models.apikey import ApiKey
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

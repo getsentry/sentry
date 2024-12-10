@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -10,11 +10,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
 from sentry import tagstore
-from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
-from sentry.integrations.message_builder import (
+from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
@@ -36,8 +35,10 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import (
     GroupCategory,
+    NotificationContextField,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -51,7 +52,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.actions import MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
@@ -60,7 +61,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.users.services.user.model import RpcUser
-from sentry.utils import metrics
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 SUPPORTED_COMMIT_PROVIDERS = (
@@ -77,14 +77,29 @@ MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 
 
+def get_group_users_count(group: Group, rules: list[Rule] | None = None) -> int:
+    environment_ids: list[int] | None = None
+    if rules:
+        environment_ids = [rule.environment_id for rule in rules if rule.environment_id is not None]
+        if not environment_ids:
+            environment_ids = None
+
+    return group.count_users_seen(
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value,
+        environment_ids=environment_ids,
+    )
+
+
 # NOTE: if this starts getting large and functions get complicated,
 # pull things out into their own functions
-SUPPORTED_CONTEXT_DATA = {
-    "Events": lambda group: get_group_global_count(group),
-    "Users Affected": lambda group: get_group_users_count(group),
-    "State": lambda group: SUBSTATUS_TO_STR.get(group.substatus, "").replace("_", " ").title(),
-    "First Seen": lambda group: time_since(group.first_seen),
-    "Approx. Start Time": lambda group: datetime.fromtimestamp(
+SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, Callable] = {
+    NotificationContextField.EVENTS: lambda group, rules: get_group_global_count(group),
+    NotificationContextField.USERS_AFFECTED: get_group_users_count,
+    NotificationContextField.STATE: lambda group, rules: SUBSTATUS_TO_STR.get(group.substatus, "")
+    .replace("_", " ")
+    .title(),
+    NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
+    NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
         get_approx_start_time(group=group)
     ).strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -98,13 +113,6 @@ REGRESSION_PERFORMANCE_ISSUE_TYPES = [
 ]
 
 logger = logging.getLogger(__name__)
-
-
-def get_group_users_count(group: Group) -> int:
-    metrics.incr("slack.get_group_users_count", tags={"group_id": group.id}, sample_rate=1.0)
-    return group.count_users_seen(
-        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS_SLACK_ISSUE_NOTIFICATION.value
-    )
 
 
 def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
@@ -135,7 +143,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
+def build_action_text(
+    identity: RpcIdentity, action: MessageAction | BlockKitMessageAction
+) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -196,7 +206,7 @@ def get_tags(
     return fields
 
 
-def get_context(group: Group) -> str:
+def get_context(group: Group, rules: list[Rule] | None = None) -> str:
     context_text = ""
 
     context = group.issue_type.notification_config.context.copy()
@@ -207,22 +217,22 @@ def get_context(group: Group) -> str:
 
     state = None
     event_count = None
-    if "State" in context:
-        state = SUPPORTED_CONTEXT_DATA["State"](group)
-    if "Events" in context:
-        event_count = SUPPORTED_CONTEXT_DATA["Events"](group)
+    if NotificationContextField.STATE in context:
+        state = SUPPORTED_CONTEXT_DATA[NotificationContextField.STATE](group, rules)
+    if NotificationContextField.EVENTS in context:
+        event_count = SUPPORTED_CONTEXT_DATA[NotificationContextField.EVENTS](group, rules)
 
     if (state and state == "New") or (event_count and int(event_count) <= 1):
-        if "Events" in context:
-            context.remove("Events")
+        if NotificationContextField.EVENTS in context:
+            context.remove(NotificationContextField.EVENTS)
 
         # avoid hitting Snuba for user count if we don't need it
-        if "Users Affected" in context:
-            context.remove("Users Affected")
+        if NotificationContextField.USERS_AFFECTED in context:
+            context.remove(NotificationContextField.USERS_AFFECTED)
 
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
-            v = SUPPORTED_CONTEXT_DATA[c](group)
+            v = SUPPORTED_CONTEXT_DATA[c](group, rules)
             if v:
                 context_text += f"{c}: *{v}*   "
 
@@ -356,7 +366,7 @@ def build_actions(
     group: Group,
     project: Project,
     text: str,
-    actions: Sequence[MessageAction] | None = None,
+    actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, bool]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
@@ -421,7 +431,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         event: Event | GroupEvent | None = None,
         tags: set[str] | None = None,
         identity: RpcIdentity | None = None,
-        actions: Sequence[MessageAction] | None = None,
+        actions: Sequence[MessageAction | BlockKitMessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
@@ -607,7 +617,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_tags_block(tags, block_id))
 
         # add event count, user count, substate, first seen
-        context = get_context(self.group)
+        context = get_context(self.group, self.rules)
         if context:
             blocks.append(self.get_context_block(context))
 

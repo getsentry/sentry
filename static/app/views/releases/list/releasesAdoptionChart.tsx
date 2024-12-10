@@ -151,7 +151,7 @@ class ReleasesAdoptionChart extends Component<Props> {
   }
 
   render() {
-    const {activeDisplay, router, selection, api, organization, location} = this.props;
+    const {activeDisplay, selection, api, organization, location} = this.props;
     const {start, end, period, utc} = selection.datetime;
     const interval = this.getInterval();
     const field = sessionDisplayToField(activeDisplay);
@@ -191,13 +191,7 @@ class ReleasesAdoptionChart extends Component<Props> {
                 </ChartHeader>
                 <TransitionChart loading={loading} reloading={reloading}>
                   <TransparentLoadingMask visible={reloading} />
-                  <ChartZoom
-                    router={router}
-                    period={period}
-                    utc={utc}
-                    start={start}
-                    end={end}
-                  >
+                  <ChartZoom period={period} utc={utc} start={start} end={end}>
                     {zoomRenderProps => (
                       <LineChart
                         {...zoomRenderProps}

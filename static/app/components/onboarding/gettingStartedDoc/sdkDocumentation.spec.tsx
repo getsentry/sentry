@@ -72,7 +72,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
   });
 
   it('JavaScript', async function () {
-    const {organization, project} = initializeOrg({
+    const {organization, project, router} = initializeOrg({
       projects: [
         {
           ...initializeOrg().project,
@@ -80,6 +80,13 @@ describe('Renders SDK Documentation corretly based on platform id and language',
           platform: 'javascript',
         },
       ],
+      router: {
+        location: {
+          query: {
+            installationMode: 'manual',
+          },
+        },
+      },
     });
 
     renderMockRequests({project, orgSlug: organization.slug});
@@ -99,7 +106,10 @@ describe('Renders SDK Documentation corretly based on platform id and language',
           organization={organization}
           activeProductSelection={[]}
         />
-      </OnboardingContextProvider>
+      </OnboardingContextProvider>,
+      {
+        router,
+      }
     );
 
     // Renders main headings

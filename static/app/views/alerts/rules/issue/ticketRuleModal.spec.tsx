@@ -214,6 +214,19 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await submitSuccess();
     });
 
+    it('should persist non-choice value when the modal is reopened', async function () {
+      const textField: IssueConfigField = {
+        label: 'Text Field',
+        required: true,
+        type: 'string',
+        name: 'textField',
+      };
+      renderComponent({data: {textField: 'foo'}}, textField);
+
+      expect(screen.getByRole('textbox', {name: 'Text Field'})).toHaveValue('foo');
+      await submitSuccess();
+    });
+
     it('should get async options from URL', async function () {
       renderComponent();
       addMockConfigsAPICall({

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
@@ -27,6 +27,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -69,7 +70,9 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    if (currentProject) return;
+    if (currentProject) {
+      return;
+    }
 
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
@@ -222,7 +225,8 @@ interface ProfilingOnboardingContentProps {
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
-  const {isLoading, isError, dsn, docs, refetch} = useLoadGettingStarted({
+  const api = useApi();
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
     projSlug: props.projectSlug,
     platform: props.platform,
@@ -264,7 +268,20 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     );
   }
 
+  if (!projectKeyId) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the Client Key for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
   const docParams: DocsParams<any> = {
+    api,
+    projectKeyId,
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,
@@ -287,26 +304,31 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
+    profilingOptions: {
+      defaultProfilingMode: props.organization.features.includes('continuous-profiling')
+        ? 'continuous'
+        : 'transaction',
+    },
   };
 
-  const steps = [
-    ...docs.onboarding.install(docParams),
-    ...docs.onboarding.configure(docParams),
-  ];
+  const doc = docs.profilingOnboarding ?? docs.onboarding;
+  const steps = [...doc.install(docParams), ...doc.configure(docParams)];
 
   return (
-    <Fragment>
-      {docs.onboarding.introduction && (
-        <Introduction>{docs.onboarding.introduction(docParams)}</Introduction>
-      )}
+    <Wrapper>
+      {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
       <Steps>
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
       </Steps>
-    </Fragment>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const Steps = styled('div')`
   display: flex;
@@ -315,14 +337,16 @@ const Steps = styled('div')`
 `;
 
 const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const Content = styled('div')`
   padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const Heading = styled('div')`

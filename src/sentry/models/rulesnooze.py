@@ -50,7 +50,7 @@ class RuleSnooze(Model):
         )
         constraints = [
             CheckConstraint(
-                check=Q(rule__isnull=False, alert_rule__isnull=True)
+                condition=Q(rule__isnull=False, alert_rule__isnull=True)
                 | Q(rule__isnull=True, alert_rule__isnull=False),
                 name="rule_or_alert_rule",
             ),

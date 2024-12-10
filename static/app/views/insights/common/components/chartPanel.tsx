@@ -11,13 +11,20 @@ import {Subtitle} from 'sentry/views/performance/landing/widgets/widgets/singleF
 type Props = {
   children: React.ReactNode;
   button?: JSX.Element;
+  className?: string;
   subtitle?: React.ReactNode;
   title?: React.ReactNode;
 };
 
-export default function ChartPanel({title, children, button, subtitle}: Props) {
+export default function ChartPanel({
+  title,
+  children,
+  button,
+  subtitle,
+  className,
+}: Props) {
   return (
-    <PanelWithNoPadding>
+    <PanelWithNoPadding className={className}>
       <PanelBody>
         {title && (
           <Header data-test-id="chart-panel-header">
@@ -30,16 +37,18 @@ export default function ChartPanel({title, children, button, subtitle}: Props) {
                 )}
               </ChartLabel>
             )}
-            {button}
-            <Button
-              aria-label={t('Expand Insight Chart')}
-              borderless
-              size="xs"
-              icon={<IconExpand />}
-              onClick={() => {
-                openInsightChartModal({title, children});
-              }}
-            />
+            <MenuContainer>
+              {button}
+              <Button
+                aria-label={t('Expand Insight Chart')}
+                borderless
+                size="xs"
+                icon={<IconExpand />}
+                onClick={() => {
+                  openInsightChartModal({title, children});
+                }}
+              />
+            </MenuContainer>
           </Header>
         )}
         {subtitle && (
@@ -78,4 +87,8 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+`;
+
+const MenuContainer = styled('span')`
+  display: flex;
 `;

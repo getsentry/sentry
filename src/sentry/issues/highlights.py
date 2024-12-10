@@ -2,12 +2,15 @@ import re
 from collections.abc import Mapping
 from typing import TypedDict
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.models.project import Project
 from sentry.utils.platform_categories import BACKEND, FRONTEND, MOBILE
 
 
+@extend_schema_field(field=OpenApiTypes.OBJECT)
 class HighlightContextField(serializers.Field):
     def to_internal_value(self, data):
         if not isinstance(data, dict):
@@ -40,7 +43,7 @@ BACKEND_HIGHLIGHTS: HighlightPreset = {
 }
 FRONTEND_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["url", "transaction", "browser", "user"],
-    "context": {"browser": ["name"], "user": ["email"]},
+    "context": {"user": ["email"]},
 }
 MOBILE_HIGHLIGHTS: HighlightPreset = {
     "tags": SENTRY_TAGS + ["mobile", "main_thread"],

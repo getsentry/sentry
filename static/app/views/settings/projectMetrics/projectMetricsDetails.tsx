@@ -113,7 +113,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
             <BlockButton
               size="sm"
               hasAccess={hasAccess}
-              disabled={blockMetricMutation.isLoading}
+              disabled={blockMetricMutation.isPending}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
               blockTarget="metric"
@@ -213,7 +213,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                 <BlockButton
                   size="xs"
                   hasAccess={hasAccess}
-                  disabled={blockMetricMutation.isLoading || isBlockedMetric}
+                  disabled={blockMetricMutation.isPending || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
                   blockTarget="tag"

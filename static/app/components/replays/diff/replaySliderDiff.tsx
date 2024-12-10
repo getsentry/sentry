@@ -2,13 +2,15 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
-import ReplayIFrameRoot from 'sentry/components/replays/player/replayIFrameRoot';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
+import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
+import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
+import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
+import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -16,31 +18,31 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
   leftOffsetMs: number;
-  replay: null | ReplayReader;
+  replay: ReplayReader;
   rightOffsetMs: number;
+  minHeight?: `${number}px` | `${number}%`;
 }
 
-export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
+const BORDER_WIDTH = 3;
+
+export function ReplaySliderDiff({
+  minHeight = '0px',
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+}: Props) {
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
-
   const width = toPixels(viewDimensions.width);
+
   return (
     <Fragment>
-      <Header>
-        <Tooltip title={t('How the initial server-rendered page looked.')}>
-          <div style={{color: 'red'}}>{t('Before')}</div>
-        </Tooltip>
-        <Tooltip
-          title={t(
-            'How React re-rendered the page on your browser, after detecting a hydration error.'
-          )}
-        >
-          <div style={{color: 'green'}}>{t('After')}</div>
-        </Tooltip>
-      </Header>
+      <DiffHeader>
+        <Before />
+        <After />
+      </DiffHeader>
       <WithPadding>
-        <Positioned ref={positionedRef}>
+        <Positioned style={{minHeight}} ref={positionedRef}>
           {viewDimensions.width ? (
             <DiffSides
               leftOffsetMs={leftOffsetMs}
@@ -58,8 +60,20 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   );
 }
 
-function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width}) {
-  const rightSideElem = useRef<HTMLDivElement>(null);
+function DiffSides({
+  leftOffsetMs,
+  replay,
+  rightOffsetMs,
+  viewDimensions,
+  width,
+}: {
+  leftOffsetMs: number;
+  replay: ReplayReader;
+  rightOffsetMs: number;
+  viewDimensions: {height: number; width: number};
+  width: string | undefined;
+}) {
+  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
   const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
@@ -67,16 +81,16 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
     initialSize: viewDimensions.width / 2,
     min: 0,
     onResize: newSize => {
-      if (rightSideElem.current) {
-        rightSideElem.current.style.width =
+      const maxWidth = viewDimensions.width - BORDER_WIDTH;
+      if (beforeElemRef.current) {
+        beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.min(viewDimensions.width, viewDimensions.width - newSize)) ??
-              '0px';
+            : toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =
-          toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
+          toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
     },
   });
@@ -99,58 +113,63 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
 
   return (
     <Fragment>
-      <Cover style={{width}}>
-        <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_left"
-            initialTimeOffsetMs={{offsetMs: leftOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
-        </Placement>
-      </Cover>
-      <Cover ref={rightSideElem} style={{width: 0}}>
-        <Placement style={{width}}>
-          <ReplayContextProvider
-            analyticsContext="replay_comparison_modal_right"
-            initialTimeOffsetMs={{offsetMs: rightOffsetMs}}
-            isFetching={false}
-            replay={replay}
-          >
-            <ReplayIFrameRoot viewDimensions={viewDimensions} />
-          </ReplayContextProvider>
-        </Placement>
-      </Cover>
+      <ReplayPlayerPluginsContextProvider>
+        <ReplayPlayerEventsContextProvider replay={replay}>
+          <Cover style={{width}}>
+            <Placement style={{width}}>
+              <ReplayPlayerStateContextProvider>
+                <StyledNegativeSpaceContainer>
+                  <ReplayPlayerMeasurer measure="both">
+                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                  </ReplayPlayerMeasurer>
+                </StyledNegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </Placement>
+          </Cover>
+          <Cover ref={beforeElemRef}>
+            <Placement style={{width}}>
+              <ReplayPlayerStateContextProvider>
+                <StyledNegativeSpaceContainer>
+                  <ReplayPlayerMeasurer measure="both">
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                  </ReplayPlayerMeasurer>
+                </StyledNegativeSpaceContainer>
+              </ReplayPlayerStateContextProvider>
+            </Placement>
+          </Cover>
+        </ReplayPlayerEventsContextProvider>
+      </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
   );
 }
 
 const WithPadding = styled(NegativeSpaceContainer)`
-  padding-block: ${space(1.5)};
   overflow: visible;
+  height: 100%;
 `;
 
 const Positioned = styled('div')`
-  min-height: 335px;
+  height: 100%;
   position: relative;
   width: 100%;
 `;
 
 const Cover = styled('div')`
-  border: 1px solid;
+  border: ${BORDER_WIDTH}px solid;
+  border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
   position: absolute;
-  right: 0px;
+  left: 0px;
   top: 0px;
 
-  border-color: red;
+  border-color: ${p => p.theme.green300};
   & + & {
-    border-color: green;
-    border-left-color: transparent;
+    border: ${BORDER_WIDTH}px solid;
+    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
+    border-color: ${p => p.theme.red300};
+    border-right-width: 0;
   }
 `;
 
@@ -159,7 +178,7 @@ const Placement = styled('div')`
   height: 100%;
   justify-content: center;
   position: absolute;
-  right: 0;
+  left: 0;
   top: 0;
   place-items: center;
 `;
@@ -197,8 +216,6 @@ const Divider = styled('div')`
   }
 `;
 
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+  height: 100%;
 `;

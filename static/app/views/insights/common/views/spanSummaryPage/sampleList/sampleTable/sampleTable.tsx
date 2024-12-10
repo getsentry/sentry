@@ -113,7 +113,7 @@ function SampleTable({
     data: transactions,
     isFetching: isFetchingTransactions,
     isEnabled: isTransactionsEnabled,
-    isLoading: isLoadingTransactions,
+    isPending: isLoadingTransactions,
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),

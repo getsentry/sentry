@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LineSeriesOption} from 'echarts';
@@ -54,7 +54,6 @@ import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -146,7 +145,6 @@ function Chart({
    */
   legendFormatter = name => name,
 }: Props) {
-  const router = useRouter();
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
@@ -241,17 +239,29 @@ function Chart({
     return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
   }, [bucketSize, lastBucketTimestamp]);
 
-  // TODO: Support area and bar charts
+  // TODO: Support bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
     const metricChartType =
       type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
-    const seriesToShow = series.map(serie =>
-      createIngestionSeries(serie as MetricSeries, ingestionBuckets, metricChartType)
-    );
+    const seriesToShow = series.map(serie => {
+      const ingestionSeries = createIngestionSeries(
+        serie as MetricSeries,
+        ingestionBuckets,
+        metricChartType
+      );
+      // this helper causes all the incomplete series to stack, here we remove the stacking
+      if (!stacked) {
+        for (const s of ingestionSeries) {
+          delete s.stack;
+        }
+      }
+      return ingestionSeries;
+    });
     [series, incompleteSeries] = seriesToShow.reduce(
       (acc, serie, index) => {
         const [trimmed, incomplete] = acc;
         const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+
         return [
           [...trimmed, {...serie[0], color: colors[index]}],
           [
@@ -276,7 +286,7 @@ function Chart({
           return axisLabelFormatter(
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-            undefined,
+            true,
             durationUnit ?? getDurationUnit(data),
             rateUnit
           );
@@ -324,6 +334,7 @@ function Chart({
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      truncate: true,
       utc: utc ?? false,
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
@@ -444,16 +455,10 @@ function Chart({
     if (type === ChartType.BAR) {
       return (
         <BarChart
+          {...zoomRenderProps}
           height={height}
           series={series}
-          xAxis={{
-            type: 'category',
-            axisTick: {show: true},
-            truncate: Infinity, // Show axis labels
-            axisLabel: {
-              interval: 0, // Show _all_ axis labels
-            },
-          }}
+          xAxis={xAxis}
           yAxis={{
             minInterval: durationUnit ?? getDurationUnit(data),
             splitNumber: definedAxisTicks,
@@ -464,7 +469,7 @@ function Chart({
                 return axisLabelFormatter(
                   value,
                   aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-                  undefined,
+                  true,
                   durationUnit ?? getDurationUnit(data),
                   rateUnit
                 );
@@ -526,7 +531,6 @@ function Chart({
     // overlay additional series data such as releases and issues on top of the original insights chart
     return (
       <ChartZoom
-        router={router}
         saveOnZoom
         period={period}
         start={start}
@@ -611,14 +615,27 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   return Math.ceil(Math.ceil(maxValue / step) * step);
 }
 
-export function useSynchronizeCharts(deps: boolean[] = []) {
-  const [synchronized, setSynchronized] = useState<boolean>(false);
+export function useSynchronizeCharts(
+  charts: number,
+  ready: boolean,
+  group: string = STARFISH_CHART_GROUP
+) {
+  // Tries to connect all the charts under the same group so the cursor is shared.
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
+
   useEffect(() => {
-    if (deps.every(Boolean)) {
-      echarts?.connect?.(STARFISH_CHART_GROUP);
-      setSynchronized(true);
+    if (charts && ready) {
+      echarts?.connect?.(group);
+
+      // need to force a re-render otherwise only the currently visible charts
+      // in the group will end up connected
+      forceUpdate();
     }
-  }, [deps, synchronized]);
+  }, [
+    charts, // this re-connects when new charts are added/removed
+    ready, // this waits until the chart data has loaded before attempting to connect
+    group,
+  ]);
 }
 
 const StyledTransparentLoadingMask = styled(props => (

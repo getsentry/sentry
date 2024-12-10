@@ -25,7 +25,6 @@ from django.core.files.base import ContentFile
 from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
-from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
@@ -54,7 +53,6 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentSeen,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -75,14 +73,12 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -101,30 +97,17 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_for_provider import (
-    SentryAppInstallationForProvider,
-)
-from sentry.models.notificationaction import (
-    ActionService,
-    ActionTarget,
-    ActionTrigger,
-    NotificationAction,
-)
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releasefile import ReleaseFile, update_artifact_index
@@ -133,21 +116,36 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
-from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
+from sentry.sentry_apps.logic import SentryAppCreator
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -155,6 +153,7 @@ from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
+    IntervalSecondsLiteral,
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
@@ -170,6 +169,20 @@ from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    DataSource,
+    DataSourceDetector,
+    Detector,
+    DetectorState,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.registry import data_source_type_registry
 from social_auth.models import UserSocialAuth
 
 
@@ -426,9 +439,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(organization, scope_list=None, **kwargs):
-        return ApiKey.objects.create(
-            organization_id=organization.id if organization else None, scope_list=scope_list
-        )
+        return ApiKey.objects.create(organization_id=organization.id, scope_list=scope_list)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -605,9 +616,10 @@ class Factories:
         date_released: datetime | None = None,
         adopted: datetime | None = None,
         unadopted: datetime | None = None,
+        status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
-            version = force_str(hexlify(os.urandom(20)))
+            version = hexlify(os.urandom(20)).decode()
 
         if date_added is None:
             date_added = timezone.now()
@@ -620,6 +632,7 @@ class Factories:
             organization_id=project.organization_id,
             date_added=date_added,
             date_released=date_released,
+            status=status,
         )
 
         release.add_project(project)
@@ -847,7 +860,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def create_user(email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs):
+    def create_user(
+        email=None, is_superuser=False, is_staff=False, is_active=True, **kwargs
+    ) -> User:
         if email is None:
             email = uuid4().hex + "@example.com"
 
@@ -937,15 +952,21 @@ class Factories:
         data,
         project_id: int,
         assert_no_errors: bool = True,
-        event_type: EventType = EventType.DEFAULT,
+        default_event_type: EventType | None = None,
         sent_at: datetime | None = None,
     ) -> Event:
         """
         Like `create_event`, but closer to how events are actually
         ingested. Prefer to use this method over `create_event`
         """
-        if event_type == EventType.ERROR:
+
+        # this creates a basic message event
+        if default_event_type == EventType.DEFAULT:
             data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
+        # this creates an error event
+        elif default_event_type == EventType.ERROR:
+            data.update({"exception": [{"value": "BadError"}]})
 
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
@@ -1193,12 +1214,13 @@ class Factories:
             ):
                 assert install.api_grant is not None
                 assert install.sentry_app.application is not None
-                GrantExchanger.run(
+                assert install.sentry_app.proxy_user is not None
+                GrantExchanger(
                     install=rpc_install,
                     code=install.api_grant.code,
                     client_id=install.sentry_app.application.client_id,
                     user=install.sentry_app.proxy_user,
-                )
+                ).run()
                 install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
@@ -1485,7 +1507,6 @@ class Factories:
         date_started=None,
         date_detected=None,
         date_closed=None,
-        seen_by=None,
         alert_rule=None,
         subscription=None,
         activation=None,
@@ -1512,11 +1533,7 @@ class Factories:
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
-        if seen_by:
-            for user in seen_by:
-                IncidentSeen.objects.create(
-                    incident=incident, user_id=user.id, last_seen=timezone.now()
-                )
+
         return incident
 
     @staticmethod
@@ -1537,9 +1554,7 @@ class Factories:
         aggregate="count()",
         time_window=10,
         threshold_period=1,
-        include_all_projects=False,
         environment=None,
-        excluded_projects=None,
         date_added=None,
         query_type=None,
         dataset=Dataset.Events,
@@ -1575,8 +1590,6 @@ class Factories:
             query_type=query_type,
             dataset=dataset,
             environment=environment,
-            include_all_projects=include_all_projects,
-            excluded_projects=excluded_projects,
             user=user,
             event_types=event_types,
             comparison_delta=comparison_delta,
@@ -1617,13 +1630,11 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_alert_rule_trigger(
-        alert_rule, label=None, alert_threshold=100, excluded_projects=None
-    ):
+    def create_alert_rule_trigger(alert_rule, label=None, alert_threshold=100):
         if not label:
             label = petname.generate(2, " ", letters=10).title()
 
-        return create_alert_rule_trigger(alert_rule, label, alert_threshold, excluded_projects)
+        return create_alert_rule_trigger(alert_rule, label, alert_threshold)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1784,7 +1795,7 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_identity(
-        user: Any, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
+        user: User | RpcUser, identity_provider: IdentityProvider, external_id: str, **kwargs: Any
     ) -> Identity:
         return Identity.objects.create(
             external_id=external_id,
@@ -1935,23 +1946,38 @@ class Factories:
         subscription_id: str | None,
         status: UptimeSubscription.Status,
         url: str,
-        interval_seconds: int,
+        url_domain: str,
+        url_domain_suffix: str,
+        host_provider_id: str,
+        interval_seconds: IntervalSecondsLiteral,
         timeout_ms: int,
+        method,
+        headers,
+        body,
         date_updated: datetime,
+        trace_sampling: bool = False,
     ):
         return UptimeSubscription.objects.create(
             type=type,
             subscription_id=subscription_id,
             status=status.value,
             url=url,
+            url_domain=url_domain,
+            url_domain_suffix=url_domain_suffix,
+            host_provider_id=host_provider_id,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
             date_updated=date_updated,
+            method=method,
+            headers=headers,
+            body=body,
+            trace_sampling=trace_sampling,
         )
 
     @staticmethod
     def create_project_uptime_subscription(
         project: Project,
+        env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
         name: str,
@@ -1969,6 +1995,7 @@ class Factories:
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            environment=env,
             mode=mode,
             name=name,
             owner_team_id=owner_team_id,
@@ -2028,3 +2055,132 @@ class Factories:
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
         return DashboardWidgetQuery.objects.create(widget=widget, name=name, order=order, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow(
+        name: str | None = None,
+        organization: Organization | None = None,
+        **kwargs,
+    ) -> Workflow:
+        if organization is None:
+            organization = Factories.create_organization()
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+        return Workflow.objects.create(organization=organization, name=name, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition_group(
+        **kwargs,
+    ) -> DataConditionGroup:
+        return DataConditionGroup.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_workflow_data_condition_group(
+        workflow: Workflow | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> WorkflowDataConditionGroup:
+        if workflow is None:
+            workflow = Factories.create_workflow()
+
+        if not condition_group:
+            condition_group = Factories.create_data_condition_group()
+
+        return WorkflowDataConditionGroup.objects.create(
+            workflow=workflow, condition_group=condition_group
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition(**kwargs) -> DataCondition:
+        return DataCondition.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_source(
+        organization: Organization | None = None,
+        query_id: int | None = None,
+        type: str | None = None,
+        **kwargs,
+    ) -> DataSource:
+        if organization is None:
+            organization = Factories.create_organization()
+        if query_id is None:
+            query_id = random.randint(1, 10000)
+        if type is None:
+            type = data_source_type_registry.get_key(QuerySubscriptionDataSourceHandler)
+        return DataSource.objects.create(organization=organization, query_id=query_id, type=type)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector(
+        name: str | None = None,
+        **kwargs,
+    ) -> Detector:
+        if name is None:
+            name = petname.generate(2, " ", letters=10).title()
+
+        return Detector.objects.create(
+            name=name,
+            **kwargs,
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_state(
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DetectorState:
+        if detector is None:
+            detector = Factories.create_detector()
+
+        return DetectorState.objects.create(detector=detector, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_source_detector(
+        data_source: DataSource | None = None,
+        detector: Detector | None = None,
+        **kwargs,
+    ) -> DataSourceDetector:
+        if data_source is None:
+            data_source = Factories.create_data_source()
+        if detector is None:
+            detector = Factories.create_detector()
+        return DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_action(**kwargs) -> Action:
+        return Action.objects.create(**kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_detector_workflow(
+        detector: Detector | None = None,
+        workflow: Workflow | None = None,
+        **kwargs,
+    ) -> DetectorWorkflow:
+        if detector is None:
+            detector = Factories.create_detector()
+        if workflow is None:
+            workflow = Factories.create_workflow()
+        return DetectorWorkflow.objects.create(detector=detector, workflow=workflow, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_data_condition_group_action(
+        action: Action | None = None,
+        condition_group: DataConditionGroup | None = None,
+        **kwargs,
+    ) -> DataConditionGroupAction:
+        if action is None:
+            action = Factories.create_action()
+        if condition_group is None:
+            condition_group = Factories.create_data_condition_group()
+        return DataConditionGroupAction.objects.create(
+            action=action, condition_group=condition_group, **kwargs
+        )

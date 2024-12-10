@@ -14,7 +14,7 @@ const [MOCK_FRAME] = hydrateBreadcrumbs(ReplayRecordFixture(), [
 ]);
 
 describe('BreadcrumbItem', function () {
-  const organization = OrganizationFixture({features: ['new-timeline-ui']});
+  const organization = OrganizationFixture();
 
   it('displays the breadcrumb item', async function () {
     const mockClick = jest.fn();

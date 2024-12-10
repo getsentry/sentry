@@ -8,7 +8,7 @@ from django.utils import translation
 
 class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request: HttpRequest) -> None:
-        with sentry_sdk.start_span(op="middleware.locale", description="process_request"):
+        with sentry_sdk.start_span(op="middleware.locale", name="process_request"):
             # No locale for static media
             # This avoids touching user session, which means we avoid
             # setting `Vary: Cookie` as a response header which will

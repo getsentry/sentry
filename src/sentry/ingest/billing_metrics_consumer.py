@@ -104,12 +104,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         items = {data_category: quantity}
 
-        if self._has_profile(generic_metric):
-            # The bucket is tagged with the "has_profile" tag,
-            # so we also count the quantity of this bucket towards profiles.
-            # This assumes a "1 to 0..1" relationship between transactions / spans and profiles.
-            items[DataCategory.PROFILE] = quantity
-
         return items
 
     def _has_profile(self, generic_metric: GenericMetric) -> bool:

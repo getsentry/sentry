@@ -24,7 +24,6 @@ class SimilarHashMissingGroupError(Exception):
 class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
-    message: str
     exception_type: str | None
     hash: str
     k: NotRequired[int]  # how many neighbors to find
@@ -38,7 +37,6 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
 class RawSeerSimilarIssueData(TypedDict):
     parent_hash: str
     stacktrace_distance: float
-    message_distance: float
     should_group: bool
 
 
@@ -50,7 +48,6 @@ class SimilarIssuesEmbeddingsResponse(TypedDict):
 @dataclass
 class SeerSimilarIssueData:
     stacktrace_distance: float
-    message_distance: float
     should_group: bool
     parent_group_id: int
     parent_hash: str
@@ -59,7 +56,6 @@ class SeerSimilarIssueData:
     # definition because Python has no way to derive it from the type (nor vice-versa)
     required_incoming_keys: ClassVar = {
         "stacktrace_distance",
-        "message_distance",
         "should_group",
         "parent_hash",
     }

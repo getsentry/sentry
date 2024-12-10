@@ -11,8 +11,9 @@ describe('javascript-sveltekit onboarding docs', function () {
     renderWithOnboardingLayout(docs);
 
     // Renders main headings
-    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Automatic Configuration (Recommended)'})
+    ).toBeInTheDocument();
 
     // Includes configure statement
     expect(
@@ -20,7 +21,7 @@ describe('javascript-sveltekit onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays the configure instructions', () => {
+  it('displays the verify instructions', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [
         ProductSolution.ERROR_MONITORING,
@@ -30,11 +31,7 @@ describe('javascript-sveltekit onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/vite.config.js/))
+      screen.queryByText(textWithMarkupMatcher(/sentry-example-page/))
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/src\/hooks.server.js/))
-    ).toBeInTheDocument();
-    expect(screen.queryByText(textWithMarkupMatcher(/.sentryclirc/))).toBeInTheDocument();
   });
 });

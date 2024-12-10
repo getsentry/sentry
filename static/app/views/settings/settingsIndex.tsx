@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
+import {useUser} from 'sentry/utils/useUser';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
@@ -29,7 +30,7 @@ const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/platforms/',
   DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/platform-redirect/?next=/',
-  DOCUMENTATION_CLI: 'https://docs.sentry.io/product/cli/',
+  DOCUMENTATION_CLI: 'https://docs.sentry.io/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/api/',
   API: '/settings/account/api/',
   MANAGE: '/manage/',
@@ -59,7 +60,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     }
   }, [api, organization]);
 
-  const user = ConfigStore.get('user');
+  const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const organizationSettingsUrl =

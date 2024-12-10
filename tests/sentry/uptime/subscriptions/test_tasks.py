@@ -8,7 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.testutils.abstract import Abstract
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
 from sentry.uptime.models import UptimeSubscription
@@ -24,7 +24,7 @@ from sentry.uptime.subscriptions.tasks import (
 pytestmark = [requires_kafka]
 
 
-class ProducerTestMixin(TestCase):
+class ProducerTestMixin(UptimeTestCase):
     __test__ = Abstract(__module__, __qualname__)
 
     @pytest.fixture(autouse=True)
@@ -35,11 +35,13 @@ class ProducerTestMixin(TestCase):
 
     def assert_producer_calls(self, *args: UptimeSubscription | str):
         expected_payloads = [
-            UPTIME_CONFIGS_CODEC.encode(
-                uptime_subscription_to_check_config(arg, str(arg.subscription_id))
+            (
+                UPTIME_CONFIGS_CODEC.encode(
+                    uptime_subscription_to_check_config(arg, str(arg.subscription_id))
+                )
+                if isinstance(arg, UptimeSubscription)
+                else None
             )
-            if isinstance(arg, UptimeSubscription)
-            else None
             for arg in args
         ]
         expected_message_ids = [
@@ -52,7 +54,7 @@ class ProducerTestMixin(TestCase):
         assert expected_payloads == passed_payloads
 
 
-class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, TestCase, metaclass=abc.ABCMeta):
+class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
     __test__ = Abstract(__module__, __qualname__)
 
     status_translations = {
@@ -144,7 +146,7 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         self.assert_producer_calls()
 
 
-class UptimeSubscriptionToCheckConfigTest(TestCase):
+class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
     def test(self):
         sub = self.create_uptime_subscription()
         subscription_id = uuid4().hex
@@ -153,6 +155,44 @@ class UptimeSubscriptionToCheckConfigTest(TestCase):
             "url": sub.url,
             "interval_seconds": sub.interval_seconds,
             "timeout_ms": sub.timeout_ms,
+            "request_method": "GET",
+            "request_headers": [],
+            "trace_sampling": False,
+        }
+
+    def test_request_fields(self):
+        headers = [["hi", "bye"]]
+        body = "some request body"
+        method = "POST"
+        sub = self.create_uptime_subscription(
+            method=method, headers=headers, body=body, trace_sampling=True
+        )
+        sub.refresh_from_db()
+        subscription_id = uuid4().hex
+        assert uptime_subscription_to_check_config(sub, subscription_id) == {
+            "subscription_id": subscription_id,
+            "url": sub.url,
+            "interval_seconds": sub.interval_seconds,
+            "timeout_ms": sub.timeout_ms,
+            "request_method": method,
+            "request_headers": headers,
+            "request_body": body,
+            "trace_sampling": True,
+        }
+
+    def test_header_translation(self):
+        headers = {"hi": "bye"}
+        sub = self.create_uptime_subscription(headers=headers)
+        sub.refresh_from_db()
+        subscription_id = uuid4().hex
+        assert uptime_subscription_to_check_config(sub, subscription_id) == {
+            "subscription_id": subscription_id,
+            "url": sub.url,
+            "interval_seconds": sub.interval_seconds,
+            "timeout_ms": sub.timeout_ms,
+            "request_method": "GET",
+            "request_headers": [["hi", "bye"]],
+            "trace_sampling": False,
         }
 
 
@@ -163,7 +203,7 @@ class SendUptimeConfigDeletionTest(ProducerTestMixin):
         self.assert_producer_calls(subscription_id)
 
 
-class SubscriptionCheckerTest(TestCase):
+class SubscriptionCheckerTest(UptimeTestCase):
     def test_create_delete(self):
         for status in (
             UptimeSubscription.Status.CREATING,

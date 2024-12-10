@@ -55,8 +55,6 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
                 incident = update_incident_status(
                     incident=incident,
                     status=result["status"],
-                    user=request.user,
-                    comment=result.get("comment"),
                     status_method=IncidentStatusMethod.MANUAL,
                 )
                 return Response(

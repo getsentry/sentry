@@ -7,6 +7,7 @@ import Link from 'sentry/components/links/link';
 import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -47,16 +48,13 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
               {
                 inboundFilters: (
                   <Link
-                    to={`/settings/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
+                    to={`/settings/${organization.slug}/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
                   />
                 ),
               }
             );
           },
           getData: data => ({options: data}),
-          visible({features}) {
-            return features.has('session-replay-hydration-error-issue-creation');
-          },
         },
       ],
     },
@@ -69,7 +67,7 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         action={
           <LinkButton
             external
-            href="https://docs.sentry.io/product/session-replay/replay-page-and-filters/"
+            href="https://docs.sentry.io/product/issues/issue-details/replay-issues/"
           >
             {t('Read the Docs')}
           </LinkButton>
@@ -83,6 +81,9 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         apiMethod="PUT"
         apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         initialData={project.options}
+        onSubmitSuccess={(
+          response // This will update our project context
+        ) => ProjectsStore.onUpdateSuccess(response)}
       >
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (

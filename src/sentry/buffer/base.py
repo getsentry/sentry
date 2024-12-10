@@ -104,10 +104,24 @@ class Buffer(Service):
     ) -> None:
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
-        signal_only - added to indicate that `process` should only call the complete
-        signal handler with the updated model and skip creates/updates in the database. this
-        is useful in cases where we need to do additional processing before writing to the
-        database and opt to do it in a `buffer_incr_complete` receiver.
+
+        model - The model whose records will be updated
+
+        columns - Columns whose values should be incremented, in the form
+        { column_name: increment_amount }
+
+        filters - kwargs to pass to `<model_class>.objects.get` to select the records which will be
+        updated
+
+        extra - Other columns whose values should be changed, in the form
+        { column_name: new_value }. This is separate from `columns` because existing values in those
+        columns are incremented, whereas existing values in these columns are fully overwritten with
+        the new values.
+
+        signal_only - Added to indicate that `process` should only call the `buffer_incr_complete`
+        signal handler with the updated model and skip creates/updates in the database. This is useful
+        in cases where we need to do additional processing before writing to the database and opt to do
+        it in a `buffer_incr_complete` receiver.
         """
         process_incr.apply_async(
             kwargs={
@@ -134,7 +148,6 @@ class Buffer(Service):
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
-        from sentry.event_manager import ScoreClause
         from sentry.models.group import Group
 
         created = False
@@ -148,12 +161,6 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                if "last_seen" in update_kwargs and "times_seen" in update_kwargs:
-                    update_kwargs["score"] = ScoreClause(
-                        group=None,
-                        times_seen=update_kwargs["times_seen"],
-                        last_seen=update_kwargs["last_seen"],
-                    )
                 # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that

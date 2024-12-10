@@ -2,6 +2,7 @@ import time
 from typing import cast
 from unittest.mock import patch
 
+import orjson
 import responses
 from urllib3.response import HTTPResponse
 
@@ -13,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.integrations.messaging import MessagingActionHandler
+from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnBlock,
@@ -22,6 +23,7 @@ from sentry.integrations.msteams.card_builder.block import (
     TextBlock,
 )
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -127,6 +129,7 @@ class MsTeamsActionHandlerTest(FireTest):
 
     @responses.activate
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
@@ -135,7 +138,8 @@ class MsTeamsActionHandlerTest(FireTest):
             build_incident_attachment,
         )
 
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,
             time_window=30,

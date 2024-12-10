@@ -28,7 +28,7 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type TableColumnKeys =
   | 'id'

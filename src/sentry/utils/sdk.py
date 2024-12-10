@@ -26,6 +26,7 @@ from sentry.conf.types.sdk_config import SdkConfig
 from sentry.features.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.flag import FlagPoleIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -46,16 +47,14 @@ UNSAFE_FILES = (
     "outcomes_consumer.py",
 )
 
-# Tasks not included here are not sampled
-# If a parent task schedules other tasks you should add it in here or the child
-# tasks will not be sampled
+# Tasks not included here are sampled with `SENTRY_BACKEND_APM_SAMPLING`.
+# If a parent task schedules other tasks, rates propagate to the children.
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
-    # TODO(@anonrig): Remove this once AppStore connect integration is removed.
-    "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
+    "sentry.tasks.store.save_event": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.save_event_transaction": 0.1 * settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
@@ -66,22 +65,25 @@ SAMPLED_TASKS = {
     "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
-    "sentry.tasks.process_buffer.process_incr": 0.01,
+    "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1,
-    "sentry.profiles.task.process_profile": 0.01,
+    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
-    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
-    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
-    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 1.0,
+    "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
+    "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2
+    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
@@ -174,6 +176,10 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # dont sample warmup requests
+    if sampling_context.get("wsgi_environ", {}).get("PATH_INFO") == "/_warmup/":
+        return 0.0
+
     # Apply sample_rate from custom_sampling_context
     custom_sample_rate = sampling_context.get("sample_rate")
     if custom_sample_rate is not None:
@@ -266,6 +272,9 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["before_send"] = before_send
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
+    )
+    sdk_options.setdefault("_experiments", {}).update(
+        transport_http2=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -435,7 +444,6 @@ def configure_sdk():
         "sync-options",
         "sync-options-control",
         "schedule-digests",
-        "check-symbolicator-lpq-project-eligibility",  # defined in getsentry
     ]
 
     enable_cache_spans = os.getenv("SENTRY_URL_PREFIX") == "sentry.my.sentry.io"
@@ -457,8 +465,8 @@ def configure_sdk():
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
+            FlagPoleIntegration(),
         ],
-        spotlight=settings.IS_DEV and not settings.NO_SPOTLIGHT,
         **sdk_options,
     )
 
@@ -599,7 +607,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     scope = Scope.get_isolation_scope()
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", description="bind_organization_context"):
+    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 

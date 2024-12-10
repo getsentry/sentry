@@ -18,8 +18,7 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.result import CalculatedHashes
-from sentry.grouping.variants import BaseVariant, KeyedVariants
+from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -306,12 +305,10 @@ class BaseEvent(metaclass=abc.ABCMeta):
         return get_interfaces(self.data)
 
     @overload
-    def get_interface(self, name: Literal["user"]) -> User:
-        ...
+    def get_interface(self, name: Literal["user"]) -> User: ...
 
     @overload
-    def get_interface(self, name: str) -> Interface | None:
-        ...
+    def get_interface(self, name: str) -> Interface | None: ...
 
     def get_interface(self, name: str) -> Interface | None:
         return self.interfaces.get(name)
@@ -333,81 +330,51 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return get_grouping_config_dict_for_event_data(self.data, self.project)
 
-    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> CalculatedHashes:
+    def get_hashes_and_variants(
+        self, config: StrategyConfiguration | None = None
+    ) -> tuple[list[str], dict[str, BaseVariant]]:
         """
+        Return the event's hash values, calculated using the given config, along with the
+        `variants` data used in grouping.
+        """
+
+        variants = self.get_grouping_variants(config)
+        # Sort the variants so that the system variant (if any) is always last, in order to resolve
+        # ambiguities when choosing primary_hash for Snuba
+        sorted_variants = sorted(
+            variants.items(),
+            key=lambda name_and_variant: 1 if name_and_variant[0] == "system" else 0,
+        )
+        # Get each variant's hash value, filtering out Nones
+        hashes = list({variant.get_hash() for _, variant in sorted_variants} - {None})
+
+        # Write to event before returning
+        self.data["hashes"] = hashes
+
+        return (hashes, variants)
+
+    def get_hashes(self, force_config: StrategyConfiguration | None = None) -> list[str]:
+        """
+        Returns the calculated hashes for the event. This uses the stored
+        information if available. Grouping hashes will take into account
+        fingerprinting and checksums.
+
         Returns _all_ information that is necessary to group an event into
-        issues. It returns two lists of hashes, `(flat_hashes, hierarchical_hashes)`:
-
-        1. First, `hierarchical_hashes` is walked
-           *backwards* (end to start) until one hash has been found that matches
-           an existing group. Only *that* hash gets a GroupHash instance that is
-           associated with the group.
-
-        2. If no group was found, an event should be sorted into a group X, if
-           there is a GroupHash matching *any* of `flat_hashes`. Hashes that do
-           not yet have a GroupHash model get one and are associated with the same
-           group (unless they already belong to another group).
-
-           This is how regular grouping works.
-
-        Whichever group the event lands in is associated with exactly one
-        GroupHash corresponding to an entry in `hierarchical_hashes`, and an
-        arbitrary amount of hashes from `flat_hashes` depending on whether some
-        of those hashes have GroupHashes already assigned to other groups (and
-        some other things).
-
-        The returned hashes already take SDK fingerprints and checksums into
-        consideration.
+        issues: An event should be sorted into a group X, if there is a GroupHash
+        matching *any* of the hashes. Hashes that do not yet have a GroupHash model get
+        one and are associated with the same group (unless they already belong to another group).
 
         """
-
         # If we have hashes stored in the data we use them, otherwise we
         # fall back to generating new ones from the data.  We can only use
         # this if we do not force a different config.
         if force_config is None:
-            rv = CalculatedHashes.from_event(self.data)
-            if rv is not None:
-                return rv
+            hashes = self.data.get("hashes")
+            if hashes is not None:
+                return hashes
 
         # Create fresh hashes
-        from sentry.grouping.api import sort_grouping_variants
-
-        variants = self.get_grouping_variants(force_config)
-        flat_variants, hierarchical_variants = sort_grouping_variants(variants)
-        flat_hashes = self._hashes_from_sorted_grouping_variants(flat_variants)
-        hierarchical_hashes = self._hashes_from_sorted_grouping_variants(hierarchical_variants)
-
-        if flat_hashes:
-            sentry_sdk.set_tag("get_hashes.flat_variant", flat_hashes[0])
-        if hierarchical_hashes:
-            sentry_sdk.set_tag("get_hashes.hierarchical_variant", hierarchical_hashes[0])
-
-        flat_hashes_values = [hash_ for _, hash_ in flat_hashes]
-        hierarchical_hashes_values = [hash_ for _, hash_ in hierarchical_hashes]
-
-        return CalculatedHashes(
-            hashes=flat_hashes_values,
-            hierarchical_hashes=hierarchical_hashes_values,
-            variants=variants,
-        )
-
-    @staticmethod
-    def _hashes_from_sorted_grouping_variants(
-        variants: KeyedVariants,
-    ) -> list[tuple[str, str]]:
-        """Create hashes from variants and filter out duplicates and None values"""
-
-        filtered_hashes = []
-        seen_hashes = set()
-        for name, variant in variants:
-            hash_ = variant.get_hash()
-            if hash_ is None or hash_ in seen_hashes:
-                continue
-
-            seen_hashes.add(hash_)
-            filtered_hashes.append((name, hash_))
-
-        return filtered_hashes
+        return self.get_hashes_and_variants(force_config)[0]
 
     def normalize_stacktraces_for_grouping(self, grouping_config: StrategyConfiguration) -> None:
         """Normalize stacktraces and clear memoized interfaces
@@ -444,7 +411,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
             from sentry.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
-                # A string like `"mobile:2021-02-12"`
+                # A string like `"newstyle:2023-01-11"`
                 stored_config = self.get_grouping_config()
                 grouping_config = stored_config.copy()
                 grouping_config["id"] = force_config
@@ -473,27 +440,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 
-    def get_primary_hash(self) -> str | None:
-        hashes = self.get_hashes()
-
-        if hashes.hierarchical_hashes:
-            return hashes.hierarchical_hashes[0]
-
-        if hashes.hashes:
-            return hashes.hashes[0]
-
-        # Temporary investigative measure, to try to figure out when this would happen
-        logger.info(
-            "Event with no primary hash",
-            stack_info=True,
-            extra={
-                "event_id": self.event_id,
-                "event_type": type(self),
-                "group_id": getattr(self, "group_id", None),
-                "project_id": self.project_id,
-            },
-        )
-        return None
+    def get_primary_hash(self) -> str:
+        return self.get_hashes()[0]
 
     def get_span_groupings(
         self, force_config: str | Mapping[str, Any] | None = None
@@ -624,6 +572,11 @@ class Event(BaseEvent):
         state.pop("_groups_cache", None)
         return state
 
+    def __repr__(self):
+        return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
+            id(self), self.event_id
+        )
+
     @property
     def data(self) -> NodeData:
         return self._data
@@ -652,7 +605,7 @@ class Event(BaseEvent):
     def group_id(self, value: int | None) -> None:
         self._group_id = value
 
-    # TODO We need a better way to cache these properties. functools
+    # TODO: We need a better way to cache these properties. functools
     # doesn't quite do the trick as there is a reference bug with unsaved
     # models. But the current _group_cache thing is also clunky because these
     # properties need to be stripped out in __getstate__.

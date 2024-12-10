@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -9,8 +8,6 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
-import {StreamlinedExternalIssueList} from 'sentry/components/group/externalIssuesList/streamlinedExternalIssueList';
-import {GroupSummary} from 'sentry/components/group/groupSummary';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
   BACKEND_TAGS,
@@ -23,12 +20,10 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
-import {IssueType} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {CurrentRelease} from 'sentry/types/release';
@@ -42,11 +37,12 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import {
-  getGroupDetailsQueryData,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {ExternalIssueList as StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type Props = {
   environments: string[];
@@ -56,15 +52,19 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+export function useFetchAllEnvsGroupData(
+  organization: OrganizationSummary,
+  group: Group
+) {
   return useApiQuery<Group>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 }
@@ -74,7 +74,7 @@ function useFetchCurrentRelease(organization: OrganizationSummary, group: Group)
     [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
     {
       staleTime: 30000,
-      cacheTime: 30000,
+      gcTime: 30000,
     }
   );
 }
@@ -86,6 +86,7 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
+  const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -213,7 +214,6 @@ export default function GroupSidebar({
 
   const renderSeenByList = () => {
     const {seenBy} = group;
-    const activeUser = ConfigStore.get('user');
     const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
     if (!displayUsers.length) {
@@ -259,9 +259,15 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <Feature features={['organizations:ai-summary']}>
-        <GroupSummary groupId={group.id} groupCategory={group.issueCategory} />
-      </Feature>
+      {((organization.features.includes('gen-ai-features') &&
+        issueTypeConfig.issueSummary.enabled &&
+        !organization.hideAiFeatures) ||
+        issueTypeConfig.resources) && (
+        <SolutionsSectionContainer>
+          <SolutionsSection group={group} project={project} event={event} />
+        </SolutionsSectionContainer>
+      )}
+
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
           <StreamlinedExternalIssueList group={group} event={event} project={project} />
@@ -286,7 +292,7 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
@@ -299,13 +305,8 @@ export default function GroupSidebar({
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }
-          event={event}
           tagFormatter={TAGS_FORMATTER}
           project={project}
-          isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
-          }
         />
       )}
       {issueTypeConfig.regression.enabled && event && (
@@ -316,6 +317,12 @@ export default function GroupSidebar({
     </Container>
   );
 }
+
+const SolutionsSectionContainer = styled('div')`
+  margin-bottom: ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding-bottom: ${space(2)};
+`;
 
 const Container = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};

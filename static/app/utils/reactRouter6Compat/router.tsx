@@ -1,14 +1,15 @@
-import {Children, isValidElement} from 'react';
+import {Children, isValidElement, useEffect} from 'react';
 import {
-  generatePath,
   Navigate,
   type NavigateProps,
   Outlet,
   type RouteObject,
   useOutletContext,
 } from 'react-router-dom';
+import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
@@ -75,8 +76,23 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
  */
 function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
+  const routes = useRoutes();
 
-  return <Navigate to={generatePath(to, params)} {...rest} />;
+  // Capture sentry error for this redirect. This will help us understand if we
+  // have redirects that are unused or used too much.
+  useEffect(() => {
+    const routePath = routes
+      .map(route => route.path ?? '')
+      .filter(path => path !== '')
+      .join('/');
+
+    Sentry.captureMessage('Redirect route used', {
+      level: 'info',
+      tags: {routePath},
+    });
+  }, [routes]);
+
+  return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
 }
 Redirect.displayName = 'Redirect';
 
@@ -131,10 +147,16 @@ export function buildReactRouter6Routes(tree: JSX.Element) {
     const {path, component: Component, children, name, withOrgPath} = routeNode.props;
     const element = getElement(Component);
 
-    // XXX(epurkhiser): Store the name prop that we use for breadcrumbs in the
-    // handle. This is a react-router 6 concept for where to put arbitrary
-    // route data
-    const handle = {name};
+    // XXX(epurkhiser)
+    //
+    // - Store the name prop that we use for breadcrumbs in the
+    //   handle. This is a react-router 6 concept for where to put arbitrary
+    //   route data
+    //
+    // - We also store the unresolved path in the handle, since we'll need that
+    //   to shim the `useRoutes` hook to act like it did n react-router 3,
+    //   where the path was not resolved (looks like /issues/:issueId).
+    const handle = {name, path};
 
     if (isIndexRoute) {
       routes.push({index: true, element, handle});

@@ -9,7 +9,8 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.models.integrations import SentryAppComponent, SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -102,6 +103,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
                 metadata={"services": SERVICES},
             )
             org_integration = integration.add_organization(self.organization, self.user)
+            assert org_integration is not None
             service = add_service(
                 org_integration,
                 service_name=service_name,

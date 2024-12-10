@@ -3,7 +3,10 @@ from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_request,
+)
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign

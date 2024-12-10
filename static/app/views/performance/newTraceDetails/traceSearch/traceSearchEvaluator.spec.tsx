@@ -1,13 +1,11 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {EventTransaction} from 'sentry/types/event';
-import {
-  type TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {searchInTraceTreeTokens} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
-import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
+
+import type {TraceTree} from '../traceModels/traceTree';
+import {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {searchInTraceTreeTokens} from '../traceSearch/traceSearchEvaluator';
+import {parseTraceSearch} from '../traceSearch/traceTokenConverter';
 
 function makeTransaction(
   overrides: Partial<TraceTree.Transaction> = {}
@@ -34,8 +32,6 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     timestamp: 10,
     data: {},
     trace_id: '',
-    childTransactions: [],
-    event: undefined as unknown as EventTransaction,
     ...overrides,
   };
 }
@@ -434,6 +430,29 @@ describe('TraceSearchEvaluator', () => {
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
         expect(cb.mock.calls[0][0][2]).toBe(null);
       });
+    });
+  });
+
+  describe('project aliases', () => {
+    it('project -> project_slug', async () => {
+      const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
+
+      const cb = jest.fn();
+      search('project:test_project', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+    it('project.name -> project_slug', async () => {
+      const tree = makeTree([makeTransaction({project_slug: 'test_project'})]);
+
+      const cb = jest.fn();
+      search('project.name:test_project', tree, cb);
+      await waitFor(() => expect(cb).toHaveBeenCalled());
+      expect(cb.mock.calls[0][0][1].size).toBe(1);
+      expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+      expect(cb.mock.calls[0][0][2]).toBe(null);
     });
   });
 });

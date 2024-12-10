@@ -1,6 +1,21 @@
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
+
+const formatMetricValue = (metric: MetricValue): string => {
+  if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {
+    const seconds =
+      (metric.value * ((metric.unit && DURATION_UNITS[metric.unit]) ?? 1)) / 1000;
+    return getDuration(seconds, 2, true);
+  }
+
+  if (typeof metric.value === 'number' && metric.type === 'number') {
+    return metric.value.toFixed(2);
+  }
+
+  return String(metric.value);
+};
 
 // maps to PERFORMANCE_SCORE_COLORS keys
 export enum PerformanceScore {
@@ -12,14 +27,20 @@ export enum PerformanceScore {
 
 export type VitalStatus = {
   description: string | undefined;
+  formattedValue: string | undefined;
   score: PerformanceScore;
+  value: MetricValue | undefined;
 };
 
 export type VitalItem = {
   dataset: DiscoverDatasets;
   description: string;
+  docs: React.ReactNode;
   field: string;
   getStatus: (value: MetricValue) => VitalStatus;
+  platformDocLinks: Record<string, string>;
+  sdkDocLinks: Record<string, string>;
+  setup: React.ReactNode | undefined;
   title: string;
 };
 
@@ -36,10 +57,12 @@ export type MetricValue = {
 
 export const STATUS_UNKNOWN: VitalStatus = {
   description: undefined,
+  formattedValue: undefined,
+  value: undefined,
   score: PerformanceScore.NONE,
 };
 
-export function getColdAppStartPerformance(metric: MetricValue) {
+export function getColdAppStartPerformance(metric: MetricValue): VitalStatus {
   let description = '';
   let status = PerformanceScore.NONE;
 
@@ -59,12 +82,14 @@ export function getColdAppStartPerformance(metric: MetricValue) {
     }
   }
   return {
+    value: metric,
+    formattedValue: formatMetricValue(metric),
     score: status,
     description: description,
   };
 }
 
-export function getWarmAppStartPerformance(metric: MetricValue) {
+export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
   let description = '';
   let status = PerformanceScore.NONE;
 
@@ -84,11 +109,18 @@ export function getWarmAppStartPerformance(metric: MetricValue) {
     }
   }
   return {
+    value: metric,
+    formattedValue: formatMetricValue(metric),
     score: status,
     description: description,
   };
 }
 
-export function getDefaultMetricPerformance(_: MetricValue) {
-  return STATUS_UNKNOWN;
+export function getDefaultMetricPerformance(metric: MetricValue): VitalStatus {
+  return {
+    description: undefined,
+    formattedValue: formatMetricValue(metric),
+    value: metric,
+    score: PerformanceScore.NONE,
+  };
 }

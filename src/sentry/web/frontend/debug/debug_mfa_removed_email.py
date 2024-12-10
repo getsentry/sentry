@@ -1,5 +1,6 @@
 import datetime
 
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
@@ -11,6 +12,9 @@ from .mail import MailPreview
 
 class DebugMfaRemovedEmailView(View):
     def get(self, request: HttpRequest) -> HttpResponse:
+        if isinstance(request.user, AnonymousUser):
+            return HttpResponse(status=401)
+
         authenticator = Authenticator(id=0, type=3, user_id=request.user.id)  # u2f
 
         email = generate_security_email(

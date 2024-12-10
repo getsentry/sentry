@@ -26,13 +26,13 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
+import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
   onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
@@ -244,6 +244,8 @@ export function getDatasetConfig(
       return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
+    case WidgetType.SPANS:
+      return SpansConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

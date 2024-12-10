@@ -68,18 +68,6 @@ family:native function:"__*[[]Sentry*"                            -app -group
 # own grouping enhancers.
 family:native function:"?[[]Sentry*"                              -app -group
 
-# Android ANR: Exception stack is a snapshot of the UI/main thread. The
-# *outermost* in-app frame is most indicative of which user action has led to ANR,
-# and that's what we want to group by. (innermost=crashing frame)
-#
-# Note: Newer Android SDKs send the snapshot flag with ANRs, so this rule is
-# not strictly necessary.
-error.mechanism:ANR invert-stacktrace=1
-
-# NSError iOS: Stacktrace is a thread snapshot as well.
-# Note: Newer iOS SDK sends snapshot flag, so this is not strictly necessary.
-error.mechanism:NSError invert-stacktrace=1
-
 # Dart/Flutter stacktraces that are not in-app
 family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
 family:javascript module:**/packages/flutter/** -app

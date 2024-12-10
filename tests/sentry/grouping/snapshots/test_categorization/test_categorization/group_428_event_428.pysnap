@@ -1,5 +1,5 @@
 ---
-created: '2021-03-29T19:24:22.205643Z'
+created: '2024-09-06T16:28:15.995992+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_categorization.py
 ---
@@ -55,7 +55,7 @@ EXC_BAD_ACCESS / KERN_INVALID_ADDRESS:Fatal Error: EXC_BAD_ACCESS / KERN_INVALID
   /System/Library/Frameworks/OpenCL.framewor  clEnqueueMapBuffer category=gl
   /System/Library/Frameworks/OpenCL.framewor  clFinish category=internals
            /usr/lib/system/libdispatch.dylib  _dispatch_queue_barrier_sync_invoke_and_complete category=internals
-           /usr/lib/system/libdispatch.dylib  _dispatch_client_callout category=threadbase
+           /usr/lib/system/libdispatch.dylib  _dispatch_client_callout category=internals
   /System/Library/Frameworks/OpenCL.framewor  clFinish category=gl
   /System/Library/Frameworks/OpenCL.framewor  clSetEventCallback category=internals
   /System/Library/Frameworks/OpenCL.framewor  ??? category=internals

@@ -52,7 +52,7 @@ function ResourceButtons() {
       <Resource
         title={t('Element Masking/Blocking')}
         subtitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
-        link="https://docs.sentry.io/platforms/javascript/session-replay/privacy/"
+        link="https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration"
       />
       <Resource
         title={t('Network Details')}

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 
 import click
 
@@ -129,7 +129,7 @@ def createflag(
             name=f"feature.{scope}:{name}",
             owner=owner,
             segments=segments,
-            created_at=datetime.now().isoformat(),
+            created_at=date.today().isoformat(),
         )
     except Exception as err:
         raise click.ClickException(f"{err}")

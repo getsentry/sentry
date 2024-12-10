@@ -38,6 +38,10 @@ module.exports = async function (context, req) {
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -49,15 +53,15 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements.',
-        {import: <code />, require: <code />}
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements.',
+        {code: <code />}
       ),
       configurations: [
         {
           language: 'javascript',
           description: tct(
-            'Note: You need to call both [captureExceptionCode:captureException] and [flushCode:flush] for captured events to be successfully delivered to Sentry.',
-            {captureExceptionCode: <code />, flushCode: <code />}
+            'Note: You need to call both [code:captureException] and [code:flush] for captured events to be successfully delivered to Sentry.',
+            {code: <code />}
           ),
         },
         {

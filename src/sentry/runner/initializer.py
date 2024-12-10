@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
+import sys
 from typing import IO, Any
 
 import click
@@ -203,15 +204,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # these will be validated later after bootstrapping
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
-        # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
-        # set the newer SENTRY_OPTIONS['system.url-prefix']. Needs to be here
-        # to check from the config file directly before the django setup is done.
-        # TODO: delete when SENTRY_URL_PREFIX is removed
-        if k == "SENTRY_URL_PREFIX":
-            warnings.warn(
-                DeprecatedSettingWarning("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")
-            )
-            settings.SENTRY_OPTIONS["system.url-prefix"] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
@@ -268,7 +260,14 @@ def configure_structlog() -> None:
 
         kwargs["processors"].append(JSONRenderer())
 
+    is_s4s = os.environ.get("CUSTOMER_ID") == "sentry4sentry"
+    if is_s4s:
+        kwargs["logger_factory"] = structlog.PrintLoggerFactory(sys.stderr)
+
     structlog.configure(**kwargs)
+
+    if is_s4s:
+        logging.info("Writing logs to stderr. Expected only in s4s")
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
@@ -388,6 +387,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     configure_sdk()
 
     setup_services(validate=not skip_service_validation)
+
+    import_grouptype()
 
     from django.utils import timezone
 
@@ -580,13 +581,6 @@ def apply_legacy_settings(settings: Any) -> None:
         # option.)
         settings.SENTRY_REDIS_OPTIONS = options.get("redis.clusters")["default"]
 
-    if not hasattr(settings, "SENTRY_URL_PREFIX"):
-        url_prefix = options.get("system.url-prefix", silent=True)
-        if not url_prefix:
-            # HACK: We need to have some value here for backwards compatibility
-            url_prefix = "http://sentry.example.com"
-        settings.SENTRY_URL_PREFIX = url_prefix
-
     if settings.TIME_ZONE != "UTC":
         # non-UTC timezones are not supported
         show_big_error("TIME_ZONE should be set to UTC")
@@ -711,3 +705,9 @@ def validate_outbox_config() -> None:
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
         RegionOutboxBase.from_outbox_name(outbox_name)
+
+
+def import_grouptype() -> None:
+    from sentry.issues.grouptype import import_grouptype
+
+    import_grouptype()

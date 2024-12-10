@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import orjson
 from django.urls import reverse
 from urllib3.response import HTTPResponse
 
@@ -17,6 +18,7 @@ from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
     get_started_at,
 )
+from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.http import absolute_uri
@@ -33,16 +35,16 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
 
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -67,7 +69,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -102,15 +104,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {
@@ -138,7 +140,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -171,7 +173,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
@@ -210,13 +212,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": self.alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": self.alert_rule.id,
                 },
             )
         )
 
-        assert DiscordMetricAlertMessageBuilder(alert_rule=self.alert_rule,).build() == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=self.alert_rule,
+        ).build() == {
             "content": "",
             "embeds": [
                 {
@@ -230,11 +234,13 @@ class BuildMetricAlertAttachmentTest(TestCase):
         }
 
     @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
     @patch(
         "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
     )
     def test_metric_alert_with_anomaly_detection(self, mock_seer_request):
-        mock_seer_request.return_value = HTTPResponse(status=200)
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         alert_rule = self.create_alert_rule(
             detection_type=AlertRuleDetectionType.DYNAMIC,
             time_window=30,
@@ -251,15 +257,15 @@ class BuildMetricAlertAttachmentTest(TestCase):
             reverse(
                 "sentry-metric-alert-details",
                 kwargs={
-                    "organization_slug": alert_rule.organization.slug,
+                    "organization_slug": self.organization.slug,
                     "alert_rule_id": alert_rule.id,
                 },
             )
         )
         uuid = "uuid"
-        assert DiscordMetricAlertMessageBuilder(alert_rule=alert_rule,).build(
-            notification_uuid=uuid
-        ) == {
+        assert DiscordMetricAlertMessageBuilder(
+            alert_rule=alert_rule,
+        ).build(notification_uuid=uuid) == {
             "content": "",
             "embeds": [
                 {

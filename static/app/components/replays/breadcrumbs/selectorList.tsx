@@ -13,12 +13,12 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
   const organization = useOrganization();
 
   const componentName = frame.data.node?.attributes['data-sentry-component'];
-  const lastComponentIndex =
-    frame.message.lastIndexOf('>') === -1 ? 0 : frame.message.lastIndexOf('>') + 2;
+  const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
+  const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 
   return componentName ? (
     <Fragment>
-      <span>{frame.message.substring(0, lastComponentIndex)}</span>
+      <span>{frame.message?.substring(0, lastComponentIndex)}</span>
       <Tooltip
         title={t('Search by this component')}
         containerDisplayMode="inline"

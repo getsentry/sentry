@@ -11,7 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 
-jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);

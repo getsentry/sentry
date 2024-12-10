@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonLabel} from 'sentry/components/button';
@@ -13,9 +14,11 @@ import IssueListSearchBar from './searchBar';
 type IssueSearchWithSavedSearchesProps = {
   onSearch: (query: string) => void;
   query: string;
+  className?: string;
 };
 
 export function IssueSearchWithSavedSearches({
+  className,
   query,
   onSearch,
 }: IssueSearchWithSavedSearchesProps) {
@@ -36,7 +39,7 @@ export function IssueSearchWithSavedSearches({
   }
 
   return (
-    <SearchBarWithButtonContainer>
+    <SearchBarWithButtonContainer className={className}>
       {!organization.features.includes('issue-stream-custom-views') && (
         <StyledButton onClick={onSavedSearchesToggleClicked}>
           {selectedSavedSearch?.name ?? t('Custom Search')}
@@ -45,9 +48,8 @@ export function IssueSearchWithSavedSearches({
       <StyledIssueListSearchBarWithButton
         searchSource="main_search"
         organization={organization}
-        query={query || ''}
+        initialQuery={query || ''}
         onSearch={onSearch}
-        excludedTags={['environment']}
         placeholder={t('Search for events, users, tags, and more')}
         roundCorners={organization.features.includes('issue-stream-custom-views')}
       />
@@ -96,10 +98,10 @@ const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)<{
 
   ${p =>
     !p.roundCorners &&
-    `
-    @media (min-width: ${p.theme.breakpoints.small}) {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+    css`
+      @media (min-width: ${p.theme.breakpoints.small}) {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
     `}
 `;

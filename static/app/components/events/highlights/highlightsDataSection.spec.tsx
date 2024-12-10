@@ -11,6 +11,7 @@ import {
   TEST_EVENT_CONTEXTS,
   TEST_EVENT_TAGS,
 } from 'sentry/components/events/highlights/util.spec';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 describe('HighlightsDataSection', function () {
@@ -35,6 +36,7 @@ describe('HighlightsDataSection', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     jest.clearAllMocks();
   });
 
@@ -103,7 +105,7 @@ describe('HighlightsDataSection', function () {
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
         expect(
-          await screen.findByLabelText('View issues with this tag value')
+          await screen.findByLabelText('Search issues with this tag value')
         ).toBeInTheDocument();
         expect(
           screen.queryByLabelText('Add to event highlights')

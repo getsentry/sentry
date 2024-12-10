@@ -22,23 +22,30 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import {
+  MetricsCardinalityProvider,
+  useMetricsCardinalityContext,
+} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
-import {getSelectedProjectPlatforms, getTransactionName} from '../utils';
+import {
+  getPerformanceBaseUrl,
+  getSelectedProjectPlatforms,
+  getTransactionName,
+} from '../utils';
 
-import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
 import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
-import TransactionHeader from './header';
+import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
@@ -49,7 +56,7 @@ type TabEvents =
   | 'performance_views.events.events_tab_clicked'
   | 'performance_views.spans.spans_tab_clicked';
 
-const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
+export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
   [Tab.WEB_VITALS]: 'performance_views.vitals.vitals_tab_clicked',
   [Tab.TAGS]: 'performance_views.tags.tags_tab_clicked',
   [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
@@ -113,6 +120,8 @@ function PageLayout(props: Props) {
     TransactionThresholdMetric | undefined
   >();
 
+  const {isInDomainView} = useDomainViewFilters();
+
   const getNewRoute = useCallback(
     (newTab: Tab) => {
       if (!transactionName) {
@@ -133,8 +142,6 @@ function PageLayout(props: Props) {
           return eventsRouteWithQuery(routeQuery);
         case Tab.SPANS:
           return spansRouteWithQuery(routeQuery);
-        case Tab.ANOMALIES:
-          return anomaliesRouteWithQuery(routeQuery);
         case Tab.REPLAYS:
           return replaysRouteWithQuery(routeQuery);
         case Tab.PROFILING: {
@@ -251,6 +258,12 @@ function PageLayout(props: Props) {
 
   const project = projects.find(p => p.id === projectId);
 
+  let hasWebVitals: TransactionHeaderProps['hasWebVitals'] =
+    tab === Tab.WEB_VITALS ? 'yes' : 'maybe';
+  if (isInDomainView) {
+    hasWebVitals = 'no';
+  }
+
   return (
     <SentryDocumentTitle
       title={getDocumentTitle(transactionName)}
@@ -262,51 +275,53 @@ function PageLayout(props: Props) {
         organization={organization}
         renderDisabled={NoAccess}
       >
-        <PerformanceEventViewProvider value={{eventView}}>
-          <PageFiltersContainer
-            shouldForceProject={defined(project)}
-            forceProject={project}
-            specificProjectSlugs={defined(project) ? [project.slug] : []}
-          >
-            <Tabs value={tab} onChange={onTabChange}>
-              <Layout.Page>
-                <TransactionHeader
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  hasWebVitals={tab === Tab.WEB_VITALS ? 'yes' : 'maybe'}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
-                  }}
-                  metricsCardinality={metricsCardinality}
-                />
-                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                  {defined(error) && (
-                    <StyledAlert type="error" showIcon>
-                      {error}
-                    </StyledAlert>
-                  )}
-                  <ChildComponent
+        <MetricsCardinalityProvider location={location} organization={organization}>
+          <PerformanceEventViewProvider value={{eventView}}>
+            <PageFiltersContainer
+              shouldForceProject={defined(project)}
+              forceProject={project}
+              specificProjectSlugs={defined(project) ? [project.slug] : []}
+            >
+              <Tabs value={tab} onChange={onTabChange}>
+                <Layout.Page>
+                  <TransactionHeader
+                    eventView={eventView}
                     location={location}
                     organization={organization}
                     projects={projects}
-                    eventView={eventView}
                     projectId={projectId}
                     transactionName={transactionName}
-                    setError={setError}
-                    transactionThreshold={transactionThreshold}
-                    transactionThresholdMetric={transactionThresholdMetric}
+                    currentTab={tab}
+                    hasWebVitals={hasWebVitals}
+                    onChangeThreshold={(threshold, metric) => {
+                      setTransactionThreshold(threshold);
+                      setTransactionThresholdMetric(metric);
+                    }}
+                    metricsCardinality={metricsCardinality}
                   />
-                </StyledBody>
-              </Layout.Page>
-            </Tabs>
-          </PageFiltersContainer>
-        </PerformanceEventViewProvider>
+                  <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
+                    {defined(error) && (
+                      <StyledAlert type="error" showIcon>
+                        {error}
+                      </StyledAlert>
+                    )}
+                    <ChildComponent
+                      location={location}
+                      organization={organization}
+                      projects={projects}
+                      eventView={eventView}
+                      projectId={projectId}
+                      transactionName={transactionName}
+                      setError={setError}
+                      transactionThreshold={transactionThreshold}
+                      transactionThresholdMetric={transactionThresholdMetric}
+                    />
+                  </StyledBody>
+                </Layout.Page>
+              </Tabs>
+            </PageFiltersContainer>
+          </PerformanceEventViewProvider>
+        </MetricsCardinalityProvider>
       </Feature>
     </SentryDocumentTitle>
   );
@@ -344,7 +359,7 @@ export function redirectToPerformanceHomepage(
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: `/organizations/${organization.slug}/performance/`,
+      pathname: getPerformanceBaseUrl(organization.slug),
       query: {
         ...location.query,
       },

@@ -17,6 +17,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope, capture_exception
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
@@ -152,9 +153,10 @@ def get_organization_slug(*, org_id: int) -> dict:
 
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
-    consent = org.get_option("sentry:gen_ai_consent", False)
+    consent = org.get_option("sentry:gen_ai_consent_v2024_11_14", False)
+    github_extension_enabled = org_id in options.get("github-extension.enabled-orgs")
     return {
-        "consent": consent,
+        "consent": consent or github_extension_enabled,
     }
 
 

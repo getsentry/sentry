@@ -96,10 +96,9 @@ const onboarding: OnboardingConfig = {
         {
           language: 'python',
           description: tct(
-            'Add the following lines to your project’s [initCode:.ini] file to setup [sentryHandlerCode:SentryHandler]:',
+            'Add the following lines to your project’s [code:.ini] file to setup [code:SentryHandler]:',
             {
-              initCode: <code />,
-              sentryHandlerCode: <code />,
+              code: <code />,
             }
           ),
           code: getLoggerSnippet(),

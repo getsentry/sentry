@@ -184,7 +184,7 @@ export function ProjectAlertRuleConfigurationFixture(
       {
         id: 'sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter',
         label:
-          "The {oldest_or_newest} release associated with the event's issue is {older_or_newer} than the latest release in {environment}",
+          "The {oldest_or_newest} adopted release associated with the event's issue is {older_or_newer} than the latest adopted release in {environment}",
         enabled: true,
         formFields: {
           oldest_or_newest: {

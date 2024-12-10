@@ -17,4 +17,6 @@ export const BASE_FILTERS: SpanMetricsQueryFilters = {
 export const MODULE_DESCRIPTION = t(
   'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
 );
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/';
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/caches/';
+
+export const MODULE_FEATURES = ['insights-addon-modules'];

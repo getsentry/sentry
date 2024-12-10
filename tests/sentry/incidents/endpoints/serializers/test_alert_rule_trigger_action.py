@@ -1,9 +1,15 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    AlertTarget,
+    InvalidTriggerActionError,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.discord.utils.channel import ChannelType
@@ -101,21 +107,18 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.DISCORD,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier=None,
-            integration_id=integration.id,
-        )
-
-        result = serialize(action)
-        self.assert_action_serialized(action, result)
-        assert result["desc"] == "Send a Discord notification to "
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                trigger,
+                AlertRuleTriggerAction.Type.DISCORD,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                target_identifier=None,
+                integration_id=integration.id,
+            )
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
     def test_pagerduty_priority(self, mock_get):
         alert_rule = self.create_alert_rule()
@@ -138,7 +141,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
     @responses.activate
     @patch(
         "sentry.incidents.logic.get_alert_rule_trigger_action_opsgenie_team",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
     def test_opsgenie_priority(self, mock_get):
         alert_rule = self.create_alert_rule()

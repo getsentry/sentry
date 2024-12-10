@@ -45,6 +45,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatApdex} from 'sentry/utils/number/formatApdex';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
@@ -301,15 +302,27 @@ export const FIELD_FORMATTERS: FieldFormatters = {
         : defined(data[field])
           ? data[field]
           : emptyValue;
+
       if (isUrl(value)) {
         return (
-          <Container>
-            <ExternalLink href={value} data-test-id="group-tag-url">
-              {value}
-            </ExternalLink>
-          </Container>
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>
+              <ExternalLink href={value} data-test-id="group-tag-url">
+                {value}
+              </ExternalLink>
+            </Container>
+          </Tooltip>
         );
       }
+
+      if (value && typeof value === 'string') {
+        return (
+          <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
+            <Container>{nullableValue(value)}</Container>
+          </Tooltip>
+        );
+      }
+
       return <Container>{nullableValue(value)}</Container>;
     },
   },
@@ -339,6 +352,7 @@ type SpecialField = {
 };
 
 type SpecialFields = {
+  'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
   'error.handled': SpecialField;
@@ -350,6 +364,7 @@ type SpecialFields = {
   project: SpecialField;
   release: SpecialField;
   replayId: SpecialField;
+  'span.description': SpecialField;
   'span.status_code': SpecialField;
   team_key_transaction: SpecialField;
   'timestamp.to_day': SpecialField;
@@ -376,6 +391,18 @@ const RightAlignedContainer = styled('span')`
 const SPECIAL_FIELDS: SpecialFields = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
+  'apdex()': {
+    sortField: 'apdex()',
+    renderFunc: data => {
+      const field = 'apdex()';
+
+      return (
+        <NumberContainer>
+          {typeof data[field] === 'number' ? formatApdex(data[field]) : emptyValue}
+        </NumberContainer>
+      );
+    },
+  },
   attachments: {
     sortField: null,
     renderFunc: (data, {organization, projectSlug}) => {
@@ -454,6 +481,29 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{getShortEventId(id)}</Container>;
     },
   },
+  'span.description': {
+    sortField: 'span.description',
+    renderFunc: data => {
+      const value = data['span.description'];
+
+      return (
+        <Tooltip
+          title={value}
+          containerDisplayMode="block"
+          showOnlyOnOverflow
+          maxWidth={400}
+        >
+          <Container>
+            {isUrl(value) ? (
+              <ExternalLink href={value}>{value}</ExternalLink>
+            ) : (
+              nullableValue(value)
+            )}
+          </Container>
+        </Tooltip>
+      );
+    },
+  },
   trace: {
     sortField: 'trace',
     renderFunc: data => {
@@ -496,7 +546,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     sortField: 'profile.id',
     renderFunc: data => {
       const id: string | unknown = data?.['profile.id'];
-      if (typeof id !== 'string') {
+      if (typeof id !== 'string' || id === '') {
         return emptyValue;
       }
 
@@ -990,7 +1040,7 @@ export function getFieldRenderer(
   }
 
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
@@ -1024,7 +1074,7 @@ export function getFieldFormatter(
   isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName] || meta.fields?.[fieldName];
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);

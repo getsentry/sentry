@@ -8,14 +8,15 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.user_identity_config import (
+from sentry.models.authidentity import AuthIdentity
+from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
+from sentry.users.api.serializers.user_identity_config import (
     Status,
     UserIdentityConfig,
+    UserIdentityConfigSerializer,
     supports_login,
 )
-from sentry.models.authidentity import AuthIdentity
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
 from social_auth.models import UserSocialAuth
@@ -80,7 +81,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 @control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (UserAndStaffPermission,)
@@ -95,14 +96,14 @@ class UserIdentityConfigEndpoint(UserEndpoint):
         """
 
         identities = list(get_identities(user))
-        return Response(serialize(identities))
+        return Response(serialize(identities, serializer=UserIdentityConfigSerializer()))
 
 
 @control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (UserAndStaffPermission,)
@@ -123,7 +124,7 @@ class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     def get(self, request: Request, user: User, category: str, identity_id: str) -> Response:
         identity = self._get_identity(user, category, identity_id)
         if identity:
-            return Response(serialize(identity))
+            return Response(serialize(identity, serializer=UserIdentityConfigSerializer()))
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

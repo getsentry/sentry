@@ -2,6 +2,7 @@ import type {SourceMapProcessingIssueType} from 'sentry/components/events/interf
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {PriorityLevel} from 'sentry/types/group';
 import type {IntegrationType} from 'sentry/types/integrations';
+import type {Broadcast} from 'sentry/types/system';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
@@ -52,7 +53,7 @@ export type IssueEventParameters = {
     projectId: string;
     setup_gen_ai_consent: boolean;
     setup_integration: boolean;
-    setup_write_integration: boolean;
+    setup_write_integration?: boolean;
   };
   'breadcrumbs.drawer.action': {control: string; value?: string};
   'breadcrumbs.issue_details.change_time_display': {value: string};
@@ -89,7 +90,11 @@ export type IssueEventParameters = {
   };
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.search_sidebar_clicked': {};
+  'issue.share_from_icon': {};
   'issue.shared_publicly': {};
+  'issue_details.comment_created': {streamline: boolean};
+  'issue_details.comment_deleted': {streamline: boolean};
+  'issue_details.comment_updated': {streamline: boolean};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
@@ -102,10 +107,16 @@ export type IssueEventParameters = {
   };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.event_dropdown_option_selected': EventDropdownParams;
+  'issue_details.event_navigation_selected': {
+    content: string;
+  };
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
+  'issue_details.issue_content_selected': {
+    content: string;
+  };
   'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
@@ -220,6 +231,32 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
+  'issue_views.add_view.all_saved_searches_saved': {};
+  'issue_views.add_view.banner_dismissed': {};
+  'issue_views.add_view.clicked': {};
+  'issue_views.add_view.custom_query_saved': {
+    query: string;
+  };
+  'issue_views.add_view.recommended_view_saved': {
+    label: string;
+    persisted: boolean;
+    query: string;
+  };
+  'issue_views.add_view.saved_search_saved': {
+    query: string;
+  };
+  'issue_views.deleted_view': {};
+  'issue_views.discarded_changes': {};
+  'issue_views.duplicated_view': {};
+  'issue_views.renamed_view': {};
+  'issue_views.reordered_views': {};
+  'issue_views.saved_changes': {};
+  'issue_views.shared_view_opened': {
+    query: string;
+  };
+  'issue_views.switched_views': {};
+  'issue_views.temp_view_discarded': {};
+  'issue_views.temp_view_saved': {};
   'issues_stream.archived': {
     action_status_details?: string;
     action_substatus?: string | null;
@@ -247,6 +284,7 @@ export type IssueEventParameters = {
     priority: PriorityLevel;
   };
   'issues_tab.viewed': {
+    issue_views_enabled: boolean;
     num_issues: number;
     num_new_issues: number;
     num_old_issues: number;
@@ -256,6 +294,11 @@ export type IssueEventParameters = {
     sort: string;
     total_issues_count: number | null;
     tab?: string;
+  };
+  'one_other_related_trace_issue.clicked': {
+    area: string;
+    // Equivalent to 'issue_details.related_trace_issue.trace_issue_clicked', but `area` is dynamic.
+    group_id: number;
   };
   'project_modal.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
@@ -296,7 +339,8 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'whats_new.link_clicked': {title?: string};
+  'whats_new.link_clicked': Pick<Broadcast, 'title'> &
+    Partial<Pick<Broadcast, 'category'>>;
 };
 
 export type IssueEventKey = keyof IssueEventParameters;
@@ -326,6 +370,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Escalating Feedback Received',
   'issue_details.escalating_issues_banner_feedback_received':
     'Issue Details: Escalating Issues Banner Feedback Received',
+  'issue_details.event_navigation_selected': 'Issue Details: Event Navigation Selected',
+  'issue_details.issue_content_selected': 'Issue Details: Issue Content Selected',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
@@ -347,6 +393,24 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_error_banner.proguard_misconfigured.clicked':
     'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
+  'issue_views.switched_views': 'Issue Views: Switched Views',
+  'issue_views.saved_changes': 'Issue Views: Updated View',
+  'issue_views.discarded_changes': 'Issue Views: Discarded Changes',
+  'issue_views.renamed_view': 'Issue Views: Renamed View',
+  'issue_views.duplicated_view': 'Issue Views: Duplicated View',
+  'issue_views.deleted_view': 'Issue Views: Deleted View',
+  'issue_views.reordered_views': 'Issue Views: Views Reordered',
+  'issue_views.add_view.clicked': 'Issue Views: Add View Clicked',
+  'issue_views.add_view.custom_query_saved':
+    'Issue Views: Custom Query Saved From Add View',
+  'issue_views.add_view.saved_search_saved': 'Issue Views: Saved Search Saved',
+  'issue_views.add_view.all_saved_searches_saved':
+    'Issue Views: All Saved Searches Saved',
+  'issue_views.add_view.recommended_view_saved': 'Issue Views: Recommended View Saved',
+  'issue_views.add_view.banner_dismissed': 'Issue Views: Add View Banner Dismissed',
+  'issue_views.shared_view_opened': 'Issue Views: Shared View Opened',
+  'issue_views.temp_view_discarded': 'Issue Views: Temporary View Discarded',
+  'issue_views.temp_view_saved': 'Issue Views: Temporary View Saved',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
@@ -358,6 +422,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',
   'issue.shared_publicly': 'Issue Shared Publicly',
+  'issue.share_from_icon': 'Issue Share Opened from Icon',
   'issue_group_details.stack_traces.setup_source_maps_alert.clicked':
     'Issue Group Details: Setup Source Maps Alert Clicked',
   resolve_issue: 'Resolve Issue',
@@ -382,6 +447,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_group_details.tags_distribution.bar.clicked':
     'Issue Group Details: Tags distribution value bar clicked',
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
+  'one_other_related_trace_issue.clicked': 'One Other Related Trace Issue Clicked',
 
   // Performance Issue specific events here
   'issue_details.performance.autogrouped_siblings_toggle':
@@ -411,5 +477,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Sourcemap Wizard Learn More',
   'issue_details.set_priority': 'Issue Details: Set Priority',
   'issue_details.section_fold': 'Issue Details: Section Fold',
+  'issue_details.comment_created': 'Issue Details: Comment Created',
+  'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
+  'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

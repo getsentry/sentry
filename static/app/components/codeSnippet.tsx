@@ -225,8 +225,8 @@ const Header = styled('div')<{isSolid: boolean}>`
   ${p =>
     p.isSolid
       ? `
-      margin: 0 ${space(0.5)};
-      border-bottom: solid 1px var(--prism-highlight-accent);
+      padding: 0 ${space(0.5)};
+      border-bottom: solid 1px ${p.theme.innerBorder};
     `
       : `
       justify-content: flex-end;
@@ -240,7 +240,7 @@ const Header = styled('div')<{isSolid: boolean}>`
     `}
 `;
 
-const FileName = styled('p')`
+const FileName = styled('span')`
   ${p => p.theme.overflowEllipsis}
   padding: ${space(0.5)} ${space(0.5)};
   margin: 0;

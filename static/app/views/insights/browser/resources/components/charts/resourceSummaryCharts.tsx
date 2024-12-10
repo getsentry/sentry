@@ -34,23 +34,24 @@ const {
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
 
+  const mutableSearch = MutableSearch.fromQueryObject({
+    'span.group': props.groupId,
+    ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
+      ? {
+          [RESOURCE_RENDER_BLOCKING_STATUS]: filters[RESOURCE_RENDER_BLOCKING_STATUS],
+        }
+      : {}),
+    ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
+      ? {
+          [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
+        }
+      : {}),
+  });
+
   const {data: spanMetricsSeriesData, isPending: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
       {
-        search: MutableSearch.fromQueryObject({
-          'span.group': props.groupId,
-          ...(filters[RESOURCE_RENDER_BLOCKING_STATUS]
-            ? {
-                [RESOURCE_RENDER_BLOCKING_STATUS]:
-                  filters[RESOURCE_RENDER_BLOCKING_STATUS],
-              }
-            : {}),
-          ...(filters[SpanMetricsField.USER_GEO_SUBREGION]
-            ? {
-                [SpanMetricsField.USER_GEO_SUBREGION]: `[${filters[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
-              }
-            : {}),
-        }),
+        search: mutableSearch,
         yAxis: [
           `spm()`,
           `avg(${SPAN_SELF_TIME})`,

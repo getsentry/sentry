@@ -7,15 +7,18 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {logout} from 'sentry/actionCreators/account';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
+jest.mock('sentry/actionCreators/account');
 jest.mock('sentry/utils/useServiceIncidents');
 jest.mock('sentry/utils/useLocation');
 
@@ -122,13 +125,6 @@ describe('Sidebar', function () {
   });
 
   it('has can logout', async function () {
-    const mock = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'DELETE',
-      status: 204,
-    });
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-
     renderSidebar({
       organization: OrganizationFixture({access: ['member:read']}),
     });
@@ -136,9 +132,7 @@ describe('Sidebar', function () {
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
     await userEvent.click(screen.getByTestId('sidebar-signout'));
 
-    await waitFor(() => expect(mock).toHaveBeenCalled());
-
-    expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
+    await waitFor(() => expect(logout).toHaveBeenCalled());
   });
 
   it('can toggle help menu', async function () {
@@ -253,13 +247,15 @@ describe('Sidebar', function () {
       // Should mark as seen after a delay
       act(() => jest.advanceTimersByTime(2000));
 
-      expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
-        '/broadcasts/',
-        expect.objectContaining({
-          data: {hasSeen: '1'},
-          query: {id: ['8']},
-        })
-      );
+      await waitFor(() => {
+        expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
+          '/broadcasts/',
+          expect.objectContaining({
+            data: {hasSeen: '1'},
+            query: {id: ['8']},
+          })
+        );
+      });
       jest.useRealTimers();
 
       // Close the sidebar
@@ -293,7 +289,7 @@ describe('Sidebar', function () {
     it('can show Incidents in Sidebar Panel', async function () {
       renderSidebar({organization});
 
-      await userEvent.click(await screen.findByText('Service status'));
+      await userEvent.click(await screen.findByText(/Service status/));
       await screen.findByText('Recent service updates');
     });
   });
@@ -358,7 +354,7 @@ describe('Sidebar', function () {
         'Settings',
         'Help',
         /What's new/,
-        'Service status',
+        /Service status/,
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
@@ -373,7 +369,7 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(31);
+      expect(links).toHaveLength(25);
 
       [
         'Issues',
@@ -385,16 +381,10 @@ describe('Sidebar', function () {
         'Replays',
         'Discover',
         /Insights/,
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Screen Loads',
-        'Web Vitals',
-        /Caches/,
-        /Queues/,
-        /Mobile UI/,
-        /LLM Monitoring/,
+        'Frontend',
+        'Backend',
+        'Mobile',
+        'AI',
         'Performance',
         'User Feedback',
         'Crons',
@@ -405,42 +395,123 @@ describe('Sidebar', function () {
         'Settings',
         'Help',
         /What's new/,
-        'Service status',
+        /Service status/,
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
     });
 
-    it('mobile screens module hides all other mobile modules', async function () {
-      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
-      renderSidebarWithFeatures([
-        'insights-entry-points',
-        'starfish-mobile-ui-module',
-        'insights-mobile-screens-module',
-      ]);
-
-      await waitFor(function () {
-        expect(apiMocks.broadcasts).toHaveBeenCalled();
-      });
-
-      ['App Starts', 'Screen Loads', /Mobile UI/].forEach(title => {
-        expect(screen.queryByText(title)).not.toBeInTheDocument();
-      });
-
-      expect(screen.getByText(/Mobile Screens/)).toBeInTheDocument();
-    });
-
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
     });
 
     it('should render floating accordion when collapsed', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
-      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
+      await userEvent.click(
+        screen.getByTestId('sidebar-accordion-insights-domains-item')
+      );
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
+  });
+
+  describe('Rollback prompts', () => {
+    beforeEach(() => {
+      PreferenceStore.showSidebar();
+    });
+
+    it('should render the sidebar banner with no dismissed prompts and an existing rollback', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/user-rollback/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['sentry-rollback-2024']);
+
+      expect(await screen.findByText(/Your 2024 Rollback/)).toBeInTheDocument();
+    });
+
+    it('will not render anything if the user does not have a rollback', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/user-rollback/`,
+        statusCode: 404,
+      });
+
+      renderSidebarWithFeatures(['sentry-rollback-2024']);
+
+      await screen.findByText('OS');
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('will not render sidebar banner when collapsed', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/user-rollback/`,
+        body: {data: null},
+      });
+
+      renderSidebarWithFeatures(['sentry-rollback-2024']);
+
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show dot on org dropdown after dismissing sidebar banner', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: {data: null},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/user-rollback/`,
+        body: {data: null},
+      });
+
+      const dismissMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderSidebarWithFeatures(['sentry-rollback-2024']);
+
+      await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
+
+      expect(await screen.findByTestId('rollback-notification-dot')).toBeInTheDocument();
+      expect(screen.queryByText(/Your 2024 Rollback/)).not.toBeInTheDocument();
+      expect(dismissMock).toHaveBeenCalled();
+
+      // Opening the org dropdown will remove the dot
+      await userEvent.click(screen.getByTestId('sidebar-dropdown'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('rollback-notification-dot')).not.toBeInTheDocument();
+      });
+
+      expect(dismissMock).toHaveBeenCalledTimes(2);
     });
   });
 });

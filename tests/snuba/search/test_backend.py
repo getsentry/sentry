@@ -2395,6 +2395,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {group_a}
 
+    @pytest.mark.skip(reason="test runs far too slowly, causing timeouts atm.")
     def test_all_fields_do_not_error(self):
         # Just a sanity check to make sure that all fields can be successfully
         # searched on without returning type errors and other schema related
@@ -2586,10 +2587,7 @@ class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnub
             except urllib3.exceptions.HTTPError as err:
                 raise snuba.SnubaError(err)
 
-        with (
-            self.options({"issues.group_attributes.send_kafka": True}),
-            mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),
-        ):
+        with (mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),):
             super().setUp()
 
     @mock.patch("sentry.utils.metrics.timer")

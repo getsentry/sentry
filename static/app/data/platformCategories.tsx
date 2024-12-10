@@ -21,6 +21,7 @@ export const frontend: PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',
@@ -228,6 +229,7 @@ export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',
@@ -289,6 +291,7 @@ export const profiling: PlatformKey[] = [
   'node-koa',
   'node-connect',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-remix',
   'javascript-solidstart',
   'javascript-sveltekit',
@@ -340,6 +343,7 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
@@ -445,6 +449,7 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',
@@ -459,6 +464,7 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',
+  'flutter',
 ];
 
 // These are all the platforms that can set up replay.
@@ -556,6 +562,36 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
+// Feature flag onboarding platforms
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = [
+  'javascript',
+  'python',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-vue',
+  'python-aiohttp',
+  'python-bottle',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-pyramid',
+  'python-quart',
+  'python-sanic',
+  'python-starlette',
+  'python-tornado',
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
   'dart',
@@ -631,6 +667,7 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',

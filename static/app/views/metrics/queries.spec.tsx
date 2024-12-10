@@ -63,6 +63,12 @@ function renderMockRequests({orgSlug, projectId}: {orgSlug: string; projectId: s
     method: 'GET',
     body: [],
   });
+
+  MockApiClient.addMockResponse({
+    method: 'GET',
+    url: `/organizations/${orgSlug}/recent-searches/`,
+    body: [],
+  });
 }
 
 describe('Queries', function () {

@@ -124,9 +124,6 @@ backfill_fields = {
         else data.get("first_release", None)
     ),
     "times_seen": lambda caches, data, event: data["times_seen"] + 1,
-    "score": lambda caches, data, event: Group.calculate_score(
-        data["times_seen"] + 1, data["last_seen"]
-    ),
 }
 
 
@@ -302,25 +299,6 @@ def repair_group_environment_data(caches, project, events):
             defaults=fields,
             values=fields,
         )
-
-
-def collect_tag_data(events):
-    results: dict[tuple[int, str], dict[str, dict[str, tuple[int, datetime, datetime]]]] = {}
-
-    for event in events:
-        environment = get_environment_name(event)
-        tags = results.setdefault((event.group_id, environment), {})
-
-        for key, value in event.tags:
-            values = tags.setdefault(key, {})
-
-            if value in values:
-                times_seen, first_seen, last_seen = values[value]
-                values[value] = (times_seen + 1, event.datetime, last_seen)
-            else:
-                values[value] = (1, event.datetime, event.datetime)
-
-    return results
 
 
 def get_environment_name(event) -> str:

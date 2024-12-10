@@ -15,9 +15,14 @@ from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
 from sentry.discover.arithmetic import is_equation
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
+from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
@@ -116,6 +121,18 @@ def unfurl_discover(
     links: list[UnfurlableUrl],
     user: User | None = None,
 ) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_DISCOVER, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_discover(integration, links, user)
+
+
+def _unfurl_discover(
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
+) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
         integration_id=integration.id
     )
@@ -199,7 +216,7 @@ def unfurl_discover(
             y_axis = params.getlist("yAxis")[0]
             if display_mode != "dailytop5":
                 display_mode = get_top5_display_mode(y_axis)
-            top_events = params.getlist("topEvents")[0]
+            top_events = int(params.getlist("topEvents")[0])
         else:
             # topEvents param persists in the URL in some cases, we want to discard
             # it if it's not a top n display type.

@@ -74,6 +74,13 @@ multiregion_client_config_test = control_silo_test(
 )
 
 
+@no_silo_test
+@django_db_all
+def test_client_config_default():
+    cfg = get_client_config()
+    assert cfg["sentryMode"] == "SELF_HOSTED"
+
+
 @multiregion_client_config_test
 @pytest.mark.parametrize(
     "request_factory",
@@ -138,8 +145,9 @@ def test_client_config_features():
     assert "organizations:create" in result["features"]
     assert "system:multi-region" not in result["features"]
 
-    with override_options({"auth.allow-registration": True}), Feature(
-        {"auth:register": True, "system:multi-region": True}
+    with (
+        override_options({"auth.allow-registration": True}),
+        Feature({"auth:register": True, "system:multi-region": True}),
     ):
         result = get_client_config(request)
 

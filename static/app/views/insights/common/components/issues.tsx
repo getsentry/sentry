@@ -32,7 +32,7 @@ function Issue({data}: {data: Group}) {
   return (
     <StyledPanelItem as="tr">
       <IssueSummaryWrapper>
-        <IssueSummary data={data} organization={organization} event_id={'0'} />
+        <IssueSummary data={data} organization={organization} />
         <EventOrGroupExtraDetails data={data} />
       </IssueSummaryWrapper>
       <ChartWrapper>
@@ -80,7 +80,7 @@ function IssueListHeader({issues}: {issues?: Group[]}) {
   );
 }
 
-function fetchIssues(
+function useInsightIssues(
   issueTypes: string[],
   message?: string
 ): {isLoading: boolean; issues?: Group[]} {
@@ -134,7 +134,7 @@ export default function InsightIssuesList({
   issueTypes: string[];
   message?: string;
 }) {
-  const {isLoading, issues} = fetchIssues(issueTypes, message);
+  const {isLoading, issues} = useInsightIssues(issueTypes, message);
 
   if (isLoading || issues?.length === 0) {
     return <Fragment />;

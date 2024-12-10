@@ -1,6 +1,5 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -15,7 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
-  location: Location;
+  hasSimilarityEmbeddingsFeature: boolean;
   onMerge: () => void;
   groupId?: string;
   itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
@@ -78,11 +77,8 @@ class SimilarToolbar extends Component<Props, State> {
   };
 
   render() {
-    const {onMerge, project, location} = this.props;
+    const {onMerge, hasSimilarityEmbeddingsFeature} = this.props;
     const {mergeCount} = this.state;
-    const hasSimilarityEmbeddingsFeature =
-      project?.features.includes('similarity-embeddings') ||
-      location.query.similarityEmbeddings === '1';
 
     return (
       <PanelHeader hasButtons>
@@ -96,38 +92,13 @@ class SimilarToolbar extends Component<Props, State> {
               {t('Merge %s', `(${mergeCount || 0})`)}
             </Button>
           </Confirm>
-          {hasSimilarityEmbeddingsFeature && (
-            <Fragment>
-              <Button
-                disabled={mergeCount === 0}
-                size="xs"
-                title={t('Agree with the grouping of %s issues', mergeCount)}
-                onClick={() => {
-                  this.handleSimilarityEmbeddings('Yes');
-                }}
-              >
-                {t('Agree %s', `(${mergeCount || 0})`)}
-              </Button>
-              <Button
-                disabled={mergeCount === 0}
-                size="xs"
-                title={t('Disagree with the grouping of %s issues', mergeCount)}
-                onClick={() => {
-                  this.handleSimilarityEmbeddings('No');
-                }}
-              >
-                {t('Disagree %s', `(${mergeCount || 0})`)}
-              </Button>
-            </Fragment>
-          )}
         </ButtonPanel>
 
         <Columns>
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
           <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
-          <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
-          {hasSimilarityEmbeddingsFeature && (
-            <StyledToolbarHeader>{t('Would Group')}</StyledToolbarHeader>
+          {!hasSimilarityEmbeddingsFeature && (
+            <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
           )}
         </Columns>
       </PanelHeader>
@@ -140,8 +111,8 @@ const Columns = styled('div')`
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  min-width: 350px;
-  width: 350px;
+  min-width: 325px;
+  width: 325px;
 `;
 
 const StyledToolbarHeader = styled(ToolbarHeader)`

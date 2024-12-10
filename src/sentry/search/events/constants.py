@@ -100,7 +100,14 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
     "inp": 0.30,
 }
 
+MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
+
+
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -320,6 +327,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",
@@ -358,9 +366,6 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
-}
-PROFILE_METRICS_MAP = {
-    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101

@@ -172,7 +172,6 @@ function ProjectProguard({organization, location, router, params}: ProjectProgua
                   associations={associationsResults[index].data}
                   downloadUrl={downloadUrl}
                   onDelete={handleDelete}
-                  downloadRole={organization.debugFilesRole}
                   key={mapping.id}
                   orgSlug={organization.slug}
                 />

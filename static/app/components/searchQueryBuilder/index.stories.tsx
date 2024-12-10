@@ -48,7 +48,7 @@ const FILTER_KEYS: TagCollection = {
     name: 'Browser Name',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
   },
   [FieldKey.IS]: {
     key: FieldKey.IS,
@@ -677,6 +677,32 @@ export default storyBook(SearchQueryBuilder, story => {
           searchSource="storybook"
           disallowLogicalOperators
           invalidMessages={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Unsubmitted search indicator', () => {
+    const [query, setQuery] = useState('is:unresolved assigned:me');
+
+    return (
+      <Fragment>
+        <p>
+          You can display an indicator when the search query has been modified but not
+          fully submitted using the <code>showUnsubmittedIndicator</code> prop. This can
+          be useful to remind the user that they have unsaved changes for use cases which
+          require manual submission.
+        </p>
+        <p>
+          Current query: <code>{query}</code>
+        </p>
+        <SearchQueryBuilder
+          initialQuery={query}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          showUnsubmittedIndicator
+          onSearch={setQuery}
         />
       </Fragment>
     );

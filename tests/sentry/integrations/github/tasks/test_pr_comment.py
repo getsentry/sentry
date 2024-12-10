@@ -6,6 +6,7 @@ import pytest
 import responses
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.pr_comment import (
     format_comment,
@@ -16,6 +17,7 @@ from sentry.integrations.github.tasks.pr_comment import (
     pr_to_issue_query,
 )
 from sentry.integrations.github.tasks.utils import PullRequestIssue
+from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -31,7 +33,8 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -233,21 +236,21 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
             self.store_event(
-                {"fingerprint": ["group-1"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(3)
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
         ][0].group.id
         group3 = [
             self.store_event(
-                {"fingerprint": ["group-3"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-3"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(4)
@@ -258,7 +261,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_over_5_issues(self):
         issue_ids = [
             self.store_event(
-                {"fingerprint": [f"group-{idx}"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             ).group.id
             for idx in range(6)
@@ -271,7 +274,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -280,7 +283,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         ][0].group.id
         group2 = [
             self.store_event(
-                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
@@ -289,7 +292,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -304,7 +307,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.ERROR,
                 },
                 project_id=self.project.id,
@@ -315,7 +318,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-2"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.INFO,
                 },
                 project_id=self.project.id,
@@ -326,7 +329,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "level": logging.DEBUG,
                 },
                 project_id=self.project.id,
@@ -410,7 +413,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.tasks.utils.metrics")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
         group_objs = Group.objects.order_by("id").all()
@@ -429,17 +432,17 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            in responses.calls[0].request.body
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
         assert pull_request_comment_query[0].comment_type == CommentType.MERGED_PR
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
+        mock_metrics.incr.assert_called_with("github.pr_comment.comment_created")
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.integrations.github.tasks.utils.metrics")
+    @patch("sentry.integrations.source_code_management.commit_context.metrics")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
@@ -473,13 +476,13 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert (
-            responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            f'"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"'.encode()
+            in responses.calls[0].request.body
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_updated")
+        mock_metrics.incr.assert_called_with("github.pr_comment.comment_updated")
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
@@ -518,7 +521,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         with pytest.raises(ApiError):
             github_comment_workflow(self.pr.id, self.project.id)
             assert cache.get(self.cache_key) is None
-            mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
+            mock_metrics.incr.assert_called_with("github.pr_comment.api_error")
 
         pr_2 = self.create_pr_issues()
         cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pr_2.id)
@@ -528,7 +531,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(pr_2.id, self.project.id)
         assert cache.get(cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "issue_locked_error"}
+            "github.pr_comment.error", tags={"type": "issue_locked_error"}
         )
 
         pr_3 = self.create_pr_issues()
@@ -539,7 +542,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         github_comment_workflow(pr_3.id, self.project.id)
         assert cache.get(cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "rate_limited_error"}
+            "github.pr_comment.error", tags={"type": "rate_limited_error"}
         )
 
     @patch(
@@ -556,7 +559,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_org"}
+            "github.pr_comment.error", tags={"type": "missing_org"}
         )
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
@@ -582,7 +585,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_project"}
+            "github.pr_comment.error", tags={"type": "missing_project"}
         )
 
     @patch(
@@ -608,7 +611,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_repo"}
+            "github.pr_comment.error", tags={"type": "missing_repo"}
         )
 
     @patch(
@@ -622,9 +625,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
         # missing integration should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
-        # invalid integration id
-        self.gh_repo.integration_id = 0
-        self.gh_repo.save()
+        # inactive integration
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
 
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -636,7 +639,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
         mock_metrics.incr.assert_called_with(
-            "github_pr_comment.error", tags={"type": "missing_integration"}
+            "github.pr_comment.error", tags={"type": "missing_integration"}
         )
 
     @patch("sentry.integrations.github.tasks.pr_comment.get_top_5_issues_by_count")
@@ -705,7 +708,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         del stored_reactions["url"]
         assert self.comment.reactions == stored_reactions
 
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -723,7 +726,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.missing_repo")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_repo")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -743,9 +746,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.comment_reactions.missing_integration"
-        )
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.missing_integration")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -788,7 +789,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         assert no_error_comment.reactions == stored_reactions
 
         # assert the last metric emitted is a success
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.success")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.success")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -807,9 +808,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with(
-            "github_pr_comment.comment_reactions.rate_limited_error"
-        )
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.rate_limited_error")
 
     @patch("sentry.integrations.github.tasks.pr_comment.metrics")
     @responses.activate
@@ -825,4 +824,4 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
         self.comment.refresh_from_db()
         assert self.comment.reactions is None
-        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.not_found_error")
+        mock_metrics.incr.assert_called_with("pr_comment.comment_reactions.not_found_error")

@@ -137,24 +137,12 @@ describe('Wizard utils', function () {
     ).toBe('custom_transactions');
   });
 
-  it('extracts insights metric alerts', function () {
+  it('extracts eap metric alerts', function () {
     expect(
       getAlertTypeFromAggregateDataset({
-        aggregate: 'spm()',
-        dataset: Dataset.GENERIC_METRICS,
+        aggregate: 'count(span.duration)',
+        dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
       })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(d:spans/exclusive_time@millisecond)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
-    expect(
-      getAlertTypeFromAggregateDataset({
-        aggregate: 'avg(g:spans/mobile.slow_frames@none)',
-        dataset: Dataset.GENERIC_METRICS,
-      })
-    ).toEqual('insights_metrics');
+    ).toEqual('eap_metrics');
   });
 });

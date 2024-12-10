@@ -19,7 +19,7 @@ import {
 import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 
 describe('Renderers', function () {
-  let context;
+  let context: ReturnType<typeof initializeOrg>;
 
   const organization = OrganizationFixture({
     features: ['trace-view-v1'], // only testing against new trace view

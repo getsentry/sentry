@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, ClassVar
+from typing import Any
 
 from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -19,9 +18,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields import JSONField
-from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.organization import Organization
 
 ON_DEMAND_ENABLED_KEY = "enabled"
 
@@ -66,6 +62,7 @@ class DashboardWidgetTypes(TypesClass):
     """
     This targets transaction-like data from the split from discover. Itt may either use 'Transactions' events or 'PerformanceMetrics' depending on on-demand, MEP metrics, etc.
     """
+    SPANS = 102
 
     TYPES = [
         (DISCOVER, "discover"),
@@ -77,6 +74,7 @@ class DashboardWidgetTypes(TypesClass):
         (METRICS, "custom-metrics"),
         (ERROR_EVENTS, "error-events"),
         (TRANSACTION_LIKE, "transaction-like"),
+        (SPANS, "spans"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
 
@@ -100,10 +98,22 @@ class DatasetSourcesTypes(Enum):
      Was an ambiguous dataset forced to split (i.e. we picked a default)
     """
     FORCED = 3
+    """
+     Dataset inferred by split script, version 1
+    """
+    SPLIT_VERSION_1 = 4
+    """
+     Dataset inferred by split script, version 2
+    """
+    SPLIT_VERSION_2 = 5
 
     @classmethod
     def as_choices(cls):
         return tuple((source.value, source.name.lower()) for source in cls)
+
+    @classmethod
+    def as_text_choices(cls):
+        return tuple((source.name.lower(), source.value) for source in cls)
 
 
 # TODO: Can eventually be replaced solely with TRANSACTION_MULTI once no more dashboards use Discover.
@@ -165,6 +175,8 @@ class DashboardWidgetQuery(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     # Whether this query is hidden from the UI, used by metric widgets
     is_hidden = models.BooleanField(default=False)
+    # Used by Big Number to select aggregate displayed
+    selected_aggregate = models.IntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -242,22 +254,6 @@ class DashboardWidgetQueryOnDemand(Model):
     __repr__ = sane_repr("extraction_state", "spec_hashes")
 
 
-class DashboardWidgetManager(BaseManager["DashboardWidget"]):
-    def get_for_metrics(
-        self, organization: Organization, metric_mris: list[str]
-    ) -> BaseQuerySet[DashboardWidget]:
-        widget_query_query = Q()
-        for metric_mri in metric_mris:
-            widget_query_query |= Q(aggregates__element_contains=metric_mri)
-
-        widget_ids = (
-            DashboardWidgetQuery.objects.filter(widget__dashboard__organization=organization)
-            .filter(widget_query_query)
-            .values_list("widget_id", flat=True)
-        )
-        return self.filter(id__in=widget_ids)
-
-
 @region_silo_model
 class DashboardWidget(Model):
     """
@@ -285,7 +281,6 @@ class DashboardWidget(Model):
     dataset_source = BoundedPositiveIntegerField(
         choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
     )
-    objects: ClassVar[DashboardWidgetManager] = DashboardWidgetManager()
 
     class Meta:
         app_label = "sentry"

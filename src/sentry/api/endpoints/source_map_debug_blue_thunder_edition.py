@@ -315,18 +315,18 @@ class ReleaseLookupData:
         self.matching_source_file_names = ReleaseFile.normalize(abs_path)
 
         # Source file lookup result variables
-        self.source_file_lookup_result: Literal[
-            "found", "wrong-dist", "unsuccessful"
-        ] = "unsuccessful"
-        self.found_source_file_name: None | (
-            str
-        ) = None  # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
-        self.source_map_reference: None | (
-            str
-        ) = None  # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
-        self.matching_source_map_name: None | (
-            str
-        ) = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
+        self.source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"] = (
+            "unsuccessful"
+        )
+        self.found_source_file_name: None | (str) = (
+            None  # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
+        )
+        self.source_map_reference: None | (str) = (
+            None  # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
+        )
+        self.matching_source_map_name: None | (str) = (
+            None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
+        )
 
         # Cached db objects across operations
         self.artifact_index_release_files: QuerySet | list[ReleaseFile] | None = None
@@ -337,9 +337,9 @@ class ReleaseLookupData:
         self._find_source_file_in_artifact_bundles()
 
         # Source map lookup result variable
-        self.source_map_lookup_result: Literal[
-            "found", "wrong-dist", "unsuccessful"
-        ] = "unsuccessful"
+        self.source_map_lookup_result: Literal["found", "wrong-dist", "unsuccessful"] = (
+            "unsuccessful"
+        )
 
         if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore[unreachable]
             if self.source_map_reference.startswith("data:"):  # type: ignore[unreachable]
@@ -634,6 +634,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",
+            "sentry.javascript.cloudflare",
             "sentry.javascript.electron",
             "sentry.javascript.gatsby",
             "sentry.javascript.nextjs",
@@ -660,32 +661,41 @@ def get_sdk_debug_id_support(event_data):
 
     if sdk_name == "sentry.javascript.react-native":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.electron":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.nextjs" or sdk_name == "sentry.javascript.sveltekit":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version)
+                >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     return (
-        "full"
-        if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
-        else "needs-upgrade",
+        (
+            "full"
+            if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade"
+        ),
         MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     )
 

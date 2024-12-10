@@ -60,9 +60,9 @@ function PickProjectToContinue({
         needOrg={false}
         needProject
         nextPath={`${path}:project`}
-        onFinish={pathname => {
+        onFinish={to => {
           navigating = true;
-          router.replace(pathname);
+          router.replace(to);
         }}
         projectSlugs={projects.map(p => p.slug)}
         allowAllProjectsSelection={allowAllProjectsSelection}

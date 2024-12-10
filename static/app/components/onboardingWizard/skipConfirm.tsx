@@ -53,7 +53,7 @@ export default SkipConfirm;
 const SkipHelp = HookOrDefault({
   hookName: 'onboarding-wizard:skip-help',
   defaultComponent: () => (
-    <LinkButton priority="primary" size="xs" to="https://forum.sentry.io/" external>
+    <LinkButton priority="primary" size="xs" href="https://forum.sentry.io/" external>
       {t('Community Forum')}
     </LinkButton>
   ),
@@ -87,7 +87,7 @@ const Confirmation = styled(({onDismiss, onSkip, visible: _, ...props}: ConfirmP
   align-items: center;
   flex-direction: column;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: ${p => p.theme.surface200};
   animation: ${fadeIn} 200ms normal forwards;
   font-size: ${p => p.theme.fontSizeMedium};
 

@@ -53,7 +53,6 @@ describe('SharedGroupDetails', function () {
     render(
       <SharedGroupDetails
         params={params}
-        api={new MockApiClient()}
         route={{}}
         router={router}
         routes={router.routes}
@@ -71,7 +70,6 @@ describe('SharedGroupDetails', function () {
     render(
       <SharedGroupDetails
         params={params}
-        api={new MockApiClient()}
         route={{}}
         router={router_with_slug}
         routes={router_with_slug.routes}

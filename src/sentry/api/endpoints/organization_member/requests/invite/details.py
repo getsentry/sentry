@@ -47,9 +47,9 @@ class InviteRequestPermissions(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (InviteRequestPermissions,)
 

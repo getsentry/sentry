@@ -6,9 +6,11 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {
+  EAPSpanProperty,
+  EAPSpanResponse,
   MetricsProperty,
   MetricsResponse,
-  SpanIndexedField,
+  SpanIndexedProperty,
   SpanIndexedResponse,
   SpanMetricsProperty,
   SpanMetricsResponse,
@@ -25,13 +27,24 @@ interface UseMetricsOptions<Fields> {
   sorts?: Sort[];
 }
 
-export const useSpansIndexed = <Fields extends SpanIndexedField[]>(
+export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
   options: UseMetricsOptions<Fields> = {},
   referrer: string
 ) => {
   return useDiscover<Fields, SpanIndexedResponse>(
     options,
     DiscoverDatasets.SPANS_INDEXED,
+    referrer
+  );
+};
+
+export const useEAPSpans = <Fields extends EAPSpanProperty[]>(
+  options: UseMetricsOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, EAPSpanResponse>(
+    options,
+    DiscoverDatasets.SPANS_EAP,
     referrer
   );
 };
@@ -94,7 +107,6 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-  // eslint-disable-next-line @typescript-eslint/ban-types
   const data = (result?.data ?? []) as Pick<ResponseType, T[number]>[];
 
   return {

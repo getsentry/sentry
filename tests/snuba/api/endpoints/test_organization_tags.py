@@ -4,7 +4,8 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.replays.testutils import mock_replay
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -385,3 +386,64 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             cached_data = response.data
 
             assert original_data == cached_data
+
+
+class ReplayOrganizationTagsTest(APITestCase, ReplaysSnubaTestCase):
+    def test_dataset_replays(self):
+        self.login_as(user=self.user)
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
+        self.r1_seq0_timestamp = before_now(seconds=22)
+        self.r1_seq1_timestamp = before_now(seconds=15)
+        self.r2_seq0_timestamp = before_now(seconds=10)
+        self.r3_seq0_timestamp = before_now(seconds=10)
+        self.store_replays(
+            mock_replay(
+                self.r1_seq0_timestamp,
+                self.project.id,
+                replay1_id,
+                tags={"fruit": "orange"},
+                segment_id=0,
+            ),
+        )
+        self.store_replays(
+            mock_replay(
+                self.r1_seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                tags={"fruit": "orange"},
+                segment_id=1,
+            ),
+        )
+
+        self.store_replays(
+            mock_replay(
+                self.r2_seq0_timestamp,
+                self.project.id,
+                replay2_id,
+                tags={"fruit": "orange"},
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                self.r3_seq0_timestamp,
+                self.project.id,
+                replay3_id,
+                tags={"fruit": "apple", "drink": "water"},
+            )
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.get(url, {"statsPeriod": "14d", "dataset": "replays"}, format="json")
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        data.sort(key=lambda val: val["name"])
+        assert data == [
+            {"key": "drink", "name": "Drink", "totalValues": 1},
+            {"key": "fruit", "name": "Fruit", "totalValues": 4},
+        ]

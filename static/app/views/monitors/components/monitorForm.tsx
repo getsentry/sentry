@@ -26,7 +26,7 @@ import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {getScheduleIntervals} from 'sentry/views/monitors/utils';
@@ -169,6 +169,7 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
+  const organization = useOrganization();
   const form = useRef(
     new FormModel({
       transformData: transformMonitorFormData,
@@ -179,7 +180,7 @@ function MonitorForm({
   const {selection} = usePageFilters();
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
-    const rv = {};
+    const rv: Record<string, MonitorConfig[keyof MonitorConfig]> = {};
     switch (type) {
       case 'cron_job':
         rv['config.scheduleType'] = config.schedule_type;
@@ -494,9 +495,7 @@ function MonitorForm({
               {monitor?.config.alert_rule_id && (
                 <AlertLink
                   priority="muted"
-                  to={normalizeUrl(
-                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
-                  )}
+                  to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
                   withoutMarginBottom
                 >
                   {t('Customize this monitors notification configuration in Alerts')}

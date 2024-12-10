@@ -19,7 +19,6 @@
       "correctness": {
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
-        "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
         "noInvalidUseBeforeDeclaration": "error",
@@ -36,7 +35,6 @@
         "noExcessiveNestedTestSuites": "error"
       },
       "nursery": {
-        "noDuplicateJsonKeys": "error",
         "noRestrictedImports": {
           "level": "warn",
           "options": {
@@ -83,7 +81,8 @@
         "useNodejsImportProtocol": "error",
         "useLiteralEnumMembers": "error",
         "useEnumInitializers": "error",
-        "useAsConstAssertion": "error"
+        "useAsConstAssertion": "error",
+        "useBlockStatements": "error"
       }
     }
   },
@@ -95,8 +94,17 @@
       "**/*.sourcemap.js",
       "**/*.min.js",
       "fixtures",
-      ".devenv"
+      ".devenv",
+      "package.json"
     ]
+  },
+  "css": {
+    "formatter": {
+      "enabled": false
+    },
+    "linter": {
+      "enabled": false
+    }
   },
   "formatter": {
     "enabled": true,

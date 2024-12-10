@@ -20,7 +20,6 @@ type InviteDetails = {
   hasAuthProvider: boolean;
   needs2fa: boolean;
   needsAuthentication: boolean;
-  needsEmailVerification: boolean;
   orgSlug: string;
   requireSso: boolean;
   ssoProvider?: string;
@@ -61,10 +60,15 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     return t('Accept Organization Invite');
   }
 
-  handleLogout = async (e: React.MouseEvent) => {
+  handleLogout = (e: React.MouseEvent) => {
     e.preventDefault();
-    await logout(this.api);
-    window.location.replace('/auth/login/');
+    logout(this.api);
+  };
+
+  handleLogoutAndRetry = (e: React.MouseEvent) => {
+    const {memberId, token} = this.props.params;
+    e.preventDefault();
+    logout(this.api, `/accept/${memberId}/${token}/`);
   };
 
   handleAcceptInvite = async () => {
@@ -206,26 +210,6 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  get warningEmailVerification() {
-    const {inviteDetails} = this.state;
-
-    return (
-      <Fragment>
-        <p data-test-id="email-verification-warning">
-          {tct(
-            'To continue, [orgSlug] requires all members to verify their email address.',
-            {orgSlug: inviteDetails.orgSlug}
-          )}
-        </p>
-        <Actions>
-          <LinkButton priority="primary" to="/settings/account/emails/">
-            {t('Verify Email Address')}
-          </LinkButton>
-        </Actions>
-      </Fragment>
-    );
-  }
-
   get acceptActions() {
     const {inviteDetails, accepting} = this.state;
 
@@ -271,10 +255,28 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
   }
 
   renderError() {
+    /**
+     * NOTE (mifu67): this error view could show up for multiple reasons, including:
+     * invite link expired, signed into account that is already in the inviting
+     * org, and invite not approved. Previously, the message seemed to indivate that
+     * the link had expired, regardless of which error prompted it, so update the
+     * error message to be a little more helpful.
+     */
     return (
       <NarrowLayout>
         <Alert type="warning">
-          {t('This organization invite link is no longer valid.')}
+          {tct(
+            'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
+            {
+              switchLink: (
+                <Link
+                  to=""
+                  data-test-id="existing-member-link"
+                  onClick={this.handleLogoutAndRetry}
+                />
+              ),
+            }
+          )}
         </Alert>
       </NarrowLayout>
     );
@@ -302,11 +304,9 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
             ? this.existingMemberAlert
             : inviteDetails.needs2fa
               ? this.warning2fa
-              : inviteDetails.needsEmailVerification
-                ? this.warningEmailVerification
-                : inviteDetails.requireSso
-                  ? this.authenticationActions
-                  : this.acceptActions}
+              : inviteDetails.requireSso
+                ? this.authenticationActions
+                : this.acceptActions}
       </NarrowLayout>
     );
   }

@@ -272,7 +272,14 @@ function ResolveActions({
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
-            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
+            icon={
+              <Chevron
+                light
+                color="subText"
+                weight="medium"
+                direction={isOpen ? 'up' : 'down'}
+              />
+            }
             disabled={isDisabled}
           />
         )}

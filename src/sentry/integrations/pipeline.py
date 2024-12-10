@@ -19,6 +19,7 @@ from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 __all__ = ["IntegrationPipeline"]
@@ -85,6 +86,13 @@ class IntegrationPipeline(Pipeline):
         pipeline_type = "reauth" if self.fetch_state("integration_id") else "install"
         return PipelineAnalyticsEntry("integrations.pipeline_step", pipeline_type)
 
+    def initialize(self) -> None:
+        super().initialize()
+
+        metrics.incr(
+            "sentry.integrations.installation_attempt", tags={"integration": self.provider.key}
+        )
+
     def finish_pipeline(self):
         try:
             data = self.provider.build_integration(self.state.data)
@@ -118,6 +126,11 @@ class IntegrationPipeline(Pipeline):
         )
         self.provider.post_install(self.integration, self.organization, extra=extra)
         self.clear_session()
+
+        metrics.incr(
+            "sentry.integrations.installation_finished", tags={"integration": self.provider.key}
+        )
+
         return response
 
     def _finish_pipeline(self, data):

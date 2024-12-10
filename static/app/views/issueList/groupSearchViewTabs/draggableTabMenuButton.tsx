@@ -30,7 +30,12 @@ export function DraggableTabMenuButton({
           icon: (
             <ButtonWrapper>
               <IconEllipsis compact />
-              {hasUnsavedChanges && <UnsavedChangesIndicator role="presentation" />}
+              {hasUnsavedChanges && (
+                <UnsavedChangesIndicator
+                  role="presentation"
+                  data-test-id="unsaved-changes-indicator"
+                />
+              )}
             </ButtonWrapper>
           ),
           style: {width: '18px', height: '16px', borderRadius: '4px'},
@@ -76,7 +81,7 @@ const SectionedOverlayFooter = styled('div')`
   grid-area: footer;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   padding: ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 `;

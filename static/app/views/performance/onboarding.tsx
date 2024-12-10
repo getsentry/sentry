@@ -110,7 +110,7 @@ function Onboarding({organization, project}: Props) {
 
   const {projectsForOnboarding} = filterProjects(projects);
 
-  const showOnboardingChecklist = organization.features?.includes(
+  const showOnboardingChecklist = organization.features.includes(
     'performance-onboarding-checklist'
   );
 
@@ -167,7 +167,7 @@ function Onboarding({organization, project}: Props) {
           SidebarPanelStore.activatePanel(SidebarPanelKey.PERFORMANCE_ONBOARDING);
         }}
       >
-        {t('Start Checklist')}
+        {t('Set Up Tracing')}
       </Button>
     );
   }

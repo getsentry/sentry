@@ -31,10 +31,14 @@ export type OnboardingEventParameters = {
   'onboarding.messaging_integration_external_install_clicked': {
     provider_key: string;
   };
-  'onboarding.messaging_integration_modal_rendered': {
+  'onboarding.messaging_integration_modal_rendered': {};
+  'onboarding.next_step_clicked': {
+    newOrg: boolean;
+    platform: string;
+    products: string[];
     project_id: string;
+    step: string;
   };
-  'onboarding.messaging_integration_steps_refreshed': {};
   'onboarding.nextjs-dsn-copied': {};
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
@@ -53,6 +57,9 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.slack_setup_clicked': {
+    project_id: string;
+  };
   'onboarding.source_maps_wizard_button_copy_clicked': {
     platform: string;
     project_id: string;
@@ -63,14 +70,7 @@ export type OnboardingEventParameters = {
   };
   'onboarding.take_me_to_issues_clicked': {
     platform: string;
-    project_id: string;
-  };
-  'onboarding.take_me_to_performance_clicked': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.take_me_to_session_replay_clicked': {
-    platform: string;
+    products: string[];
     project_id: string;
   };
 };
@@ -103,11 +103,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Messaging Integration Modal Rendered',
   'onboarding.messaging_integration_external_install_clicked':
     'Onboarding: Messaging Integration External Install Clicked',
-  'onboarding.messaging_integration_steps_refreshed':
-    'Onboarding: Messaging Integration Steps Refreshed',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
-  'onboarding.take_me_to_performance_clicked':
-    'Onboarding: Take Me to Performance Clicked',
-  'onboarding.take_me_to_session_replay_clicked':
-    'Onboarding: Take Me to Session Replay Clicked',
+  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
+  'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',
 };

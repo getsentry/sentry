@@ -554,7 +554,7 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
 
         with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            description=f"{self.integration_type}.http_response.pagination.{self.name}",
+            name=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 
@@ -618,7 +618,9 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
         endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
-    def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> Any:
+    def update_comment(
+        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
 

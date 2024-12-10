@@ -155,7 +155,7 @@ const introduction = (
     {tct(
       'The [code:sentry-log4j2] library provides [log4jLink:Log4j 2.x] support for Sentry via an [appenderLink:Appender] that sends logged exceptions to Sentry.',
       {
-        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x//" />,
+        log4jLink: <ExternalLink href="https://logging.apache.org/log4j/2.x/" />,
         appenderLink: (
           <ExternalLink href="https://logging.apache.org/log4j/2.x/manual/appenders.html" />
         ),
@@ -243,11 +243,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           language: 'xml',
           description: tct(
-            'The following example using the [log4j2Code:log4j2.xml] format to configure a [sentryConsoleAppenderCode:ConsoleAppender] that logs to standard out at the INFO level, and a [sentryAppenderCode:SentryAppender] that logs to the Sentry server at the ERROR level.',
+            'The following example using the [code:log4j2.xml] format to configure a [code:ConsoleAppender] that logs to standard out at the INFO level, and a [code:SentryAppender] that logs to the Sentry server at the ERROR level.',
             {
-              log4j2Code: <code />,
-              sentryConsoleAppenderCode: <code />,
-              sentryAppenderCode: <code />,
+              code: <code />,
             }
           ),
           code: getConsoleAppenderSnippet(params),

@@ -102,10 +102,8 @@ stack.function:mylibrary_* +app`}
 const RuleDescription = styled('div')`
   margin-bottom: ${space(1)};
   margin-top: -${space(1)};
-  margin-right: 36px;
 `;
 
 const RuleExample = styled('pre')`
   margin-bottom: ${space(1)};
-  margin-right: 36px;
 `;

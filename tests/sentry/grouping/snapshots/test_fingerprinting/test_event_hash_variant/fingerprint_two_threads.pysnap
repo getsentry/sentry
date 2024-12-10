@@ -1,5 +1,5 @@
 ---
-created: '2021-10-09T08:26:55.655641Z'
+created: '2024-11-08T22:03:15.510987+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -11,6 +11,7 @@ config:
     matchers:
     - - function
       - main
+    text: function:"main" -> "in-main"
   version: 1
 fingerprint:
 - in-main
@@ -21,9 +22,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: function:"main" -> "in-main"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - in-main
   system:

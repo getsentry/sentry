@@ -1,7 +1,8 @@
+import re
 from typing import Literal
 
 import sentry_sdk
-from croniter import CroniterBadDateError, croniter
+from cronsim import CronSimError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -16,7 +17,8 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.monitors.constants import MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule
@@ -37,6 +39,8 @@ SCHEDULE_TYPES = {
 IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
+
+CRONTAB_WHITESPACE = re.compile(r"\s+")
 
 # XXX(dcramer): @reboot is not supported (as it cannot be)
 NONSTANDARD_CRONTAB_SCHEDULES = {
@@ -209,24 +213,26 @@ class ConfigValidator(serializers.Serializer):
 
             if not isinstance(schedule, str):
                 raise ValidationError({"schedule": "Invalid schedule for 'crontab' type"})
-            schedule = schedule.strip()
+
+            # normalize whitespace
+            schedule = re.sub(CRONTAB_WHITESPACE, " ", schedule).strip()
+
             if schedule.startswith("@"):
                 try:
                     schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
                 except KeyError:
                     raise ValidationError({"schedule": "Schedule was not parseable"})
-            # crontab schedule must be valid
-            if not croniter.is_valid(schedule):
-                raise ValidationError({"schedule": "Schedule was not parseable"})
 
-            # XXX(epurkhiser): Make sure we can traverse forward and back in
-            # the schedule. croniter is good, but there are some very edge case
-            # schedules that give it trouble
+            # Do not support 6 or 7 field crontabs
+            if len(schedule.split()) > 5:
+                raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
+
+            # Validate the expression and ensure we can traverse forward / back
             now = timezone.now()
             try:
                 get_next_schedule(now, CrontabSchedule(schedule))
                 get_prev_schedule(now, now, CrontabSchedule(schedule))
-            except CroniterBadDateError:
+            except CronSimError:
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
             # Do not support 6 or 7 field crontabs
@@ -246,7 +252,7 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Name of the monitor. Used for notifications.",
     )
     slug = SentrySerializerSlugField(
-        max_length=MAX_SLUG_LENGTH,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )

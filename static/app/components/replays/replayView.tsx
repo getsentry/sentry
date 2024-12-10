@@ -56,7 +56,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
             <FluidHeight>
               <CanvasSupportNotice />
               <Panel>
-                <ReplayPlayer />
+                <ReplayPlayer inspectable />
               </Panel>
             </FluidHeight>
           )}
@@ -69,6 +69,7 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       </PlayerBreadcrumbContainer>
       {isFullscreen ? (
         <ReplayController
+          isLoading={isLoading}
           toggleFullscreen={toggleFullscreen}
           hideFastForward={isVideoReplay}
         />

@@ -3,11 +3,25 @@ import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+import {
+  alertsEventMap,
+  type AlertsEventParameters,
+} from 'sentry/utils/analytics/alertsAnalyticsEvents';
 import type {DDMEventParameters} from 'sentry/utils/analytics/ddmAnalyticsEvents';
 import {ddmEventMap} from 'sentry/utils/analytics/ddmAnalyticsEvents';
+import {
+  featureFlagEventMap,
+  type FeatureFlagEventParameters,
+} from 'sentry/utils/analytics/featureFlagAnalyticsEvents';
+import {
+  quickStartEventMap,
+  type QuickStartEventParameters,
+} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
+import {
+  statsEventMap,
+  type StatsEventParameters,
+} from 'sentry/utils/analytics/statsAnalyticsEvents';
 
-import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
-import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -58,10 +72,12 @@ import {workflowEventMap} from './analytics/workflowAnalyticsEvents';
 
 interface EventParameters
   extends GrowthEventParameters,
+    AlertsEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
     DDMEventParameters,
     DiscoverEventParameters,
+    FeatureFlagEventParameters,
     FeedbackEventParameters,
     InsightEventParameters,
     IssueEventParameters,
@@ -76,19 +92,22 @@ interface EventParameters
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
     StackTraceEventParameters,
-    AiSuggestedSolutionEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
     SignupAnalyticsParameters,
     TracingEventParameters,
+    StatsEventParameters,
+    QuickStartEventParameters,
     Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
+  ...alertsEventMap,
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...ddmEventMap,
   ...discoverEventMap,
+  ...featureFlagEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
   ...insightEventMap,
@@ -105,12 +124,13 @@ const allEventMap: Record<string, string | null> = {
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
   ...stackTraceEventMap,
-  ...aiSuggestedSolutionEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
   ...starfishEventMap,
   ...signupEventMap,
+  ...statsEventMap,
+  ...quickStartEventMap,
 };
 
 /**

@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,11 +24,7 @@ from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_historical_anomalies import (
     get_historical_anomaly_data_from_seer,
 )
-from sentry.seer.anomaly_detection.types import TimeSeriesPoint
-
-
-class DetectAnomaliesResponse(BaseModel):
-    timeseries: list[TimeSeriesPoint]
+from sentry.seer.anomaly_detection.types import DetectAnomaliesResponse
 
 
 @region_silo_endpoint
@@ -57,7 +52,9 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
         """
         Return a list of anomalies for a metric alert rule.
         """
-        if not features.has("organizations:anomaly-detection-alerts", organization):
+        if not features.has(
+            "organizations:anomaly-detection-alerts", organization
+        ) and not features.has("organizations:anomaly-detection-rollout", organization):
             raise ResourceDoesNotExist("Your organization does not have access to this feature.")
 
         # NOTE: this will break if we ever do more than one project per alert rule
@@ -71,7 +68,9 @@ class OrganizationAlertRuleAnomaliesEndpoint(OrganizationAlertRuleEndpoint):
                 status=400,
             )
 
-        anomalies = get_historical_anomaly_data_from_seer(alert_rule, project, start, end)
+        anomalies = get_historical_anomaly_data_from_seer(
+            alert_rule=alert_rule, project=project, start_string=start, end_string=end
+        )
         # NOTE: returns None if there's a problem with the Seer response
         if anomalies is None:
             return Response("Unable to get historical anomaly data", status=400)

@@ -31,6 +31,7 @@ from sentry.users.services.user.service import user_service
 class IncidentGetForSubscriptionTest(TestCase):
     def test(self):
         alert_rule = self.create_alert_rule()
+        assert alert_rule.snuba_query is not None
         subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % subscription.id) is None
@@ -44,6 +45,7 @@ class IncidentGetForSubscriptionTest(TestCase):
 class IncidentClearSubscriptionCacheTest(TestCase):
     def setUp(self):
         self.alert_rule = self.create_alert_rule()
+        assert self.alert_rule.snuba_query is not None
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
     def test_updated_subscription(self):
@@ -211,35 +213,6 @@ class AlertRuleTest(TestCase):
             current_activation = activations[0]
             assert current_activation.query_subscription == sub
             assert current_activation.is_complete() is False
-
-    def test_get_for_metrics(self):
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:foo/1)")
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:bar/2)")
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:baz/2)")
-        new_org = self.create_organization()
-        self.create_alert_rule(organization=new_org, aggregate="count(c:foo/1)")
-
-        assert (
-            AlertRule.objects.get_for_metrics(self.organization, ["c:foo/1", "c:bar/2"]).count()
-            == 2
-        )
-        assert set(
-            AlertRule.objects.get_for_metrics(
-                self.organization, ["c:foo/1", "c:bar/2"]
-            ).values_list("snuba_query__aggregate", flat=True)
-        ) == {"count(c:foo/1)", "count(c:bar/2)"}
-
-        # Test that it works with a new organization
-        assert set(
-            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
-                "snuba_query__aggregate", flat=True
-            )
-        ) == {"count(c:foo/1)"}
-        assert set(
-            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
-                "organization_id", flat=True
-            )
-        ) == {new_org.id}
 
 
 class AlertRuleFetchForOrganizationTest(TestCase):
@@ -445,6 +418,7 @@ class UpdateAlertActivationsTest(TestCase):
                 activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
                 activator="testing",
             )
+            assert alert_rule.snuba_query is not None
             subscription = alert_rule.snuba_query.subscriptions.get()
             activation = alert_rule.activations.get()
             assert activation.finished_at is None
@@ -471,6 +445,7 @@ class UpdateAlertActivationsTest(TestCase):
                 activator="testing",
             )
 
+            assert alert_rule.snuba_query is not None
             subscription = alert_rule.snuba_query.subscriptions.get()
             subscription.date_added = timezone.now() - timedelta(days=21)
 
@@ -501,6 +476,7 @@ class UpdateAlertActivationsTest(TestCase):
 
     def test_update_alerts_execute_processor(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        assert alert_rule.snuba_query is not None
         subscription = alert_rule.snuba_query.subscriptions.get()
 
         callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]

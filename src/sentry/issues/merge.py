@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TypedDict
 from uuid import uuid4
 
@@ -23,7 +23,7 @@ class MergedGroup(TypedDict):
 
 def handle_merge(
     group_list: Sequence[Group],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     acting_user: User | None,
 ) -> MergedGroup:
     """
@@ -42,7 +42,9 @@ def handle_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
 
-    Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
+    Group.objects.filter(id__in=group_ids_to_merge).update(
+        status=GroupStatus.PENDING_MERGE, substatus=None
+    )
 
     transaction_id = uuid4().hex
     merge_groups.delay(

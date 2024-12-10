@@ -3,10 +3,6 @@ import type {Output} from 'sentry/views/replays/detail/network/details/getOutput
 import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
-  'replay.accessibility-issue-clicked': {
-    issue_description: string;
-    issue_impact: string | undefined;
-  };
   'replay.canvas-detected-banner-clicked': {
     sdk_needs_update?: boolean;
   };
@@ -64,6 +60,11 @@ export type ReplayEventParameters = {
     frame: string;
   };
 
+  'replay.gaps_detected': {
+    gaps: number;
+    max_gap: number;
+    replay_duration: number;
+  };
   'replay.hydration-error.issue-details-opened': {};
   'replay.hydration-modal.slider-interaction': {};
   'replay.hydration-modal.tab-change': {
@@ -132,7 +133,6 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
-  'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
   'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
@@ -153,6 +153,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
+  'replay.gaps_detected': 'Number of Gaps in Replay Timeline',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',

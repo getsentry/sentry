@@ -15,22 +15,30 @@ import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery'
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_ACTION} = SpanMetricsField;
 
 type Props = {
   moduleName: ModuleName;
+  filters?: Record<string, string>;
   spanCategory?: string;
   value?: string;
 };
 
-export function ActionSelector({value = '', moduleName, spanCategory}: Props) {
+export function ActionSelector({value = '', moduleName, spanCategory, filters}: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
   const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
+
+  if (filters) {
+    Object.entries(filters).forEach(([key, val]) =>
+      eventView.additionalConditions.addFilterValue(key, val)
+    );
+  }
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
@@ -62,6 +70,11 @@ export function ActionSelector({value = '', moduleName, spanCategory}: Props) {
           ),
         },
       ];
+
+  // The empty option is not necessary for MongoDB, since all queries will have a command
+  if (filters?.['span.system'] === SupportedDatabaseSystem.MONGODB) {
+    options.pop();
+  }
 
   return (
     <CompactSelect
@@ -108,6 +121,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   other: t('Action'),
   'mobile-ui': t('Action'),
   'mobile-screens': t('Action'),
+  'screen-rendering': t('Action'),
   ai: 'Action',
 };
 

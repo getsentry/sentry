@@ -35,7 +35,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             project=self.project,
         )
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_single_match(self, mock_get_trees_for_org):
         config_data = {
             "stacktraceFilename": "stack/root/file.py",
@@ -58,7 +58,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data == expected_matches
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_start_with_backslash(self, mock_get_trees_for_org):
         file = "stack/root/file.py"
         config_data = {"stacktraceFilename": f"/{file}"}
@@ -80,7 +80,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             assert response.status_code == 200, response.content
             assert response.data == expected_matches
 
-    @patch("sentry.integrations.github.GitHubIntegration.get_trees_for_org")
+    @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_multiple_matches(self, mock_get_trees_for_org):
         config_data = {
             "stacktraceFilename": "stack/root/file.py",

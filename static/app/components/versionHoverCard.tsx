@@ -1,61 +1,64 @@
-import {Component} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
+import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {Divider, Hovercard} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import RepoLabel from 'sentry/components/repoLabel';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
+import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Deploy, Release} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import withApi from 'sentry/utils/withApi';
-import withRelease from 'sentry/utils/withRelease';
-import withRepositories from 'sentry/utils/withRepositories';
+import {uniqueId} from 'sentry/utils/guid';
+import {useDeploys} from 'sentry/utils/useDeploys';
+import {useRelease} from 'sentry/utils/useRelease';
+import {useRepositories} from 'sentry/utils/useRepositories';
 
 interface Props extends React.ComponentProps<typeof Hovercard> {
-  api: Client;
   organization: Organization;
   projectSlug: string;
-
   releaseVersion: string;
-  deploys?: Array<Deploy>;
-  deploysError?: Error;
-  deploysLoading?: boolean;
-  release?: Release;
-  releaseError?: Error;
-  releaseLoading?: boolean;
-  repositories?: Array<Repository>;
-  repositoriesError?: Error;
-  repositoriesLoading?: boolean;
 }
 
-type State = {
-  visible: boolean;
-};
+function VersionHoverCard({
+  organization,
+  projectSlug,
+  releaseVersion,
+  ...hovercardProps
+}: Props) {
+  const {
+    data: repositories,
+    isPending: isRepositoriesLoading,
+    isError: isRepositoriesError,
+  } = useRepositories({orgSlug: organization.slug});
+  const {
+    data: release,
+    isPending: isReleaseLoading,
+    isError: isReleaseError,
+  } = useRelease({
+    orgSlug: organization.slug,
+    projectSlug,
+    releaseVersion,
+  });
+  const {
+    data: deploys,
+    isPending: isDeploysLoading,
+    isError: isDeploysError,
+  } = useDeploys({
+    orgSlug: organization.slug,
+    releaseVersion,
+  });
 
-class VersionHoverCard extends Component<Props, State> {
-  state: State = {
-    visible: false,
-  };
-
-  toggleHovercard() {
-    this.setState({
-      visible: true,
-    });
-  }
-
-  getRepoLink() {
-    const {organization} = this.props;
+  function getRepoLink() {
     const orgSlug = organization.slug;
     return {
       header: null,
@@ -67,7 +70,7 @@ class VersionHoverCard extends Component<Props, State> {
               'Connect a repository to see commit info, files changed, and authors involved in future releases.'
             )}
           </p>
-          <LinkButton href={`/organizations/${orgSlug}/repos/`} priority="primary">
+          <LinkButton to={`/organizations/${orgSlug}/repos/`} priority="primary">
             {t('Connect a repository')}
           </LinkButton>
         </ConnectRepo>
@@ -75,37 +78,41 @@ class VersionHoverCard extends Component<Props, State> {
     };
   }
 
-  getBody() {
-    const {releaseVersion, release, deploys} = this.props;
+  const authors = useMemo(
+    () =>
+      release?.authors.map<Actor | User>(author =>
+        // Add a unique id if missing
+        ({
+          ...author,
+          type: 'user',
+          id: 'id' in author ? author.id : uniqueId(),
+        })
+      ),
+    [release?.authors]
+  );
+
+  function getBody() {
     if (release === undefined || !defined(deploys)) {
       return {header: null, body: null};
     }
 
-    const {lastCommit} = release;
-    const recentDeploysByEnvironment = deploys.reduce(function (dbe, deploy) {
-      const {dateFinished, environment} = deploy;
-      if (!dbe.hasOwnProperty(environment)) {
-        dbe[environment] = dateFinished;
-      }
-
-      return dbe;
-    }, {});
-    let mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment);
-
-    if (Object.keys(recentDeploysByEnvironment).length > 3) {
-      mostRecentDeploySlice = Object.keys(recentDeploysByEnvironment).slice(0, 3);
-    }
+    const recentDeploysByEnvironment = deploys
+      .toSorted(
+        // Sorted by most recent deploy first
+        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+      )
+      .slice(0, 3);
 
     return {
       header: <VersionHoverHeader releaseVersion={releaseVersion} />,
       body: (
-        <div>
-          <div className="row">
-            <div className="col-xs-4">
+        <Flex column gap={space(2)}>
+          <Flex gap={space(2)} justify="space-between">
+            <div>
               <h6>{t('New Issues')}</h6>
               <CountSince>{release.newGroups}</CountSince>
             </div>
-            <div className="col-xs-8">
+            <div>
               <h6 style={{textAlign: 'right'}}>
                 {release.commitCount}{' '}
                 {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
@@ -113,106 +120,88 @@ class VersionHoverCard extends Component<Props, State> {
                 {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
               </h6>
               <AvatarList
-                users={release.authors}
+                users={authors}
                 avatarSize={25}
                 tooltipOptions={{container: 'body'} as any}
                 typeAvatars="authors"
               />
             </div>
-          </div>
-          {lastCommit && <StyledLastCommit commit={lastCommit} />}
+          </Flex>
+          {release.lastCommit && <LastCommit commit={release.lastCommit} />}
           {deploys.length > 0 && (
-            <div>
-              <Divider>
-                <h6>{t('Deploys')}</h6>
-              </Divider>
-              {mostRecentDeploySlice.map((env, idx) => {
-                const dateFinished = recentDeploysByEnvironment[env];
+            <Flex column gap={space(0.5)}>
+              <h6>{t('Deploys')}</h6>
+              {recentDeploysByEnvironment.map(deploy => {
                 return (
-                  <DeployWrap key={idx}>
-                    <VersionRepoLabel>{env}</VersionRepoLabel>
-                    {dateFinished && <StyledTimeSince date={dateFinished} />}
-                  </DeployWrap>
+                  <Flex
+                    key={deploy.id}
+                    align="center"
+                    gap={space(1)}
+                    justify="space-between"
+                  >
+                    <Tag type="highlight" textMaxWidth={150}>
+                      {deploy.environment}
+                    </Tag>
+                    {deploy.dateFinished && (
+                      <StyledTimeSince date={deploy.dateFinished} />
+                    )}
+                  </Flex>
                 );
               })}
-            </div>
+            </Flex>
           )}
-        </div>
+        </Flex>
       ),
     };
   }
 
-  render() {
-    const {
-      deploysLoading,
-      deploysError,
-      release,
-      releaseLoading,
-      releaseError,
-      repositories,
-      repositoriesLoading,
-      repositoriesError,
-    } = this.props;
-    let header: React.ReactNode = null;
-    let body: React.ReactNode = null;
+  let header: React.ReactNode = null;
+  let body: React.ReactNode = null;
 
-    const loading = !!(deploysLoading || releaseLoading || repositoriesLoading);
-    const error = deploysError ?? releaseError ?? repositoriesError;
-    const hasRepos = repositories && repositories.length > 0;
+  const loading = !!(isDeploysLoading || isReleaseLoading || isRepositoriesLoading);
+  const error = isDeploysError ?? isReleaseError ?? isRepositoriesError;
+  const hasRepos = repositories && repositories.length > 0;
 
-    if (loading) {
-      body = <LoadingIndicator mini />;
-    } else if (error) {
-      body = <LoadingError />;
-    } else {
-      const renderObj: {[key: string]: React.ReactNode} =
-        hasRepos && release ? this.getBody() : this.getRepoLink();
-      header = renderObj.header;
-      body = renderObj.body;
-    }
-
-    return (
-      <Hovercard {...this.props} header={header} body={body}>
-        {this.props.children}
-      </Hovercard>
-    );
+  if (loading) {
+    body = <LoadingIndicator mini />;
+  } else if (error) {
+    body = <LoadingError />;
+  } else {
+    const renderObj: {body: React.ReactNode; header: React.ReactNode} =
+      hasRepos && release ? getBody() : getRepoLink();
+    header = renderObj.header;
+    body = renderObj.body;
   }
+
+  return <Hovercard {...hovercardProps} header={header} body={body} />;
 }
 
 interface VersionHoverHeaderProps {
   releaseVersion: string;
 }
 
-export class VersionHoverHeader extends Component<VersionHoverHeaderProps> {
-  render() {
-    return (
-      <HeaderWrapper>
-        {t('Release')}
-        <VersionWrapper>
-          <StyledVersion version={this.props.releaseVersion} truncate anchor={false} />
-
-          <CopyToClipboardButton
-            borderless
-            iconSize="xs"
-            size="zero"
-            text={this.props.releaseVersion}
-          />
-        </VersionWrapper>
-      </HeaderWrapper>
-    );
-  }
+function VersionHoverHeader({releaseVersion}: VersionHoverHeaderProps) {
+  return (
+    <Flex align="center" gap={space(0.5)}>
+      {t('Release:')}
+      <VersionWrapper>
+        <StyledVersion version={releaseVersion} truncate anchor={false} />
+        <CopyToClipboardButton
+          borderless
+          iconSize="xs"
+          size="zero"
+          text={releaseVersion}
+        />
+      </VersionWrapper>
+    </Flex>
+  );
 }
 
-export {VersionHoverCard};
-export default withApi(withRelease(withRepositories(VersionHoverCard)));
+export default VersionHoverCard;
 
 const ConnectRepo = styled('div')`
   padding: ${space(2)};
   text-align: center;
-`;
-
-const VersionRepoLabel = styled(RepoLabel)`
-  width: 86px;
 `;
 
 const StyledTimeSince = styled(TimeSince)`
@@ -220,37 +209,19 @@ const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const HeaderWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const VersionWrapper = styled('div')`
   display: flex;
-  flex: 1;
   align-items: center;
+  gap: ${space(0.5)};
   justify-content: flex-end;
 `;
 
 const StyledVersion = styled(Version)`
-  margin-right: ${space(0.5)};
   max-width: 190px;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
-`;
-
-const StyledLastCommit = styled(LastCommit)`
-  margin-top: ${space(2)};
-`;
-
-const DeployWrap = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: ${space(1)};
-  justify-items: start;
-  align-items: center;
 `;

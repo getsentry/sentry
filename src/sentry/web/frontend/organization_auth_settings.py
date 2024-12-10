@@ -4,11 +4,10 @@ import logging
 
 from django import forms
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
 from django.http.response import HttpResponse, HttpResponseBadRequest, HttpResponseBase
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import audit_log, features, roles
 from sentry.auth import manager
@@ -101,7 +100,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
     required_scope = "org:write"
 
     def _disable_provider(
-        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
+        self, request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
     ):
         user = request.user
         sending_email = ""
@@ -122,7 +121,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         )
 
     def handle_existing_provider(
-        self, request: Request, organization: RpcOrganization, auth_provider: RpcAuthProvider
+        self, request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
     ):
         provider = auth_provider.get_provider()
 
@@ -226,7 +225,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
-    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponseBase:  # type: ignore[override]
+    def handle(self, request: HttpRequest, organization: RpcOrganization) -> HttpResponseBase:
         provider = auth_service.get_auth_provider(organization_id=organization.id)
         if provider:
             # if the org has SSO set up already, allow them to modify the existing provider

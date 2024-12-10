@@ -26,6 +26,7 @@ class Topic(Enum):
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
+    EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
@@ -47,7 +48,7 @@ class Topic(Enum):
     INGEST_MONITORS = "ingest-monitors"
     MONITORS_CLOCK_TICK = "monitors-clock-tick"
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
-    UPTIME_CONFIG = "uptime-configs"
+    MONITORS_INCIDENT_OCCURRENCES = "monitors-incident-occurrences"
     UPTIME_RESULTS = "uptime-results"
     UPTIME_CONFIGS = "uptime-configs"
     EVENTSTREAM_GENERIC = "generic-events"
@@ -57,6 +58,7 @@ class Topic(Enum):
     SNUBA_SPANS = "snuba-spans"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
+    TASK_WORKER = "task-worker"
 
 
 class ConsumerDefinition(TypedDict, total=False):

@@ -2,6 +2,7 @@ import dataclasses
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
 import orjson
@@ -15,7 +16,15 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.processing.strategies.unfold import Unfold
-from arroyo.types import FILTERED_PAYLOAD, BrokerValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import (
+    FILTERED_PAYLOAD,
+    BrokerValue,
+    Commit,
+    FilteredPayload,
+    Message,
+    Partition,
+    Value,
+)
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
@@ -196,7 +205,7 @@ def batch_write_to_redis(
 
 def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
     with sentry_sdk.start_transaction(op="process", name="spans.process.expand_segments") as txn:
-        buffered_segments: list[KafkaPayload | FilteredPayload] = []
+        buffered_segments: list[Value] = []
 
         for result in should_process_segments:
             timestamp = result.timestamp
@@ -209,7 +218,7 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
             client = RedisSpansBuffer()
             payload_context = {}
 
-            with txn.start_child(op="process", description="fetch_unprocessed_segments"):
+            with txn.start_child(op="process", name="fetch_unprocessed_segments"):
                 keys = client.get_unprocessed_segments_and_prune_bucket(timestamp, partition)
 
             sentry_sdk.set_measurement("segments.count", len(keys))
@@ -218,7 +227,7 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
 
             # With pipelining, redis server is forced to queue replies using
             # up memory, so batching the keys we fetch.
-            with txn.start_child(op="process", description="read_and_expire_many_segments"):
+            with txn.start_child(op="process", name="read_and_expire_many_segments"):
                 for i in range(0, len(keys), BATCH_SIZE):
                     segments = client.read_and_expire_many_segments(keys[i : i + BATCH_SIZE])
 
@@ -235,7 +244,13 @@ def _expand_segments(should_process_segments: list[ProcessSegmentsContext]):
                             metrics.incr("performance.buffered_segments.max_payload_size_exceeded")
                             continue
 
-                        buffered_segments.append(KafkaPayload(None, payload_data, []))
+                        buffered_segments.append(
+                            Value(
+                                KafkaPayload(None, payload_data, []),
+                                {},
+                                datetime.fromtimestamp(timestamp),
+                            )
+                        )
 
     return buffered_segments
 

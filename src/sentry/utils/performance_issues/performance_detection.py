@@ -124,9 +124,7 @@ def detect_performance_problems(
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with (
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
-                sentry_sdk.start_span(
-                    op="py.detect_performance_issue", description="none"
-                ) as sdk_span,
+                sentry_sdk.start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
                 return _detect_performance_problems(
                     data, sdk_span, project, is_standalone_spans=is_standalone_spans
@@ -338,10 +336,10 @@ def _detect_performance_problems(
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
 
-    with sentry_sdk.start_span(op="function", description="get_detection_settings"):
+    with sentry_sdk.start_span(op="function", name="get_detection_settings"):
         detection_settings = get_detection_settings(project.id)
 
-    with sentry_sdk.start_span(op="initialize", description="PerformanceDetector"):
+    with sentry_sdk.start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings, data)
             for detector_class in DETECTOR_CLASSES
@@ -350,11 +348,11 @@ def _detect_performance_problems(
 
     for detector in detectors:
         with sentry_sdk.start_span(
-            op="function", description=f"run_detector_on_data.{detector.type.value}"
+            op="function", name=f"run_detector_on_data.{detector.type.value}"
         ):
             run_detector_on_data(detector, data)
 
-    with sentry_sdk.start_span(op="function", description="report_metrics_for_detectors"):
+    with sentry_sdk.start_span(op="function", name="report_metrics_for_detectors"):
         # Metrics reporting only for detection, not created issues.
         report_metrics_for_detectors(
             data,
@@ -368,7 +366,7 @@ def _detect_performance_problems(
     organization = project.organization
 
     problems: list[PerformanceProblem] = []
-    with sentry_sdk.start_span(op="performance_detection", description="is_creation_allowed"):
+    with sentry_sdk.start_span(op="performance_detection", name="is_creation_allowed"):
         for detector in detectors:
             if all(
                 [

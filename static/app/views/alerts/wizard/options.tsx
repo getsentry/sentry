@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -16,7 +17,7 @@ import {
 } from 'sentry/utils/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
-  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
+  DEFAULT_EAP_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
@@ -26,7 +27,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
+import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -46,7 +47,8 @@ export type AlertType =
   | 'custom_metrics'
   | 'llm_tokens'
   | 'llm_cost'
-  | 'insights_metrics';
+  | 'uptime_monitor'
+  | 'eap_metrics';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -60,16 +62,17 @@ export enum MEPAlertsDataset {
   METRICS_ENHANCED = 'metricsEnhanced',
 }
 
-export type MetricAlertType = Exclude<AlertType, 'issues'>;
+export type MetricAlertType = Exclude<AlertType, 'issues' | 'uptime_monitor'>;
 
 export const DatasetMEPAlertQueryTypes: Record<
-  Exclude<Dataset, 'search_issues' | Dataset.SESSIONS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.SESSIONS | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   MEPAlertsQueryType
 > = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.METRICS]: MEPAlertsQueryType.CRASH_RATE,
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: MEPAlertsQueryType.PERFORMANCE,
 };
 
 export const AlertWizardAlertNames: Record<AlertType, string> = {
@@ -89,7 +92,17 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
-  insights_metrics: t('Insights Metric'),
+  uptime_monitor: t('Uptime Monitor'),
+  eap_metrics: t('EAP Metric'),
+};
+
+/**
+ * Additional elements to render after the name of the alert rule type. Useful
+ * for adding feature badges or other call-outs for newer alert types.
+ */
+export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
+  eap_metrics: <FeatureBadge type="experimental" />,
+  uptime_monitor: <FeatureBadge type="beta" />,
 };
 
 type AlertWizardCategory = {
@@ -122,6 +135,7 @@ export const getAlertWizardCategories = (org: Organization) => {
         'fid',
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+        ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
     if (org.features.includes('insights-addon-modules')) {
@@ -130,12 +144,14 @@ export const getAlertWizardCategories = (org: Organization) => {
         options: ['llm_tokens', 'llm_cost'],
       });
     }
+
+    result.push({
+      categoryHeading: t('Uptime Monitoring'),
+      options: ['uptime_monitor'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-      options: [
-        hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions',
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
-      ],
+      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
     });
   }
   return result;
@@ -217,11 +233,6 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },
-  insights_metrics: {
-    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
   crash_free_sessions: {
     aggregate: SessionsAggregate.CRASH_FREE_SESSIONS,
     dataset: Dataset.METRICS,
@@ -231,6 +242,11 @@ export const AlertWizardRuleTemplates: Record<
     aggregate: SessionsAggregate.CRASH_FREE_USERS,
     dataset: Dataset.METRICS,
     eventTypes: EventTypes.USER,
+  },
+  eap_metrics: {
+    aggregate: DEFAULT_EAP_METRICS_ALERT_FIELD,
+    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+    eventTypes: EventTypes.TRANSACTION,
   },
 };
 

@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the issue belong to.",
+        "description": "The ID or slug of the organization the event belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -21,6 +21,16 @@
         "schema": {
           "type": "string"
         }
+      },
+      {
+        "in": "query",
+        "name": "full",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        },
+        "description": "If this is set to true, the event payload will include the full event body, including the stacktrace. Set to 1 to enable.",
+        "required": false
       },
       {
         "$ref": "../../components/parameters/pagination-cursor.json#/PaginationCursor"

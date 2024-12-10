@@ -171,7 +171,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
                 def use_group_snuba_dataset() -> bool:
                     # if useGroupSnubaDataset is present, override the flag so we can test the new dataset
-                    if request.GET.get("useGroupSnubaDataset"):
+                    req_param_value: str | None = request.GET.get("useGroupSnubaDataset")
+                    if req_param_value and req_param_value.lower() == "true":
                         return True
 
                     if not features.has("organizations:issue-search-snuba", organization):

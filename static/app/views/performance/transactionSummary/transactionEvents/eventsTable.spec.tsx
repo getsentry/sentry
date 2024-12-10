@@ -3,60 +3,18 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
+import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
+import {
+  EVENTS_TABLE_RESPONSE_FIELDS,
+  MOCK_EVENTS_TABLE_DATA,
+} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
 type Data = {
   features?: string[];
 };
-
-export const MOCK_EVENTS_TABLE_DATA = [
-  {
-    id: 'deadbeef',
-    'user.display': 'uhoh@example.com',
-    'transaction.duration': 400,
-    'project.id': 1,
-    timestamp: '2020-05-21T15:31:18+00:00',
-    trace: '1234',
-    'span_ops_breakdown.relative': '',
-    'spans.browser': 100,
-    'spans.db': 30,
-    'spans.http': 170,
-    'spans.resource': 100,
-    'spans.total.time': 400,
-  },
-  {
-    id: 'moredeadbeef',
-    'user.display': 'moreuhoh@example.com',
-    'transaction.duration': 600,
-    'project.id': 1,
-    timestamp: '2020-05-22T15:31:18+00:00',
-    trace: '4321',
-    'span_ops_breakdown.relative': '',
-    'spans.browser': 100,
-    'spans.db': 300,
-    'spans.http': 100,
-    'spans.resource': 100,
-    'spans.total.time': 600,
-  },
-];
-
-export const EVENTS_TABLE_RESPONSE_FIELDS = [
-  'id',
-  'user.display',
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  'transaction.duration',
-  'trace',
-  'timestamp',
-  'spans.total.time',
-  ...SPAN_OP_BREAKDOWN_FIELDS,
-];
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
@@ -82,12 +40,12 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance GridEditable Table', function () {
   const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
+    'event id',
+    'user',
+    'operation duration',
+    'total duration',
+    'trace id',
+    'timestamp',
   ];
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = OrganizationFixture();

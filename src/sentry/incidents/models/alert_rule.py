@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
@@ -32,10 +32,15 @@ from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import (
+    AbstractNotificationAction,
+    ActionService,
+    ActionTarget,
+)
+from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.types.actor import Actor
@@ -51,8 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionCallback(Protocol):
-    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool:
-        ...
+    def __call__(self, subscription: QuerySubscription, *args: Any, **kwargs: Any) -> bool: ...
 
 
 alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
@@ -171,6 +175,18 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                 for sub_id in subscription_ids
             )
 
+    @classmethod
+    def delete_data_in_seer(cls, instance: AlertRule, **kwargs: Any) -> None:
+        if instance.detection_type == AlertRuleDetectionType.DYNAMIC:
+            success = delete_rule_in_seer(alert_rule=instance)
+            if not success:
+                logger.error(
+                    "Call to delete rule data in Seer failed",
+                    extra={
+                        "rule_id": instance.id,
+                    },
+                )
+
     def conditionally_subscribe_project_to_alert_rules(
         self,
         project: Project,
@@ -224,40 +240,6 @@ class AlertRuleManager(BaseManager["AlertRule"]):
             )
         return []
 
-    def get_for_metrics(
-        self, organization: Organization, metric_mris: list[str]
-    ) -> BaseQuerySet[AlertRule]:
-        """
-        Fetches AlertRules associated with the metric MRIs
-        """
-
-        alert_query = Q()
-        for metric_mri in metric_mris:
-            alert_query |= Q(snuba_query__aggregate__contains=metric_mri)
-
-        queryset = self.filter(organization=organization).filter(alert_query)
-        return queryset
-
-
-@region_silo_model
-class AlertRuleExcludedProjects(Model):
-    """
-    Excludes a specific project from an AlertRule
-
-    NOTE: This feature is not currently utilized.
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_index=False)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleexcludedprojects"
-        unique_together = (("alert_rule", "project"),)
-
 
 @region_silo_model
 class AlertRuleProjects(Model):
@@ -299,15 +281,6 @@ class AlertRule(Model):
 
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
-
-    excluded_projects = models.ManyToManyField(
-        "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
-    )  # NOTE: This feature is not currently utilized.
-    # Determines whether we include all current and future projects from this
-    # organization in this rule.
-    include_all_projects = models.BooleanField(
-        default=False
-    )  # NOTE: This feature is not currently utilized.
     name = models.TextField()
     status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
@@ -366,7 +339,7 @@ class AlertRule(Model):
 
     def subscribe_projects(
         self,
-        projects: list[Project],
+        projects: Iterable[Project],
         monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
         query_extra: str | None = None,
         activation_condition: AlertRuleActivationConditionType | None = None,
@@ -478,24 +451,6 @@ class AlertRuleTrigger(Model):
         app_label = "sentry"
         db_table = "sentry_alertruletrigger"
         unique_together = (("alert_rule", "label"),)
-
-
-@region_silo_model
-class AlertRuleTriggerExclusion(Model):
-    """
-    Allows us to define a specific trigger to be excluded from a query subscription
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", related_name="exclusions")
-    query_subscription = FlexibleForeignKey("sentry.QuerySubscription")
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggerexclusion"
-        unique_together = (("alert_rule_trigger", "query_subscription"),)
 
 
 class AlertRuleTriggerActionMethod(StrEnum):
@@ -617,9 +572,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
 
     date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config = JSONField(
-        null=True
-    )  # list of dicts if this is a sentry app, otherwise can be singular dict
+    sentry_app_config: models.Field[
+        # list of dicts if this is a sentry app, otherwise can be singular dict
+        dict[str, Any] | list[dict[str, Any]] | None,
+        dict[str, Any] | list[dict[str, Any]] | None,
+    ] = JSONField(null=True)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )
@@ -682,6 +639,12 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value, new_status, notification_uuid)
+
+    def get_single_sentry_app_config(self) -> dict[str, Any] | None:
+        value = self.sentry_app_config
+        if isinstance(value, list):
+            raise ValueError("Sentry app actions have a list of configs")
+        return value
 
     @classmethod
     def register_factory(cls, factory: ActionHandlerFactory) -> None:
@@ -803,6 +766,7 @@ def update_alert_activations(
 
 
 post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
+post_delete.connect(AlertRuleManager.delete_data_in_seer, sender=AlertRule)
 post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
 post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
 post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)

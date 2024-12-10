@@ -254,9 +254,9 @@ class AlertRuleNotification(ProjectNotification):
 
         if len(self.rules) > 0:
             context["snooze_alert"] = True
-            context[
-                "snooze_alert_url"
-            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+            context["snooze_alert_url"] = (
+                f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+            )
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
@@ -277,7 +277,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        from sentry.integrations.message_builder import build_rule_url
+        from sentry.integrations.messaging.message_builder import build_rule_url
 
         title_str = "Alert triggered"
 

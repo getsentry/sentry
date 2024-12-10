@@ -37,6 +37,7 @@ DASHBOARD_OBJECT = {
             "interval": "5m",
             "dateCreated": "2024-07-16T15:36:46.048343Z",
             "dashboardId": "1",
+            "datasetSource": "user",
             "queries": [
                 {
                     "id": "1",
@@ -56,6 +57,7 @@ DASHBOARD_OBJECT = {
                         }
                     ],
                     "isHidden": False,
+                    "selectedAggregate": None,
                 }
             ],
             "limit": None,
@@ -66,6 +68,11 @@ DASHBOARD_OBJECT = {
     "projects": [1],
     "filters": {},
     "period": "7d",
+    "permissions": {
+        "isEditableByEveryone": True,
+        "teamsWithEditAccess": [],
+    },
+    "isFavorited": False,
 }
 
 DASHBOARDS_OBJECT = [
@@ -98,6 +105,8 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
+        "isFavorited": False,
     },
     {
         "id": "2",
@@ -128,6 +137,8 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": None,
+        "isFavorited": False,
     },
 ]
 

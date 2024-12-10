@@ -62,6 +62,13 @@ type ReplaceTokensWithTextAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFilterKeyAction = {
+  key: string;
+  token: TokenResult<Token.FILTER>;
+  type: 'UPDATE_FILTER_KEY';
 };
 
 type UpdateFilterOpAction = {
@@ -101,6 +108,7 @@ export type QueryBuilderActions =
   | DeleteTokensAction
   | UpdateFreeTextAction
   | ReplaceTokensWithTextAction
+  | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | UpdateAggregateArgsAction
@@ -315,18 +323,20 @@ function replaceTokensWithText(
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
   const cursorPosition =
-    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length;
+    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
     token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
-  const focusedItemKey = focusedToken ? makeTokenKey(focusedToken, newParsedQuery) : null;
+  const focusOverride =
+    action.focusOverride ??
+    (focusedToken ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)} : null);
 
   return {
     ...state,
     query: newQuery,
-    focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
+    focusOverride,
   };
 }
 
@@ -495,6 +505,11 @@ export function useQueryBuilderState({
           return updateFreeText(state, action);
         case 'REPLACE_TOKENS_WITH_TEXT':
           return replaceTokensWithText(state, action, getFieldDefinition);
+        case 'UPDATE_FILTER_KEY':
+          return {
+            ...state,
+            query: replaceQueryToken(state.query, action.token.key, action.key),
+          };
         case 'UPDATE_FILTER_OP':
           return {
             ...state,

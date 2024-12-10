@@ -5,6 +5,7 @@ import posixpath
 from collections.abc import Callable, Mapping
 from typing import Any
 
+import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
@@ -98,6 +99,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -282,10 +285,18 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(minidump.data)
+    response = symbolicator.process_minidump(data.get("platform"), minidump.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
+
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     return data
 
@@ -297,10 +308,18 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
+
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     return data
 
@@ -404,10 +423,20 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     signal = signal_from_data(data)
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
+    response = symbolicator.process_payload(
+        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+    )
 
     if not _handle_response_status(data, response):
         return data
+
+    # Emit Apple symbol stats
+    apple_symbol_stats = response.get("apple_symbol_stats")
+    if apple_symbol_stats:
+        try:
+            emit_apple_symbol_stats(apple_symbol_stats, data)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     assert len(modules) == len(response["modules"]), (modules, response)
 
@@ -453,6 +482,52 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         sinfo.stacktrace["frames"] = new_frames
 
     return data
+
+
+def emit_apple_symbol_stats(apple_symbol_stats, data):
+    os_name = get_path(data, "contexts", "os", "name") or get_path(
+        data, "contexts", "os", "raw_description"
+    )
+    os_version = get_path(data, "contexts", "os", "version")
+
+    if os_version:
+        os_version = os_version.split(".", 1)[0]
+
+    if neither := apple_symbol_stats.get("neither"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=neither,
+            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    # TODO: This seems to just be wrong
+    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
+    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
+    # that matched both.
+    if both := apple_symbol_stats.get("both"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=both,
+            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    if old := apple_symbol_stats.get("old"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=old,
+            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
+
+    if symx := apple_symbol_stats.get("symx"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=symx,
+            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            sample_rate=1.0,
+        )
 
 
 def get_native_symbolication_function(

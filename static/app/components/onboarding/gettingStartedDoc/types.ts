@@ -1,5 +1,7 @@
+import type {Client} from 'sentry/api';
 import type {StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
 
@@ -41,6 +43,7 @@ export enum DocsPageLocation {
 export interface DocsParams<
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 > {
+  api: Client;
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
   isPerformanceSelected: boolean;
@@ -51,6 +54,7 @@ export interface DocsParams<
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
   projectId: Project['id'];
+  projectKeyId: ProjectKey['id'];
   projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;
@@ -58,12 +62,18 @@ export interface DocsParams<
    * The page where the docs are being displayed
    */
   docsLocation?: DocsPageLocation;
+  featureFlagOptions?: {
+    integration: string;
+  };
   feedbackOptions?: {
     email?: boolean;
     name?: boolean;
     screenshot?: boolean;
   };
   newOrg?: boolean;
+  profilingOptions?: {
+    defaultProfilingMode?: 'transaction' | 'continuous';
+  };
   replayOptions?: {
     block?: boolean;
     mask?: boolean;
@@ -85,6 +95,12 @@ export interface OnboardingConfig<
       verify: StepProps[];
       introduction?: React.ReactNode | React.ReactNode[];
       nextSteps?: (NextStep | null)[];
+      onPageLoad?: () => void;
+      onPlatformOptionsChange?: (
+        platformOptions: SelectedPlatformOptions<PlatformOptions>
+      ) => void;
+      onProductSelectionChange?: (products: ProductSolution[]) => void;
+      onProductSelectionLoad?: (products: ProductSolution[]) => void;
     },
     DocsParams<PlatformOptions>
   > {}
@@ -93,9 +109,12 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   onboarding: OnboardingConfig<PlatformOptions>;
   crashReportOnboarding?: OnboardingConfig<PlatformOptions>;
   customMetricsOnboarding?: OnboardingConfig<PlatformOptions>;
+  featureFlagOnboarding?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
+  performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
+  profilingOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboarding?: OnboardingConfig<PlatformOptions>;
   replayOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
 }
@@ -107,4 +126,5 @@ export type ConfigType =
   | 'crashReportOnboarding'
   | 'replayOnboarding'
   | 'replayOnboardingJsLoader'
-  | 'customMetricsOnboarding';
+  | 'customMetricsOnboarding'
+  | 'featureFlagOnboarding';

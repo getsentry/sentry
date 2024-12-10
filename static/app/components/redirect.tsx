@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useParams} from 'sentry/utils/useParams';
 
 type Props = {
   to: string;
@@ -14,15 +16,17 @@ type Props = {
  */
 function Redirect({to, router}: Props) {
   const navigate = useNavigate();
+  const params = useParams();
+  const resolvedTo = replaceRouterParams(to, params);
 
   // Redirect on mount.
   useEffect(() => {
     if (router) {
-      router.replace(to);
+      router.replace(resolvedTo);
     } else {
-      navigate(to, {replace: true});
+      navigate(resolvedTo, {replace: true});
     }
-  }, [navigate, router, to]);
+  }, [navigate, router, resolvedTo]);
 
   return null;
 }

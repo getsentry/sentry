@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import secrets
-import warnings
 from collections.abc import Mapping
 from string import ascii_letters, digits
 from typing import Any, ClassVar
@@ -41,13 +40,13 @@ from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
-from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
@@ -227,14 +226,6 @@ class User(Model, AbstractBaseUser):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return result
-
-    def has_perm(self, perm_name: str) -> bool:
-        warnings.warn("User.has_perm is deprecated", DeprecationWarning)
-        return self.is_superuser
-
-    def has_module_perms(self, app_label: str) -> bool:
-        warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
-        return self.is_superuser
 
     def has_2fa(self) -> bool:
         return Authenticator.objects.filter(

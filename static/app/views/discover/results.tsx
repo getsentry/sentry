@@ -105,6 +105,7 @@ type State = {
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
+  showQueryIncompatibleWithDataset?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -169,6 +170,7 @@ export class Results extends Component<Props, State> {
     confirmedQuery: false,
     tips: [],
     showForcedDatasetAlert: true,
+    showQueryIncompatibleWithDataset: false,
   };
 
   componentDidMount() {
@@ -199,6 +201,14 @@ export class Results extends Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
+
+    if (location.query.incompatible) {
+      this.setState({showQueryIncompatibleWithDataset: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, incompatible: undefined},
+      });
+    }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
@@ -358,6 +368,9 @@ export class Results extends Component<Props, State> {
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
+    }
+    if (nextEventView.environment.length === 0 && selection.environments) {
+      nextEventView.environment = selection.environments;
     }
     if (selection.datetime) {
       const {period, utc, start, end} = selection.datetime;
@@ -520,10 +533,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
+    const {isHomepage} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView});
+    return generateTitle({eventView, isHomepage});
   }
 
   renderTagsTable() {
@@ -600,6 +614,32 @@ export class Results extends Component<Props, State> {
               ),
             }
           )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
+  renderQueryIncompatibleWithDatasetBanner() {
+    const {organization} = this.props;
+    if (hasDatasetSelector(organization) && this.state.showQueryIncompatibleWithDataset) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          trailingItems={
+            <StyledCloseButton
+              icon={<IconClose size="sm" />}
+              aria-label={t('Close')}
+              onClick={() => {
+                this.setState({showQueryIncompatibleWithDataset: false});
+              }}
+              size="zero"
+              borderless
+            />
+          }
+        >
+          {t('Your query was updated to make it compatible with this dataset.')}
         </Alert>
       );
     }
@@ -685,15 +725,17 @@ export class Results extends Component<Props, State> {
 
     if (organization.features.includes('search-query-builder-discover')) {
       return (
-        <StyledResultsSearchQueryBuilder
-          projectIds={eventView.project}
-          query={eventView.query}
-          fields={fields}
-          onSearch={this.handleSearch}
-          customMeasurements={customMeasurements}
-          dataset={eventView.dataset}
-          includeTransactions
-        />
+        <Wrapper>
+          <ResultsSearchQueryBuilder
+            projectIds={eventView.project}
+            query={eventView.query}
+            fields={fields}
+            onSearch={this.handleSearch}
+            customMeasurements={customMeasurements}
+            dataset={eventView.dataset}
+            includeTransactions
+          />
+        </Wrapper>
       );
     }
 
@@ -767,6 +809,7 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {this.renderQueryIncompatibleWithDatasetBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
@@ -872,10 +915,6 @@ const Wrapper = styled('div')`
   }
 `;
 
-const StyledResultsSearchQueryBuilder = styled(ResultsSearchQueryBuilder)`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledSearchBar = styled(SearchBar)`
   margin-bottom: ${space(2)};
 `;
@@ -954,6 +993,9 @@ function ResultsContainer(props: Props) {
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
+      // The Discover Results component will manage URL params, including page filters state
+      // This avoids an unnecessary re-render when forcing a project filter for team plan users
+      skipInitializeUrlParams
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>

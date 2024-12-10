@@ -15,7 +15,10 @@ import {
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getReactNativeMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {getReplayMobileConfigureDescription} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {
+  getReplayMobileConfigureDescription,
+  getReplayVerifyStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -34,11 +37,9 @@ Sentry.init({
   }${
     params.isProfilingSelected
       ? `
-  _experiments: {
-    // profilesSampleRate is relative to tracesSampleRate.
-    // Here, we'll capture profiles for 100% of transactions.
-    profilesSampleRate: 1.0,
-  },`
+  // profilesSampleRate is relative to tracesSampleRate.
+  // Here, we'll capture profiles for 100% of transactions.
+  profilesSampleRate: 1.0,`
       : ''
   }
 });`;
@@ -131,11 +132,9 @@ const onboarding: OnboardingConfig = {
                 </ListItem>
                 <ListItem>
                   {tct(
-                    "Android Specifics: We hook into Gradle for the source map build process. When you run [gradLewCode:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [orgGradleCode:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [orgGradleCodeConfigureCode:org.gradle.configureondemand=false] or remove it.",
+                    "Android Specifics: We hook into Gradle for the source map build process. When you run [code:./gradlew] assembleRelease, source maps are automatically built and uploaded to Sentry. If you have enabled Gradle's [code:org.gradle.configureondemand] feature, you'll need a clean build, or you'll need to disable this feature to upload the source map on every build by setting [code:org.gradle.configureondemand=false] or remove it.",
                     {
-                      gradLewCode: <code />,
-                      orgGradleCode: <code />,
-                      orgGradleCodeConfigureCode: <code />,
+                      code: <code />,
                     }
                   )}
                 </ListItem>
@@ -154,7 +153,7 @@ const onboarding: OnboardingConfig = {
           ? [
               {
                 description: t(
-                  'React Native Profiling beta is available since SDK version 5.8.0.'
+                  'React Native Profiling is available since SDK version 5.32.0.'
                 ),
               },
             ]
@@ -478,7 +477,7 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 

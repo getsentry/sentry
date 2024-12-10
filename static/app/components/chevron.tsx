@@ -6,6 +6,11 @@ import theme from 'sentry/utils/theme';
 interface ChevronProps extends React.SVGAttributes<SVGSVGElement> {
   direction?: 'up' | 'right' | 'down' | 'left';
   /**
+   * Whether to lighten (by lowering the opacity) the chevron. Useful if the chevron is
+   * inside a dropdown trigger button.
+   */
+  light?: boolean;
+  /**
    * The size of the checkbox. Defaults to 'sm'.
    */
   size?: 'large' | 'medium' | 'small';
@@ -51,6 +56,7 @@ function Chevron({
   size = 'medium',
   weight = 'regular',
   direction = 'down',
+  light = false,
   ...props
 }: ChevronProps) {
   return (
@@ -58,6 +64,7 @@ function Chevron({
       viewBox="0 0 14 14"
       size={chevronSizeMap[size]}
       weightFactor={rubikWeightFactor[weight]}
+      strokeOpacity={light ? 0.6 : 1}
       {...props}
     >
       <motion.path

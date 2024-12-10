@@ -13,6 +13,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript',
   'javascript-angular',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-vue',
   'node',
@@ -45,6 +46,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
+  'javascript-nuxt',
   'unity',
 ]);
 

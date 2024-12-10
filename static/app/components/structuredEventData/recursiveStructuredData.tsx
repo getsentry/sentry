@@ -245,11 +245,17 @@ const ValueString = styled('span')`
   color: var(--prism-selector);
 `;
 
-const ValueMultiLineString = styled('span')`
+/**
+ * Multi-line strings have preformatted text that includes newlines.
+ * We use a <pre> tag to preserve the newlines.
+ */
+const ValueMultiLineString = styled('pre')`
   display: block;
   overflow: auto;
   border-radius: 4px;
   padding: 2px 4px;
+  background-color: transparent;
+  color: ${p => p.theme.textColor};
 `;
 
 const ValueStrippedString = styled('span')`

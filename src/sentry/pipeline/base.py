@@ -95,7 +95,7 @@ class Pipeline(abc.ABC):
 
         return PipelineRequestState(state, provider_model, organization, provider_key)
 
-    def get_provider(self, provider_key: str) -> PipelineProvider:
+    def get_provider(self, provider_key: str, **kwargs) -> PipelineProvider:
         provider: PipelineProvider = self.provider_manager.get(provider_key)
         return provider
 
@@ -118,7 +118,7 @@ class Pipeline(abc.ABC):
         )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key)
+        self.provider = self.get_provider(provider_key, organization=organization)
 
         self.config = config or {}
         self.provider.set_pipeline(self)

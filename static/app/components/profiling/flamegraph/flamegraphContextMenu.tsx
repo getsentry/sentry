@@ -167,7 +167,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy function name')}
+              {t('Copy Function Name')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
@@ -179,7 +179,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy source location')}
+              {t('Copy Source Location')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
@@ -414,7 +414,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy function name')}
+              {t('Copy Function Name')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
@@ -426,7 +426,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy source location')}
+              {t('Copy Source Location')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}

@@ -70,6 +70,11 @@ type Props = {
 };
 
 /**
+ * Normalized props for feature configuration objects
+ */
+export type FeatureProps = Omit<Props, 'children' | 'config' | 'organization'>;
+
+/**
  * Common props passed to children and disabled render handlers.
  */
 type FeatureRenderProps = {

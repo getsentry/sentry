@@ -16,9 +16,15 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 describe('ContextPickerModal', function () {
-  let project, project2, project4, org, org2;
+  let project!: Project;
+  let project2!: Project;
+  let project4!: Project;
+  let org!: Organization;
+  let org2!: Organization;
   const onFinish = jest.fn();
 
   beforeEach(function () {
@@ -299,5 +305,32 @@ describe('ContextPickerModal', function () {
     });
 
     expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
+  });
+
+  it('preserves path object query parameters', async function () {
+    OrganizationsStore.load([org2]);
+    OrganizationStore.onUpdate(org2);
+
+    const fetchProjectsForOrg = MockApiClient.addMockResponse({
+      url: `/organizations/${org2.slug}/projects/`,
+      body: [project2],
+    });
+
+    render(
+      getComponent({
+        needOrg: true,
+        needProject: true,
+        nextPath: {
+          pathname: '/test/:orgId/path/:projectId/',
+          query: {referrer: 'onboarding_task'},
+        },
+      })
+    );
+
+    await waitFor(() => expect(fetchProjectsForOrg).toHaveBeenCalled());
+    expect(onFinish).toHaveBeenLastCalledWith({
+      pathname: '/test/org2/path/project2/',
+      query: {referrer: 'onboarding_task'},
+    });
   });
 });

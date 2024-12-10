@@ -110,7 +110,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Internet Explorer Verison 11 and lower',
+        name: 'Internet Explorer Version 11 and lower',
       })
     ).toBeChecked();
 
@@ -279,7 +279,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByText(
-        "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+        "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
       )
     ).toBeInTheDocument();
   });

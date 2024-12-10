@@ -11,6 +11,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -25,7 +26,9 @@ import type {SpanOperationTableProps} from 'sentry/views/insights/mobile/common/
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
+import {SUMMARY_PAGE_BASE_URL} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import {
   ModuleName,
   SpanMetricsField,
@@ -42,7 +45,9 @@ export function SpanOperationTable({
   secondaryRelease,
 }: SpanOperationTableProps) {
   const moduleURL = useModuleURL('mobile-ui');
+  const screenRenderingModuleUrl = useModuleURL(ModuleName.SCREEN_RENDERING);
   const location = useLocation();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
 
@@ -51,6 +56,8 @@ export function SpanOperationTable({
   const subregions = decodeList(
     location.query[SpanMetricsField.USER_GEO_SUBREGION]
   ) as SubregionCode[];
+
+  const isMobileScreensEnabled = isModuleEnabled(ModuleName.MOBILE_SCREENS, organization);
 
   // TODO: These filters seem to be too aggressive, check that they are ingesting properly
   const searchQuery = new MutableSearch([
@@ -155,7 +162,10 @@ export function SpanOperationTable({
     if (column.key === SPAN_DESCRIPTION) {
       const label = row[SpanMetricsField.SPAN_DESCRIPTION];
 
-      const pathname = `${moduleURL}/spans/`;
+      const pathname = isMobileScreensEnabled
+        ? `${moduleURL}/spans/`
+        : `${screenRenderingModuleUrl}/${SUMMARY_PAGE_BASE_URL}/`;
+
       const query = {
         ...location.query,
         transaction,
@@ -165,9 +175,11 @@ export function SpanOperationTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>
+            <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
+          </Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 

@@ -19,7 +19,7 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -38,7 +38,6 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
 from sentry.notifications.services import notifications_service
-from sentry.snuba.models import SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -65,6 +64,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "apple-macos",
     "bun",
     "capacitor",
+    "cloudflare-pages",
+    "cloudflare-workers",
     "cordova",
     "dart",
     "deno",
@@ -230,7 +231,7 @@ class Project(Model, PendingDeletionMixin):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    slug = SentrySlugField(null=True)
+    slug = SentrySlugField(null=True, max_length=PROJECT_SLUG_MAX_LENGTH)
     # DEPRECATED do not use, prefer slug
     name = models.CharField(max_length=200)
     forced_color = models.CharField(max_length=6, null=True, blank=True)
@@ -467,6 +468,7 @@ class Project(Model, PendingDeletionMixin):
         return self.slug
 
     def transfer_to(self, organization):
+        from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.models.environment import Environment, EnvironmentProject
@@ -474,8 +476,8 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.rule import Rule
-        from sentry.models.scheduledeletion import RegionScheduledDeletion
         from sentry.monitors.models import Monitor
+        from sentry.snuba.models import SnubaQuery
 
         old_org_id = self.organization_id
         org_changed = old_org_id != organization.id

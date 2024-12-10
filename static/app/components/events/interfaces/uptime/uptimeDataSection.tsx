@@ -2,9 +2,8 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -14,6 +13,8 @@ import {type Group, GroupActivityType, GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
@@ -24,6 +25,7 @@ interface Props {
 const DOWNTIME_START_TYPES = [
   GroupActivityType.SET_UNRESOLVED,
   GroupActivityType.FIRST_SEEN,
+  GroupActivityType.SET_REGRESSION,
 ];
 
 const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
@@ -31,10 +33,10 @@ const DOWNTIME_TERMINAL_TYPES = [GroupActivityType.SET_RESOLVED];
 export function UptimeDataSection({group, event, project}: Props) {
   const organization = useOrganization();
   const nowRef = useRef(new Date());
-  const downtimeStartActivity = group.activity.findLast(activity =>
+  const downtimeStartActivity = group.activity.find(activity =>
     DOWNTIME_START_TYPES.includes(activity.type)
   );
-  const downtimeEndActivity = group.activity.findLast(activity =>
+  const downtimeEndActivity = group.activity.find(activity =>
     DOWNTIME_TERMINAL_TYPES.includes(activity.type)
   );
 
@@ -65,10 +67,11 @@ export function UptimeDataSection({group, event, project}: Props) {
   const alertRuleId = event.tags.find(tag => tag.key === 'uptime_rule')?.value;
 
   return (
-    <EventDataSection
+    <InterimSection
       title={t('Downtime Information')}
-      type="downtime"
+      type={SectionKey.DOWNTIME}
       help={t('Information about the detected downtime')}
+      preventCollapse
       actions={
         alertRuleId !== undefined && (
           <LinkButton
@@ -90,7 +93,7 @@ export function UptimeDataSection({group, event, project}: Props) {
         : tct('Domain has been down for [duration]', {
             duration,
           })}
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

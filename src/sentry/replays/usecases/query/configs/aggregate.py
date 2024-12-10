@@ -19,12 +19,19 @@ from sentry.replays.lib.new_query.fields import (
     CountField,
     FieldProtocol,
     IntegerColumnField,
+    NullableStringColumnField,
     StringColumnField,
     SumField,
     SumLengthField,
     UUIDColumnField,
 )
-from sentry.replays.lib.new_query.parsers import parse_int, parse_ipv4, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import (
+    parse_duration,
+    parse_int,
+    parse_ipv4,
+    parse_str,
+    parse_uuid,
+)
 from sentry.replays.lib.selector.parse import parse_selector
 from sentry.replays.usecases.query.conditions import (
     AggregateActivityScalar,
@@ -42,6 +49,7 @@ from sentry.replays.usecases.query.conditions import (
 )
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
 from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
+from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 
 
@@ -101,7 +109,7 @@ search_config: dict[str, FieldProtocol] = {
     "device.model": string_field("device_model"),
     "device.name": string_field("device_name"),
     "dist": string_field("dist"),
-    "duration": ComputedField(parse_int, SimpleAggregateDurationScalar),
+    "duration": ComputedField(parse_duration, SimpleAggregateDurationScalar),
     "environment": string_field("environment"),
     "error_ids": ComputedField(parse_uuid, SumOfErrorIdScalar),
     # Backwards Compat: We pass a simple string to the UUID column. Older versions of ClickHouse
@@ -120,7 +128,7 @@ search_config: dict[str, FieldProtocol] = {
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
-    "user.ip_address": StringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
+    "user.ip_address": NullableStringColumnField("ip_address_v4", parse_ipv4, SumOfIPv4Scalar),
     "user.username": string_field("user_name"),
     "viewed_by_id": IntegerColumnField("viewed_by_id", parse_int, SumOfIntegerIdScalar),
     "warning_ids": UUIDColumnField("warning_id", parse_uuid, SumOfUUIDScalar),
@@ -154,4 +162,4 @@ search_config["user.ip"] = search_config["user.ip_address"]
 
 # Field-names which could not be found in the set are tag-keys and will, by default, look for
 # the `*` key to find their search instructions. If this is not defined an error is returned.
-search_config["*"] = TagField()
+search_config["*"] = TagField(query=SumOfTagAggregate)

@@ -19,7 +19,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings, get_autofix_state
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import get_seer_salted_url, sign_with_seer_secret
 from sentry.tasks.autofix import check_autofix_status
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -39,8 +39,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ML_AI
-    # go away
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "POST": {
@@ -87,6 +85,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         serialized_event: dict[str, Any],
         instruction: str,
         timeout_secs: int,
+        pr_to_comment_on_url: str | None = None,
     ):
         path = "/v1/automation/autofix/start"
         body = orjson.dumps(
@@ -112,22 +111,20 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     else None
                 ),
                 "options": {
-                    "disable_codebase_indexing": features.has(
-                        "organizations:autofix-disable-codebase-indexing",
-                        group.organization,
-                        actor=user,
-                    )
+                    "comment_on_pr_with_url": pr_to_comment_on_url,
                 },
             },
             option=orjson.OPT_NON_STR_KEYS,
         )
+
+        url, salt = get_seer_salted_url(f"{settings.SEER_AUTOFIX_URL}{path}")
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
+            url,
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(
-                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                    salt,
                     body=body,
                 ),
             },
@@ -159,8 +156,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
         created_at = datetime.now().isoformat()
 
         if not (
-            features.has("projects:ai-autofix", group.project)
-            or features.has("organizations:autofix", group.organization)
+            features.has("organizations:gen-ai-features", group.organization, actor=request.user)
+            and group.organization.get_option("sentry:gen_ai_consent_v2024_11_14", False)
         ):
             return self._respond_with_error("AI Autofix is not enabled for this project.", 403)
 
@@ -189,6 +186,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 serialized_event,
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
+                data.get("pr_to_comment_on_url", None),  # support optional PR id for copilot
             )
         except Exception as e:
             logger.exception(

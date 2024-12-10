@@ -3,6 +3,7 @@ from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
 from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
+from sentry.sentry_apps.web.debug_sentry_app_notify_disable import DebugSentryAppNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -20,7 +21,6 @@ from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMu
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
-from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email_activated_alert import (
     DebugIncidentActivatedAlertTriggerEmailView,
@@ -61,9 +61,6 @@ from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailVie
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
-)
-from sentry.web.frontend.debug.debug_sentry_app_notify_disable import (
-    DebugSentryAppNotifyDisableView,
 )
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug.debug_sso_link_email import (
@@ -148,12 +145,11 @@ urlpatterns = [
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(
-        r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
+        r"^debug/mail/sso-unlinked/no-password/$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
     ),
-    re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
-    re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
+    re_path(r"^debug/mail/incident-trigger/$", DebugIncidentTriggerEmailView.as_view()),
     re_path(
-        r"^debug/mail/activated-incident-trigger$",
+        r"^debug/mail/activated-incident-trigger/$",
         DebugIncidentActivatedAlertTriggerEmailView.as_view(),
     ),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),

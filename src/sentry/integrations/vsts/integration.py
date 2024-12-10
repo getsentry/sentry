@@ -20,6 +20,7 @@ from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -31,6 +32,10 @@ from sentry.integrations.services.integration import RpcOrganizationIntegration,
 from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.integrations.vsts.issues import VstsIssuesSpec
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
@@ -42,6 +47,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationProviderError,
 )
 from sentry.silo.base import SiloMode
+from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
@@ -385,6 +391,8 @@ class VstsIntegrationProvider(IntegrationProvider):
     oauth_redirect_url = "/extensions/vsts/setup/"
     needs_default_identity = True
     integration_cls = VstsIntegration
+    CURRENT_MIGRATION_VERSION = 1
+    NEW_SCOPES = ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
 
     features = frozenset(
         [
@@ -422,6 +430,13 @@ class VstsIntegrationProvider(IntegrationProvider):
             )
 
     def get_scopes(self) -> Sequence[str]:
+        # TODO(iamrajjoshi): Delete this after Azure DevOps migration is complete
+        if features.has(
+            "organizations:migrate-azure-devops-integration", self.pipeline.organization
+        ):
+            # This is the new way we need to pass scopes to the OAuth flow
+            # https://stackoverflow.com/questions/75729931/get-access-token-for-azure-devops-pat
+            return VstsIntegrationProvider.NEW_SCOPES
         return ("vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
@@ -459,12 +474,50 @@ class VstsIntegrationProvider(IntegrationProvider):
             },
         }
 
+        # TODO(iamrajjoshi): Clean this up this after Azure DevOps migration is complete
         try:
             integration_model = IntegrationModel.objects.get(
                 provider="vsts", external_id=account["accountId"], status=ObjectStatus.ACTIVE
             )
-            # preserve previously created subscription information
-            integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
+
+            # Get Integration Metadata
+            integration_migration_version = integration_model.metadata.get(
+                "integration_migration_version", 0
+            )
+
+            if (
+                features.has(
+                    "organizations:migrate-azure-devops-integration", self.pipeline.organization
+                )
+                and integration_migration_version
+                < VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+            ):
+                subscription_id, subscription_secret = self.create_subscription(
+                    base_url=base_url, oauth_data=oauth_data
+                )
+                integration["metadata"]["subscription"] = {
+                    "id": subscription_id,
+                    "secret": subscription_secret,
+                }
+
+                integration["metadata"][
+                    "integration_migration_version"
+                ] = VstsIntegrationProvider.CURRENT_MIGRATION_VERSION
+
+                logger.info(
+                    "vsts.build_integration.migrated",
+                    extra={
+                        "organization_id": self.pipeline.organization.id,
+                        "user_id": user["id"],
+                        "account": account,
+                        "migration_version": VstsIntegrationProvider.CURRENT_MIGRATION_VERSION,
+                        "subscription_id": subscription_id,
+                        "integration_id": integration_model.id,
+                    },
+                )
+            else:
+                # preserve previously created subscription information
+                integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
 
             logger.info(
                 "vsts.build_integration",
@@ -480,7 +533,24 @@ class VstsIntegrationProvider(IntegrationProvider):
                 status=ObjectStatus.ACTIVE,
             ).exists()
 
+            metrics.incr(
+                "integrations.migration.vsts_integration_migration",
+                sample_rate=1.0,
+            )
+
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
+            logger.warning(
+                "vsts.build_integration.error",
+                extra={
+                    "organization_id": (
+                        self.pipeline.organization.id
+                        if self.pipeline and self.pipeline.organization
+                        else None
+                    ),
+                    "user_id": user["id"],
+                    "account": account,
+                },
+            )
             subscription_id, subscription_secret = self.create_subscription(
                 base_url=base_url, oauth_data=oauth_data
             )
@@ -517,7 +587,9 @@ class VstsIntegrationProvider(IntegrationProvider):
                 raise IntegrationProviderError(
                     "Sentry cannot communicate with this Azure DevOps organization.\n"
                     "Please ensure third-party app access via OAuth is enabled \n"
-                    "in the organization's security policy."
+                    "in the organization's security policy \n"
+                    "The user installing the integration must have project administrator permissions. \n"
+                    "The user installing might also need admin permissions depending on the organization's security policy."
                 )
             raise
 
@@ -564,43 +636,46 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 class AccountConfigView(PipelineView):
     def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
-        account_id = request.POST.get("account")
-        if account_id is not None:
-            state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
-                key="accounts"
-            )
-            account = self.get_account_from_id(account_id, state_accounts or [])
-            if account is not None:
-                pipeline.bind_state("account", account)
-                return pipeline.next_step()
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.ACCOUNT_CONFIG,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            VstsIntegrationProvider.key,
+        ).capture() as lifecycle:
+            account_id = request.POST.get("account")
+            if account_id is not None:
+                state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
+                    key="accounts"
+                )
+                account = self.get_account_from_id(account_id, state_accounts or [])
+                if account is not None:
+                    pipeline.bind_state("account", account)
+                    return pipeline.next_step()
 
-        state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
-        access_token = (state or {}).get("data", {}).get("access_token")
-        user = get_user_info(access_token)
+            state: Mapping[str, Any] | None = pipeline.fetch_state(key="identity")
+            access_token = (state or {}).get("data", {}).get("access_token")
+            user = get_user_info(access_token)
 
-        accounts = self.get_accounts(access_token, user["uuid"])
-        logger.info(
-            "vsts.get_accounts",
-            extra={
+            accounts = self.get_accounts(access_token, user["uuid"])
+            extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
                 "accounts": accounts,
-            },
-        )
-        if not accounts or not accounts.get("value"):
+            }
+            if not accounts or not accounts.get("value"):
+                lifecycle.record_failure("no_accounts", extra=extra)
+                return render_to_response(
+                    template="sentry/integrations/vsts-config.html",
+                    context={"no_accounts": True},
+                    request=request,
+                )
+            accounts = accounts["value"]
+            pipeline.bind_state("accounts", accounts)
+            account_form = AccountForm(accounts)
             return render_to_response(
                 template="sentry/integrations/vsts-config.html",
-                context={"no_accounts": True},
+                context={"form": account_form, "no_accounts": False},
                 request=request,
             )
-        accounts = accounts["value"]
-        pipeline.bind_state("accounts", accounts)
-        account_form = AccountForm(accounts)
-        return render_to_response(
-            template="sentry/integrations/vsts-config.html",
-            context={"form": account_form, "no_accounts": False},
-            request=request,
-        )
 
     def get_account_from_id(
         self, account_id: int, accounts: Sequence[Mapping[str, Any]]

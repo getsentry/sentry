@@ -1,10 +1,9 @@
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 interface UseTransactionProps {
   node: TraceTreeNode<TraceTree.Transaction> | null;
@@ -23,7 +22,7 @@ export function useTransaction(props: UseTransactionProps) {
     ],
     {
       staleTime: 0,
-      enabled: !!props.node,
+      enabled: !!props.node?.value?.project_slug && !!props.node?.value.event_id,
     }
   );
 }

@@ -168,7 +168,7 @@ class ScopedPermission(BasePermission):
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
+    def has_object_permission(self, request: Request, view: object | None, obj: Any) -> bool:
         return False
 
 

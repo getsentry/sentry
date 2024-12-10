@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import importlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
+from django.apps import apps
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
@@ -20,6 +22,12 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class GroupCategory(Enum):
@@ -30,6 +38,7 @@ class GroupCategory(Enum):
     REPLAY = 5
     FEEDBACK = 6
     UPTIME = 7
+    METRIC_ALERT = 8
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (
@@ -117,11 +126,24 @@ class NoiseConfig:
         return int(self.expiry_time.total_seconds())
 
 
+class NotificationContextField(StrEnum):
+    EVENTS = "Events"
+    USERS_AFFECTED = "Users Affected"
+    STATE = "State"
+    FIRST_SEEN = "First Seen"
+    APPROX_START_TIME = "Approx. Start Time"
+
+
 @dataclass(frozen=True)
 class NotificationConfig:
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
-        default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
+        default_factory=lambda: [
+            NotificationContextField.EVENTS,
+            NotificationContextField.USERS_AFFECTED,
+            NotificationContextField.STATE,
+            NotificationContextField.FIRST_SEEN,
+        ]
     )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
     actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
     extra_action: dict[str, str] = field(
@@ -140,13 +162,18 @@ class GroupType:
     # If True this group type should be released everywhere. If False, fall back to features to
     # decide if this is released.
     released: bool = False
+    # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
+    in_default_search: bool = True
 
     # Allow automatic resolution of an issue type, using the project-level option.
     enable_auto_resolve: bool = True
     # Allow escalation forecasts and detection
     enable_escalation_detection: bool = True
+    # Quota around many of these issue types can be created per project in a given time window
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
+    detector_handler: type[DetectorHandler] | None = None
+    detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -384,7 +411,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -397,7 +424,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 # experimental
@@ -497,7 +524,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -509,7 +536,7 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -559,6 +586,7 @@ class ReplayRageClickType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -569,6 +597,7 @@ class ReplayHydrationErrorType(ReplayGroupTypeDefaults, GroupType):
     category = GroupCategory.REPLAY.value
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig()
+    released = True
 
 
 @dataclass(frozen=True)
@@ -580,6 +609,9 @@ class FeedbackGroup(GroupType):
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[])
+    released = True
+    in_default_search = False  # hide from issues stream
+    released = True
 
 
 @dataclass(frozen=True)
@@ -589,6 +621,17 @@ class UptimeDomainCheckFailure(GroupType):
     description = "Uptime Domain Monitor Failure"
     category = GroupCategory.UPTIME.value
     creation_quota = Quota(3600, 60, 1000)  # 1000 per hour, sliding window of 60 seconds
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class MetricIssuePOC(GroupType):
+    type_id = 8002
+    slug = "metric_issue_poc"
+    description = "Metric Issue POC"
+    category = GroupCategory.METRIC_ALERT.value
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
@@ -624,3 +667,19 @@ def should_create_group(
     else:
         client.expire(key, noise_config.expiry_seconds)
         return False
+
+
+def import_grouptype():
+    """
+    Ensures that grouptype.py is imported in any apps that implement it. We do this to make sure that all implemented
+    grouptypes are loaded and registered.
+    """
+    for app_config in apps.get_app_configs():
+        grouptype_module = f"{app_config.name}.grouptype"
+        try:
+            # Try to import the module
+            importlib.import_module(grouptype_module)
+            logger.debug("Imported module", extra={"module_name": grouptype_module})
+        except ModuleNotFoundError:
+            # If the module is not found, continue without any issues
+            logger.debug("No grouptypes found for app", extra={"app": app_config.name})

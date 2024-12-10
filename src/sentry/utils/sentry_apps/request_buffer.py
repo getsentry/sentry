@@ -10,11 +10,11 @@ from django.utils import timezone
 from redis.client import Pipeline
 from requests.models import Response
 
-from sentry.models.integrations.sentry_app import VALID_EVENTS
+from sentry.sentry_apps.models.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
 
 if TYPE_CHECKING:
-    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 BUFFER_SIZE = 100
@@ -81,12 +81,10 @@ class SentryAppWebhookRequestsBuffer:
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None: ...
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str) -> list[str]:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str) -> list[str]: ...
 
     def _get_all_from_buffer(
         self, buffer_key: str, pipeline: Pipeline[str] | None = None

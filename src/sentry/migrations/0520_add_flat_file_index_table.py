@@ -52,7 +52,6 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_artifactbundleflatfileindex",
-                "index_together": {("project_id", "release_name", "dist_name")},
             },
         ),
         migrations.CreateModel(

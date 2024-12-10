@@ -56,7 +56,7 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
   return (
@@ -74,7 +74,7 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
 

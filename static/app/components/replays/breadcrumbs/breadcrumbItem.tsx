@@ -6,24 +6,19 @@ import beautify from 'js-beautify';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
-import ObjectInspector from 'sentry/components/objectInspector';
-import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
-import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Extraction} from 'sentry/utils/replays/extractHtml';
+import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {
   ErrorFrame,
@@ -34,26 +29,24 @@ import type {
 } from 'sentry/utils/replays/types';
 import {
   isBreadcrumbFrame,
+  isCLSFrame,
   isErrorFrame,
   isFeedbackFrame,
   isHydrationErrorFrame,
   isSpanFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
-import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
+import type {OnExpandCallback} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 type MouseCallback = (frame: ReplayFrame, nodeId?: number) => void;
-
-const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
@@ -78,8 +71,6 @@ function BreadcrumbItem({
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
-  const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
-
   const renderDescription = useCallback(() => {
     return typeof description === 'string' ||
       (description !== undefined && isValidElement(description)) ? (
@@ -87,22 +78,24 @@ function BreadcrumbItem({
         {description}
       </Description>
     ) : (
-      <InspectorWrapper>
-        <ObjectInspector
-          data={description}
-          expandPaths={expandPaths}
-          onExpand={onInspectorExpanded}
-          theme={{
-            TREENODE_FONT_SIZE: '0.7rem',
-            ARROW_FONT_SIZE: '0.5rem',
+      <Wrapper>
+        <StructuredEventData
+          initialExpandedPaths={expandPaths ?? []}
+          onToggleExpand={(expandedPaths, path) => {
+            onInspectorExpanded(
+              path,
+              Object.fromEntries(expandedPaths.map(item => [item, true]))
+            );
           }}
+          data={description}
+          withAnnotatedText
         />
-      </InspectorWrapper>
+      </Wrapper>
     );
   }, [description, expandPaths, onInspectorExpanded]);
 
   const renderComparisonButton = useCallback(() => {
-    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) && replay ? (
       <CrumbHydrationButton replay={replay} frame={frame} />
     ) : null;
   }, [frame, replay]);
@@ -110,7 +103,7 @@ function BreadcrumbItem({
   const renderWebVital = useCallback(() => {
     return isSpanFrame(frame) && isWebVitalFrame(frame) ? (
       <WebVitalData
-        replay={replay}
+        selectors={extraction?.selectors}
         frame={frame}
         expandPaths={expandPaths}
         onInspectorExpanded={onInspectorExpanded}
@@ -118,7 +111,14 @@ function BreadcrumbItem({
         onMouseLeave={onMouseLeave}
       />
     ) : null;
-  }, [expandPaths, frame, onInspectorExpanded, onMouseEnter, onMouseLeave, replay]);
+  }, [
+    expandPaths,
+    extraction?.selectors,
+    frame,
+    onInspectorExpanded,
+    onMouseEnter,
+    onMouseLeave,
+  ]);
 
   const renderCodeSnippet = useCallback(() => {
     return (
@@ -139,87 +139,42 @@ function BreadcrumbItem({
     ) : null;
   }, [frame]);
 
-  const hasNewTimelineUI = useHasNewTimelineUI();
-  if (hasNewTimelineUI) {
-    // Coerce previous design colors into new ones. After 'new-timeline-ui' is GA, we can modify
-    // the mapper directly.
-    const darkColor =
-      color === 'gray300' ? color : (color.replace('300', '400') as Color);
-    return (
-      <StyledTimelineItem
-        icon={icon}
-        title={title}
-        colorConfig={{title: darkColor, icon: darkColor, iconBorder: color}}
-        timestamp={
-          <ReplayTimestamp>
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          </ReplayTimestamp>
-        }
-        data-is-error-frame={isErrorFrame(frame)}
-        style={style}
-        className={className}
-        onClick={event => {
-          event.stopPropagation();
-          onClick?.(frame);
-        }}
-        onMouseEnter={() => onMouseEnter(frame)}
-        onMouseLeave={() => onMouseLeave(frame)}
-      >
-        <ErrorBoundary mini>
-          {renderDescription()}
-          {renderComparisonButton()}
-          {renderWebVital()}
-          {renderCodeSnippet()}
-          {renderIssueLink()}
-        </ErrorBoundary>
-      </StyledTimelineItem>
-    );
-  }
   return (
-    <CrumbItem
+    <StyledTimelineItem
+      icon={icon}
+      title={title}
+      colorConfig={{title: color, icon: color, iconBorder: color}}
+      timestamp={
+        <ReplayTimestamp>
+          <TimestampButton
+            startTimestampMs={startTimestampMs}
+            timestampMs={frame.timestampMs}
+          />
+        </ReplayTimestamp>
+      }
       data-is-error-frame={isErrorFrame(frame)}
-      as={onClick && !forceSpan ? 'button' : 'span'}
+      style={style}
+      className={className}
       onClick={event => {
         event.stopPropagation();
         onClick?.(frame);
       }}
       onMouseEnter={() => onMouseEnter(frame)}
       onMouseLeave={() => onMouseLeave(frame)}
-      style={style}
-      className={className}
     >
-      <IconWrapper color={color} hasOccurred>
-        {icon}
-      </IconWrapper>
       <ErrorBoundary mini>
-        <CrumbDetails>
-          <Flex column>
-            <TitleContainer>
-              {<Title>{title}</Title>}
-              {onClick ? (
-                <TimestampButton
-                  startTimestampMs={startTimestampMs}
-                  timestampMs={frame.timestampMs}
-                />
-              ) : null}
-            </TitleContainer>
-            {renderDescription()}
-          </Flex>
-          {renderComparisonButton()}
-          {renderWebVital()}
-          {renderCodeSnippet()}
-          {renderIssueLink()}
-        </CrumbDetails>
+        {renderDescription()}
+        {renderComparisonButton()}
+        {renderWebVital()}
+        {renderCodeSnippet()}
+        {renderIssueLink()}
       </ErrorBoundary>
-    </CrumbItem>
+    </StyledTimelineItem>
   );
 }
 
 function WebVitalData({
-  replay,
+  selectors,
   frame,
   expandPaths,
   onInspectorExpanded,
@@ -228,20 +183,13 @@ function WebVitalData({
 }: {
   expandPaths: string[] | undefined;
   frame: WebVitalFrame;
-  onInspectorExpanded: (path: string, expandedState: Record<string, boolean>) => void;
+  onInspectorExpanded: OnExpandCallback;
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
-  replay: ReplayReader | null;
+  selectors: Map<number, string> | undefined;
 }) {
-  const {data: frameToExtraction} = useExtractDomNodes({replay});
-  const selectors = frameToExtraction?.get(frame)?.selectors;
-
   const webVitalData = {value: frame.data.value};
-  if (
-    frame.description === 'cumulative-layout-shift' &&
-    frame.data.attributions &&
-    selectors
-  ) {
+  if (isCLSFrame(frame) && frame.data.attributions && selectors) {
     const layoutShifts: {[x: string]: ReactNode[]}[] = [];
     for (const attr of frame.data.attributions) {
       const elements: ReactNode[] = [];
@@ -279,7 +227,7 @@ function WebVitalData({
     if (layoutShifts.length) {
       webVitalData['Layout shifts'] = layoutShifts;
     }
-  } else if (selectors?.size) {
+  } else if (selectors) {
     selectors.forEach((key, value) => {
       webVitalData[key] = (
         <span
@@ -298,17 +246,19 @@ function WebVitalData({
   }
 
   return (
-    <StructuredEventData
-      initialExpandedPaths={expandPaths ?? []}
-      onToggleExpand={(expandedPaths, path) => {
-        onInspectorExpanded(
-          path,
-          Object.fromEntries(expandedPaths.map(item => [item, true]))
-        );
-      }}
-      data={webVitalData}
-      withAnnotatedText
-    />
+    <Wrapper>
+      <StructuredEventData
+        initialExpandedPaths={expandPaths ?? []}
+        onToggleExpand={(expandedPaths, path) => {
+          onInspectorExpanded(
+            path,
+            Object.fromEntries(expandedPaths.map(item => [item, true]))
+          );
+        }}
+        data={webVitalData}
+        withAnnotatedText
+      />
+    </Wrapper>
   );
 }
 
@@ -317,7 +267,7 @@ function CrumbHydrationButton({
   frame,
 }: {
   frame: HydrationErrorFrame;
-  replay: ReplayReader | null;
+  replay: ReplayReader;
 }) {
   const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
 
@@ -379,33 +329,6 @@ const CrumbIssueWrapper = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-const InspectorWrapper = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-`;
-
-const CrumbDetails = styled('div')`
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  gap: ${space(0.5)};
-`;
-
-const TitleContainer = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Title = styled('span')`
-  ${p => p.theme.overflowEllipsis};
-  text-transform: capitalize;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.gray400};
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
 const Description = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
   font-size: 0.7rem;
@@ -448,53 +371,6 @@ const ReplayTimestamp = styled('div')`
   align-self: flex-start;
 `;
 
-const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
-  display: grid;
-  grid-template-columns: max-content auto;
-  align-items: flex-start;
-  gap: ${space(1)};
-  width: 100%;
-
-  font-size: ${p => p.theme.fontSizeMedium};
-  background: transparent;
-  [data-is-error-frame='true'] {
-    background: ${p => p.theme.red100};
-  }
-  padding: ${space(1)};
-  text-align: left;
-  border: none;
-  position: relative;
-
-  &:hover {
-    background: ${p => p.theme.surface200};
-  }
-
-  /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
-  &::after {
-    content: '';
-    position: absolute;
-    left: 19.5px;
-    width: 1px;
-    background: ${p => p.theme.gray200};
-    top: -1px;
-    bottom: -1px;
-  }
-
-  &:first-of-type::after {
-    top: ${space(1)};
-    bottom: -1px;
-  }
-
-  &:last-of-type::after {
-    top: -1px;
-    bottom: calc(100% - ${space(1)});
-  }
-
-  &:only-of-type::after {
-    display: none;
-  }
-`;
-
 const CodeContainer = styled('div')`
   max-height: 400px;
   max-width: 100%;
@@ -522,6 +398,12 @@ const SelectorButton = styled(Button)`
   margin: 0 ${space(0.5)};
   height: auto;
   min-height: auto;
+`;
+
+const Wrapper = styled('div')`
+  pre {
+    margin: 0;
+  }
 `;
 
 export default memo(BreadcrumbItem);

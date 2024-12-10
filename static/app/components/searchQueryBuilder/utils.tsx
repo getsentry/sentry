@@ -1,3 +1,6 @@
+import type {ListState} from '@react-stately/list';
+import type {Key} from '@react-types/shared';
+
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
@@ -69,6 +72,7 @@ export function parseQueryBuilderValue(
     disallowLogicalOperators?: boolean;
     disallowUnsupportedFilters?: boolean;
     disallowWildcard?: boolean;
+    getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
@@ -76,6 +80,7 @@ export function parseQueryBuilderValue(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
       disallowFreeText: options?.disallowFreeText,
+      getFilterTokenWarning: options?.getFilterTokenWarning,
       validateKeys: options?.disallowUnsupportedFilters,
       disallowWildcard: options?.disallowWildcard,
       disallowedLogicalOperators: options?.disallowLogicalOperators
@@ -196,4 +201,30 @@ export function recentSearchTypeToLabel(type: SavedSearchType | undefined) {
     default:
       return 'none';
   }
+}
+
+export function findNearestFreeTextKey(
+  state: ListState<ParseResultToken>,
+  startKey: Key | null,
+  direction: 'right' | 'left'
+): Key | null {
+  let key: Key | null = startKey;
+  while (key) {
+    const item = state.collection.getItem(key);
+    if (!item) {
+      break;
+    }
+    if (item.value?.type === Token.FREE_TEXT) {
+      return key;
+    }
+    key = (direction === 'right' ? item.nextKey : item.prevKey) ?? null;
+  }
+
+  if (key) {
+    return key;
+  }
+
+  return direction === 'right'
+    ? state.collection.getLastKey()
+    : state.collection.getFirstKey();
 }

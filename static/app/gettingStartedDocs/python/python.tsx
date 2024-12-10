@@ -1,3 +1,5 @@
+import {IntegrationOptions} from 'sentry/components/events/featureFlags/utils';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
@@ -15,6 +17,22 @@ import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
 
+type FlagImports = {
+  integration: string; // what's in the integrations array
+  module: string; // what's imported from sentry_sdk.integrations
+};
+
+const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
+  [IntegrationOptions.LAUNCHDARKLY]: {
+    module: 'launchdarkly',
+    integration: 'LaunchDarklyIntegration',
+  },
+  [IntegrationOptions.OPENFEATURE]: {
+    module: 'openfeature',
+    integration: 'OpenFeatureIntegration',
+  },
+};
+
 const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
@@ -29,7 +47,8 @@ sentry_sdk.init(
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
@@ -37,7 +56,33 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+def slow_function():
+    import time
+    time.sleep(0.1)
+    return "done"
+
+def fast_function():
+    import time
+    time.sleep(0.05)
+    return "done"
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+for i in range(0, 10):
+    slow_function()
+    fast_function()
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -51,10 +96,9 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
                   {
-                    codeVersion: <code />,
-                    codePackage: <code />,
+                    code: <code />,
                   }
                 )
               : undefined,
@@ -76,6 +120,10 @@ const onboarding: OnboardingConfig = {
           code: getSdkSetupSnippet(params),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: () => [
@@ -112,12 +160,128 @@ export const crashReportOnboardingPython: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+export const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your Python project is simple. Make sure you've got these basics down."
+    ),
+  install: onboarding.install,
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Configuration should happen as early as possible in your application's lifecycle."
+      ),
+      configurations: [
+        {
+          description: tct(
+            "Once this is done, Sentry's Python SDK captures all unhandled exceptions and transactions. Note that [code:enable_tracing] is available in Sentry Python SDK version [code:≥ 1.16.0]. To enable tracing in older SDK versions ([code:≥ 0.11.2]), use [code:traces_sample_rate=1.0].",
+            {code: <code />}
+          ),
+          language: 'python',
+          code: `
+import sentry-sdk
+
+sentry_sdk.init(
+  dsn="${params.dsn.public}",
+  enable_tracing=True,
+)`,
+          additionalInfo: tct(
+            'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: tct(
+        'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+          ),
+        }
+      ),
+      additionalInfo: tct(
+        'You have the option to manually construct a transaction using [link:custom instrumentation].',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/" />
+          ),
+        }
+      ),
+    },
+  ],
+  nextSteps: () => [],
+};
+
+export function AlternativeConfiguration() {
+  return (
+    <div>
+      {tct(
+        'Alternatively, you can also explicitly control continuous profiling or use transaction profiling. See our [link:documentation] for more information.',
+        {
+          link: (
+            <ExternalLink href="https://docs.sentry.io/platforms/python/profiling/" />
+          ),
+        }
+      )}
+    </div>
+  );
+}
+
+export const featureFlagOnboarding: OnboardingConfig = {
+  install: () => [],
+  configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct('Add [name] to your integrations list.', {
+        name: (
+          <code>{`${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}()`}</code>
+        ),
+      }),
+      configurations: [
+        {
+          language: 'python',
+          code: `
+import sentry-sdk
+from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[
+    ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
+  ]
+)`,
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  performanceOnboarding,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
 };
 
 export default docs;

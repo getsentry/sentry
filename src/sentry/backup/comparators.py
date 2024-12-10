@@ -802,6 +802,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
             ],
+            "sentry.dashboardfavoriteuser": [
+                DateUpdatedComparator("date_added", "date_updated"),
+            ],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
@@ -832,14 +835,17 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.relay": [HashObfuscatingComparator("relay_id", "public_key")],
             "sentry.relayusage": [HashObfuscatingComparator("relay_id", "public_key")],
+            "sentry.rollbackorganization": [DateUpdatedComparator("date_updated")],
+            "sentry.rollbackuser": [
+                UUID4Comparator("uuid", "share_uuid"),
+                DateUpdatedComparator("date_updated"),
+            ],
             "sentry.sentryapp": [
                 DateUpdatedComparator("date_updated"),
                 EmailObfuscatingComparator("creator_label"),
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
-            "sentry.spanattributeextractionruleconfig": [DateUpdatedComparator("date_updated")],
-            "sentry.spanattributeextractionrulecondition": [DateUpdatedComparator("date_updated")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
                 IgnoredComparator("org_role"),
@@ -867,6 +873,36 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.userrole": [DateUpdatedComparator("date_updated")],
             "sentry.userroleuser": [DateUpdatedComparator("date_updated")],
+            "workflow_engine.action": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datacondition": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.dataconditiongroup": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.dataconditiongroupaction": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.datasource": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.datasourcedetector": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.detector": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.detectorstate": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.detectorworkflow": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
+            "workflow_engine.workflowdataconditiongroup": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruledetector": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruleworkflow": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruletriggerdatacondition": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
         },
     )
 

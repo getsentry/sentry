@@ -22,7 +22,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {
   generateIssueEventTarget,
@@ -106,7 +105,7 @@ type Props = {
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
-  const profileId = useTransactionProfileId();
+  const profileId = props.event.contexts.profile?.profile_id;
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
 
@@ -398,24 +397,15 @@ function SpanDetail(props: Props) {
   }
 
   function renderSpanDetails() {
-    const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
+    const {span, event, organization, scrollToHash} = props;
 
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
           {organization.features.includes('profiling') ? (
-            <GapSpanDetails
-              event={event}
-              span={span}
-              resetCellMeasureCache={resetCellMeasureCache}
-            />
+            <GapSpanDetails event={event} span={span} />
           ) : (
-            <InlineDocs
-              orgSlug={organization.slug}
-              platform={event.sdk?.name || ''}
-              projectSlug={event?.projectSlug ?? ''}
-              resetCellMeasureCache={resetCellMeasureCache}
-            />
+            <InlineDocs platform={event.sdk?.name || ''} />
           )}
         </SpanDetails>
       );

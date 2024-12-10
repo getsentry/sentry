@@ -216,8 +216,6 @@ class _ClientConfig:
 
     @property
     def enabled_features(self) -> Iterable[str]:
-        if self.last_org and features.has("organizations:react-router-6", self.last_org):
-            yield "organizations:react-router-6"
         if features.has("organizations:create", actor=self.user):
             yield "organizations:create"
         if auth.has_user_registration():
@@ -226,6 +224,13 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
+        # TODO @athena: remove this feature flag after development is done
+        # this is a temporary hack to be able to used flagpole in a case where there's no organization
+        # availble on the frontend
+        if self.last_org and features.has(
+            "organizations:scoped-partner-oauth", self.last_org, actor=self.user
+        ):
+            yield "system:scoped-partner-oauth"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -397,6 +402,15 @@ class _ClientConfig:
 
         return True
 
+    @property
+    def demo_mode(self) -> bool:
+        if not options.get("demo-mode.enabled"):
+            return False
+
+        email = getattr(self.user, "email", None)
+
+        return email in options.get("demo-mode.users")
+
     def get_context(self) -> Mapping[str, Any]:
         return {
             "initialTrace": self.tracing_data,
@@ -416,6 +430,9 @@ class _ClientConfig:
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
             "isSelfHostedErrorsOnly": is_self_hosted_errors_only(),
+            # sentryMode intends to supersede isSelfHosted,
+            # so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
+            "sentryMode": settings.SENTRY_MODE.name,
             "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),
@@ -449,7 +466,7 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": settings.DEMO_MODE,
+            "demoMode": self.demo_mode,
             "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False

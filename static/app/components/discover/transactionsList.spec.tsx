@@ -3,7 +3,6 @@ import type {RenderResult} from 'sentry-test/reactTestingLibrary';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TransactionsList from 'sentry/components/discover/transactionsList';
-import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -60,12 +59,12 @@ describe('TransactionsList', function () {
         {
           sort: {kind: 'asc', field: 'transaction'},
           value: 'name',
-          label: t('Transactions'),
+          label: 'Transactions',
         },
         {
           sort: {kind: 'desc', field: 'count'},
           value: 'count',
-          label: t('Failing Transactions'),
+          label: 'Failing Transactions',
         },
       ];
       generateLink = {
@@ -185,7 +184,7 @@ describe('TransactionsList', function () {
       options.push({
         sort: {kind: 'desc', field: 'trend_percentage()'},
         value: 'regression',
-        label: t('Trending Regressions'),
+        label: 'Trending Regressions',
         trendType: 'regression',
       });
       render(

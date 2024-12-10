@@ -32,7 +32,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "hash": "11212012123120120415201309082013",
             "project_id": self.project.id,
             "stacktrace": "<stringified stacktrace>",
-            "message": "FailedToFetchError('Charlie didn't bring the ball back')",
             "exception_type": "FailedToFetchError",
         }
 
@@ -45,7 +44,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
         cases: list[tuple[RawSeerSimilarIssueData, str]] = [
             (
                 {
-                    "message_distance": 0.05,
                     "parent_hash": self.similar_event_hash,
                     "should_group": True,
                     "stacktrace_distance": 0.01,
@@ -54,7 +52,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
             ),
             (
                 {
-                    "message_distance": 0.08,
                     "parent_hash": self.similar_event_hash,
                     "should_group": False,
                     "stacktrace_distance": 0.05,
@@ -116,7 +113,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 {
                     "responses": [
                         {
-                            "message_distance": 0.05,
                             # missing parent hash
                             "should_group": True,
                             "stacktrace_distance": 0.01,
@@ -129,7 +125,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 {
                     "responses": [
                         {
-                            "message_distance": 0.05,
                             # hash value doesn't match the `GroupHash` created above
                             "parent_hash": "04152013090820131121201212312012",
                             "should_group": True,
@@ -143,7 +138,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
                 {
                     "responses": [
                         {
-                            "message_distance": 0.05,
                             # hash value matches the `GroupHash` created above, but that `GroupHash`
                             # has no associated group
                             "parent_hash": "dogs are great",
@@ -222,7 +216,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
                     "event_id": "12312012041520130908201311212012",
                     "hash": "11212012123120120415201309082013",
                     "project_id": self.project.id,
-                    "message_value": "FailedToFetchError('Charlie didn't bring the ball back')",
                 },
             )
             mock_metrics_incr.assert_any_call(
@@ -272,13 +265,11 @@ class GetSimilarityDataFromSeerTest(TestCase):
         less_similar_event = save_new_event({"message": "Charlie is goofy"}, self.project)
 
         raw_similar_issue_data: RawSeerSimilarIssueData = {
-            "message_distance": 0.05,
             "parent_hash": self.similar_event_hash,
             "should_group": True,
             "stacktrace_distance": 0.01,
         }
         raw_less_similar_issue_data: RawSeerSimilarIssueData = {
-            "message_distance": 0.10,
             "parent_hash": NonNone(less_similar_event.get_primary_hash()),
             "should_group": False,
             "stacktrace_distance": 0.05,
@@ -315,7 +306,6 @@ class GetSimilarityDataFromSeerTest(TestCase):
             {
                 "responses": [
                     {
-                        "message_distance": 0.05,
                         "parent_hash": "not a real hash",
                         "should_group": True,
                         "stacktrace_distance": 0.01,

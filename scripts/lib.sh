@@ -7,6 +7,12 @@
 # shellcheck disable=SC2034 # Unused variables
 # shellcheck disable=SC2001 # https://github.com/koalaman/shellcheck/wiki/SC2001
 
+POSTGRES_CONTAINER="sentry_postgres"
+USE_NEW_DEVSERVICES=${USE_NEW_DEVSERVICES:-"0"}
+if [ "$USE_NEW_DEVSERVICES" == "1" ]; then
+    POSTGRES_CONTAINER="sentry-postgres-1"
+fi
+
 # This block is a safe-guard since in CI calling tput will fail and abort scripts
 if [ -z "${CI+x}" ]; then
     bold="$(tput bold)"
@@ -78,17 +84,6 @@ sudo-askpass() {
     fi
 }
 
-node-version-check() {
-    # Checks to see if node's version matches the one specified in package.json for Volta.
-    node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
-        (
-            echo 'Unexpected node version. Recommended to use https://github.com/volta-cli/volta'
-            echo 'Run `volta install node` and `volta install yarn` to update your toolchain.'
-            echo 'If you do not have volta installed run `curl https://get.volta.sh | bash` or visit https://volta.sh'
-            exit 1
-        )
-}
-
 init-config() {
     sentry init --dev --no-clobber
 }
@@ -98,7 +93,7 @@ run-dependent-services() {
 }
 
 create-db() {
-    container_name=${POSTGRES_CONTAINER:-sentry_postgres}
+    container_name=${POSTGRES_CONTAINER}
     echo "--> Creating 'sentry' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
     echo "--> Creating 'control', 'region' and 'secondary' database"
@@ -143,7 +138,7 @@ clean() {
 }
 
 drop-db() {
-    container_name=${POSTGRES_CONTAINER:-sentry_postgres}
+    container_name=${POSTGRES_CONTAINER}
     echo "--> Dropping existing 'sentry' database"
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres sentry
     echo "--> Dropping 'control' and 'region' database"

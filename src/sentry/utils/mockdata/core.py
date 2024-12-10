@@ -758,7 +758,7 @@ def create_metric_alert_rule(organization: Organization, project: Project) -> No
     create_alert_rule_trigger(alert_rule, "critical", 10)
     create_incident(
         organization,
-        type_=IncidentType.DETECTED,
+        incident_type=IncidentType.DETECTED,
         title="My Incident",
         date_started=datetime.now(timezone.utc),
         alert_rule=alert_rule,
@@ -1291,7 +1291,7 @@ def create_mock_user_feedback(project, has_attachment=True):
         "event_id": str(uuid.uuid4()).replace("-", ""),
         "timestamp": time.time(),
         "received": "2024-4-27T22:23:29.574000+00:00",
-        "environment": "prod",
+        "environment": next(ENVIRONMENTS),
         "release": "frontend@daf1316f209d961443664cd6eb4231ca154db502",
         "user": {
             "ip_address": "72.164.175.154",

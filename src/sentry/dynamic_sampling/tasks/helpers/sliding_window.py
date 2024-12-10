@@ -37,23 +37,6 @@ def generate_sliding_window_org_cache_key(org_id: int) -> str:
     return f"ds::o:{org_id}:sliding_window_org_sample_rate"
 
 
-def get_sliding_window_org_sample_rate(
-    org_id: int, default_sample_rate: float | None
-) -> tuple[float | None, bool]:
-    redis_client = get_redis_client_for_ds()
-    cache_key = generate_sliding_window_org_cache_key(org_id)
-
-    try:
-        value = redis_client.get(cache_key)
-
-        if value is not None:
-            return float(value), True
-
-        return default_sample_rate, False
-    except (TypeError, ValueError):
-        return default_sample_rate, False
-
-
 def get_sliding_window_size() -> int | None:
     try:
         size = options.get("dynamic-sampling:sliding_window.size")

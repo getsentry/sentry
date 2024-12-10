@@ -20,7 +20,7 @@ class ConditionOperatorKind(str, Enum):
     """Provided a single value, check if the property (a list) is not included"""
 
     EQUALS = "equals"
-    """Comprare a value to another. Values are compared with types"""
+    """Compare a value to another. Values are compared with types"""
 
     NOT_EQUALS = "not_equals"
     """Compare a value to not be equal to another. Values are compared with types"""
@@ -216,7 +216,7 @@ class Segment:
     conditions: list[ConditionBase] = dataclasses.field(default_factory=list)
     "The list of conditions that the segment must be matched in order for this segment to be active"
 
-    rollout: int | None = dataclasses.field(default=0)
+    rollout: int | None = dataclasses.field(default=100)
     """
     Rollout rate controls how many buckets will be granted a feature when this segment matches.
 
@@ -229,7 +229,7 @@ class Segment:
         conditions = [condition_from_dict(condition) for condition in data.get("conditions", [])]
         return cls(
             name=str(data.get("name", "")),
-            rollout=int(data.get("rollout", 0)),
+            rollout=int(data.get("rollout", 100)),
             conditions=conditions,
         )
 

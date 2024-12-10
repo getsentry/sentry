@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode

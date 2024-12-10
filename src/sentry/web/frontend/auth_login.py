@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-from random import randint
 from typing import Any
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
@@ -91,12 +90,12 @@ class AuthLoginView(BaseView):
     }
 
     @method_decorator(never_cache)
-    def handle(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         """
         Hooks in to the django view dispatch which delegates request to GET/POST/PUT/DELETE.
         Base view overwrites dispatch to include functionality for csrf, superuser, customer domains, etc.
         """
-        return super().handle(request=request, *args, **kwargs)
+        return super().handle(request, *args, **kwargs)
 
     def get(self, request: Request, **kwargs) -> HttpResponseBase:
         next_uri = self.get_next_uri(request=request)
@@ -536,7 +535,6 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
             "referrer": request.GET.get("referrer"),
         }
         default_context.update(additional_context.run_callbacks(request=request))
@@ -715,7 +713,6 @@ class AuthLoginView(BaseView):
                 organization=organization, request=request
             ),
             "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "banner_choice": randint(0, 1),  # 2 possible banners
             "referrer": request.GET.get("referrer"),
         }
 

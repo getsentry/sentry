@@ -263,7 +263,7 @@ export type SentryAppComponent<
   };
   type: 'issue-link' | 'alert-rule-action' | 'issue-media' | 'stacktrace-link';
   uuid: string;
-  error?: boolean;
+  error?: string | boolean;
 };
 
 export type SentryAppWebhookRequest = {
@@ -457,7 +457,6 @@ export type IntegrationIssueConfig = {
  * Project Plugins
  */
 export type PluginNoProject = {
-  assets: Array<{url: string}>;
   canDisable: boolean;
   // TODO(ts)
   contexts: any[];

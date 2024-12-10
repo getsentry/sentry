@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>{{ token_type }} exposed</h3>
+    <p>Your Sentry {{ token_type }} was found publicly on the internet. We recommend <a href="{{ revoke_url }}">revoking</a> this token immediately, as exposed tokens pose a security risk to your account.</p>
+    <p><pre style="font-size: 12px">
+Name:   {{ token_name }}
+Token:  {{ token_redacted }}
+SHA256: {{ hashed_token }}
+
+Source: {{ exposed_source }}
+URL:    {{ exposed_url }}
+Date:   {{ datetime|date:"N j, Y, P e" }}</pre></p>
+    <p>Read more about <a href="https://docs.sentry.io/account/auth-tokens/">Sentry Auth Tokens</a>.</p>
+{% endblock %}

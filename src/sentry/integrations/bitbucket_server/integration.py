@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 from urllib.parse import urlparse
 
@@ -16,6 +15,7 @@ from rest_framework.request import Request
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationDomain,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -26,6 +26,10 @@ from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
@@ -35,8 +39,6 @@ from sentry.web.helpers import render_to_response
 
 from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
-
-logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 DESCRIPTION = """
 Connect your Sentry organization to Bitbucket Server, enabling the following features:
@@ -164,37 +166,36 @@ class OAuthLoginView(PipelineView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
-        if "oauth_token" in request.GET:
-            return pipeline.next_step()
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_LOGIN,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            if "oauth_token" in request.GET:
+                return pipeline.next_step()
 
-        config = pipeline.fetch_state("installation_data")
-        client = BitbucketServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-
-        try:
-            request_token = client.get_request_token()
-        except ApiError as error:
-            logger.info(
-                "identity.bitbucket-server.request-token",
-                extra={"url": config.get("url"), "error": error},
+            config = pipeline.fetch_state("installation_data")
+            client = BitbucketServerSetupClient(
+                config.get("url"),
+                config.get("consumer_key"),
+                config.get("private_key"),
+                config.get("verify_ssl"),
             )
-            return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
-        pipeline.bind_state("request_token", request_token)
-        if not request_token.get("oauth_token"):
-            logger.info(
-                "identity.bitbucket-server.oauth-token",
-                extra={"url": config.get("url")},
-            )
-            return pipeline.error("Missing oauth_token")
+            try:
+                request_token = client.get_request_token()
+            except ApiError as error:
+                lifecycle.record_failure(str(error), extra={"url": config.get("url")})
+                return pipeline.error(f"Could not fetch a request token from Bitbucket. {error}")
 
-        authorize_url = client.get_authorize_url(request_token)
+            pipeline.bind_state("request_token", request_token)
+            if not request_token.get("oauth_token"):
+                lifecycle.record_failure("missing oauth_token", extra={"url": config.get("url")})
+                return pipeline.error("Missing oauth_token")
 
-        return self.redirect(authorize_url)
+            authorize_url = client.get_authorize_url(request_token)
+
+            return self.redirect(authorize_url)
 
 
 class OAuthCallbackView(PipelineView):
@@ -205,25 +206,32 @@ class OAuthCallbackView(PipelineView):
 
     @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, pipeline) -> HttpResponse:
-        config = pipeline.fetch_state("installation_data")
-        client = BitbucketServerSetupClient(
-            config.get("url"),
-            config.get("consumer_key"),
-            config.get("private_key"),
-            config.get("verify_ssl"),
-        )
-
-        try:
-            access_token = client.get_access_token(
-                pipeline.fetch_state("request_token"), request.GET["oauth_token"]
+        with IntegrationPipelineViewEvent(
+            IntegrationPipelineViewType.OAUTH_CALLBACK,
+            IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            BitbucketServerIntegrationProvider.key,
+        ).capture() as lifecycle:
+            config = pipeline.fetch_state("installation_data")
+            client = BitbucketServerSetupClient(
+                config.get("url"),
+                config.get("consumer_key"),
+                config.get("private_key"),
+                config.get("verify_ssl"),
             )
 
-            pipeline.bind_state("access_token", access_token)
+            try:
+                access_token = client.get_access_token(
+                    pipeline.fetch_state("request_token"), request.GET["oauth_token"]
+                )
 
-            return pipeline.next_step()
-        except ApiError as error:
-            logger.info("identity.bitbucket-server.access-token", extra={"error": error})
-            return pipeline.error(f"Could not fetch an access token from Bitbucket. {str(error)}")
+                pipeline.bind_state("access_token", access_token)
+
+                return pipeline.next_step()
+            except ApiError as error:
+                lifecycle.record_failure(str(error))
+                return pipeline.error(
+                    f"Could not fetch an access token from Bitbucket. {str(error)}"
+                )
 
 
 class BitbucketServerIntegration(RepositoryIntegration):

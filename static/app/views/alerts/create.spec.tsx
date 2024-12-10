@@ -1,4 +1,5 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -26,7 +27,6 @@ jest.mock('sentry/actionCreators/members', () => ({
     return {};
   }),
 }));
-jest.mock('react-router');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({
@@ -72,6 +72,17 @@ describe('ProjectAlertsCreate', function () {
       url: '/projects/org-slug/project-slug/rules/preview/',
       method: 'POST',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [],
+    });
+    const providerKeys = ['slack', 'discord', 'msteams'];
+    providerKeys.forEach(providerKey => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+      });
     });
   });
 
@@ -197,7 +208,7 @@ describe('ProjectAlertsCreate', function () {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -561,7 +572,7 @@ describe('ProjectAlertsCreate', function () {
         statusCode: 400,
       });
       createWrapper();
-      // delete existion condition
+      // delete existion conditions
       await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
       await waitFor(() => {
@@ -605,6 +616,12 @@ describe('ProjectAlertsCreate', function () {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const anyDropdown = screen.getByText('any');
       expect(anyDropdown).toBeInTheDocument();
       await selectEvent.select(anyDropdown, ['all']);
@@ -625,6 +642,12 @@ describe('ProjectAlertsCreate', function () {
 
     it('test any filterMatch', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const allDropdown = screen.getByText('all');
       await selectEvent.select(allDropdown, ['any']);
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -667,8 +690,7 @@ describe('ProjectAlertsCreate', function () {
       method: 'POST',
       body: ProjectAlertRuleFixture(),
     });
-
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [
@@ -700,7 +722,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   it('does not display noisy alert banner for legacy integrations', async function () {
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
+    createWrapper();
     await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
 
     await selectEvent.select(screen.getByText('Add action...'), [

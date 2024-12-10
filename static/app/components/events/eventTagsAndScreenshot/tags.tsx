@@ -1,6 +1,8 @@
 import {forwardRef, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
   getSentryDefaultTags,
@@ -14,8 +16,11 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {EventTags} from '../eventTags';
 
@@ -27,6 +32,8 @@ type Props = {
 export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
   function EventTagsDataSection({event, projectSlug}: Props, ref) {
     const sentryTags = getSentryDefaultTags();
+    const hasStreamlinedUI = useHasStreamlinedUI();
+    const location = useLocation();
 
     const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
     const handleTagFilterChange = useCallback((value: TagFilter) => {
@@ -51,6 +58,18 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     const actions = (
       <ButtonBar gap={1}>
+        {hasStreamlinedUI && event.groupID && (
+          <LinkButton
+            to={{
+              pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,
+              query: location.query,
+              replace: true,
+            }}
+            size="xs"
+          >
+            {t('View All Issue Tags')}
+          </LinkButton>
+        )}
         <SegmentedControl
           size="xs"
           aria-label={t('Filter tags')}
@@ -66,14 +85,17 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     return (
       <StyledEventDataSection
-        title={t('Tags')}
+        title={
+          <GuideAnchor target="tags" position="top">
+            {t('Tags')}
+          </GuideAnchor>
+        }
         help={tct('The searchable tags associated with this event. [link:Learn more]', {
           link: <ExternalLink openInNewTab href={TAGS_DOCS_LINK} />,
         })}
         isHelpHoverable
         actions={actions}
         data-test-id="event-tags"
-        guideTarget="tags"
         type={SectionKey.TAGS}
         ref={ref}
       >

@@ -4,7 +4,6 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
-import Alert from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -23,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -102,14 +100,6 @@ export const MetricsLayout = memo(() => {
     hasSentCustomMetrics,
   });
 
-  if (!hasCustomMetrics(organization)) {
-    return (
-      <Layout.Page withPadding>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </Layout.Page>
-    );
-  }
-
   return (
     <Fragment>
       <Layout.Header>
@@ -144,7 +134,7 @@ export const MetricsLayout = memo(() => {
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
-          <MetricsBetaEndAlert />
+          <MetricsBetaEndAlert organization={organization} />
 
           <FilterContainer>
             <PageFilterBar condensed>

@@ -40,7 +40,7 @@ import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTr
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceHeader/breadcrumbs';
 import Tab from '../tabs';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 

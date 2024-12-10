@@ -1,7 +1,7 @@
-import {type ComponentProps, Fragment, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
@@ -23,7 +23,7 @@ type StaticReplayPreviewProps = {
   replay: ReplayReader | null;
   replayId: string;
   focusTab?: TabKey;
-  fullReplayButtonProps?: Partial<ComponentProps<typeof LinkButton>>;
+  fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
 };
 
 export function StaticReplayPreview({
