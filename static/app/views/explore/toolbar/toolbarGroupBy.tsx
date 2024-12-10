@@ -12,12 +12,16 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
+import {
+  useExploreGroupBys,
+  useExploreMode,
+  useSetExploreGroupBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {DragNDropContext} from '../contexts/dragNDropContext';
 import {useSpanTags} from '../contexts/spanTagsContext';
 import type {Column} from '../hooks/useDragNDropColumns';
-import {useResultMode} from '../hooks/useResultsMode';
 
 import {
   ToolbarHeader,
@@ -33,9 +37,10 @@ interface ToolbarGroupByProps {
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const tags = useSpanTags();
-  const [resultMode] = useResultMode();
+  const mode = useExploreMode();
 
-  const {groupBys, setGroupBys} = useGroupBys();
+  const groupBys = useExploreGroupBys();
+  const setGroupBys = useSetExploreGroupBys();
 
   const options: SelectOption<string>[] = useMemo(() => {
     const potentialOptions = [
@@ -68,7 +73,7 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
           <Fragment>
             {editableColumns.map((column, i) => (
               <ColumnEditorRow
-                disabled={resultMode === 'samples'}
+                disabled={mode === Mode.SAMPLES}
                 key={column.id}
                 canDelete={
                   editableColumns.length > 1 || !['', undefined].includes(column.column)

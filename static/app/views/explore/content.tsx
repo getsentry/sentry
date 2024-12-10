@@ -33,15 +33,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import {
+  PageParamsProvider,
+  useExploreDataset,
+  useExploreMode,
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-
-import {useResultMode} from './hooks/useResultsMode';
 
 interface ExploreContentProps {
   location: Location;
@@ -52,13 +56,14 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [dataset] = useDataset();
-  const [resultsMode] = useResultMode();
+  const dataset = useExploreDataset();
+  const mode = useExploreMode();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
-  const [userQuery, setUserQuery] = useUserQuery();
+  const query = useExploreQuery();
+  const setQuery = useSetExploreQuery();
 
   const toolbarExtras = organization.features.includes('visibility-explore-dataset')
     ? ['dataset toggle' as const]
@@ -134,18 +139,18 @@ function ExploreContentImpl({}: ExploreContentProps) {
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
                 <SpanSearchQueryBuilder
                   projects={selection.projects}
-                  initialQuery={userQuery}
-                  onSearch={setUserQuery}
+                  initialQuery={query}
+                  onSearch={setQuery}
                   searchSource="explore"
                 />
               ) : (
                 <EAPSpanSearchQueryBuilder
                   projects={selection.projects}
-                  initialQuery={userQuery}
-                  onSearch={setUserQuery}
+                  initialQuery={query}
+                  onSearch={setQuery}
                   searchSource="explore"
                   getFilterTokenWarning={
-                    resultsMode === 'samples'
+                    mode === Mode.SAMPLES
                       ? key => {
                           if (
                             ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(
@@ -174,7 +179,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 </Alert>
               )}
               <ExploreCharts
-                query={userQuery}
+                query={query}
                 setConfidence={setConfidence}
                 setError={setChartError}
               />
@@ -187,13 +192,23 @@ function ExploreContentImpl({}: ExploreContentProps) {
   );
 }
 
-export function ExploreContent(props: ExploreContentProps) {
-  const [dataset] = useDataset();
+function ExploreTagsProvider({children}) {
+  const dataset = useExploreDataset();
 
   return (
     <SpanTagsProvider dataset={dataset} enabled>
-      <ExploreContentImpl {...props} />
+      {children}
     </SpanTagsProvider>
+  );
+}
+
+export function ExploreContent(props: ExploreContentProps) {
+  return (
+    <PageParamsProvider>
+      <ExploreTagsProvider>
+        <ExploreContentImpl {...props} />
+      </ExploreTagsProvider>
+    </PageParamsProvider>
   );
 }
 
