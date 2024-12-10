@@ -55,7 +55,7 @@ function getSegmentLabel(moduleName: ModuleName) {
   return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
 }
 
-export function SpanTimeCharts({
+export function ResourceLandingPageCharts({
   moduleName,
   appliedFilters,
   spanCategory,
