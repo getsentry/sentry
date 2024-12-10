@@ -127,11 +127,6 @@ class SplitQueueRouter:
         if random.random() >= rollout_rate:
             return queue
 
-        if queue in set(options.get("celery_split_queue_legacy_mode")):
-            # Use legacy route
-            # This router required to define the routing logic inside the
-            # settings file.
-            return settings.SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER.get(queue, lambda: queue)()
         else:
             router = self.__queue_routers.get(queue)
             if router is not None:
