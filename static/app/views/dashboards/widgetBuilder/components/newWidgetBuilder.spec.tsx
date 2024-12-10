@@ -7,7 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
@@ -25,12 +24,6 @@ const {organization, projects, router} = initializeOrg({
     params: {},
   },
 });
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
@@ -148,37 +141,6 @@ describe('NewWidgetBuiler', function () {
     await waitFor(() => {
       expect(screen.queryByText('Group by')).not.toBeInTheDocument();
     });
-  });
-
-  it('changes the visualization type', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    // click dropdown
-    await userEvent.click(await screen.findByText('Table'));
-    // select new option
-    await userEvent.click(await screen.findByText('Bar'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({displayType: 'bar'}),
-      })
-    );
   });
 
   it('render the filter alias field and add filter button on chart widgets', async function () {

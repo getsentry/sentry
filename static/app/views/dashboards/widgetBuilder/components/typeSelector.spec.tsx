@@ -4,7 +4,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
-import DatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
+import TypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 jest.mock('sentry/utils/useNavigate', () => ({
@@ -13,7 +13,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
-describe('DatasetSelector', function () {
+describe('TypeSelector', () => {
   let router;
   let organization;
   beforeEach(function () {
@@ -21,13 +21,13 @@ describe('DatasetSelector', function () {
     organization = OrganizationFixture({});
   });
 
-  it('changes the dataset', async function () {
+  it('changes the visualization type', async function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
 
     render(
       <WidgetBuilderProvider>
-        <DatasetSelector />
+        <TypeSelector />
       </WidgetBuilderProvider>,
       {
         router,
@@ -35,12 +35,15 @@ describe('DatasetSelector', function () {
       }
     );
 
-    await userEvent.click(await screen.findByLabelText('Issues'));
+    // click dropdown
+    await userEvent.click(await screen.findByText('Table'));
+    // select new option
+    await userEvent.click(await screen.findByText('Bar'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
         ...router.location,
-        query: expect.objectContaining({dataset: 'issue'}),
+        query: expect.objectContaining({displayType: 'bar'}),
       })
     );
   });
