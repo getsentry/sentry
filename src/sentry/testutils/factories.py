@@ -25,7 +25,6 @@ from django.core.files.base import ContentFile
 from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
-from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
@@ -620,7 +619,7 @@ class Factories:
         status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
-            version = force_str(hexlify(os.urandom(20)))
+            version = hexlify(os.urandom(20)).decode()
 
         if date_added is None:
             date_added = timezone.now()
@@ -2068,7 +2067,7 @@ class Factories:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name)
+        return Workflow.objects.create(organization=organization, name=name, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2096,9 +2095,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_data_condition(
-        **kwargs,
-    ) -> DataCondition:
+    def create_data_condition(**kwargs) -> DataCondition:
         return DataCondition.objects.create(**kwargs)
 
     @staticmethod

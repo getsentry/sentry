@@ -390,7 +390,8 @@ const getActiveStyle = ({
 };
 
 const StyledSidebarItem = styled(Link, {
-  shouldForwardProp: p => !['isInFloatingAccordion', 'hasNewNav', 'index'].includes(p),
+  shouldForwardProp: p =>
+    !['isInFloatingAccordion', 'hasNewNav', 'index', 'organization'].includes(p),
 })`
   display: flex;
   color: ${p => (p.isInFloatingAccordion ? p.theme.gray400 : 'inherit')};

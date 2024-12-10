@@ -4348,15 +4348,15 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         GroupResolution.current_release_version is set to the latest release associated with a
         Group, when the project follows semantic versioning scheme
         """
-        release_1 = self.create_release(version="fake_package@21.1.0")
-        release_2 = self.create_release(version="fake_package@21.1.1")
-        release_3 = self.create_release(version="fake_package@21.1.2")
+        release_21_1_0 = self.create_release(version="fake_package@21.1.0")
+        release_21_1_1 = self.create_release(version="fake_package@21.1.1")
+        release_21_1_2 = self.create_release(version="fake_package@21.1.2")
 
         self.store_event(
             data={
                 "timestamp": iso_format(before_now(seconds=10)),
                 "fingerprint": ["group-1"],
-                "release": release_2.version,
+                "release": release_21_1_1.version,
             },
             project_id=self.project.id,
         )
@@ -4364,7 +4364,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             data={
                 "timestamp": iso_format(before_now(seconds=12)),
                 "fingerprint": ["group-1"],
-                "release": release_1.version,
+                "release": release_21_1_0.version,
             },
             project_id=self.project.id,
         ).group
@@ -4381,7 +4381,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # a group
         grp_resolution = GroupResolution.objects.get(group=group)
 
-        assert grp_resolution.current_release_version == release_2.version
+        assert grp_resolution.current_release_version == release_21_1_2.version
 
         # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
         assert grp_resolution.type == GroupResolution.Type.in_release
@@ -4389,12 +4389,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Add release that is between 2 and 3 to ensure that any release after release 2 should
         # not have a resolution
-        release_4 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_1_plus_1 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_3 = self.create_release(version="fake_package@21.1.3")
 
-        for release in [release_1, release_2]:
+        for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
             assert GroupResolution.has_resolution(group=group, release=release)
 
-        for release in [release_3, release_4]:
+        for release in [release_21_1_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
@@ -4404,7 +4405,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert activity.data["current_release_version"] == release_2.version
+        assert activity.data["current_release_version"] == release_21_1_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
         """

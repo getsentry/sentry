@@ -1,7 +1,8 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -33,6 +34,7 @@ const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
+  const onSaveMock = jest.fn();
 
   beforeEach(function () {
     OrganizationStore.init();
@@ -69,6 +71,26 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/events/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/measurements-meta/',
+      body: [],
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -80,6 +102,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -106,10 +129,20 @@ describe('NewWidgetBuiler', function () {
     expect(screen.getByText('Issues')).toBeInTheDocument();
     expect(screen.getByText('Releases')).toBeInTheDocument();
 
+    expect(screen.getByText('Table')).toBeInTheDocument();
+    // ensure the dropdown input has the default value 'table'
+    expect(screen.getByDisplayValue('table')).toBeInTheDocument();
+
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
     expect(screen.getByLabelText('Widget panel')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByText('Group by')).not.toBeInTheDocument();
+    });
   });
 
   it('edits name and description', async function () {
@@ -122,6 +155,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -161,6 +195,7 @@ describe('NewWidgetBuiler', function () {
         onClose={onCloseMock}
         dashboard={DashboardFixture([])}
         dashboardFilters={{}}
+        onSave={onSaveMock}
       />,
       {
         router,
@@ -176,5 +211,121 @@ describe('NewWidgetBuiler', function () {
         query: expect.objectContaining({dataset: 'issue'}),
       })
     );
+  });
+
+  it('changes the visualization type', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
+
+    // click dropdown
+    await userEvent.click(await screen.findByText('Table'));
+    // select new option
+    await userEvent.click(await screen.findByText('Bar'));
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...router.location,
+        query: expect.objectContaining({displayType: 'bar'}),
+      })
+    );
+  });
+
+  it('render the filter alias field and add filter button on chart widgets', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    // see if alias field and add button are there
+    expect(screen.getByPlaceholderText('Legend Alias')).toBeInTheDocument();
+    expect(screen.getByText('Add Filter')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
+    });
+    // add a field and see if delete buttons are there
+    await userEvent.click(screen.getByText('Add Filter'));
+    expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
+  });
+
+  it('does not render the filter alias field and add filter button on other widgets', async function () {
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router,
+        organization,
+      }
+    );
+
+    // see if alias field and add button are not there
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
+      expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders the group by field on chart widgets', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Group by')).toBeInTheDocument();
+    expect(await screen.findByText('Select group')).toBeInTheDocument();
+    expect(await screen.findByText('Add Group')).toBeInTheDocument();
   });
 });

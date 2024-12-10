@@ -169,7 +169,7 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
-        components: list[FrameGroupingComponent],
+        frame_components: list[FrameGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
@@ -182,7 +182,7 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in components]
+        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
@@ -193,19 +193,19 @@ class Enhancements:
         # to Seer
         frame_counts: Counter[str] = Counter()
 
-        for py_component, rust_component in zip(components, rust_components):
+        for py_component, rust_component in zip(frame_components, rust_components):
             py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
             key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
             frame_counts[key] += 1
 
-        component = StacktraceGroupingComponent(
-            values=components,
+        stacktrace_component = StacktraceGroupingComponent(
+            values=frame_components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
             frame_counts=frame_counts,
         )
 
-        return component, rust_results.invert_stacktrace
+        return stacktrace_component, rust_results.invert_stacktrace
 
     def as_dict(self, with_rules=False):
         rv = {

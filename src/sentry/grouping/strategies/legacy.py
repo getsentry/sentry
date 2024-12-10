@@ -402,7 +402,7 @@ def frame_legacy(
 def stacktrace_legacy(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    variant = context["variant"]
+    variant_name = context["variant"]
     frames = interface.frames
     contributes = None
     hint = None
@@ -417,7 +417,7 @@ def stacktrace_legacy(
     if len(frames) == 1 and not frames[0].function and frames[0].is_url():
         contributes = False
         hint = "ignored single frame stack"
-    elif variant == "app":
+    elif variant_name == "app":
         total_frames = len(frames)
         in_app_count = sum(1 if f.in_app else 0 for f in frames)
         if in_app_count == 0:
@@ -430,28 +430,28 @@ def stacktrace_legacy(
             contributes = False
             hint = "less than 10% of frames are in-app"
 
-    values = []
+    frame_components = []
     prev_frame: Frame | None = None
     frames_for_filtering = []
     for frame in frames:
         frame_component = context.get_single_grouping_component(
-            frame, event=event, variant=variant, **meta
+            frame, event=event, variant=variant_name, **meta
         )
-        if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
+        if variant_name == "app" and not frame.in_app and not all_frames_considered_in_app:
             frame_component.update(contributes=False, hint="non app frame")
         elif prev_frame is not None and is_recursion_legacy(frame, prev_frame):
             frame_component.update(contributes=False, hint="ignored due to recursion")
-        elif variant == "app" and not frame.in_app and all_frames_considered_in_app:
+        elif variant_name == "app" and not frame.in_app and all_frames_considered_in_app:
             frame_component.update(hint="frame considered in-app because no frame is in-app")
-        values.append(frame_component)
+        frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
-    rv, _ = context.config.enhancements.assemble_stacktrace_component(
-        values, frames_for_filtering, event.platform
+    stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
+        frame_components, frames_for_filtering, event.platform
     )
-    rv.update(contributes=contributes, hint=hint)
-    return {variant: rv}
+    stacktrace_component.update(contributes=contributes, hint=hint)
+    return {variant_name: stacktrace_component}
 
 
 @strategy(ids=["threads:legacy"], interface=Threads, score=1900)
