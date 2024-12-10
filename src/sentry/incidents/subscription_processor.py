@@ -371,8 +371,7 @@ class SubscriptionProcessor:
             )
             detectors = process_data_sources([data_packet], query_type=self.subscription.type)
             results = []
-            for pair in detectors:
-                data_packet, detectors = pair
+            for data_packet, detectors in detectors:
                 results.append(process_detectors(data_packet, detectors))
             logger.info(
                 "Results from process detectors",
