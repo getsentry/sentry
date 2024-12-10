@@ -1,8 +1,10 @@
 name: test-docker-compose-backend
 
 on:
-  schedule:
-    - cron: '0 0 * * *'
+  # schedule:
+  #   - cron: '0 0 * * *'
+  push:
+    pull_request:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -13,6 +15,8 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  USE_NEW_DEVSERVICES: 1
+  IS_DEV: 1
 
 jobs:
   docker-compose-api-docs:
@@ -31,9 +35,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse
+        run: devservices up
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
@@ -76,10 +78,7 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-          docker compose -f devservices/docker-compose-testing.yml up -d
+        run: devservices up --mode backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -127,9 +126,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse
+        run: devservices up
 
       - name: run tests
         run: |
@@ -165,9 +162,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Run test
         run: |
@@ -204,9 +199,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Migration & lockfile checks
         env:
@@ -236,9 +229,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Run test
         run: |
