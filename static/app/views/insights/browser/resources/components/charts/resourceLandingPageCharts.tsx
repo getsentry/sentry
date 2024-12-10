@@ -12,7 +12,7 @@ import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
@@ -20,7 +20,6 @@ import Chart, {
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
-import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/insights/common/views/spans/queries';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -31,13 +30,12 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 
-const {SPAN_SELF_TIME, SPAN_MODULE, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: ModuleFilters;
-  moduleName: ModuleName;
   eventView?: EventView;
   extraQuery?: string[];
   spanCategory?: string;
@@ -46,26 +44,21 @@ type Props = {
 
 type ChartProps = {
   filters: ModuleFilters;
-  moduleName: ModuleName;
   throughputUnit: RateUnit;
   extraQuery?: string[];
 };
 
-function getSegmentLabel(moduleName: ModuleName) {
-  return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
-}
-
 export function ResourceLandingPageCharts({
-  moduleName,
   appliedFilters,
   spanCategory,
   throughputUnit = RateUnit.PER_MINUTE,
   extraQuery,
 }: Props) {
+  const moduleName = ModuleName.RESOURCE;
   const {selection} = usePageFilters();
   const {features} = useOrganization();
 
-  const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
+  const eventView = getEventView(selection, appliedFilters, spanCategory);
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
@@ -78,32 +71,6 @@ export function ResourceLandingPageCharts({
 
   useSynchronizeCharts(1, !isPending);
 
-  const moduleCharts: Record<
-    ModuleName,
-    {
-      Comp: (props: ChartProps) => JSX.Element;
-      title: string;
-    }[]
-  > = {
-    [ModuleName.DB]: [],
-    [ModuleName.CACHE]: [],
-    [ModuleName.VITAL]: [],
-    [ModuleName.QUEUE]: [],
-    [ModuleName.SCREEN_LOAD]: [],
-    [ModuleName.APP_START]: [],
-    [ModuleName.RESOURCE]: features.includes(
-      'starfish-browser-resource-module-bundle-analysis'
-    )
-      ? [{title: DataTitles.bundleSize, Comp: BundleSizeChart}]
-      : [],
-    [ModuleName.HTTP]: [{title: DataTitles.errorCount, Comp: ErrorChart}],
-    [ModuleName.AI]: [],
-    [ModuleName.MOBILE_UI]: [],
-    [ModuleName.MOBILE_SCREENS]: [],
-    [ModuleName.SCREEN_RENDERING]: [],
-    [ModuleName.OTHER]: [],
-  };
-
   const charts = [
     {
       title: getThroughputChartTitle(moduleName, throughputUnit),
@@ -113,8 +80,11 @@ export function ResourceLandingPageCharts({
       title: getDurationChartTitle(moduleName),
       Comp: DurationChart,
     },
-    ...moduleCharts[moduleName],
   ];
+
+  if (features.includes('starfish-browser-resource-module-bundle-analysis')) {
+    charts.push({title: DataTitles.bundleSize, Comp: BundleSizeChart});
+  }
 
   return (
     <ChartsContainer>
@@ -122,7 +92,6 @@ export function ResourceLandingPageCharts({
         <ChartsContainerItem key={title}>
           <ChartPanel title={title}>
             <Comp
-              moduleName={moduleName}
               filters={appliedFilters}
               throughputUnit={throughputUnit}
               extraQuery={extraQuery}
@@ -134,19 +103,14 @@ export function ResourceLandingPageCharts({
   );
 }
 
-function ThroughputChart({
-  moduleName,
-  filters,
-  throughputUnit,
-  extraQuery,
-}: ChartProps): JSX.Element {
+function ThroughputChart({filters, throughputUnit, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
 
-  const label = getSegmentLabel(moduleName);
+  const label = 'Requests';
   const {isPending, data} = useSpansQuery<
     {
       'avg(span.self_time)': number;
@@ -203,9 +167,9 @@ function ThroughputChart({
   );
 }
 
-function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Element {
+function DurationChart({filters, extraQuery}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
@@ -256,43 +220,10 @@ function DurationChart({moduleName, filters, extraQuery}: ChartProps): JSX.Eleme
   );
 }
 
-function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
-  const query = buildDiscoverQueryConditions(moduleName, filters);
-  const {isPending, data} = useErrorCountQuery(query);
-
-  const errorRateSeries: Series = {
-    seriesName: DataTitles.errorCount,
-    data: data?.length
-      ? data?.map(entry => ({
-          name: entry.interval,
-          value: entry['http_error_count()'],
-        }))
-      : [],
-  };
-
-  return (
-    <Chart
-      height={CHART_HEIGHT}
-      data={[errorRateSeries]}
-      loading={isPending}
-      grid={{
-        left: '0',
-        right: '0',
-        top: '8px',
-        bottom: '0',
-      }}
-      definedAxisTicks={4}
-      stacked
-      type={ChartType.LINE}
-      chartColors={[ERRORS_COLOR]}
-    />
-  );
-}
-
 /** This fucntion is just to generate mock data based on other time stamps we have found */
-const useMockSeries = ({moduleName, filters, extraQuery}: ChartProps) => {
+const useMockSeries = ({filters, extraQuery}: ChartProps) => {
   const pageFilters = usePageFilters();
-  const eventView = getEventView(moduleName, pageFilters.selection, filters);
+  const eventView = getEventView(pageFilters.selection, filters);
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
@@ -357,12 +288,11 @@ function BundleSizeChart(props: ChartProps) {
 const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 
 const getEventView = (
-  moduleName: ModuleName,
   pageFilters: PageFilters,
   appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
-  const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
+  const query = buildDiscoverQueryConditions(appliedFilters, spanCategory);
 
   return EventView.fromNewQueryWithPageFilters(
     {
@@ -379,7 +309,6 @@ const getEventView = (
 };
 
 const buildDiscoverQueryConditions = (
-  moduleName: ModuleName,
   appliedFilters: ModuleFilters,
   spanCategory?: string
 ) => {
@@ -395,10 +324,6 @@ const buildDiscoverQueryConditions = (
     });
 
   result.push(`has:${SPAN_DESCRIPTION}`);
-
-  if (moduleName !== ModuleName.RESOURCE) {
-    result.push(`${SPAN_MODULE}:${moduleName}`);
-  }
 
   if (spanCategory) {
     if (spanCategory === NULL_SPAN_CATEGORY) {

@@ -28,7 +28,6 @@ import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/use
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
-import {ModuleName} from 'sentry/views/insights/types';
 
 import {ResourceLandingPageCharts} from './charts/resourceLandingPageCharts';
 
@@ -65,7 +64,6 @@ function ResourceView() {
     <Fragment>
       <SpanTimeChartsContainer>
         <ResourceLandingPageCharts
-          moduleName={ModuleName.RESOURCE}
           appliedFilters={spanTimeChartsFilters}
           throughputUnit={RESOURCE_THROUGHPUT_UNIT}
           extraQuery={extraQuery}
