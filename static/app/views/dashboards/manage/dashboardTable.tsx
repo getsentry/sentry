@@ -60,6 +60,7 @@ type FavoriteButtonProps = {
   api: Client;
   dashboardId: string;
   isFavorited: boolean;
+  onDashboardsChange: () => void;
   organization: Organization;
 };
 
@@ -68,6 +69,7 @@ function FavoriteButton({
   api,
   organization,
   dashboardId,
+  onDashboardsChange,
 }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(isFavorited);
   return (
@@ -93,6 +95,7 @@ function FavoriteButton({
               dashboardId,
               !favorited
             );
+            onDashboardsChange();
           } catch (error) {
             // If the api call fails, revert the state
             setFavorited(favorited);
@@ -177,6 +180,8 @@ function DashboardTable({
           api={api}
           organization={organization}
           dashboardId={dataRow.id}
+          onDashboardsChange={onDashboardsChange}
+          key={dataRow.id}
         />
       );
     }
