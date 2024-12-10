@@ -1,11 +1,13 @@
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup
 from sentry.workflow_engine.types import ProcessedDataConditionResult
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 @cache_func_for_models(
@@ -18,7 +20,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
 
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
-    value: Any,
+    value: T,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate the conditions for a given group and value.

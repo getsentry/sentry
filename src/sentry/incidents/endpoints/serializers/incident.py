@@ -4,13 +4,7 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
-from sentry.incidents.models.incident import (
-    Incident,
-    IncidentActivity,
-    IncidentProject,
-    IncidentSeen,
-    IncidentSubscription,
-)
+from sentry.incidents.models.incident import Incident, IncidentActivity, IncidentProject
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import SnubaQuery
 
@@ -45,21 +39,6 @@ class IncidentSerializer(Serializer):
                 serialize(incident.activation) if incident.activation else []
             )
 
-        if "seen_by" in self.expand:
-            incident_seen_list = list(
-                IncidentSeen.objects.filter(incident__in=item_list).order_by("-last_seen")
-            )
-            incident_seen_dict = defaultdict(list)
-            for incident_seen, serialized_seen_by in zip(
-                incident_seen_list, serialize(incident_seen_list)
-            ):
-                incident_seen_dict[incident_seen.incident_id].append(serialized_seen_by)
-            for incident in item_list:
-                seen_by = incident_seen_dict[incident.id]
-                has_seen = any(seen for seen in seen_by if seen["id"] == str(user.id))
-                results[incident]["seen_by"] = seen_by
-                results[incident]["has_seen"] = has_seen  # type: ignore[assignment]
-
         if "activities" in self.expand:
             # There could be many activities. An incident could seesaw between error/warning for a long period.
             # e.g - every 1 minute for 10 months
@@ -81,8 +60,6 @@ class IncidentSerializer(Serializer):
             "projects": attrs["projects"],
             "alertRule": attrs["alert_rule"],
             "activities": attrs["activities"] if "activities" in self.expand else None,
-            "seenBy": attrs["seen_by"] if "seen_by" in self.expand else None,
-            "hasSeen": attrs["has_seen"] if "seen_by" in self.expand else None,
             "status": obj.status,
             "statusMethod": obj.status_method,
             "type": obj.type,
@@ -99,29 +76,12 @@ class DetailedIncidentSerializer(IncidentSerializer):
     def __init__(self, expand=None):
         if expand is None:
             expand = []
-        if "seen_by" not in expand:
-            expand.append("seen_by")
         if "original_alert_rule" not in expand:
             expand.append("original_alert_rule")
         super().__init__(expand=expand)
 
-    def get_attrs(self, item_list, user, **kwargs):
-        results = super().get_attrs(item_list, user=user, **kwargs)
-        subscribed_incidents = set()
-        if user.is_authenticated:
-            subscribed_incidents = set(
-                IncidentSubscription.objects.filter(
-                    incident__in=item_list, user_id=user.id
-                ).values_list("incident_id", flat=True)
-            )
-
-        for item in item_list:
-            results[item]["is_subscribed"] = item.id in subscribed_incidents
-        return results
-
     def serialize(self, obj, attrs, user, **kwargs):
         context = super().serialize(obj, attrs, user)
-        context["isSubscribed"] = attrs["is_subscribed"]
         # The query we should use to get accurate results in Discover.
         context["discoverQuery"] = self._build_discover_query(obj)
 

@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import http
-from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -35,6 +34,21 @@ from sentry.web.helpers import render_to_response
 
 from .client import GitHubEnterpriseApiClient
 from .repository import GitHubEnterpriseRepositoryProvider
+
+
+def get_user_info(url, access_token):
+    with http.build_session() as session:
+        resp = session.get(
+            f"https://{url}/api/v3/user",
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": f"token {access_token}",
+            },
+            verify=False,
+        )
+        resp.raise_for_status()
+    return resp.json()
+
 
 DESCRIPTION = """
 Connect your Sentry organization into your on-premises GitHub Enterprise

@@ -13,7 +13,6 @@ import {
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -34,12 +33,13 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {message: string}) => {
@@ -55,6 +55,7 @@ function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage('Thanks for the input.');
     },
     onError: () => {
@@ -114,23 +115,7 @@ function CreatePRsButton({
     },
     onSuccess: () => {
       addSuccessMessage(t('Created pull requests.'));
-      setApiQueryData<AutofixResponse>(
-        queryClient,
-        makeAutofixQueryKey(groupId),
-        data => {
-          if (!data || !data.autofix) {
-            return data;
-          }
-
-          return {
-            ...data,
-            autofix: {
-              ...data.autofix,
-              status: AutofixStatus.PROCESSING,
-            },
-          };
-        }
-      );
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
     },
     onError: () => {
       setHasClickedCreatePr(false);
@@ -369,7 +354,8 @@ function AutofixMessageBox({
 
   const isDisabled =
     step?.status === AutofixStatus.ERROR ||
-    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0);
+    (step?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && step.causes?.length === 0) ||
+    (step?.type === AutofixStepType.CHANGES && changes.length === 0);
 
   useEffect(() => {
     if (contentRef.current) {
@@ -451,45 +437,47 @@ function AutofixMessageBox({
               }}
             />
           </ContentArea>
-          <ActionBar>
-            {isRootCauseSelectionStep && (
-              <Fragment>
-                <SegmentedControl
-                  size="xs"
-                  value={rootCauseMode}
-                  onChange={setRootCauseMode}
-                  aria-label={t('Root cause selection')}
-                >
-                  <SegmentedControl.Item key="suggested_root_cause">
-                    {t('Use suggested root cause')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="custom_root_cause">
-                    {t('Propose your own root cause')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Fragment>
-            )}
-            {isChangesStep && !prsMade && (
-              <Fragment>
-                <SegmentedControl
-                  size="xs"
-                  value={changesMode}
-                  onChange={setChangesMode}
-                  aria-label={t('Changes selection')}
-                >
-                  <SegmentedControl.Item key="give_feedback">
-                    {t('Give feedback')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="add_tests">
-                    {t('Add tests')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="create_prs">
-                    {t('Approve changes')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Fragment>
-            )}
-          </ActionBar>
+          {!isDisabled && (
+            <ActionBar>
+              {isRootCauseSelectionStep && (
+                <Fragment>
+                  <SegmentedControl
+                    size="xs"
+                    value={rootCauseMode}
+                    onChange={setRootCauseMode}
+                    aria-label={t('Root cause selection')}
+                  >
+                    <SegmentedControl.Item key="suggested_root_cause">
+                      {t('Use suggested root cause')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="custom_root_cause">
+                      {t('Propose your own root cause')}
+                    </SegmentedControl.Item>
+                  </SegmentedControl>
+                </Fragment>
+              )}
+              {isChangesStep && !prsMade && (
+                <Fragment>
+                  <SegmentedControl
+                    size="xs"
+                    value={changesMode}
+                    onChange={setChangesMode}
+                    aria-label={t('Changes selection')}
+                  >
+                    <SegmentedControl.Item key="give_feedback">
+                      {t('Give feedback')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="add_tests">
+                      {t('Add tests')}
+                    </SegmentedControl.Item>
+                    <SegmentedControl.Item key="create_prs">
+                      {t('Approve changes')}
+                    </SegmentedControl.Item>
+                  </SegmentedControl>
+                </Fragment>
+              )}
+            </ActionBar>
+          )}
         </ContentWrapper>
       </AnimatedContent>
       <InputSection>

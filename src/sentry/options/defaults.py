@@ -2366,8 +2366,25 @@ register(
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
+# DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
 register(
     "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.self-hosted",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.saas-to-saas",
     default="",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2876,20 +2893,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# killswitch for profile consumers outcome emission.
-# If false, processed outcomes for profiles will keep
-# being emitted in the billing metrics consumer.
-#
-# If true, we'll stop emitting processed outcomes for
-# profiles in the billing metrics consumer and we'll
-# start emitting them in the profiling consumers
-register(
-    "profiling.emit_outcomes_in_profiling_consumer.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # option for sample size when fetching project tag keys
 register(
     "visibility.tag-key-sample-size",
@@ -2946,5 +2949,13 @@ register(
     "sentry.similarity.indexing.enabled",
     default=True,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforces a QueryBuilder check that the first relevant event has been sent for each project
+register(
+    "sentry.search.events.project.check_event",
+    default=0.0,
+    type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

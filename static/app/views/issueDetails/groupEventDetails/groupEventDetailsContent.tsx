@@ -107,7 +107,6 @@ export function EventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const groupingCurrentLevel = group?.metadata?.current_level;
-  const hasFeatureFlagSection = organization.features.includes('feature-flag-ui');
 
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
@@ -137,6 +136,9 @@ export function EventDetailsContent({
       {hasStreamlinedUI && <HighlightsIconSummary event={event} group={group} />}
       {hasActionableItems && !hasStreamlinedUI && (
         <ActionableItems event={event} project={project} isShare={false} />
+      )}
+      {issueTypeConfig.tags.enabled && (
+        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       )}
       <StyledDataSection>
         {!hasStreamlinedUI && <TraceDataSection event={event} />}
@@ -218,9 +220,7 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-      {!hasStreamlinedUI && issueTypeConfig.tags.enabled && (
-        <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
-      )}
+
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -400,18 +400,11 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled ? (
         <Fragment>
           {hasStreamlinedUI ? (
-            <Fragment>
-              <HighlightsDataSection
-                event={event}
-                project={project}
-                viewAllRef={tagsRef}
-              />
-              <EventTagsDataSection
-                event={event}
-                projectSlug={project.slug}
-                ref={tagsRef}
-              />
-            </Fragment>
+            <EventTagsDataSection
+              event={event}
+              projectSlug={project.slug}
+              ref={tagsRef}
+            />
           ) : (
             <div ref={tagsRef}>
               <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
@@ -420,9 +413,9 @@ export function EventDetailsContent({
         </Fragment>
       ) : null}
       <EventContexts group={group} event={event} />
-      {hasFeatureFlagSection && (
+      <ErrorBoundary mini message={t('There was a problem loading feature flags.')}>
         <EventFeatureFlagList group={group} project={project} event={event} />
-      )}
+      </ErrorBoundary>
       <EventExtraData event={event} />
       <EventPackageData event={event} />
       <EventDevice event={event} />
