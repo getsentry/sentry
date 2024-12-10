@@ -6,8 +6,8 @@ from sentry.workflow_engine.models.detector import Detector
 
 class ErrorDetector(Detector):
     project_options_config = {
-        "fingerprintingRules": "sentry:fingerprinting_rules",
-        "resolveAge": "sentry:resolve_age",
+        "fingerprinting_rules": "sentry:fingerprinting_rules",
+        "resolve_age": "sentry:resolve_age",
     }
 
     class Meta:
