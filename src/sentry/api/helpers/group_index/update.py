@@ -168,7 +168,6 @@ def update_groups(
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None = None,
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -179,9 +178,7 @@ def update_groups(
     data = data or request.data
 
     try:
-        group_ids, group_list = get_group_ids_and_group_list(
-            organization_id, projects, group_ids, search_fn
-        )
+        group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
     except ValidationError:
         logger.exception("Error getting group ids and group list")  # Track the error in Sentry
         return Response(
@@ -260,6 +257,19 @@ def update_groups(
     )
 
 
+def update_groups_with_search_fn(
+    request: Request,
+    group_ids: Sequence[int | str] | None,
+    projects: Sequence[Project],
+    organization_id: int,
+    search_fn: SearchFunction | None = None,
+    user: RpcUser | User | AnonymousUser | None = None,
+    data: Mapping[str, Any] | None = None,
+) -> Response:
+    group_ids, _ = get_group_ids_and_group_list(organization_id, projects, group_ids, search_fn)
+    return update_groups(request, group_ids, projects, organization_id, user, data)
+
+
 def validate_request(
     request: Request,
     projects: Sequence[Project],
@@ -288,7 +298,7 @@ def get_group_ids_and_group_list(
     organization_id: int,
     projects: Sequence[Project],
     group_ids: Sequence[int | str] | None,
-    search_fn: SearchFunction | None,
+    search_fn: SearchFunction | None = None,
 ) -> tuple[list[int | str], list[Group]]:
     """
     Gets group IDs and group list based on provided filters.
