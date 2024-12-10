@@ -8,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
@@ -77,7 +76,6 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
           <WidgetBuilderNameAndDescription />
         </Section>
         <SaveButton isEditing={isEditing} onSave={onSave} />
-        <DevBuilder />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );
