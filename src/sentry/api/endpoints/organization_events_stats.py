@@ -184,6 +184,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+
+        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
+
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -338,8 +341,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     ),
                     comparison_delta=comparison_delta,
                 )
-
-            transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
 
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
@@ -570,6 +571,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                 ),
                 status=200,
             )

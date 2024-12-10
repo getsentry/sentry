@@ -64,6 +64,7 @@ import {
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
+import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
@@ -203,9 +204,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    const newTabs = [TRACE_TAB];
+    // New trace UI has the trace info and web vitalsin the bottom drawer
+    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
 
-    if (props.tree.vitals.size > 0) {
+    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
 
@@ -789,6 +791,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TraceActionsMenu
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
         <TracePreferencesDropdown
           autogroup={
             traceState.preferences.autogroup.parent &&
