@@ -357,7 +357,7 @@ class OAuth2CallbackView(PipelineView):
                 lifecycle.record_failure(
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
-                return pipeline.error(ERR_INVALID_STATE)
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if state != pipeline.fetch_state("state"):
                 pipeline.logger.info(
@@ -384,7 +384,7 @@ class OAuth2CallbackView(PipelineView):
 
         if "error" in data:
             pipeline.logger.info("identity.token-exchange-error", extra={"error": data["error"]})
-            return pipeline.error(ERR_TOKEN_RETRIEVAL)
+            return pipeline.error(f"{ERR_TOKEN_RETRIEVAL}\nError: {data['error']}")
 
         # we can either expect the API to be implicit and say "im looking for
         # blah within state data" or we need to pass implementation + call a

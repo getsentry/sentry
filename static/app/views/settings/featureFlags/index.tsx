@@ -158,7 +158,7 @@ export function OrganizationFeatureFlagsIndex() {
           'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
+              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
             ),
           }
         )}
