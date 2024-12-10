@@ -21,7 +21,7 @@ from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
 from social_auth.utils import dsa_urlopen
 
-from src.sentry import _get_git_revision
+from sentry import _get_git_revision
 
 # GitHub configuration
 GITHUB_BASE_DOMAIN = getattr(settings, "GITHUB_BASE_DOMAIN", "github.com")
