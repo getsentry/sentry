@@ -12,9 +12,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-const {NODE_ENV, TEST_SUITE} = process.env;
-const IS_TEST = NODE_ENV === 'test' || !!TEST_SUITE;
-
 type BatchContextType = {
   batchUrlParamUpdates: (updates: Record<string, string | string[] | undefined>) => void;
   flushUpdates: () => void;
@@ -53,12 +50,9 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   // Debounce URL updates
   const updateURL = useMemo(
     () =>
-      debounce(
-        () => {
-          flushUpdates();
-        },
-        IS_TEST ? 0 : DEFAULT_DEBOUNCE_DURATION
-      ),
+      debounce(() => {
+        flushUpdates();
+      }, DEFAULT_DEBOUNCE_DURATION),
     [flushUpdates]
   );
 
