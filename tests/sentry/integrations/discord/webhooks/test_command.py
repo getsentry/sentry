@@ -48,9 +48,7 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -79,9 +77,7 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-        start, failure = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert failure.args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
         assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
