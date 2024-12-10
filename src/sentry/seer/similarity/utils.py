@@ -1,10 +1,10 @@
 import logging
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
-from typing import Any, TypeVar
+from typing import Any, TypedDict, TypeVar
 
 from sentry import options
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -17,6 +17,7 @@ MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
+        "csharp",
         "go",
         "java",
         "javascript",
@@ -32,6 +33,7 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
 SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
     [
         "bun",
+        "cordova",
         "deno",
         "django",
         "go",
@@ -43,6 +45,7 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "go-iris",
         "go-martini",
         "go-negroni",
+        "ionic",
         "javascript",
         "javascript-angular",
         "javascript-angularjs",
@@ -138,7 +141,10 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "android-profiling-onboarding-1-install",
         "android-profiling-onboarding-3-configure-profiling",
         "android-profiling-onboarding-4-upload",
+        "csharp",
+        "csharp-aspnetcore",
         "dart",
+        "dotnet",
         "flutter",
         "groovy",
         "java",
@@ -150,6 +156,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "java-logback",
         "java-spring",
         "java-spring-boot",
+        "perl",
     ]
 )
 BASE64_ENCODED_PREFIXES = [
@@ -169,12 +176,16 @@ class TooManyOnlySystemFramesException(Exception):
     pass
 
 
-class NoFilenameOrModuleException(Exception):
-    pass
-
-
 def _get_value_if_exists(exception_value: Mapping[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
+
+
+class FramesMetrics(TypedDict):
+    frame_count: int
+    html_frame_count: int  # for a temporary metric
+    has_no_filename: bool  # for a temporary metric
+    is_frames_truncated: bool
+    found_non_snipped_context_line: bool
 
 
 def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> str:
@@ -197,59 +208,15 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    frame_count = 0
-    html_frame_count = 0  # for a temporary metric
-    is_frames_truncated = False
-    has_no_filename_or_module = False
-    stacktrace_str = ""
-    found_non_snipped_context_line = False
-
     metrics.distribution("seer.grouping.exceptions.length", len(exceptions))
 
-    def _process_frames(frames: list[dict[str, Any]]) -> list[str]:
-        nonlocal frame_count
-        nonlocal html_frame_count
-        nonlocal is_frames_truncated
-        nonlocal has_no_filename_or_module
-        nonlocal found_non_snipped_context_line
-        frame_strings = []
-
-        contributing_frames = [
-            frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
-        ]
-        if len(contributing_frames) + frame_count > MAX_FRAME_COUNT:
-            is_frames_truncated = True
-        contributing_frames = _discard_excess_frames(
-            contributing_frames, MAX_FRAME_COUNT, frame_count
-        )
-        frame_count += len(contributing_frames)
-
-        for frame in contributing_frames:
-            frame_dict = extract_values_from_frame_values(frame.get("values", []))
-            filename = extract_filename(frame_dict)
-
-            if not _is_snipped_context_line(frame_dict["context-line"]):
-                found_non_snipped_context_line = True
-
-            if not filename:
-                has_no_filename_or_module = True
-
-            # Not an exhaustive list of tests we could run to detect HTML, but this is only
-            # meant to be a temporary, quick-and-dirty metric
-            # TODO: Don't let this, and the metric below, hang around forever. It's only to
-            # help us get a sense of whether it's worthwhile trying to more accurately
-            # detect, and then exclude, frames containing HTML
-            if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
-                html_frame_count += 1
-
-            if is_base64_encoded_frame(frame_dict):
-                continue
-
-            frame_strings.append(
-                f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
-            )
-
-        return frame_strings
+    frame_metrics: FramesMetrics = {
+        "frame_count": 0,
+        "html_frame_count": 0,  # for a temporary metric
+        "has_no_filename": False,  # for a temporary metric
+        "is_frames_truncated": False,
+        "found_non_snipped_context_line": False,
+    }
 
     result_parts = []
 
@@ -265,39 +232,37 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         ]:
             continue
 
-        # For each exception, extract its type, value, and up to limit number of stacktrace frames
-        exc_type, exc_value, frame_strings = "", "", []
-        if exception_type == "stacktrace":
-            frame_strings = _process_frames(exception.get("values", []))
-        else:
-            for exception_value in exception.get("values", []):
-                if exception_value.get("id") == "type":
-                    exc_type = _get_value_if_exists(exception_value)
-                elif exception_value.get("id") == "value":
-                    exc_value = _get_value_if_exists(exception_value)
-                elif exception_value.get("id") == "stacktrace" and frame_count < MAX_FRAME_COUNT:
-                    frame_strings = _process_frames(exception_value["values"])
+        exc_type, exc_value, frame_strings, frame_metrics = process_exception_frames(
+            exception, frame_metrics
+        )
         if (
             platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
-            and is_frames_truncated
+            and frame_metrics["is_frames_truncated"]
             and not app_hash
         ):
             raise TooManyOnlySystemFramesException
-        if has_no_filename_or_module:
-            raise NoFilenameOrModuleException
+
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
         header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
 
         result_parts.append((header, frame_strings))
 
+    return generate_stacktrace_string(result_parts, frame_metrics)
+
+
+def generate_stacktrace_string(
+    result_parts: Sequence[tuple[str, list[str]]],
+    frame_metrics: FramesMetrics,
+) -> str:
+    stacktrace_str = ""
     final_frame_count = 0
 
     for header, frame_strings in result_parts:
         # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
         # result to include only the first 20 frames, since minified frames are significantly more
         # token-dense than non-minified ones
-        if not found_non_snipped_context_line:
+        if not frame_metrics["found_non_snipped_context_line"]:
             frame_strings = _discard_excess_frames(
                 frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
             )
@@ -311,13 +276,92 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         tags={
             "html_frames": (
                 "none"
-                if html_frame_count == 0
-                else "all" if html_frame_count == final_frame_count else "some"
+                if frame_metrics["html_frame_count"] == 0
+                else "all" if frame_metrics["html_frame_count"] == final_frame_count else "some"
             )
         },
     )
 
+    # Metric for errors with no header, only one frame and no filename
+    # TODO: Determine how often this occurs and if we should send to seer, then remove metric
+    if frame_metrics["has_no_filename"] and len(result_parts) == 1:
+        header, frames = result_parts[0][0], result_parts[0][1]
+        if header == "" and len(frames) == 1:
+            metrics.incr(
+                "seer.grouping.no_header_one_frame_no_filename",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            )
+
     return stacktrace_str.strip()
+
+
+def process_exception_frames(
+    exception: dict[str, Any], frame_metrics: FramesMetrics
+) -> tuple[str, str, list[str], FramesMetrics]:
+    # For each exception, extract its type, value, and up to limit number of stacktrace frames
+    exc_type, exc_value = "", ""
+    frame_strings: list[str] = []
+    exception_type = exception.get("id")
+    if exception_type == "stacktrace":
+        frame_strings, frame_metrics = _process_frames(exception.get("values", []), frame_metrics)
+    else:
+        for exception_value in exception.get("values", []):
+            if exception_value.get("id") == "type":
+                exc_type = _get_value_if_exists(exception_value)
+            elif exception_value.get("id") == "value":
+                exc_value = _get_value_if_exists(exception_value)
+            elif (
+                exception_value.get("id") == "stacktrace"
+                and frame_metrics["frame_count"] < MAX_FRAME_COUNT
+            ):
+                frame_strings, frame_metrics = _process_frames(
+                    exception_value["values"], frame_metrics
+                )
+
+    return exc_type, exc_value, frame_strings, frame_metrics
+
+
+def _process_frames(
+    frames: list[dict[str, Any]], frame_metrics: FramesMetrics
+) -> tuple[list[str], FramesMetrics]:
+    frame_strings = []
+
+    contributing_frames = [
+        frame for frame in frames if frame.get("id") == "frame" and frame.get("contributes")
+    ]
+    if len(contributing_frames) + frame_metrics["frame_count"] > MAX_FRAME_COUNT:
+        frame_metrics["is_frames_truncated"] = True
+    contributing_frames = _discard_excess_frames(
+        contributing_frames, MAX_FRAME_COUNT, frame_metrics["frame_count"]
+    )
+    frame_metrics["frame_count"] += len(contributing_frames)
+
+    for frame in contributing_frames:
+        frame_dict = extract_values_from_frame_values(frame.get("values", []))
+        filename = extract_filename(frame_dict) or "None"
+
+        if not _is_snipped_context_line(frame_dict["context-line"]):
+            frame_metrics["found_non_snipped_context_line"] = True
+
+        if not frame_dict["filename"]:
+            frame_metrics["has_no_filename"] = True
+
+        # Not an exhaustive list of tests we could run to detect HTML, but this is only
+        # meant to be a temporary, quick-and-dirty metric
+        # TODO: Don't let this, and the metric below, hang around forever. It's only to
+        # help us get a sense of whether it's worthwhile trying to more accurately
+        # detect, and then exclude, frames containing HTML
+        if frame_dict["filename"].endswith("html") or "<html>" in frame_dict["context-line"]:
+            frame_metrics["html_frame_count"] += 1
+
+        if is_base64_encoded_frame(frame_dict):
+            continue
+
+        frame_strings.append(
+            f'  File "{filename}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+        )
+
+    return frame_strings, frame_metrics
 
 
 def extract_values_from_frame_values(values: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -370,20 +414,13 @@ def get_stacktrace_string_with_metrics(
                 sample_rate=sample_rate,
                 tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
             )
-    except NoFilenameOrModuleException:
-        if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "no-module-or-filename"},
-            )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
     return stacktrace_string
 
 
-def event_content_has_stacktrace(event: Event) -> bool:
+def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     # If an event has no stacktrace, there's no data for Seer to analyze, so no point in making the
     # API call. If we ever start analyzing message-only events, we'll need to add `event.title in
     # PLACEHOLDER_EVENT_TITLES` to this check.
@@ -393,7 +430,7 @@ def event_content_has_stacktrace(event: Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: Event) -> bool:
+def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     """
     Determine if an event's contents makes it fit for using with Seer's similar issues model.
     """
@@ -422,7 +459,7 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+def killswitch_enabled(project_id: int, event: GroupEvent | Event | None = None) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """

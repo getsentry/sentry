@@ -11,6 +11,7 @@ import {
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
+import useIssueEvents from 'sentry/components/events/featureFlags/useIssueEvents';
 import {
   FlagControlOptions,
   OrderBy,
@@ -77,6 +78,13 @@ export function EventFeatureFlagList({
       statsPeriod: eventView.statsPeriod,
     },
   });
+
+  const {
+    data: relatedEvents,
+    isPending: isRelatedEventsPending,
+    isError: isRelatedEventsError,
+  } = useIssueEvents({issueId: group.id});
+
   const {activateSidebarSkipConfigure} = useFeatureFlagOnboarding();
 
   const {
@@ -90,34 +98,43 @@ export function EventFeatureFlagList({
     event,
   });
 
-  const hasFlagContext = Boolean(event.contexts?.flags?.values);
-  const flagValues = useMemo(() => {
-    return event.contexts?.flags?.values ?? [];
-  }, [event]);
-  const hasFlags = hasFlagContext && flagValues.length > 0;
-
-  const showCTA =
-    !hasFlagContext &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta');
-
   const suspectFlagNames: Set<string> = useMemo(() => {
     return isSuspectError || isSuspectPending
       ? new Set()
       : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
-  const hydratedFlags = useMemo(() => {
-    // Transform the flags array into something readable by the key-value component
-    // Reverse the flags to show newest at the top by default
-    const rawFlags: FeatureFlag[] = flagValues.toReversed() ?? [];
+  const hasFlagContext = Boolean(event.contexts?.flags?.values);
+  const anyEventHasContext =
+    isRelatedEventsPending || isRelatedEventsError
+      ? false
+      : relatedEvents.filter(e => Boolean(e.contexts?.flags?.values)).length > 0;
 
-    // Filter out ill-formatted flags, which come from SDK developer error or user-provided contexts.
-    const flags = rawFlags.filter(
-      (f): f is Required<FeatureFlag> => f && 'flag' in f && 'result' in f
+  const eventFlags: Required<FeatureFlag>[] = useMemo(() => {
+    // At runtime there's no type guarantees on the event flags. So we have to
+    // explicitly validate against SDK developer error or user-provided contexts.
+    const rawFlags = event.contexts?.flags?.values ?? [];
+    return rawFlags.filter(
+      (f): f is Required<FeatureFlag> =>
+        f &&
+        typeof f === 'object' &&
+        typeof f.flag === 'string' &&
+        typeof f.result === 'boolean'
     );
+  }, [event]);
 
-    return flags.map(f => {
+  const hasFlags = hasFlagContext && eventFlags.length > 0;
+
+  const showCTA =
+    !hasFlagContext &&
+    !anyEventHasContext &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+    organization.features.includes('feature-flag-cta');
+
+  const hydratedFlags = useMemo(() => {
+    // Transform the flags array into something readable by the key-value component.
+    // Reverse the flags to show newest at the top by default.
+    return eventFlags.toReversed().map(f => {
       return {
         item: {
           key: f.flag,
@@ -134,7 +151,7 @@ export function EventFeatureFlagList({
         isSuspectFlag: suspectFlagNames.has(f.flag),
       };
     });
-  }, [suspectFlagNames, flagValues]);
+  }, [suspectFlagNames, eventFlags]);
 
   const onViewAllFlags = useCallback(
     (focusControl?: FlagControlOptions) => {

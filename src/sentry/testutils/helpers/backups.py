@@ -112,7 +112,13 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleDetector,
+    AlertRuleTriggerDataCondition,
+    AlertRuleWorkflow,
+    DataConditionGroup,
+)
 
 __all__ = [
     "export_to_file",
@@ -661,14 +667,14 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
         )
 
         # TODO @saponifi3d: Update comparison to be DetectorState.Critical
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             condition="eq",
             comparison="critical",
             type="WorkflowCondition",
@@ -689,7 +695,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO @saponifi3d: Create or define trigger workflow action type
-        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
@@ -701,6 +707,12 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
+
+        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleTriggerDataCondition.objects.create(
+            alert_rule_trigger=trigger, data_condition=data_condition
+        )
 
         return org
 
