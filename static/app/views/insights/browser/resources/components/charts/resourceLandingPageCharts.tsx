@@ -31,7 +31,6 @@ const CHART_HEIGHT = 140;
 
 type Props = {
   appliedFilters: ModuleFilters;
-  eventView?: EventView;
   extraQuery?: string[];
 };
 
