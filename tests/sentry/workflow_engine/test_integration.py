@@ -58,7 +58,19 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
         return cache_key
 
+    # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
+    def test_workflow_engine__data_source__to_metric_issue_workflow(self):
+        """
+        This test ensures that a data_source can create the correct event in Issue Platform
+        """
+        # Figure out how to make a data_source that triggers a detector
+        # Create a detector handler that will create a MetricIssueWorkflow
+        pass
+
     def test_workflow_engine__workflows(self):
+        """
+        This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
+        """
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
         if not self.group:
@@ -70,9 +82,3 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
-
-    # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
-    def test_workflow_engine__data_source__to_metric_issue_workflow(self):
-        # Figure out how to make a data_source that triggers a detector
-        # Create a detector handler that will create a MetricIssueWorkflow
-        pass
