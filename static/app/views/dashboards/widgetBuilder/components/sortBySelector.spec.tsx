@@ -110,7 +110,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
-        query: expect.objectContaining({sort: ['-count']}),
+        query: expect.objectContaining({sort: ['-count()']}),
       })
     );
 
@@ -119,7 +119,7 @@ describe('WidgetBuilderSortBySelector', function () {
     expect(mockNavigate).toHaveBeenLastCalledWith(
       expect.objectContaining({
         ...router.location,
-        query: expect.objectContaining({sort: ['count']}),
+        query: expect.objectContaining({sort: ['count()']}),
       })
     );
   });
