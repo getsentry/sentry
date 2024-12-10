@@ -1,8 +1,8 @@
-name: test-docker-compose-backend
+name: test-devservices-backend
 
 on:
   # schedule:
-  #   - cron: '0 0 * * *'
+  #   - cron: '0 * * * *'
   push:
     pull_request:
 
@@ -19,7 +19,7 @@ env:
   IS_DEV: 1
 
 jobs:
-  docker-compose-api-docs:
+  devservices-api-docs:
     name: api docs test
     runs-on: ubuntu-24.04
     steps:
@@ -46,11 +46,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-backend-test:
+  devservices-backend-test:
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -106,11 +104,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-backend-migration-tests:
+  devservices-backend-migration-tests:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -143,11 +139,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-cli:
+  devservices-cli:
     name: cli test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -179,11 +173,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-migration:
+  devservices-migration:
     name: check migration
     runs-on: ubuntu-24.04
     strategy:
@@ -210,11 +202,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-monolith-dbs:
+  devservices-monolith-dbs:
     name: monolith-dbs test
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -256,24 +246,22 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
   # This step is the only required backend check
-  docker-compose-backend-required-check:
+  devservices-backend-required-check:
     needs:
       [
-        docker-compose-api-docs,
-        docker-compose-backend-test,
-        docker-compose-backend-migration-tests,
-        docker-compose-cli,
-        docker-compose-migration,
-        docker-compose-monolith-dbs,
+        devservices-api-docs,
+        devservices-backend-test,
+        devservices-backend-migration-tests,
+        devservices-cli,
+        devservices-migration,
+        devservices-monolith-dbs,
       ]
-    name: Docker Compose Backend
+    name: Devservices Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ubuntu-24.04
