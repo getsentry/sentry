@@ -15,6 +15,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -172,9 +173,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         # check client type
         assert isinstance(mock_handle.call_args.kwargs["client"], SlackSdkClient)
 
-        assert len(mock_record.mock_calls) == 2
-        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
-        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
 
 class TestHandleParentNotification(TestCase):
@@ -253,9 +252,7 @@ class TestHandleParentNotification(TestCase):
             client=SlackSdkClient(integration_id=self.integration.id),
         )
 
-        assert len(mock_record.mock_calls) == 2
-        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
-        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_handles_parent_notification_sdk_error(
@@ -269,9 +266,7 @@ class TestHandleParentNotification(TestCase):
                 client=SlackSdkClient(integration_id=self.integration.id),
             )
 
-        assert len(mock_record.mock_calls) == 2
-        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
-        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.FAILURE
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
 
     def test_raises_exception_when_parent_notification_does_not_have_rule_fire_history_data(
         self,
