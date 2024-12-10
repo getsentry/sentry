@@ -12,7 +12,6 @@ export type SeriesDataUnit = {
   // number because we sometimes use timestamps
   name: string | number;
   value: number;
-  confidence?: Confidence;
   itemStyle?: {
     color?: string;
   };

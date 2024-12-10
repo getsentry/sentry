@@ -3,12 +3,15 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -22,6 +25,7 @@ import {
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 type WidgetBuilderV2Props = {
@@ -40,6 +44,8 @@ function WidgetBuilderV2({
   dashboard,
 }: WidgetBuilderV2Props) {
   const escapeKeyPressed = useKeyPress('Escape');
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   useEffect(() => {
     if (escapeKeyPressed) {
@@ -55,19 +61,26 @@ function WidgetBuilderV2({
       <AnimatePresence>
         {isOpen && (
           <WidgetBuilderProvider>
-            <ContainerWithoutSidebar>
-              <WidgetBuilderContainer>
-                <WidgetBuilderSlideout
-                  isOpen={isOpen}
-                  onClose={onClose}
-                  onSave={onSave}
-                />
-                <WidgetPreviewContainer
-                  dashboardFilters={dashboardFilters}
-                  dashboard={dashboard}
-                />
-              </WidgetBuilderContainer>
-            </ContainerWithoutSidebar>
+            <CustomMeasurementsProvider organization={organization} selection={selection}>
+              <SpanTagsProvider
+                dataset={DiscoverDatasets.SPANS_EAP}
+                enabled={organization.features.includes('dashboards-eap')}
+              >
+                <ContainerWithoutSidebar>
+                  <WidgetBuilderContainer>
+                    <WidgetBuilderSlideout
+                      isOpen={isOpen}
+                      onClose={onClose}
+                      onSave={onSave}
+                    />
+                    <WidgetPreviewContainer
+                      dashboardFilters={dashboardFilters}
+                      dashboard={dashboard}
+                    />
+                  </WidgetBuilderContainer>
+                </ContainerWithoutSidebar>
+              </SpanTagsProvider>
+            </CustomMeasurementsProvider>
           </WidgetBuilderProvider>
         )}
       </AnimatePresence>
