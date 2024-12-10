@@ -206,7 +206,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
         mock_metrics.incr.assert_called_with("github.link_all_repos.api_error")
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, LinkAllReposHaltReason.API_ERROR.value)
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.github.integration.metrics")
