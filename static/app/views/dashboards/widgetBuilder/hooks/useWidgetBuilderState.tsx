@@ -9,7 +9,7 @@ import {
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;

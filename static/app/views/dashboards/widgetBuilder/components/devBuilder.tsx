@@ -16,7 +16,7 @@ import {ColumnFields} from 'sentry/views/dashboards/widgetBuilder/buildSteps/col
 import {YAxisSelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 function DevBuilder() {
   const {state, dispatch} = useWidgetBuilderContext();

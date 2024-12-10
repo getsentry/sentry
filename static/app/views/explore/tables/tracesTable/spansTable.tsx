@@ -12,10 +12,12 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import {
+  useExploreDataset,
+  useExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {type SpanResult, useTraceSpans} from 'sentry/views/explore/hooks/useTraceSpans';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
@@ -40,8 +42,8 @@ const ONE_MINUTE = 60 * 1000; // in milliseconds
 export function SpanTable({trace}: {trace: TraceResult}) {
   const organization = useOrganization();
 
-  const [dataset] = useDataset();
-  const [query] = useUserQuery();
+  const dataset = useExploreDataset();
+  const query = useExploreQuery();
 
   const {data, isPending, isError} = useTraceSpans({
     dataset,
