@@ -1,8 +1,9 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -28,6 +29,7 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -64,6 +66,13 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const fields = useMemo(() => {
     const allFields: string[] = [];
 
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
     for (const visualize of visualizes) {
       for (const yAxis of visualize.yAxes) {
         if (allFields.includes(yAxis)) {
@@ -71,13 +80,6 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
         }
         allFields.push(yAxis);
       }
-    }
-
-    for (const groupBy of groupBys) {
-      if (allFields.includes(groupBy)) {
-        continue;
-      }
-      allFields.push(groupBy);
     }
 
     return allFields.filter(Boolean);
@@ -129,14 +131,8 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
     confidence,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef);
 
   const meta = result.meta ?? {};
 
@@ -145,7 +141,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
 
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {fields.map((field, i) => {
@@ -176,26 +172,33 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
               }
 
               return (
-                <StyledTableHeadCell
-                  align={align}
-                  key={i}
-                  isFirst={i === 0}
-                  onClick={updateSort}
-                >
-                  <span>{label}</span>
-                  {defined(direction) && (
-                    <IconArrow
-                      size="xs"
-                      direction={
-                        direction === 'desc'
-                          ? 'down'
-                          : direction === 'asc'
-                            ? 'up'
-                            : undefined
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{label}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== fields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
                       }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
                     />
                   )}
-                </StyledTableHeadCell>
+                </TableHeadCell>
               );
             })}
           </TableRow>
@@ -254,8 +257,4 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   background-color: ${p => {
     return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
   }};
-`;
-
-const StyledTableHeadCell = styled(TableHeadCell)`
-  cursor: pointer;
 `;
