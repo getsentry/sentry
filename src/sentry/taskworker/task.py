@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
 from uuid import uuid4
 
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -58,15 +59,31 @@ class Task(Generic[P, R]):
         return self._retry
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """
+        Call the task function immediately.
+        """
         return self._func(*args, **kwargs)
 
     def delay(self, *args: P.args, **kwargs: P.kwargs) -> None:
+        """
+        Schedule a task to run later with a set of arguments.
+
+        The provided parameters will be JSON encoded and stored within
+        a `TaskActivation` protobuf that is appended to kafka
+        """
         self.apply_async(*args, **kwargs)
 
     def apply_async(self, *args: P.args, **kwargs: P.kwargs) -> None:
+        """
+        Schedule a task to run later with a set of arguments.
+
+        The provided parameters will be JSON encoded and stored within
+        a `TaskActivation` protobuf that is appended to kafka
+        """
         if settings.TASK_WORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
         else:
+            # TODO(taskworker) promote parameters to headers
             self._namespace.send_task(self.create_activation(*args, **kwargs))
 
     def create_activation(self, *args: P.args, **kwargs: P.kwargs) -> TaskActivation:
@@ -81,10 +98,16 @@ class Task(Generic[P, R]):
         if isinstance(expires, datetime.timedelta):
             expires = int(expires.total_seconds())
 
+        headers = {
+            "sentry-trace": sentry_sdk.get_traceparent() or "",
+            "baggage": sentry_sdk.get_baggage() or "",
+        }
+
         return TaskActivation(
             id=uuid4().hex,
             namespace=self._namespace.name,
             taskname=self.name,
+            headers=headers,
             parameters=orjson.dumps({"args": args, "kwargs": kwargs}).decode("utf8"),
             retry_state=self._create_retry_state(),
             received_at=received_at,
