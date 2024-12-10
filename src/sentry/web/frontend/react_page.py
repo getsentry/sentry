@@ -91,7 +91,7 @@ class ReactMixin:
         react_config = get_client_config(request, org_context)
 
         user_theme = ""
-        if react_config.get("user", {}).get("options", {}).get("theme", None):
+        if react_config and react_config.get("user", {}).get("options", {}).get("theme", None):
             user_theme = f"theme-{react_config['user']['options']['theme']}"
 
         context = {
