@@ -392,6 +392,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/metrics/meta/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
     });
 
     afterEach(function () {

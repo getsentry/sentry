@@ -2951,3 +2951,11 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enforces a QueryBuilder check that the first relevant event has been sent for each project
+register(
+    "sentry.search.events.project.check_event",
+    default=0.0,
+    type=Float,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

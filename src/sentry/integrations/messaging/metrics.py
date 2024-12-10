@@ -43,6 +43,9 @@ class MessagingInteractionType(StrEnum):
 
     GET_PARENT_NOTIFICATION = "GET_PARENT_NOTIFICATION"
 
+    SEND_INCIDENT_ALERT_NOTIFICATION = "SEND_INCIDENT_ALERT_NOTIFICATION"
+    SEND_ISSUE_ALERT_NOTIFICATION = "SEND_ISSUE_ALERT_NOTIFICATION"
+
 
 @dataclass
 class MessagingInteractionEvent(IntegrationEventLifecycleMetric):
