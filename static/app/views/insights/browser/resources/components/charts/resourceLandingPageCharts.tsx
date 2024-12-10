@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import EventView from 'sentry/utils/discover/eventView';
@@ -25,8 +24,6 @@ import {
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
-const NULL_SPAN_CATEGORY = t('custom');
-
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
 
 const CHART_HEIGHT = 140;
@@ -35,7 +32,6 @@ type Props = {
   appliedFilters: ModuleFilters;
   eventView?: EventView;
   extraQuery?: string[];
-  spanCategory?: string;
   throughputUnit?: RateUnit;
 };
 
@@ -47,14 +43,13 @@ type ChartProps = {
 
 export function ResourceLandingPageCharts({
   appliedFilters,
-  spanCategory,
   throughputUnit = RateUnit.PER_MINUTE,
   extraQuery,
 }: Props) {
   const moduleName = ModuleName.RESOURCE;
   const {selection} = usePageFilters();
 
-  const eventView = getEventView(selection, appliedFilters, spanCategory);
+  const eventView = getEventView(selection, appliedFilters);
   if (extraQuery) {
     eventView.query += ` ${extraQuery.join(' ')}`;
   }
@@ -214,12 +209,8 @@ function DurationChart({filters, extraQuery}: ChartProps): JSX.Element {
 
 const SPAN_FILTER_KEYS = ['span_operation', SPAN_DOMAIN, 'action'];
 
-const getEventView = (
-  pageFilters: PageFilters,
-  appliedFilters: ModuleFilters,
-  spanCategory?: string
-) => {
-  const query = buildDiscoverQueryConditions(appliedFilters, spanCategory);
+const getEventView = (pageFilters: PageFilters, appliedFilters: ModuleFilters) => {
+  const query = buildDiscoverQueryConditions(appliedFilters);
 
   return EventView.fromNewQueryWithPageFilters(
     {
@@ -235,10 +226,7 @@ const getEventView = (
   );
 };
 
-const buildDiscoverQueryConditions = (
-  appliedFilters: ModuleFilters,
-  spanCategory?: string
-) => {
+const buildDiscoverQueryConditions = (appliedFilters: ModuleFilters) => {
   const result = Object.keys(appliedFilters)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(appliedFilters[key]))
@@ -251,14 +239,6 @@ const buildDiscoverQueryConditions = (
     });
 
   result.push(`has:${SPAN_DESCRIPTION}`);
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      result.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      result.push(`span.category:${spanCategory}`);
-    }
-  }
 
   return result.join(' ');
 };
