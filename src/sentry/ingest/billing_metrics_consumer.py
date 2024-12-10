@@ -16,13 +16,7 @@ from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMe
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
-from sentry.sentry_metrics.indexer.strings import (
-    SHARED_TAG_STRINGS,
-    SPAN_METRICS_NAMES,
-    TRANSACTION_METRICS_NAMES,
-)
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import reverse_resolve_tag_value
+from sentry.sentry_metrics.indexer.strings import SPAN_METRICS_NAMES, TRANSACTION_METRICS_NAMES
 from sentry.signals import first_custom_metric_received
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
@@ -48,9 +42,11 @@ class BillingMetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 
 class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
-    """A metrics consumer that generates a billing outcome for each processed
-    transaction, processing a bucket at a time. The transaction count is
-    directly taken from the `c:transactions/usage@none` counter metric.
+    """A metrics consumer that generates an accepted outcome for each processed (as opposed to indexed)
+    transaction or span, processing a bucket at a time. The transaction / span count is
+    directly taken from the `c:transactions/usage@none` or `c:spans/usage@none` counter metric.
+
+    See https://develop.sentry.dev/application-architecture/dynamic-sampling/outcomes/.
     """
 
     #: The IDs of the metrics used to count transactions or spans
@@ -58,7 +54,6 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         TRANSACTION_METRICS_NAMES["c:transactions/usage@none"]: DataCategory.TRANSACTION,
         SPAN_METRICS_NAMES["c:spans/usage@none"]: DataCategory.SPAN,
     }
-    profile_tag_key = str(SHARED_TAG_STRINGS["has_profile"])
 
     def __init__(self, next_step: ProcessingStrategy[Any]) -> None:
         self.__next_step = next_step
@@ -79,7 +74,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         payload = self._get_payload(message)
 
-        self._produce_billing_outcomes(payload)
+        self._produce_outcomes(payload)
         self._flag_metric_received_for_project(payload)
 
         self.__next_step.submit(message)
@@ -106,25 +101,16 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
 
         return items
 
-    def _has_profile(self, generic_metric: GenericMetric) -> bool:
-        return bool(
-            (tag_value := generic_metric["tags"].get(self.profile_tag_key))
-            and "true"
-            == reverse_resolve_tag_value(
-                UseCaseID.TRANSACTIONS, generic_metric["org_id"], tag_value
-            )
-        )
-
-    def _produce_billing_outcomes(self, generic_metric: GenericMetric) -> None:
+    def _produce_outcomes(self, generic_metric: GenericMetric) -> None:
         for category, quantity in self._count_processed_items(generic_metric).items():
-            self._produce_billing_outcome(
+            self._produce_accepted_outcome(
                 org_id=generic_metric["org_id"],
                 project_id=generic_metric["project_id"],
                 category=category,
                 quantity=quantity,
             )
 
-    def _produce_billing_outcome(
+    def _produce_accepted_outcome(
         self, *, org_id: int, project_id: int, category: DataCategory, quantity: int
     ) -> None:
         if quantity < 1:
