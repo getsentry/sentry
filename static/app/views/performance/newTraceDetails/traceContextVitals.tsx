@@ -42,13 +42,12 @@ export function TraceContextVitals({tree}: Props) {
     }
 
     const colors = theme.charts.getColorPalette(3);
-    const score = Math.round(vital.score * 100);
 
     return (
       <VitalMeter
         key={vital.key}
         webVital={vital.key as WebVitals}
-        score={score}
+        score={vital.score}
         meterValue={vital.measurement.value}
         showTooltip
         color={colors[index]}
