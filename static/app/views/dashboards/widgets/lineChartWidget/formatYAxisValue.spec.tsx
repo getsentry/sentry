@@ -5,7 +5,10 @@ describe('formatYAxisValue', () => {
     it.each([
       [0, '0'],
       [17, '17'],
-      [1772313, '1,772,313'],
+      [171, '171'],
+      [17111, '17k'],
+      [17_000_110, '17m'],
+      [1_000_110_000, '1b'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatYAxisValue(value, 'integer')).toEqual(formattedValue);
     });
@@ -13,7 +16,6 @@ describe('formatYAxisValue', () => {
 
   describe('number', () => {
     it.each([
-      [0, '0'],
       [17.1238, '17.124'],
       [1772313.1, '1,772,313.1'],
     ])('Formats %s as %s', (value, formattedValue) => {

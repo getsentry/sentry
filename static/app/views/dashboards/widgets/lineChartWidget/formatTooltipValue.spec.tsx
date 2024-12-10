@@ -5,7 +5,10 @@ describe('formatTooltipValue', () => {
     it.each([
       [0, '0'],
       [17, '17'],
-      [1772313, '1,772,313'],
+      [171, '171'],
+      [17111, '17,111'],
+      [17_000_110, '17,000,110'],
+      [1_000_110_000, '1,000,110,000'],
     ])('Formats %s as %s', (value, formattedValue) => {
       expect(formatTooltipValue(value, 'integer')).toEqual(formattedValue);
     });
@@ -13,7 +16,6 @@ describe('formatTooltipValue', () => {
 
   describe('number', () => {
     it.each([
-      [0, '0'],
       [17.1238, '17.124'],
       [1772313.1, '1,772,313.1'],
     ])('Formats %s as %s', (value, formattedValue) => {
