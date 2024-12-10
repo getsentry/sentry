@@ -640,7 +640,7 @@ function Sidebar() {
               )}
             </SidebarSection>
 
-            <SidebarSection hasNewNav={hasNewNav}>
+            <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
                 HookStore.get('sidebar:bottom-items')[0]({
                   orientation,
@@ -803,6 +803,7 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
 `;
 
 const SidebarSection = styled(SidebarSectionGroup)<{
+  centeredItems?: boolean;
   hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;
@@ -821,6 +822,12 @@ const SidebarSection = styled(SidebarSectionGroup)<{
         margin: 0;
         padding: 0;
       }
+    `}
+
+  ${p =>
+    p.centeredItems &&
+    css`
+      align-items: center;
     `}
 
   &:empty {
