@@ -252,7 +252,7 @@ describe('ReleasesList', () => {
       statusCode: 400,
     });
 
-    render(<ReleasesList {...props} />, {
+    render(<ReleasesList {...props} selection={{...props.selection, projects: [3]}} />, {
       router,
       organization,
     });
@@ -261,7 +261,7 @@ describe('ReleasesList', () => {
 
     // we want release header to be visible despite the error message
     expect(
-      await screen.getByRole('combobox', {
+      await screen.findByRole('combobox', {
         name: 'Add a search term',
       })
     ).toBeInTheDocument();
