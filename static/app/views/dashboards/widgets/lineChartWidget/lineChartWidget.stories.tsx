@@ -10,12 +10,12 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {shiftTimeserieToNow} from '../common/shiftTimeserieToNow';
 import type {Release, TimeseriesData} from '../common/types';
 
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
 import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
-import {shiftTimeserieToNow} from './shiftTimeserieToNow';
 
 const sampleDurationTimeSeries2 = {
   ...sampleDurationTimeSeries,

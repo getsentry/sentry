@@ -1,4 +1,4 @@
-import {formatChartValue} from './formatChartValue';
+import {formatChartValue} from '../lineChartWidget/formatChartValue';
 
 describe('formatChartValue', () => {
   describe('integer', () => {

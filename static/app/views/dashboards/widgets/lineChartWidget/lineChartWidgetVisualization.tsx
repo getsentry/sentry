@@ -19,10 +19,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {formatChartValue} from '../common/formatChartValue';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
-import {formatChartValue} from './formatChartValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
