@@ -42,14 +42,9 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
 
-class VroomTimeout(Exception):
-    pass
-
-
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
     queue="profiles.process",
-    autoretry_for=(VroomTimeout,),
     retry_backoff=True,
     retry_backoff_max=20,
     retry_jitter=True,
@@ -966,7 +961,7 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             if response.status == 204:
                 return True
             elif response.status == 429:
-                raise VroomTimeout
+                reason = "gcs timeout"
             elif response.status == 412:
                 reason = "duplicate profile"
 
@@ -977,13 +972,6 @@ def _insert_vroom_profile(profile: Profile) -> bool:
                     "reason": reason,
                     "status_code": response.status,
                 },
-                sample_rate=1.0,
-            )
-            return False
-        except VroomTimeout:
-            metrics.incr(
-                "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "timeout"},
                 sample_rate=1.0,
             )
             return False
