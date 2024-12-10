@@ -193,7 +193,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   return (
     <HeaderContainer>
       <HeaderContainer>
-        <SectionHeading>{t('Related Profile')}</SectionHeading>
+        <SectionHeading>{t('Profile')}</SectionHeading>
         <QuestionTooltip
           position="top"
           size="sm"
