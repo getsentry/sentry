@@ -1,7 +1,8 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -9,11 +10,13 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
+import {TraceIssueEvent} from 'sentry/views/issueDetails/traceTimeline/traceIssue';
+import {useTraceTimelineEvents} from 'sentry/views/issueDetails/traceTimeline/useTraceTimelineEvents';
 import {IssuesTraceWaterfall} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfall';
 import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
@@ -128,13 +131,44 @@ function IssuesTraceOverlay({event}: {event: Event}) {
 
   return (
     <IssuesTraceOverlayContainer>
-      <LinkButton
-        size="sm"
-        icon={<IconOpen />}
-        aria-label={t('Open Trace')}
-        to={traceTarget}
-      />
+      <LinkButton size="sm" icon={<IconOpen />} to={traceTarget}>
+        {t('View Full Trace')}
+      </LinkButton>
     </IssuesTraceOverlayContainer>
+  );
+}
+
+function OneOtherIssueEvent({event}: {event: Event}) {
+  const location = useLocation();
+  const organization = useOrganization();
+  const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({event});
+  useRouteAnalyticsParams(oneOtherIssueEvent ? {has_related_trace_issue: true} : {});
+
+  if (isLoading || !oneOtherIssueEvent) {
+    return null;
+  }
+
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
+
+  return (
+    <Fragment>
+      <span>
+        {t('One other issue appears in the same trace. ')}
+        <Link to={traceTarget}>{t('View Full Trace')}</Link>
+      </span>
+      <TraceIssueEvent event={oneOtherIssueEvent} />
+    </Fragment>
   );
 }
 
@@ -165,18 +199,14 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   }
 
   const hasProfilingFeature = organization.features.includes('profiling');
-  const hasIssueDetailsTrace = organization.features.includes(
-    'issue-details-always-show-trace'
-  );
   const hasTracePreviewFeature =
     hasProfilingFeature &&
-    hasIssueDetailsTrace &&
     // Only display this for error or default events since performance events are handled elsewhere
     group.issueCategory !== IssueCategory.PERFORMANCE;
 
   return (
     <InterimSection type={SectionKey.TRACE} title={t('Trace')}>
-      <TraceDataSection event={event} />
+      <OneOtherIssueEvent event={event} />
       {hasTracePreviewFeature && (
         <EventTraceViewInner
           event={event}
