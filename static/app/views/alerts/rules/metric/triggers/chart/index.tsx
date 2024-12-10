@@ -145,6 +145,7 @@ const MOST_EAP_TIME_PERIOD = [
 ];
 
 const EAP_AVAILABLE_TIME_PERIODS = {
+  [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
   [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
   [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
   [TimeWindow.FIFTEEN_MINUTES]: MOST_EAP_TIME_PERIOD,
