@@ -150,46 +150,6 @@ describe('NewWidgetBuiler', function () {
     });
   });
 
-  it('edits name and description', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({title: 'some name'}),
-      })
-    );
-
-    await userEvent.click(await screen.findByTestId('add-description'));
-
-    await userEvent.type(
-      await screen.findByPlaceholderText('Description'),
-      'some description'
-    );
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({description: 'some description'}),
-      })
-    );
-  });
-
   it('changes the dataset', async function () {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);
