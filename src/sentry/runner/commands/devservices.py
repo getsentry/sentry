@@ -305,12 +305,13 @@ def up(
 
     click.secho(
         """
-WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in the near future.
-To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`.
+WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
+To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
+https://github.com/getsentry/devservices?tab=readme-ov-file#commands
 
 Instead of running `sentry devservices up`, consider using `devservices up`.
-If you hit any bumps or have feedback, we'd love to hear from you — just drop by #discuss-dev-infra.
-Thanks for helping the dev infra team improve this experience!
+For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
+Thanks for helping the Dev Infra team improve this experience!
 
     """,
         fg="yellow",
@@ -535,12 +536,13 @@ def down(project: str, service: list[str]) -> None:
 
     click.secho(
         """
-WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in the near future.
-To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`.
+WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
+To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
+https://github.com/getsentry/devservices?tab=readme-ov-file#commands
 
 Instead of running `sentry devservices down`, consider using `devservices down`.
-If you hit any bumps or have feedback, we'd love to hear from you — just drop by #discuss-dev-infra.
-Thanks for helping the dev infra team improve this experience!
+For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
+Thanks for helping the Dev Infra team improve this experience!
 
     """,
         fg="yellow",
