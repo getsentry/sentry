@@ -83,13 +83,13 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
     );
   }
 
-  useEffect(
-    () => {
-      GroupingStore.listen(data => onGroupChange(data), undefined);
-    },
+  useEffect(() => {
+    const teardown = GroupingStore.listen(data => onGroupChange(data), undefined);
+    return () => {
+      teardown();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
+  }, []);
 
   const {latestEvent, id, label} = fingerprint;
   const checkboxDisabled = busy || totalFingerprint === 1;
