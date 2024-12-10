@@ -31,6 +31,7 @@ from sentry.snuba import (
     metrics_performance,
     spans_eap,
     spans_rpc,
+    structured_logs,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -433,6 +434,25 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            if dataset == structured_logs:
+                if not features.has(
+                    "organization:structured_logs", organization, actor=request.user
+                ):
+                    return Response(status=404)
+                return spans_rpc.run_table_query(
+                    params=snuba_params,
+                    query_string=query,
+                    selected_columns=self.get_field_list(organization, request),
+                    orderby=self.get_orderby(request),
+                    offset=offset,
+                    limit=limit,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=True,
+                        use_aggregate_conditions=use_aggregate_conditions,
+                    ),
+                )
+
             if use_rpc and dataset == spans_eap:
                 return spans_rpc.run_table_query(
                     params=snuba_params,

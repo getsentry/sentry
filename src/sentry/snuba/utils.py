@@ -13,6 +13,7 @@ from sentry.snuba import (
     spans_eap,
     spans_indexed,
     spans_metrics,
+    structured_logs,
     transactions,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -30,6 +31,7 @@ DATASET_OPTIONS = {
     "spans": spans_eap,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
+    "structuredLogs": structured_logs,
     "transactions": transactions,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
