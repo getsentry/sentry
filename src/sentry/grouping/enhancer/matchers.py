@@ -1,6 +1,6 @@
 from typing import Any
 
-from sentry.grouping.utils import get_rule_bool
+from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils import metrics
@@ -202,7 +202,7 @@ class FrameMatch(EnhancementMatch):
         if self.key == "family":
             arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
         elif self.key == "app":
-            arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
+            arg = {True: "1", False: "0"}.get(bool_from_string(self.pattern), "")
         else:
             arg = self.pattern
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
@@ -258,7 +258,7 @@ class FamilyMatch(FrameMatch):
 class InAppMatch(FrameMatch):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._ref_val = get_rule_bool(self.pattern)
+        self._ref_val = bool_from_string(self.pattern)
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
         ref_val = self._ref_val

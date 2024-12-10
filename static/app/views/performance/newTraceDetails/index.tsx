@@ -8,7 +8,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
 import {useTrace} from './traceApi/useTrace';
 import {useTraceMeta} from './traceApi/useTraceMeta';
@@ -42,6 +44,7 @@ export function TraceView() {
   const traceSlug = useMemo(() => decodeTraceSlug(params.traceSlug), [params.traceSlug]);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
+  const hasTraceNewUi = useHasTraceNewUi();
 
   const preferences = useMemo(
     () =>
@@ -86,6 +89,7 @@ export function TraceView() {
                 traceEventView={traceEventView}
                 organization={organization}
               />
+              {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
             </TraceInnerLayout>
           </TraceExternalLayout>
         </NoProjectMessage>
@@ -110,5 +114,5 @@ const TraceInnerLayout = styled('div')`
   flex: 1 1 100%;
   padding: ${space(2)};
 
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.surface100};
 `;
