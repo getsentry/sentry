@@ -46,6 +46,11 @@ describe('Dashboards - DashboardTable', function () {
         title: 'Dashboard 1',
         dateCreated: '2021-04-19T13:13:23.962105Z',
         createdBy: UserFixture({id: '1'}),
+        permissions: {
+          isEditableByEveryone: false,
+          teamsWithEditAccess: [1],
+        },
+        isFavorited: true,
       }),
       DashboardListItemFixture({
         id: '2',
@@ -234,8 +239,15 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -258,13 +270,86 @@ describe('Dashboards - DashboardTable', function () {
         onDashboardsChange={dashboardUpdateMock}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+
+    expect(postMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
       // Should not update, and not throw error
       expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('renders access column', async function () {
+    const organizationWithEditAccess = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-edit-access',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithEditAccess}
+        dashboards={dashboards}
+        location={router.location}
+      />
+    );
+
+    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(screen.getByText('Access')).toBeInTheDocument();
+    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]);
+    expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+  });
+
+  it('renders favorite column', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/favorite/',
+      method: 'PUT',
+      body: {isFavorited: false},
+    });
+
+    const organizationWithFavorite = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-favourite',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithFavorite}
+        dashboards={dashboards}
+        location={router.location}
+      />,
+      {
+        organization: organizationWithFavorite,
+      }
+    );
+
+    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+
+    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
   });
 });

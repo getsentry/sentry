@@ -5,6 +5,7 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    FetchNextTask,
     TaskActivation,
 )
 
@@ -32,6 +33,11 @@ def retry_task():
 @test_namespace.register(name="test.fail_task")
 def fail_task():
     raise ValueError("nope")
+
+
+@test_namespace.register(name="test.at_most_once", at_most_once=True)
+def at_most_once_task():
+    pass
 
 
 SIMPLE_TASK = TaskActivation(
@@ -62,6 +68,14 @@ UNDEFINED_TASK = TaskActivation(
     id="444",
     taskname="total.rubbish",
     namespace="lolnope",
+    parameters='{"args": [], "kwargs": {}}',
+    processing_deadline_duration=1,
+)
+
+AT_MOST_ONCE_TASK = TaskActivation(
+    id="555",
+    taskname="test.at_most_once",
+    namespace="tests",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
@@ -97,7 +111,9 @@ class TestTaskWorker(TestCase):
             result = taskworker.process_task(SIMPLE_TASK)
 
             mock_update.assert_called_with(
-                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+                task_id=SIMPLE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
 
             assert result
@@ -110,7 +126,9 @@ class TestTaskWorker(TestCase):
             result = taskworker.process_task(RETRY_TASK)
 
             mock_update.assert_called_with(
-                task_id=RETRY_TASK.id, status=TASK_ACTIVATION_STATUS_RETRY
+                task_id=RETRY_TASK.id,
+                status=TASK_ACTIVATION_STATUS_RETRY,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
 
             assert result
@@ -118,15 +136,35 @@ class TestTaskWorker(TestCase):
 
     def test_process_task_failure(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
-        with mock.patch.object(taskworker.client, "update_task") as mock_update_task:
-            mock_update_task.return_value = SIMPLE_TASK
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = SIMPLE_TASK
             result = taskworker.process_task(FAIL_TASK)
 
-            mock_update_task.assert_called_with(
-                task_id=FAIL_TASK.id, status=TASK_ACTIVATION_STATUS_FAILURE
+            mock_update.assert_called_with(
+                task_id=FAIL_TASK.id,
+                status=TASK_ACTIVATION_STATUS_FAILURE,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
             assert result
             assert result.id == SIMPLE_TASK.id
+
+    def test_process_task_at_most_once(self) -> None:
+        taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
+        with mock.patch.object(taskworker.client, "update_task") as mock_update:
+            mock_update.return_value = SIMPLE_TASK
+            result = taskworker.process_task(AT_MOST_ONCE_TASK)
+
+            mock_update.assert_called_with(
+                task_id=AT_MOST_ONCE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=FetchNextTask(namespace=None),
+            )
+        assert taskworker.process_task(AT_MOST_ONCE_TASK) is None
+        assert result
+        assert result.id == SIMPLE_TASK.id
+
+        result = taskworker.process_task(AT_MOST_ONCE_TASK)
+        assert result is None
 
     def test_start_max_task_count(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=1)
@@ -140,7 +178,9 @@ class TestTaskWorker(TestCase):
             assert result == 0
             assert mock_client.get_task.called
             mock_client.update_task.assert_called_with(
-                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+                task_id=SIMPLE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
 
     def test_start_loop(self) -> None:
@@ -159,10 +199,14 @@ class TestTaskWorker(TestCase):
             assert mock_client.update_task.call_count == 2
 
             mock_client.update_task.assert_any_call(
-                task_id=SIMPLE_TASK.id, status=TASK_ACTIVATION_STATUS_COMPLETE
+                task_id=SIMPLE_TASK.id,
+                status=TASK_ACTIVATION_STATUS_COMPLETE,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
             mock_client.update_task.assert_any_call(
-                task_id=RETRY_TASK.id, status=TASK_ACTIVATION_STATUS_RETRY
+                task_id=RETRY_TASK.id,
+                status=TASK_ACTIVATION_STATUS_RETRY,
+                fetch_next_task=FetchNextTask(namespace=None),
             )
 
     def test_start_keyboard_interrupt(self) -> None:
@@ -181,5 +225,7 @@ class TestTaskWorker(TestCase):
             result = taskworker.start()
             assert result == 0, "Exit zero, all tasks complete"
             mock_client.update_task.assert_any_call(
-                task_id=UNDEFINED_TASK.id, status=TASK_ACTIVATION_STATUS_FAILURE
+                task_id=UNDEFINED_TASK.id,
+                status=TASK_ACTIVATION_STATUS_FAILURE,
+                fetch_next_task=FetchNextTask(namespace=None),
             )

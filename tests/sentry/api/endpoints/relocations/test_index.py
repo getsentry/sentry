@@ -437,7 +437,7 @@ class PostRelocationsTest(APITestCase):
         {
             "relocation.enabled": True,
             "relocation.daily-limit.small": 1,
-            "relocation.autopause": "IMPORTING",
+            "relocation.autopause.self-hosted": "IMPORTING",
         }
     )
     @patch("sentry.tasks.relocation.uploading_start.apply_async")
@@ -492,7 +492,44 @@ class PostRelocationsTest(APITestCase):
         {
             "relocation.enabled": True,
             "relocation.daily-limit.small": 1,
-            "relocation.autopause": "DOESNOTEXIST",
+            "relocation.autopause.saas-to-saas": "IMPORTING",
+        }
+    )
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
+    def test_good_with_untriggered_autopause_option(
+        self,
+        uploading_start_mock: Mock,
+        relocation_link_promo_code_signal_mock: Mock,
+        analytics_record_mock: Mock,
+    ):
+        self.login_as(user=self.owner, superuser=False)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
+                with open(tmp_pub_key_path, "rb") as p:
+                    response = self.get_success_response(
+                        owner=self.owner.username,
+                        file=SimpleUploadedFile(
+                            "export.tar",
+                            create_encrypted_export_tarball(data, LocalFileEncryptor(p)).getvalue(),
+                            content_type="application/tar",
+                        ),
+                        orgs="testing",
+                        format="multipart",
+                        status_code=201,
+                    )
+
+        assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["scheduledPauseAtStep"] is None
+
+    @override_options(
+        {
+            "relocation.enabled": True,
+            "relocation.daily-limit.small": 1,
+            "relocation.autopause.self-hosted": "DOESNOTEXIST",
         }
     )
     @patch("sentry.tasks.relocation.uploading_start.apply_async")

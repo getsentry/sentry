@@ -13,7 +13,6 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import EAPField from 'sentry/views/alerts/rules/metric/eapField';
-import InsightsMetricField from 'sentry/views/alerts/rules/metric/insightsMetricField';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
@@ -25,7 +24,6 @@ import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
@@ -121,14 +119,6 @@ export default function WizardField({
               },
             ]
           : []),
-        ...(hasInsightsAlerts(organization)
-          ? [
-              {
-                label: AlertWizardAlertNames.insights_metrics,
-                value: 'insights_metrics' as const,
-              },
-            ]
-          : []),
         ...(hasEAPAlerts(organization)
           ? [
               {
@@ -213,14 +203,6 @@ export default function WizardField({
                 project={project}
                 aggregate={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
-              />
-            ) : alertType === 'insights_metrics' ? (
-              <InsightsMetricField
-                project={project}
-                aggregate={aggregate}
-                onChange={newAggregate => {
-                  return onChange(newAggregate, {});
-                }}
               />
             ) : alertType === 'eap_metrics' ? (
               <EAPField

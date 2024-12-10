@@ -134,7 +134,7 @@ function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
               props.organization.slug,
               false,
               hasDatasetSelector(props.organization)
-                ? SavedQueryDatasets.ERRORS
+                ? SavedQueryDatasets.TRANSACTIONS
                 : undefined
             )}
             onClick={trackOpenInDiscover}
@@ -165,8 +165,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
   );
 
   const projectSlugs = useMemo(() => {
-    return Array.from(props.tree.projects).map(p => p.slug);
-  }, [props.tree]);
+    return Array.from(props.tree.projects.values()).map(project => project.slug);
+  }, [props.tree.projects]);
 
   if (!hasNewTraceViewUi) {
     return <LegacyTraceMetadataHeader {...props} />;
@@ -233,6 +233,7 @@ const ProjectsRendererWrapper = styled('div')`
 `;
 
 const HeaderLayout = styled(Layout.Header)`
+  background-color: ${p => p.theme.background};
   padding: ${space(2)} ${space(2)} 0 !important;
 `;
 

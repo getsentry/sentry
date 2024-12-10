@@ -160,6 +160,14 @@ const mockGroupApis = (
   trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/issues/1/events/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/flags/logs/',
+    body: {data: []},
+  });
+  MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/issues/${group.id}/`,
     body: group,
   });

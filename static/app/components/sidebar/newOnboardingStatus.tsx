@@ -73,12 +73,11 @@ export function NewOnboardingStatus({
   });
 
   const label = walkthrough ? t('Guided Tours') : t('Onboarding');
-  const totalRemainingTasks = allTasks.length - doneTasks.length;
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+  const allTasksCompleted = allTasks.length === completeTasks.length;
 
   const skipQuickStart =
-    !organization.features?.includes('onboarding') ||
-    (completeTasks.length === allTasks.length && !isActive);
+    !organization.features?.includes('onboarding') || (allTasksCompleted && !isActive);
 
   const unseenDoneTasks = useMemo(
     () =>
@@ -111,7 +110,7 @@ export function NewOnboardingStatus({
   }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
 
   useEffect(() => {
-    if (totalRemainingTasks !== 0 || skipQuickStart || quickStartCompleted) {
+    if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
       return;
     }
 
@@ -123,11 +122,11 @@ export function NewOnboardingStatus({
 
     setQuickStartCompleted(true);
   }, [
-    totalRemainingTasks,
     organization,
     skipQuickStart,
     quickStartCompleted,
     setQuickStartCompleted,
+    allTasksCompleted,
   ]);
 
   useEffect(() => {
@@ -152,6 +151,7 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        showText={!shouldAccordionFloat}
         onMouseEnter={() => {
           refetch();
         }}
@@ -243,11 +243,11 @@ const hoverCss = (p: {theme: Theme}) => css`
   }
 `;
 
-const Container = styled('div')<{isActive: boolean}>`
-  padding: 9px 19px 9px 16px;
+const Container = styled('div')<{isActive: boolean; showText: boolean}>`
+  padding: 9px 16px;
   cursor: pointer;
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: ${p => (p.showText ? 'max-content 1fr' : 'max-content')};
   gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;

@@ -2,6 +2,7 @@ import logging
 
 import grpc
 from sentry_protos.sentry.v1.taskworker_pb2 import (
+    FetchNextTask,
     GetTaskRequest,
     SetTaskStatusRequest,
     TaskActivation,
@@ -24,15 +25,26 @@ class TaskworkerClient:
         self._channel = grpc.insecure_channel(self._host)
         self._stub = ConsumerServiceStub(self._channel)
 
-    def get_task(self) -> TaskActivation | None:
-        request = GetTaskRequest()
-        response = self._stub.GetTask(request)
+    def get_task(self, namespace: str | None = None) -> TaskActivation | None:
+        """
+        Fetch a pending task.
+
+        If a namespace is provided, only tasks for that namespace will be fetched.
+        This will return None if there are no tasks to fetch.
+        """
+        request = GetTaskRequest(namespace=namespace)
+        try:
+            response = self._stub.GetTask(request)
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            raise
         if response.HasField("task"):
             return response.task
         return None
 
     def update_task(
-        self, task_id: str, status: TaskActivationStatus.ValueType, fetch_next: bool = True
+        self, task_id: str, status: TaskActivationStatus.ValueType, fetch_next_task: FetchNextTask
     ) -> TaskActivation | None:
         """
         Update the status for a given task activation.
@@ -42,9 +54,14 @@ class TaskworkerClient:
         request = SetTaskStatusRequest(
             id=task_id,
             status=status,
-            fetch_next=fetch_next,
+            fetch_next_task=fetch_next_task,
         )
-        response = self._stub.SetTaskStatus(request)
-        if response.HasField("error"):
-            raise RuntimeError(response.error)
-        return response.task
+        try:
+            response = self._stub.SetTaskStatus(request)
+        except grpc.RpcError as err:
+            if err.code() == grpc.StatusCode.NOT_FOUND:
+                return None
+            raise
+        if response.HasField("task"):
+            return response.task
+        return None

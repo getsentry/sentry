@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import logging
+from datetime import datetime
+from typing import Literal, NotRequired, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -18,6 +22,24 @@ from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
+
+
+class _TokenInformationUser(TypedDict):
+    id: str
+    name: str
+    email: str
+
+
+class _TokenInformation(TypedDict):
+    access_token: str
+    refresh_token: str | None
+    expires_in: int | None
+    expires_at: datetime | None
+    token_type: Literal["bearer"]
+    scope: str
+    user: _TokenInformationUser
+    id_token: NotRequired[OpenIDToken]
+    organization_id: NotRequired[str]
 
 
 @control_silo_view
@@ -47,7 +69,7 @@ class OAuthTokenView(View):
         )
 
     @method_decorator(never_cache)
-    def post(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
@@ -154,7 +176,7 @@ class OAuthTokenView(View):
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None
     ) -> HttpResponse:
-        token_information = {
+        token_information: _TokenInformation = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
             "expires_in": (

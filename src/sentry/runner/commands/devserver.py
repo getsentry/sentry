@@ -37,6 +37,7 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
+    "eap-spans-subscription-results",
 ]
 
 

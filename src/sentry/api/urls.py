@@ -83,7 +83,10 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
-from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
+from sentry.flags.endpoints.secrets import (
+    OrganizationFlagsWebHookSigningSecretEndpoint,
+    OrganizationFlagsWebHookSigningSecretsEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -430,6 +433,7 @@ from .endpoints.organization_codeowners_associations import (
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
+    OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from .endpoints.organization_dashboard_widget_details import (
@@ -488,9 +492,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_unreleased_commits import (
-    OrganizationMemberUnreleasedCommitsEndpoint,
-)
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
@@ -511,7 +512,6 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
-    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
     OrganizationProfilingHasChunksEndpoint,
 )
@@ -1294,6 +1294,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-dashboard-visit",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/favorite/$",
+        OrganizationDashboardFavoriteEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-favorite",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
@@ -1764,11 +1769,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-member-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
-        OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
-        name="sentry-api-0-organization-member-unreleased-commits",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-team-details",
@@ -2017,7 +2017,12 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-hooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/$",
+        OrganizationFlagsWebHookSigningSecretsEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secrets",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/(?P<signing_secret_id>\d+)/$",
         OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
@@ -2122,11 +2127,6 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
-                ),
-                re_path(
-                    r"^chunks-flamegraph/$",
-                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",

@@ -15,6 +15,7 @@ import type {
   AutofixRepository,
   BreadcrumbContext,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbIcon,
@@ -38,7 +39,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
@@ -85,13 +86,15 @@ export function ExpandableInsightContext({
   title,
   icon,
   rounded,
+  expandByDefault = false,
 }: {
   children: React.ReactNode;
   title: string;
+  expandByDefault?: boolean;
   icon?: React.ReactNode;
   rounded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(expandByDefault);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -372,6 +375,7 @@ function AutofixInsightCards({
 
 export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {
@@ -393,6 +397,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage(t('Thanks, rethinking this...'));
     },
     onError: () => {
@@ -578,6 +583,7 @@ const UserMessageContainer = styled('div')`
 const UserMessage = styled('div')`
   margin-left: ${space(2)};
   flex-shrink: 100;
+  word-break: break-word;
 `;
 
 const NoInsightsYet = styled('div')`
@@ -727,6 +733,7 @@ const MiniHeader = styled('p')`
   padding-right: ${space(2)};
   padding-left: ${space(2)};
   width: 95%;
+  word-break: break-word;
 `;
 
 const ExpandableContext = styled('div')<{isRounded?: boolean}>`

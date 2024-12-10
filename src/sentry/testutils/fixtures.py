@@ -10,7 +10,6 @@ from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
-from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.activity import Activity
@@ -374,11 +373,6 @@ class Fixtures:
     def create_incident_activity(self, *args, **kwargs):
         return Factories.create_incident_activity(*args, **kwargs)
 
-    def create_incident_comment(self, incident, *args, **kwargs):
-        return self.create_incident_activity(
-            incident, type=IncidentActivityType.COMMENT.value, *args, **kwargs
-        )
-
     def create_incident_trigger(self, incident, alert_rule_trigger, status):
         return Factories.create_incident_trigger(incident, alert_rule_trigger, status=status)
 
@@ -621,17 +615,20 @@ class Fixtures:
         type="",
         condition_result=None,
         condition_group=None,
+        **kwargs,
     ):
         if condition_result is None:
             condition_result = str(DetectorPriorityLevel.HIGH.value)
         if condition_group is None:
             condition_group = self.create_data_condition_group()
+
         return Factories.create_data_condition(
             condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,
             condition_group=condition_group,
+            **kwargs,
         )
 
     def create_detector(
@@ -666,7 +663,7 @@ class Fixtures:
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
-    # workflow_engine action
+    # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
 

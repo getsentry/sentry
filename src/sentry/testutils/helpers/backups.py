@@ -44,15 +44,10 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import (
-    AlertRuleExcludedProjects,
-    AlertRuleMonitorTypeInt,
-    AlertRuleTriggerExclusion,
-)
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
-    IncidentSubscription,
     IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
@@ -69,7 +64,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -117,7 +112,13 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleDetector,
+    AlertRuleTriggerDataCondition,
+    AlertRuleWorkflow,
+    DataConditionGroup,
+)
 
 __all__ = [
     "export_to_file",
@@ -511,20 +512,15 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # AlertRule*
-        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
             user=owner,
         )
-        AlertRuleExcludedProjects.objects.create(alert_rule=alert, project=other_project)
         alert.user_id = owner_id
         alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert)
         assert alert.snuba_query is not None
-        AlertRuleTriggerExclusion.objects.create(
-            alert_rule_trigger=trigger, query_subscription=alert.snuba_query.subscriptions.get()
-        )
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
             organization=org,
@@ -561,7 +557,6 @@ class ExhaustiveFixtures(Fixtures):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -578,6 +573,10 @@ class ExhaustiveFixtures(Fixtures):
             title=f"Dashboard 1 for {slug}",
             created_by_id=owner_id,
             organization=org,
+        )
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner.id,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -668,14 +667,14 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
         )
 
         # TODO @saponifi3d: Update comparison to be DetectorState.Critical
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             condition="eq",
             comparison="critical",
             type="WorkflowCondition",
@@ -696,7 +695,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO @saponifi3d: Create or define trigger workflow action type
-        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
@@ -708,6 +707,12 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
+
+        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleTriggerDataCondition.objects.create(
+            alert_rule_trigger=trigger, data_condition=data_condition
+        )
 
         return org
 

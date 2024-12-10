@@ -30,6 +30,7 @@ from django.core.cache import cache
 from django.db import DEFAULT_DB_ALIAS, connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
+from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
@@ -124,7 +125,6 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
-    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -276,7 +276,7 @@ class BaseTestCase(Fixtures):
         self,
         user=None,
         auth=None,
-        method=None,
+        method="get",
         is_superuser=False,
         is_staff=False,
         path="/",
@@ -285,18 +285,12 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = HttpRequest()
+        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
         if subdomain:
             setattr(request, "subdomain", subdomain)
-        if method:
-            request.method = method
-        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        if GET is not None:
-            for k, v in GET.items():
-                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -1273,6 +1267,13 @@ class SnubaTestCase(BaseTestCase):
     def snuba_update_config(cls, config_vals):
         return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
 
+    def create_project(self, **kwargs) -> Project:
+        if "flags" not in kwargs:
+            # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
+            # application knows that events have been sent
+            kwargs["flags"] = Project.flags.has_transactions
+        return super().create_project(**kwargs)
+
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
@@ -2215,49 +2216,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if not isinstance(value, list):
             value = [value]
         for subvalue in value:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
-    def store_profile_functions_metric(
-        self,
-        value: dict[str, int] | list[int] | int,
-        metric: str = "function.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
-        internal_metric = (
-            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        )
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        val_list: list[int | dict[str, int]] = []
-        if not isinstance(value, list):
-            val_list.append(value)
-        else:
-            val_list = value
-        for subvalue in val_list:
             self.store_metric(
                 org_id,
                 project,

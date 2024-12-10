@@ -94,6 +94,7 @@ type GridEditableProps<DataRow, ColumnKey> = {
     ) => React.ReactNode[];
   };
   'aria-label'?: string;
+  bodyStyle?: React.CSSProperties;
   emptyMessage?: React.ReactNode;
   error?: unknown | null;
   /**
@@ -450,6 +451,7 @@ class GridEditable<
       scrollable,
       height,
       'aria-label': ariaLabel,
+      bodyStyle,
     } = this.props;
     const showHeader = title || headerButtons;
     return (
@@ -463,7 +465,7 @@ class GridEditable<
               )}
             </Header>
           )}
-          <Body>
+          <Body style={bodyStyle}>
             <Grid
               aria-label={ariaLabel}
               data-test-id="grid-editable"
