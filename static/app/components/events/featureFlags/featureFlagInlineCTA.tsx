@@ -81,7 +81,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             </Button>
             <LinkButton
               priority="default"
-              href="https://docs.sentry.io/product/issues/issue-details/#feature-flags"
+              href="https://docs.sentry.io/product/explore/feature-flags/"
               external
             >
               {t('Read More')}

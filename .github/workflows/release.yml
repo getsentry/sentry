@@ -17,14 +17,20 @@ jobs:
     runs-on: ubuntu-latest
     name: 'Release a new version'
     steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v1.11.0
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          token: ${{ secrets.GH_RELEASE_PAT }}
+          token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
       - name: Prepare release
         uses: getsentry/action-prepare-release@d2cc2db3db92bc5b79a90c316f588f2b13626a2b # v1.5.6
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
           version: ${{ github.event.inputs.version }}
           force: ${{ github.event.inputs.force }}
