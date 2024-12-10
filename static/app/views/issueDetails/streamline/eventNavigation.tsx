@@ -244,7 +244,9 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
                 <DropdownCountWrapper isCurrentTab={currentTab === Tab.ATTACHMENTS}>
                   {TabName[Tab.ATTACHMENTS]}
                   <CustomItemCount>
-                    {hasManyAttachments ? '50+' : attachments.attachments.length}
+                    {hasManyAttachments
+                      ? `${attachments.attachments.length}+`
+                      : attachments.attachments.length}
                   </CustomItemCount>
                 </DropdownCountWrapper>
               ),
