@@ -21,7 +21,7 @@ def test_rb_cluster_returns_some_usage() -> None:
     assert memory.used > 0
     assert memory.available > 0
     assert 0.0 < memory.percentage < 1.0
-    assert memory.host == "0.0.0.0"
+    assert memory.host == "localhost"
     assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
 
 
@@ -37,7 +37,7 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
     assert memory.used > 0
     assert memory.available > 0
     assert 0.0 < memory.percentage < 1.0
-    assert memory.host == "0.0.0.0"
+    assert memory.host == "127.0.0.1"
     assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
 
 
@@ -56,7 +56,7 @@ def test_redis_health():
         assert memory.used >= 0
         assert memory.available > 0
         assert 0.0 < memory.percentage <= 1.0
-        assert memory.host == "0.0.0.0"
+        assert memory.host == "127.0.0.1"
         assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
 
 
@@ -75,9 +75,9 @@ def test_redis_unhealthy_state():
         assert memory.used >= 0
         assert memory.available > 0
         assert 0.0 < memory.percentage <= 1.0
-        assert memory.host == "0.0.0.0"
+        assert memory.host == "127.0.0.1"
         assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
 
     for memory in redis_services:
-        assert memory.host == "0.0.0.0"
+        assert memory.host == "127.0.0.1"
         assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
