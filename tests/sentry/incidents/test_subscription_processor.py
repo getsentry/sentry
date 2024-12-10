@@ -72,6 +72,8 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
+from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 EMPTY = object()
 
@@ -2956,14 +2958,37 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
 
-    @with_feature("organizations:workflow-engine-m3-dual-write")
-    def test_process_data_sources(self):
+    @with_feature("organizations:workflow-engine-m3-process")
+    @mock.patch("sentry.incidents.subscription_processor.logger")
+    def test_process_data_sources(self, mock_logger):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type="metric_alert_fire")
         data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
-        # TODO: the rest of this
+        mock_logger.info.assert_called_with(
+            "Results from process_detectors",
+            extra={
+                "results": (
+                    [
+                        [
+                            (
+                                1,
+                                {
+                                    "dummy_group": DetectorEvaluationResult(
+                                        group_key="dummy_group",
+                                        is_active=True,
+                                        priority=DetectorPriorityLevel.HIGH,
+                                        result=None,
+                                        event_data=None,
+                                    )
+                                },
+                            )
+                        ]
+                    ]
+                )
+            },
+        )
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
