@@ -29,16 +29,13 @@ from sentry.integrations.slack.metrics import (
     SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
     SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
     SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
+    record_lifecycle_termination_level,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
-)
-from sentry.integrations.slack.utils.errors import (
-    SLACK_SDK_HALT_ERROR_CATEGORIES,
-    unpack_slack_api_error,
 )
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils.common import get_active_integration_for_organization
@@ -206,24 +203,27 @@ class SlackService:
                 group_ids=[activity.group.id],
                 project_ids=[activity.project.id],
             )
-            for parent_notification in parent_notifications:
-                try:
-                    self._handle_parent_notification(
-                        parent_notification=parent_notification,
-                        notification_to_send=notification_to_send,
-                        client=slack_client,
-                    )
-                except Exception as err:
-                    self._logger.info(
-                        "failed to send notification",
-                        exc_info=err,
-                        extra={
-                            "activity_id": activity.id,
-                            "parent_notification_id": parent_notification.id,
-                            "notification_to_send": notification_to_send,
-                            "integration_id": integration.id,
-                        },
-                    )
+
+        # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
+        for parent_notification in parent_notifications:
+            try:
+                self._handle_parent_notification(
+                    parent_notification=parent_notification,
+                    notification_to_send=notification_to_send,
+                    client=slack_client,
+                )
+            except Exception as err:
+                # TODO(iamrajjoshi): We can probably swallow this error once we audit the lifecycle
+                self._logger.info(
+                    "failed to send notification",
+                    exc_info=err,
+                    extra={
+                        "activity_id": activity.id,
+                        "parent_notification_id": parent_notification.id,
+                        "notification_to_send": notification_to_send,
+                        "integration_id": integration.id,
+                    },
+                )
 
     def _handle_parent_notification(
         self,
@@ -297,14 +297,7 @@ class SlackService:
                     tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
                 )
                 lifecycle.add_extras({"rule_action_uuid": parent_notification.rule_action_uuid})
-                if (
-                    (reason := unpack_slack_api_error(e))
-                    and reason is not None
-                    and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
-                ):
-                    lifecycle.record_halt(reason.message)
-                else:
-                    lifecycle.record_failure(e)
+                record_lifecycle_termination_level(lifecycle, e)
                 raise
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
@@ -488,11 +481,4 @@ class SlackService:
                 lifecycle.add_extras(
                     {k: str(v) for k, v in log_params.items() if isinstance(v, (int, str))}
                 )
-                if (
-                    (reason := unpack_slack_api_error(e))
-                    and reason is not None
-                    and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
-                ):
-                    lifecycle.record_halt(reason.message)
-                else:
-                    lifecycle.record_failure(e)
+                record_lifecycle_termination_level(lifecycle, e)
