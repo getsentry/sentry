@@ -4,13 +4,11 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {
@@ -21,7 +19,6 @@ import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {
-  DataTitles,
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
@@ -56,7 +53,6 @@ export function ResourceLandingPageCharts({
 }: Props) {
   const moduleName = ModuleName.RESOURCE;
   const {selection} = usePageFilters();
-  const {features} = useOrganization();
 
   const eventView = getEventView(selection, appliedFilters, spanCategory);
   if (extraQuery) {
@@ -81,10 +77,6 @@ export function ResourceLandingPageCharts({
       Comp: DurationChart,
     },
   ];
-
-  if (features.includes('starfish-browser-resource-module-bundle-analysis')) {
-    charts.push({title: DataTitles.bundleSize, Comp: BundleSizeChart});
-  }
 
   return (
     <ChartsContainer>
@@ -216,71 +208,6 @@ function DurationChart({filters, extraQuery}: ChartProps): JSX.Element {
       stacked
       type={ChartType.LINE}
       chartColors={[AVG_COLOR]}
-    />
-  );
-}
-
-/** This fucntion is just to generate mock data based on other time stamps we have found */
-const useMockSeries = ({filters, extraQuery}: ChartProps) => {
-  const pageFilters = usePageFilters();
-  const eventView = getEventView(pageFilters.selection, filters);
-  if (extraQuery) {
-    eventView.query += ` ${extraQuery.join(' ')}`;
-  }
-
-  const label = `avg(${SPAN_SELF_TIME})`;
-
-  const {isPending, data} = useSpansQuery<
-    {
-      'avg(span.self_time)': number;
-      interval: number;
-      'spm()': number;
-    }[]
-  >({
-    eventView,
-    initialData: [],
-    referrer: 'api.starfish.span-time-charts',
-  });
-  const dataByGroup = {[label]: data};
-
-  const avgSeries = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
-
-    return {
-      seriesName: label,
-      data: (groupData ?? []).map(datum => ({
-        value: datum[`avg(${SPAN_SELF_TIME})`],
-        name: datum.interval,
-      })),
-    };
-  });
-  const seriesTimes = avgSeries[0].data.map(({name}) => name);
-  const assetTypes = ['javascript', 'css', 'fonts', 'images'];
-
-  const mockData: Series[] = assetTypes.map(
-    type =>
-      ({
-        seriesName: type,
-        data: seriesTimes.map((time, i) => ({
-          name: time,
-          value: 1000 + Math.ceil(i / 100) * 100,
-        })),
-      }) satisfies Series
-  );
-
-  return {isPending, data: mockData};
-};
-
-function BundleSizeChart(props: ChartProps) {
-  const {isPending, data} = useMockSeries(props);
-  return (
-    <Chart
-      stacked
-      type={ChartType.AREA}
-      loading={isPending}
-      data={data}
-      aggregateOutputFormat="size"
-      height={CHART_HEIGHT}
     />
   );
 }
