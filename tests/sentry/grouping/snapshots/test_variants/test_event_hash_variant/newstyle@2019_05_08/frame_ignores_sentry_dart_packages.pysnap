@@ -1,13 +1,13 @@
 ---
-created: '2024-06-05T14:22:36.817822+00:00'
+created: '2024-12-06T19:43:08.103653+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "278cdd35be92e2ffde1d0a40524e7786"
   component:
-    app (stacktrace of system takes precedence)
-      stacktrace (ignored because hash matches system variant)
+    app*
+      stacktrace*
         frame*
           filename*
             "sentry_logging.dart"
@@ -45,10 +45,10 @@ app:
             "SentryDrift.drift"
 --------------------------------------------------------------------------
 system:
-  hash: "278cdd35be92e2ffde1d0a40524e7786"
+  hash: null
   component:
-    system*
-      stacktrace*
+    system (stacktrace of app takes precedence)
+      stacktrace (ignored because hash matches app variant)
         frame*
           filename*
             "sentry_logging.dart"

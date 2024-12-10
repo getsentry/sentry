@@ -1,13 +1,13 @@
 ---
-created: '2024-05-28T08:21:42.682278+00:00'
+created: '2024-12-06T19:43:17.742374+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "d1fe4234d1bddc3823d08dcc529fb161"
   component:
-    app (stacktrace of system takes precedence)
-      stacktrace (ignored because hash matches system variant)
+    app*
+      stacktrace*
         frame*
           filename*
             "sentry_exception_factory.dart"
@@ -15,10 +15,10 @@ app:
             "SentryExceptionFactory.getSentryException"
 --------------------------------------------------------------------------
 system:
-  hash: "d1fe4234d1bddc3823d08dcc529fb161"
+  hash: null
   component:
-    system*
-      stacktrace*
+    system (stacktrace of app takes precedence)
+      stacktrace (ignored because hash matches app variant)
         frame*
           filename*
             "sentry_exception_factory.dart"

@@ -1,13 +1,13 @@
 ---
-created: '2021-09-20T12:35:59.674725Z'
+created: '2024-12-06T19:43:16.947203+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
   component:
-    app (stacktrace of system takes precedence)
-      stacktrace (ignored because hash matches system variant)
+    app*
+      stacktrace*
         frame*
           module*
             "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"
@@ -17,10 +17,10 @@ app:
             "_flushPointerEventQueue"
 --------------------------------------------------------------------------
 system:
-  hash: "e0e7c4713e9092dc77635d5a0d5db31d"
+  hash: null
   component:
-    system*
-      stacktrace*
+    system (stacktrace of app takes precedence)
+      stacktrace (ignored because hash matches app variant)
         frame*
           module*
             "opt/hostedtoolcache/flutter/2.5.0-stable/x64/packages/flutter/lib/src/gestures/binding"

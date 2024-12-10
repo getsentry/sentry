@@ -412,7 +412,7 @@ def stacktrace(
 
     return call_with_variants(
         _single_stacktrace_variant,
-        ["!system", "app"],
+        ["!app", "system"],
         interface,
         event=event,
         context=context,
@@ -549,7 +549,7 @@ def single_exception(
             )
     else:
         stacktrace_components_by_variant = {
-            "app": StacktraceGroupingComponent(),
+            "!app": StacktraceGroupingComponent(),
         }
 
     exception_components_by_variant = {}
