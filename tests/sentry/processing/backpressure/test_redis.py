@@ -22,7 +22,7 @@ def test_rb_cluster_returns_some_usage() -> None:
     assert memory.available > 0
     assert 0.0 < memory.percentage < 1.0
     assert memory.host == "localhost"
-    assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
+    assert memory.port == 6379
 
 
 @use_redis_cluster()
@@ -38,7 +38,7 @@ def test_redis_cluster_cluster_returns_some_usage() -> None:
     assert memory.available > 0
     assert 0.0 < memory.percentage < 1.0
     assert memory.host == "127.0.0.1"
-    assert memory.port == 6379
+    assert memory.port in {7000, 7001, 7002, 7003, 7004, 7005}
 
 
 @use_redis_cluster(high_watermark=100)
