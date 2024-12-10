@@ -1,57 +1,31 @@
 from datetime import datetime
-from typing import cast
-
-# from unittest import mock
-from uuid import uuid4
+from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
-from sentry.types.group import PriorityLevel
-from sentry.utils.dates import parse_timestamp
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class TestWorkflowEngineIntegration(BaseWorkflowTest):
-    def create_metric_issue_workflow_occurrence(self, **kwargs):
-        fingerprint = [str(self.detector.id)]
-        detection_time = cast(datetime, parse_timestamp(datetime.utcnow().timestamp()))
-
-        return IssueOccurrence(
-            id=uuid4().hex,
-            culprit="",
-            detection_time=detection_time,
-            event_id=uuid4().hex,
-            evidence_data={"detector_id": self.detector.id},
-            evidence_display=[],
-            fingerprint=fingerprint,
-            initial_issue_priority=PriorityLevel.HIGH,
-            issue_title="Test Metric Issue Workflow",
-            level="error",
-            project_id=self.project.id,
-            resource_id=None,
-            subtitle="Integration Test",
-            type=MetricAlertFire,
-            **kwargs,
-        )
-
     def setUp(self):
         (
             self.workflow,
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow()
+        ) = self.create_detector_and_workflow(name_prefix="e2e-test")
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
+
         self.event = self.store_event(data={}, project_id=self.project.id)
+
         occurrence_data = self.build_occurrence_data(
             event_id=self.event.event_id,
             project_id=self.project.id,
-            fingerprint=[str(self.detector.id)],
+            fingerprint=[f"detector-{self.detector.id}"],
             evidence_data={"detector_id": self.detector.id},
             type=MetricAlertFire.type_id,
         )
@@ -64,15 +38,19 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         assert self.group.type == MetricAlertFire.type_id
 
     def call_post_process_group(
-        self, event, is_new=True, is_regression=False, is_new_group_environment=True, cache_key=None
+        self,
+        group_id,
+        is_new=False,
+        is_regression=False,
+        is_new_group_environment=True,
+        cache_key=None,
     ):
-        # TODO - Figure out how to get this feature stuff setup correctly for this post_process group
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=None,
-            group_id=event.group_id,
+            cache_key=cache_key,
+            group_id=group_id,
             occurrence_id=self.occurrence.id,
             project_id=self.project.id,
             eventstream_type=EventStreamEventType.Generic,
@@ -83,22 +61,18 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
     def test_workflow_engine__workflows(self):
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
-        # import pdb
+        if not self.group:
+            assert False, "Group not created"
 
-        # pdb.set_trace()
-
-        self.call_post_process_group(self.event)
+        # Move the mock before calling post_process_group
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.process_workflows"
+        ) as mock_process_workflow:
+            self.call_post_process_group(self.group.id)
+            mock_process_workflow.assert_called_once()
 
     # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
     def test_workflow_engine__data_source__to_metric_issue_workflow(self):
         # Figure out how to make a data_source that triggers a detector
         # Create a detector handler that will create a MetricIssueWorkflow
-        pass
-
-    # TODO - Tie test_workflow_engine__workflows to test_workflow_engine__data_source__to_metric_issue_workflow
-    def test_workflow_engine(self):
-        # Get the data_source to trigger a detector
-        # Get the detector to create a MetricIssueWorkflow
-        # Get the MetricIssueWorkflow to call post_process correctly
-        # Ensure a mock action is invoked
         pass
