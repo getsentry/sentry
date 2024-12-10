@@ -30,4 +30,6 @@ jobs:
           GAUGE_API_BASE_URL: ${{ secrets.GAUGE_API_BASE_URL }}
         run: |
           cd src
-          tach upload
+#          tach upload
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
