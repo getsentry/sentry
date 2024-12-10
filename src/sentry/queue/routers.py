@@ -127,9 +127,8 @@ class SplitQueueRouter:
         if random.random() >= rollout_rate:
             return queue
 
+        router = self.__queue_routers.get(queue)
+        if router is not None:
+            return next(router)
         else:
-            router = self.__queue_routers.get(queue)
-            if router is not None:
-                return next(router)
-            else:
-                return queue
+            return queue
