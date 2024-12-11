@@ -112,6 +112,7 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
+from sentry.workflow_engine.detectors.error import ErrorDetector
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -661,6 +662,7 @@ class ExhaustiveFixtures(Fixtures):
         detector = self.create_detector(project=project)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
+        ErrorDetector.objects.create(project=project, organization=org)
 
         notification_condition_group = self.create_data_condition_group(
             logic_type=DataConditionGroup.Type.ANY,

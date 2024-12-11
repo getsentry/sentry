@@ -114,6 +114,7 @@
   "flags.flagauditlogmodel",
   "feedback.feedback",
   "workflow_engine.workflow",
+  "workflow_engine.errordetector",
   "workflow_engine.detector",
   "workflow_engine.datasourcedetector",
   "uptime.projectuptimesubscription",
