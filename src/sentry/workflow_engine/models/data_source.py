@@ -30,6 +30,8 @@ class DataSource(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization")
     query_id = BoundedBigIntegerField()
+
+    # TODO - Add a type here
     type = models.TextField()
 
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
