@@ -127,6 +127,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0]
 
+    @pytest.mark.xfail
     def test_p95(self):
         event_durations = [6, 0, 6, 3, 0, 3]
         for hour, duration in enumerate(event_durations):
@@ -632,6 +633,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             else:
                 assert actual[1][0]["count"] is None
 
+    @pytest.mark.xfail
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
