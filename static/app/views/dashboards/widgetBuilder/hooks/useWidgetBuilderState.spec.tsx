@@ -266,4 +266,31 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'asc'}]);
     });
   });
+
+  describe('limit', () => {
+    it('can decode and update limit', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            limit: '4',
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.limit).toEqual(4);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_LIMIT,
+          payload: 10,
+        });
+      });
+
+      expect(result.current.state.limit).toEqual(10);
+    });
+  });
 });
