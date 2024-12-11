@@ -412,7 +412,7 @@ def stacktrace(
 
     return call_with_variants(
         _single_stacktrace_variant,
-        ["!system", "app"],
+        ["!app", "system"],
         interface,
         event=event,
         context=context,
@@ -463,7 +463,7 @@ def _single_stacktrace_variant(
             contributes=False, hint="ignored single non-URL JavaScript frame"
         )
 
-    stacktrace_component, _ = context.config.enhancements.assemble_stacktrace_component(
+    stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
         frame_components,
         frames_for_filtering,
         event.platform,
@@ -549,7 +549,7 @@ def single_exception(
             )
     else:
         stacktrace_components_by_variant = {
-            "app": StacktraceGroupingComponent(),
+            "!app": StacktraceGroupingComponent(),
         }
 
     exception_components_by_variant = {}

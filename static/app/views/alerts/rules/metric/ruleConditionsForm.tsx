@@ -288,6 +288,19 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       ]);
     }
 
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIVE_MINUTES,
+        TimeWindow.TEN_MINUTES,
+        TimeWindow.FIFTEEN_MINUTES,
+        TimeWindow.THIRTY_MINUTES,
+        TimeWindow.ONE_HOUR,
+        TimeWindow.TWO_HOURS,
+        TimeWindow.FOUR_HOURS,
+        TimeWindow.ONE_DAY,
+      ]);
+    }
+
     return Object.entries(options).map(([value, label]) => ({
       value: parseInt(value, 10),
       label: tct('[timeWindow] interval', {
@@ -768,15 +781,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           <EAPSpanSearchQueryBuilder
                             numberTags={tags?.number ?? {}}
                             stringTags={tags?.string ?? {}}
-                            initialQuery={initialData?.query ?? ''}
+                            initialQuery={value ?? ''}
                             searchSource="alerts"
                             onSearch={(query, {parsedQuery}) => {
                               onFilterSearch(query, parsedQuery);
                               onChange(query, {});
-                            }}
-                            onBlur={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onBlur(query);
                             }}
                             supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                             projects={[parseInt(project.id, 10)]}

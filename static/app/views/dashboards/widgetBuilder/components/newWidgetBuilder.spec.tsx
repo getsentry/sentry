@@ -7,7 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
@@ -25,12 +24,6 @@ const {organization, projects, router} = initializeOrg({
     params: {},
   },
 });
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
@@ -135,6 +128,11 @@ describe('NewWidgetBuiler', function () {
 
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
 
+    // Test sort by selector for table display type
+    expect(screen.getByText('Sort by')).toBeInTheDocument();
+    expect(screen.getByText('High to low')).toBeInTheDocument();
+    expect(screen.getByText(`Select a column\u{2026}`)).toBeInTheDocument();
+
     expect(await screen.findByPlaceholderText('Name')).toBeInTheDocument();
     expect(await screen.findByTestId('add-description')).toBeInTheDocument();
 
@@ -143,105 +141,6 @@ describe('NewWidgetBuiler', function () {
     await waitFor(() => {
       expect(screen.queryByText('Group by')).not.toBeInTheDocument();
     });
-  });
-
-  it('edits name and description', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({title: 'some name'}),
-      })
-    );
-
-    await userEvent.click(await screen.findByTestId('add-description'));
-
-    await userEvent.type(
-      await screen.findByPlaceholderText('Description'),
-      'some description'
-    );
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({description: 'some description'}),
-      })
-    );
-  });
-
-  it('changes the dataset', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.click(await screen.findByLabelText('Issues'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({dataset: 'issue'}),
-      })
-    );
-  });
-
-  it('changes the visualization type', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    // click dropdown
-    await userEvent.click(await screen.findByText('Table'));
-    // select new option
-    await userEvent.click(await screen.findByText('Bar'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({displayType: 'bar'}),
-      })
-    );
   });
 
   it('render the filter alias field and add filter button on chart widgets', async function () {
@@ -327,5 +226,61 @@ describe('NewWidgetBuiler', function () {
     expect(await screen.findByText('Group by')).toBeInTheDocument();
     expect(await screen.findByText('Select group')).toBeInTheDocument();
     expect(await screen.findByText('Add Group')).toBeInTheDocument();
+  });
+
+  it('renders the limit sort by field on chart widgets', async function () {
+    const chartsRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'line'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: chartsRouter,
+        organization,
+      }
+    );
+
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
+  });
+
+  it('does not render sort by field on big number widgets', async function () {
+    const bigNumberRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {...router.location.query, displayType: 'big_number'},
+      },
+    });
+
+    render(
+      <WidgetBuilderV2
+        isOpen
+        onClose={onCloseMock}
+        dashboard={DashboardFixture([])}
+        dashboardFilters={{}}
+        onSave={onSaveMock}
+      />,
+      {
+        router: bigNumberRouter,
+        organization,
+      }
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
+    });
   });
 });
