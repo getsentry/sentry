@@ -2916,15 +2916,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# list of project IDs for which we'll apply
-# stack trace rules to the profiles in case
-# there are any rules defined
-register(
-    "profiling.stack_trace_rules.allowed_project_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
