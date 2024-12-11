@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+from sentry import features
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -97,5 +98,4 @@ class MetricAlertFire(GroupType):
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
-        # TODO - Use a feature flag to determine if we should allow post processing or not
-        return True
+        return features.has("organizations:workflow-engine-m3-process", organization)
