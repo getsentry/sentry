@@ -1,44 +1,37 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
+import {Flex} from 'sentry/components/container/flex';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron} from 'sentry/icons';
+import {IconChevron, IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {createIssueLink} from 'sentry/views/issueList/utils';
 
-type Props = {
+interface Props {
   fingerprint: Fingerprint;
-  organization: Organization;
   totalFingerprint: number;
-};
+}
 
-type State = {
-  busy: boolean;
-  checked: boolean;
-  collapsed: boolean;
-};
+export function MergedItem({fingerprint, totalFingerprint}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const [busy, setBusy] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [checked, setChecked] = useState(false);
 
-class MergedItem extends Component<Props, State> {
-  state: State = {
-    collapsed: false,
-    checked: false,
-    busy: false,
-  };
-
-  listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
-
-  onGroupChange = ({unmergeState}) => {
+  function onGroupChange({unmergeState}) {
     if (!unmergeState) {
       return;
     }
 
-    const {fingerprint} = this.props;
     const stateForId = unmergeState.has(fingerprint.id)
       ? unmergeState.get(fingerprint.id)
       : undefined;
@@ -48,42 +41,37 @@ class MergedItem extends Component<Props, State> {
     }
 
     Object.keys(stateForId).forEach(key => {
-      if (stateForId[key] === this.state[key]) {
-        return;
+      if (key === 'collapsed') {
+        setCollapsed(Boolean(stateForId[key]));
+      } else if (key === 'checked') {
+        setChecked(Boolean(stateForId[key]));
+      } else if (key === 'busy') {
+        setBusy(Boolean(stateForId[key]));
       }
-
-      this.setState(prevState => ({...prevState, [key]: stateForId[key]}));
     });
-  };
-
-  handleToggleEvents = () => {
-    const {fingerprint} = this.props;
-    GroupingStore.onToggleCollapseFingerprint(fingerprint.id);
-  };
-
-  // Disable default behavior of toggling checkbox
-  handleLabelClick(event: React.MouseEvent) {
-    event.preventDefault();
   }
 
-  handleToggle = () => {
-    const {fingerprint} = this.props;
+  function handleToggleEvents() {
+    GroupingStore.onToggleCollapseFingerprint(fingerprint.id);
+  }
+
+  function handleToggle() {
     const {latestEvent} = fingerprint;
 
-    if (this.state.busy) {
+    if (busy) {
       return;
     }
 
     // clicking anywhere in the row will toggle the checkbox
     GroupingStore.onToggleUnmerge([fingerprint.id, latestEvent.id]);
-  };
+  }
 
-  handleCheckClick() {
+  function handleCheckClick() {
     // noop because of react warning about being a controlled input without `onChange`
     // we handle change via row click
   }
 
-  renderFingerprint(id: string, label?: string) {
+  function renderFingerprint(id: string, label?: string) {
     if (!label) {
       return id;
     }
@@ -95,55 +83,77 @@ class MergedItem extends Component<Props, State> {
     );
   }
 
-  render() {
-    const {fingerprint, organization, totalFingerprint} = this.props;
-    const {latestEvent, id, label} = fingerprint;
-    const {collapsed, busy, checked} = this.state;
-    const checkboxDisabled = busy || totalFingerprint === 1;
+  useEffect(() => {
+    const teardown = GroupingStore.listen(data => onGroupChange(data), undefined);
+    return () => {
+      teardown();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // `latestEvent` can be null if last event w/ fingerprint is not within retention period
-    return (
-      <MergedGroup busy={busy}>
-        <Controls expanded={!collapsed}>
-          <FingerprintLabel onClick={this.handleToggle}>
-            <Tooltip
-              containerDisplayMode="flex"
-              disabled={!checkboxDisabled}
-              title={
-                checkboxDisabled && totalFingerprint === 1
-                  ? t('To check, the list must contain 2 or more items')
-                  : undefined
-              }
-            >
-              <Checkbox
-                value={id}
-                checked={checked}
-                disabled={checkboxDisabled}
-                onChange={this.handleCheckClick}
-                size="xs"
-              />
-            </Tooltip>
+  const {latestEvent, id, label} = fingerprint;
+  const checkboxDisabled = busy || totalFingerprint === 1;
 
-            {this.renderFingerprint(id, label)}
-          </FingerprintLabel>
+  const issueLink = latestEvent
+    ? createIssueLink({
+        organization,
+        location,
+        data: latestEvent,
+        eventId: latestEvent.id,
+        referrer: 'merged-item',
+      })
+    : null;
 
-          <Button
-            aria-label={
-              collapsed
-                ? t('Show %s fingerprints', id)
-                : t('Collapse %s fingerprints', id)
+  // `latestEvent` can be null if last event w/ fingerprint is not within retention period
+  return (
+    <MergedGroup busy={busy}>
+      <Controls expanded={!collapsed}>
+        <FingerprintLabel onClick={handleToggle}>
+          <Tooltip
+            containerDisplayMode="flex"
+            disabled={!checkboxDisabled}
+            title={
+              checkboxDisabled && totalFingerprint === 1
+                ? t('To check, the list must contain 2 or more items')
+                : undefined
             }
-            size="zero"
-            borderless
-            icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
-            onClick={this.handleToggleEvents}
-          />
-        </Controls>
+          >
+            <Checkbox
+              value={id}
+              checked={checked}
+              disabled={checkboxDisabled}
+              onChange={handleCheckClick}
+              size="xs"
+            />
+          </Tooltip>
+          {renderFingerprint(id, label)}
+        </FingerprintLabel>
 
-        {!collapsed && (
-          <MergedEventList className="event-list">
-            {latestEvent && (
-              <EventDetails className="event-details">
+        <Button
+          aria-label={
+            collapsed ? t('Show %s fingerprints', id) : t('Collapse %s fingerprints', id)
+          }
+          size="zero"
+          borderless
+          icon={<IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />}
+          onClick={handleToggleEvents}
+        />
+      </Controls>
+
+      {!collapsed && (
+        <MergedEventList>
+          {issueLink ? (
+            <Flex align="center" gap={space(0.5)}>
+              <LinkButton
+                to={issueLink}
+                icon={<IconLink color={'linkColor'} />}
+                title={t('View latest event')}
+                aria-label={t('View latest event')}
+                borderless
+                size="xs"
+                style={{marginLeft: space(1)}}
+              />
+              <EventDetails>
                 <EventOrGroupHeader
                   data={latestEvent}
                   organization={organization}
@@ -152,12 +162,12 @@ class MergedItem extends Component<Props, State> {
                   source="merged-item"
                 />
               </EventDetails>
-            )}
-          </MergedEventList>
-        )}
-      </MergedGroup>
-    );
-  }
+            </Flex>
+          ) : null}
+        </MergedEventList>
+      )}
+    </MergedGroup>
+  );
 }
 
 const MergedGroup = styled('div')<{busy: boolean}>`
@@ -202,10 +212,7 @@ const MergedEventList = styled('div')`
 const EventDetails = styled('div')`
   display: flex;
   justify-content: space-between;
-
-  .event-list & {
-    padding: ${space(1)};
-  }
+  padding: ${space(1)};
 `;
 
 export default MergedItem;

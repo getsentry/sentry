@@ -78,5 +78,8 @@ describe('Issues -> Merged View', function () {
     expect(title.parentElement).toHaveTextContent(
       'Fingerprints included in this issue (2)'
     );
+
+    const links = await screen.findAllByRole('button', {name: 'View latest event'});
+    expect(links).toHaveLength(mockData.merged.length);
   });
 });
