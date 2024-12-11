@@ -28,6 +28,10 @@ const formGroups: JsonFormObject[] = [
           {value: 'system', label: t('Default to system')},
         ],
         getData: transformOptions,
+        onChange: () => {
+          // Remove any existing theme class from when the page was loaded
+          document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+        },
       },
       {
         name: 'language',

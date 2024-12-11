@@ -44,8 +44,11 @@ const ACTIONS: Action[] = [
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
     requiresSuperuser: true,
-    action: () =>
-      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark'),
+    action: () => {
+      // Remove any existing theme class from when the page was loaded
+      document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+      ConfigStore.set('theme', ConfigStore.get('theme') === 'dark' ? 'light' : 'dark');
+    },
   },
 
   {
