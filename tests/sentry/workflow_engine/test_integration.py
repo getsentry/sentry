@@ -8,6 +8,7 @@ from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataPacket, DataSource
 from sentry.workflow_engine.processors import process_data_sources, process_detectors
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -88,6 +89,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
         return self.data_source
 
+    @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__data_source__to_metric_issue_workflow(self):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
@@ -105,6 +107,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
             mock_producer.assert_called_once()
 
+    @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__data_source__different_type(self):
         self.create_test_data_source()
 
@@ -117,6 +120,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             assert processed_packets == []
             mock_producer.assert_not_called()
 
+    @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__data_source__no_detectors(self):
         self.create_test_data_source()
         self.detector.delete()
@@ -129,6 +133,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             assert processed_packets == []
             mock_producer.assert_not_called()
 
+    @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__workflows(self):
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
@@ -145,6 +150,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
 
+    @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__workflows__other_events(self):
         """
         Ensure that the workflow engine only supports MetricAlertFire events for now.
