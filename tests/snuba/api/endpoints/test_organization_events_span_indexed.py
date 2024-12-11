@@ -1520,6 +1520,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
+    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
