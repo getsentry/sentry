@@ -268,20 +268,76 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
 
 
 class DevToolbarAnalyticsUtilsTest(TestCase):
+    """
+    Exhaustive unit tests for the `get_org_identifiers_from_request` and `get_project_identifiers_from_request` utils.
+    """
+
     @cached_property
     def factory(self):
         return RequestFactory()
 
+    def setUp(self):
+        self.request = self.factory.get("/issues/")
+        self.request.resolver_match = MagicMock()
+
     def test_get_org_identifiers_from_request_has_object(self):
-        request = self.factory.get("/issues/")
-        request.resolver_match = MagicMock()
-        request.resolver_match.kwargs = {"organization": self.organization}
-        org_slug, org_id = get_org_identifiers_from_request(request)
-        assert org_slug == self.organization.slug or org_id == self.organization.id
+        self.request.resolver_match.kwargs = {"organization": self.organization}
+        org_slug, org_id = get_org_identifiers_from_request(self.request)
+        # slug takes priority
+        assert org_slug == self.organization.slug
+        assert org_id is None
+
+    def test_get_org_identifiers_from_request_slug_param(self):
+        self.request.resolver_match.kwargs = {"organization_slug": "sentry"}
+        org_slug, org_id = get_org_identifiers_from_request(self.request)
+        assert org_slug == "sentry"
+        assert org_id is None
+
+    def test_get_org_identifiers_from_request_id_param(self):
+        self.request.resolver_match.kwargs = {"organization_id": 123}
+        org_slug, org_id = get_org_identifiers_from_request(self.request)
+        assert org_slug is None
+        assert org_id == 123
+
+    def test_get_org_identifiers_from_request_id_or_slug_param_slug(self):
+        self.request.resolver_match.kwargs = {"organization_id_or_slug": "sentry"}
+        org_slug, org_id = get_org_identifiers_from_request(self.request)
+        assert org_slug == "sentry"
+        assert org_id is None
+
+    def test_get_org_identifiers_from_request_id_or_slug_param_id(self):
+        self.request.resolver_match.kwargs = {"organization_id_or_slug": 123}
+        org_slug, org_id = get_org_identifiers_from_request(self.request)
+        assert org_slug is None
+        assert org_id == 123
 
     def test_get_project_identifiers_from_request_has_object(self):
-        request = self.factory.get("/issues/")
-        request.resolver_match = MagicMock()
-        request.resolver_match.kwargs = {"project": self.project}
-        proj_slug, proj_id = get_project_identifiers_from_request(request)
-        assert proj_slug == self.project.slug or proj_id == self.project.id
+        self.request.resolver_match.kwargs = {"project": self.project}
+        project_slug, project_id = get_project_identifiers_from_request(self.request)
+        # slug takes priority
+        assert project_slug == self.project.slug
+        assert project_id is None
+
+    def test_get_project_identifiers_from_request_slug_param(self):
+        self.request.resolver_match.kwargs = {"project_slug": "javascript"}
+        project_slug, project_id = get_project_identifiers_from_request(self.request)
+        assert project_slug == "javascript"
+        assert project_id is None
+
+    def test_get_project_identifiers_from_request_id_param(self):
+        self.request.resolver_match.kwargs = {"project_id": 123}
+        project_slug, project_id = get_project_identifiers_from_request(self.request)
+        assert project_slug is None
+        assert project_id == 123
+
+    def test_get_project_identifiers_from_request_id_or_slug_param_slug(self):
+        self.request.resolver_match.kwargs = {"project_id_or_slug": "javascript"}
+        project_slug, project_id = get_project_identifiers_from_request(self.request)
+        assert project_slug == "javascript"
+        assert project_id is None
+
+    def test_get_project_identifiers_from_request_id_or_slug_param_id(self):
+        self.request.resolver_match.kwargs = {"project_id_or_slug": 123}
+        project_slug, project_id = get_project_identifiers_from_request(self.request)
+        assert project_slug is None
+        assert project_id == 123
