@@ -354,8 +354,16 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        kafka_container_name = (
-            "kafka-kafka-1" if os.environ.get("USE_NEW_DEVSERVICES") == "1" else "sentry_kafka"
+        use_new_devservices = os.environ.get("USE_NEW_DEVSERVICES") == "1"
+        kafka_container_name = "kafka-kafka-1" if use_new_devservices else "sentry_kafka"
+        kafka_container_warning_message = (
+            f"""
+Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_NEW_DEVSERVICES=0` in your environment."""
+            if use_new_devservices
+            else f"""
+Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
+Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_NEW_DEVSERVICES=1` in your environment."""
         )
         if kafka_container_name not in containers:
             raise click.ClickException(
@@ -373,7 +381,7 @@ or:
 
     SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 
-and run `sentry devservices up kafka`.
+{kafka_container_warning_message}
 
 Alternatively, run without --workers.
         """
