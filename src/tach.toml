@@ -78,6 +78,7 @@ from = ["bitfield"]
 [[interfaces]]
 expose = [
     "backends.BaseAuth",
+    ".*"
 ]
 from = ["social_auth"]
 
