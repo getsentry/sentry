@@ -9,7 +9,6 @@ import {
 import {decodeList, decodeSorts} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
@@ -107,6 +106,9 @@ function useWidgetBuilderState(): {
           setDescription(action.payload);
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
+          if (action.payload === DisplayType.BIG_NUMBER) {
+            setSort([]);
+          }
           setDisplayType(action.payload);
           break;
         case BuilderStateAction.SET_DATASET:
@@ -185,7 +187,10 @@ function serializeFields(fields: Column[]): string[] {
 }
 
 function serializeSorts(sorts: Sort[]): string[] {
-  return sorts.map(formatSort);
+  return sorts.map(sort => {
+    const direction = sort.kind === 'desc' ? '-' : '';
+    return `${direction}${sort.field}`;
+  });
 }
 
 export default useWidgetBuilderState;

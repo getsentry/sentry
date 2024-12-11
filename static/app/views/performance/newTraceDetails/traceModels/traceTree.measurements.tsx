@@ -125,7 +125,11 @@ export function collectTraceMeasurements(
     WEB_VITALS_LOOKUP.has(measurement) && vital_types.add('web');
     MOBILE_VITALS_LOOKUP.has(measurement) && vital_types.add('mobile');
 
-    const score = measurements[`score.${measurement}`]?.value;
+    const score = Math.round(
+      (measurements[`score.${measurement}`]?.value /
+        measurements[`score.weight.${measurement}`]?.value) *
+        100
+    );
 
     const vital = vitals.get(node)!;
     vital.push({

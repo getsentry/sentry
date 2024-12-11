@@ -8,12 +8,12 @@ import {space} from 'sentry/styles/space';
 import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
-import DevBuilder from 'sentry/views/dashboards/widgetBuilder/components/devBuilder';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
+import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -32,6 +32,8 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
   const isChartWidget =
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
+
+  const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
 
   return (
     <SlideOverPanel
@@ -73,11 +75,15 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
             <WidgetBuilderGroupBySelector />
           </Section>
         )}
+        {isNotBigNumberWidget && (
+          <Section>
+            <WidgetBuilderSortBySelector />
+          </Section>
+        )}
         <Section>
           <WidgetBuilderNameAndDescription />
         </Section>
         <SaveButton isEditing={isEditing} onSave={onSave} />
-        <DevBuilder />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );
