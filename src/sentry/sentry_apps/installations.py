@@ -24,7 +24,6 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
-from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -194,10 +193,8 @@ class SentryAppInstallationNotifier:
 
     def run(self) -> None:
         if self.action not in VALID_ACTIONS:
-            raise SentryAppError(
-                APIUnauthorized(
-                    f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
-                )
+            raise APIUnauthorized(
+                f"Invalid action '{self.action} for installation notifier for {self.sentry_app}"
             )
 
         send_and_save_webhook_request(self.sentry_app, self.request)
