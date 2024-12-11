@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
@@ -59,6 +59,12 @@ export function useTableStyles(
 ) {
   const resizingColumnIndex = useRef<number | null>(null);
   const columnWidthsRef = useRef<(number | null)[]>(fields.map(() => null));
+
+  useEffect(() => {
+    columnWidthsRef.current = fields.map(
+      (_, index) => columnWidthsRef.current[index] ?? null
+    );
+  }, [fields]);
 
   const initialTableStyles = useMemo(
     () => ({
