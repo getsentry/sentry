@@ -1,7 +1,8 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
+import sentry_sdk
 from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -32,6 +33,7 @@ from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.signals import alert_rule_created
 from sentry.utils import metrics
 
@@ -50,6 +52,29 @@ def clean_rule_data(data):
     for datum in data:
         if datum.get("name"):
             del datum["name"]
+
+
+def create_sentry_app_alert_rule_issues_component(
+    actions: Sequence[Mapping[str, Any]]
+) -> str | Response:
+    try:
+        created = trigger_sentry_app_action_creators_for_issues(actions)
+    except (SentryAppError, SentryAppIntegratorError) as e:
+        return Response(
+            {"actions": [str(e)]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as e:
+        error_id = sentry_sdk.capture_exception(e)
+        return Response(
+            {
+                "actions": [
+                    f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}"
+                ]
+            },
+            status=500,
+        )
+    return created
 
 
 @receiver(pre_save, sender=Rule)
@@ -844,6 +869,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
             kwargs["actions"]
         )
+        if isinstance(created_alert_rule_ui_component, Response):
+            return created_alert_rule_ui_component
+
         rule = ProjectRuleCreator(
             name=kwargs["name"],
             project=project,

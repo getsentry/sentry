@@ -32,11 +32,12 @@ class AlertRuleActionCreator:
             type="alert-rule-action", sentry_app=self.sentry_app
         )
         settings = component.schema.get("settings", {})
-        return settings.get("uri")
-
-    def _make_external_request(self, uri: str = None) -> AlertRuleActionResult:
-        if uri is None:
+        uri = settings.get("uri", None)
+        if not uri:
             raise SentryAppIntegratorError(APIError("Sentry App request url not found on schema"))
+        return uri
+
+    def _make_external_request(self, uri: str) -> AlertRuleActionResult:
         response = AlertRuleActionRequester(
             install=self.install,
             uri=uri,

@@ -1,3 +1,7 @@
+from collections.abc import Mapping
+from typing import Any
+
+import sentry_sdk
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
@@ -36,6 +40,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.users.services.user.service import user_service
 
 
@@ -82,7 +87,10 @@ def update_alert_rule(request: Request, organization, alert_rule):
         partial=True,
     )
     if serializer.is_valid():
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        raised_error = create_sentry_app_alert_rule_component(serializer.validated_data)
+        if raised_error:
+            return raised_error
+
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
@@ -109,6 +117,22 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         return Response(status=status.HTTP_204_NO_CONTENT)
     except AlreadyDeletedError:
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
+
+
+def create_sentry_app_alert_rule_component(serialized_data: Mapping[str, Any]) -> Response | None:
+    try:
+        trigger_sentry_app_action_creators_for_incidents(serialized_data)
+    except (SentryAppError, SentryAppIntegratorError) as e:
+        return Response(
+            str(e),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as e:
+        error_id = sentry_sdk.capture_exception(e)
+        return Response(
+            f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}",
+            status=500,
+        )
 
 
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
