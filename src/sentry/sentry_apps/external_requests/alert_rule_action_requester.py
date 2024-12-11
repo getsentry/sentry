@@ -60,7 +60,9 @@ class AlertRuleActionRequester:
             raise
 
         return AlertRuleActionResult(
-            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
+            success=True,
+            error_type=None,
+            message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE),
         )
 
     def _build_url(self) -> str:

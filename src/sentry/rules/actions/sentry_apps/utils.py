@@ -3,10 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from rest_framework import serializers
-
 from sentry.constants import SENTRY_APP_ACTIONS
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.errors import raise_alert_rule_action_result_errors
 
 
 def trigger_sentry_app_action_creators_for_issues(
@@ -21,8 +20,6 @@ def trigger_sentry_app_action_creators_for_issues(
         result = app_service.trigger_sentry_app_action_creators(
             fields=action["settings"], install_uuid=action.get("sentryAppInstallationUuid")
         )
-        # Bubble up errors from Sentry App to the UI
-        if not result.success:
-            raise serializers.ValidationError({"actions": [result.message]})
+        raise_alert_rule_action_result_errors(result=result)
         created = "alert-rule-action"
     return created
