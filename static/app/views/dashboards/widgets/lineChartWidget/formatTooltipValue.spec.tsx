@@ -1,23 +1,25 @@
-import {formatChartValue} from './formatChartValue';
+import {formatTooltipValue} from './formatTooltipValue';
 
-describe('formatChartValue', () => {
+describe('formatTooltipValue', () => {
   describe('integer', () => {
     it.each([
       [0, '0'],
       [17, '17'],
-      [1772313, '1,772,313'],
+      [171, '171'],
+      [17111, '17,111'],
+      [17_000_110, '17,000,110'],
+      [1_000_110_000, '1,000,110,000'],
     ])('Formats %s as %s', (value, formattedValue) => {
-      expect(formatChartValue(value, 'integer')).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'integer')).toEqual(formattedValue);
     });
   });
 
   describe('number', () => {
     it.each([
-      [0, '0'],
       [17.1238, '17.124'],
       [1772313.1, '1,772,313.1'],
     ])('Formats %s as %s', (value, formattedValue) => {
-      expect(formatChartValue(value, 'number')).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'number')).toEqual(formattedValue);
     });
   });
 
@@ -28,7 +30,7 @@ describe('formatChartValue', () => {
       [17.123, '1,712.3%'],
       [1, '100%'],
     ])('Formats %s as %s', (value, formattedValue) => {
-      expect(formatChartValue(value, 'percentage')).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'percentage')).toEqual(formattedValue);
     });
   });
 
@@ -38,7 +40,7 @@ describe('formatChartValue', () => {
       [0.712, 'second', '712.00ms'],
       [1231, 'second', '20.52min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
-      expect(formatChartValue(value, 'duration', unit)).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'duration', unit)).toEqual(formattedValue);
     });
   });
 
@@ -48,7 +50,7 @@ describe('formatChartValue', () => {
       [0.712, 'megabyte', '712 KB'],
       [1231, 'kibibyte', '1.2 MiB'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
-      expect(formatChartValue(value, 'size', unit)).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'size', unit)).toEqual(formattedValue);
     });
   });
 
@@ -59,7 +61,7 @@ describe('formatChartValue', () => {
       [12712, '1/second', '12.7K/s'],
       [1231, '1/minute', '1.23K/min'],
     ])('Formats %s as %s', (value, unit, formattedValue) => {
-      expect(formatChartValue(value, 'rate', unit)).toEqual(formattedValue);
+      expect(formatTooltipValue(value, 'rate', unit)).toEqual(formattedValue);
     });
   });
 });

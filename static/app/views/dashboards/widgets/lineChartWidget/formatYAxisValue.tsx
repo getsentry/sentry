@@ -7,16 +7,17 @@ import {
 } from 'sentry/utils/discover/fieldRenderers';
 import type {RateUnit} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatRate} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-export function formatChartValue(value: number, type: string, unit?: string): string {
+export function formatYAxisValue(value: number, type: string, unit?: string): string {
   switch (type) {
     case 'integer':
+      return formatAbbreviatedNumber(value);
     case 'number':
       return value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 2);
+      return formatPercentage(value, 3);
     case 'duration':
       return getDuration((value * (unit ? DURATION_UNITS[unit] : 1)) / 1000, 2, true);
     case 'size':
