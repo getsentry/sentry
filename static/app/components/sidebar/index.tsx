@@ -34,6 +34,7 @@ import {
   IconSiren,
   IconStats,
   IconSupport,
+  IconTelescope,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -260,7 +261,8 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<SubitemDot collapsed />}
+        // In errors-only deploys, Discover isn't a nested link, so it needs a proper icon
+        icon={isSelfHostedErrorsOnly ? <IconTelescope /> : <SubitemDot collapsed />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
