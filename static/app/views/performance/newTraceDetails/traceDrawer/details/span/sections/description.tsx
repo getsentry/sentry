@@ -262,7 +262,6 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
   const isRelativeUrl = src.startsWith('/');
 
-
   return (
     <ImageContainer>
       <FilenameContainer>
