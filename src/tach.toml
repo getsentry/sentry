@@ -28,8 +28,8 @@ depends_on = [
     { path = "django_picklefield" },
     { path = "flagpole" },
     { path = "sentry_plugins", deprecated = true },
-    { path = "social_auth" },
-    { path = "sudo" },
+    { path = "social_auth", deprecated = true },
+#    { path = "sudo" },
 ]
 
 [[modules]]

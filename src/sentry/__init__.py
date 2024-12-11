@@ -6,6 +6,10 @@ import os
 import os.path
 from subprocess import check_output
 
+# example interface error
+from django_picklefield.fields import dbsafe_decode
+
+
 try:
     VERSION = importlib.metadata.version("sentry")
 except importlib.metadata.PackageNotFoundError:

@@ -201,3 +201,6 @@ __all__ = [
     "Segment",
     "ConditionBase",
 ]
+
+# example dep error
+from sentry import features
