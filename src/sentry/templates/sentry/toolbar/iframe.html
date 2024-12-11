@@ -27,8 +27,8 @@ Required context variables:
         const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
 
-        const organizationUrl = '{{ organizationUrl|escapejs }}';
-        const regionUrl = '{{ regionUrl|escapejs }}';
+        const organizationUrl = '{{ organization_url|escapejs }}';
+        const regionUrl = '{{ region_url|escapejs }}';
 
         // Strip the trailing `/` from the url
         const referrerOrigin = new URL(referrer).origin;

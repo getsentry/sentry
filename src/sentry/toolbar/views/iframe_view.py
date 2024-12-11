@@ -63,8 +63,8 @@ class IframeView(ProjectView):
                 "logging": self.request.GET.get("logging", ""),
                 "organization_slug": self.organization_slug,
                 "project_id_or_slug": self.project_id_or_slug,
-                "organizationUrl": generate_organization_url(self.organization_slug),
-                "regionUrl": generate_region_url(),
+                "organization_url": generate_organization_url(self.organization_slug),
+                "region_url": generate_region_url(),
             },
         )
 
