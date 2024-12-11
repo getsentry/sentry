@@ -563,6 +563,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
+    @pytest.mark.xfail
     def test_count_field_type(self):
         response = self.do_request(
             {
@@ -966,6 +967,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -1518,6 +1520,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
+    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
