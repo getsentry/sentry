@@ -68,7 +68,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -89,7 +89,7 @@ const useCrashFreeRate = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
