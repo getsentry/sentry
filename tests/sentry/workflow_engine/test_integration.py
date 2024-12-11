@@ -105,6 +105,17 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
             mock_producer.assert_called_once()
 
+    def test_workflow_engine__data_source__different_type(self):
+        self.create_test_data_source()
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_producer:
+            processed_packets = process_data_sources([self.data_packet], "snuba_query")
+
+            assert processed_packets == []
+            mock_producer.assert_not_called()
+
     def test_workflow_engine__workflows(self):
         """
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
