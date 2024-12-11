@@ -1,14 +1,15 @@
 from datetime import datetime
 from unittest import mock
 
-import pytest
-
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
+from sentry.workflow_engine.models import DataPacket, DataSource
+from sentry.workflow_engine.processors import process_data_sources, process_detectors
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -19,10 +20,14 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow(name_prefix="e2e-test")
+        ) = self.create_detector_and_workflow(
+            name_prefix="e2e-test",
+            detector_type="metric_alert_fire",
+        )
+
+        # add a condition check for foo=bar in the detector
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-
         self.event = self.store_event(data={}, project_id=self.project.id)
 
         occurrence_data = self.build_occurrence_data(
@@ -61,17 +66,44 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
         return cache_key
 
-    # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
-    @pytest.mark.skip(reason="Not implemented")
+    def create_test_data_source(self) -> DataSource:
+        self.subscription_update: QuerySubscriptionUpdate = {
+            "subscription_id": "123",
+            "values": {"foo": "bar"},
+            "timestamp": datetime.utcnow(),
+            "entity": "test-entity",
+        }
+
+        self.data_source = self.create_data_source(
+            query_id=self.subscription_update["subscription_id"],
+            organization=self.organization,
+        )
+        self.data_source.detectors.add(self.detector)
+
+        # Create a data_packet from the update for testing
+        self.data_packet = DataPacket[QuerySubscriptionUpdate](
+            query_id=self.subscription_update["subscription_id"],
+            packet=self.subscription_update,
+        )
+
+        return self.data_source
+
     def test_workflow_engine__data_source__to_metric_issue_workflow(self):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
-        # Make a query to snuba or stub an update
-        # Create a data_packet from the query
-        # Send the data_packet to process_workflows in different states to trigger different results
-        # Create a detector handler that will create a MetricIssueWorkflow
-        pass
+        self.create_test_data_source()
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_producer:
+            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
+
+            for packet, detectors in processed_packets:
+                results = process_detectors(packet, detectors)
+                assert len(results) == 1
+
+            mock_producer.assert_called_once()
 
     def test_workflow_engine__workflows(self):
         """
@@ -112,7 +144,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
         ) as mock_process_workflow:
-            self.call_post_process_group(error_event.group.id)
+            self.call_post_process_group(error_event.group_id)
 
             # We currently don't have a detector for this issue type, so it should not call workflow_engine.
             mock_process_workflow.assert_not_called()
