@@ -252,7 +252,7 @@ function Sidebar() {
     />
   );
 
-  const discover2 = hasOrganization && (
+  const discover = hasOrganization && (
     <Feature
       hookName="feature-disabled:discover2-sidebar-item"
       features="discover-basic"
@@ -502,7 +502,7 @@ function Sidebar() {
       {metrics}
       {profiling}
       {replays}
-      {discover2}
+      {discover}
     </SidebarAccordion>
   );
 
@@ -565,7 +565,7 @@ function Sidebar() {
                   <Fragment>
                     <SidebarSection hasNewNav={hasNewNav}>
                       {alerts}
-                      {discover2}
+                      {discover}
                       {dashboards}
                       {releases}
                       {userFeedback}
