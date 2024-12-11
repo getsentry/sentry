@@ -68,11 +68,11 @@ export default storyBook(AreaChartWidget, story => {
             timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
             meta={{
               fields: {
-                'avg(messaging.message.receive.latency)': 'duration',
+                'avg(latency)': 'duration',
                 'avg(span.duration)': 'duration',
               },
               units: {
-                'avg(messaging.message.receive.latency)': 'millisecond',
+                'avg(latency)': 'millisecond',
                 'avg(span.duration)': 'millisecond',
               },
             }}
@@ -137,11 +137,11 @@ export default storyBook(AreaChartWidget, story => {
             ]}
             meta={{
               fields: {
-                'avg(messaging.message.receive.latency)': 'duration',
+                'avg(latency)': 'duration',
                 'avg(span.duration)': 'duration',
               },
               units: {
-                'avg(messaging.message.receive.latency)': 'millisecond',
+                'avg(latency)': 'millisecond',
                 'avg(span.duration)': 'millisecond',
               },
             }}
@@ -177,11 +177,11 @@ export default storyBook(AreaChartWidget, story => {
             timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
             meta={{
               fields: {
-                'avg(messaging.message.receive.latency)': 'duration',
+                'avg(latency)': 'duration',
                 'avg(span.duration)': 'duration',
               },
               units: {
-                'avg(messaging.message.receive.latency)': 'millisecond',
+                'avg(latency)': 'millisecond',
                 'avg(span.duration)': 'millisecond',
               },
             }}

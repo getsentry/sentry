@@ -1,5 +1,5 @@
 {
-  "field": "avg(messaging.message.receive.latency)",
+  "field": "avg(latency)",
   "data": [
     {
       "timestamp": "2024-12-09T22:00:00Z",
