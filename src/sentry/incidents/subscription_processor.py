@@ -366,7 +366,7 @@ class SubscriptionProcessor:
         ):
             # NOTE: feed the data through the new pipeline, but don't do anything with it yet.
             # This will change at some point.
-            data_packet = DataPacket(
+            data_packet = DataPacket[QuerySubscriptionUpdate](
                 query_id=self.subscription.snuba_query.id, packet=subscription_update
             )
             detectors = process_data_sources([data_packet], query_type=self.subscription.type)
