@@ -57,6 +57,12 @@ expose = [
 
 [[interfaces]]
 expose = [
+    ".*"
+]
+from = ["sentry"]
+
+[[interfaces]]
+expose = [
     "django_picklefield",
 ]
 from = ["django_picklefield"]
@@ -78,7 +84,6 @@ from = ["bitfield"]
 [[interfaces]]
 expose = [
     "backends.BaseAuth",
-    ".*"
 ]
 from = ["social_auth"]
 
