@@ -171,13 +171,18 @@ from sentry.testutils.helpers.options import override_options
             """[<int>,""]""",
         ),
         (
+            "Uniq ID - log messages ignored properly",
+            "Hard time limit (%ss) exceeded for %s[%s]",
+            "Hard time limit (%ss) exceeded for %s[%s]",
+        ),
+        (
             "Uniq ID - no change",
             """Blocked 'script' from 'wasm-eval:'""",
             """Blocked 'script' from 'wasm-eval:'""",
         ),
     ],
 )
-def test_normalize_message(name, input, expected):
+def test_normalize_message(name: str, input: str, expected: str) -> None:
     event = Event(project_id=1, event_id="something")
     with override_options(
         {
@@ -210,7 +215,7 @@ def test_normalize_message(name, input, expected):
         ),
     ],
 )
-def test_fail_to_normalize_message(name, input, expected):
+def test_fail_to_normalize_message(name: str, input: str, expected: str) -> None:
     event = Event(project_id=1, event_id="something")
     with override_options(
         {
