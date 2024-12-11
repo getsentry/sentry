@@ -20,6 +20,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {vitalDescription} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -320,7 +321,7 @@ export const Dot = styled('span')<{color: string}>`
 // A compressed version of the VitalMeter component used in the trace context panel
 type VitalPillProps = Omit<
   VitalMeterProps,
-  'showTooltip' | 'isAggregateMode' | 'onClick'
+  'showTooltip' | 'isAggregateMode' | 'onClick' | 'color'
 >;
 export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
   const status = score !== undefined ? scoreToStatus(score) : 'none';
@@ -334,11 +335,15 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
       <NoValue />
     );
 
+  const tooltipText = vitalDescription[`measurements.${webVital}`];
+
   return (
     <VitalPillContainer>
-      <VitalPillName status={status}>
-        {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
-      </VitalPillName>
+      <Tooltip title={tooltipText}>
+        <VitalPillName status={status}>
+          {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
+        </VitalPillName>
+      </Tooltip>
       <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
