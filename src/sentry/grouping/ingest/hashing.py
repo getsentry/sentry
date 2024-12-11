@@ -67,9 +67,7 @@ def _calculate_event_grouping(
             # look at `grouping_config` to pick the right parameters.
             event.data["fingerprint"] = event.data.data.get("fingerprint") or ["{{ default }}"]
             apply_server_fingerprinting(
-                event.data.data,
-                get_fingerprinting_config_for_project(project),
-                allow_custom_title=True,
+                event.data.data, get_fingerprinting_config_for_project(project)
             )
 
         with metrics.timer("event_manager.event.get_hashes", tags=metric_tags):
