@@ -84,9 +84,9 @@ export default function SubregionSelector({size}: Props) {
       }
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
-        trackAnalytics('insight.vital.select_browser_value', {
+        trackAnalytics('insight.general.select_region_value', {
           organization,
-          browsers: selectedOptions.map(v => v.value),
+          regions: selectedOptions.map(v => subregionCodeToName[v.value]),
         });
 
         navigate({
