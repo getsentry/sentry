@@ -2,6 +2,7 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
@@ -29,8 +30,7 @@ const formGroups: JsonFormObject[] = [
         ],
         getData: transformOptions,
         onChange: () => {
-          // Remove any existing theme class from when the page was loaded
-          document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+          removeBodyTheme();
         },
       },
       {
