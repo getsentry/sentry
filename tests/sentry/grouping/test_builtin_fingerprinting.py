@@ -610,8 +610,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_same_transactions(self):
         """
-        With the flag enabled, hydration errors with the same transaction should be grouped and
-        the built-in rules for hydration errors should be applied.
+        Hydration errors with the same transaction should be grouped and the built-in rules for
+        hydration errors should be applied.
         """
 
         event_message1 = self.store_event(data=self.hydration_error_trace, project_id=self.project)
@@ -650,8 +650,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_different_transactions(self):
         """
-        With the flag enabled, hydration errors with different transactions should not be grouped and
-        the built-in rules for hydration errors should be applied.
+        Hydration errors with different transactions should not be grouped and the built-in rules
+        for hydration errors should be applied.
         """
 
         event_transaction_slash = self.store_event(
@@ -698,8 +698,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_no_transactions(self):
         """
-        With the flag enabled, for hydration errors with no transactions
-        the built-in HydrationError rules should NOT be applied.
+        For hydration errors with no transactions the built-in HydrationError rules should NOT be
+        applied.
         """
 
         data_transaction_no_tx = self.hydration_error_trace
