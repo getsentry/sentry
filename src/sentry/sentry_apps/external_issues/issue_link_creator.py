@@ -4,12 +4,12 @@ from typing import Any
 from django.db import router, transaction
 
 from sentry.coreapi import APIUnauthorized
-from sentry.exceptions import SentryAppError
 from sentry.models.group import Group
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
 from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.users.services.user import RpcUser
 
 VALID_ACTIONS = ["link", "create"]

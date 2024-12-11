@@ -8,11 +8,11 @@ from django.utils.functional import cached_property
 from jsonschema import ValidationError
 
 from sentry.coreapi import APIError
-from sentry.exceptions import SentryAppIntegratorError
 from sentry.http import safe_urlread
 from sentry.models.group import Group
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json

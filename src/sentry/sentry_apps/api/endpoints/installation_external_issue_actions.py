@@ -7,7 +7,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -15,6 +14,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.issue_link_creator import IssueLinkCreator
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 

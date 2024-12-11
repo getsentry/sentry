@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry.constants import SENTRY_APP_ACTIONS
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import raise_alert_rule_action_result_errors
+from sentry.sentry_apps.utils.alert_rule_action import raise_alert_rule_action_result_errors
 
 
 def trigger_sentry_app_action_creators_for_issues(

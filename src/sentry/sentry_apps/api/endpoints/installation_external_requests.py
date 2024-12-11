@@ -7,10 +7,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 
 logger = logging.getLogger("sentry.sentry-apps")
 

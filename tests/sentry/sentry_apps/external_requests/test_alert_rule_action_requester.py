@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 
+import pytest
 import responses
 
 from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
@@ -7,6 +8,7 @@ from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     DEFAULT_SUCCESS_MESSAGE,
     AlertRuleActionRequester,
 )
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -122,13 +124,14 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
         )
 
-        result = AlertRuleActionRequester(
-            install=self.install,
-            uri="/sentry/alert-rule",
-            fields=self.fields,
-        ).run()
-        assert not result["success"]
-        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
+        with pytest.raises(SentryAppIntegratorError) as e:
+            AlertRuleActionRequester(
+                install=self.install,
+                uri="/sentry/alert-rule",
+                fields=self.fields,
+            ).run()
+            assert str(e) == f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
+
         request = responses.calls[0].request
 
         data = {
@@ -164,13 +167,14 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             json={"message": self.error_message},
         )
-        result = AlertRuleActionRequester(
-            install=self.install,
-            uri="/sentry/alert-rule",
-            fields=self.fields,
-        ).run()
-        assert not result["success"]
-        assert result["message"] == f"{self.sentry_app.name}: {self.error_message}"
+        with pytest.raises(SentryAppIntegratorError) as e:
+            AlertRuleActionRequester(
+                install=self.install,
+                uri="/sentry/alert-rule",
+                fields=self.fields,
+            ).run()
+
+            assert str(e) == f"{self.sentry_app.name}: {self.error_message}"
 
     @responses.activate
     def test_makes_failed_request_with_malformed_message(self):
@@ -180,10 +184,11 @@ class TestAlertRuleActionRequester(TestCase):
             status=401,
             body=self.error_message.encode(),
         )
-        result = AlertRuleActionRequester(
-            install=self.install,
-            uri="/sentry/alert-rule",
-            fields=self.fields,
-        ).run()
-        assert not result["success"]
-        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            AlertRuleActionRequester(
+                install=self.install,
+                uri="/sentry/alert-rule",
+                fields=self.fields,
+            ).run()
+            assert str(e) == f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
