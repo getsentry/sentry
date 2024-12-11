@@ -1,7 +1,9 @@
 import Access from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
+import {NoAccess} from 'sentry/components/noAccess';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -43,24 +45,30 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
   return (
     <SentryDocumentTitle title={t('Toolbar Settings')} projectSlug={project.slug}>
       <SettingsPageHeader title={t('Developer Toolbar')} />
-      <PermissionAlert project={project} />
-
-      <Form
-        apiMethod="PUT"
-        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
-        initialData={project.options}
-        saveOnBlur
+      <Feature
+        features="dev-toolbar-ui"
+        organization={organization}
+        renderDisabled={NoAccess}
       >
-        <Access access={['project:write']} project={project}>
-          {({hasAccess}) => (
-            <JsonForm
-              disabled={!hasAccess}
-              features={new Set(organization.features)}
-              forms={formGroups}
-            />
-          )}
-        </Access>
-      </Form>
+        <PermissionAlert project={project} />
+
+        <Form
+          apiMethod="PUT"
+          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
+          initialData={project.options}
+          saveOnBlur
+        >
+          <Access access={['project:write']} project={project}>
+            {({hasAccess}) => (
+              <JsonForm
+                disabled={!hasAccess}
+                features={new Set(organization.features)}
+                forms={formGroups}
+              />
+            )}
+          </Access>
+        </Form>
+      </Feature>
     </SentryDocumentTitle>
   );
 }
