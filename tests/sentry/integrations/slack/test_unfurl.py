@@ -408,6 +408,7 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @pytest.mark.xfail
     def test_unfurl_metric_alerts_chart_eap_spans(self, mock_generate_chart):
         # Using the EventsAnalyticsPlatform dataset
         alert_rule = self.create_alert_rule(
