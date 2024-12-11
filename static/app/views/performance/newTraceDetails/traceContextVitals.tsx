@@ -42,7 +42,6 @@ export function TraceContextVitals({tree}: Props) {
     // }
 
     const colors = theme.charts.getColorPalette(3);
-    const score = vital?.score ? Math.round(vital.score * 100) : 0;
 
     // return (
     //   <VitalMeter
@@ -60,7 +59,7 @@ export function TraceContextVitals({tree}: Props) {
       <VitalPill
         key={vital?.key}
         webVital={webVital as WebVitals}
-        score={score}
+        score={vital?.score}
         color={colors[index]}
         meterValue={vital?.measurement.value}
       />

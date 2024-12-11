@@ -322,15 +322,24 @@ type VitalPillProps = Omit<
   VitalMeterProps,
   'showTooltip' | 'isAggregateMode' | 'onClick'
 >;
-export function VitalPill({webVital, score}: VitalPillProps) {
+export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
   const status = score !== undefined ? scoreToStatus(score) : 'none';
+  const webVitalExists = score !== undefined;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
+
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
 
   return (
     <VitalPillContainer>
       <VitalPillName status={status}>
         {webVital ? webVital.toUpperCase() : ''}
       </VitalPillName>
-      <VitalPillScore>{`${score} ${webVital !== 'cls' ? 'ms' : ''}`}</VitalPillScore>
+      <VitalPillScore>{formattedMeterValueText}</VitalPillScore>
     </VitalPillContainer>
   );
 }
