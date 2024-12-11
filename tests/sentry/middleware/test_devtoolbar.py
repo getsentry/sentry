@@ -148,6 +148,10 @@ TEST_MIDDLEWARE = (
 
 
 class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
+    """
+    Tests the route resolution logic by actually installing the middleware and requesting some endpoints.
+    """
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -156,19 +160,13 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
     @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
-    def _test_endpoint(
-        self,
-        path: str,
-        query_string: str,
-        method: str,
-        expected_view_name: str,
-        expected_route: str,
-        mock_record: MagicMock,
-        expected_org_id=None,
-        expected_org_slug=None,
-        expected_proj_id=None,
-        expected_proj_slug=None,
-    ):
+    def test_organization_replays(self, mock_record: MagicMock):
+        path = f"/api/0/organizations/{self.organization.slug}/replays/"
+        query_string = "?field=id&queryReferrer=devtoolbar"
+        view_name = "sentry-api-0-organization-replay-index"
+        route = "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$"
+        method = "GET"
+
         url = path + query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,
@@ -178,58 +176,88 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             },
         )
 
-        mock_record.assert_any_call(
+        mock_record.assert_called_with(
             "devtoolbar.api_request",
-            view_name=expected_view_name,
-            route=expected_route,
+            view_name=view_name,
+            route=route,
             query_string=query_string,
             origin=self.origin,
             method=method,
             status_code=response.status_code,
-            organization_id=expected_org_id,
-            organization_slug=expected_org_slug,
-            project_id=expected_proj_id,
-            project_slug=expected_proj_slug,
+            organization_id=None,
+            organization_slug=self.organization.slug,
+            project_id=None,
+            project_slug=None,
             user_id=self.user.id,
         )
 
-    def test_organization_replays(self):
-        self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/replays/",
-            "?field=id&queryReferrer=devtoolbar",
-            "GET",
-            "sentry-api-0-organization-replay-index",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_org_slug=self.organization.slug,
-        )
-        self._test_endpoint(
-            f"/api/0/organizations/{self.organization.id}/replays/",
-            "?queryReferrer=devtoolbar&field=id",
-            "GET",
-            "sentry-api-0-organization-replay-index",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/replays/$",
-            expected_org_id=self.organization.id,
-        )
-
-    def test_group_details(self):
+    @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
+    @override_options({"devtoolbar.analytics.enabled": True})
+    @patch("sentry.analytics.record")
+    def test_group_details(self, mock_record: MagicMock):
         group = self.create_group(substatus=GroupSubStatus.NEW)
-        self._test_endpoint(
-            f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
-            "?queryReferrer=devtoolbar",
-            "GET",
-            "sentry-api-0-organization-group-group-details",
-            "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$",
-            expected_org_slug=self.organization.slug,
+
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/"
+        query_string = "?queryReferrer=devtoolbar"
+        method = "GET"
+        view_name = "sentry-api-0-organization-group-group-details"
+        route = "^api/0/organizations/(?P<organization_id_or_slug>[^\\/]+)/(?:issues|groups)/(?P<issue_id>[^\\/]+)/$"
+
+        url = path + query_string
+        response: HttpResponse = getattr(self.client, method.lower())(
+            url,
+            headers={
+                "queryReferrer": "devtoolbar",
+                "Origin": self.origin,
+            },
         )
 
-    def test_project_user_feedback(self):
+        mock_record.assert_called_with(
+            "devtoolbar.api_request",
+            view_name=view_name,
+            route=route,
+            query_string=query_string,
+            origin=self.origin,
+            method=method,
+            status_code=response.status_code,
+            organization_id=None,
+            organization_slug=self.organization.slug,
+            project_id=None,
+            project_slug=None,
+            user_id=self.user.id,
+        )
+
+    @override_settings(MIDDLEWARE=TEST_MIDDLEWARE)
+    @override_options({"devtoolbar.analytics.enabled": True})
+    @patch("sentry.analytics.record")
+    def test_project_user_feedback(self, mock_record: MagicMock):
         # Should return 400 (no POST data)
-        self._test_endpoint(
-            f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/",
-            "?queryReferrer=devtoolbar",
-            "POST",
-            "sentry-api-0-project-user-reports",
-            r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$",
-            expected_org_slug=self.organization.slug,
-            expected_proj_id=self.project.id,
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.id}/user-feedback/"
+        query_string = "?queryReferrer=devtoolbar"
+        method = "POST"
+        view_name = "sentry-api-0-project-user-reports"
+        route = r"^api/0/projects/(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/(?:user-feedback|user-reports)/$"
+
+        url = path + query_string
+        response: HttpResponse = getattr(self.client, method.lower())(
+            url,
+            headers={
+                "queryReferrer": "devtoolbar",
+                "Origin": self.origin,
+            },
+        )
+
+        mock_record.assert_called_with(
+            "devtoolbar.api_request",
+            view_name=view_name,
+            route=route,
+            query_string=query_string,
+            origin=self.origin,
+            method=method,
+            status_code=response.status_code,
+            organization_id=None,
+            organization_slug=self.organization.slug,
+            project_id=self.project.id,
+            project_slug=None,
+            user_id=self.user.id,
         )
