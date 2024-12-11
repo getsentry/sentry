@@ -33,7 +33,10 @@ import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
+import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 
 describe('Dashboards > Detail', function () {
   const organization = OrganizationFixture({
@@ -2139,6 +2142,11 @@ describe('Dashboards > Detail', function () {
           .mockResolvedValue({
             ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
           });
+
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {},
+        });
       });
 
       afterEach(() => {
@@ -2185,6 +2193,12 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Updated Widget',
+          },
+        });
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2207,9 +2221,6 @@ describe('Dashboards > Detail', function () {
 
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
 
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Updated Widget');
-
         await userEvent.click(screen.getByText('Update Widget'));
 
         // The widget builder is closed after the widget is updated
@@ -2225,6 +2236,12 @@ describe('Dashboards > Detail', function () {
         const mockDashboard = DashboardFixture([], {
           id: '1',
           title: 'Custom Errors',
+        });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Totally new widget',
+          },
         });
         render(
           <DashboardDetail
@@ -2245,9 +2262,6 @@ describe('Dashboards > Detail', function () {
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
-
         await userEvent.click(screen.getByText('Add Widget'));
 
         // The widget builder is closed after the widget is updated
@@ -2264,6 +2278,12 @@ describe('Dashboards > Detail', function () {
         const mockDashboard = DashboardFixture([mockWidget], {
           id: '1',
           title: 'Custom Errors',
+        });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Updated Widget Title',
+          },
         });
         render(
           <DashboardDetail
@@ -2290,12 +2310,6 @@ describe('Dashboards > Detail', function () {
 
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
 
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(
-          screen.getByLabelText('Widget Name'),
-          'Updated Widget Title'
-        );
-
         await userEvent.click(screen.getByText('Update Widget'));
 
         // The widget builder is closed after the widget is updated
@@ -2318,6 +2332,12 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Totally new widget',
+          },
+        });
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2336,9 +2356,6 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
-
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
 
         await userEvent.click(
           await within(screen.getByTestId('widget-slideout')).findByText('Add Widget')
