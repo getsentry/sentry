@@ -262,18 +262,6 @@ function ResourceImage(props: {
   const {fileName, size, src, showImage = true} = props;
   const isRelativeUrl = src.startsWith('/');
 
-  const handleError = () => {
-    setHasError(true);
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'error'},
-    });
-  };
-
-  const handleLoad = () => {
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'success'},
-    });
-  };
 
   return (
     <ImageContainer>
