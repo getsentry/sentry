@@ -17,7 +17,7 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
     case 'number':
       return value.toLocaleString();
     case 'percentage':
-      return formatPercentage(value, 2);
+      return formatPercentage(value, 3);
     case 'duration':
       return getDuration((value * (unit ? DURATION_UNITS[unit] : 1)) / 1000, 2, true);
     case 'size':
