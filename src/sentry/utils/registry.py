@@ -38,6 +38,22 @@ class Registry(Generic[T]):
 
         return inner
 
+    def register_instance(self, key: str, item: T) -> T:
+        if key in self.registrations:
+            raise AlreadyRegisteredError(
+                f"A registration already exists for {key}: {self.registrations[key]}"
+            )
+
+        if item in self.reverse_lookup:
+            raise AlreadyRegisteredError(
+                f"A registration already exists for {item}: {self.reverse_lookup[item]}"
+            )
+
+        self.registrations[key] = item
+        self.reverse_lookup[item] = key
+
+        return item
+
     def get(self, key: str) -> T:
         if key not in self.registrations:
             raise NoRegistrationExistsError(f"No registration exists for {key}")

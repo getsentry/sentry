@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -14,6 +16,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
+from sentry.utils import json
+from sentry.utils.registry import Registry
+from sentry.workflow_engine.registry import detector_config_schema_registry
 
 from .json_config import JSONConfigBase
 
@@ -61,8 +66,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     @property
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
+    def CONFIG_SCHEMA_REGISTRY(self) -> Registry:
+        return detector_config_schema_registry
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
@@ -105,3 +110,10 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
+
+
+@receiver(pre_save, sender=Detector)
+def enforce_config_schema(sender, instance: Detector, **kwargs):
+    registry = instance.CONFIG_SCHEMA_REGISTRY
+    config_schema = registry.get(instance.type)
+    instance.validate_config(json.loads(config_schema))
