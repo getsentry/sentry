@@ -22,14 +22,39 @@ class DevToolbarAnalyticsMiddleware:
             if request.GET.get("queryReferrer") == "devtoolbar" and options.get(
                 "devtoolbar.analytics.enabled"
             ):
-                _record_api_request(request, response)
+                record_api_request(request, response)
         except Exception:
             logger.exception("devtoolbar: exception while recording api analytics event.")
 
         return response
 
 
-def _get_org_identifiers_from_request(request: HttpRequest) -> tuple[str | None, int | None]:
+def record_api_request(request: HttpRequest, response: HttpResponse) -> None:
+    if request.resolver_match is None:
+        raise ValueError(f"Request URL not resolved: {request.path_info}")
+
+    org_slug, org_id = get_org_identifiers_from_request(request)
+    proj_slug, proj_id = get_project_identifiers_from_request(request)
+    origin = origin_from_request(request)
+    query_string: str = get_query_string(request)  # starts with ? if non-empty
+
+    analytics.record(
+        "devtoolbar.api_request",
+        view_name=request.resolver_match.view_name,
+        route=request.resolver_match.route,
+        query_string=query_string,
+        origin=origin,
+        method=request.method,
+        status_code=response.status_code,
+        organization_id=org_id,
+        organization_slug=org_slug,
+        project_id=proj_id,
+        project_slug=proj_slug,
+        user_id=request.user.id if hasattr(request, "user") and request.user else None,
+    )
+
+
+def get_org_identifiers_from_request(request: HttpRequest) -> tuple[str | None, int | None]:
     """
     Get the slug or id of the Sentry organization targeted by an API request. Since it's run in middleware, this
     function should NOT talk to external services (e.g. Postgres) or do any expensive operations.
@@ -69,7 +94,7 @@ def _get_org_identifiers_from_request(request: HttpRequest) -> tuple[str | None,
     return None, None
 
 
-def _get_project_identifiers_from_request(request: HttpRequest) -> tuple[str | None, int | None]:
+def get_project_identifiers_from_request(request: HttpRequest) -> tuple[str | None, int | None]:
     """
     Get the slug or id of the Sentry project targeted by an API request. Since it's run in middleware, this
     function should NOT make queries to external services (e.g. Postgres), or any other expensive operations.
@@ -105,28 +130,3 @@ def _get_project_identifiers_from_request(request: HttpRequest) -> tuple[str | N
         return proj_id_or_slug, None
 
     return None, None
-
-
-def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
-    if request.resolver_match is None:
-        raise ValueError(f"Request URL not resolved: {request.path_info}")
-
-    org_slug, org_id = _get_org_identifiers_from_request(request)
-    proj_slug, proj_id = _get_project_identifiers_from_request(request)
-    origin = origin_from_request(request)
-    query_string: str = get_query_string(request)  # starts with ? if non-empty
-
-    analytics.record(
-        "devtoolbar.api_request",
-        view_name=request.resolver_match.view_name,
-        route=request.resolver_match.route,
-        query_string=query_string,
-        origin=origin,
-        method=request.method,
-        status_code=response.status_code,
-        organization_id=org_id,
-        organization_slug=org_slug,
-        project_id=proj_id,
-        project_slug=proj_slug,
-        user_id=request.user.id if hasattr(request, "user") and request.user else None,
-    )

@@ -5,13 +5,17 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 
 from sentry.api import DevToolbarApiRequestEvent
-from sentry.middleware.devtoolbar import DevToolbarAnalyticsMiddleware
+from sentry.middleware.devtoolbar import (
+    DevToolbarAnalyticsMiddleware,
+    get_org_identifiers_from_request,
+    get_project_identifiers_from_request,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.types.group import GroupSubStatus
 
 
-class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
+class DevToolbarAnalyticsMiddlewareTest(TestCase):
     middleware = cached_property(DevToolbarAnalyticsMiddleware)
     analytics_event_name = DevToolbarApiRequestEvent.type
 
@@ -261,3 +265,17 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
             project_slug=None,
             user_id=self.user.id,
         )
+
+
+class DevToolbarAnalyticsUtilsTest(TestCase):
+    def setUp(self):
+        # TODO:
+        pass
+
+    def test_get_org_identifiers_from_request(self):
+        # TODO:
+        pass
+
+    def test_get_project_identifiers_from_request(self):
+        # TODO:
+        pass
