@@ -12,6 +12,11 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+class ActionType(StrEnum):
+    NOTIFICATION = "SendNotificationAction"
+    TRIGGER_WORKFLOW = "TriggerWorkflowAction"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
