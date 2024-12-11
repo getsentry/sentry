@@ -7,7 +7,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
-from sentry.workflow_engine.models.detector import detector_config_schema_registry
+from sentry.workflow_engine.registry import detector_config_schema_registry
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
