@@ -42,7 +42,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             resource_id=None,
             evidence_data={},
             evidence_display=[],
-            type=MetricIssuePOC,
+            type=MetricAlertFire,
             detection_time=datetime.now(timezone.utc),
             level="error",
             culprit="Some culprit",
