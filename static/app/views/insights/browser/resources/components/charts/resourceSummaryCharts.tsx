@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
-import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -80,7 +79,6 @@ function ResourceSummaryCharts(props: {groupId: string}) {
 
       <ModuleLayout.Third>
         <AssetSizeChart
-          dataType={DATA_TYPE}
           series={[
             spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
             spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
