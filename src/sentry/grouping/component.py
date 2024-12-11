@@ -44,10 +44,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[ValuesType] | None = None,
-        variant_provider: bool = False,
     ):
-        self.variant_provider = variant_provider
-
         self.update(
             hint=hint,
             contributes=contributes,
