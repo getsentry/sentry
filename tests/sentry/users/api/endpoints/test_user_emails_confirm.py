@@ -192,3 +192,23 @@ class UserEmailsConfirmTest(APITestCase):
             messages[0].message
             == "The confirmation link has expired. Please visit your Account Settings to resend the verification email."
         )
+
+    @override_options(
+        {
+            "user-settings.signed-url-confirmation-emails": False,
+            "user-settings.signed-url-confirmation-emails-salt": "signed-url-confirmation-emails-salt",
+        }
+    )
+    def test_confirm_email_signed_urls_disabled(self):
+        self.login_as(self.user)
+
+        new_email = "newemailfromsignedurl@example.com"
+        signed_data = sign(
+            user_id=self.user.id,
+            email=new_email,
+            salt="signed-url-confirmation-emails-salt",
+        )
+        resp = self.client.get(
+            reverse("sentry-account-confirm-signed-email", args=[signed_data]), follow=True
+        )
+        assert resp.status_code == 404
