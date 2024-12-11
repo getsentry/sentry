@@ -16,7 +16,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     DataSource,
-    DataSourceDetector,
     Detector,
     DetectorState,
     DetectorWorkflow,
@@ -85,7 +84,6 @@ def create_metric_alert_lookup_tables(
 ) -> None:
     AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
     AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
-    DataSourceDetector.objects.create(data_source=data_source, detector=detector)
     DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group, workflow=workflow
