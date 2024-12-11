@@ -68,7 +68,7 @@ export function getSorts(fields: Field[], location: Location) {
     if (fields.length) {
       return [
         {
-          field: fields[fields.length - 1],
+          field: fields[0],
           kind: 'desc' as const,
         },
       ];
