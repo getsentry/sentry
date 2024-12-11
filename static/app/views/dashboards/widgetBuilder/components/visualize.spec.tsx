@@ -145,11 +145,6 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toBeEnabled();
-    // await waitFor(() => {
-    //   expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
-    //     'transaction.duration'
-    //   );
-    // });
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'transaction.duration'
     );
