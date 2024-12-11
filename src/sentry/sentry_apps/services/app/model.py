@@ -101,7 +101,7 @@ class RpcSentryAppComponentContext(RpcModel):
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
-    error_type: SentryAppErrorType
+    error_type: SentryAppErrorType | None
 
 
 class SentryAppEventDataInterface(Protocol):

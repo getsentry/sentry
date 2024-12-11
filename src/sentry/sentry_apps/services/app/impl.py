@@ -273,7 +273,9 @@ class DatabaseBackedAppService(AppService):
                 message=str(e),
             )
 
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+        return RpcAlertRuleActionResult(
+            success=result["success"], error_type=None, message=result["message"]
+        )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:
