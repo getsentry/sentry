@@ -781,6 +781,7 @@ HEALTH_CHECK_GLOBS = [
     "*/health{/,}",
     "*/healthy{/,}",
     "*/healthz{/,}",
+    "*/health_check{/,}",
     "*/_health{/,}",
     r"*/\[_health\]{/,}",
     "*/live{/,}",
