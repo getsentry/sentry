@@ -781,15 +781,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           <EAPSpanSearchQueryBuilder
                             numberTags={tags?.number ?? {}}
                             stringTags={tags?.string ?? {}}
-                            initialQuery={initialData?.query ?? ''}
+                            initialQuery={value ?? ''}
                             searchSource="alerts"
                             onSearch={(query, {parsedQuery}) => {
                               onFilterSearch(query, parsedQuery);
                               onChange(query, {});
-                            }}
-                            onBlur={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onBlur(query);
                             }}
                             supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                             projects={[parseInt(project.id, 10)]}
