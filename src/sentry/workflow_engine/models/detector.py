@@ -71,6 +71,12 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         ]
 
     @property
+    def fingerprint(self) -> str:
+        # TODO - add the DataSource ID to the fingerprint?
+        # somehow need to link this to the query that is being run
+        return f"detector-{self.id}"
+
+    @property
     def group_type(self) -> builtins.type[GroupType] | None:
         return grouptype.registry.get_by_slug(self.type)
 
