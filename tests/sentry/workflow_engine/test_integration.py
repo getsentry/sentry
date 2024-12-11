@@ -14,7 +14,7 @@ from sentry.workflow_engine.processors import process_data_sources, process_dete
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class TestWorkflowEngineIntegration(BaseWorkflowTest):
+class BaseWorkflowIntegrationTest(BaseWorkflowTest):
     def setUp(self):
         (
             self.workflow,
@@ -89,6 +89,8 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
 
         return self.data_source
 
+
+class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__data_source__to_metric_issue_workflow(self):
         """
@@ -133,6 +135,8 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             assert processed_packets == []
             mock_producer.assert_not_called()
 
+
+class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:workflow-engine-m3-process")
     def test_workflow_engine__workflows(self):
         """
