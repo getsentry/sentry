@@ -45,10 +45,9 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
-  const sentryFeaturesHook = getSentryFeaturesHook();
   addOrganizationFeaturesHook({
     organization: org,
-    hook: sentryFeaturesHook,
+    hook: getSentryFeaturesHook('feature.organizations:'),
   });
 
   OrganizationStore.onUpdate(org, {replace: true});

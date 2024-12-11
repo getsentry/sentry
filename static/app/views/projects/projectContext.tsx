@@ -181,10 +181,9 @@ class ProjectContextProvider extends Component<Props, State> {
 
         // assuming here that this means the project is considered the active project
         setActiveProject(project);
-        const sentryFeaturesHook = getSentryFeaturesHook();
         addProjectFeaturesHook({
           project,
-          hook: sentryFeaturesHook,
+          hook: getSentryFeaturesHook('feature.projects:'),
         });
       } catch (error) {
         this.setState({

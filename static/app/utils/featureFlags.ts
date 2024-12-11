@@ -8,8 +8,13 @@ import type {Project} from 'sentry/types/project';
  * Returns a callback that can be used to track sentry flag evaluations through
  * the Sentry SDK, in the event context. If the FeatureFlagsIntegration is not
  * installed, the callback is a no-op.
+ *
+ * @param prefix - optionally specifies a prefix for flag names, before calling
+ *  the SDK hook
  */
-export function getSentryFeaturesHook(): (name: string, value: unknown) => void {
+export function getSentryFeaturesHook(
+  prefix?: string
+): (name: string, value: unknown) => void {
   const featureFlagsIntegration =
     Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>(
       'FeatureFlags'
@@ -22,7 +27,7 @@ export function getSentryFeaturesHook(): (name: string, value: unknown) => void 
   }
   return (name: string, value: unknown) => {
     // Append `feature.organizations:` in front to match the Sentry options automator format
-    featureFlagsIntegration?.addFeatureFlag('feature.organizations:' + name, value);
+    featureFlagsIntegration?.addFeatureFlag((prefix ?? '') + name, value);
   };
 }
 
