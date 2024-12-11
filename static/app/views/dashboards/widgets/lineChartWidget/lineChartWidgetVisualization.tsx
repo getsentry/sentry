@@ -24,6 +24,8 @@ import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
+import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
+
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   dataCompletenessDelay?: number;
