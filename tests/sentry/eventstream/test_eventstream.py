@@ -1,11 +1,9 @@
-import itertools
 import logging
 import time
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import pytest
-from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
