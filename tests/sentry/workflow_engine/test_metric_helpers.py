@@ -26,47 +26,92 @@ from sentry.workflow_engine.types import DataSourceType, DetectorPriorityLevel
 
 
 class MetricHelpersTest(APITestCase):
-    """
-    Test that when we call the helper methods we create all the ACI models correctly from an alert rule, trigger, and action
-    """
+    def setUp(self):
+        self.metric_alert = self.create_alert_rule()
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
+        self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger
+        )
 
     def test_create_metric_alert(self):
-        metric_alert = self.create_alert_rule()
-        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=metric_alert)
-        alert_rule_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=alert_rule_trigger
-        )
-        create_metric_detector_and_workflow(metric_alert, self.user)
-        create_metric_data_condition(alert_rule_trigger)
-        create_metric_action(alert_rule_trigger_action)
+        """
+        Test that when we call the helper methods we create all the ACI models correctly for an alert rule
+        """
+        create_metric_detector_and_workflow(self.metric_alert, self.user)
 
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=metric_alert)
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=metric_alert)
-        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
-            alert_rule_trigger=alert_rule_trigger
-        )
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
 
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        assert workflow.name == metric_alert.name
-        assert workflow.organization_id == metric_alert.organization.id
+        assert workflow.name == self.metric_alert.name
+        assert workflow.organization_id == self.metric_alert.organization.id
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
-        assert detector.name == metric_alert.name
+        assert detector.name == self.metric_alert.name
         assert detector.project_id == self.project.id
         assert detector.enabled is True
-        assert detector.description == metric_alert.description
-        assert detector.owner_user_id == metric_alert.user_id
-        assert detector.owner_team == metric_alert.team
+        assert detector.description == self.metric_alert.description
+        assert detector.owner_user_id == self.metric_alert.user_id
+        assert detector.owner_team == self.metric_alert.team
         assert detector.type == MetricAlertFire.slug
         assert detector.config == {
-            "threshold_period": metric_alert.threshold_period,
-            "sensitivity": metric_alert.sensitivity,
-            "seasonality": metric_alert.seasonality,
-            "comparison_delta": metric_alert.comparison_delta,
+            "threshold_period": self.metric_alert.threshold_period,
+            "sensitivity": self.metric_alert.sensitivity,
+            "seasonality": self.metric_alert.seasonality,
+            "comparison_delta": self.metric_alert.comparison_delta,
         }
 
         detector_workflow = DetectorWorkflow.objects.get(detector=detector)
         assert detector_workflow.workflow == workflow
 
+        workflow_data_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
+        assert workflow_data_condition_group.condition_group == workflow.when_condition_group
+
+        query_subscription = QuerySubscription.objects.get(
+            snuba_query=self.metric_alert.snuba_query.id
+        )
+        data_source = DataSource.objects.get(
+            organization_id=self.metric_alert.organization_id, query_id=query_subscription.id
+        )
+        assert data_source.type == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        detector_state = DetectorState.objects.get(detector=detector)
+        assert detector_state.active is False
+        assert detector_state.state == str(DetectorPriorityLevel.OK.value)
+
+        data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
+        assert data_source_detector.detector == detector
+
+    def test_create_metric_alert_trigger(self):
+        """
+        Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger
+        """
+        create_metric_detector_and_workflow(self.metric_alert, self.user)
+        create_metric_data_condition(self.alert_rule_trigger)
+        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
+            alert_rule_trigger=self.alert_rule_trigger
+        )
+        data_condition_group_id = (
+            alert_rule_trigger_data_condition.data_condition.condition_group.id
+        )
+        data_condition = DataCondition.objects.get(condition_group=data_condition_group_id)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        data_condition_group = workflow.when_condition_group
+
+        assert data_condition.condition == Condition.LESS
+        assert data_condition.comparison == self.alert_rule_trigger.alert_threshold
+        assert data_condition.condition_result == DetectorPriorityLevel.HIGH
+        assert data_condition.condition_group == data_condition_group
+
+    def test_create_metric_alert_trigger_action(self):
+        """
+        Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger action
+        """
+        create_metric_detector_and_workflow(self.metric_alert, self.user)
+        create_metric_data_condition(self.alert_rule_trigger)
+        create_metric_action(self.alert_rule_trigger_action)
+        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
+            alert_rule_trigger=self.alert_rule_trigger
+        )
         data_condition_group_id = (
             alert_rule_trigger_data_condition.data_condition.condition_group.id
         )
@@ -74,25 +119,3 @@ class MetricHelpersTest(APITestCase):
             condition_group_id=data_condition_group_id
         )
         assert Action.objects.filter(id=data_condition_group_action.action.id).exists()
-        data_condition = DataCondition.objects.get(condition_group=data_condition_group_id)
-        data_condition_group = workflow.when_condition_group
-
-        assert data_condition.condition == Condition.GREATER
-        assert data_condition.comparison == alert_rule_trigger.alert_threshold
-        assert data_condition.condition_result == DetectorPriorityLevel.HIGH
-        assert data_condition.condition_group == data_condition_group
-
-        workflow_data_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
-        assert workflow_data_condition_group.condition_group == data_condition_group
-
-        query_subscription = QuerySubscription.objects.get(snuba_query=metric_alert.snuba_query.id)
-        data_source = DataSource.objects.get(
-            organization_id=metric_alert.organization_id, query_id=query_subscription.id
-        )
-        assert data_source.type == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
-        detector_state = DetectorState.objects.get(detector=detector)
-        assert detector_state.active is False
-        assert detector.state == DetectorPriorityLevel.OK
-
-        data_source_detector = DataSourceDetector.objects.get(data_source=data_source)
-        assert data_source_detector.detector == detector
