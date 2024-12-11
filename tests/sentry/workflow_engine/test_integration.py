@@ -111,7 +111,20 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
+            # Change the type to mismatch from the packet. This should not find any detectors and return.
             processed_packets = process_data_sources([self.data_packet], "snuba_query")
+
+            assert processed_packets == []
+            mock_producer.assert_not_called()
+
+    def test_workflow_engine__data_source__no_detectors(self):
+        self.create_test_data_source()
+        self.detector.delete()
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
+        ) as mock_producer:
+            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
 
             assert processed_packets == []
             mock_producer.assert_not_called()
