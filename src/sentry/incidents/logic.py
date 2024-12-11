@@ -606,7 +606,6 @@ def create_alert_rule(
             environment=environment,
             event_types=event_types,
         )
-        # should I create the DataSource as as part of creating the snuba query?
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
