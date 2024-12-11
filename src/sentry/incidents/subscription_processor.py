@@ -45,6 +45,7 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
+from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.utils import anomaly_has_confidence, has_anomaly
 from sentry.snuba.dataset import Dataset
@@ -53,9 +54,9 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
-from sentry.utils import metrics, redis
+from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
 
 logger = logging.getLogger(__name__)
@@ -221,41 +222,80 @@ class SubscriptionProcessor:
             snuba_query,
             self.subscription.project.organization_id,
         )
-        try:
-            project_ids = [self.subscription.project_id]
-            # TODO: determine whether we need to include the subscription query_extra here
-            query_builder = entity_subscription.build_query_builder(
-                query=snuba_query.query,
-                project_ids=project_ids,
-                environment=snuba_query.environment,
-                params={
-                    "organization_id": self.subscription.project.organization.id,
-                    "project_id": project_ids,
-                    "start": start,
-                    "end": end,
-                },
-            )
-            time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
-            query_builder.add_conditions(
-                [
-                    Condition(Column(time_col), Op.GTE, start),
-                    Condition(Column(time_col), Op.LT, end),
-                ]
-            )
-            query_builder.limit = Limit(1)
-            results = query_builder.run_query(referrer="subscription_processor.comparison_query")
-            comparison_aggregate = list(results["data"][0].values())[0]
+        dataset = Dataset(snuba_query.dataset)
+        query_type = SnubaQuery.Type(snuba_query.type)
+        project_ids = [self.subscription.project_id]
 
-        except Exception:
-            logger.exception(
-                "Failed to run comparison query",
-                extra={
-                    "alert_rule_id": self.alert_rule.id,
-                    "subscription_id": subscription_update.get("subscription_id"),
-                    "organization_id": self.alert_rule.organization_id,
-                },
-            )
-            return None
+        comparison_aggregate: None | float = None
+        if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform:
+            try:
+                rpc_time_series_request = entity_subscription.build_rpc_request(
+                    query=snuba_query.query,
+                    project_ids=project_ids,
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": project_ids,
+                    },
+                    referrer="subscription_processor.comparison_query",
+                )
+
+                rpc_time_series_request = add_start_end_conditions(
+                    rpc_time_series_request, start, end
+                )
+
+                rpc_response = snuba_rpc.timeseries_rpc(rpc_time_series_request)
+                if len(rpc_response.result_timeseries):
+                    comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
+
+            except Exception:
+                logger.exception(
+                    "Failed to run RPC comparison query",
+                    extra={
+                        "alert_rule_id": self.alert_rule.id,
+                        "subscription_id": subscription_update.get("subscription_id"),
+                        "organization_id": self.alert_rule.organization_id,
+                    },
+                )
+                return None
+
+        else:
+            try:
+                # TODO: determine whether we need to include the subscription query_extra here
+                query_builder = entity_subscription.build_query_builder(
+                    query=snuba_query.query,
+                    project_ids=project_ids,
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": project_ids,
+                        "start": start,
+                        "end": end,
+                    },
+                )
+                time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+                query_builder.add_conditions(
+                    [
+                        Condition(Column(time_col), Op.GTE, start),
+                        Condition(Column(time_col), Op.LT, end),
+                    ]
+                )
+                query_builder.limit = Limit(1)
+                results = query_builder.run_query(
+                    referrer="subscription_processor.comparison_query"
+                )
+                comparison_aggregate = list(results["data"][0].values())[0]
+
+            except Exception:
+                logger.exception(
+                    "Failed to run comparison query",
+                    extra={
+                        "alert_rule_id": self.alert_rule.id,
+                        "subscription_id": subscription_update.get("subscription_id"),
+                        "organization_id": self.alert_rule.organization_id,
+                    },
+                )
+                return None
 
         if not comparison_aggregate:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
