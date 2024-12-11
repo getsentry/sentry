@@ -55,7 +55,7 @@ describe('AccountDetails', () => {
   });
 
   describe('Theme', () => {
-    it('can toggle between light and dark and remove the theme class from body', async () => {
+    it('toggles between light and dark and removes the theme class from body', async () => {
       const mockUserUpdate = MockApiClient.addMockResponse({
         url: '/users/me/',
         method: 'PUT',
