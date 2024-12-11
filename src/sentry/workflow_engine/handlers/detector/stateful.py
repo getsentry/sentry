@@ -70,6 +70,9 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
     def build_fingerprint(self, group_key) -> list[str]:
         """
         Builds a fingerprint to uniquely identify a detected issue
+
+        TODO - Take into account the data source / query that triggered the detector,
+        we'll want to create a new issue if the query changes.
         """
         return [f"{self.detector.id}{':' + group_key if group_key is not None else ''}"]
 
