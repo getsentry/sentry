@@ -1,9 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {
-  VitalMeter,
-  VitalPill,
-} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import {VitalPill} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
