@@ -4,6 +4,7 @@ import orjson
 import pytest
 import responses
 from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
@@ -161,6 +162,32 @@ class SlackActionHandlerTest(FireTest):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_failure.args[0] == EventLifecycleOutcome.FAILURE
         assert_failure_metric(mock_record, SlackApiError(message="", response={}))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    def test_fire_metric_alert_slo_halt(self, mock_post, mock_record):
+        mock_post.side_effect = SlackApiError(
+            message="account_inactive",
+            response=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": False, "error": "account_inactive"},
+                headers={},
+                status_code=200,
+            ),
+        )
+        self.run_fire_test()
+
+        assert len(mock_record.mock_calls) == 4
+        thread_ts_start, thread_ts_failure, send_notification_start, send_notification_failure = (
+            mock_record.mock_calls
+        )
+        assert thread_ts_start.args[0] == EventLifecycleOutcome.STARTED
+        assert thread_ts_failure.args[0] == EventLifecycleOutcome.SUCCESS
+        assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
+        assert send_notification_failure.args[0] == EventLifecycleOutcome.HALTED
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")

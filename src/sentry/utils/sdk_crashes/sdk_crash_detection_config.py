@@ -227,7 +227,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 function_and_path_patterns=[
                     FunctionAndPathPattern(
                         function_pattern=r"*pthread_getcpuclockid*",
-                        path_pattern=r"/apex/com.android.art/lib64/bionic/libc.so",
+                        path_pattern=r"/apex/com.android.runtime/lib64/bionic/libc.so",
                     ),
                     FunctionAndPathPattern(
                         function_pattern=r"*art::Trace::StopTracing*",
