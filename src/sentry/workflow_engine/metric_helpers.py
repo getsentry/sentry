@@ -27,6 +27,13 @@ from sentry.workflow_engine.types import ActionType, DataSourceType, DetectorPri
 
 
 def create_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> None:
+    try:
+        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
+            alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
+        )
+    except AlertRuleTriggerDataCondition.DoesNotExist:
+        return None
+
     data = {
         "type": alert_rule_trigger_action.type,
         "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
@@ -41,18 +48,20 @@ def create_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> N
         target_identifier=alert_rule_trigger_action.target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
-    alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
-        alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
-    )
-
-    DataConditionGroupAction.objects.update_or_create(
+    DataConditionGroupAction.objects.create(
         condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
         action_id=action.id,
     )
 
 
 def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule_trigger.alert_rule)
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(
+            alert_rule=alert_rule_trigger.alert_rule
+        )
+    except AlertRuleDetector.DoesNotExist:
+        return None
+
     data_condition_group = alert_rule_detector.detector.workflow_condition_group
     if not data_condition_group:
         return None
@@ -106,7 +115,11 @@ def create_metric_detector_and_workflow(
     if not project:
         return None
 
-    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    try:
+        query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
+    except QuerySubscription.DoesNotExist:
+        return None
+
     data_source = DataSource.objects.create(
         organization_id=alert_rule.organization_id,
         query_id=query_subscription.id,
