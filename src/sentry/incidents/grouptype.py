@@ -97,5 +97,5 @@ class MetricAlertFire(GroupType):
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
-        # TODO - Figure out how to do this correctly
+        # TODO - Use a feature flag to determine if we should allow post processing or not
         return True

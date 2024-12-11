@@ -711,7 +711,6 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
-
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -1555,7 +1554,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_commits,
         handle_owner_assignment,
         handle_auto_assignment,
-        # TODO - Add process_workflow_engine to replace process_rules for issue alerts
         process_rules,
         process_service_hooks,
         process_resource_change_bounds,
