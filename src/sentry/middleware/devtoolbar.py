@@ -114,7 +114,7 @@ def get_project_identifiers_from_request(request: HttpRequest) -> tuple[str | No
     # If the request has been processed, some endpoints will have done a Postgres query for us.
     proj_obj = kwargs.get("project")
     if isinstance(proj_obj, Project):
-        return proj_obj.slug
+        return proj_obj.slug, None
 
     # Try all conceivable URL params, regardless of current URL patterns.
     proj_id_or_slug = (

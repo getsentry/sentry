@@ -268,14 +268,20 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
 
 
 class DevToolbarAnalyticsUtilsTest(TestCase):
-    def setUp(self):
-        # TODO:
-        pass
+    @cached_property
+    def factory(self):
+        return RequestFactory()
 
-    def test_get_org_identifiers_from_request(self):
-        # TODO:
-        pass
+    def test_get_org_identifiers_from_request_has_object(self):
+        request = self.factory.get("/issues/")
+        request.resolver_match = MagicMock()
+        request.resolver_match.kwargs = {"organization": self.organization}
+        org_slug, org_id = get_org_identifiers_from_request(request)
+        assert org_slug == self.organization.slug or org_id == self.organization.id
 
-    def test_get_project_identifiers_from_request(self):
-        # TODO:
-        pass
+    def test_get_project_identifiers_from_request_has_object(self):
+        request = self.factory.get("/issues/")
+        request.resolver_match = MagicMock()
+        request.resolver_match.kwargs = {"project": self.project}
+        proj_slug, proj_id = get_project_identifiers_from_request(request)
+        assert proj_slug == self.project.slug or proj_id == self.project.id
