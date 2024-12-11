@@ -2,6 +2,7 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
@@ -28,6 +29,9 @@ const formGroups: JsonFormObject[] = [
           {value: 'system', label: t('Default to system')},
         ],
         getData: transformOptions,
+        onChange: () => {
+          removeBodyTheme();
+        },
       },
       {
         name: 'language',
