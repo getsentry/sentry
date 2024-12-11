@@ -16,14 +16,13 @@ interface Props {
 
 export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}: Props) {
   const organization = useOrganization();
-  const sortedVideoEvents = videoEvents.sort((a, b) => a.timestamp - b.timestamp);
 
   const gaps = useMemo(() => {
     const ranges: Array<{left: string; width: string}> = [];
     let previousVideoEnd = startTimestampMs;
 
     // create gap in timeline when there is a gap between video events larger than 1.1s
-    for (const video of sortedVideoEvents) {
+    for (const video of videoEvents) {
       if (video.timestamp - previousVideoEnd > 1100) {
         ranges.push({
           left: toPercent((previousVideoEnd - startTimestampMs) / durationMs),
@@ -34,7 +33,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
     }
 
     // add gap at the end if the last video segment ends before the replay ends
-    if (sortedVideoEvents.length && previousVideoEnd < startTimestampMs + durationMs) {
+    if (videoEvents.length && previousVideoEnd < startTimestampMs + durationMs) {
       ranges.push({
         left: toPercent((previousVideoEnd - startTimestampMs) / durationMs),
         width: toPercent(durationMs / durationMs),
@@ -42,7 +41,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
     }
 
     return ranges;
-  }, [durationMs, sortedVideoEvents, startTimestampMs]);
+  }, [durationMs, videoEvents, startTimestampMs]);
 
   useEffect(() => {
     trackAnalytics('replay.gaps_detected', {
