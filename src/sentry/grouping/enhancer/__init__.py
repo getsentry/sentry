@@ -173,7 +173,7 @@ class Enhancements:
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[StacktraceGroupingComponent, bool]:
+    ) -> StacktraceGroupingComponent:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -205,7 +205,7 @@ class Enhancements:
             frame_counts=frame_counts,
         )
 
-        return stacktrace_component, rust_results.invert_stacktrace
+        return stacktrace_component
 
     def as_dict(self, with_rules=False):
         rv = {
