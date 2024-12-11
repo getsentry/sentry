@@ -1470,7 +1470,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         ]
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(reason="sampling_factor is not a queryable column yet")
+    # @pytest.mark.xfail(reason="sampling_factor is not a queryable column yet")
     def test_average_sampling_rate(self):
         spans = []
         spans.append(
@@ -1512,7 +1512,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         data = response.data["data"]
         confidence = response.data["confidence"]
         assert len(data) == 1
-        assert data[0]["avg_sample(sampling_rate)"] == pytest.approx(0.475)
+        assert data[0]["avg_sample(sampling_rate)"] == 0.475
         assert data[0]["min(sampling_rate)"] == pytest.approx(0.1)
         assert data[0]["count_sample()"] == 2
         assert data[0]["count()"] == 11
