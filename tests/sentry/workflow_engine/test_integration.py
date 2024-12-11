@@ -1,8 +1,11 @@
 from datetime import datetime
 from unittest import mock
 
+import pytest
+
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
@@ -59,11 +62,14 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         return cache_key
 
     # TODO - Figure out how i want to connect the data_source -> detector -> Issue Platform, how to test that it would save correctly.
+    @pytest.mark.skip(reason="Not implemented")
     def test_workflow_engine__data_source__to_metric_issue_workflow(self):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
-        # Figure out how to make a data_source that triggers a detector
+        # Make a query to snuba or stub an update
+        # Create a data_packet from the query
+        # Send the data_packet to process_workflows in different states to trigger different results
         # Create a detector handler that will create a MetricIssueWorkflow
         pass
 
@@ -82,3 +88,31 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
         ) as mock_process_workflow:
             self.call_post_process_group(self.group.id)
             mock_process_workflow.assert_called_once()
+
+    def test_workflow_engine__workflows__other_events(self):
+        """
+        Ensure that the workflow engine only supports MetricAlertFire events for now.
+        """
+        error_event = self.store_event(data={}, project_id=self.project.id)
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=error_event.event_id,
+            project_id=self.project.id,
+            fingerprint=[self.detector.fingerprint],
+            evidence_data={},
+            type=ErrorGroupType.type_id,
+        )
+
+        self.occurrence, group_info = save_issue_occurrence(occurrence_data, error_event)
+        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
+
+        if not self.group:
+            assert False, "Group not created"
+
+        with mock.patch(
+            "sentry.workflow_engine.processors.workflow.process_workflows"
+        ) as mock_process_workflow:
+            self.call_post_process_group(error_event.group.id)
+
+            # We currently don't have a detector for this issue type, so it should not call workflow_engine.
+            mock_process_workflow.assert_not_called()
