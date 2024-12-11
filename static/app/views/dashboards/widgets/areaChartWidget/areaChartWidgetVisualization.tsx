@@ -20,11 +20,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {formatTooltipValue} from '../common/formatTooltipValue';
+import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
-
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatYAxisValue} from './formatYAxisValue';
 
 export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
