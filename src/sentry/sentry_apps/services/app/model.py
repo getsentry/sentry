@@ -98,8 +98,11 @@ class RpcSentryAppComponentContext(RpcModel):
 
 
 class RpcAlertRuleActionResult(RpcModel):
+    from sentry.sentry_apps.utils.errors import SentryAppErrorType
+
     success: bool
     message: str
+    error_type: SentryAppErrorType | None
 
 
 class SentryAppEventDataInterface(Protocol):
