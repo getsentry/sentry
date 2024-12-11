@@ -147,6 +147,7 @@ export function MergedItem({fingerprint, totalFingerprint}: Props) {
               <LinkButton
                 to={issueLink}
                 icon={<IconLink color={'linkColor'} />}
+                title={t('View latest event')}
                 aria-label={t('View latest event')}
                 borderless
                 size="xs"
