@@ -126,9 +126,6 @@ describe('WidgetBuilderSortBySelector', function () {
   });
 
   it('renders the correct limit options', async function () {
-    // const mockNavigate = jest.fn();
-    // mockUseNavigate.mockReturnValue(mockNavigate);
-
     render(
       <WidgetBuilderProvider>
         <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
