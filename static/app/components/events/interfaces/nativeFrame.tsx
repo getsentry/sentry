@@ -80,7 +80,6 @@ function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
-  includeSystemFrames,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
   image,
@@ -134,16 +133,13 @@ function NativeFrame({
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const expandable =
-    !leadsToApp || includeSystemFrames
-      ? isExpandable({
-          frame,
-          registers,
-          platform,
-          emptySourceNotation,
-          isOnlyFrame,
-        })
-      : false;
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+    isOnlyFrame,
+  });
 
   const inlineFrame =
     prevFrame &&
