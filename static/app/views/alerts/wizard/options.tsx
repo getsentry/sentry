@@ -93,7 +93,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
   uptime_monitor: t('Uptime Monitor'),
-  eap_metrics: t('EAP Metric'),
+  eap_metrics: t('Spans'),
 };
 
 /**
