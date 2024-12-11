@@ -1,5 +1,11 @@
+from unittest.mock import PropertyMock, patch
+
+import pytest
+
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
+from sentry.utils.registry import Registry
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import process_data_sources
 
@@ -14,6 +20,19 @@ class TestProcessDataSources(TestCase):
             resolution=60,
             **kwargs,
         )
+
+    @pytest.fixture(autouse=True)
+    def initialize_detector_config_registry(self):
+        # all detectors in this test case have type=""
+        self.example_registry = Registry[str](enable_reverse_lookup=False)
+        self.example_registry.register("")(json.dumps({}))
+        with patch(
+            "sentry.workflow_engine.models.Detector.CONFIG_SCHEMA_REGISTRY",
+            return_value=self.example_registry,
+            new_callable=PropertyMock,
+        ):
+            # Run test case
+            yield
 
     def setUp(self):
         self.query = self.create_snuba_query()
