@@ -99,4 +99,4 @@ class MetricAlertFire(GroupType):
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
-        return features.has("organizations:workflow-engine-m3-process", organization)
+        return features.has("organizations:workflow-engine-metric-alert-processing", organization)
