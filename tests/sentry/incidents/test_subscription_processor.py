@@ -72,8 +72,6 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.utils import json
-from sentry.workflow_engine.handlers.detector.base import DetectorEvaluationResult
-from sentry.workflow_engine.types import DetectorPriorityLevel
 
 EMPTY = object()
 
@@ -2966,29 +2964,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
-        mock_logger.info.assert_called_with(
-            "Results from process_detectors",
-            extra={
-                "results": (
-                    [
-                        [
-                            (
-                                1,
-                                {
-                                    "dummy_group": DetectorEvaluationResult(
-                                        group_key="dummy_group",
-                                        is_active=True,
-                                        priority=DetectorPriorityLevel.HIGH,
-                                        result=None,
-                                        event_data=None,
-                                    )
-                                },
-                            )
-                        ]
-                    ]
-                )
-            },
-        )
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):

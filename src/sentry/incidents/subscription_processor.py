@@ -373,17 +373,10 @@ class SubscriptionProcessor:
             results = []
             for data_packet, detectors in detectors:
                 results.append(process_detectors(data_packet, detectors))
-            # NOTE: this is temporary, to verify in the tests that the right information is flowing through the pipeline.
-            logger_results = []
-            for result_list in results:
-                logger_result_list = []
-                for detector, result in result_list:
-                    logger_result_list.append((detector.id, result))
-                logger_results.append(logger_result_list)
             logger.info(
                 "Results from process_detectors",
                 extra={
-                    "results": logger_results,
+                    "results": results,
                 },
             )
         self.last_update = subscription_update["timestamp"]
