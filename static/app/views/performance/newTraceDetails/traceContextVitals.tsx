@@ -1,6 +1,9 @@
 import {useTheme} from '@emotion/react';
 
-import {VitalMeter} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
+import {
+  VitalMeter,
+  VitalPill,
+} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
@@ -27,32 +30,42 @@ export function TraceContextVitals({tree}: Props) {
     tree.vitals.forEach(entry => (vital = entry.find(v => v.key === webVital)));
 
     // Render empty state
-    if (!vital || !vital.score) {
-      return (
-        <VitalMeter
-          key={webVital}
-          webVital={webVital as WebVitals}
-          score={undefined}
-          meterValue={undefined}
-          color={theme.charts.getColorPalette(3)[index]}
-          showTooltip
-          isAggregateMode={false}
-        />
-      );
-    }
+    // if (!vital || !vital.score) {
+    //   return (
+    //     <VitalMeter
+    //       key={webVital}
+    //       webVital={webVital as WebVitals}
+    //       score={undefined}
+    //       meterValue={undefined}
+    //       color={theme.charts.getColorPalette(3)[index]}
+    //       showTooltip
+    //       isAggregateMode={false}
+    //     />
+    //   );
+    // }
 
     const colors = theme.charts.getColorPalette(3);
-    const score = Math.round(vital.score * 100);
+    const score = vital?.score ? Math.round(vital.score * 100) : 0;
+
+    // return (
+    //   <VitalMeter
+    //     key={vital.key}
+    //     webVital={vital.key as WebVitals}
+    //     score={score}
+    //     meterValue={vital.measurement.value}
+    //     showTooltip
+    //     color={colors[index]}
+    //     isAggregateMode={false}
+    //   />
+    // );
 
     return (
-      <VitalMeter
-        key={vital.key}
-        webVital={vital.key as WebVitals}
+      <VitalPill
+        key={vital?.key}
+        webVital={webVital as WebVitals}
         score={score}
-        meterValue={vital.measurement.value}
-        showTooltip
         color={colors[index]}
-        isAggregateMode={false}
+        meterValue={vital?.measurement.value}
       />
     );
   });

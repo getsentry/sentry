@@ -316,3 +316,55 @@ export const Dot = styled('span')<{color: string}>`
   height: ${space(1)};
   background-color: ${p => p.color};
 `;
+
+// A compressed version of the VitalMeter component used in the trace context panel
+type VitalPillProps = Omit<
+  VitalMeterProps,
+  'showTooltip' | 'isAggregateMode' | 'onClick'
+>;
+export function VitalPill({webVital, score}: VitalPillProps) {
+  const status = score !== undefined ? scoreToStatus(score) : 'none';
+
+  return (
+    <VitalPillContainer>
+      <VitalPillName status={status}>
+        {webVital ? webVital.toUpperCase() : ''}
+      </VitalPillName>
+      <VitalPillScore>{`${score} ${webVital !== 'cls' ? 'ms' : ''}`}</VitalPillScore>
+    </VitalPillContainer>
+  );
+}
+
+const VitalPillContainer = styled('div')`
+  display: flex;
+  width: 100%;
+  height: 30px;
+  flex-direction: row;
+`;
+
+const VitalPillName = styled('div')<{status: string}>`
+  display: flex;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+  padding: 0 ${space(0.5)};
+  height: 100%;
+`;
+
+const VitalPillScore = styled('div')`
+  display: flex;
+  align-items: center;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.gray200};
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.textColor};
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+  border-left: none;
+  padding: 0 ${space(0.5)};
+  height: 100%;
+  width: 100%;
+`;
