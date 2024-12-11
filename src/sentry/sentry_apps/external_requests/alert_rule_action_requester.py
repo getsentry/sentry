@@ -9,11 +9,10 @@ from django.utils.functional import cached_property
 from requests.exceptions import RequestException
 from requests.models import Response
 
-from sentry.exceptions import SentryAppIntegratorError
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
-from sentry.sentry_apps.utils.errors import SentryAppErrorType
+from sentry.sentry_apps.utils.errors import SentryAppErrorType, SentryAppIntegratorError
 from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"

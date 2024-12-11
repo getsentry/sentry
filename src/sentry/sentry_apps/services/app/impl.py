@@ -9,7 +9,6 @@ from django.db.models import Q, QuerySet
 from sentry.api.serializers import Serializer, serialize
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
-from sentry.exceptions import SentryAppError, SentryAppIntegratorError
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.sentry_apps.alert_rule_action_creator import AlertRuleActionCreator
 from sentry.sentry_apps.api.serializers.sentry_app_component import (
@@ -39,7 +38,11 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
-from sentry.sentry_apps.utils.errors import SentryAppErrorType
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppErrorType,
+    SentryAppIntegratorError,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 

@@ -8,7 +8,7 @@ from sentry.incidents.logic import get_filtered_actions
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import raise_alert_rule_action_result_errors
+from sentry.sentry_apps.utils.alert_rule_action import raise_alert_rule_action_result_errors
 
 
 def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[str, Any]) -> None:
