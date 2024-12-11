@@ -292,8 +292,7 @@ def get_cohort_and_current_project_id(
         )
         return None, None
 
-    # Popping will ensure that the project is not processed again
-    current_project_id = cohort.pop()
+    current_project_id = cohort[0]
     return cohort, current_project_id
 
 

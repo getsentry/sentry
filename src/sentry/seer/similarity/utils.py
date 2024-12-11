@@ -467,7 +467,7 @@ def killswitch_enabled(
     Check both the global and similarity-specific Seer killswitches.
     """
 
-    logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id or ""}
+    logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
 
     if options.get("seer.global-killswitch.enabled"):
         logger.warning(
