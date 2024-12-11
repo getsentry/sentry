@@ -24,6 +24,7 @@ type DropdownOptionGroup = {
 
 type DefaultProps = {
   options: Column[];
+  className?: string;
 };
 
 type Props = DefaultProps &
@@ -259,11 +260,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   render() {
-    const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
+    const {onUpdate: _onUpdate, options: _options, className, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
 
     return (
-      <Container isOpen={dropdownVisible}>
+      <Container isOpen={dropdownVisible} className={className}>
         <Input
           {...props}
           ref={this.input}
@@ -317,7 +318,7 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
             return (
               <Fragment key={title}>
                 <ListItem>
-                  <DropdownTitle>{title}</DropdownTitle>
+                  <DropdownTitle aria-label={title}>{title}</DropdownTitle>
                 </ListItem>
                 {options.map(option => {
                   return (
