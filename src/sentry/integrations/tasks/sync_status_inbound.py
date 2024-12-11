@@ -3,7 +3,6 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from django.db.models import Q
-from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
@@ -227,15 +226,15 @@ def sync_status_inbound(
             activity_type=activity_type,
             activity_data=activity_data,
         )
-        # after we update the group, pdate the resolutions
+        # after we update the group, update the resolutions
         for group in affected_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:
                 resolution, created = GroupResolution.objects.get_or_create(
                     group=group, defaults=resolution_params
                 )
-                if not created:
-                    resolution.update(datetime=django_timezone.now(), **resolution_params)
+                # if not created:
+                #     resolution.update(datetime=django_timezone.now(), **resolution_params)
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
