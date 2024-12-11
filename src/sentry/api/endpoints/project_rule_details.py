@@ -288,7 +288,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            create_sentry_app_alert_rule_issues_component(actions=kwargs["actions"])
+            result = create_sentry_app_alert_rule_issues_component(actions=kwargs["actions"])
+            if isinstance(result, Response):
+                return result
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,

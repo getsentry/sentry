@@ -56,7 +56,7 @@ def clean_rule_data(data):
 
 def create_sentry_app_alert_rule_issues_component(
     actions: Sequence[Mapping[str, Any]]
-) -> str | None:
+) -> str | Response:
     try:
         created = trigger_sentry_app_action_creators_for_issues(actions)
     except (SentryAppError, SentryAppIntegratorError) as e:
@@ -869,6 +869,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         created_alert_rule_ui_component = create_sentry_app_alert_rule_issues_component(
             actions=kwargs["actions"]
         )
+        if isinstance(created_alert_rule_ui_component, Response):
+            return created_alert_rule_ui_component
+
         rule = ProjectRuleCreator(
             name=kwargs["name"],
             project=project,

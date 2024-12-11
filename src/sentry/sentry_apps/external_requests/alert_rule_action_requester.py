@@ -24,7 +24,7 @@ logger = logging.getLogger("sentry.sentry_apps.external_requests")
 class AlertRuleActionResult(TypedDict):
     success: bool
     message: str
-    error_type: SentryAppErrorType | None = None
+    error_type: SentryAppErrorType | None
 
 
 @dataclass

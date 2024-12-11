@@ -87,7 +87,10 @@ def update_alert_rule(request: Request, organization, alert_rule):
         partial=True,
     )
     if serializer.is_valid():
-        create_sentry_app_alert_rule_component(serializer.validated_data)
+        raised_error = create_sentry_app_alert_rule_component(serializer.validated_data)
+        if raised_error:
+            return raised_error
+
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
@@ -116,7 +119,7 @@ def remove_alert_rule(request: Request, organization, alert_rule):
         return Response("This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST)
 
 
-def create_sentry_app_alert_rule_component(serialized_data: Mapping[str, Any]) -> None:
+def create_sentry_app_alert_rule_component(serialized_data: Mapping[str, Any]) -> Response | None:
     try:
         trigger_sentry_app_action_creators_for_incidents(serialized_data)
     except (SentryAppError, SentryAppIntegratorError) as e:

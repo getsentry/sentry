@@ -122,7 +122,10 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        create_sentry_app_alert_rule_component(serializer.validated_data)
+        raised_error = create_sentry_app_alert_rule_component(serializer.validated_data)
+        if raised_error:
+            return raised_error
+
         if get_slack_actions_with_async_lookups(organization, request.user, request.data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
