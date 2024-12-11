@@ -42,7 +42,6 @@ from sentry.tasks.embeddings_grouping.utils import (
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -602,7 +601,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_success_simple(self, mock_post_bulk_grouping_records):
         """
@@ -620,7 +618,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "request_hash": self.group_hashes[group.id],
             }
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
@@ -732,7 +729,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
@@ -811,7 +807,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_success_cohorts_setting_defined(
@@ -958,7 +953,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in Group.objects.filter(project_id=self.project.id):
             assert not group.data["metadata"].get("seer_similarity")
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_1_times_seen(
         self, mock_post_bulk_grouping_records
@@ -999,7 +993,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_have_neighbor(
         self, mock_post_bulk_grouping_records
@@ -1067,7 +1060,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     ],
                 }
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_seer_grouping_records_by_hash")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1126,7 +1118,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     self.project.id, ["00000000000000000000000000000000"]
                 )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1269,7 +1260,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
     def test_backfill_seer_grouping_records_only_delete(self, mock_project_delete_grouping_records):
         """
@@ -1308,7 +1298,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in groups:
             assert group.data["metadata"] == default_metadata
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_cohort_only_delete(
@@ -1386,7 +1375,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             ),
         ]
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_exclude_deleted_groups(
         self, mock_post_bulk_grouping_records
@@ -1436,7 +1424,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
             assert group.data["metadata"].get("seer_similarity") is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.bulk_snuba_queries")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
@@ -1514,7 +1501,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             in mock_logger.info.call_args_list
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_exclude_90_day_old_groups(
         self, mock_post_bulk_grouping_records
@@ -1550,7 +1536,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
         assert old_group.data["metadata"].get("seer_similarity") is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.lookup_group_data_stacktrace_bulk")
     @patch(
@@ -1587,7 +1572,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             worker_number=None,
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.lookup_group_data_stacktrace_bulk")
     @patch(
@@ -1620,7 +1604,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 worker_number=None,
             )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_exclude_invalid_groups(
@@ -1650,7 +1633,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @override_options({"seer.similarity-backfill-killswitch.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_killswitch_enabled(self, mock_logger):
@@ -1667,7 +1649,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_seer_grouping_records.killswitch_enabled",
         )
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_enable_ingestion(
@@ -1695,7 +1676,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_no_enable_ingestion(
         self, mock_post_bulk_grouping_records
@@ -1717,7 +1697,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_skip_project_already_processed(self, mock_logger):
         """
@@ -1753,7 +1732,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @override_options({"similarity.backfill_total_worker_count": 1})
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
@@ -1820,7 +1798,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert self.project.get_option(PROJECT_BACKFILL_COMPLETED) is not None
         assert project3.get_option(PROJECT_BACKFILL_COMPLETED) is not None
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     def test_backfill_seer_grouping_records_manually_skip_project(self, mock_logger):
         """
@@ -1857,7 +1834,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_empty_batch(
@@ -2004,7 +1980,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert batch_end_group_id == deleted_group.id
         assert backfill_batch_raw_length == 1
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
     def test_backfill_seer_grouping_records_gateway_timeout(self, mock_seer_request, mock_logger):
@@ -2063,7 +2038,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
     def test_backfill_seer_grouping_records_internal_error(self, mock_seer_request, mock_logger):
@@ -2106,7 +2080,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_cohort_creation(
@@ -2214,7 +2187,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert mock_logger.info.call_args_list == expected_call_args_list
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_cohort_creation_not_seer_eligible(
@@ -2313,7 +2285,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     @override_options({"similarity.backfill_project_cohort_size": 1})
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_cohort_creation_multiple_batches(
@@ -2419,7 +2390,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_only_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
@@ -2440,7 +2410,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "request_hash": ANY,
         }
 
-    @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_for_project_with_threads_stacktrace(self, mock_post_bulk_grouping_records):
         project = self.create_project(organization=self.organization)
