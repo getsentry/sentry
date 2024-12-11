@@ -9,15 +9,15 @@ from django.utils.functional import cached_property
 from requests.exceptions import RequestException
 from requests.models import Response
 
-from sentry.coreapi import APIError
 from sentry.exceptions import SentryAppIntegratorError
 from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 from sentry.utils import json
 
 DEFAULT_SUCCESS_MESSAGE = "Success!"
-DEFAULT_ERROR_MESSAGE = "Something went wrong!"
+DEFAULT_ERROR_MESSAGE = "Something went wrong while setting up alert for"
 
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 
@@ -25,6 +25,7 @@ logger = logging.getLogger("sentry.sentry_apps.external_requests")
 class AlertRuleActionResult(TypedDict):
     success: bool
     message: str
+    error_type: SentryAppErrorType | None = None
 
 
 @dataclass
@@ -55,14 +56,11 @@ class AlertRuleActionRequester:
 
         except Exception as e:
             self._log_exceptions(e)
-            raise APIError(
-                self._get_response_message(
-                    e.response, f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}"
-                )
-            ) from e
+            e.args = (f"{DEFAULT_ERROR_MESSAGE} {self.sentry_app.slug}",)
+            raise
 
         return AlertRuleActionResult(
-            success=True, message=self._get_response_message(response, "poggers")
+            success=True, message=self._get_response_message(response, DEFAULT_SUCCESS_MESSAGE)
         )
 
     def _build_url(self) -> str:
