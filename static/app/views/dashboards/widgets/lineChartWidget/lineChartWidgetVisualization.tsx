@@ -22,7 +22,8 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
-import {formatChartValue} from './formatChartValue';
+import {formatTooltipValue} from './formatTooltipValue';
+import {formatYAxisValue} from './formatYAxisValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
@@ -135,7 +136,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       isGroupedByDate: true,
       showTimeInTooltip: true,
       valueFormatter: value => {
-        return formatChartValue(value, type, unit);
+        return formatTooltipValue(value, type, unit);
       },
       truncate: true,
       utc: utc ?? false,
@@ -223,7 +224,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       yAxis={{
         axisLabel: {
           formatter(value: number) {
-            return formatChartValue(value, type, unit);
+            return formatYAxisValue(value, type, unit);
           },
         },
         axisPointer: {
