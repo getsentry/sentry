@@ -25,7 +25,7 @@ class TestWorkflowEngineIntegration(BaseWorkflowTest):
             detector_type="metric_alert_fire",
         )
 
-        # add a condition check for foo=bar in the detector
+        # TODO - add a condition check for foo=bar in the detector once we update the MetricAlertDetectorHandler's evaluate method.
 
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
         self.event = self.store_event(data={}, project_id=self.project.id)
