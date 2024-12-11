@@ -41,7 +41,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
     }
 
     return ranges;
-  }, [durationMs, videoEvents, startTimestampMs]);
+  }, [durationMs, startTimestampMs, videoEvents]);
 
   useEffect(() => {
     trackAnalytics('replay.gaps_detected', {
