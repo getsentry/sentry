@@ -27,6 +27,7 @@ export function convertWidgetToBuilderStateParams(
     description: widget.description ?? '',
     dataset: widget.widgetType ?? WidgetType.ERRORS,
     displayType: widget.displayType ?? DisplayType.TABLE,
+    limit: widget.limit,
     field,
     yAxis,
     query,

@@ -10,6 +10,7 @@ describe('convertBuilderStateToWidget', function () {
       description: 'Test Description',
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.TABLE,
+      limit: 5,
       fields: [],
       yAxis: [],
     };
@@ -22,6 +23,7 @@ describe('convertBuilderStateToWidget', function () {
       widgetType: WidgetType.ERRORS,
       displayType: DisplayType.TABLE,
       interval: '1h',
+      limit: 5,
       queries: [
         {
           ...getDatasetConfig(WidgetType.ERRORS).defaultWidgetQuery,
@@ -36,6 +38,7 @@ describe('convertBuilderStateToWidget', function () {
       description: 'test description for an issues widget',
       dataset: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
+      limit: 5,
       fields: [],
       yAxis: [],
     };
@@ -48,6 +51,7 @@ describe('convertBuilderStateToWidget', function () {
       widgetType: WidgetType.ISSUE,
       displayType: DisplayType.TABLE,
       interval: '1h',
+      limit: 5,
       queries: [
         {
           ...getDatasetConfig(WidgetType.ISSUE).defaultWidgetQuery,
@@ -62,6 +66,7 @@ describe('convertBuilderStateToWidget', function () {
       description: 'Test Description',
       dataset: WidgetType.ERRORS,
       displayType: DisplayType.TABLE,
+      limit: 5,
       fields: [
         {kind: 'field', field: 'geo.country'},
         {
@@ -84,6 +89,7 @@ describe('convertBuilderStateToWidget', function () {
       widgetType: WidgetType.ERRORS,
       displayType: DisplayType.TABLE,
       interval: '1h',
+      limit: 5,
       queries: [
         {
           fields: ['geo.country', 'count()', 'count_unique(user)'],

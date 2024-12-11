@@ -51,5 +51,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
+    limit: state.limit,
   };
 }
