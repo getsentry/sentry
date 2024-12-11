@@ -1,6 +1,7 @@
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
+from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.metric_helpers import (
     create_metric_action,
     create_metric_data_condition,
@@ -32,18 +33,20 @@ class MetricHelpersTest(APITestCase):
         self.alert_rule_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.alert_rule_trigger
         )
+        self.rpc_user = user_service.get_user(user_id=self.user.id)
 
     def test_create_metric_alert(self):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.user)
+        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
 
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
         assert workflow.name == self.metric_alert.name
+        assert self.metric_alert.organization
         assert workflow.organization_id == self.metric_alert.organization.id
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert detector.name == self.metric_alert.name
@@ -66,6 +69,7 @@ class MetricHelpersTest(APITestCase):
         workflow_data_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
         assert workflow_data_condition_group.condition_group == workflow.when_condition_group
 
+        assert self.metric_alert.snuba_query
         query_subscription = QuerySubscription.objects.get(
             snuba_query=self.metric_alert.snuba_query.id
         )
@@ -84,7 +88,7 @@ class MetricHelpersTest(APITestCase):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.user)
+        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
         create_metric_data_condition(self.alert_rule_trigger)
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
             alert_rule_trigger=self.alert_rule_trigger
@@ -106,7 +110,7 @@ class MetricHelpersTest(APITestCase):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger action
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.user)
+        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
         create_metric_data_condition(self.alert_rule_trigger)
         create_metric_action(self.alert_rule_trigger_action)
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
