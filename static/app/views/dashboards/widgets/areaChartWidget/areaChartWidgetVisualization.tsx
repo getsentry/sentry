@@ -20,9 +20,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {formatChartValue} from '../common/formatChartValue';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
+
+import {formatTooltipValue} from './formatTooltipValue';
+import {formatYAxisValue} from './formatYAxisValue';
 
 export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
@@ -109,7 +111,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
       isGroupedByDate: true,
       showTimeInTooltip: true,
       valueFormatter: value => {
-        return formatChartValue(value, type, unit);
+        return formatTooltipValue(value, type, unit);
       },
       truncate: true,
       utc: utc ?? false,
@@ -188,7 +190,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
       yAxis={{
         axisLabel: {
           formatter(value: number) {
-            return formatChartValue(value, type, unit);
+            return formatYAxisValue(value, type, unit);
           },
         },
         axisPointer: {
