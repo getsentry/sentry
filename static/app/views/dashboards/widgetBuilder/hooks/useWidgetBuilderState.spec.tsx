@@ -5,6 +5,7 @@ import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
@@ -35,7 +36,9 @@ describe('useWidgetBuilderState', () => {
       })
     );
 
-    const {result} = renderHook(() => useWidgetBuilderState());
+    const {result} = renderHook(() => useWidgetBuilderState(), {
+      wrapper: WidgetBuilderProvider,
+    });
 
     expect(result.current.state.title).toBe('test');
     expect(result.current.state.description).toBe('lalala this is a description');
@@ -45,7 +48,9 @@ describe('useWidgetBuilderState', () => {
     const mockNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockNavigate);
 
-    const {result} = renderHook(() => useWidgetBuilderState());
+    const {result} = renderHook(() => useWidgetBuilderState(), {
+      wrapper: WidgetBuilderProvider,
+    });
     act(() => {
       result.current.dispatch({
         type: BuilderStateAction.SET_TITLE,
@@ -80,7 +85,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.displayType).toBe(DisplayType.AREA);
     });
@@ -92,7 +99,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.displayType).toBe(DisplayType.TABLE);
     });
@@ -101,7 +110,9 @@ describe('useWidgetBuilderState', () => {
       const mockNavigate = jest.fn();
       mockedUseNavigate.mockReturnValue(mockNavigate);
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       act(() => {
         result.current.dispatch({
@@ -126,7 +137,9 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {dataset: WidgetType.ISSUE}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.dataset).toBe(WidgetType.ISSUE);
     });
@@ -135,7 +148,9 @@ describe('useWidgetBuilderState', () => {
       const mockNavigate = jest.fn();
       mockedUseNavigate.mockReturnValue(mockNavigate);
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       act(() => {
         result.current.dispatch({
@@ -156,7 +171,9 @@ describe('useWidgetBuilderState', () => {
     it('returns errors as the default dataset', () => {
       mockedUsedLocation.mockReturnValue(LocationFixture({query: {dataset: 'invalid'}}));
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
     });
@@ -168,7 +185,9 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({query: {field: ['event.type', 'potato', 'count()']}})
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.fields).toEqual([
         {field: 'event.type', alias: undefined, kind: 'field'},
@@ -193,7 +212,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.fields).toEqual([
         {field: 'event.type', alias: undefined, kind: 'field'},
@@ -229,7 +250,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
 
