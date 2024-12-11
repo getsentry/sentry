@@ -337,43 +337,57 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
   return (
     <VitalPillContainer>
       <VitalPillName status={status}>
-        {webVital ? webVital.toUpperCase() : ''}
+        {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
       </VitalPillName>
-      <VitalPillScore>{formattedMeterValueText}</VitalPillScore>
+      <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
     </VitalPillContainer>
   );
 }
 
 const VitalPillContainer = styled('div')`
   display: flex;
+  flex-direction: row;
   width: 100%;
   height: 30px;
-  flex-direction: row;
 `;
 
 const VitalPillName = styled('div')<{status: string}>`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  position: relative;
+
+  height: 100%;
+  padding: 0 ${space(0.5)};
   border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-  padding: 0 ${space(0.5)};
-  height: 100%;
+
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: ${space(0.25)};
+  text-decoration-thickness: 1px;
+
+  cursor: pointer;
 `;
 
-const VitalPillScore = styled('div')`
+const VitalPillValue = styled('div')`
   display: flex;
+  flex: 1;
   align-items: center;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.gray200};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.textColor};
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border-left: none;
-  padding: 0 ${space(0.5)};
+  justify-content: flex-end;
+
   height: 100%;
-  width: 100%;
+  padding: 0 ${space(0.5)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-left: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
