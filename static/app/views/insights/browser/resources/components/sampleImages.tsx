@@ -156,16 +156,21 @@ function SampleImagesChartPanelBody(props: {
   );
 }
 
-function DisabledImages(props: {onClickShowLinks?: () => void}) {
+export function DisabledImages(props: {
+  onClickShowLinks?: () => void;
+  projectSlug?: string;
+}) {
   const {onClickShowLinks} = props;
   const organization = useOrganization();
   const {
     selection: {projects: selectedProjects},
   } = usePageFilters();
   const {projects} = useProjects();
-  const firstProjectSelected = projects.find(
-    project => project.id === selectedProjects[0].toString()
-  );
+  const firstProjectSelected = props.projectSlug
+    ? {
+        slug: props.projectSlug,
+      }
+    : projects.find(project => project.id === selectedProjects[0]?.toString());
 
   return (
     <div>
@@ -244,7 +249,7 @@ function ImageContainer(props: {
   );
 }
 
-function MissingImage() {
+export function MissingImage() {
   const theme = useTheme();
 
   return (
