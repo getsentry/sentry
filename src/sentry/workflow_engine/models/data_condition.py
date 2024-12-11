@@ -19,6 +19,10 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
+class ConditionType(StrEnum):
+    METRIC_CONDITION = "MetricCondition"
+
+
 class Condition(StrEnum):
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"

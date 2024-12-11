@@ -22,7 +22,7 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.data_condition import Condition, ConditionType
 from sentry.workflow_engine.types import ActionType, DataSourceType, DetectorPriorityLevel
 
 
@@ -46,12 +46,17 @@ def create_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> N
     )
 
     DataConditionGroupAction.objects.update_or_create(
-        condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,  # getting dataconditiongroup
+        condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
         action_id=action.id,
     )
 
 
 def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule_trigger.alert_rule)
+    data_condition_group = alert_rule_detector.detector.workflow_condition_group
+    if not data_condition_group:
+        return None
+
     condition_result = (
         DetectorPriorityLevel.MEDIUM
         if alert_rule_trigger.label == "warning"
@@ -62,13 +67,12 @@ def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
         Condition.GREATER if threshold_type == AlertRuleThresholdType.ABOVE else Condition.LESS
     )
 
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule_trigger.alert_rule)
     data_condition = DataCondition.objects.create(
         condition=condition,
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
-        type="MetricCondition",  # ??
-        condition_group=alert_rule_detector.detector.workflow_condition_group,
+        type=ConditionType.METRIC_CONDITION,
+        condition_group=data_condition_group,
     )
     AlertRuleTriggerDataCondition.objects.create(
         alert_rule_trigger=alert_rule_trigger, data_condition=data_condition
@@ -94,7 +98,15 @@ def create_metric_detector_and_workflow(
     alert_rule: AlertRule,
     user: RpcUser | None = None,
 ) -> None:
-    query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
+    snuba_query = alert_rule.snuba_query
+    if not snuba_query:
+        return None
+
+    project = alert_rule.projects.first()
+    if not project:
+        return None
+
+    query_subscription = QuerySubscription.objects.get(snuba_query=snuba_query.id)
     data_source = DataSource.objects.create(
         organization_id=alert_rule.organization_id,
         query_id=query_subscription.id,
@@ -111,10 +123,11 @@ def create_metric_detector_and_workflow(
         enabled=True,
         created_by_id=user.id if user else None,
     )
+
     detector = Detector.objects.create(
-        project_id=alert_rule.projects.first().id,
+        project_id=project.id,
         enabled=True,
-        created_by_id=user.id,
+        created_by_id=user.id if user else None,
         name=alert_rule.name,
         workflow_condition_group=data_condition_group,
         type=MetricAlertFire.slug,
