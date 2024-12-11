@@ -1,27 +1,15 @@
 import {Fragment} from 'react';
 
-import {t, tct} from 'sentry/locale';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {formatRate} from 'sentry/utils/formatters';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
-import {
-  DATA_TYPE,
-  RESOURCE_THROUGHPUT_UNIT,
-} from 'sentry/views/insights/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {
-  DataTitles,
-  getDurationChartTitle,
-  getThroughputChartTitle,
-} from 'sentry/views/insights/common/views/spans/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
+
+import {AssetSizeChart} from './assetSizeChart';
+import {DurationChart} from './durationChart';
+import {ThroughputChart} from './throughputChart';
 
 const {
   SPAN_SELF_TIME,
@@ -76,62 +64,28 @@ function ResourceSummaryCharts(props: {groupId: string}) {
   return (
     <Fragment>
       <ModuleLayout.Third>
-        <ChartPanel title={getThroughputChartTitle('http', RESOURCE_THROUGHPUT_UNIT)}>
-          <Chart
-            height={160}
-            data={[spanMetricsSeriesData?.[`spm()`]]}
-            loading={areSpanMetricsSeriesLoading}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-            aggregateOutputFormat="rate"
-            rateUnit={RESOURCE_THROUGHPUT_UNIT}
-            stacked
-            chartColors={[THROUGHPUT_COLOR]}
-            tooltipFormatterOptions={{
-              valueFormatter: value => formatRate(value, RESOURCE_THROUGHPUT_UNIT),
-              nameFormatter: () => t('Requests'),
-            }}
-          />
-        </ChartPanel>
+        <ThroughputChart
+          series={spanMetricsSeriesData?.[`spm()`]}
+          isLoading={areSpanMetricsSeriesLoading}
+        />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel title={getDurationChartTitle('http')}>
-          <Chart
-            height={160}
-            data={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-          />
-        </ChartPanel>
+        <DurationChart
+          series={[spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]}
+          isLoading={areSpanMetricsSeriesLoading}
+        />
       </ModuleLayout.Third>
 
       <ModuleLayout.Third>
-        <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
-          <Chart
-            height={160}
-            aggregateOutputFormat="size"
-            data={[
-              spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
-              spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
-            ]}
-            loading={areSpanMetricsSeriesLoading}
-            chartColors={[AVG_COLOR]}
-            type={ChartType.LINE}
-            definedAxisTicks={4}
-            tooltipFormatterOptions={{
-              valueFormatter: bytes =>
-                getDynamicText({
-                  value: formatBytesBase2(bytes),
-                  fixed: 'xx KiB',
-                }),
-              nameFormatter: name => DataTitles[name],
-            }}
-          />
-        </ChartPanel>
+        <AssetSizeChart
+          series={[
+            spanMetricsSeriesData?.[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`],
+            spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`],
+            spanMetricsSeriesData?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`],
+          ]}
+          isLoading={areSpanMetricsSeriesLoading}
+        />
       </ModuleLayout.Third>
     </Fragment>
   );
