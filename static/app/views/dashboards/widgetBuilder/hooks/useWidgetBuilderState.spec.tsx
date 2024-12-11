@@ -277,7 +277,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
 
-      const {result} = renderHook(() => useWidgetBuilderState());
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
 
       expect(result.current.state.limit).toEqual(4);
 
