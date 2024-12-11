@@ -90,7 +90,7 @@ export default function BrowserTypeSelector() {
       onChange={(selectedOptions: SelectOption<string>[]) => {
         trackAnalytics('insight.vital.select_browser_value', {
           organization,
-          regions: selectedOptions.map(v => v.value),
+          browsers: selectedOptions.map(v => v.value),
         });
 
         browserHistory.push({
