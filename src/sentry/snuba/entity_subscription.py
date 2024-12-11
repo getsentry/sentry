@@ -161,6 +161,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        referrer: str = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     ) -> TimeSeriesRequest:
         raise NotImplementedError
 
@@ -293,6 +294,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        referrer: str = Referrer.API_ALERTS_ALERT_RULE_CHART.value,
     ) -> TimeSeriesRequest:
         if params is None:
             params = {}
@@ -317,7 +319,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             query_string=query,
             y_axes=[self.aggregate],
             groupby=[],
-            referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+            referrer=referrer,
             config=SearchResolverConfig(),
             granularity_secs=self.time_window,
         )
