@@ -59,8 +59,6 @@ class SDKCrashDetectionConfig:
     report_fatal_errors: bool
     """The mechanism types to ignore. For example, {"console", "unhandledrejection"}. If empty, all mechanism types are captured."""
     ignore_mechanism_type: set[str]
-    """The minimum SDK version to detect crashes for. For example, "8.2.0"."""
-    min_sdk_version: str
     """The system library path patterns to detect system frames. For example, `System/Library/*` """
     system_library_path_patterns: set[str]
     """The configuration for detecting SDK frames."""
@@ -137,6 +135,8 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.javascript.react-native": "4.0.0",
             },
             report_fatal_errors=False,
+            # used by the JS/RN SDKs
+            # https://github.com/getsentry/sentry-javascript/blob/dafd51054d8b2ab2030fa0b16ad0fd70493b6e08/packages/core/src/integrations/captureconsole.ts#L60
             ignore_mechanism_type={"console"},
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
