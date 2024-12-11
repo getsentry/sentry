@@ -53,10 +53,6 @@ function Visualize() {
     [organization, tags, customMeasurements, datasetConfig]
   );
 
-  // TODO: no parameters should show up as primary options?
-  // let aggregateOptions = Object.values(fieldOptions).filter(
-  //   option => option.value.kind === 'function' && option.value.meta.parameters.length > 0
-  // );
   const aggregateOptions = useMemo(
     () =>
       Object.values(fieldOptions).filter(option =>
@@ -86,7 +82,6 @@ function Visualize() {
           const columnOptions = Object.values(fieldOptions)
             .filter(option => {
               return (
-                // TODO: This should allow for aggregates without parameters
                 option.value.kind !== FieldValueKind.FUNCTION &&
                 (datasetConfig.filterYAxisAggregateParams?.(
                   field,
@@ -103,6 +98,18 @@ function Visualize() {
                   : option.value.meta.name,
             }));
 
+          let matchingAggregate;
+          if (
+            fields[index].kind === FieldValueKind.FUNCTION &&
+            FieldValueKind.FUNCTION in fields[index]
+          ) {
+            matchingAggregate = aggregateOptions.find(
+              option =>
+                option.value.meta.name ===
+                parseFunction(stringFields?.[index] ?? '')?.name
+            );
+          }
+
           return (
             <FieldRow key={index}>
               <FieldBar data-testid={'field-bar'}>
@@ -113,7 +120,7 @@ function Visualize() {
                   onChange={newField => {
                     // TODO: Handle scalars (i.e. no aggregate, for tables)
                     // Update the current field's aggregate with the new aggregate
-                    if (field.kind === 'function') {
+                    if (field.kind === FieldValueKind.FUNCTION) {
                       field.function[1] = newField.value as string;
                     }
                     dispatch({
@@ -124,9 +131,12 @@ function Visualize() {
                   triggerProps={{
                     'aria-label': t('Column Selection'),
                   }}
+                  disabled={
+                    fields[index].kind === FieldValueKind.FUNCTION &&
+                    matchingAggregate?.value.meta.parameters.length === 0
+                  }
                 />
                 {/* TODO: Add equation options */}
-                {/* TODO: Handle aggregates with no parameters */}
                 {/* TODO: Handle aggregates with multiple parameters */}
                 <AggregateCompactSelect
                   options={aggregateOptions.map(option => ({
@@ -134,13 +144,30 @@ function Visualize() {
                     label: option.value.meta.name,
                   }))}
                   value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
-                  onChange={newAggregate => {
+                  onChange={aggregateSelection => {
                     // TODO: Handle scalars (i.e. no aggregate, for tables)
                     // Update the current field's aggregate with the new aggregate
-                    const currentField = fields?.[index];
-                    if (currentField.kind === 'function') {
-                      currentField.function[0] =
-                        newAggregate.value as AggregationKeyWithAlias;
+                    if (field.kind === FieldValueKind.FUNCTION) {
+                      field.function[0] =
+                        aggregateSelection.value as AggregationKeyWithAlias;
+                      const newAggregate = aggregateOptions.find(
+                        option => option.value.meta.name === aggregateSelection.value
+                      );
+                      if (
+                        newAggregate?.value.meta &&
+                        'parameters' in newAggregate.value.meta
+                      ) {
+                        // There are aggregates that have no parameters, so wipe out the argument
+                        // if it's supposed to be empty
+                        if (newAggregate.value.meta.parameters.length === 0) {
+                          field.function[1] = '';
+                        } else {
+                          field.function[1] =
+                            (field.function[1] ||
+                              newAggregate.value.meta.parameters[0].defaultValue) ??
+                            '';
+                        }
+                      }
                     }
                     dispatch({
                       type: updateAction,
@@ -190,7 +217,7 @@ function Visualize() {
                 // TODO: Define a default aggregate/field for the datasets?
                 {
                   function: ['count', '', undefined, undefined],
-                  kind: 'function',
+                  kind: FieldValueKind.FUNCTION,
                 },
               ],
             })
