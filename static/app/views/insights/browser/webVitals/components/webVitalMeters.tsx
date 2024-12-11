@@ -362,7 +362,7 @@ const VitalPillName = styled('div')<{status: string}>`
   position: relative;
 
   height: 100%;
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(1)};
   border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 
