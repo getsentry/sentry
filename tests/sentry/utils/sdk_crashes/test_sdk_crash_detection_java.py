@@ -148,31 +148,31 @@ def test_sdk_crash_is_reported_with_android_paths(
     [
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "__pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclockid(void*)",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             True,
         ),
         (
             "pthread_getcpuclocki",
-            "/apex/com.android.art/lib64/bionic/libc.so",
+            "/apex/com.android.runtime/lib64/bionic/libc.so",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
         (
             "pthread_getcpuclockid",
-            "/apex/com.android.art/lib64/bionic/libc.s",
+            "/apex/com.android.runtime/lib64/bionic/libc.s",
             "/apex/com.android.art/lib64/libart.so",
             False,
         ),
@@ -291,6 +291,42 @@ def test_too_low_min_sdk_version_not_detected(
 ):
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="6.9.9")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_native_sdk_version_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "version", value="0.6.0")
+    set_path(event_data, "sdk", "name", value="sentry.native.android")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_native_sdk_version_too_low_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+):
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "version", value="0.5.9")
+    set_path(event_data, "sdk", "name", value="sentry.native.android")
     event = store_event(data=event_data)
 
     configs[1].organization_allowlist = [event.project.organization_id]

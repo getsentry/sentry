@@ -22,6 +22,7 @@ from sentry.types.region import (
 )
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -55,13 +56,13 @@ def resolve_redirect_url(request: HttpRequest | Request, org_slug: str, user_id=
 def resolve_activeorg_redirect_url(request: HttpRequest | Request) -> str | None:
     user: AnonymousUser | RpcUser | None = getattr(request, "user", None)
     if not user or isinstance(user, AnonymousUser):
-        return
+        return None
     session = request.session
     if not session:
-        return
+        return None
     last_active_org = session.get("activeorg", None)
     if not last_active_org:
-        return
+        return None
     return resolve_redirect_url(request=request, org_slug=last_active_org, user_id=user.id)
 
 
@@ -86,6 +87,15 @@ class ReactMixin:
         return domains
 
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
+        org_context = getattr(self, "active_organization", None)
+        react_config = get_client_config(request, org_context)
+
+        user_theme = ""
+        if react_config.get("user", None) and react_config["user"].get("options", {}).get(
+            "theme", None
+        ):
+            user_theme = f"theme-{react_config['user']['options']['theme']}"
+
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -97,7 +107,9 @@ class ReactMixin:
             # Rendering the layout requires serializing the active organization.
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
-            "org_context": getattr(self, "active_organization", None),
+            "org_context": org_context,
+            "react_config": react_config,
+            "user_theme": user_theme,
         }
 
         # Force a new CSRF token to be generated and set in user's

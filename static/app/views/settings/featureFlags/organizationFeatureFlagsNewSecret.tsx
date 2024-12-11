@@ -16,6 +16,7 @@ import NewSecretHandler from 'sentry/views/settings/featureFlags/newSecretHandle
 
 export function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string>('');
   const organization = useOrganization();
 
   const handleGoBack = useCallback(() => {
@@ -37,7 +38,7 @@ export function OrganizationFeatureFlagsNewSecet() {
           'Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/#feature-flags" />
+              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
             ),
           }
         )}
@@ -45,12 +46,15 @@ export function OrganizationFeatureFlagsNewSecet() {
 
       <Panel>
         <PanelHeader>{t('Add New Provider')}</PanelHeader>
-
         <PanelBody>
           {newSecret ? (
-            <NewSecretHandler onGoBack={handleGoBack} secret={newSecret} />
+            <NewSecretHandler
+              onGoBack={handleGoBack}
+              secret={newSecret}
+              provider={provider}
+            />
           ) : (
-            <NewProviderForm onCreatedSecret={setNewSecret} />
+            <NewProviderForm onCreatedSecret={setNewSecret} onSetProvider={setProvider} />
           )}
         </PanelBody>
       </Panel>

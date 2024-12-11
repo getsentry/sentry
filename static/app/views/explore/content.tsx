@@ -13,6 +13,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
@@ -20,8 +21,12 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,10 +53,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [dataset] = useDataset();
-
-  const [resultMode] = useResultMode();
-  const supportedAggregates =
-    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
+  const [resultsMode] = useResultMode();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
@@ -72,6 +74,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [confidence, setConfidence] = useState<Confidence>(null);
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
@@ -83,7 +86,16 @@ function ExploreContentImpl({}: ExploreContentProps) {
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Traces')}</Layout.Title>
+              <Layout.Title>
+                {t('Traces')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                  title={t(
+                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                  )}
+                  linkLabel={t('Read the Discussion')}
+                />
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
@@ -97,6 +109,13 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
+            {confidence === 'low' && (
+              <ConfidenceAlert type="warning" showIcon>
+                {t(
+                  'Your low sample count may impact the accuracy of this extrapolation. Edit your query or increase your sample rate.'
+                )}
+              </ConfidenceAlert>
+            )}
             <TopSection>
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
@@ -125,7 +144,23 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   initialQuery={userQuery}
                   onSearch={setUserQuery}
                   searchSource="explore"
-                  supportedAggregates={supportedAggregates}
+                  getFilterTokenWarning={
+                    resultsMode === 'samples'
+                      ? key => {
+                          if (
+                            ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(
+                              key as AggregationKey
+                            )
+                          ) {
+                            return t(
+                              "This key won't affect the results because samples mode does not support aggregate functions"
+                            );
+                          }
+                          return undefined;
+                        }
+                      : undefined
+                  }
+                  supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />
@@ -138,8 +173,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   {tableError || chartError}
                 </Alert>
               )}
-              <ExploreCharts query={userQuery} setError={setChartError} />
-              <ExploreTables setError={setTableError} />
+              <ExploreCharts
+                query={userQuery}
+                setConfidence={setConfidence}
+                setError={setChartError}
+              />
+              <ExploreTables confidence={confidence} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
@@ -169,6 +208,11 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: 400px minmax(100px, auto);
   }
+`;
+
+const ConfidenceAlert = styled(Alert)`
+  grid-column: 1/3;
+  margin: 0;
 `;
 
 const TopSection = styled('div')`
