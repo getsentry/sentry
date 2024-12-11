@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -16,7 +16,6 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
-  DEFAULT_RESULTS_LIMIT,
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -26,8 +25,6 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 function WidgetBuilderSortBySelector() {
   const {state, dispatch} = useWidgetBuilderContext();
   const widget = convertBuilderStateToWidget(state);
-
-  const [limit, setLimit] = useState(DEFAULT_RESULTS_LIMIT);
 
   const datasetConfig = getDatasetConfig(state.dataset);
 
@@ -60,6 +57,19 @@ function WidgetBuilderSortBySelector() {
     widget.queries[0].aggregates.length
   );
 
+  // handles when the maxLimit changes to a value less than the current selected limit
+  useEffect(() => {
+    if (!state.limit) {
+      return;
+    }
+    if (state.limit > maxLimit) {
+      dispatch({
+        type: BuilderStateAction.SET_LIMIT,
+        payload: maxLimit,
+      });
+    }
+  }, [state.limit, maxLimit, dispatch]);
+
   function handleSortByChange(newSortBy: string, sortDirection: 'asc' | 'desc') {
     dispatch({
       type: BuilderStateAction.SET_SORT,
@@ -83,7 +93,7 @@ function WidgetBuilderSortBySelector() {
           flexibleControlStateSize
           stacked
         >
-          {isTimeseriesChart && limit && (
+          {isTimeseriesChart && state.limit && (
             <ResultsLimitSelector
               disabled={disableSortDirection && disableSort}
               name="resultsLimit"
@@ -95,10 +105,12 @@ function WidgetBuilderSortBySelector() {
                   value,
                 };
               })}
-              value={limit}
+              value={state.limit}
               onChange={(option: SelectValue<number>) => {
-                // TODO: implement this when limit is implemented in widget builder state
-                setLimit(option.value);
+                dispatch({
+                  type: BuilderStateAction.SET_LIMIT,
+                  payload: option.value,
+                });
               }}
             />
           )}

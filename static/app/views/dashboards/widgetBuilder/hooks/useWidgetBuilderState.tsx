@@ -21,6 +21,7 @@ export type WidgetBuilderStateQueryParams = {
   description?: string;
   displayType?: DisplayType;
   field?: (string | undefined)[];
+  limit?: number;
   query?: string[];
   sort?: string[];
   title?: string;

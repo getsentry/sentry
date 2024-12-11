@@ -22,6 +22,7 @@ const {organization, router} = initializeOrg({
       query: {
         displayType: 'line',
         fields: ['transaction.duration', 'count()', 'id'],
+        yAxis: ['count()', 'count_unique(transaction.duration)'],
       },
     },
     params: {},
@@ -121,6 +122,65 @@ describe('WidgetBuilderSortBySelector', function () {
         ...router.location,
         query: expect.objectContaining({sort: ['count()']}),
       })
+    );
+  });
+
+  it('renders the correct limit options', async function () {
+    render(
+      <WidgetBuilderProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <WidgetBuilderSortBySelector />
+        </SpanTagsProvider>
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    // default limit is 5
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+
+    const moreAggregatesRouter = RouterFixture({
+      ...router,
+      location: {
+        ...router.location,
+        query: {
+          ...router.location.query,
+          yAxis: ['count()', 'count_unique(transaction.duration)', 'eps()'],
+        },
+      },
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <WidgetBuilderSortBySelector />
+        </SpanTagsProvider>
+      </WidgetBuilderProvider>,
+      {router: moreAggregatesRouter, organization}
+    );
+
+    // default limit changes to 3 since its the max limit for 3 aggregates
+    expect(await screen.findByText('Limit to 3 results')).toBeInTheDocument();
+  });
+
+  it('correctly handles limit changes', async function () {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
+    render(
+      <WidgetBuilderProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <WidgetBuilderSortBySelector />
+        </SpanTagsProvider>
+      </WidgetBuilderProvider>,
+      {router, organization}
+    );
+
+    const limitSelector = await screen.findByText('Limit to 5 results');
+    await userEvent.click(limitSelector);
+    await userEvent.click(await screen.findByText('Limit to 3 results'));
+
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      expect.objectContaining({query: expect.objectContaining({limit: 3})})
     );
   });
 });
