@@ -280,8 +280,6 @@ function ResourceImage(props: {
         <ImageWrapper>
           <img
             data-test-id="sample-image"
-            onError={handleError}
-            onLoad={handleLoad}
             src={src}
             style={{
               width: '100%',
