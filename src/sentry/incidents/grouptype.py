@@ -25,6 +25,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
         self,
         data_packet: DataPacket[QuerySubscriptionUpdate],
     ) -> dict[str | None, DetectorEvaluationResult]:
+        # TODO - Don't override this method, instead use the StatefulDetectorHandler's evaluate method and data_conditions
         occurrence, event_data = self.build_occurrence_and_event_data("foo", 0, PriorityLevel.HIGH)
 
         return {
