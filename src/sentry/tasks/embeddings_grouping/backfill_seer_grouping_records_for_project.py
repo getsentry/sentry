@@ -13,7 +13,6 @@ from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eli
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
-    FeatureError,
     GroupStacktraceData,
     create_project_cohort,
     delete_seer_grouping_records,
@@ -63,27 +62,19 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_id = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_id
     """
-
-    if cohort is None and worker_number is not None:
-        cohort = create_project_cohort(
-            worker_number, skip_processed_projects, last_processed_project_id
-        )
-        if not cohort:
-            logger.info(
-                "reached the end of the projects in cohort",
-                extra={
-                    "worker_number": worker_number,
-                },
-            )
-            return
-        current_project_id = cohort[0]
-    assert current_project_id is not None
-
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
         current_project_id
     ):
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
+
+    if cohort is None and worker_number is not None:
+        cohort, current_project_id = get_cohort_and_current_project_id(
+            worker_number, skip_processed_projects, last_processed_project_id
+        )
+        if cohort is None:
+            return
+    assert current_project_id is not None
 
     logger.info(
         "backfill_seer_grouping_records",
@@ -109,13 +100,6 @@ def backfill_seer_grouping_records_for_project(
             last_processed_group_id_input,
             last_processed_project_index_input,
         )
-    except FeatureError:
-        logger.info(
-            "backfill_seer_grouping_records.no_feature",
-            extra={"current_project_id": current_project_id},
-        )
-        # TODO: let's just delete this branch since feature is on
-        return
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
@@ -293,6 +277,26 @@ def backfill_seer_grouping_records_for_project(
     )
 
 
+def get_cohort_and_current_project_id(
+    worker_number: int,
+    skip_processed_projects: bool,
+    last_processed_project_id: int | None,
+) -> tuple[list[int] | None, int | None]:
+    cohort = create_project_cohort(
+        worker_number, skip_processed_projects, last_processed_project_id
+    )
+    if not cohort:
+        logger.info(
+            "reached the end of the projects in cohort",
+            extra={"worker_number": worker_number},
+        )
+        return None, None
+
+    # Popping will ensure that the project is not processed again
+    current_project_id = cohort.pop()
+    return cohort, current_project_id
+
+
 def call_next_backfill(
     *,
     project_id: int,
@@ -305,7 +309,7 @@ def call_next_backfill(
     only_delete: bool = False,
     last_processed_group_id: int | None = None,
     last_processed_project_id: int | None = None,
-):
+) -> None:
     if last_processed_group_id is not None:
         backfill_seer_grouping_records_for_project.apply_async(
             args=[

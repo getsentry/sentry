@@ -10,7 +10,7 @@ from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import features, nodestore, options
+from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
@@ -55,10 +55,6 @@ SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
-
-
-class FeatureError(Exception):
-    pass
 
 
 class GroupEventRow(TypedDict):
@@ -142,8 +138,6 @@ def initialize_backfill(
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
-    if not features.has("projects:similarity-embeddings-backfill", project):
-        raise FeatureError("Project does not have feature")
 
     last_processed_project_index_ret = (
         last_processed_project_index if last_processed_project_index else 0
