@@ -115,6 +115,7 @@
   "feedback_feedback",
   "workflow_engine_workflow",
   "workflow_engine_detector",
+  "workflow_engine_detector",
   "workflow_engine_datasourcedetector",
   "uptime_projectuptimesubscription",
   "sentry_userreport",
