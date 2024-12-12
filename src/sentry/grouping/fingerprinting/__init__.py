@@ -427,7 +427,7 @@ class FingerprintMatcher:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+        # `path` is special in that it tests against two values (`abs_path` and `filename`)
         if self.key == "path":
             value = values.get("abs_path")
             if self._positive_path_match(value):
