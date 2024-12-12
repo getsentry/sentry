@@ -230,7 +230,7 @@ def sync_status_inbound(
         # which would override the in-app resolution
         resolvable_groups = []
         for group in affected_groups:
-            if group.status != GroupStatus.RESOLVED and not group_was_recently_resolved(group):
+            if group.status != GroupStatus.RESOLVED or not group_was_recently_resolved(group):
                 resolvable_groups.append(group)
 
         if not resolvable_groups:
