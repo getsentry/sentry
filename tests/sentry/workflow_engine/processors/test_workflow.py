@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.testutils.fixtures import MetricAlertFire
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
