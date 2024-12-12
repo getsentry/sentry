@@ -18,6 +18,7 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
         "csharp",
+        "cocoa",
         "go",
         "java",
         "javascript",
@@ -141,6 +142,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "android-profiling-onboarding-1-install",
         "android-profiling-onboarding-3-configure-profiling",
         "android-profiling-onboarding-4-upload",
+        "apple-ios",
         "csharp",
         "csharp-aspnetcore",
         "dart",
@@ -238,7 +240,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         if (
             platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
             and frame_metrics["is_frames_truncated"]
-            and not app_hash
         ):
             raise TooManyOnlySystemFramesException
 
@@ -412,7 +413,7 @@ def get_stacktrace_string_with_metrics(
             metrics.incr(
                 key,
                 sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+                tags={"call_made": False, "blocker": "over-threshold-frames"},
             )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
