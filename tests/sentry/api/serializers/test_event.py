@@ -281,29 +281,6 @@ class EventSerializerTest(TestCase, OccurrenceTestMixin):
         assert "breakdowns" in result
         assert result["breakdowns"] == event_data["breakdowns"]
 
-    def test_transaction_event_with_metrics_summary(self):
-        metrics_summary = {
-            "d:custom/sentry.event_manager.get_event_instance@second": [
-                {
-                    "min": 10.0,
-                    "max": 20.0,
-                    "sum": 30.0,
-                    "count": 2,
-                    "tags": {
-                        "environment": "prod",
-                        "event_type": "default",
-                        "release": "backend",
-                        "result": "success",
-                        "transaction": "sentry.tasks.store.save_event",
-                    },
-                }
-            ]
-        }
-        event_data = load_data("transaction", metrics_summary=metrics_summary)
-        event = self.store_event(data=event_data, project_id=self.project.id)
-        result = serialize(event)
-        assert result["_metrics_summary"] == metrics_summary
-
     def test_transaction_event_empty_spans(self):
         event_data = load_data("transaction")
         event_data["spans"] = []
