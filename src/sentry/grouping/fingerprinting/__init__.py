@@ -438,7 +438,7 @@ class FingerprintMatcher:
                     return True
             return False
 
-        # message tests against value as well as this is what users expect
+        # message tests against exception value also, as this is what users expect
         if self.key == "message":
             for key in ("message", "value"):
                 value = values.get(key)
