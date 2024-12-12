@@ -63,6 +63,9 @@ class SDKCrashDetector:
         if is_fatal and self.config.report_fatal_errors:
             return True
 
+        if mechanism_type in ["AppExitInfo", "ANR"]:
+            return True
+
         return False
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
