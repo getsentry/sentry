@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, type Sort} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -7,7 +7,6 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 
@@ -27,7 +26,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const defaultSort = fields?.[0] ?? defaultQuery.orderby;
   const sort =
     defined(state.sort) && state.sort.length > 0
-      ? formatSort(state.sort[0])
+      ? _formatSort(state.sort[0])
       : defaultSort;
 
   const widgetQueries: WidgetQuery[] = queries.map(query => {
@@ -53,4 +52,9 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     widgetType: state.dataset,
     limit: state.limit,
   };
+}
+
+function _formatSort(sort: Sort): string {
+  const direction = sort.kind === 'desc' ? '-' : '';
+  return `${direction}${sort.field}`;
 }
