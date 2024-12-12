@@ -32,6 +32,10 @@ def hash_from_values(values):
 
 
 def bool_from_string(value):
+    """
+    Convert various string representations of boolean values ("1", "yes", "true", "0", "no",
+    "false") into actual booleans.
+    """
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):
