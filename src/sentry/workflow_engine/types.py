@@ -12,11 +12,20 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
+class ActionType(StrEnum):
+    NOTIFICATION = "SendNotificationAction"
+    TRIGGER_WORKFLOW = "TriggerWorkflowAction"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
+
+
+class DataSourceType(StrEnum):
+    SNUBA_QUERY_SUBSCRIPTION = "SnubaQuerySubscription"
 
 
 # The unique key used to identify a group within a DataPacket result.
