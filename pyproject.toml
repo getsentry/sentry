@@ -145,7 +145,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.api.endpoints.organization_request_project_creation",
     "sentry.api.endpoints.organization_search_details",
-    "sentry.api.endpoints.organization_sessions",
     "sentry.api.endpoints.organization_stats",
     "sentry.api.endpoints.project_index",
     "sentry.api.endpoints.project_ownership",
