@@ -11,6 +11,13 @@ class TestReappearedEventCondition(ConditionTestCase):
     payload = {"id": ReappearedEventCondition.id}
 
     def test(self):
+        state = EventState(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=False,
+        )
         dc = self.create_data_condition(
             type=Condition.GROUP_EVENT_ATTR_COMPARISON,
             condition="state.has_reappeared",
@@ -18,28 +25,10 @@ class TestReappearedEventCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.assert_passes(
-            dc,
-            self.event,
-            state=EventState(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                has_reappeared=True,
-                has_escalated=False,
-            ),
-        )
-        self.assert_does_not_pass(
-            dc,
-            self.event,
-            state=EventState(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                has_reappeared=False,
-                has_escalated=False,
-            ),
-        )
+        self.assert_passes(dc, self.event, state=state)
+
+        state.has_reappeared = False
+        self.assert_does_not_pass(dc, self.event, state=state)
 
     def test_dual_write(self):
         dcg = self.create_data_condition_group()
@@ -58,6 +47,13 @@ class TestRegressionEventCondition(ConditionTestCase):
     payload = {"id": RegressionEventCondition.id}
 
     def test(self):
+        state = EventState(
+            is_new=False,
+            is_regression=True,
+            is_new_group_environment=False,
+            has_reappeared=True,
+            has_escalated=False,
+        )
         dc = self.create_data_condition(
             type=Condition.GROUP_EVENT_ATTR_COMPARISON,
             condition="state.is_regression",
@@ -65,28 +61,10 @@ class TestRegressionEventCondition(ConditionTestCase):
             condition_result=True,
         )
 
-        self.assert_passes(
-            dc,
-            self.event,
-            state=EventState(
-                is_new=False,
-                is_regression=True,
-                is_new_group_environment=False,
-                has_reappeared=True,
-                has_escalated=False,
-            ),
-        )
-        self.assert_does_not_pass(
-            dc,
-            self.event,
-            state=EventState(
-                is_new=False,
-                is_regression=False,
-                is_new_group_environment=False,
-                has_reappeared=True,
-                has_escalated=False,
-            ),
-        )
+        self.assert_passes(dc, self.event, state=state)
+
+        state.is_regression = False
+        self.assert_does_not_pass(dc, self.event, state=state)
 
     def test_dual_write(self):
         dcg = self.create_data_condition_group()
