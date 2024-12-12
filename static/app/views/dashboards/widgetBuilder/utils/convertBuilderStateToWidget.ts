@@ -7,7 +7,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 
@@ -51,5 +51,6 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
+    limit: state.limit,
   };
 }

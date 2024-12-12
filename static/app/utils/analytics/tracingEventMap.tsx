@@ -1,4 +1,4 @@
-import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 export type TracingEventParameters = {
   'trace.configurations_docs_link_clicked': {

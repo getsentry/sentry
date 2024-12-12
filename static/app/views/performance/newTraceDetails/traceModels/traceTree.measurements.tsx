@@ -157,6 +157,7 @@ export function collectTraceMeasurements(
         : false,
       type: measurement as TraceTree.Indicator['type'],
       label: (MEASUREMENT_ACRONYM_MAPPING[measurement] ?? measurement).toUpperCase(),
+      score,
     };
 
     indicators.push(indicator);
