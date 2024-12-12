@@ -364,15 +364,13 @@ export class DeprecatedLine extends Component<Props, State> {
           {this.isExpandable() ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
-              <div>
-                {this.renderLeadHint()}
-                <DefaultTitle
-                  frame={data}
-                  platform={this.props.platform ?? 'other'}
-                  isHoverPreviewed={isHoverPreviewed}
-                  meta={this.props.frameMeta}
-                />
-              </div>
+              {this.renderLeadHint()}
+              <DefaultTitle
+                frame={data}
+                platform={this.props.platform ?? 'other'}
+                isHoverPreviewed={isHoverPreviewed}
+                meta={this.props.frameMeta}
+              />
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
           <DefaultLineTagWrapper>
@@ -508,6 +506,7 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.25)};
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
