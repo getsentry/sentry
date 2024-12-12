@@ -128,10 +128,10 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
           </FilterMessage>
-          <GroupEventAttachmentsFilter project={project} />
+          <GroupEventAttachmentsFilter />
         </Flex>
       ) : (
-        <GroupEventAttachmentsFilter project={project} />
+        <GroupEventAttachmentsFilter />
       )}
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()
