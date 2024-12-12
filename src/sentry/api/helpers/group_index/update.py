@@ -168,7 +168,6 @@ def update_groups(
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None = None,
     user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
@@ -178,15 +177,7 @@ def update_groups(
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
-    try:
-        group_ids, group_list = get_group_ids_and_group_list(
-            organization_id, projects, group_ids, search_fn
-        )
-    except ValidationError:
-        logger.exception("Error getting group ids and group list")  # Track the error in Sentry
-        return Response(
-            {"detail": "Invalid query. Error getting group ids and group list"}, status=400
-        )
+    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
 
     if not group_ids or not group_list:
         return Response({"detail": "No groups found"}, status=204)
@@ -260,6 +251,37 @@ def update_groups(
     )
 
 
+def update_groups_with_search_fn(
+    request: Request,
+    group_ids: Sequence[int | str] | None,
+    projects: Sequence[Project],
+    organization_id: int,
+    search_fn: SearchFunction | None,
+    user: RpcUser | User | AnonymousUser | None = None,
+    data: Mapping[str, Any] | None = None,
+) -> Response:
+    if search_fn and not group_ids:
+        try:
+            # It can raise ValidationError
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
+        except ValidationError:
+            logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+            return Response(
+                {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+            )
+
+        group_ids = [g.id for g in list(cursor_result)]
+    else:
+        group_ids, _ = get_group_ids_and_group_list(organization_id, projects, group_ids)
+
+    return update_groups(request, group_ids, projects, organization_id, user, data)
+
+
 def validate_request(
     request: Request,
     projects: Sequence[Project],
@@ -288,7 +310,6 @@ def get_group_ids_and_group_list(
     organization_id: int,
     projects: Sequence[Project],
     group_ids: Sequence[int | str] | None,
-    search_fn: SearchFunction | None,
 ) -> tuple[list[int | str], list[Group]]:
     """
     Gets group IDs and group list based on provided filters.
@@ -297,7 +318,6 @@ def get_group_ids_and_group_list(
         organization_id: ID of the organization
         projects: Sequence of projects to filter groups by
         group_ids: Optional sequence of specific group IDs to fetch
-        search_fn: Optional search function to find groups if no IDs provided
 
     Returns:
         Tuple of:
@@ -306,8 +326,6 @@ def get_group_ids_and_group_list(
 
     Notes:
         - If group_ids provided, filters to only valid groups in the org/projects
-        - If no group_ids but search_fn provided, uses search to find groups
-        - Limited to BULK_MUTATION_LIMIT results when using search
     """
     _group_ids: list[int | str] = []
     _group_list: list[Group] = []
@@ -319,18 +337,6 @@ def get_group_ids_and_group_list(
             )
         )
         # filter down group ids to only valid matches
-        _group_ids = [g.id for g in _group_list]
-
-    if search_fn and not _group_ids:
-        # It can raise ValidationError
-        cursor_result, _ = search_fn(
-            {
-                "limit": BULK_MUTATION_LIMIT,
-                "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-            }
-        )
-
-        _group_list = list(cursor_result)
         _group_ids = [g.id for g in _group_list]
 
     return _group_ids, _group_list

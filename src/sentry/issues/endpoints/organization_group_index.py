@@ -23,7 +23,7 @@ from sentry.api.helpers.group_index import (
     delete_groups,
     get_by_short_id,
     track_slo_response,
-    update_groups,
+    update_groups_with_search_fn,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import DateTimePaginator, Paginator
@@ -490,7 +490,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         )
 
         ids = [int(id) for id in request.GET.getlist("id")]
-        return update_groups(request, ids, projects, organization.id, search_fn)
+        return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @track_slo_response("workflow")
     def delete(self, request: Request, organization) -> Response:
