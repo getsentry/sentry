@@ -18,7 +18,6 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
@@ -2329,11 +2328,6 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "sum",
                 ],
                 "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
                 "mri": something_custom_metric,
             }
         ]
@@ -2383,11 +2377,6 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "sum",
                 ],
                 "unit": "millisecond",
-                "metric_id": indexer.resolve(
-                    UseCaseID.TRANSACTIONS,
-                    self.organization.id,
-                    something_custom_metric,
-                ),
                 "mri": something_custom_metric,
             }
         ]

@@ -397,7 +397,6 @@ def get_custom_measurements(
                             METRIC_TYPE_TO_ENTITY[metric_type].value
                         ],
                         unit=parsed_mri.unit,
-                        metric_id=row["metric_id"],
                         mri=parsed_mri.mri_string,
                     )
                 )
