@@ -115,7 +115,7 @@ def normalized_sdk_tag_from_event(data: Mapping[str, Any]) -> str:
     Note: Some platforms may keep their framework-specific values, as needed for analytics.
 
     This is done to reduce the cardinality of the `sdk.name` tag, while keeping
-    the ones interesinting to us as granual as possible.
+    the ones interesting to us as granular as possible.
     """
     try:
         return normalize_sdk_tag((data.get("sdk") or {}).get("name") or "other")

@@ -351,8 +351,9 @@ def frame(
     if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
+            # Strip leading namespacing, i.e., turn `some.module.path.someFunction` into
+            # `someFunction` and `someObject.someMethod` into `someMethod`
             func = func.rsplit(".", 1)[-1]
-        # special case empty functions not to have a hint
         if not func:
             function_component.update(contributes=False)
         elif func in (
@@ -518,15 +519,9 @@ def single_exception(
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
-            # Ignore synthetic exceptions as they are produced from platform
-            # specific error codes.
-            #
-            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-            #
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
+            # Ignore the error type for synthetic exceptions as it can vary by platform and doesn't
+            # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
+            # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
             system_type_component.update(
                 contributes=False, hint="ignored because exception is synthetic"
@@ -615,7 +610,7 @@ def chained_exception(
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
-    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
+    # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
         id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
         for exception in all_exceptions
@@ -638,12 +633,16 @@ def chained_exception(
     if main_exception_id:
         event.data["main_exception_id"] = main_exception_id
 
-    # Case 1: we have a single exception, use the single exception
-    # component directly to avoid a level of nesting
+    # Cases 1 and 2: Either this never was a chained exception (this is our entry point for single
+    # exceptions, too), or this is a chained exception consisting solely of an exception group and a
+    # single inner exception. In the former case, all we have is the single exception component, so
+    # return it. In the latter case, the there's no value-add to the wrapper, so discard it and just
+    # return the component for the inner exception.
     if len(exceptions) == 1:
         return exception_components_by_exception[id(exceptions[0])]
 
-    # Case 2: produce a component for each chained exception
+    # Case 3: This is either a chained exception or an exception group containing at least two inner
+    # exceptions. Either way, we need to wrap our exception components in a chained exception component.
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
@@ -710,8 +709,8 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions", and is used below.
-    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # This recursive generator gets the "top-level exceptions," and is used below.
+    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
     # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
@@ -753,8 +752,8 @@ def filter_exceptions_for_exception_groups(
     # If there's only one distinct top-level exception in the group,
     # use it and its first-path children, but throw out the exception group and any copies.
     # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
-    # We'll also set the main_exception_id, which is used in the extract_metadata function
-    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # We'll also set `main_exception_id`, which is used in the `extract_metadata` function
+    # in `src/sentry/eventtypes/error.py`, in order to ensure the issue is titled by this
     # item rather than the exception group.
     if len(distinct_top_level_exceptions) == 1:
         main_exception = distinct_top_level_exceptions[0]

@@ -20,6 +20,11 @@ def is_default_fingerprint_var(value):
 
 
 def hash_from_values(values):
+    """
+    Primarily used at the end of the grouping process, to get a final hash value once the all of the
+    variants have been constructed, but also used as a hack to compare exception components (by
+    stringifying their reprs) when calculating variants for chained exceptions.
+    """
     result = md5()
     for value in values:
         result.update(force_bytes(value, errors="replace"))
@@ -27,6 +32,10 @@ def hash_from_values(values):
 
 
 def bool_from_string(value):
+    """
+    Convert various string representations of boolean values ("1", "yes", "true", "0", "no",
+    "false") into actual booleans.
+    """
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):
@@ -78,6 +87,7 @@ def get_fingerprint_value(var, data):
     elif var == "logger":
         return data.get("logger") or "<no-logger>"
     elif var.startswith("tags."):
+        # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
         for t, value in data.get("tags") or ():
             if t == tag:

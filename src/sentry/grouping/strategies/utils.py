@@ -12,8 +12,8 @@ def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVarian
     non_contributing_components = []
     stacktrace_variants = set()
 
-    # In case any of the variants has a contributing stacktrace, we want
-    # to make all other variants non contributing.
+    # If at least one variant has a contributing stacktrace, we want to mark all variants without a
+    # stacktrace as non-contributing.
     for variant_name, component in variants.items():
         stacktrace_iter = component.iter_subcomponents(
             id="stacktrace", recursive=True, only_contributing=True

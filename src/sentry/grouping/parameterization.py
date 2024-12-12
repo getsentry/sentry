@@ -20,19 +20,19 @@ __all__ = [
 @dataclasses.dataclass
 class ParameterizationRegex:
 
-    name: str  # name of the pattern also used as group name in combined regex
+    name: str  # name of the pattern (also used as group name in combined regex)
     raw_pattern: str  # regex pattern w/o matching group name
     lookbehind: str | None = None  # positive lookbehind prefix if needed
     lookahead: str | None = None  # positive lookahead postfix if needed
     counter: int = 0
 
-    # These need to be used with `(?x)` tells the regex compiler to ignore comments
+    # These need to be used with `(?x)`, to tell the regex compiler to ignore comments
     # and unescaped whitespace, so we can use newlines and indentation for better legibility.
 
     @property
     def pattern(self) -> str:
         """
-        Returns the regex pattern for with as a named matching group and lookbehind/lookahead if needed.
+        Returns the regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
         prefix = rf"(?<={self.lookbehind})" if self.lookbehind else ""
         postfix = rf"(?={self.lookahead})" if self.lookahead else ""
@@ -41,7 +41,7 @@ class ParameterizationRegex:
     @property
     def compiled_pattern(self) -> re.Pattern[str]:
         """
-        Returns the compiled regex pattern for with as a named matching group and lookbehind/lookahead if needed.
+        Returns the compiled regex pattern with a named matching group and lookbehind/lookahead if needed.
         """
         if not hasattr(self, "_compiled_pattern"):
             self._compiled_pattern = re.compile(rf"(?x){self.pattern}")
@@ -189,8 +189,8 @@ class ParameterizationCallable:
     us more flexibility than just using regex.
     """
 
-    name: str  # name of the pattern also used as group name in combined regex
-    apply: Callable[[str], tuple[str, int]]  # function to modifying the input string
+    name: str  # name of the pattern (also used as group name in combined regex)
+    apply: Callable[[str], tuple[str, int]]  # function for modifying the input string
     counter: int = 0
 
 
