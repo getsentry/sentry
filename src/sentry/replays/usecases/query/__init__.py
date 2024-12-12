@@ -103,14 +103,15 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
+
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:
                     raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
-            except CouldNotParseValue:
-                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+            except CouldNotParseValue as e:
+                raise ParseError(f"Could not parse value for `{search_filter.key.name}`. {str(e)}")
 
             if look_back == "AND":
                 look_back = None
