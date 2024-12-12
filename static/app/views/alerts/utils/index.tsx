@@ -8,7 +8,10 @@ import toArray from 'sentry/utils/array/toArray';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {formatMetricUsingFixedUnit} from 'sentry/utils/metrics/formatters';
+import {
+  formatMetricUsingFixedUnit,
+  formatMetricUsingUnit,
+} from 'sentry/utils/metrics/formatters';
 import {parseField, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   Dataset,
@@ -142,7 +145,13 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
     return formatMetricUsingFixedUnit(value, unit, aggregation);
   }
 
-  return axisLabelFormatter(value, aggregateOutputType(seriesName));
+  const type = aggregateOutputType(seriesName);
+
+  if (type === 'duration') {
+    return formatMetricUsingUnit(value, 'milliseconds');
+  }
+
+  return axisLabelFormatter(value, type);
 }
 
 export function alertTooltipValueFormatter(
