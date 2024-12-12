@@ -131,7 +131,13 @@ function IssuesTraceOverlay({event}: {event: Event}) {
 
   return (
     <IssuesTraceOverlayContainer>
-      <LinkButton size="sm" icon={<IconOpen />} to={traceTarget}>
+      <LinkButton
+        size="sm"
+        icon={<IconOpen />}
+        to={traceTarget}
+        analyticsEventName="Issue Details: View Full Trace"
+        analyticsEventKey="issue_details.view_full_trace"
+      >
         {t('View Full Trace')}
       </LinkButton>
     </IssuesTraceOverlayContainer>
