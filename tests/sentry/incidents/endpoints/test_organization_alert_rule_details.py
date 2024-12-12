@@ -50,6 +50,10 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.seer.anomaly_detection.store_data import seer_anomaly_detection_connection_pool
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.alert_rule_action import (
+    trigger_sentry_app_action_creators_for_incidents,
+)
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.silo.base import SiloMode
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
@@ -1692,7 +1696,132 @@ class AlertRuleDetailsSentryAppPutEndpointTest(AlertRuleDetailsBase):
             resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
 
         assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert error_message in resp.data
+
+    @responses.activate
+    def test_trigger_sentry_app_action_creators_for_incidents(self):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        error_message = "Everything is broken!"
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=500,
+            json={"message": error_message},
+        )
+
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        install = self.create_sentry_app_installation(
+            slug="foo", organization=self.organization, user=self.user
+        )
+
+        sentry_app_settings = [
+            {"name": "title", "value": "test title"},
+            {"name": "description", "value": "test description"},
+        ]
+
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "actions": [
+                    {
+                        "type": "sentry_app",
+                        "targetType": "sentry_app",
+                        "targetIdentifier": sentry_app.id,
+                        "hasSchemaFormConfig": True,
+                        "sentryAppId": sentry_app.id,
+                        "sentryAppInstallationUuid": install.uuid,
+                        "settings": sentry_app_settings,
+                    }
+                ],
+                "alertThreshold": 300,
+                "label": "critical",
+            }
+        ]
+
+        serializer = AlertRuleSerializer(
+            context={
+                "organization": self.organization,
+                "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
+                "user": self.user,
+                "installations": app_service.installations_for_organization(
+                    organization_id=self.organization.id
+                ),
+            },
+            data=test_params,
+        )
+        assert serializer.is_valid()
+
+        with pytest.raises(SentryAppIntegratorError) as e:
+            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+            assert str(e) == f"{sentry_app.slug}: {error_message}"
+
+    @patch("sentry_sdk.capture_exception")
+    @patch(
+        "sentry.sentry_apps.utils.alert_rule_action.trigger_sentry_app_action_creators_for_incidents"
+    )
+    def test_error_response_from_sentry_app_500(self, error, sentry):
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        sentry_app = self.create_sentry_app(
+            name="foo",
+            organization=self.organization,
+            schema={
+                "elements": [
+                    self.create_alert_rule_action_schema(),
+                ]
+            },
+        )
+        install = self.create_sentry_app_installation(
+            slug="foo", organization=self.organization, user=self.user
+        )
+
+        sentry_app_settings = [
+            {"name": "title", "value": "test title"},
+            {"name": "description", "value": "test description"},
+        ]
+
+        test_params = self.valid_params.copy()
+        test_params["triggers"] = [
+            {
+                "actions": [
+                    {
+                        "type": "sentry_app",
+                        "targetType": "sentry_app",
+                        "targetIdentifier": sentry_app.id,
+                        "hasSchemaFormConfig": True,
+                        "sentryAppId": sentry_app.id,
+                        "sentryAppInstallationUuid": install.uuid,
+                        "settings": sentry_app_settings,
+                    }
+                ],
+                "alertThreshold": 300,
+                "label": "critical",
+            }
+        ]
+
+        error.side_effect = Exception("wowzers")
+        sentry.return_value = 1
+        with self.feature(["organizations:incidents", "organizations:performance-view"]):
+            resp = self.get_response(self.organization.slug, self.alert_rule.id, **test_params)
+
+        assert resp.status_code == 500
+        assert (
+            resp.data
+            == f"Something went wrong while trying to create alert rule action. Sentry error ID: {sentry.return_value}"
+        )
 
 
 class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):

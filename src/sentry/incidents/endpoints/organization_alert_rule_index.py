@@ -31,9 +31,6 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
-from sentry.incidents.endpoints.organization_alert_rule_details import (
-    create_sentry_app_alert_rule_component,
-)
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
@@ -54,6 +51,9 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.alert_rule_action import (
+    create_sentry_app_alert_rule_component_for_incidents,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
@@ -122,7 +122,9 @@ class AlertRuleIndexMixin(Endpoint):
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        raised_error = create_sentry_app_alert_rule_component(serializer.validated_data)
+        raised_error = create_sentry_app_alert_rule_component_for_incidents(
+            serializer.validated_data
+        )
         if raised_error:
             return raised_error
 
