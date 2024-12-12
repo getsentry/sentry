@@ -652,6 +652,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_selective_status_update(self):
         group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group1.resolved_at = timezone.now()
+        group1.save()
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
@@ -1295,13 +1297,20 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not r4.exists()
 
     def test_inbox_fields(self):
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(group1, GroupInboxReason.NEW)
         self.login_as(user=self.user)
         url = f"{self.path}?id={group1.id}"
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert "inbox" in response.data
         assert response.data["inbox"] is None
+
+        group2 = self.create_group(status=GroupStatus.RESOLVED)
+        add_group_to_inbox(group2, GroupInboxReason.NEW)
+        self.login_as(user=self.user)
+        url = f"{self.path}?id={group2.id}"
+        response = self.client.put(url, data={"status": "resolved"}, format="json")
+        assert "inbox" not in response.data
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
