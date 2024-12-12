@@ -143,8 +143,9 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         return copy
 
     def iter_values(self) -> Generator[str | int]:
-        """Recursively walks the component and flattens it into a list of
-        values.
+        """
+        Recursively walks the component tree, gathering literal values from contributing
+        branches into a flat list.
         """
         if self.contributes:
             for value in self.values:
