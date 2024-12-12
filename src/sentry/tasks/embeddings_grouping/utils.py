@@ -565,26 +565,13 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 def _make_nodestore_call(project, node_keys):
-    try:
-        bulk_data = _retry_operation(
-            nodestore.backend.get_multi,
-            node_keys,
-            retries=3,
-            delay=2,
-            exceptions=NODESTORE_RETRY_EXCEPTIONS,
-        )
-    except NODESTORE_RETRY_EXCEPTIONS as e:
-        extra = {
-            "organization_id": project.organization.id,
-            "project_id": project.id,
-            "node_keys": json.dumps(node_keys),
-            "error": e.message,
-        }
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-            extra=extra,
-        )
-        raise
+    bulk_data = _retry_operation(
+        nodestore.backend.get_multi,
+        node_keys,
+        retries=3,
+        delay=2,
+        exceptions=NODESTORE_RETRY_EXCEPTIONS,
+    )
 
     return bulk_data
 
