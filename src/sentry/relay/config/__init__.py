@@ -1312,9 +1312,7 @@ class TransactionMetricsSettings(TypedDict):
 
 
 def _should_extract_transaction_metrics(project: Project) -> bool:
-    return features.has(
-        "organizations:transaction-metrics-extraction", project.organization
-    ) and not killswitches.killswitch_matches_context(
+    return not killswitches.killswitch_matches_context(
         "relay.drop-transaction-metrics", {"project_id": project.id}
     )
 
