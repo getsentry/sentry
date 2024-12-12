@@ -115,4 +115,16 @@ describe('convertBuilderStateToWidget', function () {
     expect(widget.queries[0].orderby).toEqual('-geo.country');
     expect(widget.queries[1].orderby).toEqual('-geo.country');
   });
+
+  it('does not convert aggregates to aliased format', function () {
+    const mockState: WidgetBuilderState = {
+      query: ['transaction.duration:>100', 'transaction.duration:>50'],
+      sort: [{field: 'count()', kind: 'desc'}],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0].orderby).toEqual('-count()');
+    expect(widget.queries[1].orderby).toEqual('-count()');
+  });
 });
