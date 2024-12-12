@@ -375,7 +375,12 @@ MATCHERS = {
 
 
 class FingerprintMatcher:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or to not match, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
