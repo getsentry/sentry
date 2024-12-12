@@ -46,6 +46,18 @@ def get_frames(filename: str) -> Sequence[MutableMapping[str, str]]:
     return frames
 
 
+def get_exception(
+    frames: Sequence[Mapping[str, str]],
+    mechanism_type: str = "onerror",
+) -> dict[str, object]:
+    return {
+        "type": "Error",
+        "value": "Uncaught Thrown Error",
+        "stacktrace": {"frames": frames},
+        "mechanism": {"type": mechanism_type, "handled": False},
+    }
+
+
 def get_crash_event(
     filename="/Users/sentry.user/git-repos/sentry-react-native/dist/js/client.js", **kwargs
 ) -> dict[str, object]:
@@ -60,16 +72,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
         "platform": "javascript",
         "message": "",
         "environment": "dev",
-        "exception": {
-            "values": [
-                {
-                    "type": "Error",
-                    "value": "Uncaught Thrown Error",
-                    "stacktrace": {"frames": frames},
-                    "mechanism": {"type": "onerror", "handled": False},
-                }
-            ]
-        },
+        "exception": {"values": [get_exception(frames)]},
         "key_id": "3554525",
         "level": "fatal",
         "contexts": {
