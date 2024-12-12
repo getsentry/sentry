@@ -14,7 +14,7 @@ import {
   getFieldsFromEquations,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
-import type {ResultMode} from 'sentry/views/explore/hooks/useResultsMode';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getWidgetExploreUrl(
@@ -38,23 +38,23 @@ export function getWidgetExploreUrl(
   ].slice(0, 3);
 
   // Visualization specific transforms
-  let exploreMode: ResultMode | undefined = undefined;
+  let exploreMode: Mode | undefined = undefined;
   switch (widget.displayType) {
     case DisplayType.BAR:
-      exploreMode = 'aggregate';
+      exploreMode = Mode.AGGREGATE;
       locationQueryParams.chartType = ChartType.BAR.toString();
       break;
     case DisplayType.LINE:
-      exploreMode = 'aggregate';
+      exploreMode = Mode.AGGREGATE;
       locationQueryParams.chartType = ChartType.LINE.toString();
       break;
     case DisplayType.AREA:
-      exploreMode = 'aggregate';
+      exploreMode = Mode.AGGREGATE;
       locationQueryParams.chartType = ChartType.AREA.toString();
       break;
     case DisplayType.TABLE:
     case DisplayType.BIG_NUMBER:
-      exploreMode = 'samples';
+      exploreMode = Mode.SAMPLES;
       break;
     default:
       break;

@@ -15,11 +15,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {ALLOWED_CELL_ACTIONS} from '../components/table';
-import {useUserQuery} from '../hooks/useUserQuery';
 
 interface FieldProps {
   column: TableColumn<keyof TableDataRow>;
@@ -31,7 +34,8 @@ interface FieldProps {
 export function FieldRenderer({data, meta, unit, column}: FieldProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const [userQuery, setUserQuery] = useUserQuery();
+  const userQuery = useExploreQuery();
+  const setUserQuery = useSetExploreQuery();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const field = column.name;
