@@ -20,6 +20,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {vitalDescription} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -315,4 +316,83 @@ export const Dot = styled('span')<{color: string}>`
   width: ${space(1)};
   height: ${space(1)};
   background-color: ${p => p.color};
+`;
+
+// A compressed version of the VitalMeter component used in the trace context panel
+type VitalPillProps = Omit<
+  VitalMeterProps,
+  'showTooltip' | 'isAggregateMode' | 'onClick' | 'color'
+>;
+export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
+  const status = score !== undefined ? scoreToStatus(score) : 'none';
+  const webVitalExists = score !== undefined;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
+
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
+
+  const tooltipText = vitalDescription[`measurements.${webVital}`];
+
+  return (
+    <VitalPillContainer>
+      <Tooltip title={tooltipText}>
+        <VitalPillName status={status}>
+          {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
+        </VitalPillName>
+      </Tooltip>
+      <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
+    </VitalPillContainer>
+  );
+}
+
+const VitalPillContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 30px;
+`;
+
+const VitalPillName = styled('div')<{status: string}>`
+  display: flex;
+  align-items: center;
+  position: relative;
+
+  height: 100%;
+  padding: 0 ${space(1)};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: ${space(0.25)};
+  text-decoration-thickness: 1px;
+
+  cursor: pointer;
+`;
+
+const VitalPillValue = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+
+  height: 100%;
+  padding: 0 ${space(0.5)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-left: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
