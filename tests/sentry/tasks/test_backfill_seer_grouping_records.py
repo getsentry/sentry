@@ -673,13 +673,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         "sentry.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
-    @patch(
-        "sentry.tasks.embeddings_grouping.utils.lookup_event",
-        side_effect=ServiceUnavailable(message="Service Unavailable"),
-    )
-    def test_backfill_seer_grouping_records_failure(
-        self, mock_lookup_event, mock_get_multi, mock_sleep
-    ):
+    def test_backfill_seer_grouping_records_failure(self, mock_get_multi, mock_sleep):
         """
         Test that the group metadata isn't updated on a failure.
         """
