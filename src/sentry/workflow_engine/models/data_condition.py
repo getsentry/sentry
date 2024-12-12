@@ -97,7 +97,7 @@ class DataCondition(DefaultFieldsModel):
 
         return condition_handler_registry.get(condition_type)
 
-    def evaluate_value(self, value: T) -> DataConditionResult:
+    def evaluate_value(self, value: T, **kwargs) -> DataConditionResult:
         condition_handler: DataConditionHandler[T] | None = None
         op: Callable | None = None
 
@@ -110,7 +110,9 @@ class DataCondition(DefaultFieldsModel):
             op = condition_ops.get(condition, None)
 
         if condition_handler is not None:
-            result = condition_handler.evaluate_value(value, self.comparison, self.condition)
+            result = condition_handler.evaluate_value(
+                value, self.comparison, self.condition, **kwargs
+            )
         elif op is not None:
             if len(signature(op).parameters) == 1:
                 result = op(cast(Any, value)) == self.comparison

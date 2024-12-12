@@ -24,6 +24,11 @@ def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
 @condition_handler_registry.register(Condition.GROUP_EVENT_ATTR_COMPARISON)
 class GroupEventConditionHandler(DataConditionHandler[GroupEvent]):
     @staticmethod
-    def evaluate_value(data: GroupEvent, comparison: Any, data_filter: str) -> bool:
+    def evaluate_value(data: GroupEvent, comparison: Any, data_filter: str, **kwargs) -> bool:
         event_value = get_nested_value(data, data_filter)
+        if event_value is None:
+            event_value = get_nested_value(
+                kwargs, data_filter
+            )  # TODO: remove when GroupEvent contains GroupState
+
         return event_value == comparison

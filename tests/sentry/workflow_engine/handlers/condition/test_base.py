@@ -25,15 +25,19 @@ class ConditionTestCase(TestCase):
         # for dual write, can delete later
         raise NotImplementedError
 
-    def create_data_condition(self, **kwargs) -> DataCondition:
-        return super().create_data_condition(condition=self.condition, **kwargs)
-
     def translate_to_data_condition(
         self, data: dict[str, Any], dcg: DataConditionGroup
     ) -> DataCondition:
         return dual_write_condition(data, dcg)
 
-    def assert_passes(self, data_condition: DataCondition, value):
-        assert data_condition.evaluate_value(value) == data_condition.get_condition_result()
+    def assert_passes(self, data_condition: DataCondition, value, **kwargs):
+        assert (
+            data_condition.evaluate_value(value, **kwargs) == data_condition.get_condition_result()
+        )
+
+    def assert_does_not_pass(self, data_condition: DataCondition, value, **kwargs):
+        assert (
+            data_condition.evaluate_value(value, **kwargs) != data_condition.get_condition_result()
+        )
 
     # TODO: activity

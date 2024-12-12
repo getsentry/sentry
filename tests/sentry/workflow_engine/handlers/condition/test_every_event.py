@@ -3,15 +3,14 @@ from sentry.workflow_engine.models.data_condition import Condition
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
-class EveryEventOperator(ConditionTestCase):
+class EveryEventOperatorTest(ConditionTestCase):
     condition = Condition.TRUTH
     rule_cls = EveryEventCondition
     payload = {"id": EveryEventCondition.id}
 
     def test(self):
         dc = self.create_data_condition(
-            comparison=True,
-            condition_result=True,
+            comparison=True, condition_result=True, condition=self.condition
         )
 
         self.assert_passes(dc, self.event)
