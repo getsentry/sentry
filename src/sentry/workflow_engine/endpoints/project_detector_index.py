@@ -37,6 +37,7 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
         detector_type = grouptype.registry.get_by_slug(group_type_slug)
         if detector_type is None:
             raise ValidationError({"groupType": ["Unknown group type"]})
+
         if detector_type.detector_validator is None:
             raise ValidationError({"groupType": ["Group type not compatible with detectors"]})
 
