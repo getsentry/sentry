@@ -1,4 +1,5 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
+import {DndContext, type Translate, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -36,6 +37,8 @@ type WidgetBuilderV2Props = {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
+const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
+
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -47,6 +50,14 @@ function WidgetBuilderV2({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const [{translate}, setTranslate] = useState<{
+    initialTranslate: Translate;
+    translate: Translate;
+  }>({
+    initialTranslate: {x: 0, y: 0},
+    translate: {x: 0, y: 0},
+  });
+
   useEffect(() => {
     if (escapeKeyPressed) {
       if (isOpen) {
@@ -54,6 +65,25 @@ function WidgetBuilderV2({
       }
     }
   }, [escapeKeyPressed, isOpen, onClose]);
+
+  const handleDragEnd = () => {
+    setTranslate(({translate: newTranslate}) => {
+      return {
+        translate: newTranslate,
+        initialTranslate: newTranslate,
+      };
+    });
+  };
+
+  const handleDragMove = ({delta}) => {
+    setTranslate(({initialTranslate}) => ({
+      initialTranslate,
+      translate: {
+        x: initialTranslate.x + delta.x,
+        y: initialTranslate.y + delta.y,
+      },
+    }));
+  };
 
   return (
     <Fragment>
@@ -70,13 +100,22 @@ function WidgetBuilderV2({
                   <WidgetBuilderContainer>
                     <WidgetBuilderSlideout
                       isOpen={isOpen}
-                      onClose={onClose}
+                      onClose={() => {
+                        onClose();
+                        setTranslate({
+                          initialTranslate: {x: 0, y: 0},
+                          translate: {x: 0, y: 0},
+                        });
+                      }}
                       onSave={onSave}
                     />
-                    <WidgetPreviewContainer
-                      dashboardFilters={dashboardFilters}
-                      dashboard={dashboard}
-                    />
+                    <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
+                      <WidgetPreviewContainer
+                        dashboardFilters={dashboardFilters}
+                        dashboard={dashboard}
+                        translate={translate}
+                      />
+                    </DndContext>
                   </WidgetBuilderContainer>
                 </ContainerWithoutSidebar>
               </SpanTagsProvider>
@@ -93,13 +132,20 @@ export default WidgetBuilderV2;
 function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
+  translate,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
+  translate: Translate;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
   const location = useLocation();
+
+  const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
+    id: WIDGET_PREVIEW_DRAG_ID,
+    // disabled: true,
+  });
 
   return (
     <DashboardsMEPProvider>
@@ -115,22 +161,33 @@ function WidgetPreviewContainer({
               location={location}
               forceTransactions={metricsDataSide.forceTransactionsOnly}
             >
-              <SampleWidgetCard
-                initial={{opacity: 0, x: '50%', y: 0}}
-                animate={{opacity: 1, x: 0, y: 0}}
-                exit={{opacity: 0, x: '50%', y: 0}}
-                transition={{
-                  type: 'spring',
-                  stiffness: 500,
-                  damping: 50,
+              <DraggableWidgetContainer
+                ref={setNodeRef}
+                id={WIDGET_PREVIEW_DRAG_ID}
+                style={{
+                  transform: `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`,
+                  opacity: isDragging ? 0.5 : 1,
                 }}
-                isTable={state.displayType === DisplayType.TABLE}
+                {...attributes}
+                {...listeners}
               >
-                <WidgetPreview
-                  dashboardFilters={dashboardFilters}
-                  dashboard={dashboard}
-                />
-              </SampleWidgetCard>
+                <SampleWidgetCard
+                  initial={{opacity: 0, x: '50%', y: 0}}
+                  animate={{opacity: 1, x: 0, y: 0}}
+                  exit={{opacity: 0, x: '50%', y: 0}}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 50,
+                  }}
+                  isTable={state.displayType === DisplayType.TABLE}
+                >
+                  <WidgetPreview
+                    dashboardFilters={dashboardFilters}
+                    dashboard={dashboard}
+                  />
+                </SampleWidgetCard>
+              </DraggableWidgetContainer>
             </MEPSettingProvider>
           )}
         </MetricsDataSwitcher>
@@ -164,10 +221,22 @@ const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
+  z-index: ${p => p.theme.zIndex.modal};
+  position: relative;
+`;
+
+const DraggableWidgetContainer = styled(`div`)`
   align-content: center;
   z-index: ${p => p.theme.zIndex.modal};
   position: relative;
   margin: auto;
+
+  touch-action: none; /* Prevents touch scrolling while dragging */
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
 `;
 
 const ContainerWithoutSidebar = styled('div')`
