@@ -53,7 +53,7 @@ export function TraceCollapsedRow(props: TraceRowProps<CollapsedNode>) {
               ? t('hidden span')
               : t('hidden spans')
             : null}
-          {stats.events > 0 && ', '}
+          {stats.issues > 0 && stats.events > 0 && ', '}
           {stats.issues > 0 ? stats.issues : null}{' '}
           {stats.issues > 0
             ? stats.issues === 1
