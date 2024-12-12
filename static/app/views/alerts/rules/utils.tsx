@@ -1,13 +1,19 @@
+import * as qs from 'query-string';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getProjectOptions({
   organization,
@@ -112,4 +118,35 @@ export function shouldUseErrorsDiscoverDataset(
   }
 
   return dataset === Dataset.ERRORS;
+}
+
+export function getExploreUrl({
+  rule,
+  orgSlug,
+  period,
+  projectId,
+}: {
+  orgSlug: string;
+  period: string;
+  projectId: string;
+  rule: MetricRule;
+}) {
+  if (rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return '';
+  }
+  const visualize = {
+    chartType: ChartType.LINE,
+    yAxes: [rule.aggregate],
+  };
+  const interval = TIME_WINDOW_TO_INTERVAL[rule.timeWindow];
+  const queryParams = {
+    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    query: rule.query,
+    visualize: JSON.stringify(visualize),
+    interval,
+    statsPeriod: period,
+    project: projectId,
+    environment: rule.environment,
+  };
+  return normalizeUrl(`/organizations/${orgSlug}/traces/?${qs.stringify(queryParams)}`);
 }
