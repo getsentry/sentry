@@ -62,7 +62,7 @@ def strategy(
     """
     Registers a strategy
 
-    :param ids: The strategy/delegate IDs with which to register
+    :param ids: The strategy/delegate IDs to register
     :param interface: Which interface type should be dispatched to this strategy
     :param score: Determines precedence of strategies. For example exception
         strategy scores higher than message strategy, so if both interfaces are
