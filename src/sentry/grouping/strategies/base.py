@@ -90,6 +90,7 @@ def strategy(
 
 class GroupingContext:
     def __init__(self, strategy_config: "StrategyConfiguration"):
+        # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.push()
@@ -99,6 +100,7 @@ class GroupingContext:
         self._stack[-1][key] = value
 
     def __getitem__(self, key: str) -> ContextValue:
+        # Walk down the stack from the top and return the first instance of `key` found
         for d in reversed(self._stack):
             if key in d:
                 return d[key]
