@@ -157,7 +157,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
                 "title": "title",
             }
-            event = self.store_event(data=data, project_id=self.project.id)
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             events.append(event)
             event.group.times_seen = 5
             event.group.save()
@@ -274,6 +274,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.store_event(
             data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
             project_id=self.project.id,
+            assert_no_errors=False,
         )
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
@@ -311,7 +312,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has no exception
-        event = self.store_event(data={}, project_id=self.project.id)
+        event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
@@ -364,6 +365,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=self.project.id,
+            assert_no_errors=False,
         )
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         group_hash = GroupHash.objects.filter(group_id=event.group.id).first()
@@ -591,6 +593,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
+            assert_no_errors=False,
         )
         event2.group.times_seen = 5
         event2.group.save()
@@ -643,6 +646,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
+            assert_no_errors=False,
         )
         event2.group.times_seen = 5
         event2.group.save()
@@ -717,7 +721,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            self.store_event(data=data, project_id=self.project.id)
+            self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id)
@@ -754,7 +758,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10),
             }
-            event = self.store_event(data=data, project_id=self.project.id)
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
             event.group.save()
             # Arbitrarily choose a parent group's hash that has times_seen = 5
@@ -813,7 +817,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id)
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.save()
         # Make the similar group a hash that does not exist
@@ -870,7 +874,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id)
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
             event.group.save()
 
@@ -1010,7 +1014,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id)
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
             event.group.data["metadata"] = copy.deepcopy(default_metadata)
             if i < 3:
@@ -1043,6 +1047,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project2.id,
+            assert_no_errors=False,
         )
         event2.group.times_seen = 5
         event2.group.save()
@@ -1074,7 +1079,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id)
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.PENDING_DELETION
         event.group.substatus = None
@@ -1086,7 +1091,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id)
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.DELETION_IN_PROGRESS
         event.group.substatus = None
@@ -1199,7 +1204,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id)
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.last_seen = datetime.now(UTC) - timedelta(days=90)
         event.group.save()
@@ -1298,6 +1303,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         event = self.store_event(
             data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
             project_id=self.project.id,
+            assert_no_errors=False,
         )
         event.group.times_seen = 5
         event.group.save()
@@ -1542,7 +1548,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=project_invalid_batch.id)
+            event = self.store_event(
+                data=data, project_id=project_invalid_batch.id, assert_no_errors=False
+            )
             event.group.times_seen = 2
             # event.group.data["metadata"] = copy.deepcopy(default_metadata)
             event.group.save()
@@ -1562,7 +1570,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=project_invalid_batch.id)
+            event = self.store_event(
+                data=data, project_id=project_invalid_batch.id, assert_no_errors=False
+            )
             event.group.times_seen = 1 if i < batch_size / 2 else 2
             event.group.status = (
                 GroupStatus.PENDING_DELETION if i >= batch_size / 2 else GroupStatus.UNRESOLVED
@@ -1642,7 +1652,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "title": "title",
             "timestamp": before_now(seconds=10).isoformat(),
         }
-        event = self.store_event(data=data, project_id=self.project.id)
+        event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
         event.group.times_seen = 2
         event.group.status = GroupStatus.PENDING_DELETION
         event.group.substatus = None
@@ -1783,6 +1793,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort.id,
+            assert_no_errors=False,
         )
         event_same_cohort.group.times_seen = 5
         event_same_cohort.group.save()
@@ -1889,6 +1900,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_cohort_not_eligible.id,
+            assert_no_errors=False,
         )
         event_same_cohort.group.times_seen = 5
         event_same_cohort.group.save()
@@ -1985,6 +1997,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
             project_id=project_same_worker.id,
+            assert_no_errors=False,
         )
         event_same_worker.group.times_seen = 5
         event_same_worker.group.save()
