@@ -202,9 +202,9 @@ class Strategy(Generic[ConcreteInterface]):
     def _invoke(
         self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
     ) -> ReturnedVariants:
-        # We forcefully override strategy here.  This lets a strategy
+        # We forcefully override strategy here. This lets a strategy
         # function always access its metadata and directly forward it to
-        # subcomponents without having to filter out strategy.
+        # subcomponents.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 
