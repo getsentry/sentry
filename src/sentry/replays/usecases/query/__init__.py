@@ -111,7 +111,12 @@ def handle_search_filters(
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue as e:
-                raise ParseError(f"Could not parse value for `{search_filter.key.name}`. {str(e)}")
+                err_msg = f"Could not parse value for `{search_filter.key.name}`."
+                if e.args:
+                    err_msg += (
+                        f" {e.args[0]}"  # avoid using str(e) as it may expose stack trace info
+                    )
+                raise ParseError(err_msg)
 
             if look_back == "AND":
                 look_back = None
