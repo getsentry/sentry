@@ -251,7 +251,6 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 group_ids=[self.group.id],
                 projects=[self.group.project],
                 organization_id=self.group.organization.id,
-                search_fn=None,
                 user=self.user,
                 data=data,
             )

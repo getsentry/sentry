@@ -13,7 +13,7 @@ from sentry.api.helpers.group_index import (
     get_by_short_id,
     prep_search,
     track_slo_response,
-    update_groups,
+    update_groups_with_search_fn,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
@@ -269,7 +269,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         """
 
         search_fn = functools.partial(prep_search, self, request, project)
-        return update_groups(
+        return update_groups_with_search_fn(
             request,
             request.GET.getlist("id"),
             [project],
