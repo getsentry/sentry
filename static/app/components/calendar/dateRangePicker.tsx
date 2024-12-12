@@ -42,7 +42,7 @@ function DateRangePicker({
 
   return (
     <CalendarStylesWrapper>
-      <DateRange {...props} onChange={onChange} ranges={ranges} />
+      <StyledDateRangePicker {...props} onChange={onChange} ranges={ranges} />
     </CalendarStylesWrapper>
   );
 }
