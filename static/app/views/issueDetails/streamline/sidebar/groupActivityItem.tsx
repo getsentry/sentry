@@ -493,8 +493,15 @@ export default function getGroupActivityItem(
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+        let title;
+        if (data.new === true) {
+          title = t('Linked Issue');
+        } else {
+          title = t('Created Issue');
+        }
+
         return {
-          title: t('Created Issue'),
+          title: title,
           message: tct('by [author] on [provider] titled [title]', {
             author,
             provider: data.provider,
