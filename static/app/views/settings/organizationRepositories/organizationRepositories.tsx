@@ -48,7 +48,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
         </InputGroup.LeadingItems>
         <InputGroup.Input
           ref={searchInput}
-          placeholder="Search repositories"
+          placeholder={t('Search repositories')}
           onChange={e => setSearchTerm(e.target.value.toLowerCase())}
         />
       </StyledSearchBar>
