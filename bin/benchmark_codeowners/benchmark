@@ -92,8 +92,9 @@ def main(code_mapping_file, event_data_file):
         print(f"  Type: {rule_type}")
         print(f"  Pattern: {rule.matcher.pattern}")
         print("  Teams:")
-        for team in teams:
-            print(f"    - {team.name} (id: {team.id})")
+        for team in teams:  # type: ignore[assignment]
+            if isinstance(team, Team):  # Only handle Team objects
+                print(f"    - {team.name} (id: {team.id})")
 
 
 if __name__ == "__main__":
