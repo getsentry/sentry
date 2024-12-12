@@ -351,8 +351,9 @@ def frame(
     if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
+            # Strip leading namespacing, i.e., turn `some.module.path.someFunction` into
+            # `someFunction` and `someObject.someMethod` into `someMethod`
             func = func.rsplit(".", 1)[-1]
-        # special case empty functions not to have a hint
         if not func:
             function_component.update(contributes=False)
         elif func in (
