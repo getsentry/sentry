@@ -124,9 +124,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 
 class ComponentVariant(BaseVariant):
-    """A component variant is a variant that produces a hash from the
-    `BaseGroupingComponent` it encloses.
-    """
+    """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
     type = "component"
 
