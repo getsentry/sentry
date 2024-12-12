@@ -173,6 +173,9 @@ def group_was_recently_resolved(group: Group) -> bool:
     """
     Check if the group was resolved in the last 3 minutes
     """
+    if group.status != GroupStatus.RESOLVED:
+        return False
+
     try:
         group_resolution = GroupResolution.objects.get(group=group)
         return group_resolution.datetime > django_timezone.now() - timedelta(minutes=3)
@@ -230,7 +233,7 @@ def sync_status_inbound(
         # which would override the in-app resolution
         resolvable_groups = []
         for group in affected_groups:
-            if group.status != GroupStatus.RESOLVED or not group_was_recently_resolved(group):
+            if not group_was_recently_resolved(group):
                 resolvable_groups.append(group)
 
         if not resolvable_groups:
