@@ -226,6 +226,8 @@ def semver_filter_converter(
                 final_operator = Op.NOT_IN
                 versions = exclude_versions
     else:
+        # TODO: when implementing NOT IN, improve this block to contain the above negation logic,
+        # and potentially simplify by making single version string into a list with length 1
         final_operator = Op.IN
         versions = []
         for v in version:

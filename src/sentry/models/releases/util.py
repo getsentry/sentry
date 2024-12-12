@@ -80,48 +80,32 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
                 )
             )
         if isinstance(build, str):
-            if build.isdecimal() and validate_bigint(int(build)):
-                qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
+            build = [build]
+
+        build_number_filters = Q()
+        build_code_filters = Q()
+        for b in build:
+            if b.isdecimal() and validate_bigint(int(b)):
+                build_number_filters |= Q(**{f"build_number__{operator}": [int(b)]})
             else:
-                if not build or build.endswith("*"):
-                    qs = getattr(qs, query_func)(build_code__startswith=build[:-1])
+                if not b or b.endswith("*"):
+                    build_code_filters |= Q(build_code__startswith=b[:-1])
                 else:
-                    qs = getattr(qs, query_func)(build_code=build)
+                    build_code_filters |= Q(build_code=b)
 
-            return qs
-        else:
-            build_number_filters = Q()
-            build_code_filters = Q()
-            for b in build:
-                if b.isdecimal() and validate_bigint(int(b)):
-                    build_number_filters |= Q(**{f"build_number__{operator}": [int(b)]})
-                else:
-                    if not b or b.endswith("*"):
-                        build_code_filters |= Q(build_code__startswith=b[:-1])
-                    else:
-                        build_code_filters |= Q(build_code=b)
+        if build_number_filters:
+            qs = getattr(qs, query_func)(build_number_filters)
+        if build_code_filters:
+            qs = getattr(qs, query_func)(build_code_filters)
 
-            if build_number_filters:
-                qs = getattr(qs, query_func)(build_number_filters)
-            if build_code_filters:
-                qs = getattr(qs, query_func)(build_code_filters)
-
-            # Handle the case where operator is 'in' separately
-            if operator == "in":
-                return qs.filter(
-                    Q(
-                        build_number__in=[
-                            int(b) for b in build if b.isdecimal() and validate_bigint(int(b))
-                        ]
-                    )
-                    | Q(
-                        build_code__in=[
-                            b for b in build if not b.isdecimal() or not validate_bigint(int(b))
-                        ]
-                    )
-                )
-            else:
-                return qs
+        return qs.filter(
+            Q(build_number__in=[int(b) for b in build if b.isdecimal() and validate_bigint(int(b))])
+            | Q(
+                build_code__in=[
+                    b for b in build if not b.isdecimal() or not validate_bigint(int(b))
+                ]
+            )
+        )
 
     def filter_by_semver(
         self,
