@@ -6,15 +6,22 @@ import {
   generateFieldAsString,
   type Sort,
 } from 'sentry/utils/discover/fields';
-import {decodeList, decodeSorts} from 'sentry/utils/queryString';
+import {
+  decodeInteger,
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
+import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export type WidgetBuilderStateQueryParams = {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   field?: (string | undefined)[];
+  limit?: number;
   query?: string[];
   sort?: string[];
   title?: string;
@@ -30,6 +37,7 @@ export const BuilderStateAction = {
   SET_Y_AXIS: 'SET_Y_AXIS',
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
+  SET_LIMIT: 'SET_LIMIT',
 } as const;
 
 type WidgetAction =
@@ -40,13 +48,15 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_FIELDS}
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
-  | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT};
+  | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
+  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  limit?: number;
   query?: string[];
   sort?: Sort[];
   title?: string;
@@ -90,10 +100,15 @@ function useWidgetBuilderState(): {
     decoder: decodeSorts,
     serializer: serializeSorts,
   });
+  const [limit, setLimit] = useQueryParamState<number>({
+    fieldName: 'limit',
+    decoder: decodeScalar,
+    deserializer: deserializeLimit,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis, query, sort}),
-    [title, description, displayType, dataset, fields, yAxis, query, sort]
+    () => ({title, description, displayType, dataset, fields, yAxis, query, sort, limit}),
+    [title, description, displayType, dataset, fields, yAxis, query, sort, limit]
   );
 
   const dispatch = useCallback(
@@ -126,6 +141,9 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_SORT:
           setSort(action.payload);
           break;
+        case BuilderStateAction.SET_LIMIT:
+          setLimit(action.payload);
+          break;
         default:
           break;
       }
@@ -139,6 +157,7 @@ function useWidgetBuilderState(): {
       setYAxis,
       setQuery,
       setSort,
+      setLimit,
     ]
   );
 
@@ -191,6 +210,14 @@ function serializeSorts(sorts: Sort[]): string[] {
     const direction = sort.kind === 'desc' ? '-' : '';
     return `${direction}${sort.field}`;
   });
+}
+
+/**
+ * Decodes the limit from the query params
+ * Returns the default limit if the value is not a valid limit
+ */
+function deserializeLimit(value: string): number {
+  return decodeInteger(value, DEFAULT_RESULTS_LIMIT);
 }
 
 export default useWidgetBuilderState;
