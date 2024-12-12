@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
 import re
+from typing import Any
 
 from django.utils.timezone import now
 from structlog import get_logger
@@ -79,7 +82,8 @@ class HumanRenderer:
 
 
 class StructLogHandler(logging.StreamHandler):
-    def get_log_kwargs(self, record, logger):
+    # TODO: once factored out of getsentry the `logger` kwarg is unused and can be dropped!
+    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
@@ -96,7 +100,7 @@ class StructLogHandler(logging.StreamHandler):
 
         return kwargs
 
-    def emit(self, record, logger=None):
+    def emit(self, record: logging.LogRecord, logger: logging.Logger | None = None) -> None:
         # If anyone wants to use the 'extra' kwarg to provide context within
         # structlog, we have to strip all of the default attributes from
         # a record because the RootLogger will take the 'extra' dictionary
@@ -108,6 +112,18 @@ class StructLogHandler(logging.StreamHandler):
         except Exception:
             if logging.raiseExceptions:
                 raise
+
+
+class GKEStructLogHandler(StructLogHandler):
+    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
+        kwargs = super().get_log_kwargs(record, logger)
+        kwargs.update(
+            {
+                "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
+                "severity": record.levelname,
+            }
+        )
+        return kwargs
 
 
 class MessageContainsFilter(logging.Filter):
