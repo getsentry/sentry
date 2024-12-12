@@ -1,13 +1,18 @@
+import {useRef, useState} from 'react';
+import styled from '@emotion/styled';
+
 import AlertLink from 'sentry/components/alertLink';
 import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import {InputGroup} from 'sentry/components/inputGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import RepositoryRow from 'sentry/components/repositoryRow';
-import {IconCommit} from 'sentry/icons';
+import {IconCommit, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Repository, RepositoryStatus} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -25,6 +30,10 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
 
   const hasItemList = itemList && itemList.length > 0;
 
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const searchResults = itemList.filter(i => JSON.stringify(i).includes(searchTerm));
+
   return (
     <div>
       <SettingsPageHeader title={t('Repositories')} />
@@ -33,6 +42,16 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
           'Want to add a repository to start tracking commits? Install or configure your version control integration here.'
         )}
       </AlertLink>
+      <StyledSearchBar>
+        <InputGroup.LeadingItems disablePointerEvents>
+          <IconSearch color="subText" size="xs" />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input
+          ref={searchInput}
+          placeholder="Search repositories"
+          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        />
+      </StyledSearchBar>
       {!hasItemList && (
         <div className="m-b-2">
           <TextBlock>
@@ -52,7 +71,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
           <PanelHeader>{t('Added Repositories')}</PanelHeader>
           <PanelBody>
             <div>
-              {itemList.map(repo => (
+              {searchResults.map(repo => (
                 <RepositoryRow
                   api={api}
                   key={repo.id}
@@ -84,5 +103,14 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
     </div>
   );
 }
+
+const StyledSearchBar = styled(InputGroup)`
+  flex: 1 1 100%;
+  margin-bottom: ${space(2)};
+
+  > div > div:last-child {
+    gap: ${space(0.25)};
+  }
+`;
 
 export default OrganizationRepositories;
