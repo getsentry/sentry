@@ -41,12 +41,18 @@ const WEB_VITAL_FULL_NAME_MAP = {
   ttfb: t('Time to First Byte'),
 };
 
-const VITAL_DESCRIPTIONS: Partial<
-  Record<WebVital, {description: string; link?: React.ReactNode}>
+export const VITAL_DESCRIPTIONS: Partial<
+  Record<
+    WebVital,
+    {longDescription: string; shortDescription: string; link?: React.ReactNode}
+  >
 > = {
   [WebVital.FCP]: {
-    description: t(
+    shortDescription: t(
       'Time for first DOM content to render. Bad FCP makes users feel like the page isn’t responding or loading.'
+    ),
+    longDescription: t(
+      'First Contentful Paint (FCP) measures the amount of time the first content takes to render in the viewport. Like FP, this could also show up in any form from the document object model (DOM), such as images, SVGs, or text blocks.'
     ),
     link: (
       <ExternalLink
@@ -58,8 +64,11 @@ const VITAL_DESCRIPTIONS: Partial<
     ),
   },
   [WebVital.CLS]: {
-    description: t(
+    shortDescription: t(
       'Measures content ‘shifting’ during load. Bad CLS indicates a janky website, degrading UX and trust.'
+    ),
+    longDescription: t(
+      'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
     ),
     link: (
       <ExternalLink
@@ -71,8 +80,11 @@ const VITAL_DESCRIPTIONS: Partial<
     ),
   },
   [WebVital.LCP]: {
-    description: t(
+    shortDescription: t(
       'Time to render the largest item in the viewport. Bad LCP frustrates users because the website feels slow to load.'
+    ),
+    longDescription: t(
+      'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
     ),
     link: (
       <ExternalLink
@@ -84,8 +96,11 @@ const VITAL_DESCRIPTIONS: Partial<
     ),
   },
   [WebVital.TTFB]: {
-    description: t(
+    shortDescription: t(
       'Time until first byte is delivered to the client. Bad TTFB makes the server feel unresponsive.'
+    ),
+    longDescription: t(
+      'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
     ),
     link: (
       <ExternalLink
@@ -97,8 +112,11 @@ const VITAL_DESCRIPTIONS: Partial<
     ),
   },
   [WebVital.INP]: {
-    description: t(
+    shortDescription: t(
       'Latency between user input and visual response. Bad INP makes users feel like the site is laggy, outdated, and unresponsive. '
+    ),
+    longDescription: t(
+      "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
     ),
     link: (
       <ExternalLink openInNewTab href="https://blog.sentry.io/what-is-inp/">
@@ -186,13 +204,13 @@ export function WebVitalTagsDetailHeader({
 }
 
 export function WebVitalDescription({score, value, webVital}: Props) {
-  const {description, link} = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
+  const {longDescription, link} = VITAL_DESCRIPTIONS[WebVital[webVital.toUpperCase()]];
 
   return (
     <div>
       <WebVitalDetailHeader score={score} value={value} webVital={webVital} />
       <DescriptionWrapper>
-        {description}
+        {longDescription}
         {link}
       </DescriptionWrapper>
 
