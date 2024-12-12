@@ -1,4 +1,5 @@
 import {useRef} from 'react';
+import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';
@@ -14,9 +15,10 @@ function AutofixFeedback() {
   }
 
   return (
-    <Button
+    <StyledButton
       ref={buttonRef}
-      size="xs"
+      size="zero"
+      borderless
       icon={<IconMegaphone />}
       onClick={() =>
         openForm({
@@ -29,8 +31,16 @@ function AutofixFeedback() {
       }
     >
       {t('Give Feedback')}
-    </Button>
+    </StyledButton>
   );
 }
+
+const StyledButton = styled(Button)`
+  padding: 0;
+  margin: 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+`;
 
 export default AutofixFeedback;

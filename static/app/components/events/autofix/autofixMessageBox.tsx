@@ -5,6 +5,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
   type AutofixCodebaseChange,
@@ -343,7 +344,7 @@ function AutofixMessageBox({
 
   const [changesMode, setChangesMode] = useState<
     'give_feedback' | 'add_tests' | 'create_prs'
-  >('give_feedback');
+  >('create_prs');
 
   const changes =
     isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
@@ -402,6 +403,9 @@ function AutofixMessageBox({
           <ContentArea>
             {step && (
               <StepHeader>
+                <StepIconContainer>
+                  <StepIcon step={step} />
+                </StepIconContainer>
                 <StepTitle
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(step.title),
@@ -425,9 +429,7 @@ function AutofixMessageBox({
                       </AnimatePresence>
                     </ScrollIntoViewButtonWrapper>
                   )}
-                  <StepIconContainer>
-                    <StepIcon step={step} />
-                  </StepIconContainer>
+                  <AutofixFeedback />
                 </StepHeaderRightSection>
               </StepHeader>
             )}
@@ -464,14 +466,14 @@ function AutofixMessageBox({
                     onChange={setChangesMode}
                     aria-label={t('Changes selection')}
                   >
+                    <SegmentedControl.Item key="create_prs">
+                      {t('Approve')}
+                    </SegmentedControl.Item>
                     <SegmentedControl.Item key="give_feedback">
-                      {t('Give feedback')}
+                      {t('Iterate')}
                     </SegmentedControl.Item>
                     <SegmentedControl.Item key="add_tests">
-                      {t('Add tests')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="create_prs">
-                      {t('Approve changes')}
+                      {t('Test')}
                     </SegmentedControl.Item>
                   </SegmentedControl>
                 </Fragment>
@@ -618,6 +620,7 @@ const StepHeader = styled('div')`
   padding: 0 ${space(1)} ${space(1)} ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   font-family: ${p => p.theme.text.family};
+  gap: ${space(1)};
 `;
 
 const InputArea = styled('div')`
