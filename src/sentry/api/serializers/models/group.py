@@ -156,7 +156,10 @@ class SeenStats(TypedDict):
     times_seen: int
     first_seen: datetime | None
     last_seen: datetime | None
+    # User count filtered by the current environment selection
     user_count: int
+    # User count across all environments
+    all_user_count: int
 
 
 class GroupSerializerBase(Serializer, ABC):
@@ -750,6 +753,7 @@ class GroupSerializerBase(Serializer, ABC):
             "userCount": attrs["user_count"],
             "firstSeen": attrs["first_seen"],
             "lastSeen": attrs["last_seen"],
+            "allUserCount": attrs["all_user_count"],
         }
 
 
@@ -813,6 +817,12 @@ class GroupSerializer(GroupSerializerBase):
             environment_ids=environment and [environment.id],
             tenant_ids=tenant_ids,
         )
+        all_user_counts: Mapping[int, int] = user_counts_func(
+            [project_id],
+            item_ids,
+            environment_ids=None,
+            tenant_ids=tenant_ids,
+        )
         first_seen: MutableMapping[int, datetime] = {}
         last_seen: MutableMapping[int, datetime] = {}
         times_seen: MutableMapping[int, int] = {}
@@ -843,6 +853,7 @@ class GroupSerializer(GroupSerializerBase):
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
+                "all_user_count": all_user_counts.get(item.id, 0),
             }
             for item in issue_list
         }
@@ -1146,6 +1157,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
+                "all_user_count": user_counts.get(item.id, 0),
             }
             for item in item_list
         }
