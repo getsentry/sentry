@@ -249,7 +249,7 @@ export default class ReplayReader {
     this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
-    this._videoEvents = videoFrames;
+    this._videoEvents = videoFrames.sort((a, b) => a.timestamp - b.timestamp);
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.

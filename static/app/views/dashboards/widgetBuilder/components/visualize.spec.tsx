@@ -91,6 +91,136 @@ describe('Visualize', () => {
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });
 
+  it('disables the column selection when the aggregate has no parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              yAxis: ['max(spans.db)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toBeEnabled();
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveValue('');
+  });
+
+  it('adds the default value for the column selection when the aggregate has parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              yAxis: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction.duration'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'p95'
+    );
+  });
+
+  it('maintains the selected aggregate when the column selection is changed and there are parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              yAxis: ['max(spans.db)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'spans.db'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'p95'
+    );
+  });
+
+  it('allows adding equations', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              yAxis: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+    expect(screen.getByLabelText('Equation')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Equation'));
+
+    // Check the menu items
+    const headers = screen.getAllByRole('banner');
+    expect(headers[0]).toHaveTextContent('Fields');
+    expect(headers[1]).toHaveTextContent('Operators');
+    expect(screen.getByRole('listitem', {name: 'count()'})).toBeInTheDocument();
+
+    // Make a selection and type in the equation
+    await userEvent.click(screen.getByRole('listitem', {name: 'count()'}));
+    await userEvent.type(screen.getByLabelText('Equation'), '* 2');
+
+    expect(screen.getByLabelText('Equation')).toHaveValue('count() * 2');
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {

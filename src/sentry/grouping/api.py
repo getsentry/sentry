@@ -249,9 +249,7 @@ def get_fingerprinting_config_for_project(
 
 
 def apply_server_fingerprinting(
-    event: MutableMapping[str, Any],
-    fingerprinting_config: FingerprintingRules,
-    allow_custom_title: bool = True,
+    event: MutableMapping[str, Any], fingerprinting_config: FingerprintingRules
 ) -> None:
     fingerprint_info = {}
 
@@ -268,7 +266,7 @@ def apply_server_fingerprinting(
 
         # A custom title attribute is stored in the event to override the
         # default title.
-        if "title" in attributes and allow_custom_title:
+        if "title" in attributes:
             event["title"] = expand_title_template(attributes["title"], event)
         event["fingerprint"] = new_fingerprint
 

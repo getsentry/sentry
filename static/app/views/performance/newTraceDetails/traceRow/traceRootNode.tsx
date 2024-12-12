@@ -14,12 +14,15 @@ import {
   TraceRowConnectors,
   type TraceRowProps,
 } from '../traceRow/traceRow';
+import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 const NO_ERRORS = new Set<TraceTree.TraceError>();
 const NO_PERFORMANCE_ISSUES = new Set<TraceTree.TracePerformanceIssue>();
 const NO_PROFILES = [];
 
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
+  const hasTraceNewUi = useHasTraceNewUi();
+
   if (!isTraceNode(props.node)) {
     throw new Error('Trace row rendered called on row that is not root');
   }
@@ -77,23 +80,27 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
         className={props.spanColumnClassName}
         onDoubleClick={props.onRowDoubleClick}
       >
-        <TraceBar
-          node={props.node}
-          virtualized_index={props.virtualized_index}
-          manager={props.manager}
-          color={makeTraceNodeBarColor(props.theme, props.node)}
-          node_space={props.node.space}
-          errors={NO_ERRORS}
-          performance_issues={NO_PERFORMANCE_ISSUES}
-          profiles={NO_PROFILES}
-        />
-        <button
-          ref={props.registerSpanArrowRef}
-          className="TraceArrow"
-          onClick={props.onSpanArrowClick}
-        >
-          <TraceIcons.Chevron direction="left" />
-        </button>
+        {!hasTraceNewUi && (
+          <Fragment>
+            <TraceBar
+              node={props.node}
+              virtualized_index={props.virtualized_index}
+              manager={props.manager}
+              color={makeTraceNodeBarColor(props.theme, props.node)}
+              node_space={props.node.space}
+              errors={NO_ERRORS}
+              performance_issues={NO_PERFORMANCE_ISSUES}
+              profiles={NO_PROFILES}
+            />
+            <button
+              ref={props.registerSpanArrowRef}
+              className="TraceArrow"
+              onClick={props.onSpanArrowClick}
+            >
+              <TraceIcons.Chevron direction="left" />
+            </button>
+          </Fragment>
+        )}
       </div>
     </div>
   );
