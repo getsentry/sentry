@@ -411,7 +411,7 @@ def get_stacktrace_string_with_metrics(
             metrics.incr(
                 key,
                 sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+                tags={"call_made": False, "blocker": "over-threshold-frames"},
             )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
