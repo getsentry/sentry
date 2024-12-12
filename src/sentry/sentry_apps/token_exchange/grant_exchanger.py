@@ -6,6 +6,7 @@ from django.db import router, transaction
 from django.utils.functional import cached_property
 
 from sentry import analytics
+from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
@@ -33,23 +34,29 @@ class GrantExchanger:
     user: User
 
     def run(self):
-        with transaction.atomic(using=router.db_for_write(ApiToken)):
-            try:
-                self._validate()
-                token = self._create_token()
+        lock = locks.get(
+            ApiGrant.get_lock_key(self.grant.id),
+            duration=10,
+            name="api_grant",
+        )
+        with lock.acquire():
+            with transaction.atomic(using=router.db_for_write(ApiToken)):
+                try:
+                    self._validate()
+                    token = self._create_token()
 
-                # Once it's exchanged it's no longer valid and should not be
-                # exchangeable, so we delete it.
-                self._delete_grant()
-            except SentryAppIntegratorError:
-                logger.info(
-                    "grant-exchanger.context",
-                    extra={
-                        "application_id": self.application.id,
-                        "grant_id": self.grant.id,
-                    },
-                )
-                raise
+                    # Once it's exchanged it's no longer valid and should not be
+                    # exchangeable, so we delete it.
+                    self._delete_grant()
+                except SentryAppIntegratorError:
+                    logger.info(
+                        "grant-exchanger.context",
+                        extra={
+                            "application_id": self.application.id,
+                            "grant_id": self.grant.id,
+                        },
+                    )
+                    raise
         self.record_analytics()
 
         return token
