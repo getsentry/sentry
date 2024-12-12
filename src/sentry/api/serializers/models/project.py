@@ -80,7 +80,6 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "servicehooks",
     "similarity-embeddings",
     "similarity-embeddings-delete-by-hash",
-    "similarity-embeddings-backfill",
 }
 
 
