@@ -8,8 +8,6 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupContent} from 'sentry/components/events/autofix/autofixSetupModal';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
@@ -194,20 +192,17 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             />
           </HeaderContainer>
           {autofixData && (
-            <ButtonBar gap={1}>
-              <AutofixFeedback />
-              <Button
-                size="xs"
-                onClick={reset}
-                title={
-                  autofixData.created_at
-                    ? `Last run at ${autofixData.created_at.split('T')[0]}`
-                    : null
-                }
-              >
-                {t('Start Over')}
-              </Button>
-            </ButtonBar>
+            <Button
+              size="xs"
+              onClick={reset}
+              title={
+                autofixData.created_at
+                  ? `Last run at ${autofixData.created_at.split('T')[0]}`
+                  : null
+              }
+            >
+              {t('Start Over')}
+            </Button>
           )}
         </HeaderText>
         {aiConfig.isAutofixSetupLoading ? (
