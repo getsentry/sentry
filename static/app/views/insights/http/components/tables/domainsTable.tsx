@@ -19,6 +19,7 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
+import {HTTP_MODULE_URL_FIELD} from 'sentry/views/insights/http/views/httpLandingPage';
 import {ModuleName, type SpanMetricsResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
@@ -37,7 +38,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.domain'
-  | 'url'
+  | 'span.description'
   | 'project'
   | 'spm()'
   | 'http_response_rate(3)'
@@ -85,7 +86,7 @@ export function DomainsTable({response, showRoutes, sort}: Props) {
     ...(showRoutes
       ? [
           {
-            key: 'url',
+            key: HTTP_MODULE_URL_FIELD,
             name: t('URL'),
             width: COL_WIDTH_UNDEFINED,
           },
@@ -199,12 +200,12 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'url') {
+  if (column.key === HTTP_MODULE_URL_FIELD) {
     return (
       <DomainCell
         projectId={row['project.id']?.toString()}
         domain={row['span.domain']}
-        url={row.url}
+        url={row[HTTP_MODULE_URL_FIELD]}
       />
     );
   }

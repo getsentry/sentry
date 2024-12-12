@@ -50,7 +50,10 @@ import {
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
-import {USE_EAP_HTTP_MODULE} from 'sentry/views/insights/http/views/httpLandingPage';
+import {
+  HTTP_MODULE_URL_FIELD,
+  USE_EAP_HTTP_MODULE,
+} from 'sentry/views/insights/http/views/httpLandingPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -94,7 +97,7 @@ export function HTTPDomainSummaryPage() {
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     ...(url
-      ? {url}
+      ? {[HTTP_MODULE_URL_FIELD]: url}
       : {'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain)}),
     ...(subregions.length > 0
       ? {
@@ -216,7 +219,7 @@ export function HTTPDomainSummaryPage() {
     headerTitle: (
       <Fragment>
         {project && <ProjectAvatar project={project} size={36} />}
-        {domain || NULL_DOMAIN_DESCRIPTION}
+        {domain || url || NULL_DOMAIN_DESCRIPTION}
         <DomainStatusLink domain={domain} />
       </Fragment>
     ),
@@ -237,7 +240,7 @@ export function HTTPDomainSummaryPage() {
       <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
         <Layout.Body>
           <Layout.Main fullWidth>
-            {domain === '' && (
+            {domain === '' && !url && (
               <Alert type="info">
                 {tct(
                   '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',

@@ -50,6 +50,7 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 export const USE_EAP_HTTP_MODULE = true;
+export const HTTP_MODULE_URL_FIELD = 'span.description';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
@@ -178,7 +179,7 @@ export function HTTPLandingPage() {
       fields: [
         'project',
         'project.id',
-        ...(shouldShowRoutes ? ['url'] : ['span.domain']),
+        ...(shouldShowRoutes ? [HTTP_MODULE_URL_FIELD] : ['span.domain']),
         'spm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
