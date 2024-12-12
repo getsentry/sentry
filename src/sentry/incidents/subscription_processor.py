@@ -58,6 +58,10 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.process_update_helpers import (
+    get_aggregation_value_helper,
+    get_crash_rate_alert_metrics_aggregation_value_helper,
+)
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -322,24 +326,12 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        row = subscription_update["values"]["data"][0]
-        total_session_count = row.get("count", 0)
-        crash_count = row.get("crashed", 0)
-
-        if total_session_count == 0:
+        # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+        aggregation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
+            subscription_update
+        )
+        if aggregation_value is None:
             self.reset_trigger_counts()
-            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-            return None
-
-        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-            if total_session_count < min_threshold:
-                self.reset_trigger_counts()
-                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-                return None
-
-        aggregation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
-
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
@@ -348,14 +340,8 @@ class SubscriptionProcessor:
                 subscription_update
             )
         else:
-            aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
-            # In some cases Snuba can return a None value for an aggregation. This means
-            # there were no rows present when we made the query for certain types of aggregations
-            # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
-            # the update in the future.
-            if aggregation_value is None:
-                aggregation_value = 0
-
+            # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
+            aggregation_value = get_aggregation_value_helper(subscription_update)
             if self.alert_rule.comparison_delta:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
