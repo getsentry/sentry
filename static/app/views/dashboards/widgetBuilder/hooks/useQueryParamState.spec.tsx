@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {UrlParamBatchProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/urlParamBatchContext';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
