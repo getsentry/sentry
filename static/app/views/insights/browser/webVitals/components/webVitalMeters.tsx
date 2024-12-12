@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
@@ -130,6 +131,9 @@ export function VitalMeter({
       <NoValue />
     );
 
+  const webVitalKey = `measurements.${webVital}`;
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+
   const headerText = webVitalsConfig[webVital].name;
   const meterBody = (
     <Fragment>
@@ -140,13 +144,7 @@ export function VitalMeter({
             size="xs"
             title={
               <span>
-                {tct(
-                  `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
-                      Scores and values may share some (but not perfect) correlation.`,
-                  {
-                    webVital: webVital.toUpperCase(),
-                  }
-                )}
+                {shortDescription}
                 <br />
                 <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('Find out how performance scores are calculated here.')}
