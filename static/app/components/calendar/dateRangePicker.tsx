@@ -43,15 +43,15 @@ function DateRangePicker({
 
   return (
     <CalendarStylesWrapper>
-      <DateRange {...props} onChange={onChange} ranges={ranges} />
+      <StyledDateRangePicker {...props} onChange={onChange} ranges={ranges} />
     </CalendarStylesWrapper>
   );
 }
 
-const StyledDateRangePicker = styled(DateRangePicker)`
+const StyledDateRangePicker = styled(DateRange)`
   .rdrDayPassive {
     visibility: hidden;
   }
 `;
 
-export default StyledDateRangePicker;
+export default DateRangePicker;
