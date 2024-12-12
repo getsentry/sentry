@@ -18,6 +18,25 @@ from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
 
 
+@dataclass
+class WorkflowEngine:
+    """
+    Base class that sets up the handlers / types etc
+    """
+
+    pass
+
+
+class MetricAlert[QuerySubscriptionUpdate](WorkflowEngine):
+    # a couple proxy methods to create the Detector Handlers
+    #   - can we set defaults for any of them and keep them hidden and allow overrides?
+    # def build_occurrence(detector_result) -> IssueOccurrence:
+
+    # def get_group_key_values(data_packet: DataPacket[QuerySubscriptionUpdate]) -> dict[DetectorGroupKey, int]:
+    #   - maybe we can genrealize this for data conditions? :thinking_face: maybe we could just map like a group to data packet.
+    pass
+
+
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
     def build_occurrence_and_event_data(
         self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
