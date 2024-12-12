@@ -518,15 +518,9 @@ def single_exception(
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
-            # Ignore synthetic exceptions as they are produced from platform
-            # specific error codes.
-            #
-            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-            #
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
+            # Ignore the error type for synthetic exceptions as it can vary by platform and doesn't
+            # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
+            # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
             system_type_component.update(
                 contributes=False, hint="ignored because exception is synthetic"
