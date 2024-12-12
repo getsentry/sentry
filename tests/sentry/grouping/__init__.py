@@ -202,6 +202,7 @@ def dump_variant(
 
     lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
+    # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's probably why
     for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, BaseGroupingComponent):
             lines.append("{}{}:".format("  " * indent, key))
