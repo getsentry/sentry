@@ -118,6 +118,15 @@ class EmailVerificationRequired(SentryAPIException):
         super().__init__(username=user.username)
 
 
+class PrimaryEmailVerificationRequired(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "primary-email-verification-required"
+    message = "Primary email verification required."
+
+    def __init__(self, user):
+        super().__init__(username=user.username)
+
+
 class TwoFactorRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "2fa-required"
