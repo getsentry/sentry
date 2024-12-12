@@ -63,11 +63,17 @@ def backfill_seer_grouping_records_for_project(
     child tasks that will pass the last_processed_group_id
     """
     if cohort is None and worker_number is not None:
-        cohort, current_project_id = get_cohort_and_current_project_id(
+        cohort = create_project_cohort(
             worker_number, skip_processed_projects, last_processed_project_id
         )
-        if cohort is None:
+        if not cohort:
+            logger.info(
+                "reached the end of the projects in cohort",
+                extra={"worker_number": worker_number},
+            )
             return
+
+        current_project_id = cohort[0]
     assert current_project_id is not None
 
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
@@ -275,25 +281,6 @@ def backfill_seer_grouping_records_for_project(
         skip_project_ids=skip_project_ids,
         worker_number=worker_number,
     )
-
-
-def get_cohort_and_current_project_id(
-    worker_number: int,
-    skip_processed_projects: bool,
-    last_processed_project_id: int | None,
-) -> tuple[list[int] | None, int | None]:
-    cohort = create_project_cohort(
-        worker_number, skip_processed_projects, last_processed_project_id
-    )
-    if not cohort:
-        logger.info(
-            "reached the end of the projects in cohort",
-            extra={"worker_number": worker_number},
-        )
-        return None, None
-
-    current_project_id = cohort[0]
-    return cohort, current_project_id
 
 
 def call_next_backfill(
