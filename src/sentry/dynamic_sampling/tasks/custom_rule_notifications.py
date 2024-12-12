@@ -167,6 +167,8 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
     q["utc"] = "true"
     q["yAxis"] = "count()"
     q["sort"] = "-timestamp"
+    q["queryDataset"] = "transaction-like"
+    q["dataset"] = "transactions"
 
     query_string = q.urlencode()
     discover_url = rule.organization.absolute_url(
