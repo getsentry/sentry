@@ -5,6 +5,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useEapOptions} from 'sentry/views/insights/common/views/spans/selectors/eapSelector';
 import type {
   EAPSpanProperty,
   EAPSpanResponse,
@@ -15,7 +16,7 @@ import type {
   SpanMetricsProperty,
   SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-
+// We can probably rename this to `UseDiscoverOptions` to be more accurate
 interface UseMetricsOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
@@ -25,6 +26,10 @@ interface UseMetricsOptions<Fields> {
   pageFilters?: PageFilters;
   search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
   sorts?: Sort[];
+  /**
+   * Whether or not to use RPCs instead of SnQL requests in the backend.
+   */
+  useRpc?: boolean;
 }
 
 export const useSpansIndexed = <Fields extends SpanIndexedProperty[]>(
@@ -76,6 +81,8 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
+  const {useRpc: useRpcFromQueryParam} = useEapOptions();
+
   const {
     fields = [],
     search = undefined,
@@ -84,6 +91,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     cursor,
     pageFilters: pageFiltersFromOptions,
     noPagination,
+    useRpc,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -104,6 +112,7 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     referrer,
     cursor,
     noPagination,
+    useRpc: useRpc ?? useRpcFromQueryParam,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
