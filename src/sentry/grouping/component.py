@@ -31,8 +31,13 @@ def _calculate_contributes[ValuesType](values: Sequence[ValuesType]) -> bool:
 
 
 class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](ABC):
-    """A grouping component is a recursive structure that is flattened
-    into components to make a hash for grouping purposes.
+    """
+    A grouping component is a node in a tree describing the event data (exceptions, stacktraces,
+    messages, etc.) which can contribute to grouping. Each node's children, stored in the `values`
+    attribute, are either other grouping components or primitives representing the actual data.
+
+    For example, an exception component might have type, value, and stacktrace components as
+    children, and the type component might have the string "KeyError" as its child.
     """
 
     hint: str | None = None
