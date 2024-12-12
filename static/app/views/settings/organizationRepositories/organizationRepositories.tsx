@@ -105,12 +105,7 @@ function OrganizationRepositories({itemList, onRepositoryChange, organization}: 
 }
 
 const StyledSearchBar = styled(InputGroup)`
-  flex: 1 1 100%;
   margin-bottom: ${space(2)};
-
-  > div > div:last-child {
-    gap: ${space(0.25)};
-  }
 `;
 
 export default OrganizationRepositories;
