@@ -12,13 +12,16 @@ import {defined} from 'sentry/utils';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
 import {parseFunction, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
-import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import type {Visualize} from 'sentry/views/explore/hooks/useVisualizes';
+import {
+  useExploreVisualizes,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
   MAX_VISUALIZES,
-  useVisualizes,
-} from 'sentry/views/explore/hooks/useVisualizes';
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {
@@ -39,7 +42,8 @@ type ParsedVisualize = {
 interface ToolbarVisualizeProps {}
 
 export function ToolbarVisualize({}: ToolbarVisualizeProps) {
-  const [visualizes, setVisualizes] = useVisualizes();
+  const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
 
   const numberTags = useSpanTags('number');
 

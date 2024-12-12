@@ -11,14 +11,17 @@ import useRouter from 'sentry/utils/useRouter';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {getSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {
+  useExploreDataset,
+  useExploreFields,
+  useExploreGroupBys,
+  useExploreMode,
+  useExploreQuery,
+  useExploreSortBys,
+  useExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 export function useAddToDashboard() {
   const location = useLocation();
@@ -26,31 +29,31 @@ export function useAddToDashboard() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
-  const [resultMode] = useResultMode();
-  const [dataset] = useDataset();
-  const {groupBys} = useGroupBys();
-  const [visualizes] = useVisualizes();
-  const [sampleFields] = useSampleFields();
-  const [query] = useUserQuery();
+  const mode = useExploreMode();
+  const dataset = useExploreDataset();
+  const groupBys = useExploreGroupBys();
+  const sortBys = useExploreSortBys();
+  const visualizes = useExploreVisualizes();
+  const sampleFields = useExploreFields();
+  const query = useExploreQuery();
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
       const yAxes = visualizes[visualizeIndex].yAxes.slice(0, MAX_NUM_Y_AXES);
 
       let fields;
-      if (resultMode === 'samples') {
+      if (mode === Mode.SAMPLES) {
         fields = sampleFields.filter(Boolean);
       } else {
         fields = [...groupBys, ...yAxes].filter(Boolean);
       }
 
       const search = new MutableSearch(query);
-      const sorts = getSorts(fields, location);
 
       const discoverQuery: NewQuery = {
         name: t('Custom Explore Widget'),
         fields,
-        orderby: sorts.map(formatSort),
+        orderby: sortBys.map(formatSort),
         query: search.formatString(),
         version: 2,
         dataset,
@@ -64,7 +67,7 @@ export function useAddToDashboard() {
       newEventView.dataset = dataset;
       return newEventView;
     },
-    [visualizes, resultMode, sampleFields, groupBys, query, location, dataset, selection]
+    [visualizes, mode, sampleFields, groupBys, query, dataset, selection, sortBys]
   );
 
   const addToDashboard = useCallback(
