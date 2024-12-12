@@ -401,7 +401,6 @@ export function Trace({
       >
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
-              const score = indicator.score ? indicator.score : undefined;
               const status = score ? STATUS_TEXT[scoreToStatus(score)] : 'none';
 
               return (
