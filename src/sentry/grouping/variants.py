@@ -124,9 +124,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 
 class ComponentVariant(BaseVariant):
-    """A component variant is a variant that produces a hash from the
-    `BaseGroupingComponent` it encloses.
-    """
+    """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
     type = "component"
 
@@ -201,7 +199,7 @@ class CustomFingerprintVariant(BaseVariant):
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in, Sentry defined fingerprint."""
+    """A built-in, Sentry-defined fingerprint."""
 
     type = "built_in_fingerprint"
 
@@ -235,6 +233,8 @@ class SaltedComponentVariant(ComponentVariant):
             return None
         final_values: list[str | int] = []
         for value in self.values:
+            # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
+            # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:

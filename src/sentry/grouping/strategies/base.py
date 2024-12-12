@@ -62,7 +62,7 @@ def strategy(
     """
     Registers a strategy
 
-    :param ids: The strategy/delegate IDs with which to register
+    :param ids: The strategy/delegate IDs to register
     :param interface: Which interface type should be dispatched to this strategy
     :param score: Determines precedence of strategies. For example exception
         strategy scores higher than message strategy, so if both interfaces are
@@ -90,6 +90,7 @@ def strategy(
 
 class GroupingContext:
     def __init__(self, strategy_config: "StrategyConfiguration"):
+        # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.push()
@@ -99,6 +100,7 @@ class GroupingContext:
         self._stack[-1][key] = value
 
     def __getitem__(self, key: str) -> ContextValue:
+        # Walk down the stack from the top and return the first instance of `key` found
         for d in reversed(self._stack):
             if key in d:
                 return d[key]
@@ -200,9 +202,9 @@ class Strategy(Generic[ConcreteInterface]):
     def _invoke(
         self, func: Callable[..., ReturnedVariants], *args: Any, **kwargs: Any
     ) -> ReturnedVariants:
-        # We forcefully override strategy here.  This lets a strategy
+        # We forcefully override strategy here. This lets a strategy
         # function always access its metadata and directly forward it to
-        # subcomponents without having to filter out strategy.
+        # subcomponents.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 

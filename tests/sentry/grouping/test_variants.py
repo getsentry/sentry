@@ -30,7 +30,7 @@ def test_variants_with_legacy_configs(
     config_name: str, grouping_input: GroupingInput, insta_snapshot: InstaSnapshotter
 ) -> None:
     """
-    Run the variant snapshot tests using an minimal (and much more performant) save process.
+    Run the variant snapshot tests using a minimal (and much more performant) save process.
 
     Because manually cherry-picking only certain parts of the save process to run makes us much more
     likely to fall out of sync with reality, for safety we only do this when testing legacy,
