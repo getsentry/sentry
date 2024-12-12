@@ -207,7 +207,7 @@ function DashboardTable({
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
         <BodyCellContainer>
-          <StyledUserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
+          <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
         </BodyCellContainer>
       ) : (
         <ActivityAvatar type="system" size={26} />
@@ -364,9 +364,4 @@ const StyledFavoriteButton = styled(Button)`
 
 const StyledIconStar = styled(IconStar)`
   margin-left: ${space(0.5)};
-`;
-
-const StyledUserAvatar = styled(UserAvatar)`
-  display: grid;
-  grid-column-gap: ${space(1)};
 `;
