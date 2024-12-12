@@ -20,6 +20,11 @@ def is_default_fingerprint_var(value):
 
 
 def hash_from_values(values):
+    """
+    Primarily used at the end of the grouping process, to get a final hash value once the all of the
+    variants have been constructed, but also used as a hack to compare exception components (by
+    stringifying their reprs) when calculating variants for chained exceptions.
+    """
     result = md5()
     for value in values:
         result.update(force_bytes(value, errors="replace"))
