@@ -1,9 +1,10 @@
 import pytest
 import responses
+from jsonschema import ValidationError
 
+from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -69,7 +70,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(SentryAppIntegratorError):
+        with pytest.raises(ValidationError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -90,7 +91,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with pytest.raises(SentryAppIntegratorError):
+        with pytest.raises(ValidationError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -106,7 +107,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(SentryAppIntegratorError):
+        with pytest.raises(APIError):
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -129,7 +130,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(SentryAppIntegratorError) as exception_info:
+        with pytest.raises(APIError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -151,7 +152,7 @@ class TestSelectRequester(TestCase):
             status=200,
         )
 
-        with pytest.raises(SentryAppIntegratorError) as exception_info:
+        with pytest.raises(ValidationError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,
@@ -172,7 +173,7 @@ class TestSelectRequester(TestCase):
             status=200,
         )
 
-        with pytest.raises(SentryAppIntegratorError) as exception_info:
+        with pytest.raises(ValidationError) as exception_info:
             SelectRequester(
                 install=self.install,
                 project_slug=self.project.slug,

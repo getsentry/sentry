@@ -1,9 +1,10 @@
 import pytest
 import responses
+from jsonschema import ValidationError
 
+from sentry.coreapi import APIError
 from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
@@ -94,7 +95,7 @@ class TestIssueLinkRequester(TestCase):
             status=200,
             content_type="application/json",
         )
-        with pytest.raises(SentryAppIntegratorError):
+        with pytest.raises(ValidationError):
             IssueLinkRequester(
                 install=self.install,
                 group=self.group,
@@ -113,7 +114,7 @@ class TestIssueLinkRequester(TestCase):
             status=500,
         )
 
-        with pytest.raises(SentryAppIntegratorError):
+        with pytest.raises(APIError):
             IssueLinkRequester(
                 install=self.install,
                 group=self.group,
