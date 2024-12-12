@@ -92,3 +92,11 @@ class ApiApplicationTest(TestCase):
             "http://example2.com",
             "http://example.io",
         ]
+
+    def test_default_string_serialization(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com\nhttp://example2.com\nhttp://example.io",
+        )
+
+        assert f"{app} is cool" == f"{app.name} is cool"
