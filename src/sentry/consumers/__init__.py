@@ -173,6 +173,14 @@ def ingest_transactions_options() -> list[click.Option]:
             help="Save event directly in consumer without celery",
         )
     )
+    options.append(
+        click.Option(
+            ["--dlq-threshold-sec", "dlq_threshold_sec"],
+            type=click.IntRange(min=300),
+            default=None,
+            help="Max age in seconds before a message is considered stale and DLQed",
+        )
+    )
     return options
 
 

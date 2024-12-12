@@ -14,6 +14,7 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
+from sentry.ingest.consumer.dlq_stale_messages import create_dlq_stale_messages_step
 from sentry.ingest.types import ConsumerType
 from sentry.processing.backpressure.arroyo import HealthChecker, create_backpressure_step
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -178,6 +179,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
         input_block_size: int | None,
         output_block_size: int | None,
         no_celery_mode: bool = False,
+        dlq_threshold_sec: int | None = None,
     ):
         self.consumer_type = ConsumerType.Transactions
         self.reprocess_only_stuck_events = reprocess_only_stuck_events
@@ -193,6 +195,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
 
         self.health_checker = HealthChecker("ingest-transactions")
         self.no_celery_mode = no_celery_mode
+        self.dlq_threshold_sec = dlq_threshold_sec
 
     def create_with_partitions(
         self,
@@ -210,6 +213,10 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
             no_celery_mode=self.no_celery_mode,
         )
         next_step = maybe_multiprocess_step(mp, event_function, final_step, self._pool)
+
+        if self.dlq_threshold_sec:
+            next_step = create_dlq_stale_messages_step(next_step, self.dlq_threshold_sec)
+
         return create_backpressure_step(health_checker=self.health_checker, next_step=next_step)
 
     def shutdown(self) -> None:
