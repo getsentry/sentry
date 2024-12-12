@@ -254,13 +254,20 @@ class MetricChart extends PureComponent<Props, State> {
             </StyledSectionValue>
           </Fragment>
         </StyledInlineContainer>
-        {!isSessionAggregate(rule.aggregate) && (
-          <Feature features="discover-basic">
-            <Button size="sm" {...props}>
-              {buttonText}
-            </Button>
-          </Feature>
-        )}
+        {!isSessionAggregate(rule.aggregate) &&
+          (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            <Feature features="visibility-explore-view">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ) : (
+            <Feature features="discover-basic">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ))}
       </StyledChartControls>
     );
   }
