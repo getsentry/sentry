@@ -1,4 +1,5 @@
 import type {Project} from 'sentry/types/project';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -52,6 +53,9 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
   //  - [] empty list represents "My Projects"
   //  - [-1] represents "All Projects"
   //  - [.., ..] otherwise, represents a list of project IDs
+  if (pageFilters.selection.projects.length === 0 && isActiveSuperuser()) {
+    selectedProjects = allProjects; // when superuser is enabled, My Projects isn't applicable, and in reality all projects are selected when projects.length === 0
+  }
   if (pageFilters.selection.projects.length === 0) {
     selectedProjects = allProjects.filter(p => p.isMember);
   } else if (
