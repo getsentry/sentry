@@ -329,6 +329,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param string assignedTo: the user or team that should be assigned to
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
