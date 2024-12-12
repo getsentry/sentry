@@ -156,7 +156,7 @@ def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     ingestion so that the grouping algorithm can be re-run later.
 
     This is called early on in normalization so that everything that is needed
-    to group the project is pulled into the event.
+    to group the event is pulled into the event data.
     """
     loader = PrimaryGroupingConfigLoader()
     return loader.get_config_dict(project)
