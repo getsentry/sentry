@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 from unittest.mock import call
 
+from sentry.issues import grouptype
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.helpers.datetime import freeze_time
@@ -30,7 +31,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test(self):
-        detector = self.create_detector(type=self.handler_type.slug)
+        detector = self.create_detector(type=self.handler_type.type_id)
         data_packet = self.build_data_packet()
         results = process_detectors(data_packet, [detector])
         assert results == [
@@ -42,7 +43,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector = self.create_detector_and_conditions(type=self.handler_state_type.type_id)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
         occurrence, event_data = build_mock_occurrence_and_event(
@@ -72,7 +73,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
 
     @mock.patch("sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka")
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka):
-        detector = self.create_detector_and_conditions(type=self.handler_state_type.slug)
+        detector = self.create_detector_and_conditions(type=self.handler_state_type.type_id)
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
         occurrence, event_data = build_mock_occurrence_and_event(
@@ -121,15 +122,20 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test_no_issue_type(self):
-        detector = self.create_detector(type="invalid slug")
+        detector = self.create_detector(type=1)
         data_packet = self.build_data_packet()
-        with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
+        with (
+            mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger,
+            mock.patch.object(grouptype.registry, "get_by_type_id") as mock_get_by_type_id,
+        ):
+            mock_get_by_type_id.side_effect = ValueError
+
             results = process_detectors(data_packet, [detector])
-            assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
+            assert mock_logger.exception.call_args[0][0] == "No registered grouptype for detector"
         assert results == []
 
     def test_no_handler(self):
-        detector = self.create_detector(type=self.no_handler_type.slug)
+        detector = self.create_detector(type=self.no_handler_type.type_id)
         data_packet = self.build_data_packet()
         with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
             results = process_detectors(data_packet, [detector])
@@ -326,7 +332,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
         }
 
     def test_no_condition_group(self):
-        detector = self.create_detector()
+        detector = self.create_detector(type=1)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"

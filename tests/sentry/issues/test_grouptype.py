@@ -17,6 +17,7 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils.registry import Registry
 
 
 class BaseGroupTypeTest(TestCase):
@@ -25,9 +26,16 @@ class BaseGroupTypeTest(TestCase):
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
 
+        self.detector_registry_patcher = patch(
+            "sentry.workflow_engine.registry.detector_config_schema_registry",
+            new=Registry[str](enable_reverse_lookup=False),
+        )
+        self.detector_registry_patcher.__enter__()
+
     def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.__exit__(None, None, None)
+        self.detector_registry_patcher.__exit__(None, None, None)
 
 
 class GroupTypeTest(BaseGroupTypeTest):
@@ -72,7 +80,7 @@ class GroupTypeTest(BaseGroupTypeTest):
     def test_category_validation(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
-            type_id = 1
+            type_id = 2
             slug = "error"
             description = "Error"
             category = 22

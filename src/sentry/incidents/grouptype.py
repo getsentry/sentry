@@ -5,9 +5,7 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.utils import json
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
-from sentry.workflow_engine.registry import detector_config_schema_registry
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
@@ -28,7 +26,4 @@ class MetricAlertFire(GroupType):
     enable_escalation_detection = False
     detector_handler = MetricAlertDetectorHandler
     detector_validator = MetricAlertsDetectorValidator
-
-
-# TODO(colleen): update this
-detector_config_schema_registry.register(MetricAlertFire.slug)(json.dumps({}))
+    detector_config_schema = {}  # TODO(colleen): update this

@@ -17,7 +17,7 @@ class TestDetectorSerializer(TestCase):
         detector = Detector.objects.create(
             organization_id=self.organization.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricAlertFire.type_id,
         )
 
         result = serialize(detector)
@@ -26,7 +26,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "organizationId": str(self.organization.id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": str(MetricAlertFire.type_id),
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": None,
@@ -47,7 +47,7 @@ class TestDetectorSerializer(TestCase):
         detector = Detector.objects.create(
             organization_id=self.organization.id,
             name="Test Detector",
-            type=MetricAlertFire.slug,
+            type=MetricAlertFire.type_id,
             workflow_condition_group=condition_group,
         )
         snuba_query = create_snuba_query(
@@ -76,7 +76,7 @@ class TestDetectorSerializer(TestCase):
             "id": str(detector.id),
             "organizationId": str(self.organization.id),
             "name": "Test Detector",
-            "type": MetricAlertFire.slug,
+            "type": str(MetricAlertFire.type_id),
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
             "dataSources": [
@@ -120,7 +120,7 @@ class TestDetectorSerializer(TestCase):
             Detector.objects.create(
                 organization_id=self.organization.id,
                 name=f"Test Detector {i}",
-                type=MetricAlertFire.slug,
+                type=MetricAlertFire.type_id,
             )
             for i in range(2)
         ]

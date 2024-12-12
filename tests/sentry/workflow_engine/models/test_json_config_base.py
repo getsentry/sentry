@@ -1,14 +1,15 @@
+from dataclasses import dataclass
 from unittest.mock import PropertyMock, patch
 
 import pytest
 from jsonschema import ValidationError
 
-from sentry.testutils.cases import TestCase
-from sentry.utils import json
-from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.issues.grouptype import GroupCategory, GroupType
+from sentry.utils.registry import NoRegistrationExistsError
+from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
-class TestJsonConfigBase(TestCase):
+class TestJsonConfigBase(BaseGroupTypeTest):
     def setUp(self):
         super().setUp()
         self.correct_config = {
@@ -20,9 +21,16 @@ class TestJsonConfigBase(TestCase):
             "interests": ["Travel", "Technology"],
         }
 
+        @dataclass(frozen=True)
+        class TestGroupType(GroupType):
+            type_id = 1
+            slug = "test"
+            description = "Test"
+            category = GroupCategory.ERROR.value
+            detector_config_schema = self.example_schema
+
     @pytest.fixture(autouse=True)
     def initialize_configs(self):
-        self.example_registry = Registry[str](enable_reverse_lookup=False)
         self.example_schema = {
             "$id": "https://example.com/user-profile.schema.json",
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -38,14 +46,7 @@ class TestJsonConfigBase(TestCase):
                 "interests": {"type": "array", "items": {"type": "string"}},
             },
         }
-        self.example_registry.register("test_type")(json.dumps(self.example_schema))
-
         with (
-            patch(
-                "sentry.workflow_engine.models.Detector.CONFIG_SCHEMA_REGISTRY",
-                return_value=self.example_registry,
-                new_callable=PropertyMock,
-            ),
             patch(
                 "sentry.workflow_engine.models.Workflow.CONFIG_SCHEMA",
                 return_value=self.example_schema,
@@ -59,14 +60,14 @@ class TestJsonConfigBase(TestCase):
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
         with pytest.raises(NoRegistrationExistsError):
-            self.create_detector(name="test_detector", type="fake_type")
+            self.create_detector(name="test_detector", type=55555)
 
     def test_detector_mismatched_schema(self):
         with pytest.raises(ValidationError):
-            self.create_detector(name="test_detector", type="test_type", config={"hi": "there"})
+            self.create_detector(name="test_detector", type=1, config={"hi": "there"})
 
     def test_detector_correct_schema(self):
-        self.create_detector(name="test_detector", type="test_type", config=self.correct_config)
+        self.create_detector(name="test_detector", type=1, config=self.correct_config)
 
 
 class TestWorkflowConfig(TestJsonConfigBase):

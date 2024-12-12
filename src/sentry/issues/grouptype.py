@@ -16,7 +16,7 @@ from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -174,10 +174,16 @@ class GroupType:
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
     detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    detector_config_schema: dict[str, Any] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
+
+        from sentry.workflow_engine.registry import detector_config_schema_registry
+
+        detector_config_schema = cls.detector_config_schema or {}
+        detector_config_schema_registry.register(cls.type_id)(json.dumps(detector_config_schema))
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)

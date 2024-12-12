@@ -17,8 +17,6 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils import json
-from sentry.utils.registry import Registry
-from sentry.workflow_engine.registry import detector_config_schema_registry
 
 from .json_config import JSONConfigBase
 
@@ -65,10 +63,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
-    @property
-    def CONFIG_SCHEMA_REGISTRY(self) -> Registry:
-        return detector_config_schema_registry
-
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
             UniqueConstraint(
@@ -79,16 +73,16 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
-        return grouptype.registry.get_by_slug(self.type)
+        return grouptype.registry.get_by_type_id(self.type)
 
     @property
     def detector_handler(self) -> DetectorHandler | None:
-        group_type = self.group_type
-        if not group_type:
-            logger.error(
+        try:
+            group_type = self.group_type
+        except ValueError:
+            logger.exception(
                 "No registered grouptype for detector",
                 extra={
-                    "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
@@ -114,6 +108,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema(sender, instance: Detector, **kwargs):
-    registry = instance.CONFIG_SCHEMA_REGISTRY
-    config_schema = registry.get(instance.type)
+    from sentry.workflow_engine.registry import detector_config_schema_registry
+
+    config_schema = detector_config_schema_registry.get(instance.type)
     instance.validate_config(json.loads(config_schema))

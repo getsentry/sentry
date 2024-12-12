@@ -125,12 +125,14 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
         max_length=200,
         help_text="Name of the uptime monitor",
     )
-    group_type = serializers.CharField()
+    group_type = serializers.IntegerField()
 
-    def validate_group_type(self, value: str) -> type[GroupType]:
-        detector_type = grouptype.registry.get_by_slug(value)
-        if detector_type is None:
+    def validate_group_type(self, value: int) -> type[GroupType]:
+        try:
+            detector_type = grouptype.registry.get_by_type_id(value)
+        except ValueError:
             raise serializers.ValidationError("Unknown group type")
+
         if detector_type.detector_validator is None:
             raise serializers.ValidationError("Group type not compatible with detectors")
         # TODO: Probably need to check a feature flag to decide if a given
@@ -170,7 +172,7 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
                 organization_id=self.context["project"].organization_id,
                 name=validated_data["name"],
                 workflow_condition_group=condition_group,
-                type=validated_data["group_type"].slug,
+                type=validated_data["group_type"].type_id,
             )
             DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
 

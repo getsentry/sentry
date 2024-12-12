@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -635,12 +636,13 @@ class Fixtures:
         self,
         *args,
         project=None,
+        type=MetricAlertFire.type_id,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, **kwargs)
+        return Factories.create_detector(*args, project=project, type=type, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)

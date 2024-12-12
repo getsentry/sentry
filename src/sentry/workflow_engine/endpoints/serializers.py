@@ -139,7 +139,7 @@ class DetectorSerializer(Serializer):
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "name": obj.name,
-            "type": obj.type,
+            "type": str(obj.type),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),

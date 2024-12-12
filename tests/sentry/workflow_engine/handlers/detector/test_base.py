@@ -2,15 +2,11 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest import mock
 
-import pytest
-
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
-from sentry.utils import json
-from sentry.utils.registry import Registry
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult, DetectorHandler
 from sentry.workflow_engine.handlers.detector.stateful import StatefulDetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector
@@ -117,34 +113,13 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
         self.handler_type = HandlerGroupType
         self.handler_state_type = HandlerStateGroupType
 
-        for type in [
-            "",
-            self.no_handler_type.slug,
-            self.handler_type.slug,
-            self.handler_state_type.slug,
-            "invalid slug",
-        ]:
-            if type not in self.example_registry.registrations:
-                self.example_registry.register(type)(json.dumps({}))
-
     def tearDown(self):
         super().tearDown()
         self.sm_comp_patcher.__exit__(None, None, None)
 
-    @pytest.fixture(autouse=True)
-    def initialize_detector_config_registry(self):
-        self.example_registry = Registry[str](enable_reverse_lookup=False)
-        with mock.patch(
-            "sentry.workflow_engine.models.Detector.CONFIG_SCHEMA_REGISTRY",
-            return_value=self.example_registry,
-            new_callable=mock.PropertyMock,
-        ):
-            # Run test case
-            yield
-
     def create_detector_and_conditions(self, type: str | None = None):
         if type is None:
-            type = "handler_with_state"
+            type = self.handler_state_type.type_id
         self.project = self.create_project()
         detector = self.create_detector(
             project=self.project,

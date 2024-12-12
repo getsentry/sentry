@@ -1,17 +1,11 @@
 from datetime import datetime
-from typing import Any
-from unittest.mock import PropertyMock, patch
 from uuid import uuid4
-
-import pytest
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
-from sentry.utils import json
-from sentry.utils.registry import Registry
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -20,7 +14,6 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -68,31 +61,14 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             default_event_type=EventType.ERROR,
         )
 
-    @pytest.fixture(autouse=True)
-    def initialize_detector_config_registry(self):
-        self.example_registry = Registry[str](enable_reverse_lookup=False)
-        with patch(
-            "sentry.workflow_engine.models.Detector.CONFIG_SCHEMA_REGISTRY",
-            return_value=self.example_registry,
-            new_callable=PropertyMock,
-        ):
-            # Run test case
-            yield
-
     def create_detector_and_workflow(
         self,
         name_prefix="test",
         workflow_triggers: DataConditionGroup | None = None,
-        detector_type: DetectorType | str = "TestDetector",
-        detector_schema: dict[str, Any] | None = None,
+        detector_type: int = 1,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         workflow_triggers = workflow_triggers or self.create_data_condition_group()
-
-        if not detector_schema:
-            detector_schema = {}
-        if detector_type not in self.example_registry.registrations:
-            self.example_registry.register(detector_type)(json.dumps(detector_schema))
 
         if not workflow_triggers.conditions.exists():
             # create a trigger condition for a new event

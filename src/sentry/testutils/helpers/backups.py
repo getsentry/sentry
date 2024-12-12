@@ -44,6 +44,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
@@ -658,7 +659,7 @@ class ExhaustiveFixtures(Fixtures):
 
         # Setup a test 'Issue Rule' and 'Automation'
         workflow = self.create_workflow(organization=org)
-        detector = self.create_detector(project=project)
+        detector = self.create_detector(project=project, type=MetricAlertFire.slug)
         self.create_detector_workflow(detector=detector, workflow=workflow)
         self.create_detector_state(detector=detector)
 
