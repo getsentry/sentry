@@ -636,7 +636,7 @@ class Fixtures:
         self,
         *args,
         project=None,
-        type=MetricAlertFire.type_id,
+        type=MetricAlertFire.slug,
         **kwargs,
     ) -> Detector:
         if project is None:

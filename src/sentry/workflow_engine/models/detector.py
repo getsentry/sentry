@@ -73,14 +73,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
-        return grouptype.registry.get_by_type_id(self.type)
+        return grouptype.registry.get_by_slug(self.type)
 
     @property
     def detector_handler(self) -> DetectorHandler | None:
-        try:
-            group_type = self.group_type
-        except ValueError:
-            logger.exception(
+        group_type = self.group_type
+        if not group_type:
+            logger.error(
                 "No registered grouptype for detector",
                 extra={
                     "detector_id": self.id,

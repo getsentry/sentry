@@ -18,7 +18,7 @@ def get_detector_by_event(evt: GroupEvent) -> Detector:
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:
-        detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.type_id)
+        detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
 

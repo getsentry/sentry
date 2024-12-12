@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
@@ -65,7 +66,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         name_prefix="test",
         workflow_triggers: DataConditionGroup | None = None,
-        detector_type: int = 1,
+        detector_type: str = ErrorGroupType.slug,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         workflow_triggers = workflow_triggers or self.create_data_condition_group()

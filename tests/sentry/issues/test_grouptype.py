@@ -80,7 +80,7 @@ class GroupTypeTest(BaseGroupTypeTest):
     def test_category_validation(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
-            type_id = 2
+            type_id = 1
             slug = "error"
             description = "Error"
             category = 22

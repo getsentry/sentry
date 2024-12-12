@@ -60,14 +60,14 @@ class TestJsonConfigBase(BaseGroupTypeTest):
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
         with pytest.raises(NoRegistrationExistsError):
-            self.create_detector(name="test_detector", type=55555)
+            self.create_detector(name="test_detector", type="no_registration")
 
     def test_detector_mismatched_schema(self):
         with pytest.raises(ValidationError):
-            self.create_detector(name="test_detector", type=1, config={"hi": "there"})
+            self.create_detector(name="test_detector", type="test", config={"hi": "there"})
 
     def test_detector_correct_schema(self):
-        self.create_detector(name="test_detector", type=1, config=self.correct_config)
+        self.create_detector(name="test_detector", type="test", config=self.correct_config)
 
 
 class TestWorkflowConfig(TestJsonConfigBase):

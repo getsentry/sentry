@@ -119,7 +119,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
     def create_detector_and_conditions(self, type: str | None = None):
         if type is None:
-            type = self.handler_state_type.type_id
+            type = "handler_with_state"
         self.project = self.create_project()
         detector = self.create_detector(
             project=self.project,

@@ -96,8 +96,8 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
         self.validator_class = ConcreteGroupTypeValidator
 
     def test_validate_group_type_valid(self):
-        with mock.patch.object(grouptype.registry, "get_by_type_id") as mock_get_by_type_id:
-            mock_get_by_type_id.return_value = GroupType(
+        with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
+            mock_get_by_slug.return_value = GroupType(
                 type_id=1,
                 slug="test_type",
                 description="no handler",
@@ -105,19 +105,19 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
                 detector_validator=MetricAlertsDetectorValidator,
             )
             validator = self.validator_class()
-            result = validator.validate_group_type(1)
-            assert result == mock_get_by_type_id.return_value
+            result = validator.validate_group_type("test_type")
+            assert result == mock_get_by_slug.return_value
 
     def test_validate_group_type_unknown(self):
         validator = self.validator_class()
         with pytest.raises(
             ValidationError, match="[ErrorDetail(string='Unknown group type', code='invalid')]"
         ):
-            validator.validate_group_type(9)
+            validator.validate_group_type("unknown_type")
 
     def test_validate_group_type_incompatible(self):
-        with mock.patch.object(grouptype.registry, "get_by_type_id") as mock_get_by_type_id:
-            mock_get_by_type_id.return_value = GroupType(
+        with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
+            mock_get_by_slug.return_value = GroupType(
                 type_id=1,
                 slug="test_type",
                 description="no handler",
@@ -129,7 +129,7 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
                 ValidationError,
                 match="[ErrorDetail(string='Group type not compatible with detectors', code='invalid')]",
             ):
-                validator.validate_group_type(1)
+                validator.validate_group_type("test_type")
 
 
 class MetricAlertComparisonConditionValidatorTest(TestCase):
@@ -188,7 +188,7 @@ class DetectorValidatorTest(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.type_id,
+            "group_type": MetricAlertFire.slug,
             "data_source": {
                 "field1": "test",
                 "field2": 123,
@@ -211,7 +211,7 @@ class DetectorValidatorTest(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == str(MetricAlertFire.type_id)
+        assert detector.type == MetricAlertFire.slug
         assert detector.organization_id == self.project.organization_id
 
         # Verify data source in DB
@@ -250,7 +250,7 @@ class DetectorValidatorTest(TestCase):
         ], validator.errors
 
     def test_validate_group_type_incompatible(self):
-        with mock.patch("sentry.issues.grouptype.registry.get_by_type_id") as mock_get:
+        with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
             validator = MockDetectorValidator(data={**self.valid_data, "group_type": 9})
             assert not validator.is_valid()
@@ -273,7 +273,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.type_id,
+            "group_type": MetricAlertFire.slug,
             "data_source": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -306,7 +306,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == str(MetricAlertFire.type_id)
+        assert detector.type == MetricAlertFire.slug
         assert detector.organization_id == self.project.organization_id
 
         # Verify data source and query subscription in DB

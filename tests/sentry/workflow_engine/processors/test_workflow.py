@@ -14,7 +14,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow(detector_type=MetricAlertFire.type_id)
+        ) = self.create_detector_and_workflow(detector_type=MetricAlertFire.slug)
 
         self.error_workflow, self.error_detector, self.detector_workflow_error, _ = (
             self.create_detector_and_workflow(

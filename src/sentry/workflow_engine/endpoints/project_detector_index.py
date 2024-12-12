@@ -33,12 +33,10 @@ class ProjectDetectorIndexEndpoint(ProjectEndpoint):
     # too?
     permission_classes = (ProjectAlertRulePermission,)
 
-    def _get_validator(self, request, project, group_type_id):
-        try:
-            detector_type = grouptype.registry.get_by_type_id(group_type_id)
-        except ValueError:
+    def _get_validator(self, request, project, group_type_slug):
+        detector_type = grouptype.registry.get_by_slug(group_type_slug)
+        if detector_type is None:
             raise ValidationError({"groupType": ["Unknown group type"]})
-
         if detector_type.detector_validator is None:
             raise ValidationError({"groupType": ["Group type not compatible with detectors"]})
 

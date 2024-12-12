@@ -183,7 +183,7 @@ class GroupType:
         from sentry.workflow_engine.registry import detector_config_schema_registry
 
         detector_config_schema = cls.detector_config_schema or {}
-        detector_config_schema_registry.register(cls.type_id)(json.dumps(detector_config_schema))
+        detector_config_schema_registry.register(cls.slug)(json.dumps(detector_config_schema))
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
@@ -566,12 +566,14 @@ MonitorCheckInFailure = MonitorIncidentType
 class MonitorCheckInTimeout(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4002
+    slug = "monitor_check_in_timeout"
 
 
 @dataclass(frozen=True)
 class MonitorCheckInMissed(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4003
+    slug = "monitor_check_in_missed"
 
 
 @dataclass(frozen=True)

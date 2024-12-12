@@ -34,12 +34,12 @@ class ProjectDetectorIndexGetTest(ProjectDetectorIndexBaseTest):
         detector = Detector.objects.create(
             organization_id=self.organization.id,
             name="Test Detector",
-            type=MetricAlertFire.type_id,
+            type=MetricAlertFire.slug,
         )
         detector_2 = Detector.objects.create(
             organization_id=self.organization.id,
             name="Test Detector 2",
-            type=MetricAlertFire.type_id,
+            type=MetricAlertFire.slug,
         )
         response = self.get_success_response(self.organization.slug, self.project.slug)
         assert response.data == serialize([detector, detector_2])
@@ -57,7 +57,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         super().setUp()
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.type_id,
+            "group_type": MetricAlertFire.slug,
             "data_source": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.name.lower(),
@@ -98,7 +98,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == {"groupType": ["Unknown group type"]}
 
     def test_incompatible_group_type(self):
-        with mock.patch("sentry.issues.grouptype.registry.get_by_type_id") as mock_get:
+        with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
             data = {**self.valid_data, "group_type": "incompatible_type"}
             response = self.get_error_response(
@@ -122,7 +122,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         detector = Detector.objects.get(id=response.data["id"])
         assert response.data == serialize([detector])[0]
         assert detector.name == "Test Detector"
-        assert detector.type == str(MetricAlertFire.type_id)
+        assert detector.type == MetricAlertFire.slug
         assert detector.organization_id == self.organization.id
 
         # Verify data source
