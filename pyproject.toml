@@ -154,7 +154,6 @@ module = [
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.team_details",
-    "sentry.api.endpoints.team_release_count",
     "sentry.api.endpoints.user_subscriptions",
     "sentry.api.event_search",
     "sentry.api.helpers.group_index.index",
