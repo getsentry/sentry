@@ -20,7 +20,6 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -37,7 +36,6 @@ from sentry.tasks.embeddings_grouping.utils import (
     _make_postgres_call_with_filter,
     get_data_from_snuba,
     get_events_from_nodestore,
-    lookup_event,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -208,17 +206,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
-
-    def test_lookup_event_success(self):
-        """Test single event lookup is successful"""
-        found_event = lookup_event(self.project.id, self.event.event_id, self.event.group_id)
-
-        assert self.event.event_id == found_event.event_id
-
-    def test_lookup_event_event_lookup_error(self):
-        """Test that EventLookupError is raised when an event does not exist"""
-        with pytest.raises(EventLookupError):
-            lookup_event(self.project.id, "1000000", 1000000)
 
     @patch("sentry.tasks.embeddings_grouping.utils.metrics")
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
