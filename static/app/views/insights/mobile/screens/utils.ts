@@ -1,7 +1,7 @@
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
+import {VitalState} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 
 const formatMetricValue = (metric: MetricValue): string => {
   if (typeof metric.value === 'number' && metric.type === 'duration' && metric.unit) {

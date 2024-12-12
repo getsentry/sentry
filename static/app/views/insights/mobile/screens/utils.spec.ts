@@ -4,7 +4,7 @@ import {
   type MetricValue,
   PerformanceScore,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
+import {VitalState} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

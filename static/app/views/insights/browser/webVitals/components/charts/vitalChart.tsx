@@ -1,4 +1,5 @@
-import {useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
+import type {Location} from '@sentry/react/build/types/types';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -9,6 +10,7 @@ import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import {getSeriesSelection} from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
@@ -18,23 +20,15 @@ import type {Series} from 'sentry/types/echarts';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import type EventView from 'sentry/utils/discover/eventView';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
-import type {ViewProps} from '../types';
-
-import {
-  getMaxOfSeries,
-  getVitalChartDefinitions,
-  getVitalChartTitle,
-  vitalNameFromLocation,
-  VitalState,
-  vitalStateColors,
-} from './utils';
+export type ViewProps = Pick<EventView, (typeof QUERY_KEYS)[number]>;
 
 type Props = Omit<ViewProps, 'start' | 'end'> & {
   end: DateString | null;
@@ -42,6 +36,17 @@ type Props = Omit<ViewProps, 'start' | 'end'> & {
   organization: OrganizationSummary;
   start: DateString | null;
 };
+
+function vitalNameFromLocation(location: Location): WebVital {
+  const _vitalName = decodeScalar(location.query.vitalName);
+
+  const vitalName = Object.values(WebVital).find(v => v === _vitalName);
+
+  if (vitalName) {
+    return vitalName;
+  }
+  return WebVital.LCP;
+}
 
 function VitalChart({
   project,
@@ -300,4 +305,116 @@ export function _VitalChart(props: _VitalChartProps) {
       </TransitionChart>
     </div>
   );
+}
+
+export function getVitalChartDefinitions({
+  theme,
+  location,
+  vital,
+  yAxis,
+}: {
+  location: Location;
+  theme: Theme;
+  vital: string;
+  yAxis: string;
+}) {
+  const utc = decodeScalar(location.query.utc) !== 'false';
+
+  const vitalPoor = webVitalPoor[vital];
+  const vitalMeh = webVitalMeh[vital];
+
+  const legend = {
+    right: 10,
+    top: 0,
+    selected: getSeriesSelection(location),
+  };
+
+  const chartOptions: Omit<LineChartProps, 'series'> = {
+    grid: {
+      left: '5px',
+      right: '10px',
+      top: '35px',
+      bottom: '0px',
+    },
+    seriesOptions: {
+      showSymbol: false,
+    },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (value: number, seriesName?: string) =>
+        tooltipFormatter(
+          value,
+          aggregateOutputType(vital === WebVital.CLS ? seriesName : yAxis)
+        ),
+    },
+    yAxis: {
+      min: 0,
+      max: vitalPoor,
+      axisLabel: {
+        color: theme.chartLabel,
+        showMaxLabel: false,
+        // coerces the axis to be time based
+        formatter: (value: number) =>
+          axisLabelFormatter(value, aggregateOutputType(yAxis)),
+      },
+    },
+  };
+
+  const markLines = [
+    {
+      seriesName: 'Thresholds',
+      type: 'line' as const,
+      data: [],
+      markLine: MarkLine({
+        silent: true,
+        lineStyle: {
+          color: theme.red300,
+          type: 'dashed',
+          width: 1.5,
+        },
+        label: {
+          show: true,
+          position: 'insideEndTop',
+          formatter: t('Poor'),
+        },
+        data: [
+          {
+            yAxis: vitalPoor,
+          } as any, // TODO(ts): date on this type is likely incomplete (needs @types/echarts@4.6.2)
+        ],
+      }),
+    },
+    {
+      seriesName: 'Thresholds',
+      type: 'line' as const,
+      data: [],
+      markLine: MarkLine({
+        silent: true,
+        lineStyle: {
+          color: theme.yellow300,
+          type: 'dashed',
+          width: 1.5,
+        },
+        label: {
+          show: true,
+          position: 'insideEndTop',
+          formatter: t('Meh'),
+        },
+        data: [
+          {
+            yAxis: vitalMeh,
+          } as any, // TODO(ts): date on this type is likely incomplete (needs @types/echarts@4.6.2)
+        ],
+      }),
+    },
+  ];
+
+  return {
+    vitalPoor,
+    vitalMeh,
+    legend,
+    chartOptions,
+    markLines,
+    utc,
+  };
 }

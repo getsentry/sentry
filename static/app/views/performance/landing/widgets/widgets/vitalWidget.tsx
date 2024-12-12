@@ -23,6 +23,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {VitalBar} from 'sentry/views/performance/transactionSummary/transactionVitals/vitalBar';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -35,7 +36,6 @@ import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/ut
 import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
-import {VitalBar} from '../../vitalsCards';
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
