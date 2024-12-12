@@ -392,6 +392,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["count"] == "3"
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert result["firstSeen"] == group.first_seen
+        assert result["userCount"] == 3
+        assert result["allUserCount"] == 3
 
         # update this to something different to make sure it's being used
         group_env = GroupEnvironment.objects.get(group_id=group_id, environment_id=environment.id)
@@ -402,7 +404,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         result = serialize(
             group,
-            serializer=GroupSerializerSnuba(environment_ids=[environment.id, environment2.id]),
+            serializer=GroupSerializerSnuba(environment_ids=[environment.id]),
         )
         assert result["count"] == "3"
         # result is rounded down to nearest second
@@ -410,7 +412,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
         assert group_env2.first_seen is not None
         assert group_env2.first_seen > group_env.first_seen
-        assert result["userCount"] == 3
+        assert result["userCount"] == 2
+        assert result["allUserCount"] == 3
 
         result = serialize(
             group,
@@ -435,6 +438,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                         "first_seen": None,
                         "times_seen": 0,
                         "user_count": 0,
+                        "all_user_count": 0,
                     }
                 }
             )
