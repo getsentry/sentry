@@ -189,19 +189,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
-    # def tearDown(self):
-    #     super().tearDown()
-
     def test_lookup_event_success(self):
         """Test single event lookup is successful"""
-        # self.wait_for_event_count(self.project.id, 5)
         found_event = lookup_event(self.project.id, self.event.event_id, self.event.group_id)
 
         assert self.event.event_id == found_event.event_id
 
     def test_lookup_event_event_lookup_error(self):
         """Test that EventLookupError is raised when an event does not exist"""
-        # self.wait_for_event_count(self.project.id, 5)
         with pytest.raises(EventLookupError):
             lookup_event(self.project.id, "1000000", 1000000)
 
@@ -882,7 +877,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_backfill_logger, mock_utils_logger
     ):
         """
-        Test that the metadata is set for all groups showing that the record has been created,
+        Test that the metadata is set for all groups showing that the record hs been created,
         where number of groups > the batch size, 10.
         """
         function_names = [f"another_function_{str(i)}" for i in range(10)]
@@ -987,13 +982,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "backfill_seer_grouping_records.batch",
                 extra={
                     "project_id": self.project.id,
-                    "batch_len": 6,
+                    "batch_len": 5,
                     "last_processed_group_id": project_group_ids[-1],
                 },
             ),
             call(
                 "backfill_seer_grouping_records.bulk_update",
-                extra={"project_id": self.project.id, "num_updated": 6},
+                extra={"project_id": self.project.id, "num_updated": 5},
             ),
             call(
                 "backfill_seer_grouping_records.start",
