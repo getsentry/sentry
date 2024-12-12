@@ -88,7 +88,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
         assert response.data == {"groupType": ["This field is required."]}
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": 9999999}
+        data = {**self.valid_data, "group_type": "invalid_type"}
         response = self.get_error_response(
             self.organization.slug,
             self.project.slug,

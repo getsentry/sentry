@@ -11,7 +11,6 @@ from sentry.incidents.endpoints.validators import (
     MetricAlertComparisonConditionValidator,
     MetricAlertsDetectorValidator,
 )
-from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, GroupType
@@ -109,11 +108,12 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
             assert result == mock_get_by_slug.return_value
 
     def test_validate_group_type_unknown(self):
-        validator = self.validator_class()
-        with pytest.raises(
-            ValidationError, match="[ErrorDetail(string='Unknown group type', code='invalid')]"
-        ):
-            validator.validate_group_type("unknown_type")
+        with mock.patch.object(grouptype.registry, "get_by_slug", return_value=None):
+            validator = self.validator_class()
+            with pytest.raises(
+                ValidationError, match="[ErrorDetail(string='Unknown group type', code='invalid')]"
+            ):
+                validator.validate_group_type("unknown_type")
 
     def test_validate_group_type_incompatible(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
@@ -188,7 +188,7 @@ class DetectorValidatorTest(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.slug,
+            "group_type": "metric_alert_fire",
             "data_source": {
                 "field1": "test",
                 "field2": 123,
@@ -211,7 +211,7 @@ class DetectorValidatorTest(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == "metric_alert_fire"
         assert detector.organization_id == self.project.organization_id
 
         # Verify data source in DB
@@ -243,7 +243,7 @@ class DetectorValidatorTest(TestCase):
         )
 
     def test_validate_group_type_unknown(self):
-        validator = MockDetectorValidator(data={**self.valid_data, "group_type": 9})
+        validator = MockDetectorValidator(data={**self.valid_data, "group_type": "unknown_type"})
         assert not validator.is_valid()
         assert validator.errors.get("groupType") == [
             ErrorDetail(string="Unknown group type", code="invalid")
@@ -252,7 +252,9 @@ class DetectorValidatorTest(TestCase):
     def test_validate_group_type_incompatible(self):
         with mock.patch("sentry.issues.grouptype.registry.get_by_slug") as mock_get:
             mock_get.return_value = mock.Mock(detector_validator=None)
-            validator = MockDetectorValidator(data={**self.valid_data, "group_type": 9})
+            validator = MockDetectorValidator(
+                data={**self.valid_data, "group_type": "incompatible_type"}
+            )
             assert not validator.is_valid()
             assert validator.errors.get("groupType") == [
                 ErrorDetail(string="Group type not compatible with detectors", code="invalid")
@@ -273,7 +275,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         }
         self.valid_data = {
             "name": "Test Detector",
-            "group_type": MetricAlertFire.slug,
+            "group_type": "metric_alert_fire",
             "data_source": {
                 "query_type": SnubaQuery.Type.ERROR.value,
                 "dataset": Dataset.Events.value,
@@ -306,7 +308,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         # Verify detector in DB
         detector = Detector.objects.get(id=detector.id)
         assert detector.name == "Test Detector"
-        assert detector.type == MetricAlertFire.slug
+        assert detector.type == "metric_alert_fire"
         assert detector.organization_id == self.project.organization_id
 
         # Verify data source and query subscription in DB
@@ -354,7 +356,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         )
 
     def test_invalid_group_type(self):
-        data = {**self.valid_data, "group_type": 9}
+        data = {**self.valid_data, "group_type": "invalid_type"}
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
         assert not validator.is_valid()
         assert validator.errors.get("groupType") == [
