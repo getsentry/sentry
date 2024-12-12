@@ -336,8 +336,7 @@ def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
-    # If a checksum is set the only variant that comes back from this
-    # event is the checksum variant.
+    # If a checksum is set the only variant that comes back from this event is the checksum variant.
     #
     # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
     # strategies but mark them as non-contributing, with explanations why?
