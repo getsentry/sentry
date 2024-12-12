@@ -16,25 +16,14 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
+from sentry.workflow_engine.workflow_engine_processor import WorkflowEngineProcessor
 
 
-@dataclass
-class WorkflowEngine:
-    """
-    Base class that sets up the handlers / types etc
-    """
-
-    pass
-
-
-class MetricAlert[QuerySubscriptionUpdate](WorkflowEngine):
-    # a couple proxy methods to create the Detector Handlers
-    #   - can we set defaults for any of them and keep them hidden and allow overrides?
-    # def build_occurrence(detector_result) -> IssueOccurrence:
-
-    # def get_group_key_values(data_packet: DataPacket[QuerySubscriptionUpdate]) -> dict[DetectorGroupKey, int]:
-    #   - maybe we can genrealize this for data conditions? :thinking_face: maybe we could just map like a group to data packet.
-    pass
+class MetricAlertProcessor(WorkflowEngineProcessor[QuerySubscriptionUpdate]):
+    # @register_subscriber(INCIDENTS_SNUBA_SUBSCRIPTION_TYPE)
+    def process(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> None:
+        # Placeholder for now, we'll need to update this to actually create the issue
+        pass
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
@@ -53,7 +42,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
             resource_id=None,
             evidence_data={"detector_id": self.detector.id, "value": value},
             evidence_display=[],
-            type=MetricAlertFire,
+            type=MetricIssue,
             detection_time=datetime.now(UTC),
             level="error",
             culprit="Some culprit",
@@ -87,7 +76,7 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something
 # like these when we're sending issues as alerts
 @dataclass(frozen=True)
-class MetricAlertFire(GroupType):
+class MetricIssue(GroupType):
     type_id = 8001
     slug = "metric_alert_fire"
     description = "Metric alert fired"
@@ -96,7 +85,7 @@ class MetricAlertFire(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
-    detector_handler = MetricAlertDetectorHandler
+    detector_handler = MetricAlertProcessor
     detector_validator = MetricAlertsDetectorValidator
     detector_config_schema = {}  # TODO(colleen): update this
 
