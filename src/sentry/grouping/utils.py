@@ -83,6 +83,7 @@ def get_fingerprint_value(var, data):
     elif var == "logger":
         return data.get("logger") or "<no-logger>"
     elif var.startswith("tags."):
+        # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
         for t, value in data.get("tags") or ():
             if t == tag:
