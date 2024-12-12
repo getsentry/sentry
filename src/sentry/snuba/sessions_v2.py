@@ -4,7 +4,7 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, NotRequired, Protocol, TypedDict
 
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
@@ -101,6 +101,11 @@ Is then "exploded" into something like:
 """
 
 
+class _Field(Protocol):
+    def extract_from_row(self, row, group) -> float | None: ...
+    def get_snuba_columns(self, raw_groupby) -> list[str]: ...
+
+
 class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
@@ -188,7 +193,7 @@ class DurationQuantileField:
         return None
 
 
-COLUMN_MAP = {
+COLUMN_MAP: dict[str, _Field] = {
     "sum(session)": SessionsField(),
     "count_unique(user)": UsersField(),
     "avg(session.duration)": DurationAverageField(),
@@ -199,6 +204,12 @@ COLUMN_MAP = {
     "p99(session.duration)": DurationQuantileField(4),
     "max(session.duration)": DurationQuantileField(5),
 }
+
+
+class _GroupBy(Protocol):
+    def get_snuba_columns(self) -> list[str]: ...
+    def get_snuba_groupby(self) -> list[str]: ...
+    def get_keys_for_row(self, row) -> list[tuple[str, str]]: ...
 
 
 class SimpleGroupBy:
@@ -229,7 +240,7 @@ class SessionStatusGroupBy:
 
 # NOTE: in the future we might add new `user_agent` and `os` fields
 
-GROUPBY_MAP = {
+GROUPBY_MAP: dict[str, _GroupBy] = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
@@ -423,8 +434,8 @@ def get_constrained_date_range(
     max_points=MAX_POINTS,
     restrict_date_range=True,
 ) -> tuple[datetime, datetime, int]:
-    interval = parse_stats_period(params.get("interval", "1h"))
-    interval = int(3600 if interval is None else interval.total_seconds())
+    interval_td = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval_td is None else interval_td.total_seconds())
 
     smallest_interval, interval_str = allowed_resolution.value
     if interval % smallest_interval != 0 or interval < smallest_interval:
@@ -569,7 +580,8 @@ def massage_sessions_result(
             row[ts_col] = row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
-        fields = [(name, field, list()) for name, field in query.fields.items()]
+        fields: list[tuple[str, _Field, list[float | None]]]
+        fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
 
         while group_index < len(rows):
@@ -618,9 +630,16 @@ def massage_sessions_result(
     }
 
 
+class _CategoryStats(TypedDict):
+    category: str
+    outcomes: dict[str, int]
+    totals: dict[str, int]
+    reason: NotRequired[str]
+
+
 def massage_sessions_result_summary(
     query, result_totals, outcome_query=None
-) -> dict[str, list[Any]]:
+) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], dict[str, list[Any]]]:
     """
     Post-processes the query result.
 
@@ -667,8 +686,8 @@ def massage_sessions_result_summary(
         }
 
     def get_category_stats(
-        reason, totals, outcome, category, category_stats: dict[str, int] | None = None
-    ):
+        reason, totals, outcome, category, category_stats: _CategoryStats | None = None
+    ) -> _CategoryStats:
         if not category_stats:
             category_stats = {
                 "category": category,
@@ -697,7 +716,7 @@ def massage_sessions_result_summary(
         return category_stats
 
     keys = set(total_groups.keys())
-    projects = {}
+    projects: dict[int, dict[str, dict[str, _CategoryStats]]] = {}
 
     for key in keys:
         by = dict(key)
@@ -708,8 +727,7 @@ def massage_sessions_result_summary(
 
         totals = make_totals(total_groups.get(key, [None]), by)
 
-        if project_id not in projects:
-            projects[project_id] = {"categories": {}}
+        projects.setdefault(project_id, {"categories": {}})
 
         if category in projects[project_id]["categories"]:
             # update stats dict for category
@@ -763,18 +781,16 @@ def get_timestamps(query):
 
 
 def _split_rows_groupby(rows, groupby):
-    groups = {}
+    groups: dict[frozenset[str], list[object]] = {}
     if rows is None:
         return groups
     for row in rows:
         key_parts = (group.get_keys_for_row(row) for group in groupby)
         keys = itertools.product(*key_parts)
 
-        for key in keys:
-            key = frozenset(key)
+        for key_tup in keys:
+            key = frozenset(key_tup)
 
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(row)
+            groups.setdefault(key, []).append(row)
 
     return groups
