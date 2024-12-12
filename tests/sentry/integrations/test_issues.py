@@ -188,6 +188,10 @@ class IssueSyncIntegration(TestCase):
             }
 
     def test_sync_status_does_not_override_existing_recent_group_resolution(self):
+        """
+        Test that the sync_status_inbound does not override the existing group resolution
+        if the group was recently resolved
+        """
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release2 = Release.objects.create(organization_id=self.project.organization_id, version="b")
         release.add_project(self.project)
