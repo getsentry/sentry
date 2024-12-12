@@ -195,9 +195,10 @@ export declare namespace TraceTree {
     poor: boolean;
     start: number;
     type: 'cls' | 'fcp' | 'fp' | 'lcp' | 'ttfb';
+    score?: number;
   };
 
-  type CollectedVital = {key: string; measurement: Measurement};
+  type CollectedVital = {key: string; measurement: Measurement; score?: number};
 }
 
 export enum TraceShape {

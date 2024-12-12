@@ -55,10 +55,13 @@ import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerFor
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
+import {
+  determineMultiSeriesConfidence,
+  determineSeriesConfidence,
+} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isCustomMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricAlert';
-import {isLowConfidenceTimeSeries} from 'sentry/views/alerts/rules/metric/utils/isLowConfidenceTimeSeries';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType, type Anomaly} from 'sentry/views/alerts/types';
 import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
@@ -68,6 +71,7 @@ import {
   DatasetMEPAlertQueryTypes,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {isEventsStats} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {MetricsBetaEndAlert} from 'sentry/views/metrics/metricsBetaEndAlert';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -170,6 +174,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     super(props, context);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
+    this.handleConfidenceTimeSeriesDataFetched =
+      this.handleConfidenceTimeSeriesDataFetched.bind(this);
   }
 
   get isDuplicateRule(): boolean {
@@ -1041,15 +1047,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     if (shouldShowOnDemandMetricAlertUI(this.props.organization)) {
       newState.isExtrapolatedChartData = Boolean(isExtrapolatedData);
     }
-    if (isLowConfidenceTimeSeries(data)) {
-      newState.isLowConfidenceChartData = true;
-    }
     this.setState(newState, () => this.fetchAnomalies());
     const {dataset, aggregate, query} = this.state;
     if (!isOnDemandMetricAlert(dataset, aggregate, query)) {
       this.handleMEPAlertDataset(data);
     }
   };
+
+  handleConfidenceTimeSeriesDataFetched(
+    data: EventsStats | MultiSeriesEventsStats | null
+  ) {
+    if (!data) {
+      return;
+    }
+    const confidence = isEventsStats(data)
+      ? determineSeriesConfidence(data)
+      : determineMultiSeriesConfidence(data);
+    this.setState({isLowConfidenceChartData: confidence === 'low'});
+  }
 
   handleHistoricalTimeSeriesDataFetched(
     data: EventsStats | MultiSeriesEventsStats | null
@@ -1227,8 +1242,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       showTotalCount:
         !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
+      onConfidenceDataLoaded: this.handleConfidenceTimeSeriesDataFetched,
       includeHistorical: comparisonType === AlertRuleComparisonType.DYNAMIC,
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
+      includeConfidence: alertType === 'eap_metrics',
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

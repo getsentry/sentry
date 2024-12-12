@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+from sentry.grouping.component import (
+    AppGroupingComponent,
+    DefaultGroupingComponent,
+    SystemGroupingComponent,
+)
 from sentry.grouping.fingerprinting import FingerprintRule
 from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
 from sentry.types.misc import KeyedList
 
 if TYPE_CHECKING:
     from sentry.grouping.api import FingerprintInfo
-    from sentry.grouping.component import BaseGroupingComponent
     from sentry.grouping.strategies.base import StrategyConfiguration
 
 
@@ -18,12 +23,13 @@ class FingerprintVariantMetadata(TypedDict):
     matched_rule: NotRequired[str]
 
 
-class BaseVariant:
-    # The type of the variant that is reported to the UI.
-    type: str | None = None
-
+class BaseVariant(ABC):
     # This is true if `get_hash` does not return `None`.
     contributes = True
+
+    @property
+    @abstractmethod
+    def type(self) -> str: ...
 
     def get_hash(self) -> str | None:
         return None
@@ -118,15 +124,17 @@ class PerformanceProblemVariant(BaseVariant):
 
 
 class ComponentVariant(BaseVariant):
-    """A component variant is a variant that produces a hash from the
-    `BaseGroupingComponent` it encloses.
-    """
+    """A variant that produces a hash from the `BaseGroupingComponent` it encloses."""
 
     type = "component"
 
-    def __init__(self, component, config):
+    def __init__(
+        self,
+        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        strategy_config: StrategyConfiguration,
+    ):
         self.component = component
-        self.config = config
+        self.config = strategy_config
 
     @property
     def description(self):
@@ -146,18 +154,20 @@ class ComponentVariant(BaseVariant):
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
-def expose_fingerprint_dict(values: list[str], info: FingerprintInfo) -> FingerprintVariantMetadata:
+def expose_fingerprint_dict(
+    fingerprint: list[str], fingerprint_info: FingerprintInfo
+) -> FingerprintVariantMetadata:
     rv: FingerprintVariantMetadata = {
-        "values": values,
+        "values": fingerprint,
     }
 
-    client_values = info.get("client_fingerprint")
-    if client_values and (
-        len(client_values) != 1 or not is_default_fingerprint_var(client_values[0])
+    client_fingerprint = fingerprint_info.get("client_fingerprint")
+    if client_fingerprint and (
+        len(client_fingerprint) != 1 or not is_default_fingerprint_var(client_fingerprint[0])
     ):
-        rv["client_values"] = client_values
+        rv["client_values"] = client_fingerprint
 
-    matched_rule = info.get("matched_rule")
+    matched_rule = fingerprint_info.get("matched_rule")
     if matched_rule:
         # TODO: Before late October 2024, we didn't store the rule text along with the matched rule,
         # meaning there are still events out there whose `_fingerprint_info` entry doesn't have it.
@@ -173,8 +183,8 @@ class CustomFingerprintVariant(BaseVariant):
 
     type = "custom_fingerprint"
 
-    def __init__(self, values: list[str], fingerprint_info: FingerprintInfo):
-        self.values = values
+    def __init__(self, fingerprint: list[str], fingerprint_info: FingerprintInfo):
+        self.values = fingerprint
         self.info = fingerprint_info
 
     @property
@@ -189,7 +199,7 @@ class CustomFingerprintVariant(BaseVariant):
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in, Sentry defined fingerprint."""
+    """A built-in, Sentry-defined fingerprint."""
 
     type = "built_in_fingerprint"
 
@@ -205,13 +215,13 @@ class SaltedComponentVariant(ComponentVariant):
 
     def __init__(
         self,
-        values: list[str],
-        component: BaseGroupingComponent[Any],
-        config: StrategyConfiguration,
+        fingerprint: list[str],
+        component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, config)
-        self.values = values
+        ComponentVariant.__init__(self, component, strategy_config)
+        self.values = fingerprint
         self.info = fingerprint_info
 
     @property
@@ -221,8 +231,10 @@ class SaltedComponentVariant(ComponentVariant):
     def get_hash(self) -> str | None:
         if not self.component.contributes:
             return None
-        final_values = []
+        final_values: list[str | int] = []
         for value in self.values:
+            # If we've hit the `{{ default }}` part of the fingerprint, pull in values from the
+            # original grouping method (message, stacktrace, etc.)
             if is_default_fingerprint_var(value):
                 final_values.extend(self.component.iter_values())
             else:

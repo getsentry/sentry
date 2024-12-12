@@ -32,6 +32,22 @@ body {
   min-height: 100vh;
 }
 
+// Applied to body
+body.theme-dark {
+  // theme.surface200
+  background: #1A141F;
+  // theme.gray400
+  color: #D6D0DC;
+}
+body.theme-system {
+  @media (prefers-color-scheme: dark) {
+    // theme.surface200
+    background: #1A141F;
+    // theme.gray400
+    color: #D6D0DC;
+  }
+}
+
 h1,
 h2,
 h3,

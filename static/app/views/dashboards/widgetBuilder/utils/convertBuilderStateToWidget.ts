@@ -1,5 +1,5 @@
 import {defined} from 'sentry/utils';
-import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, type Sort} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
@@ -22,6 +22,13 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     ?.filter(field => 'kind' in field && field.kind === 'field')
     .map(generateFieldAsString);
 
+  // If there's no sort, use the first field as the default sort
+  const defaultSort = fields?.[0] ?? defaultQuery.orderby;
+  const sort =
+    defined(state.sort) && state.sort.length > 0
+      ? _formatSort(state.sort[0])
+      : defaultSort;
+
   const widgetQueries: WidgetQuery[] = queries.map(query => {
     return {
       ...defaultQuery,
@@ -32,9 +39,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
           : defaultQuery.aggregates,
       columns: defined(columns) && columns.length > 0 ? columns : defaultQuery.columns,
       conditions: query,
-      // TODO: This will be read from the state under a separate key, not derived
-      // from the fields. This is only to satisfy the type interface for now.
-      orderby: defined(fields) && fields.length > 0 ? fields[0] : defaultQuery.orderby,
+      orderby: sort,
     };
   });
 
@@ -45,5 +50,11 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
     interval: '1h', // TODO: Not sure what to put here yet
     queries: widgetQueries,
     widgetType: state.dataset,
+    limit: state.limit,
   };
+}
+
+function _formatSort(sort: Sort): string {
+  const direction = sort.kind === 'desc' ? '-' : '';
+  return `${direction}${sort.field}`;
 }

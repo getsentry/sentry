@@ -9,16 +9,28 @@ export function convertWidgetToBuilderStateParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
   const yAxis = widget.queries.flatMap(q => q.aggregates);
-  const field = widget.queries.flatMap(q => q.fields);
   const query = widget.queries.flatMap(q => q.conditions);
+  const sort = widget.queries.flatMap(q => q.orderby);
+
+  let field: string[] = [];
+  if (
+    widget.displayType === DisplayType.TABLE ||
+    widget.displayType === DisplayType.BIG_NUMBER
+  ) {
+    field = widget.queries.flatMap(q => q.fields ?? []);
+  } else {
+    field = widget.queries.flatMap(q => q.columns);
+  }
 
   return {
     title: widget.title,
     description: widget.description ?? '',
     dataset: widget.widgetType ?? WidgetType.ERRORS,
     displayType: widget.displayType ?? DisplayType.TABLE,
+    limit: widget.limit,
     field,
     yAxis,
     query,
+    sort,
   };
 }

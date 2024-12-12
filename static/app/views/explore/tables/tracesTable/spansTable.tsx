@@ -12,10 +12,12 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
+import {
+  useExploreDataset,
+  useExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {type SpanResult, useTraceSpans} from 'sentry/views/explore/hooks/useTraceSpans';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {type Field, FIELDS, SORTS} from 'sentry/views/explore/tables/tracesTable/data';
 import {
   SpanBreakdownSliceRenderer,
@@ -33,24 +35,15 @@ import {
   StyledPanelItem,
   StyledSpanPanelItem,
 } from 'sentry/views/explore/tables/tracesTable/styles';
-import {
-  getSecondaryNameFromSpan,
-  getStylingSliceName,
-} from 'sentry/views/explore/tables/tracesTable/utils';
+import {getSecondaryNameFromSpan} from 'sentry/views/explore/tables/tracesTable/utils';
 
 const ONE_MINUTE = 60 * 1000; // in milliseconds
 
-export function SpanTable({
-  trace,
-  setHighlightedSliceName,
-}: {
-  setHighlightedSliceName: (sliceName: string) => void;
-  trace: TraceResult;
-}) {
+export function SpanTable({trace}: {trace: TraceResult}) {
   const organization = useOrganization();
 
-  const [dataset] = useDataset();
-  const [query] = useUserQuery();
+  const dataset = useExploreDataset();
+  const query = useExploreQuery();
 
   const {data, isPending, isError} = useTraceSpans({
     dataset,
@@ -118,7 +111,6 @@ export function SpanTable({
               key={span.id}
               span={span}
               trace={trace}
-              setHighlightedSliceName={setHighlightedSliceName}
             />
           ))}
           {hasData && spans.length < trace.matchingSpans && (
@@ -140,10 +132,8 @@ function SpanRow({
   organization,
   span,
   trace,
-  setHighlightedSliceName,
 }: {
   organization: Organization;
-  setHighlightedSliceName: (sliceName: string) => void;
   span: SpanResult<Field>;
 
   trace: TraceResult;
@@ -169,7 +159,7 @@ function SpanRow({
       <StyledSpanPanelItem align="left" overflow>
         <SpanDescriptionRenderer span={span} />
       </StyledSpanPanelItem>
-      <StyledSpanPanelItem align="right" onMouseLeave={() => setHighlightedSliceName('')}>
+      <StyledSpanPanelItem align="right">
         <TraceBreakdownContainer>
           <SpanBreakdownSliceRenderer
             sliceName={span.project}
@@ -178,11 +168,6 @@ function SpanRow({
             sliceEnd={Math.floor(span['precise.finish_ts'] * 1000)}
             trace={trace}
             theme={theme}
-            onMouseEnter={() =>
-              setHighlightedSliceName(
-                getStylingSliceName(span.project, getSecondaryNameFromSpan(span)) ?? ''
-              )
-            }
           />
         </TraceBreakdownContainer>
       </StyledSpanPanelItem>
