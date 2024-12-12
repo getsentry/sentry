@@ -1,6 +1,6 @@
 /* eslint-env node */
+import type {Span} from '@sentry/core';
 import type * as Sentry from '@sentry/node';
-import type {Span} from '@sentry/types';
 import crypto from 'node:crypto';
 import https from 'node:https';
 import os from 'node:os';
