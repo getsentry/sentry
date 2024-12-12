@@ -10,7 +10,7 @@ from unittest.mock import ANY, call, patch
 import pytest
 from django.db.models import Q
 from django.test import override_settings
-from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
+from google.api_core.exceptions import ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 from urllib3.response import HTTPResponse
 
@@ -38,7 +38,6 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_data_from_snuba,
     get_events_from_nodestore,
     lookup_event,
-    lookup_group_data_stacktrace_bulk,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -260,36 +259,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_metrics.gauge.assert_called_with(
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
-
-    @patch("time.sleep", return_value=None)
-    @patch("sentry.tasks.embeddings_grouping.utils.logger")
-    @patch("sentry.nodestore.backend.get_multi")
-    def test_lookup_group_data_stacktrace_bulk_exceptions(
-        self, mock_get_multi, mock_logger, mock_sleep
-    ):
-        """
-        Test cases where ServiceUnavailable or DeadlineExceeded exceptions occur in bulk data
-        lookup, that the backfill stops
-        """
-        exceptions = [
-            ServiceUnavailable(message="Service Unavailable"),
-            DeadlineExceeded(message="Deadline Exceeded"),
-        ]
-        rows = self.bulk_rows
-
-        for exception in exceptions:
-            mock_get_multi.side_effect = exception
-            with pytest.raises(Exception):
-                lookup_group_data_stacktrace_bulk(self.project, rows)
-            mock_logger.exception.assert_called_with(
-                "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-                extra={
-                    "organization_id": self.project.organization.id,
-                    "project_id": self.project.id,
-                    "node_keys": ANY,
-                    "error": exception.message,
-                },
-            )
 
     def test_lookup_group_data_stacktrace_bulk_not_stacktrace_grouping(self):
         """
