@@ -951,12 +951,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             assert group.data["metadata"] == default_metadata
 
     @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
-    def test_backfill_seer_grouping_records_cohort_only_delete(self, mock_delete_grouping_records):
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_cohort_only_delete(
+        self, mock_post_bulk_grouping_records, mock_delete_grouping_records
+    ):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
         if it exists
         """
-
         project2 = self.create_project(organization=self.organization)
         event2 = self.store_event(
             data={
@@ -973,8 +975,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
         projects = [self.project.id, project2.id]
 
-        mock_delete_grouping_records.return_value = False
-        # First generate all data
+        # First generate all data - not using only_delete
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
