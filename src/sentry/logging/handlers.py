@@ -82,8 +82,7 @@ class HumanRenderer:
 
 
 class StructLogHandler(logging.StreamHandler):
-    # TODO: once factored out of getsentry the `logger` kwarg is unused and can be dropped!
-    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
+    def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
         kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
         kwargs.update({"level": record.levelno, "event": record.msg})
 
@@ -108,15 +107,15 @@ class StructLogHandler(logging.StreamHandler):
         try:
             if logger is None:
                 logger = get_logger()
-            logger.log(**self.get_log_kwargs(record=record, logger=logger))
+            logger.log(**self.get_log_kwargs(record=record))
         except Exception:
             if logging.raiseExceptions:
                 raise
 
 
 class GKEStructLogHandler(StructLogHandler):
-    def get_log_kwargs(self, record: logging.LogRecord, logger: object) -> dict[str, Any]:
-        kwargs = super().get_log_kwargs(record, logger)
+    def get_log_kwargs(self, record: logging.LogRecord) -> dict[str, Any]:
+        kwargs = super().get_log_kwargs(record)
         kwargs.update(
             {
                 "logging.googleapis.com/labels": {"name": kwargs.get("name", "root")},
