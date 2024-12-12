@@ -240,6 +240,9 @@ class EventDatastore:
         return self._release
 
     def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
         return getattr(self, "_get_" + match_type)()
 
 
