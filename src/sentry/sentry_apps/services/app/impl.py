@@ -258,14 +258,6 @@ class DatabaseBackedAppService(AppService):
     ) -> RpcAlertRuleActionResult:
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
-        except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(
-                success=False,
-                error_type=SentryAppErrorType.SENTRY,
-                message="Installation does not exist",
-            )
-
-        try:
             result = AlertRuleActionCreator(install=install, fields=fields).run()
         except (SentryAppError, SentryAppIntegratorError) as e:
             return RpcAlertRuleActionResult(success=False, error_type=e.error_type, message=str(e))
