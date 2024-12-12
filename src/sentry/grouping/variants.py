@@ -199,7 +199,7 @@ class CustomFingerprintVariant(BaseVariant):
 
 
 class BuiltInFingerprintVariant(CustomFingerprintVariant):
-    """A built-in, Sentry defined fingerprint."""
+    """A built-in, Sentry-defined fingerprint."""
 
     type = "built_in_fingerprint"
 
