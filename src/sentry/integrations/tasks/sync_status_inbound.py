@@ -228,16 +228,12 @@ def sync_status_inbound(
         # Check if the group was recently resolved and we should skip the request
         # Avoid resolving the group in-app and then re-resolving via the integration webhook
         # which would override the in-app resolution
-        recently_resolved_groups = []
+        resolvable_groups = []
         for group in affected_groups:
-            if group.status == GroupStatus.RESOLVED and group_was_recently_resolved(group):
-                recently_resolved_groups.append(group)
+            if group.status != GroupStatus.RESOLVED and not group_was_recently_resolved(group):
+                resolvable_groups.append(group)
 
-        affected_groups = [
-            group for group in affected_groups if group not in recently_resolved_groups
-        ]
-
-        if not affected_groups:
+        if not resolvable_groups:
             return
 
         (
@@ -248,14 +244,14 @@ def sync_status_inbound(
             affected_groups, config.get("resolution_strategy"), activity_data, organization_id
         )
         Group.objects.update_group_status(
-            groups=affected_groups,
+            groups=resolvable_groups,
             status=GroupStatus.RESOLVED,
             substatus=None,
             activity_type=activity_type,
             activity_data=activity_data,
         )
         # after we update the group, pdate the resolutions
-        for group in affected_groups:
+        for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:
                 resolution, created = GroupResolution.objects.get_or_create(
