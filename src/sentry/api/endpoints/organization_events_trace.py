@@ -1766,17 +1766,30 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             query=f"trace:{trace_id}",
             limit=10_000,
         )
+        span_count_query = SpansIndexedQueryBuilder(
+            dataset=Dataset.SpansIndexed,
+            selected_columns=[
+                "span.op",
+                "count()",
+            ],
+            orderby=["-count()"],
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            limit=10_000,
+        )
 
         with handle_query_errors():
             results = bulk_snuba_queries(
                 [
                     meta_query.get_snql_query(),
                     transaction_children_query.get_snql_query(),
+                    span_count_query.get_snql_query(),
                 ],
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
                 query_source=query_source,
             )
-            meta_result, children_result = results[0], results[1]
+            meta_result, children_result, span_count_data = results[0], results[1], results[2]
             if len(meta_result["data"]) == 0:
                 return Response(status=404)
             # Merge the result back into the first query
@@ -1785,6 +1798,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params,
                 query_source=query_source,
             )
+            meta_result["data"][0]["span_counts"] = span_count_data["data"]
         return Response(self.serialize(meta_result["data"][0], children_result["data"]))
 
     def serialize(self, results: Mapping[str, int], child_result: Any) -> Mapping[str, int]:
@@ -1794,5 +1808,6 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
             "performance_issues": results.get("performance_issues") or 0,
+            "span_counts": results.get("span_counts") or 0,
             "transaction_child_count_map": child_result,
         }

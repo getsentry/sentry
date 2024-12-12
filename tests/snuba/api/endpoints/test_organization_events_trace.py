@@ -1749,3 +1749,16 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert len(data["transaction_child_count_map"]) == 8
         for item in data["transaction_child_count_map"]:
             assert item["count"] > 1, item
+
+    def test_span_count(self):
+        self.load_trace()
+        self.load_default()
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": -1},
+                format="json",
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert data["span_counts"] == [{"span.op": "", "count": 21}]
