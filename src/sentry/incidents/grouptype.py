@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
@@ -12,48 +13,29 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.detector import (
-    DetectorEvaluationResult,
-    StatefulDetectorHandler,
-)
+from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorGroupKey
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
-    def evaluate(
-        self,
-        data_packet: DataPacket[QuerySubscriptionUpdate],
-    ) -> dict[str | None, DetectorEvaluationResult]:
-        # TODO - Don't override this method, instead use the StatefulDetectorHandler's evaluate method and data_conditions
-        occurrence, event_data = self.build_occurrence_and_event_data("foo", 0, PriorityLevel.HIGH)
-
-        return {
-            "foo": DetectorEvaluationResult(
-                is_active=True,
-                group_key="foo",
-                priority=DetectorPriorityLevel.HIGH,
-                result=occurrence,
-                event_data=event_data,
-            )
-        }
-
     def build_occurrence_and_event_data(
-        self, group_key: str | None, value: int, new_status: PriorityLevel
+        self, group_key: DetectorGroupKey, value: int, new_status: PriorityLevel
     ) -> tuple[IssueOccurrence, dict[str, Any]]:
-        # placeholder return for now
+        # Returning a placeholder for now, this may require us passing more info
+
         occurrence = IssueOccurrence(
-            id="eb4b0acffadb4d098d48cb14165ab578",
-            project_id=123,
-            event_id="43878ab4419f4ab181f6379ac376d5aa",
-            fingerprint=["abc123"],
+            id=str(uuid4()),
+            project_id=self.detector.project_id,
+            event_id=str(uuid4()),
+            fingerprint=self.build_fingerprint(group_key),
             issue_title="Some Issue",
             subtitle="Some subtitle",
             resource_id=None,
-            evidence_data={},
+            evidence_data={"detector_id": self.detector.id, "value": value},
             evidence_display=[],
             type=MetricAlertFire,
-            detection_time=datetime.now(timezone.utc),
+            detection_time=datetime.now(UTC),
             level="error",
             culprit="Some culprit",
             initial_issue_priority=new_status.value,
@@ -70,15 +52,17 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 
     @property
     def counter_names(self) -> list[str]:
-        return []  # placeholder return for now
+        # Placeholder for now, this should be a list of counters that we want to upadte as we go above warning / critical
+        return ["activated"]
 
     def get_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
-        return 0  # placeholder return for now
+        return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
 
     def get_group_key_values(
         self, data_packet: DataPacket[QuerySubscriptionUpdate]
-    ) -> dict[str, int]:
-        return {"foo": 0}
+    ) -> dict[DetectorGroupKey, int]:
+        # This is for testing purposes, we'll need to update the values inspected.
+        return {None: data_packet.packet["values"]["foo"]}
 
 
 # Example GroupType and detector handler for metric alerts. We don't create these issues yet, but we'll use something

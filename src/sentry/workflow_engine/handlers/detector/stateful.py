@@ -54,7 +54,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[str, int]:
+    def get_group_key_values(self, data_packet: DataPacket[T]) -> dict[DetectorGroupKey, int]:
         """
         Extracts the values for all the group keys that exist in the given data packet,
         and returns then as a dict keyed by group_key.
