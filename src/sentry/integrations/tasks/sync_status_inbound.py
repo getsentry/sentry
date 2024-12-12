@@ -237,7 +237,7 @@ def sync_status_inbound(
             group for group in affected_groups if group not in recently_resolved_groups
         ]
 
-        if len(affected_groups) == 0:
+        if not affected_groups:
             return
 
         (
