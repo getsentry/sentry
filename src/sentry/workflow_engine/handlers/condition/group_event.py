@@ -32,6 +32,6 @@ class GroupEventConditionHandler(DataConditionHandler[GroupEvent]):
         if event_value is None:
             event_value = get_nested_value(
                 kwargs, condition
-            )  # TODO: remove when GroupEvent contains GroupState
+            )  # TODO: remove when GroupEvent contains EventState
 
         return event_value == comparison
