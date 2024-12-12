@@ -1,11 +1,10 @@
-from sentry.workflow_engine.types import DetectorType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class WorkflowTest(BaseWorkflowTest):
     def setUp(self):
         self.workflow, self.detector, self.detector_workflow, self.data_condition_group = (
-            self.create_detector_and_workflow(detector_type=DetectorType.ERROR)
+            self.create_detector_and_workflow()
         )
         self.data_condition = self.data_condition_group.conditions.first()
         self.group, self.event, self.group_event = self.create_group_event()

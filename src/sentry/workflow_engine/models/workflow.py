@@ -2,6 +2,8 @@ from typing import Any
 
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
@@ -36,7 +38,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
+        # TODO: fill in
+        return {}
 
     __repr__ = sane_repr("name", "organization_id")
 
@@ -60,3 +63,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         evaluation, _ = evaluate_condition_group(self.when_condition_group, evt)
         return evaluation
+
+
+@receiver(pre_save, sender=Workflow)
+def enforce_config_schema(sender, instance: Workflow, **kwargs):
+    config_schema = instance.CONFIG_SCHEMA
+    instance.validate_config(config_schema)

@@ -16,7 +16,7 @@ from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -174,10 +174,19 @@ class GroupType:
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
     detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    detector_config_schema: dict[str, Any] | None = None
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         registry.add(cls)
+
+        from sentry.workflow_engine.registry import detector_config_schema_registry
+
+        detector_config_schema = cls.detector_config_schema or {}
+        if (
+            cls.slug not in detector_config_schema_registry.registrations
+        ):  # TODO(cathy): remove after updating getsentry test with patch
+            detector_config_schema_registry.register(cls.slug)(json.dumps(detector_config_schema))
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
@@ -560,12 +569,14 @@ MonitorCheckInFailure = MonitorIncidentType
 class MonitorCheckInTimeout(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4002
+    slug = "monitor_check_in_timeout"
 
 
 @dataclass(frozen=True)
 class MonitorCheckInMissed(MonitorIncidentType):
     # This is deprecated, only kept around for it's type_id
     type_id = 4003
+    slug = "monitor_check_in_missed"
 
 
 @dataclass(frozen=True)
