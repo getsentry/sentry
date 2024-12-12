@@ -230,6 +230,7 @@ DETAILED_PROJECT = {
             "performance-consecutive-db-queries-visible",
             "user-spend-notifications-settings",
             "performance-m-n-plus-one-db-queries-post-process-group",
+            "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
             "performance-slow-db-query-post-process-group",
             "session-replay-sdk-errors-only",
