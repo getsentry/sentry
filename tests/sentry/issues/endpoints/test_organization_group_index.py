@@ -4558,6 +4558,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_selective_status_update(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group1.resolved_at = timezone.now()
+        group1.save()
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(

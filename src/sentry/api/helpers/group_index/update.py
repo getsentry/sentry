@@ -465,6 +465,10 @@ def handle_resolve_in_release(
         except IndexError:
             release = None
     for group in group_list:
+        # If the group is already resolved, we don't need to do anything
+        if group.status == GroupStatus.RESOLVED:
+            continue
+
         with transaction.atomic(router.db_for_write(Group)):
             process_group_resolution(
                 group,
@@ -712,9 +716,6 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
-        #                we should centralize the logic for validating and defaulting substatus values
-        #                and refactor pre_save and the above new_substatus assignment to account for this
         status_updated = queryset.exclude(status=new_status).update(
             status=new_status, substatus=new_substatus
         )
