@@ -298,7 +298,6 @@ module = [
     "sentry.snuba.metrics.datasource",
     "sentry.snuba.metrics.fields.base",
     "sentry.snuba.metrics.query_builder",
-    "sentry.snuba.spans_indexed",
     "sentry.snuba.spans_metrics",
     "sentry.tagstore.snuba.backend",
     "sentry.tagstore.types",
