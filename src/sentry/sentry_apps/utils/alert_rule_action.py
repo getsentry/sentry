@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
@@ -6,6 +6,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from sentry.auth.access import NoAccess
+from sentry.constants import SENTRY_APP_ACTIONS
 from sentry.incidents.logic import get_filtered_actions
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
@@ -50,6 +51,30 @@ def create_sentry_app_alert_rule_component_for_incidents(
         )
 
 
+def create_sentry_app_alert_rule_issues_component(
+    actions: Sequence[Mapping[str, Any]]
+) -> str | Response:
+    try:
+        created = trigger_sentry_app_action_creators_for_issues(actions)
+
+    except (SentryAppError, SentryAppIntegratorError) as e:
+        return Response(
+            {"actions": [str(e)]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as e:
+        error_id = sentry_sdk.capture_exception(e)
+        return Response(
+            {
+                "actions": [
+                    f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}"
+                ]
+            },
+            status=500,
+        )
+    return created
+
+
 def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[str, Any]) -> None:
     sentry_app_actions = get_filtered_actions(
         alert_rule_data=alert_rule_data,
@@ -72,3 +97,20 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
             install_uuid=action.get("sentry_app_installation_uuid"),
         )
         raise_alert_rule_action_result_errors(result)
+
+
+def trigger_sentry_app_action_creators_for_issues(
+    actions: Sequence[Mapping[str, Any]]
+) -> str | None:
+    created = None
+    for action in actions:
+        # Only call creator for Sentry Apps with UI Components for alert rules.
+        if not action.get("id") in SENTRY_APP_ACTIONS:
+            continue
+
+        result = app_service.trigger_sentry_app_action_creators(
+            fields=action["settings"], install_uuid=action.get("sentryAppInstallationUuid")
+        )
+        raise_alert_rule_action_result_errors(result=result)
+        created = "alert-rule-action"
+    return created
