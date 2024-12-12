@@ -704,8 +704,8 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions", and is used below.
-    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # This recursive generator gets the "top-level exceptions," and is used below.
+    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
     # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
@@ -747,8 +747,8 @@ def filter_exceptions_for_exception_groups(
     # If there's only one distinct top-level exception in the group,
     # use it and its first-path children, but throw out the exception group and any copies.
     # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
-    # We'll also set the main_exception_id, which is used in the extract_metadata function
-    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # We'll also set `main_exception_id`, which is used in the `extract_metadata` function
+    # in `src/sentry/eventtypes/error.py`, in order to ensure the issue is titled by this
     # item rather than the exception group.
     if len(distinct_top_level_exceptions) == 1:
         main_exception = distinct_top_level_exceptions[0]
