@@ -207,12 +207,7 @@ function DashboardTable({
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
         <BodyCellContainer>
-          <StyledUserAvatar
-            hasTooltip
-            tooltipOptions={{position: 'top'}}
-            user={dataRow[ResponseKeys.OWNER]}
-            size={26}
-          />
+          <StyledUserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
         </BodyCellContainer>
       ) : (
         <ActivityAvatar type="system" size={26} />
