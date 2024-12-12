@@ -29,7 +29,11 @@ class DataSource(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization")
+
+    # Should this be a string so we can support UUID / ints?
     query_id = BoundedBigIntegerField()
+
+    # TODO - Add a type here
     type = models.TextField()
 
     detectors = models.ManyToManyField("workflow_engine.Detector", through=DataSourceDetector)
