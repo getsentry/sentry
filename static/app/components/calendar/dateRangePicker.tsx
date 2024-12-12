@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import type {DateRangeProps, Range, RangeKeyDict} from 'react-date-range';
 import {DateRange} from 'react-date-range';
-import styled from '@emotion/styled';
 
 import CalendarStylesWrapper from './calendarStylesWrapper';
 
@@ -43,15 +42,9 @@ function DateRangePicker({
 
   return (
     <CalendarStylesWrapper>
-      <StyledDateRangePicker {...props} onChange={onChange} ranges={ranges} />
+      <DateRange {...props} onChange={onChange} ranges={ranges} />
     </CalendarStylesWrapper>
   );
 }
-
-const StyledDateRangePicker = styled(DateRange)`
-  .rdrDayPassive {
-    visibility: hidden;
-  }
-`;
 
 export default DateRangePicker;
