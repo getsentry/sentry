@@ -156,7 +156,10 @@ class SeenStats(TypedDict):
     times_seen: int
     first_seen: datetime | None
     last_seen: datetime | None
+    # User count filtered by the current environment selection
     user_count: int
+    # User count across all environments
+    all_user_count: int
 
 
 class GroupSerializerBase(Serializer, ABC):
@@ -750,6 +753,7 @@ class GroupSerializerBase(Serializer, ABC):
             "userCount": attrs["user_count"],
             "firstSeen": attrs["first_seen"],
             "lastSeen": attrs["last_seen"],
+            "allUserCount": attrs["all_user_count"],
         }
 
 
@@ -813,6 +817,12 @@ class GroupSerializer(GroupSerializerBase):
             environment_ids=environment and [environment.id],
             tenant_ids=tenant_ids,
         )
+        all_user_counts: Mapping[int, int] = user_counts_func(
+            [project_id],
+            item_ids,
+            environment_ids=None,
+            tenant_ids=tenant_ids,
+        )
         first_seen: MutableMapping[int, datetime] = {}
         last_seen: MutableMapping[int, datetime] = {}
         times_seen: MutableMapping[int, int] = {}
@@ -843,6 +853,7 @@ class GroupSerializer(GroupSerializerBase):
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
+                "all_user_count": all_user_counts.get(item.id, 0),
             }
             for item in issue_list
         }
@@ -990,32 +1001,44 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
-            self._execute_error_seen_stats_query(
+            result=self._execute_error_seen_stats_query(
                 item_list=error_issue_list,
                 start=self.start,
                 end=self.end,
                 conditions=self.conditions,
                 environment_ids=self.environment_ids,
             ),
-            error_issue_list,
-            bool(self.start or self.end or self.conditions),
-            self.environment_ids,
+            result_without_env=self._execute_error_seen_stats_query(
+                item_list=error_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+            ),
+            item_list=error_issue_list,
+            use_result_first_seen_times_seen=bool(self.start or self.end or self.conditions),
+            environment_ids=self.environment_ids,
         )
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
-            self._execute_generic_seen_stats_query(
+            result=self._execute_generic_seen_stats_query(
                 item_list=generic_issue_list,
                 start=self.start,
                 end=self.end,
                 conditions=self.conditions,
                 environment_ids=self.environment_ids,
             ),
-            generic_issue_list,
-            bool(self.start or self.end or self.conditions),
-            self.environment_ids,
+            result_without_env=self._execute_generic_seen_stats_query(
+                item_list=generic_issue_list,
+                start=self.start,
+                end=self.end,
+                conditions=self.conditions,
+            ),
+            item_list=generic_issue_list,
+            use_result_first_seen_times_seen=bool(self.start or self.end or self.conditions),
+            environment_ids=self.environment_ids,
         )
 
     @staticmethod
@@ -1112,7 +1135,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, use_result_first_seen_times_seen, environment_ids=None
+        result,
+        result_without_env,
+        item_list,
+        use_result_first_seen_times_seen,
+        environment_ids=None,
     ):
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
@@ -1120,7 +1147,14 @@ class GroupSerializerSnuba(GroupSerializerBase):
             )
             for issue in result["data"]
         }
+        seen_data_no_env = {
+            issue["group_id"]: fix_tag_value_data(
+                dict(filter(lambda key: key[0] != "group_id", issue.items()))
+            )
+            for issue in result_without_env["data"]
+        }
         user_counts = {item_id: value["count"] for item_id, value in seen_data.items()}
+        all_user_counts = {item_id: value["count"] for item_id, value in seen_data_no_env.items()}
         last_seen = {item_id: value["last_seen"] for item_id, value in seen_data.items()}
         if use_result_first_seen_times_seen:
             first_seen = {item_id: value["first_seen"] for item_id, value in seen_data.items()}
@@ -1146,6 +1180,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "first_seen": first_seen.get(item.id),
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
+                "all_user_count": all_user_counts.get(item.id, 0),
             }
             for item in item_list
         }
