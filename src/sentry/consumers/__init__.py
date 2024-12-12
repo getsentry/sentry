@@ -423,15 +423,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
 }
 
 
-def print_deprecation_warning(name, group_id):
-    import click
-
-    click.echo(
-        f"WARNING: Deprecated command, use sentry run consumer {name} "
-        f"--consumer-group {group_id} ..."
-    )
-
-
 def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
