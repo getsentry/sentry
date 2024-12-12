@@ -725,7 +725,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
             {"role": "manager"},
-            HTTP_AUTHORIZATION=f"Bearer {token}",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
 
         # The app token has no associated OrganizationMember and therefore no role.

@@ -56,7 +56,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
         )
 
     def __str__(self):
-        return str(self.key)
+        return f"api_key_id={self.id}, status={self.status}"
 
     @classmethod
     def generate_api_key(cls):
