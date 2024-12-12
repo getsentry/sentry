@@ -14,6 +14,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -205,7 +206,14 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <ActivityAvatar type="user" user={dataRow[ResponseKeys.OWNER]} size={26} />
+        <BodyCellContainer>
+          <StyledUserAvatar
+            hasTooltip
+            tooltipOptions={{position: 'top'}}
+            user={dataRow[ResponseKeys.OWNER]}
+            size={26}
+          />
+        </BodyCellContainer>
       ) : (
         <ActivityAvatar type="system" size={26} />
       );
@@ -240,7 +248,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <DateActionsContainer>
+        <BodyCellContainer>
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -281,7 +289,7 @@ function DashboardTable({
               disabled={dashboards && dashboards.length <= 1}
             />
           </ActionsIconWrapper>
-        </DateActionsContainer>
+        </BodyCellContainer>
       );
     }
 
@@ -337,7 +345,7 @@ const DateStatus = styled('span')`
   padding-left: ${space(1)};
 `;
 
-const DateActionsContainer = styled('div')`
+const BodyCellContainer = styled('div')`
   display: flex;
   gap: ${space(4)};
   justify-content: space-between;
@@ -361,4 +369,9 @@ const StyledFavoriteButton = styled(Button)`
 
 const StyledIconStar = styled(IconStar)`
   margin-left: ${space(0.5)};
+`;
+
+const StyledUserAvatar = styled(UserAvatar)`
+  display: grid;
+  grid-column-gap: ${space(1)};
 `;
