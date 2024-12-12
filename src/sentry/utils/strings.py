@@ -9,8 +9,6 @@ import zlib
 from collections.abc import Callable
 from typing import overload
 
-from django.utils.encoding import smart_str
-
 _sprintf_placeholder_re = re.compile(
     r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"
 )
@@ -83,7 +81,7 @@ def decompress(value: str) -> bytes:
 def strip(value: str | None) -> str:
     if not value:
         return ""
-    return smart_str(value).strip()
+    return value.strip()
 
 
 def soft_hyphenate(value: str, length: int, hyphen: str = "\u00ad") -> str:
