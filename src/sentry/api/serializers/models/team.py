@@ -180,6 +180,8 @@ class BaseTeamSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Team], user: User, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
+        from sentry.api.serializers.models.project import ProjectSerializer
+
         request = env.request
         org_ids: set[int] = {t.organization_id for t in item_list}
 
@@ -240,7 +242,11 @@ class BaseTeamSerializer(Serializer):
             projects = [pt.project for pt in project_teams]
 
             projects_by_id = {
-                project.id: data for project, data in zip(projects, serialize(projects, user))
+                project.id: data
+                for project, data in zip(
+                    projects,
+                    serialize(projects, user, ProjectSerializer(collapse=["unusedFeatures"])),
+                )
             }
 
             project_map = defaultdict(list)
