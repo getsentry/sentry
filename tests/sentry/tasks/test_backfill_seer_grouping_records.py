@@ -1,6 +1,6 @@
 import copy
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
@@ -17,6 +17,7 @@ from urllib3.response import HTTPResponse
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import Event
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -175,7 +176,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         return {"rows": rows, "events": events}
 
-    def assert_groups_metadata_updated(self, groups: Sequence[Group]) -> None:
+    def assert_groups_metadata_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
         for group in groups:
             hashes = self.group_hashes.get(group.id)
             if not hashes:
@@ -188,7 +189,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "request_hash": hashes,
         }
 
-    def assert_groups_metadata_not_updated(self, groups: Sequence[Group]) -> None:
+    def assert_groups_metadata_not_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
         for group in groups:
             self.assert_group_metadata_not_updated(group)
 
@@ -708,7 +709,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         function_names = [f"new_function_{str(i)}" for i in range(5)]
         type_names = [f"NewError{str(i)}" for i in range(5)]
         value_names = ["error with value" for _ in range(5)]
-        groups_seen_once = []
         for i in range(5):
             data = {
                 "exception": self.create_exception_values(
@@ -717,16 +717,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            event = self.store_event(data=data, project_id=self.project.id)
-            groups_seen_once.append(event.group)
+            self.store_event(data=data, project_id=self.project.id)
 
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id)
 
-        groups = Group.objects.filter(project_id=self.project.id).exclude(
-            id__in=[g.id for g in groups_seen_once]
-        )
+        groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         self.assert_groups_metadata_updated(groups)
+        groups_seen_once = Group.objects.filter(project_id=self.project.id, times_seen=1)
         self.assert_groups_metadata_not_updated(groups_seen_once)
 
     @pytest.mark.skip(
