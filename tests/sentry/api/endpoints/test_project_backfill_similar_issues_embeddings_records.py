@@ -51,7 +51,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=None,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -70,7 +70,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=None,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -92,7 +92,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -116,7 +116,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=True,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -140,7 +140,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=False,
             enable_ingestion=True,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=None,
         )
 
@@ -156,7 +156,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
         response = self.client.post(
-            self.url, data={"last_processed_id": "8", "skip_processed_projects": "true"}
+            self.url, data={"last_processed_id": "8", "reprocess_backfilled_projects": "true"}
         )
         assert response.status_code == 204, response.content
         mock_backfill_seer_grouping_records.assert_called_with(
@@ -164,7 +164,8 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=True,
+            # reprocess_backfilled_projects changes the default
+            skip_processed_projects=False,
             skip_project_ids=None,
         )
 
@@ -188,6 +189,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
             last_processed_group_id_input=8,
             only_delete=False,
             enable_ingestion=False,
-            skip_processed_projects=False,
+            skip_processed_projects=True,
             skip_project_ids=[1],
         )

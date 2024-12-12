@@ -140,11 +140,18 @@ def validate_relocation_uniqueness(owner: RpcUser | AnonymousUser | User) -> Res
     return None
 
 
-def get_autopause_value() -> int | None:
+def get_autopause_value(provenance: Relocation.Provenance) -> int | None:
     try:
-        return Relocation.Step[options.get("relocation.autopause")].value
+        return Relocation.Step[options.get(f"relocation.autopause.{str(provenance)}")].value
     except KeyError:
-        return None
+        # DEPRECATED: for now, we fall through to the old `relocation.autopause` if the more
+        # specific `relocation.autopause.*` does not exist OR is set to the default, an empty
+        # string. Once we remove the old setting, this block can go away, and we can use the mre
+        # specific autopause only.
+        try:
+            return Relocation.Step[options.get("relocation.autopause")].value
+        except KeyError:
+            return None
 
 
 @region_silo_endpoint
@@ -263,12 +270,14 @@ class RelocationIndexEndpoint(Endpoint):
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
+            provenance = Relocation.Provenance.SELF_HOSTED
             relocation: Relocation = Relocation.objects.create(
                 creator_id=request.user.id,
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
-                scheduled_pause_at_step=get_autopause_value(),
+                scheduled_pause_at_step=get_autopause_value(provenance),
+                provenance=provenance,
             )
             RelocationFile.objects.create(
                 relocation=relocation,

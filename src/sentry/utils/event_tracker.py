@@ -25,7 +25,7 @@ class TransactionStageStatus(StrEnum):
     POST_PROCESS_FINISHED = "post_process_finished"
 
 
-logger = logging.getLogger("EventTracker")
+logger = logging.getLogger(__name__)
 
 
 def track_sampled_event(

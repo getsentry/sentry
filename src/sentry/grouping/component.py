@@ -44,10 +44,7 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[ValuesType] | None = None,
-        variant_provider: bool = False,
     ):
-        self.variant_provider = variant_provider
-
         self.update(
             hint=hint,
             contributes=contributes,
@@ -140,10 +137,10 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
 
     def shallow_copy(self) -> Self:
         """Creates a shallow copy."""
-        rv = object.__new__(self.__class__)
-        rv.__dict__.update(self.__dict__)
-        rv.values = list(self.values)
-        return rv
+        copy = object.__new__(self.__class__)
+        copy.__dict__.update(self.__dict__)
+        copy.values = list(self.values)
+        return copy
 
     def iter_values(self) -> Generator[str | int]:
         """Recursively walks the component and flattens it into a list of
