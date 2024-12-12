@@ -2,6 +2,7 @@ import logging
 import operator
 from collections.abc import Callable
 from enum import StrEnum
+from inspect import signature
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -27,15 +28,17 @@ class Condition(StrEnum):
     LESS = "lt"
     NOT_EQUAL = "ne"
     GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
+    TRUTH = "truth"
 
 
-condition_ops = {
+condition_ops: dict[Condition, Callable] = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
     Condition.GREATER: operator.gt,
     Condition.LESS_OR_EQUAL: operator.le,
     Condition.LESS: operator.lt,
     Condition.NOT_EQUAL: operator.ne,
+    Condition.TRUTH: operator.truth,
 }
 
 T = TypeVar("T")
@@ -94,7 +97,7 @@ class DataCondition(DefaultFieldsModel):
 
         return condition_handler_registry.get(condition_type)
 
-    def evaluate_value(self, value: T) -> DataConditionResult:
+    def evaluate_value(self, value: T, **kwargs) -> DataConditionResult:
         condition_handler: DataConditionHandler[T] | None = None
         op: Callable | None = None
 
@@ -107,9 +110,14 @@ class DataCondition(DefaultFieldsModel):
             op = condition_ops.get(condition, None)
 
         if condition_handler is not None:
-            result = condition_handler.evaluate_value(value, self.comparison, self.condition)
+            result = condition_handler.evaluate_value(
+                value, self.comparison, self.condition, **kwargs
+            )
         elif op is not None:
-            result = op(cast(Any, value), self.comparison)
+            if len(signature(op).parameters) == 1:
+                result = op(cast(Any, value)) == self.comparison
+            else:
+                result = op(cast(Any, value), self.comparison)
         else:
             logger.error(
                 "Invalid Data Condition Evaluation",
