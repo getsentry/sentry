@@ -183,7 +183,10 @@ class GroupType:
         from sentry.workflow_engine.registry import detector_config_schema_registry
 
         detector_config_schema = cls.detector_config_schema or {}
-        detector_config_schema_registry.register(cls.slug)(json.dumps(detector_config_schema))
+        if (
+            cls.slug not in detector_config_schema_registry.registrations
+        ):  # TODO(cathy): remove after updating getsentry test with patch
+            detector_config_schema_registry.register(cls.slug)(json.dumps(detector_config_schema))
 
         if not cls.released:
             features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
