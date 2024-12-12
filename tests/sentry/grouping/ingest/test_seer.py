@@ -341,7 +341,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames(self, mock_metrics: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -391,12 +391,12 @@ class GetSeerSimilarIssuesTest(TestCase):
             sample_rate=1.0,
             tags={
                 "call_made": False,
-                "blocker": "over-threshold-only-system-frames",
+                "blocker": "over-threshold-frames",
             },
         )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames_invalid_platform(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames_allowed_platform(self, mock_metrics: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -441,7 +441,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 sample_rate=1.0,
                 tags={
                     "call_made": False,
-                    "blocker": "over-threshold-only-system-frames",
+                    "blocker": "over-threshold-frames",
                 },
             )
             not in mock_metrics.incr.call_args_list
@@ -561,7 +561,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             sample_rate=1.0,
             tags={
                 "call_made": False,
-                "blocker": "over-threshold-only-system-frames",
+                "blocker": "over-threshold-frames",
             },
         )
 
