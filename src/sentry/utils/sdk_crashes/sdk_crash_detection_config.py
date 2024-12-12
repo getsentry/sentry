@@ -57,6 +57,8 @@ class SDKCrashDetectionConfig:
     """Whether to report fatal errors. If true, both unhandled and fatal errors are reported.
     If false, only unhandled errors are reported."""
     report_fatal_errors: bool
+    """The mechanism types to ignore. For example, {"console", "unhandledrejection"}. If empty, all mechanism types are captured."""
+    ignore_mechanism_type: set[str]
     """The system library path patterns to detect system frames. For example, `System/Library/*` """
     system_library_path_patterns: set[str]
     """The configuration for detecting SDK frames."""
@@ -100,6 +102,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.cocoa.unreal": cocoa_min_sdk_version,
             },
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={r"/System/Library/**", r"/usr/lib/**"},
             sdk_frame_config=SDKFrameConfig(
                 function_patterns={
@@ -132,6 +135,9 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.javascript.react-native": "4.0.0",
             },
             report_fatal_errors=False,
+            # used by the JS/RN SDKs
+            # https://github.com/getsentry/sentry-javascript/blob/dafd51054d8b2ab2030fa0b16ad0fd70493b6e08/packages/core/src/integrations/captureconsole.ts#L60
+            ignore_mechanism_type={"console"},
             system_library_path_patterns={
                 r"**/react-native/Libraries/**",
                 r"**/react-native-community/**",
@@ -204,6 +210,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.native.android": native_min_sdk_version,
             },
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 r"java.**",
                 r"javax.**",
@@ -265,6 +272,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.native.unreal": native_min_sdk_version,
             },
             report_fatal_errors=False,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 # well known locations for unix paths
                 r"/lib/**",
@@ -315,6 +323,7 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                 "sentry.dart.flutter": dart_min_sdk_version,
             },
             report_fatal_errors=True,
+            ignore_mechanism_type=set(),
             system_library_path_patterns={
                 # Dart
                 r"org-dartlang-sdk:///**",
