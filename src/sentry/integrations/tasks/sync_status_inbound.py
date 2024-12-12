@@ -228,9 +228,14 @@ def sync_status_inbound(
         # Check if the group was recently resolved and we should skip the request
         # Avoid resolving the group in-app and then re-resolving via the integration webhook
         # which would override the in-app resolution
+        recently_resolved_groups = []
         for group in affected_groups:
             if group.status == GroupStatus.RESOLVED and group_was_recently_resolved(group):
-                affected_groups.remove(group)
+                recently_resolved_groups.append(group)
+
+        affected_groups = [
+            group for group in affected_groups if group not in recently_resolved_groups
+        ]
 
         (
             resolutions_by_group_id,
