@@ -45,6 +45,8 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         contributes: bool | None = None,
         values: Sequence[ValuesType] | None = None,
     ):
+        # Use `upate` to set attribute values because it ensures `contributes` is set (if
+        # `contributes` is not provided, `update` will derive it from the `values` value)
         self.update(
             hint=hint,
             contributes=contributes,
