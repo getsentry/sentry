@@ -666,8 +666,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
         # Overwrite the data key with the event's updated data
         job["data"] = data = event.data.data
 
-        event._project_cache = project = projects[job["project_id"]]
-        job["category"] = index_data_category(data.get("type"), project.organization)
+        job["category"] = index_data_category(data.get("type"))
         job["platform"] = event.platform
 
         # Some of the data that are toplevel attributes are duplicated

@@ -126,8 +126,7 @@ class RedisQuotaTest(TestCase):
             self.organization.update_option(mabq.option, 700 + i)
             metric_abuse_limit_by_id[mabq.id] = 700 + i
 
-        with self.feature("organizations:transaction-metrics-extraction"):
-            quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_quotas(self.project)
 
         assert quotas[1].id == "pati"
         assert quotas[1].scope == QuotaScope.PROJECT
@@ -258,8 +257,7 @@ class RedisQuotaTest(TestCase):
         self.get_monitor_quota.return_value = (15, 60)
 
         self.organization.update_option("project-abuse-quota.transaction-limit", 600)
-        with self.feature({"organizations:transaction-metrics-extraction": False}):
-            quotas = self.quota.get_quotas(self.project)
+        quotas = self.quota.get_quotas(self.project)
 
         assert quotas[0].id == "pati"
         assert quotas[0].scope == QuotaScope.PROJECT
