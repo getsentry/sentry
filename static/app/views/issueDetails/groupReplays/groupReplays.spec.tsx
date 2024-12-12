@@ -1,9 +1,11 @@
 import {duration} from 'moment-timezone';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -109,6 +111,15 @@ describe('GroupReplays', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${mockGroup.id}/`,
       body: mockGroup,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${mockGroup.id}/tags/`,
+      body: TagsFixture(),
+      method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-stats/`,
+      body: {'count()': EventsStatsFixture()},
     });
   });
   afterEach(() => {
