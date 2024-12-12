@@ -906,13 +906,13 @@ register(
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
-    default={"limit": 20, "window": 1},
+    default={"limit": 20, "window": 1},  # window is in seconds
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.per-project-rate-limit",
     type=Dict,
-    default={"limit": 5, "window": 1},
+    default={"limit": 5, "window": 1},  # window is in seconds
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
