@@ -141,8 +141,8 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         event.for_group = group
 
-        if occurrence is not None and occurrence.event_id is None:
-            occurrence.event_id = event.event_id
+        if occurrence is not None and occurrence.get("event_id", None) is None:
+            occurrence["event_id"] = event.event_id
 
         group_event = GroupEvent(
             self.project.id,
