@@ -609,7 +609,7 @@ def chained_exception(
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
-    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
+    # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {
         id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
         for exception in all_exceptions
