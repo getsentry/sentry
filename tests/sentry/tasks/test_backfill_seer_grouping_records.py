@@ -1,6 +1,6 @@
 import copy
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from random import choice
 from string import ascii_uppercase
@@ -176,6 +176,26 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
 
         return {"rows": rows, "events": events}
+
+    def assert_groups_metadata_updated(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            hashes = self.group_hashes.get(group.id)
+            if not hashes:
+                hashes = GroupHash.objects.get(group_id=group.id).hash
+            self.assert_group_metadata_updated(group, hashes)
+
+    def assert_group_metadata_updated(self, group: Group, hashes: str) -> None:
+        assert group.data["metadata"].get("seer_similarity") == {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "request_hash": hashes,
+        }
+
+    def assert_groups_metadata_not_updated(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            self.assert_group_metadata_not_updated(group)
+
+    def assert_group_metadata_not_updated(self, group: Group) -> None:
+        assert group.data["metadata"].get("seer_similarity") is None
 
     def setUp(self):
         super().setUp()
@@ -563,11 +583,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             backfill_seer_grouping_records_for_project(self.project.id)
 
         groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
@@ -604,11 +620,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     @override_options(
@@ -666,11 +678,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
+        self.assert_groups_metadata_updated(groups)
 
     @patch("time.sleep", return_value=None)
     @patch(
@@ -690,8 +698,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id)
 
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert not group.data["metadata"].get("seer_similarity")
+        groups = Group.objects.filter(project_id=self.project.id)
+        self.assert_groups_metadata_not_updated(groups)
 
     def test_backfill_seer_grouping_records_no_feature(self):
         """
@@ -702,8 +710,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(project, None)
 
-        for group in Group.objects.filter(project_id=self.project.id):
-            assert not group.data["metadata"].get("seer_similarity")
+        groups = Group.objects.filter(project_id=project.id)
+        self.assert_groups_metadata_not_updated(groups)
 
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_1_times_seen(
@@ -732,15 +740,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(self.project.id)
 
-        groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            if group not in groups_seen_once:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
-            else:
-                assert group.data["metadata"].get("seer_similarity") is None
+        groups = Group.objects.filter(project_id=self.project.id).exclude(
+            id__in=[g.id for g in groups_seen_once]
+        )
+        self.assert_groups_metadata_updated(groups)
+        self.assert_groups_metadata_not_updated(groups_seen_once)
 
     @pytest.mark.skip(
         "this test is flakey in production; trying to replicate locally and skipping it for now"
@@ -792,10 +796,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         for group in groups:
             if str(group.id) not in groups_with_neighbor:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
+                self.assert_group_metadata_updated(group, self.group_hashes[group.id])
             else:
                 request_hash = GroupHash.objects.get(group_id=group.id).hash
                 parent_group_id = Group.objects.get(times_seen__gt=2).id
@@ -852,12 +853,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         groups = Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
         for group in groups:
             if str(group.id) not in group_with_neighbor:
-                assert group.data["metadata"].get("seer_similarity") == {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": self.group_hashes[group.id],
-                }
+                self.assert_group_metadata_updated(group, self.group_hashes[group.id])
             else:
-                assert group.data["metadata"].get("seer_similarity") is None
+                self.assert_group_metadata_not_updated(group)
                 mock_logger.exception.assert_called_with(
                     "tasks.backfill_seer_grouping_records.invalid_parent_group",
                     extra={
@@ -905,8 +903,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             )
 
         groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert group.data["metadata"].get("seer_similarity") is not None
+        self.assert_groups_metadata_updated(groups)
 
         batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
         project_group_ids = sorted([group.id for group in groups], reverse=True)
