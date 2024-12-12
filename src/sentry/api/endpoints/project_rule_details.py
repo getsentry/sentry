@@ -11,11 +11,7 @@ from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import (
-    create_sentry_app_alert_rule_issues_component,
-    find_duplicate_rule,
-    send_confirmation_notification,
-)
+from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -38,6 +34,7 @@ from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
+from sentry.sentry_apps.utils.alert_rule_action import create_sentry_app_alert_rule_issues_component
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
