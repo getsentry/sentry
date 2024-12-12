@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
@@ -29,6 +30,7 @@ def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
+@sentry_sdk.trace
 def run_table_query(
     params: SnubaParams,
     query_string: str,
@@ -195,6 +197,7 @@ def validate_granularity(
         )
 
 
+@sentry_sdk.trace
 def run_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -266,6 +269,7 @@ def run_timeseries_query(
     )
 
 
+@sentry_sdk.trace
 def build_top_event_conditions(
     resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
 ) -> Any:
