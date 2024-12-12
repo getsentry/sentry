@@ -459,7 +459,10 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: GroupEvent | Event | None = None) -> bool:
+def killswitch_enabled(
+    project_id: int | None,
+    event: GroupEvent | Event | None = None,
+) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
