@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {DndContext, type Translate, useDraggable} from '@dnd-kit/core';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -141,10 +141,15 @@ function WidgetPreviewContainer({
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
   const location = useLocation();
+  const theme = useTheme();
+
+  const isDragEnabled =
+    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
 
   const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
     id: WIDGET_PREVIEW_DRAG_ID,
-    // disabled: true,
+    disabled: !isDragEnabled,
+    // May need to add 'handle' prop if we want to drag the preview by a specific area
   });
 
   return (
@@ -165,7 +170,9 @@ function WidgetPreviewContainer({
                 ref={setNodeRef}
                 id={WIDGET_PREVIEW_DRAG_ID}
                 style={{
-                  transform: `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`,
+                  transform: isDragEnabled
+                    ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+                    : undefined,
                   opacity: isDragging ? 0.5 : 1,
                 }}
                 {...attributes}
@@ -236,6 +243,15 @@ const DraggableWidgetContainer = styled(`div`)`
 
   &:active {
     cursor: grabbing;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    transform: none;
+    cursor: auto;
+
+    &:active {
+      cursor: auto;
+    }
   }
 `;
 
