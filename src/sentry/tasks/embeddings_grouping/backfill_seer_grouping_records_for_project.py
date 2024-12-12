@@ -63,6 +63,7 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_id = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_id
     """
+
     if cohort is None and worker_number is not None:
         cohort = create_project_cohort(
             worker_number, skip_processed_projects, last_processed_project_id
@@ -70,10 +71,11 @@ def backfill_seer_grouping_records_for_project(
         if not cohort:
             logger.info(
                 "reached the end of the projects in cohort",
-                extra={"worker_number": worker_number},
+                extra={
+                    "worker_number": worker_number,
+                },
             )
             return
-
         current_project_id = cohort[0]
     assert current_project_id is not None
 
