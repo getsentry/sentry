@@ -448,7 +448,6 @@ class TriggersChart extends PureComponent<Props, State> {
                 borderless: true,
                 prefix: t('Display'),
               }}
-              disabled={isLoading || isReloading}
             />
           </InlineContainer>
         </ChartControls>
