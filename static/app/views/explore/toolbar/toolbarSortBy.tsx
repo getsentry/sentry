@@ -13,38 +13,62 @@ import {
   prettifyTagKey,
 } from 'sentry/utils/discover/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
+import {useExploreMode} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import type {Field} from 'sentry/views/explore/hooks/useSampleFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 
 import {ToolbarHeader, ToolbarLabel, ToolbarRow, ToolbarSection} from './styles';
 
 interface ToolbarSortByProps {
-  fields: Field[];
+  fields: string[];
+  groupBys: string[];
   setSorts: (newSorts: Sort[]) => void;
   sorts: Sort[];
+  visualizes: Visualize[];
 }
 
-export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
-  const [resultMode] = useResultMode();
+export function ToolbarSortBy({
+  fields,
+  groupBys,
+  setSorts,
+  sorts,
+  visualizes,
+}: ToolbarSortByProps) {
+  const mode = useExploreMode();
   const [tab] = useTab();
 
   // traces table is only sorted by timestamp so disable the sort by
-  const disabled = resultMode === 'samples' && tab === Tab.TRACE;
+  const disabled = mode === Mode.SAMPLES && tab === Tab.TRACE;
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
-  const fieldOptions: SelectOption<Field>[] = useMemo(() => {
-    const uniqFields: Field[] = [];
-    for (const field of fields) {
-      if (!uniqFields.includes(field)) {
-        uniqFields.push(field);
+  const fieldOptions: SelectOption<string>[] = useMemo(() => {
+    const uniqueOptions: string[] = [];
+    if (mode === Mode.SAMPLES) {
+      for (const field of fields) {
+        if (!uniqueOptions.includes(field)) {
+          uniqueOptions.push(field);
+        }
+      }
+    } else {
+      for (const visualize of visualizes) {
+        for (const yAxis of visualize.yAxes) {
+          if (!uniqueOptions.includes(yAxis)) {
+            uniqueOptions.push(yAxis);
+          }
+        }
+      }
+      for (const groupBy of groupBys) {
+        if (!uniqueOptions.includes(groupBy)) {
+          uniqueOptions.push(groupBy);
+        }
       }
     }
 
-    const options = uniqFields.map(field => {
+    const options = uniqueOptions.filter(Boolean).map(field => {
       const tag = stringTags[field] ?? numberTags[field] ?? null;
       if (tag) {
         return {
@@ -86,7 +110,7 @@ export function ToolbarSortBy({fields, setSorts, sorts}: ToolbarSortByProps) {
     });
 
     return options;
-  }, [fields, numberTags, stringTags]);
+  }, [fields, groupBys, mode, numberTags, stringTags, visualizes]);
 
   const setSortField = useCallback(
     (i: number, {value}: SelectOption<SelectKey>) => {

@@ -6,8 +6,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import type {Visualize} from './useVisualizes';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 export function useAnalytics({
   dataset,

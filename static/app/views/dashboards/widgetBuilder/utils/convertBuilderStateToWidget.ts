@@ -7,7 +7,7 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {formatSort} from 'sentry/views/explore/tables/aggregatesTable';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 
 import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
 

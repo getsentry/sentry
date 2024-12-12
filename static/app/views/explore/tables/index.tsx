@@ -9,9 +9,13 @@ import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Confidence} from 'sentry/types/organization';
+import {
+  useExploreFields,
+  useExploreMode,
+  useSetExploreFields,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -24,12 +28,12 @@ interface ExploreTablesProps {
 }
 
 export function ExploreTables(props: ExploreTablesProps) {
-  const [resultMode] = useResultMode();
+  const mode = useExploreMode();
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregatesTable {...props} />}
-      {resultMode === 'samples' && <ExploreSamplesTable {...props} />}
+      {mode === Mode.AGGREGATE && <ExploreAggregatesTable {...props} />}
+      {mode === Mode.SAMPLES && <ExploreSamplesTable {...props} />}
     </Fragment>
   );
 }
@@ -41,7 +45,9 @@ function ExploreAggregatesTable(props: ExploreTablesProps) {
 function ExploreSamplesTable(props: ExploreTablesProps) {
   const [tab, setTab] = useTab();
 
-  const [fields, setFields] = useSampleFields();
+  const fields = useExploreFields();
+  const setFields = useSetExploreFields();
+
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 

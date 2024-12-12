@@ -25,13 +25,16 @@ import {
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {
+  useExploreDataset,
+  useExploreFields,
+  useExploreQuery,
+  useExploreSortBys,
+  useExploreVisualizes,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {FieldRenderer} from './fieldRenderer';
@@ -44,11 +47,12 @@ interface SpansTableProps {
 export function SpansTable({confidence, setError}: SpansTableProps) {
   const {selection} = usePageFilters();
 
-  const [dataset] = useDataset({allowRPC: true});
-  const [fields] = useSampleFields();
-  const [sorts, setSorts] = useSorts({fields});
-  const [query] = useUserQuery();
-  const [visualizes] = useVisualizes();
+  const dataset = useExploreDataset();
+  const fields = useExploreFields();
+  const sortBys = useExploreSortBys();
+  const setSortBys = useSetExploreSortBys();
+  const query = useExploreQuery();
+  const visualizes = useExploreVisualizes();
   const organization = useOrganization();
 
   const visibleFields = useMemo(
@@ -77,14 +81,14 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
       id: undefined,
       name: 'Explore - Span Samples',
       fields: queryFields,
-      orderby: sorts.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+      orderby: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
       query: search.formatString(),
       version: 2,
       dataset,
     };
 
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
-  }, [dataset, sorts, query, selection, visibleFields]);
+  }, [dataset, sortBys, query, selection, visibleFields]);
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -140,11 +144,11 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
               const align = fieldAlignment(field, fieldType);
               const tag = stringTags[field] ?? numberTags[field] ?? null;
 
-              const direction = sorts.find(s => s.field === field)?.kind;
+              const direction = sortBys.find(s => s.field === field)?.kind;
 
               function updateSort() {
                 const kind = direction === 'desc' ? 'asc' : 'desc';
-                setSorts([{field, kind}]);
+                setSortBys([{field, kind}]);
               }
 
               return (
