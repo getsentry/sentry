@@ -433,7 +433,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
-            # exclude proxy models since the back up test is already done on parent if needed
+            # exclude proxy models since the backup test is already done on a parent if needed
             if model._meta.proxy:
                 continue
 
