@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping
+from datetime import timedelta
 from typing import Any
 
 from django.db.models import Q
@@ -168,6 +169,17 @@ def get_resolutions_and_activity_data_for_groups(
     return resolutions_by_group_id, activity_type, activity_data
 
 
+def group_was_recently_resolved(group: Group) -> bool:
+    """
+    Check if the group was resolved in the last 3 minutes
+    """
+    try:
+        group_resolution = GroupResolution.objects.get(group=group)
+        return group_resolution.datetime > django_timezone.now() - timedelta(minutes=3)
+    except GroupResolution.DoesNotExist:
+        return False
+
+
 @instrumented_task(
     name="sentry.integrations.tasks.sync_status_inbound",
     queue="integrations",
@@ -189,8 +201,8 @@ def sync_status_inbound(
         raise Integration.DoesNotExist
 
     organizations = Organization.objects.filter(id=organization_id)
-    affected_groups = Group.objects.get_groups_by_external_issue(
-        integration, organizations, issue_key
+    affected_groups = list(
+        Group.objects.get_groups_by_external_issue(integration, organizations, issue_key)
     )
     if not affected_groups:
         return
@@ -213,6 +225,13 @@ def sync_status_inbound(
         "integration_id": integration_id,
     }
     if action == ResolveSyncAction.RESOLVE:
+        # Check if the group was recently resolved and we should skip the request
+        # Avoid resolving the group in-app and then re-resolving via the integration webhook
+        # which would override the in-app resolution
+        for group in affected_groups:
+            if group.status == GroupStatus.RESOLVED and group_was_recently_resolved(group):
+                affected_groups.remove(group)
+
         (
             resolutions_by_group_id,
             activity_type,
