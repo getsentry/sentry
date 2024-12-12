@@ -331,6 +331,7 @@ const StyledDisplayName = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
   margin-right: -3px;
+  font-weight: normal;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
