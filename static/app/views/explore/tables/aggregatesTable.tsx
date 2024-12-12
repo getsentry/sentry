@@ -66,13 +66,6 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const fields = useMemo(() => {
     const allFields: string[] = [];
 
-    for (const groupBy of groupBys) {
-      if (allFields.includes(groupBy)) {
-        continue;
-      }
-      allFields.push(groupBy);
-    }
-
     for (const visualize of visualizes) {
       for (const yAxis of visualize.yAxes) {
         if (allFields.includes(yAxis)) {
@@ -80,6 +73,13 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
         }
         allFields.push(yAxis);
       }
+    }
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
     }
 
     return allFields.filter(Boolean);
