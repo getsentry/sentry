@@ -98,7 +98,7 @@ def get_apex_crash_event(
 
 def get_exception(
     frames: Sequence[Mapping[str, str]],
-    mechanism: Mapping[str, object] = None,
+    mechanism=None,
 ) -> dict[str, object]:
     if mechanism is None:
         # linter complains about mutable arguments otherwise
