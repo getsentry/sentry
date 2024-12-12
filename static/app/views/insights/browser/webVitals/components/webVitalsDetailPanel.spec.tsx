@@ -156,7 +156,7 @@ describe('WebVitalsDetailPanel', function () {
     expect(screen.getByText('Largest Contentful Paint (P75)')).toBeInTheDocument();
     expect(screen.getByText('—')).toBeInTheDocument();
     expect(
-      screen.getByText(/Largest Contentful Paint \(LCP\) measures the render/)
+      screen.getByText(/Time to render the largest item in the viewport/)
     ).toBeInTheDocument();
   });
 });
