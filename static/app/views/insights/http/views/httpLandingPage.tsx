@@ -36,6 +36,7 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
 } from 'sentry/views/insights/http/settings';
+import {GoToExploreButton} from 'sentry/views/insights/http/views/goToExploreButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -172,6 +173,7 @@ export function HTTPLandingPage() {
   const headerProps = {
     headerTitle,
     module: ModuleName.HTTP,
+    headerActions: <GoToExploreButton />,
   };
 
   return (
