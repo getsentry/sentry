@@ -22,18 +22,66 @@ import {
 
 type Params = DocsParams;
 
-const getSdkSetupSnippet = () => `
+const getExampleServerSnippet = () => `
 ${getImportInstrumentSnippet()}
-
-// All other imports below
 const { createServer } = require("node:http");
 
-const server = createServer((req, res) => {
-  // server code
+const server = createServer(async (req, res) => {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end('Hello World');
 });
 
-server.listen(3000, "127.0.0.1");
-`;
+server.listen(3000, "127.0.0.1", () => {
+    console.log(\`Server running at http://127.0.0.1:3000/\`);
+  });`;
+
+const getErrorsVerifySnippet = () => `
+// Capture an exception
+try {
+  foo();
+} catch (e) {
+  Sentry.captureException(e);
+}`;
+
+const getPerformanceVerifySnippet = () => `
+const Sentry = require("@sentry/node");
+
+// Start a span
+Sentry.startSpan({
+  op: "test",
+  name: "My First Test Span",
+}, async () => {
+  ${getErrorsVerifySnippet()}
+});`;
+
+const hasContinuousProfiling = (params: DocsParams) =>
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous';
+
+const getContinuousProfilingVerifySnippet = () => `
+    async function slow_function() {
+        Sentry.profiler.startProfiler();
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        Sentry.profiler.stopProfiler();
+    }
+    // Start a span
+    await Sentry.startSpan({
+    name: "My First Test Span",
+    }, async () => {
+        await slow_function();
+        ${getErrorsVerifySnippet()}
+    });`;
+
+const getVerifySnippet = (params: DocsParams) => {
+  if (hasContinuousProfiling(params)) {
+    return getContinuousProfilingVerifySnippet();
+  }
+  if (params.isPerformanceSelected) {
+    return getPerformanceVerifySnippet();
+  }
+  return getErrorsVerifySnippet();
+};
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -84,8 +132,8 @@ const onboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkSetupSnippet(),
+              filename: 'index.(js|mjs)',
+              code: getExampleServerSnippet(),
             },
           ],
         },
@@ -96,37 +144,14 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: ({isPerformanceSelected}) => [
+  verify: (params: DocsParams) => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
+      description: t('Use this snippet to verify the configured functionality.'),
       configurations: [
         {
           language: 'javascript',
-          code: isPerformanceSelected
-            ? `
-const Sentry = require("@sentry/node");
-
-Sentry.startSpan({
-  op: "test",
-  name: "My First Test Span",
-}, () => {
-  try {
-    foo();
-  } catch (e) {
-    Sentry.captureException(e);
-  }
-});`
-            : `
-const Sentry = require("@sentry/node");
-
-try {
-  foo();
-} catch (e) {
-  Sentry.captureException(e);
-}`,
+          code: getVerifySnippet(params),
         },
       ],
     },
