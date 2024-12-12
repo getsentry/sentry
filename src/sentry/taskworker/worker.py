@@ -10,12 +10,14 @@ from uuid import uuid4
 
 import grpc
 import orjson
+import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    FetchNextTask,
     TaskActivation,
 )
 
@@ -30,11 +32,20 @@ logger = logging.getLogger("sentry.taskworker.worker")
 mp_context = multiprocessing.get_context("fork")
 
 
-def _process_activation(
-    namespace: str, task_name: str, args: list[Any], kwargs: dict[str, Any]
-) -> None:
+def _process_activation(activation: TaskActivation) -> None:
     """multiprocess worker method"""
-    taskregistry.get(namespace).get(task_name)(*args, **kwargs)
+    parameters = orjson.loads(activation.parameters)
+    args = parameters.get("args", [])
+    kwargs = parameters.get("kwargs", {})
+    headers = {k: v for k, v in activation.headers.items()}
+
+    transaction = sentry_sdk.continue_trace(
+        environ_or_headers=headers,
+        op="task.taskworker",
+        name=f"{activation.namespace}:{activation.taskname}",
+    )
+    with sentry_sdk.start_transaction(transaction):
+        taskregistry.get(activation.namespace).get(activation.taskname)(*args, **kwargs)
 
 
 AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
@@ -57,12 +68,17 @@ class TaskWorker:
     """
 
     def __init__(
-        self, rpc_host: str, max_task_count: int | None = None, **options: dict[str, Any]
+        self,
+        rpc_host: str,
+        max_task_count: int | None = None,
+        namespace: str | None = None,
+        **options: dict[str, Any],
     ) -> None:
         self.options = options
         self._execution_count = 0
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
+        self._namespace = namespace
         self.client = TaskworkerClient(rpc_host)
         self._pool: Pool | None = None
         self._build_pool()
@@ -124,7 +140,7 @@ class TaskWorker:
 
     def fetch_task(self) -> TaskActivation | None:
         try:
-            activation = self.client.get_task()
+            activation = self.client.get_task(self._namespace)
         except grpc.RpcError:
             metrics.incr("taskworker.worker.get_task.failed")
             logger.info("get_task failed. Retrying in 1 second")
@@ -167,6 +183,7 @@ class TaskWorker:
             return self.client.update_task(
                 task_id=activation.id,
                 status=TASK_ACTIVATION_STATUS_FAILURE,
+                fetch_next_task=FetchNextTask(namespace=self._namespace),
             )
 
         if task.at_most_once:
@@ -187,17 +204,11 @@ class TaskWorker:
         result = None
         execution_start_time = 0.0
         try:
-            task_data_parameters = orjson.loads(activation.parameters)
             execution_start_time = time.time()
 
             result = self._pool.apply_async(
                 func=_process_activation,
-                args=(
-                    activation.namespace,
-                    activation.taskname,
-                    task_data_parameters["args"],
-                    task_data_parameters["kwargs"],
-                ),
+                args=(activation,),
             )
             # Will trigger a TimeoutError if the task execution runs long
             result.get(timeout=processing_timeout)
@@ -260,4 +271,5 @@ class TaskWorker:
         return self.client.update_task(
             task_id=activation.id,
             status=next_state,
+            fetch_next_task=FetchNextTask(namespace=self._namespace),
         )

@@ -182,40 +182,44 @@ function Controls({
                 {t('Export Dashboard')}
               </Button>
             </Feature>
-            <Feature features="dashboards-favourite">
-              <Button
-                size="sm"
-                aria-label={'dashboards-favourite'}
-                icon={
-                  <IconStar
-                    color={isFavorited ? 'yellow300' : 'gray300'}
-                    isSolid={isFavorited}
-                    aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
-                    data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
-                  />
-                }
-                onClick={async () => {
-                  try {
-                    setIsFavorited(!isFavorited);
-                    await updateDashboardFavorite(
-                      api,
-                      organization.slug,
-                      dashboard.id,
-                      !isFavorited
-                    );
-                  } catch (error) {
-                    // If the api call fails, revert the state
-                    setIsFavorited(isFavorited);
+            {dashboard.id !== 'default-overview' && (
+              <Feature features="dashboards-favourite">
+                <Button
+                  size="sm"
+                  aria-label={'dashboards-favourite'}
+                  icon={
+                    <IconStar
+                      color={isFavorited ? 'yellow300' : 'gray300'}
+                      isSolid={isFavorited}
+                      aria-label={isFavorited ? t('UnFavorite') : t('Favorite')}
+                      data-test-id={isFavorited ? 'yellow-star' : 'empty-star'}
+                    />
                   }
-                }}
-              />
-            </Feature>
-            <Feature features="dashboards-edit-access">
-              <EditAccessSelector
-                dashboard={dashboard}
-                onChangeEditAccess={onChangeEditAccess}
-              />
-            </Feature>
+                  onClick={async () => {
+                    try {
+                      setIsFavorited(!isFavorited);
+                      await updateDashboardFavorite(
+                        api,
+                        organization.slug,
+                        dashboard.id,
+                        !isFavorited
+                      );
+                    } catch (error) {
+                      // If the api call fails, revert the state
+                      setIsFavorited(isFavorited);
+                    }
+                  }}
+                />
+              </Feature>
+            )}
+            {dashboard.id !== 'default-overview' && (
+              <Feature features="dashboards-edit-access">
+                <EditAccessSelector
+                  dashboard={dashboard}
+                  onChangeEditAccess={onChangeEditAccess}
+                />
+              </Feature>
+            )}
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {

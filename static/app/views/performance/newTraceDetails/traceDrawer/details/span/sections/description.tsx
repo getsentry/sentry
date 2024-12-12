@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -7,6 +7,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
@@ -15,6 +16,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {
+  DisabledImages,
+  LOCAL_STORAGE_SHOW_LINKS,
+  MissingImage,
+} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {
   MissingFrame,
@@ -28,6 +36,7 @@ import {
 import {ModuleName} from 'sentry/views/insights/types';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 import type {TraceTree} from '../../../../traceModels/traceTree';
 import type {TraceTreeNode} from '../../../../traceModels/traceTreeNode';
@@ -167,6 +176,8 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
+    ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
+      <ResourceImageDescription formattedDescription={formattedDescription} node={node} />
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
@@ -200,6 +211,112 @@ export function SpanDescription({
     />
   );
 }
+
+function ResourceImageDescription({
+  formattedDescription,
+  node,
+}: {
+  formattedDescription: string;
+  node: TraceTreeNode<TraceTree.Span>;
+}) {
+  const projectID = node.event?.projectID ? Number(node.event?.projectID) : undefined;
+  const span = node.value;
+
+  const {data: settings, isPending: isSettingsLoading} =
+    usePerformanceGeneralProjectSettings(Number(projectID));
+  const isImagesEnabled = settings?.enable_images ?? false;
+
+  const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
+  const size = span?.data?.['http.decoded_response_content_length'];
+
+  return (
+    <StyledDescriptionWrapper>
+      {isSettingsLoading ? (
+        <LoadingIndicator size={30} />
+      ) : !isImagesEnabled ? (
+        <DisabledImages
+          onClickShowLinks={() => setShowLinks(true)}
+          projectSlug={span.project_slug}
+        />
+      ) : (
+        <ResourceImage
+          fileName={formattedDescription}
+          showImage={!showLinks}
+          size={size}
+          src={span.description ?? ''}
+        />
+      )}
+    </StyledDescriptionWrapper>
+  );
+}
+
+function ResourceImage(props: {
+  fileName: string;
+  showImage: boolean;
+  size: number;
+  src: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const {fileName, size, src, showImage = true} = props;
+  const isRelativeUrl = src.startsWith('/');
+
+  return (
+    <ImageContainer>
+      <FilenameContainer>
+        <span>
+          {fileName} (<ResourceSize bytes={size} />)
+        </span>
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          iconSize="xs"
+          text={fileName}
+          title={t('Copy file name')}
+        />
+      </FilenameContainer>
+      {showImage && !isRelativeUrl && !hasError ? (
+        <ImageWrapper>
+          <img
+            data-test-id="sample-image"
+            onError={() => setHasError(true)}
+            src={src}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+            }}
+          />
+        </ImageWrapper>
+      ) : (
+        <MissingImage />
+      )}
+    </ImageContainer>
+  );
+}
+
+const FilenameContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: ${space(1)};
+  justify-content: space-between;
+`;
+
+const ImageWrapper = styled('div')`
+  width: 200px;
+  height: 180px;
+  margin: auto;
+`;
+
+const ImageContainer = styled('div')`
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${space(0.5)};
+`;
 
 const CodeSnippetWrapper = styled('div')`
   display: flex;
@@ -362,4 +479,9 @@ const DescriptionWrapper = styled('div')`
   gap: ${space(0.5)};
   word-break: break-word;
   padding: ${space(1)};
+`;
+
+const StyledDescriptionWrapper = styled(DescriptionWrapper)`
+  padding: ${space(1)};
+  justify-content: center;
 `;
