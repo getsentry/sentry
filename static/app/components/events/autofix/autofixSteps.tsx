@@ -7,6 +7,7 @@ import AutofixInsightCards, {
   useUpdateInsightCard,
 } from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
+import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
 import {
   AutofixRootCause,
   useSelectCause,
@@ -280,6 +281,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             </div>
           );
         })}
+        <AutofixOutputStream step={lastStep} />
       </StepsContainer>
 
       <AutofixMessageBox
