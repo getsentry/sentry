@@ -407,15 +407,6 @@ def create_sample_event(
         spans,
     )
 
-    if not data:
-        logger.info(
-            "create_sample_event: no data loaded",
-            extra={
-                "project_id": project.id,
-                "sample_event": True,
-            },
-        )
-        return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:
             data["contexts"]["trace"][key] = kwargs.pop(key)
