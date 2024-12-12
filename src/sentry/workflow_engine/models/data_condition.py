@@ -31,7 +31,7 @@ class Condition(StrEnum):
     TRUTH = "truth"
 
 
-condition_ops = {
+condition_ops: dict[Condition, Callable] = {
     Condition.EQUAL: operator.eq,
     Condition.GREATER_OR_EQUAL: operator.ge,
     Condition.GREATER: operator.gt,

@@ -3,7 +3,7 @@ from typing import Any
 from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, DetectorPriorityLevel
 
 
 def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
@@ -24,11 +24,14 @@ def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
 @condition_handler_registry.register(Condition.GROUP_EVENT_ATTR_COMPARISON)
 class GroupEventConditionHandler(DataConditionHandler[GroupEvent]):
     @staticmethod
-    def evaluate_value(data: GroupEvent, comparison: Any, data_filter: str, **kwargs) -> bool:
-        event_value = get_nested_value(data, data_filter)
+    def evaluate_value(
+        value: GroupEvent, comparison: Any, condition: str, **kwargs: Any
+    ) -> DetectorPriorityLevel | int | float | bool | None:
+        # conditions stores the path to the attribute in the event
+        event_value = get_nested_value(value, condition)
         if event_value is None:
             event_value = get_nested_value(
-                kwargs, data_filter
+                kwargs, condition
             )  # TODO: remove when GroupEvent contains GroupState
 
         return event_value == comparison
