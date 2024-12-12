@@ -238,7 +238,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         if (
             platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
             and frame_metrics["is_frames_truncated"]
-            and not app_hash
         ):
             raise TooManyOnlySystemFramesException
 
