@@ -610,8 +610,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "duration:<18s",
                 "duration:>=17s",
                 "duration:<=17s",
-                # "duration:[16s,17s]",  # TODO: need to add duration_in_filters in event_search.py
-                # "!duration:[16s,18s]",
                 "duration:17000ms",  # If duration value is not equal to a whole number of seconds, the endpoint fails.
                 "duration:<1m",
                 "duration:<1min",
@@ -940,6 +938,18 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400
 
+    def test_get_replays_filter_bad_operator_error_messages(self):
+        self.create_project(teams=[self.team])
+
+        queries = ["transaction.duration:>0s", "viewed_by_me:<true"]
+        with self.feature(self.features):
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 400
+                assert b"Invalid operator" in response.content
+                field = query.split(":")[0]
+                assert field.encode() in response.content
+
     def test_get_replays_filter_bad_value(self):
         """Test replays conform to the interchange format."""
         self.create_project(teams=[self.team])
@@ -960,16 +970,25 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 field = query.split(":")[0]
                 assert field.encode() in response.content
 
-    # No such thing as a bad field with the tag filtering behavior.
-    #
-    # def test_get_replays_filter_bad_field(self):
-    #     """Test replays conform to the interchange format."""
-    #     self.create_project(teams=[self.team])
+    def test_get_replays_filter_bad_value_error_messages(self):
+        # TODO: remove once we support ms timestamps
+        self.create_project(teams=[self.team])
+        queries = [
+            "duration:1004ms",
+            "duration:7.3s",
+            "duration:1.33min",
+        ]
 
-    #     with self.feature(self.features):
-    #         response = self.client.get(self.url + "?query=xyz:a")
-    #         assert response.status_code == 400
-    #         assert b"xyz" in response.content
+        with self.feature(self.features):
+            for query in queries:
+                response = self.client.get(self.url + f"?query={query}")
+                assert response.status_code == 400
+                assert (
+                    b"Replays only supports second-resolution timestamps at this time"
+                    in response.content
+                )
+
+    # Note: there's no such thing as a bad field with the tag filtering behavior.
 
     def test_get_replays_unknown_field(self):
         """Test replays unknown fields raise a 400 error."""
