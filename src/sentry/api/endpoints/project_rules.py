@@ -841,7 +841,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             find_channel_id_for_rule.apply_async(kwargs=kwargs)
             return Response(uuid_context, status=202)
 
-        created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
+        created_alert_rule_ui_component = create_sentry_app_alert_rule_issues_component(
             kwargs["actions"]
         )
         if isinstance(created_alert_rule_ui_component, Response):
