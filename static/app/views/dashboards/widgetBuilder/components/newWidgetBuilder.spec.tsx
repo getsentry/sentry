@@ -84,6 +84,10 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -126,7 +130,8 @@ describe('NewWidgetBuiler', function () {
     // ensure the dropdown input has the default value 'table'
     expect(screen.getByDisplayValue('table')).toBeInTheDocument();
 
-    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create a search query')).toBeInTheDocument();
 
     // Test sort by selector for table display type
     expect(screen.getByText('Sort by')).toBeInTheDocument();

@@ -21,10 +21,16 @@ import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/con
 type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
   onClose: () => void;
+  onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
-function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutProps) {
+function WidgetBuilderSlideout({
+  isOpen,
+  onClose,
+  onSave,
+  onQueryConditionChange,
+}: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const isEditing = widgetIndex !== undefined;
@@ -68,7 +74,9 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
           <Visualize />
         </Section>
         <Section>
-          <WidgetBuilderQueryFilterBuilder />
+          <WidgetBuilderQueryFilterBuilder
+            onQueryConditionChange={onQueryConditionChange}
+          />
         </Section>
         {isChartWidget && (
           <Section>

@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -47,6 +47,8 @@ function WidgetBuilderV2({
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
+  const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
+
   useEffect(() => {
     if (escapeKeyPressed) {
       if (isOpen) {
@@ -72,10 +74,12 @@ function WidgetBuilderV2({
                       isOpen={isOpen}
                       onClose={onClose}
                       onSave={onSave}
+                      onQueryConditionChange={setQueryConditionsValid}
                     />
                     <WidgetPreviewContainer
                       dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
+                      isWidgetInvalid={!queryConditionsValid}
                     />
                   </WidgetBuilderContainer>
                 </ContainerWithoutSidebar>
@@ -93,9 +97,11 @@ export default WidgetBuilderV2;
 function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
+  isWidgetInvalid,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
+  isWidgetInvalid: boolean;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -129,6 +135,7 @@ function WidgetPreviewContainer({
                 <WidgetPreview
                   dashboardFilters={dashboardFilters}
                   dashboard={dashboard}
+                  isWidgetInvalid={isWidgetInvalid}
                 />
               </SampleWidgetCard>
             </MEPSettingProvider>
