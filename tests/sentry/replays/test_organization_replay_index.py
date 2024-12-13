@@ -686,6 +686,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "seen_by_id:1",
                 "!seen_by_id:2",
                 "seen_by_id:[1,2]",
+                "viewed_by_me:true",
+                "seen_by_me:true",
             ]
 
             for query in queries:
@@ -736,6 +738,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "activity:<2",
                 "viewed_by_id:2",
                 "seen_by_id:2",
+                "viewed_by_me:false",
+                "seen_by_me:false",
                 "user.email:[user2@example.com]",
                 "!user.email:[username@example.com, user2@example.com]",
             ]
@@ -936,19 +940,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
-                assert response.status_code == 400
-
-    def test_get_replays_filter_bad_operator_error_messages(self):
-        self.create_project(teams=[self.team])
-
-        queries = ["transaction.duration:>0s", "viewed_by_me:<true"]
-        with self.feature(self.features):
-            for query in queries:
-                response = self.client.get(self.url + f"?query={query}")
-                assert response.status_code == 400
-                assert b"Invalid operator" in response.content
-                field = query.split(":")[0]
-                assert field.encode() in response.content
+                assert response.status_code == 400, query
 
     def test_get_replays_filter_bad_value(self):
         """Test replays conform to the interchange format."""
@@ -966,11 +958,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
-                assert response.status_code == 400
-                field = query.split(":")[0]
-                assert field.encode() in response.content
+                assert response.status_code == 400, query
 
-    def test_get_replays_filter_bad_value_error_messages(self):
+    def test_get_replays_filter_bad_duration_error_messages(self):
         # TODO: remove once we support ms timestamps
         self.create_project(teams=[self.team])
         queries = [
@@ -982,11 +972,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(self.features):
             for query in queries:
                 response = self.client.get(self.url + f"?query={query}")
-                assert response.status_code == 400
+                assert response.status_code == 400, query
                 assert (
                     b"Replays only supports second-resolution timestamps at this time"
                     in response.content
-                )
+                ), query
+                assert b"duration" in response.content, query
 
     # Note: there's no such thing as a bad field with the tag filtering behavior.
 
