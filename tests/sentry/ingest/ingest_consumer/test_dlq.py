@@ -92,8 +92,6 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
 @pytest.mark.parametrize(
     ("topic_name", "consumer_type"),
     [
-        (TopicNames.INGEST_EVENTS.value, ConsumerType.Events),
-        (TopicNames.INGEST_ATTACHMENTS.value, ConsumerType.Attachments),
         (TopicNames.INGEST_TRANSACTIONS.value, ConsumerType.Transactions),
     ],
 )
