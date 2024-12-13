@@ -312,10 +312,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
           }
         }
-
-        .exc-message {
-          color: ${theme.subText};
-        }
         .group-detail h3 em {
           color: ${theme.subText};
         }

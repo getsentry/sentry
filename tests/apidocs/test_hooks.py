@@ -12,7 +12,22 @@ class FixIssueRoutesTest(TestCase):
                         "tags": ["Events"],
                         "description": "Get issues",
                         "operationId": "get issue",
-                        "parameters": [],
+                        "parameters": [
+                            {
+                                "in": "path",
+                                "name": "organization_id_or_slug",
+                                "schema": {"type": "string"},
+                                "description": "The ID or slug of the organization the resource belongs to.",
+                                "required": True,
+                            },
+                            {
+                                "in": "path",
+                                "name": "var",
+                                "schema": {"type": "string"},
+                                "description": "Issues or groups",
+                                "required": True,
+                            },
+                        ],
                     }
                 },
                 "/api/0/{var}/{issue_id}/": {
@@ -20,7 +35,15 @@ class FixIssueRoutesTest(TestCase):
                         "tags": ["Events"],
                         "description": "Get issues",
                         "operationId": "get issue",
-                        "parameters": [],
+                        "parameters": [
+                            {
+                                "in": "path",
+                                "name": "var",
+                                "schema": {"type": "string"},
+                                "description": "Issues or groups",
+                                "required": True,
+                            },
+                        ],
                     }
                 },
                 "/api/0/some/path/": {
@@ -36,7 +59,7 @@ class FixIssueRoutesTest(TestCase):
 
         # Issue route with /organizations/{organization_id_or_slug}/ should be removed
         # Issue route with /{var}/{issue_id}/ should be renamed to /issues/{issue_id}/
-        # "var" path parameter should be removed
+        # "var" and "organization_id_or_slug" path parameters should be removed
         AFTER = {
             "paths": {
                 "/api/0/issues/{issue_id}/": {

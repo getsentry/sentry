@@ -10,16 +10,15 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+
 import {
   isAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 
 export type TraceSearchResult = {
   index: number;
@@ -506,6 +505,13 @@ function resolveValueFromKey(
             break;
           }
         }
+      }
+
+      // Aliases for fields that do not exist on raw data
+      if (key === 'project' || key === 'project.name') {
+        // project.name and project fields do not exist on raw data and are
+        // aliases for project_slug key that does exist.
+        key = 'project_slug';
       }
 
       // Check for direct key access.

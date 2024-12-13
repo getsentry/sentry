@@ -278,6 +278,10 @@ export interface BaseChartProps {
    */
   transformSinglePointToLine?: boolean;
   /**
+   * Use multiline date formatting for xAxis if grouped by date
+   */
+  useMultilineDate?: boolean;
+  /**
    * Use short date formatting for xAxis
    */
   useShortDate?: boolean;
@@ -341,6 +345,7 @@ function BaseChartUnwrapped({
   minutesThresholdToDisplaySeconds,
   showTimeInTooltip,
   useShortDate,
+  useMultilineDate,
   start,
   end,
   period,
@@ -519,6 +524,7 @@ function BaseChartUnwrapped({
             ...xAxis,
             theme,
             useShortDate,
+            useMultilineDate,
             start,
             end,
             period,
@@ -533,6 +539,7 @@ function BaseChartUnwrapped({
               ...axis,
               theme,
               useShortDate,
+              useMultilineDate,
               start,
               end,
               period,
@@ -580,6 +587,7 @@ function BaseChartUnwrapped({
     graphic,
     isGroupedByDate,
     useShortDate,
+    useMultilineDate,
     start,
     end,
     period,
@@ -703,6 +711,16 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     display: flex;
     justify-content: space-between;
     align-items: baseline;
+  }
+  .tooltip-label-align-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+  }
+  .tooltip-code-no-margin {
+    padding-left: 0;
+    margin-left: 0;
+    color: ${p.theme.subText};
   }
   .tooltip-footer {
     border-top: solid 1px ${p.theme.innerBorder};

@@ -24,7 +24,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   return data;
 };
 
-function WrappedComponent({data, withStaticFilters = false, ...rest}) {
+function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MetricsCardinalityProvider
@@ -56,17 +56,17 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}) {
   );
 }
 
-const issuesPredicate = (url, options) =>
+const issuesPredicate = (url: string, options: any) =>
   url.includes('events') && options.query?.query.includes('error');
 
 describe('Performance > Widgets > WidgetContainer', function () {
-  let wrapper;
+  let wrapper: ReturnType<typeof render> | undefined;
 
-  let eventStatsMock;
-  let eventsTrendsStats;
-  let eventsMock;
+  let eventStatsMock: jest.Mock;
+  let eventsTrendsStats: jest.Mock;
+  let eventsMock: jest.Mock;
 
-  let issuesListMock;
+  let issuesListMock: jest.Mock;
 
   beforeEach(function () {
     eventStatsMock = MockApiClient.addMockResponse({
@@ -869,7 +869,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/database/'
+      '/insights/backend/database/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -915,7 +915,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/http/'
+      '/insights/backend/http/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -959,7 +959,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/browser/assets/'
+      '/insights/frontend/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -1008,7 +1008,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/insights/caches/'
+      '/insights/backend/caches/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(

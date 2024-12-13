@@ -428,7 +428,8 @@ export function Provider({
         speed: prefs.playbackSpeed,
         // rrweb specific
         theme,
-        events: events ?? [],
+        eventsWithSnapshots: replay?.getRRWebFramesWithSnapshots() ?? [],
+        touchEvents: replay?.getRRwebTouchEvents() ?? [],
         // common to both
         root,
         context: {
@@ -448,7 +449,6 @@ export function Provider({
       applyInitialOffset,
       clipWindow,
       durationMs,
-      events,
       isFetching,
       isVideoReplay,
       organization.slug,

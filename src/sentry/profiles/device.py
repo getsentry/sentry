@@ -103,19 +103,23 @@ IPADAIR2 = "iPad Air 2"
 IPADAIRGEN3 = "iPad Air (3rd gen)"
 IPADAIRGEN4 = "iPad Air (4th gen)"
 IPADAIRGEN5 = "iPad Air (5th gen)"
+IPADAIRGEN6 = "iPad Air (6th gen)"
+IPADAIRGEN7 = "iPad Air (7th gen)"
 
-IPADPRO12GEN1 = "iPad Pro (12.9-inch, 1st gen)"
-IPADPRO9GEN1 = "iPad Pro (9.7-inch, 1st gen)"
-IPADPRO12GEN2 = "iPad Pro (12.9-inch, 2nd gen)"
+IPADPRO9GEN1 = "iPad Pro (9.7-inch)"
 IPADPRO10 = "iPad Pro (10.5-inch)"
 IPADPRO11GEN1 = "iPad Pro (11-inch, 1st gen)"
-IPADPRO12GEN3 = "iPad Pro (12.9-inch, 3rd gen)"
 IPADPRO11GEN2 = "iPad Pro (11-inch, 2nd gen)"
-IPADPRO12GEN4 = "iPad Pro (12.9-inch, 4th gen)"
 IPADPRO11GEN3 = "iPad Pro (11-inch, 3rd gen)"
 IPADPRO11GEN4 = "iPad Pro (11-inch, 4th gen)"
+IPADPRO11GEN5 = "iPad Pro (11 inch, 5th gen)"
+IPADPRO12GEN1 = "iPad Pro (12.9-inch, 1st gen)"
+IPADPRO12GEN2 = "iPad Pro (12.9-inch, 2nd gen)"
+IPADPRO12GEN3 = "iPad Pro (12.9-inch, 3rd gen)"
+IPADPRO12GEN4 = "iPad Pro (12.9-inch, 4th gen)"
 IPADPRO12GEN5 = "iPad Pro (12.9-inch, 5th gen)"
-IPADPRO12GEN6 = "iPad Pro (12.9-inch 6th gen)"
+IPADPRO12GEN6 = "iPad Pro (12.9-inch, 6th gen)"
+IPADPRO12GEN7 = "iPad Pro (12.9-inch, 7th gen)"
 
 IPADMINIGEN1 = "iPad mini (1st gen)"
 IPADMINI2 = "iPad mini 2"
@@ -130,15 +134,21 @@ APPLEWATCHSERIES2 = "Apple Watch Series 2"
 APPLEWATCHSERIES3 = "Apple Watch Series 3"
 APPLEWATCHSERIES4 = "Apple Watch Series 4"
 APPLEWATCHSERIES5 = "Apple Watch Series 5"
-APPLEWATCHSE = "Apple Watch SE"
 APPLEWATCHSERIES6 = "Apple Watch Series 6"
+APPLEWATCHSERIES7 = "Apple Watch Series 7"
+APPLEWATCHSERIES8 = "Apple Watch Series 8"
+APPLEWATCHSERIES9 = "Apple Watch Series 9"
+APPLEWATCHSERIES10 = "Apple Watch Series 10"
+APPLEWATCHSE1 = "Apple Watch SE (1st gen)"
+APPLEWATCHSE2 = "Apple Watch SE (2nd gen)"
 
 APPLETVGEN1 = "Apple TV (1st gen)"
 APPLETVGEN2 = "Apple TV (2nd gen)"
 APPLETVGEN3 = "Apple TV (3rd gen)"
 
-# https:#www.theiphonewiki.com/wiki/Models
+# see https://theapplewiki.com/wiki/models
 IOS_MODELS: dict[str, str] = {
+    # iPhone
     "iPhone1,1": "iPhone (1st gen)",
     "iPhone1,2": "iPhone 3G",
     "iPhone2,1": "iPhone 3GS",
@@ -192,6 +202,11 @@ IOS_MODELS: dict[str, str] = {
     "iPhone15,5": "iPhone 15 Plus",
     "iPhone16,1": "iPhone 15 Pro",
     "iPhone16,2": "iPhone 15 Pro Max",
+    "iPhone17,1": "iPhone 16 Pro",
+    "iPhone17,2": "iPhone 16 Pro Max",
+    "iPhone17,3": "iPhone 16",
+    "iPhone17,4": "iPhone 16 Plus",
+    # iPod Touch
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
     "iPod3,1": "iPod touch (3rd gen)",
@@ -199,6 +214,7 @@ IOS_MODELS: dict[str, str] = {
     "iPod5,1": "iPod touch (5th gen)",
     "iPod7,1": "iPod touch (6th gen)",
     "iPod9,1": "iPod touch (7th gen)",
+    # iPad
     "iPad1,1": "iPad (1st gen)",
     "iPad2,1": IPAD2,
     "iPad2,2": IPAD2,
@@ -220,6 +236,7 @@ IOS_MODELS: dict[str, str] = {
     "iPad11,7": IPADGEN8,
     "iPad12,1": IPADGEN9,
     "iPad12,2": IPADGEN9,
+    # iPad Air
     "iPad4,1": IPADAIRGEN1,
     "iPad4,2": IPADAIRGEN1,
     "iPad4,3": IPADAIRGEN1,
@@ -231,10 +248,15 @@ IOS_MODELS: dict[str, str] = {
     "iPad13,2": IPADAIRGEN4,
     "iPad13,16": IPADAIRGEN5,
     "iPad13,17": IPADAIRGEN5,
+    "iPad14,8": IPADAIRGEN6,
+    "iPad14,9": IPADAIRGEN6,
+    "iPad14,10": IPADAIRGEN7,
+    "iPad14,11": IPADAIRGEN7,
+    # iPad Pro
     "iPad6,7": IPADPRO12GEN1,
-    "iPad6,8": IPADPRO12GEN1,
     "iPad6,3": IPADPRO9GEN1,
     "iPad6,4": IPADPRO9GEN1,
+    "iPad6,8": IPADPRO12GEN1,
     "iPad7,1": IPADPRO12GEN2,
     "iPad7,2": IPADPRO12GEN2,
     "iPad7,3": IPADPRO10,
@@ -259,6 +281,15 @@ IOS_MODELS: dict[str, str] = {
     "iPad13,9": IPADPRO12GEN5,
     "iPad13,10": IPADPRO12GEN5,
     "iPad13,11": IPADPRO12GEN5,
+    "iPad14,3": IPADPRO11GEN4,
+    "iPad14,4": IPADPRO11GEN4,
+    "iPad14,5": IPADPRO12GEN6,
+    "iPad14,6": IPADPRO12GEN6,
+    "iPad16,3": IPADPRO11GEN5,
+    "iPad16,4": IPADPRO11GEN5,
+    "iPad16,5": IPADPRO12GEN7,
+    "iPad16,6": IPADPRO12GEN7,
+    # iPad Mini
     "iPad2,5": IPADMINIGEN1,
     "iPad2,6": IPADMINIGEN1,
     "iPad2,7": IPADMINIGEN1,
@@ -276,10 +307,7 @@ IOS_MODELS: dict[str, str] = {
     "iPad13,19": IPADGEN10,
     "iPad14,1": IPADMINIGEN6,
     "iPad14,2": IPADMINIGEN6,
-    "iPad14,3": IPADPRO11GEN4,
-    "iPad14,4": IPADPRO11GEN4,
-    "iPad14,5": IPADPRO12GEN6,
-    "iPad14,6": IPADPRO12GEN6,
+    # Apple Watch
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,
     "Watch2,6": APPLEWATCHSERIES1,
@@ -298,12 +326,37 @@ IOS_MODELS: dict[str, str] = {
     "Watch5,2": APPLEWATCHSERIES5,
     "Watch5,3": APPLEWATCHSERIES5,
     "Watch5,4": APPLEWATCHSERIES5,
-    "Watch5,9": APPLEWATCHSE,
-    "Watch5,10": APPLEWATCHSE,
-    "Watch5,11": APPLEWATCHSE,
-    "Watch5,12": APPLEWATCHSE,
     "Watch6,3": APPLEWATCHSERIES6,
     "Watch6,4": APPLEWATCHSERIES6,
+    "Watch6,6": APPLEWATCHSERIES7,
+    "Watch6,7": APPLEWATCHSERIES7,
+    "Watch6,8": APPLEWATCHSERIES7,
+    "Watch6,9": APPLEWATCHSERIES7,
+    "Watch6,14": APPLEWATCHSERIES8,
+    "Watch6,15": APPLEWATCHSERIES8,
+    "Watch6,16": APPLEWATCHSERIES8,
+    "Watch6,17": APPLEWATCHSERIES8,
+    "Watch7,1": APPLEWATCHSERIES9,
+    "Watch7,2": APPLEWATCHSERIES9,
+    "Watch7,3": APPLEWATCHSERIES9,
+    "Watch7,4": APPLEWATCHSERIES9,
+    "Watch7,8": APPLEWATCHSERIES10,
+    "Watch7,9": APPLEWATCHSERIES10,
+    "Watch7,10": APPLEWATCHSERIES10,
+    "Watch7,11": APPLEWATCHSERIES10,
+    # Apple Watch SE
+    "Watch5,9": APPLEWATCHSE1,
+    "Watch5,10": APPLEWATCHSE1,
+    "Watch5,11": APPLEWATCHSE1,
+    "Watch5,12": APPLEWATCHSE1,
+    "Watch6,10": APPLEWATCHSE2,
+    "Watch6,11": APPLEWATCHSE2,
+    "Watch6,12": APPLEWATCHSE2,
+    "Watch6,13": APPLEWATCHSE2,
+    # Apple Watch Ultra
+    "Watch6,18": "Apple Watch Ultra (1st gen)",
+    "Watch7,5": "Apple Watch Ultra (2nd gen)",
+    # Apple TV
     "AppleTV1,1": "Apple TV (1st gen)",
     "AppleTV2,1": "Apple TV (2nd gen)",
     "AppleTV3,1": APPLETVGEN3,
@@ -314,21 +367,6 @@ IOS_MODELS: dict[str, str] = {
     "i386": "iOS Simulator (i386)",
     "x86_64": "iOS Simulator (x86_64)",
 }
-
-
-def ios_human_readable_model_name(model: str) -> str:
-    if model in IOS_MODELS:
-        return IOS_MODELS[model]
-    if model.startswith("iPhone"):
-        return "Unknown iPhone"
-    if model.startswith("iPad"):
-        return "Unknown iPad"
-    if model.startswith("AppleTV"):
-        return "Unknown Apple TV"
-    if model.startswith("Watch"):
-        return "Unknown Apple Watch"
-    return "Unknown iOS Device"
-
 
 CPU1 = (520, 520)
 CPU2 = (1000, 1000)

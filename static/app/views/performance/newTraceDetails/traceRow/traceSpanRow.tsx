@@ -1,17 +1,16 @@
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {TraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {makeTraceNodeBarColor, TraceBar} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 const NO_PROFILES = [];
 
@@ -20,22 +19,22 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
-      className={`TraceRow ${props.rowSearchClassName} ${props.node.has_errors ? props.node.max_severity : ''}`}
-      onClick={props.onRowClick}
+      className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
-      <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
-        <div
-          className="TraceLeftColumnInner"
-          style={props.listColumnStyle}
-          onDoubleClick={props.onRowDoubleClick}
-        >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className={props.listColumnClassName}>
             <TraceRowConnectors node={props.node} manager={props.manager} />
             {props.node.children.length > 0 || props.node.canFetch ? (
@@ -60,6 +59,9 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
               </TraceChildrenButton>
             ) : null}
           </div>
+          <SpanProjectIcon
+            platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
+          />
           <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
           <strong className="TraceEmDash"> — </strong>
           <span className="TraceDescription" title={props.node.value.description}>
@@ -77,6 +79,7 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
         onDoubleClick={props.onRowDoubleClick}
       >
         <TraceBar
+          node={props.node}
           virtualized_index={props.virtualized_index}
           manager={props.manager}
           color={makeTraceNodeBarColor(props.theme, props.node)}

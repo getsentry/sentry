@@ -8,7 +8,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -25,7 +28,8 @@ sentry_sdk.init(
   traces_sample_rate=1.0,`
       : ''
   }${
-    params.isProfilingSelected
+    params.isProfilingSelected &&
+    params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
   # Set profiles_sample_rate to 1.0 to profile 100%
   # of sampled transactions.
@@ -33,7 +37,21 @@ sentry_sdk.init(
   profiles_sample_rate=1.0,`
       : ''
   }
-)`;
+)${
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous'
+    ? `
+
+# Manually call start_profiler and stop_profiler
+# to profile the code in between
+sentry_sdk.profiler.start_profiler()
+# this code will be profiled
+#
+# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
+# your application until the process exits or stop_profiler is called.
+sentry_sdk.profiler.stop_profiler()`
+    : ''
+}`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -131,9 +149,20 @@ const onboarding: OnboardingConfig = {
           code: getStartWorkerSnippet(),
         },
       ],
-      additionalInfo: tct(
-        'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
-        {code: <code />}
+      additionalInfo: (
+        <Fragment>
+          {tct(
+            'Generally, make sure that the call to [code:init] is loaded on worker startup, and not only in the module where your jobs are defined. Otherwise, the initialization happens too late and events might end up not being reported.',
+            {code: <code />}
+          )}
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <br />
+                <AlternativeConfiguration />
+              </Fragment>
+            )}
+        </Fragment>
       ),
     },
   ],

@@ -4,7 +4,7 @@ import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 
 type Option = SelectOption<SelectKey>;
 
-type OptionCache = Map<SelectKey, Option>;
+type OptionCache<T extends Option> = Map<SelectKey, T>;
 
 /**
  * Cache designed for the `option` prop of a `CompactSelect`. Accepts
@@ -20,11 +20,13 @@ type OptionCache = Map<SelectKey, Option>;
  * NOTE: The `clear` callback does not trigger a re-render. The cleared
  * cache is returned on next call of the hook.
  */
-export function useCompactSelectOptionsCache(options: Option[]): {
+export function useCompactSelectOptionsCache<T extends Option>(
+  options: T[]
+): {
   clear: () => void;
-  options: Option[];
+  options: T[];
 } {
-  const cache = useRef<OptionCache>(new Map());
+  const cache = useRef<OptionCache<T>>(new Map());
 
   const clearCache = useCallback(() => {
     cache.current.clear();

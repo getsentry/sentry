@@ -39,7 +39,7 @@ describe('replayPlayerPluginsContext', () => {
 
   it('should return no plugins if you dont use the Provider', () => {
     const mockOrganization = OrganizationFixture();
-    const mockEvents = [];
+    const mockEvents: any[] = [];
 
     const {result} = renderHook(useReplayPlayerPlugins, {
       wrapper: ({children}: {children?: ReactNode}) => (
@@ -57,7 +57,7 @@ describe('replayPlayerPluginsContext', () => {
     const mockOrganizationWithCanvas = OrganizationFixture({
       features: ['session-replay-enable-canvas-replayer'],
     });
-    const mockEvents = [];
+    const mockEvents: any[] = [];
 
     const {result: noCanvasResult} = renderHook(useReplayPlayerPlugins, {
       wrapper: makeWrapper(mockOrganizationNoCanvas),

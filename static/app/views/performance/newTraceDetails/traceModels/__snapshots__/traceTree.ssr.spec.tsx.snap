@@ -1,0 +1,28 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`server side rendering does not reparent if server handler has multiple direct transaction children 1`] = `
+"
+trace root
+  SSR - http.server
+    pageload - pageload
+    pageload - pageload
+"
+`;
+
+exports[`server side rendering reparents pageload transaction as parent of server handler 1`] = `
+"
+trace root
+  transaction - pageload
+    transaction - http.server
+"
+`;
+
+exports[`server side rendering reparents server handler under browser request span 1`] = `
+"
+trace root
+  transaction - pageload
+    tls.connect - span.description
+    browser.request - browser
+      transaction - http.server
+"
+`;

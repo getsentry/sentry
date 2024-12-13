@@ -28,10 +28,17 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.constants import (
+    PROJECT_SLUG_MAX_LENGTH,
+    RESERVED_PROJECT_SLUGS,
+    SAMPLING_MODE_DEFAULT,
+    ObjectStatus,
+)
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
+from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
@@ -45,7 +52,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models.group import Group, GroupStatus
-from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
+from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
@@ -118,6 +125,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
+        "targetSampleRate",
         "dynamicSamplingBiases",
         "performanceIssueCreationRate",
         "performanceIssueCreationThroughPlatform",
@@ -211,6 +219,7 @@ E.g. `['release', 'environment']`""",
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
     copy_from_project = serializers.IntegerField(required=False)
+    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
@@ -423,6 +432,24 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value):
         return validate_pii_selectors(value)
 
+    def validate_targetSampleRate(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_custom_dynamic_sampling(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the custom dynamic sample rate feature enabled."
+            )
+
+        if (
+            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
+            != DynamicSamplingMode.PROJECT.value
+        ):
+            raise serializers.ValidationError(
+                "Must enable Manual Mode to configure project sample rates."
+            )
+
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -486,7 +513,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if features.has("organizations:dynamic-sampling", project.organization):
+        if has_dynamic_sampling(project.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -543,9 +570,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        if result.get("dynamicSamplingBiases") and not (
-            features.has("organizations:dynamic-sampling", project.organization)
-        ):
+        if result.get("dynamicSamplingBiases") and not (has_dynamic_sampling(project.organization)):
             return Response(
                 {"detail": "dynamicSamplingBiases is not a valid field"},
                 status=403,
@@ -726,7 +751,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
-
+        if result.get("targetSampleRate") is not None:
+            if project.update_option(
+                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
+            ):
+                changed_proj_settings["sentry:target_sample_rate"] = round(
+                    result["targetSampleRate"], 4
+                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
@@ -897,7 +928,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not (features.has("organizations:dynamic-sampling", project.organization)):
+        if not has_dynamic_sampling(project.organization):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

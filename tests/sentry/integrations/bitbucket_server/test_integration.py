@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from requests.exceptions import ReadTimeout
 
@@ -5,6 +7,7 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -80,7 +83,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Consumer key is limited to 200")
 
     @responses.activate
-    def test_authentication_request_token_timeout(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_authentication_request_token_timeout(self, mock_record):
         timeout = ReadTimeout("Read timed out. (read timeout=30)")
         responses.add(
             responses.POST,
@@ -104,8 +108,13 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "request token from Bitbucket")
         self.assertContains(resp, "Timed out")
 
+        assert_failure_metric(
+            mock_record, "Timed out attempting to reach host: bitbucket.example.com"
+        )
+
     @responses.activate
-    def test_authentication_request_token_fails(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_authentication_request_token_fails(self, mock_record):
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -126,6 +135,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "request token from Bitbucket")
+
+        assert_failure_metric(mock_record, "")
 
     @responses.activate
     def test_authentication_request_token_redirect(self):
@@ -155,7 +166,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert redirect == resp["Location"]
 
     @responses.activate
-    def test_authentication_access_token_failure(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_authentication_access_token_failure(self, mock_record):
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -163,12 +175,13 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             content_type="text/plain",
             body="oauth_token=abc123&oauth_token_secret=def456",
         )
+        error_msg = "<html>it broke</html>"
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/access-token",
             status=500,
             content_type="text/plain",
-            body="<html>it broke</html>",
+            body=error_msg,
         )
 
         # Get config page
@@ -190,6 +203,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "access token from Bitbucket")
+
+        assert_failure_metric(mock_record, error_msg)
 
     def install_integration(self):
         # Get config page
@@ -213,7 +228,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
-    def test_authentication_verifier_expired(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_authentication_verifier_expired(self, mock_record):
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/request-token",
@@ -221,12 +237,13 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             content_type="text/plain",
             body="oauth_token=abc123&oauth_token_secret=def456",
         )
+        error_msg = "oauth_error=token+expired"
         responses.add(
             responses.POST,
             "https://bitbucket.example.com/plugins/servlet/oauth/access-token",
             status=404,
             content_type="text/plain",
-            body="oauth_error=token+expired",
+            body=error_msg,
         )
 
         # Try getting the token but it has expired for some reason,
@@ -235,6 +252,8 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
         self.assertContains(resp, "Setup Error")
         self.assertContains(resp, "access token from Bitbucket")
+
+        assert_failure_metric(mock_record, error_msg)
 
     @responses.activate
     def test_authentication_success(self):

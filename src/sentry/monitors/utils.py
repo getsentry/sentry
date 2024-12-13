@@ -7,13 +7,13 @@ from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.mediators.project_rules.creator import Creator
-from sentry.mediators.project_rules.updater import Updater
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.projects.project_rules.creator import ProjectRuleCreator
+from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.signals import (
     cron_monitor_created,
     first_cron_checkin_received,
@@ -231,19 +231,17 @@ def create_issue_alert_rule(
     if "filters" in data:
         conditions.extend(data["filters"])
 
-    kwargs = {
-        "name": data["name"],
-        "environment": data.get("environment"),
-        "project": project,
-        "action_match": data["actionMatch"],
-        "filter_match": data.get("filterMatch"),
-        "conditions": conditions,
-        "actions": data.get("actions", []),
-        "frequency": data.get("frequency"),
-        "user_id": request.user.id,
-    }
-
-    rule = Creator.run(request=request, **kwargs)
+    rule = ProjectRuleCreator(
+        name=data["name"],
+        project=project,
+        action_match=data["actionMatch"],
+        actions=data.get("actions", []),
+        conditions=conditions,
+        frequency=data.get("frequency"),
+        environment=data.get("environment"),
+        filter_match=data.get("filterMatch"),
+        request=request,
+    ).run()
     rule.update(source=RuleSource.CRON_MONITOR)
     RuleActivity.objects.create(
         rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
@@ -360,15 +358,15 @@ def update_issue_alert_rule(
                 }
             )
 
-        kwargs = {
-            "project": project,
-            "actions": data.get("actions", []),
-            "environment": data.get("environment", None),
-            "name": f"Monitor Alert: {monitor.name}"[:64],
-            "conditions": conditions,
-        }
-
-        updated_rule = Updater.run(rule=issue_alert_rule, request=request, **kwargs)
+        updated_rule = ProjectRuleUpdater(
+            rule=issue_alert_rule,
+            request=request,
+            project=project,
+            name=f"Monitor Alert: {monitor.name}"[:64],
+            environment=data.get("environment", None),
+            actions=data.get("actions", []),
+            conditions=conditions,
+        ).run()
 
         RuleActivity.objects.create(
             rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value

@@ -3,6 +3,7 @@ from typing import Any
 
 from django.db import IntegrityError
 from django.http import Http404
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -54,7 +55,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
         required=False, allow_null=True, help_text="The associated user ID for provider."
     )
     external_name = serializers.CharField(
-        required=True, help_text="The associated username for the provider."
+        required=True, help_text="The associated name for the provider."
     )
     provider = serializers.ChoiceField(
         choices=get_provider_choices(AVAILABLE_PROVIDERS),
@@ -155,6 +156,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
         fields = ["user_id", "external_id", "external_name", "provider", "integration_id", "id"]
 
 
+@extend_schema_serializer(exclude_fields=["team_id"])
 class ExternalTeamSerializer(ExternalActorSerializerBase):
     _actor_key = "team_id"
 

@@ -7,7 +7,7 @@ describe('getDocsPlatformSDKForPlatform', function () {
   it.each([
     [undefined, null],
     ['android', 'android'],
-    ['apple-macos', null],
+    ['apple-macos', 'apple-macos'],
     ['apple-ios', 'apple-ios'],
     ['python', 'python'],
     ['python-django', 'python'],
@@ -42,7 +42,7 @@ describe('getDocsPlatformSDKForPlatform', function () {
 describe('getProfilingDocsForPlatform', function () {
   it.each([
     ['android', 'https://docs.sentry.io/platforms/android/profiling/'],
-    ['apple-macos', null],
+    ['apple-macos', 'https://docs.sentry.io/platforms/apple/guides/macos/profiling/'],
     ['apple-ios', 'https://docs.sentry.io/platforms/apple/guides/ios/profiling/'],
     ['python', 'https://docs.sentry.io/platforms/python/profiling/'],
     ['python-django', 'https://docs.sentry.io/platforms/python/profiling/'],

@@ -163,9 +163,9 @@ def run_task_with_multiprocessing(
     pool: MultiprocessingPool,
     function: Callable[[Message[TStrategyPayload]], TResult],
     **kwargs: Any,
-) -> RunTask[TStrategyPayload, TResult] | ArroyoRunTaskWithMultiprocessing[
-    TStrategyPayload, TResult
-]:
+) -> (
+    RunTask[TStrategyPayload, TResult] | ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]
+):
     """
     A variant of arroyo's RunTaskWithMultiprocessing that can switch between
     multiprocessing and non-multiprocessing mode based on the

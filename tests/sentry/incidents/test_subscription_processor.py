@@ -51,6 +51,7 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
 from sentry.seer.anomaly_detection.types import (
@@ -64,11 +65,12 @@ from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.group import PriorityLevel
 from sentry.utils import json
 
 EMPTY = object()
@@ -78,7 +80,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 
 @freeze_time()
-class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
+class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics_patch(self):
         with mock.patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
@@ -392,9 +394,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.rule.delete()
         subscription_id = self.sub.id
         snuba_query = self.sub.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(self.sub).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -416,9 +419,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         rule.delete()
         subscription_id = subscription.id
         snuba_query = subscription.snuba_query
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.tasks():
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.tasks(),
+        ):
             SubscriptionProcessor(subscription).process_update(message)
         self.metrics.incr.assert_called_once_with(
             "incidents.alert_rules.no_alert_rule_for_subscription"
@@ -946,7 +950,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         assert result is None
 
-    def test_alert(self):
+    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
+    def test_alert(self, create_metric_issue_mock):
         # Verify that an alert rule that only expects a single update to be over the
         # alert threshold triggers correctly
         rule = self.rule
@@ -965,6 +970,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             [self.action],
             [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
         )
+        create_metric_issue_mock.assert_not_called()
 
     def test_activated_alert(self):
         # Verify that an alert rule that only expects a single update to be over the
@@ -1094,7 +1100,8 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_does_not_exist(trigger)
         self.assert_action_handler_called_with_actions(None, [])
 
-    def test_resolve(self):
+    @patch("sentry.incidents.utils.metric_issue_poc.create_or_update_metric_issue")
+    def test_resolve(self, create_metric_issue_mock):
         # Verify that an alert rule that only expects a single update to be under the
         # resolve threshold triggers correctly
         rule = self.rule
@@ -1116,6 +1123,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_actions_resolved_for_incident(
             incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
         )
+        create_metric_issue_mock.assert_not_called()
 
     def test_resolve_multiple_threshold_periods(self):
         # Verify that a rule that expects two consecutive updates to be under the
@@ -2183,6 +2191,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             )
 
         # Send Critical Update
+        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2249,6 +2258,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
+            assert rule.snuba_query is not None
             self.send_update(
                 rule,
                 trigger.alert_threshold + 5,
@@ -2314,6 +2324,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls([])
 
         # Send update above critical
+        assert rule.snuba_query is not None
         self.send_update(
             rule,
             trigger.alert_threshold + 5,
@@ -2524,9 +2535,93 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         for i in range(4):
             self.store_event(
-                data={"timestamp": iso_format(comparison_date - timedelta(minutes=30 + i))},
+                data={"timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat()},
                 project_id=self.project.id,
             )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident, [self.action], [(175.0, IncidentStatus.CRITICAL, mock.ANY)]
+        )
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(150, IncidentStatus.CLOSED, mock.ANY)]
+        )
+
+    def test_comparison_alert_eap(self):
+        rule = self.comparison_rule_above
+        rule.update(detection_type=AlertRuleDetectionType.PERCENT)
+        rule.snuba_query.update(
+            dataset=Dataset.EventsAnalyticsPlatform,
+            type=SnubaQuery.Type.PERFORMANCE.value,
+        )
+        self.trigger.update(alert_threshold=150)
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        spans = []
+        for i in range(4):
+            spans.append(
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "sentry_tags": {"status": "success"},
+                        "tags": {"foo": "five"},
+                    },
+                    measurements={"foo": {"value": 5}},
+                    start_ts=(comparison_date - timedelta(minutes=30 + i)),
+                )
+            )
+
+        self.store_spans(spans, is_eap=True)
 
         self.metrics.incr.reset_mock()
         processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
@@ -2593,7 +2688,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -2663,26 +2758,25 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         comparison_date = timezone.now() - comparison_delta
 
-        with self.options({"issues.group_attributes.send_kafka": True}):
-            for i in range(4):
-                data = {
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
-                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
-                    "fingerprint": ["group2"],
-                    "level": "error",
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "IntegrationError",
-                                "value": "Identity not found.",
-                            }
-                        ]
-                    },
-                }
-                self.store_event(
-                    data=data,
-                    project_id=self.project.id,
-                )
+        for i in range(4):
+            data = {
+                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group2"],
+                "level": "error",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+            }
+            self.store_event(
+                data=data,
+                project_id=self.project.id,
+            )
 
         self.metrics.incr.reset_mock()
         processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
@@ -2750,7 +2844,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
                     "tags": {"sentry:user": i},
                 },
                 project_id=self.project.id,
@@ -2870,6 +2964,81 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
         assert mock.call_count == 1
         assert mock.call_args[0][0] == self.sub
+
+    @with_feature("organizations:metric-issue-poc")
+    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
+    def test_alert_creates_metric_issue(self, mock_produce_occurrence_to_kafka):
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1)
+
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        assert incident.date_started == (
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
+        )
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        latest_activity = self.latest_activity(incident)
+        uuid = str(latest_activity.notification_uuid)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, uuid)],
+        )
+
+        # Verify that a metric issue is created when an alert fires
+        mock_produce_occurrence_to_kafka.assert_called_once()
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert occurrence.type == MetricIssuePOC
+        assert occurrence.issue_title == incident.title
+        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
+
+    @with_feature("organizations:metric-issue-poc")
+    @mock.patch("sentry.incidents.utils.metric_issue_poc.produce_occurrence_to_kafka")
+    def test_resolved_alert_updates_metric_issue(self, mock_produce_occurrence_to_kafka):
+        from sentry.models.group import GroupStatus
+
+        # Trigger an incident at critical status
+        rule = self.rule
+        trigger = self.trigger
+        processor = self.send_update(rule, trigger.alert_threshold + 1, timedelta(minutes=-2))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident,
+            [self.action],
+            [(trigger.alert_threshold + 1, IncidentStatus.CRITICAL, mock.ANY)],
+        )
+
+        # Check that a metric issue is created
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert occurrence.type == MetricIssuePOC
+        assert occurrence.initial_issue_priority == PriorityLevel.HIGH
+        assert occurrence.evidence_data["metric_value"] == trigger.alert_threshold + 1
+        mock_produce_occurrence_to_kafka.reset_mock()
+
+        # Resolve the incident
+        processor = self.send_update(rule, rule.resolve_threshold - 1, timedelta(minutes=-1))
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(rule.resolve_threshold - 1, IncidentStatus.CLOSED, mock.ANY)]
+        )
+
+        # Verify that the metric issue is updated
+        assert mock_produce_occurrence_to_kafka.call_count == 2
+        occurrence = mock_produce_occurrence_to_kafka.call_args_list[0][1]["occurrence"]
+        assert occurrence.type == MetricIssuePOC
+        assert occurrence.initial_issue_priority == PriorityLevel.MEDIUM
+        assert occurrence.evidence_data["metric_value"] == rule.resolve_threshold - 1
+
+        status_change = mock_produce_occurrence_to_kafka.call_args_list[1][1]["status_change"]
+        assert status_change.new_status == GroupStatus.RESOLVED
+        assert occurrence.fingerprint == status_change.fingerprint
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
@@ -3249,7 +3418,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_active_incident(rule)
 
-    def test_crash_rate_alert_for_sessions_with_no_sessions_data(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_crash_rate_alert_for_sessions_with_no_sessions_data(self, helper_metrics):
         """
         Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
         """
@@ -3260,16 +3430,22 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             value=None,
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ],
-            any_order=True,
+            ]
         )
 
-    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    def test_crash_rate_alert_when_session_count_is_lower_than_minimum_threshold(self):
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_crash_rate_alert_when_session_count_is_lower_than_minimum_threshold(
+        self, helper_metrics
+    ):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
 
@@ -3283,15 +3459,18 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
         )
         self.assert_no_active_incident(rule)
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ],
-            any_order=True,
+            ]
         )
 
-    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
@@ -3310,7 +3489,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_actions_fired_for_incident(incident, [action_critical], None)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
-    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
 
@@ -3336,17 +3516,23 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             time_delta=timedelta(minutes=-1),
             subscription=subscription,
         )
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ],
-            any_order=True,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(self):
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
+        self, helper_metrics
+    ):
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
 
@@ -3373,16 +3559,20 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             time_delta=timedelta(minutes=-1),
             subscription=subscription,
         )
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
+            ],
+        )
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ],
-            any_order=True,
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
         action_critical = self.crash_rate_alert_critical_action
@@ -3425,20 +3615,26 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             value=None,
             subscription=subscription,
         )
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ],
-            any_order=True,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    def test_multiple_threshold_resolve_is_reset_when_count_is_lower_than_min_threshold(self):
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_multiple_threshold_resolve_is_reset_when_count_is_lower_than_min_threshold(
+        self, helper_metrics
+    ):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
         action_critical = self.crash_rate_alert_critical_action
@@ -3479,19 +3675,25 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             count=10,
             subscription=subscription,
         )
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ],
-            any_order=True,
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
+        self, helper_metrics
+    ):
         MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
@@ -3514,12 +3716,16 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             }
         )
         self.assert_no_active_incident(rule)
-        self.metrics.incr.assert_has_calls(
+        helper_metrics.incr.assert_has_calls(
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
+            ]
+        )
+
+        self.metrics.incr.assert_has_calls(
+            [
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ],
-            any_order=True,
+            ]
         )
 
 

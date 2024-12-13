@@ -7,6 +7,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
+import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
@@ -45,8 +46,11 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
     organization,
     projectIds: queryView.project,
   });
+  const deleteFeedback = useDeleteFeedback(selectedIds, queryView.project);
 
-  const onToggleResovled = useCallback(
+  const onDelete = deleteFeedback;
+
+  const onToggleResolved = useCallback(
     ({newMailbox, moveToInbox}: {newMailbox: GroupStatus; moveToInbox?: boolean}) => {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
@@ -125,7 +129,8 @@ export default function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) 
   );
 
   return {
-    onToggleResovled,
+    onDelete,
+    onToggleResolved,
     onMarkAsRead,
     onMarkUnread,
   };

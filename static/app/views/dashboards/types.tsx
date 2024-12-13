@@ -29,6 +29,7 @@ export enum WidgetType {
   METRICS = 'custom-metrics',
   ERRORS = 'error-events',
   TRANSACTIONS = 'transaction-like',
+  SPANS = 'spans',
 }
 
 // These only pertain to on-demand warnings at this point in time
@@ -110,6 +111,11 @@ export type WidgetPreview = {
   layout: WidgetLayout | null;
 };
 
+export type DashboardPermissions = {
+  isEditableByEveryone: boolean;
+  teamsWithEditAccess?: number[];
+};
+
 /**
  * The response shape from dashboard list endpoint
  */
@@ -120,6 +126,8 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  isFavorited?: boolean;
+  permissions?: DashboardPermissions;
 };
 
 export enum DashboardFilterKeys {
@@ -143,7 +151,9 @@ export type DashboardDetails = {
   createdBy?: User;
   end?: string;
   environment?: string[];
+  isFavorited?: boolean;
   period?: string;
+  permissions?: DashboardPermissions;
   start?: string;
   utc?: boolean;
 };

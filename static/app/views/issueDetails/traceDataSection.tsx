@@ -5,8 +5,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceIssueEvent} from './traceTimeline/traceIssue';
@@ -17,7 +15,7 @@ import {useTraceTimelineEvents} from './traceTimeline/useTraceTimelineEvents';
 export function TraceDataSection({event}: {event: Event}) {
   const hasStreamlinedUI = useHasStreamlinedUI();
   // This is also called within the TraceTimeline component but caching will save a second call
-  const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
+  const {isLoading, oneOtherIssueEvent, traceEvents} = useTraceTimelineEvents({
     event,
   });
   let params: Record<string, boolean> = {};
@@ -32,7 +30,12 @@ export function TraceDataSection({event}: {event: Event}) {
     return null;
   }
 
-  const traceContent = (
+  const noEvents = !isLoading && traceEvents.length === 0;
+  if (hasStreamlinedUI && (!oneOtherIssueEvent || noEvents)) {
+    return null;
+  }
+
+  return (
     <Fragment>
       <StyledTraceLink>
         {/* Used for trace-related issue */}
@@ -47,14 +50,6 @@ export function TraceDataSection({event}: {event: Event}) {
         <TraceIssueEvent event={oneOtherIssueEvent} />
       )}
     </Fragment>
-  );
-
-  return hasStreamlinedUI ? (
-    <InterimSection title={t('Trace Connections')} type={SectionKey.TRACE}>
-      {traceContent}
-    </InterimSection>
-  ) : (
-    traceContent
   );
 }
 

@@ -18,7 +18,6 @@ import type {User} from './user';
  * Organization summaries are sent when you request a list of all organizations
  */
 export interface OrganizationSummary {
-  aiSuggestedSolution: boolean;
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
@@ -26,6 +25,7 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;
@@ -86,10 +86,12 @@ export interface Organization extends OrganizationSummary {
   relayPiiConfig: string | null;
   requiresSso: boolean;
   safeFields: string[];
+  samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   desiredSampleRate?: number | null;
@@ -291,11 +293,16 @@ export type SavedQueryState = {
   savedQueries: SavedQuery[];
 };
 
+export type Confidence = 'high' | 'low' | null;
+
 export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+
+export type ConfidenceStatsData = [number, {count: Confidence}[]][];
 
 // API response format for a single series
 export type EventsStats = {
   data: EventsStatsData;
+  confidence?: ConfidenceStatsData;
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;

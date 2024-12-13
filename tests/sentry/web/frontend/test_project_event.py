@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -14,7 +14,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.project = self.create_project(organization=self.org, teams=[self.team])
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )
@@ -40,7 +40,7 @@ class ProjectEventTest(SnubaTestCase, TestCase):
         assert resp.status_code == 404
 
     def test_event_not_found__event_no_group(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "type": "transaction",
@@ -69,7 +69,7 @@ class ProjectEventCustomerDomainTest(SnubaTestCase, TestCase):
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.project = self.create_project(organization=self.org, teams=[self.team])
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

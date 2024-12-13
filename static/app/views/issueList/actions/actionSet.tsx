@@ -13,6 +13,7 @@ import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
@@ -47,6 +48,7 @@ function ActionSet({
   onMerge,
   selectedProjectSlug,
 }: Props) {
+  const organization = useOrganization();
   const numIssues = issues.size;
   const confirm = getConfirm({
     numIssues,
@@ -232,6 +234,9 @@ function ActionSet({
               confirmText: label('reprioritize'),
             });
           },
+          hasIssueStreamTableLayout: organization.features.includes(
+            'issue-stream-table-layout'
+          ),
         })}
       />
       {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}

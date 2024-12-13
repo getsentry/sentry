@@ -1,16 +1,24 @@
 import copy
 from collections.abc import Callable
 from typing import Any, Literal, cast
+from unittest.mock import patch
 from uuid import uuid1
 
+import pytest
+
+from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
+    MAX_FRAME_COUNT,
     SEER_ELIGIBLE_PLATFORMS,
+    ReferrerOptions,
+    TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     event_content_is_seer_eligible,
     filter_null_from_string,
     get_stacktrace_string,
+    get_stacktrace_string_with_metrics,
 )
 from sentry.testutils.cases import TestCase
 
@@ -293,7 +301,7 @@ class GetStacktraceStringTest(TestCase):
         }
     }
 
-    MOBILE_THREAD_DATA = {
+    MOBILE_THREAD_DATA: dict[str, Any] = {
         "app": {
             "type": "component",
             "description": "in-app thread stack-trace",
@@ -327,14 +335,14 @@ class GetStacktraceStringTest(TestCase):
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["module"],
                                             },
                                             {
                                                 "id": "filename",
                                                 "name": None,
                                                 "contributes": True,
                                                 "hint": None,
-                                                "values": [],
+                                                "values": ["filename"],
                                             },
                                             {
                                                 "id": "function",
@@ -345,6 +353,40 @@ class GetStacktraceStringTest(TestCase):
                                             },
                                         ],
                                     }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    }
+
+    ONLY_STACKTRACE = {
+        "app": {
+            "hash": "foo",
+            "component": {
+                "id": "app",
+                "contributes": True,
+                "values": [
+                    {
+                        "id": "stacktrace",
+                        "contributes": True,
+                        "values": [
+                            {
+                                "id": "frame",
+                                "contributes": True,
+                                "values": [
+                                    {
+                                        "id": "filename",
+                                        "contributes": True,
+                                        "values": ["index.php"],
+                                    },
+                                    {
+                                        "id": "context-line",
+                                        "contributes": True,
+                                        "values": ["$server->emit($server->run());"],
+                                    },
                                 ],
                             }
                         ],
@@ -461,9 +503,9 @@ class GetStacktraceStringTest(TestCase):
 
     def test_contributing_exception_no_contributing_frames(self):
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
-        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
-            "values"
-        ] = self.create_frames(1, False)
+        data_no_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = (
+            self.create_frames(1, False)
+        )
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
 
@@ -520,7 +562,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -572,7 +614,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -626,7 +668,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception)
+            stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
             assert (
                 stacktrace_str.count("outer line")
@@ -636,7 +678,7 @@ class GetStacktraceStringTest(TestCase):
             )
 
     def test_chained_too_many_exceptions(self):
-        """Test that we restrict number of chained exceptions to 30."""
+        """Test that we restrict number of chained exceptions to MAX_FRAME_COUNT."""
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -644,16 +686,16 @@ class GetStacktraceStringTest(TestCase):
                 exception_value=f"exception {i} message!",
                 frames=self.create_frames(num_frames=1, context_line_factory=lambda i: f"line {i}"),
             )
-            for i in range(1, 32)
+            for i in range(1, MAX_FRAME_COUNT + 2)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
-        for i in range(2, 32):
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
+        for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
 
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
-        assert stacktrace_str == 'File "", function TestHandler'
+        assert stacktrace_str == 'File "filename", function TestHandler'
 
     def test_system(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
@@ -676,9 +718,59 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_over_30_contributing_frames(self):
-        """Check that when there are over 30 contributing frames, the last 30 are included."""
+    def test_too_many_system_frames_single_exception(self):
+        data_system = copy.deepcopy(self.BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["system"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
 
+        with pytest.raises(TooManyOnlySystemFramesException):
+            get_stacktrace_string(data_system, platform="java")
+
+    def test_too_many_system_frames_single_exception_invalid_platform(self):
+        data_system = copy.deepcopy(self.BASE_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        data_system["system"]["component"]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
+
+        stacktrace_string = get_stacktrace_string(data_system, "python")
+        assert stacktrace_string is not None and stacktrace_string != ""
+
+    def test_too_many_system_frames_chained_exception(self):
+        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        # Split MAX_FRAME_COUNT across the two exceptions
+        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+
+        with pytest.raises(TooManyOnlySystemFramesException):
+            get_stacktrace_string(data_system, platform="java")
+
+    def test_too_many_system_frames_chained_exception_invalid_platform(self):
+        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_system["system"] = data_system.pop("app")
+        # Split MAX_FRAME_COUNT across the two exceptions
+        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
+            "values"
+        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
+
+        stacktrace_string = get_stacktrace_string(data_system, "python")
+        assert stacktrace_string is not None and stacktrace_string != ""
+
+    def test_too_many_in_app_contributing_frames(self):
+        """
+        Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
+        is included.
+        """
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
         # Create 30 contributing frames, 1-20 -> last 10 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
@@ -692,7 +784,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames)
+        stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
         num_frames = 0
         for i in range(1, 11):
@@ -705,7 +797,7 @@ class GetStacktraceStringTest(TestCase):
         for i in range(41, 61):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        assert num_frames == 30
+        assert num_frames == MAX_FRAME_COUNT
 
     def test_too_many_frames_minified_js_frame_limit(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
@@ -720,7 +812,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_frames)
+            stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
             assert stacktrace_str.count("context line") == expected_frame_count
 
@@ -745,6 +837,47 @@ class GetStacktraceStringTest(TestCase):
             ][1]["values"][0] = base64_filename
             stacktrace_str = get_stacktrace_string(data_base64_encoded_filename)
             assert stacktrace_str == "ZeroDivisionError: division by zero"
+
+    def test_only_stacktrace_frames(self):
+        stacktrace_str = get_stacktrace_string(self.ONLY_STACKTRACE)
+        assert stacktrace_str == 'File "index.php", function \n    $server->emit($server->run());'
+
+    def test_replace_file_with_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
+        stacktrace_string = get_stacktrace_string_with_metrics(
+            exception, "python", ReferrerOptions.INGEST
+        )
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
+        )
+
+    def test_no_filename_or_module(self):
+        exception = copy.deepcopy(self.BASE_APP_DATA)
+        # delete module from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        # delete filename from the exception
+        del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][0]
+        stacktrace_string = get_stacktrace_string(exception)
+        assert (
+            stacktrace_string
+            == 'ZeroDivisionError: division by zero\n  File "None", function divide_by_zero\n    divide = 1/0'
+        )
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_no_header_one_frame_no_filename(self, mock_metrics):
+        exception = copy.deepcopy(self.MOBILE_THREAD_DATA)
+        # Remove filename
+        exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
+            "values"
+        ] = []
+        get_stacktrace_string(exception)
+        sample_rate = options.get("seer.similarity.metrics_sample_rate")
+        mock_metrics.incr.assert_called_with(
+            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
+        )
 
 
 class EventContentIsSeerEligibleTest(TestCase):

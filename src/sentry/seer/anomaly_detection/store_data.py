@@ -46,23 +46,16 @@ class SeerMethod(StrEnum):
     UPDATE = "update"
 
 
-def _get_start_and_end_indices(data: list[TimeSeriesPoint]) -> tuple[int, int]:
+def _get_start_index(data: list[TimeSeriesPoint]) -> int:
     """
-    Helper to return the first and last data points that have event counts.
+    Helper to return the first data points that has an event count. We can assume that all
+    subsequent data points without associated event counts have event counts of zero.
     Used to determine whether we have at least a week's worth of data.
     """
-    start, end = -1, -1
-    indices_with_results = []
     for i, datum in enumerate(data):
         if datum.get("value", 0) != 0:
-            indices_with_results.append(i)
-    if not indices_with_results:
-        return start, end
-
-    start = indices_with_results[0]
-    end = indices_with_results[-1]
-    assert start <= end
-    return start, end
+            return i
+    return -1
 
 
 def handle_send_historical_data_to_seer(
@@ -163,8 +156,11 @@ def send_historical_data_to_seer(
     dataset = get_dataset_from_label(snuba_query.dataset)
     query_columns = get_query_columns([snuba_query.aggregate], window_min)
     event_types = get_event_types(snuba_query, event_types)
+    if not alert_rule.organization:
+        raise ValidationError("Alert rule doesn't belong to an organization")
+
     historical_data = fetch_historical_data(
-        alert_rule=alert_rule,
+        organization=alert_rule.organization,
         snuba_query=snuba_query,
         query_columns=query_columns,
         project=project,
@@ -284,12 +280,12 @@ def send_historical_data_to_seer(
         )
         raise Exception(message)
 
-    data_start_index, data_end_index = _get_start_and_end_indices(formatted_data)
+    data_start_index = _get_start_index(formatted_data)
     if data_start_index == -1:
         return AlertRuleStatus.NOT_ENOUGH_DATA
 
     data_start_time = datetime.fromtimestamp(formatted_data[data_start_index]["timestamp"])
-    data_end_time = datetime.fromtimestamp(formatted_data[data_end_index]["timestamp"])
+    data_end_time = datetime.fromtimestamp(formatted_data[-1]["timestamp"])
     if data_end_time - data_start_time < timedelta(days=MIN_DAYS):
         return AlertRuleStatus.NOT_ENOUGH_DATA
     return AlertRuleStatus.PENDING

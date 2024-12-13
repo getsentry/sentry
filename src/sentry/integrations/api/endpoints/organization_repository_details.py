@@ -74,7 +74,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 raise NotImplementedError
         if result.get("integrationId"):
             integration = integration_service.get_integration(
-                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+                integration_id=result["integrationId"],
+                organization_id=coerce_id_from(organization),
+                status=ObjectStatus.ACTIVE,
             )
             if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)

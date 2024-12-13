@@ -13,7 +13,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
@@ -408,7 +408,8 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         # result is rounded down to nearest second
         assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
         assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
-        assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
+        assert group_env2.first_seen is not None
+        assert group_env2.first_seen > group_env.first_seen
         assert result["userCount"] == 3
 
         result = serialize(

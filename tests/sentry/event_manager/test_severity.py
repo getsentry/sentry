@@ -10,7 +10,6 @@ from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
-from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.event_manager import (
     SEER_ERROR_COUNT_KEY,
@@ -77,8 +76,9 @@ class TestGetEventSeverity(TestCase):
         assert reason == "ml"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 0
 
-        with override_options({"seer.api.use-shared-secret": 1.0}), override_settings(
-            SEER_API_SHARED_SECRET="some-secret"
+        with (
+            override_options({"seer.api.use-shared-secret": 1.0}),
+            override_settings(SEER_API_SHARED_SECRET="some-secret"),
         ):
             _get_severity_score(event)
             mock_urlopen.assert_called_with(
@@ -424,15 +424,15 @@ class TestEventManagerSeverity(TestCase):
 
     @patch("sentry.event_manager._get_severity_score")
     def test_killswitch_on(self, mock_get_severity_score: MagicMock):
-        options.set("issues.severity.skip-seer-requests", [self.project.id])
-        event = EventManager(
-            make_event(
-                exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
-                platform="python",
-            )
-        ).save(self.project.id)
+        with override_options({"issues.severity.skip-seer-requests": [self.project.id]}):
+            event = EventManager(
+                make_event(
+                    exception={"values": [{"type": "NopeError", "value": "Nopey McNopeface"}]},
+                    platform="python",
+                )
+            ).save(self.project.id)
 
-        assert event.group
-        assert "severity" not in event.group.get_event_metadata()
-        assert cache.get(SEER_ERROR_COUNT_KEY) is None
-        assert mock_get_severity_score.call_count == 0
+            assert event.group
+            assert "severity" not in event.group.get_event_metadata()
+            assert cache.get(SEER_ERROR_COUNT_KEY) is None
+            assert mock_get_severity_score.call_count == 0

@@ -6,14 +6,15 @@ import orjson
 from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import DatasetSourcesTypes
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
+    DatasetSourcesTypes,
 )
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -62,6 +63,12 @@ class DashboardWidgetResponse(TypedDict):
     limit: int | None
     widgetType: str
     layout: dict[str, int]
+    datasetSource: str | None
+
+
+class DashboardPermissionsResponse(TypedDict):
+    isEditableByEveryone: bool
+    teamsWithEditAccess: list[int]
 
 
 @register(DashboardWidget)
@@ -169,6 +176,15 @@ class DashboardWidgetQuerySerializer(Serializer):
         }
 
 
+@register(DashboardPermissions)
+class DashboardPermissionsSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardPermissionsResponse:
+        return {
+            "isEditableByEveryone": obj.is_editable_by_everyone,
+            "teamsWithEditAccess": list(obj.teams_with_edit_access.values_list("id", flat=True)),
+        }
+
+
 class DashboardListResponse(TypedDict):
     id: str
     title: str
@@ -176,6 +192,8 @@ class DashboardListResponse(TypedDict):
     createdBy: UserSerializerResponse
     widgetDisplay: list[str]
     widgetPreview: list[dict[str, str]]
+    permissions: DashboardPermissionsResponse | None
+    isFavorited: bool
 
 
 class DashboardListSerializer(Serializer):
@@ -187,6 +205,14 @@ class DashboardListSerializer(Serializer):
             .order_by("order")
             .values("dashboard_id", "order", "display_type", "detail", "id")
         )
+
+        favorited_dashboard_ids = set(
+            DashboardFavoriteUser.objects.filter(
+                user_id=user.id, dashboard_id__in=item_dict.keys()
+            ).values_list("dashboard_id", flat=True)
+        )
+
+        permissions = DashboardPermissions.objects.filter(dashboard_id__in=item_dict.keys())
 
         result = defaultdict(lambda: {"widget_display": [], "widget_preview": [], "created_by": {}})
         for widget in widgets:
@@ -221,8 +247,13 @@ class DashboardListSerializer(Serializer):
             )
         }
 
+        for permission in permissions:
+            dashboard = item_dict[permission.dashboard_id]
+            result[dashboard]["permissions"] = serialize(permission)
+
         for dashboard in item_dict.values():
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
+            result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
 
         return result
 
@@ -234,6 +265,8 @@ class DashboardListSerializer(Serializer):
             "createdBy": attrs.get("created_by"),
             "widgetDisplay": attrs.get("widget_display", []),
             "widgetPreview": attrs.get("widget_preview", []),
+            "permissions": attrs.get("permissions", None),
+            "isFavorited": attrs.get("is_favorited", False),
         }
         return data
 
@@ -259,6 +292,8 @@ class DashboardDetailsResponse(DashboardDetailsResponseOptional):
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
+    permissions: DashboardPermissionsResponse | None
+    isFavorited: bool
 
 
 @register(Dashboard)
@@ -294,6 +329,8 @@ class DashboardDetailsModelSerializer(Serializer):
             "widgets": attrs["widgets"],
             "projects": [project.id for project in obj.projects.all()],
             "filters": {},
+            "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,
+            "isFavorited": user.id in obj.favorited_by,
         }
 
         if obj.filters is not None:

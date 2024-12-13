@@ -72,6 +72,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             {
                 "performance.issues.slow_db_query.duration_threshold": 1000,
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.n_plus_one_db.count_threshold": 10,
                 "performance.issues.render_blocking_assets.fcp_ratio_threshold": 0.80,
                 "performance.issues.large_http_payload.size_threshold": 2000,
                 "performance.issues.db_on_main_thread.total_spans_duration_threshold": 33,
@@ -90,6 +91,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             # System and project defaults
             assert response.data["slow_db_query_duration_threshold"] == 1000
             assert response.data["n_plus_one_db_duration_threshold"] == 100
+            assert response.data["n_plus_one_db_count"] == 10
             assert response.data["render_blocking_fcp_ratio"] == 0.8
             assert response.data["large_http_payload_size_threshold"] == 2000
             assert response.data["db_on_main_thread_duration_threshold"] == 33
@@ -102,6 +104,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
             get_value.return_value = {
                 "n_plus_one_db_duration_threshold": 10000,
+                "n_plus_one_db_count": 50,
                 "slow_db_query_duration_threshold": 5000,
                 "render_blocking_fcp_ratio": 0.8,
                 "uncompressed_asset_duration_threshold": 500,
@@ -121,6 +124,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             # Updated project settings
             assert response.data["slow_db_query_duration_threshold"] == 5000
             assert response.data["n_plus_one_db_duration_threshold"] == 10000
+            assert response.data["n_plus_one_db_count"] == 50
             assert response.data["render_blocking_fcp_ratio"] == 0.8
             assert response.data["uncompressed_asset_duration_threshold"] == 500
             assert response.data["uncompressed_asset_size_threshold"] == 300000

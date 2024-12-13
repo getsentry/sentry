@@ -5,9 +5,8 @@ import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getMEPAlertsDataset} from 'sentry/views/alerts/wizard/options';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 
-import type {MetricRule} from '../types';
+import {Dataset, type MetricRule} from '../types';
 
 export function getMetricDatasetQueryExtras({
   organization,
@@ -22,11 +21,17 @@ export function getMetricDatasetQueryExtras({
   location?: Location;
   useOnDemandMetrics?: boolean;
 }) {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return {
+      dataset: 'spans',
+    };
+  }
+
   const hasMetricDataset =
     hasOnDemandMetricAlertFeature(organization) ||
     hasCustomMetrics(organization) ||
     organization.features.includes('mep-rollout-flag') ||
-    hasInsightsAlerts(organization);
+    organization.features.includes('dashboards-metrics-transition');
   const disableMetricDataset =
     decodeScalar(location?.query?.disableMetricDataset) === 'true';
 

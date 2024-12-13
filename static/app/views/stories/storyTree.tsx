@@ -64,7 +64,7 @@ function FolderContent({path, content}: {content: TreeMapping; path: string}) {
 interface TreeMapping extends Record<string, TreeMapping> {}
 
 function toTree(files: string[]): TreeMapping {
-  const root = {};
+  const root: Record<string, TreeMapping> = {};
   for (const file of files) {
     const parts = file.split('/');
     let tree = root;

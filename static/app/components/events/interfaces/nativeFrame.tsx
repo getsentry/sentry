@@ -80,7 +80,6 @@ function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
-  includeSystemFrames,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
   image,
@@ -134,16 +133,13 @@ function NativeFrame({
     (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const expandable =
-    !leadsToApp || includeSystemFrames
-      ? isExpandable({
-          frame,
-          registers,
-          platform,
-          emptySourceNotation,
-          isOnlyFrame,
-        })
-      : false;
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+    isOnlyFrame,
+  });
 
   const inlineFrame =
     prevFrame &&
@@ -387,7 +383,7 @@ function NativeFrame({
                 frame_count: hiddenFrameCount,
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
-              size="xs"
+              size="zero"
               borderless
               onClick={e => {
                 onShowFramesToggle?.(e);
@@ -568,6 +564,7 @@ const SymbolicatorIcon = styled('div')`
 
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};

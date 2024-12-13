@@ -54,7 +54,7 @@ export function getRequestMessages(
 }
 
 export function expandKeys(obj: CustomRepo) {
-  const result = {};
+  const result: Record<string, string> = {};
   forEach(obj, (value, key) => {
     set(result, key.split('.'), value);
   });

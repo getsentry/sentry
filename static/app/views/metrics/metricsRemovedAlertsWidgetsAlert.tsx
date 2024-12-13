@@ -20,7 +20,7 @@ export function MetricsRemovedAlertsWidgetsAlert({
     expirationDays: 365,
   });
   const hasDeletedAlertsOrWidgets = organization.features.includes(
-    'organizations:custom-metrics-alerts-widgets-removal-info'
+    'custom-metrics-alerts-widgets-removal-info'
   );
 
   if (isDismissed || !hasDeletedAlertsOrWidgets) {

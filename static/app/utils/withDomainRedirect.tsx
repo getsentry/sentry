@@ -1,5 +1,5 @@
-// biome-ignore lint/nursery/noRestrictedImports: Will be removed with react router 6
-import {formatPattern} from 'react-router';
+import {generatePath} from 'react-router-dom';
+import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
@@ -70,8 +70,8 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         return <WrappedComponent {...props} />;
       }
 
-      const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
-      const redirectOrgURL = `/${trimStart(orglessRedirectPath, '/')}${
+      const orglessRedirectPath = generatePath(orglessSlugRoute, params);
+      const redirectOrgURL = `/${trim(orglessRedirectPath, '/')}/${
         window.location.search
       }${window.location.hash}`;
 

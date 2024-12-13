@@ -25,6 +25,7 @@ import {
   getReplaySDKSetupSnippet,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -56,10 +57,16 @@ const getInstallConfig = (params: Params) => [
 ];
 
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct("Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.", {
-      remixLink: <ExternalLink href="https://remix.run/" />,
-    }),
+  introduction: () => (
+    <p>
+      {tct(
+        "Sentry's integration with [remixLink:Remix] supports Remix 1.0.0 and above.",
+        {
+          remixLink: <ExternalLink href="https://remix.run/" />,
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       title: t('Automatic Configuration (Recommended)'),
@@ -282,6 +289,7 @@ const docs: Docs = {
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
 };
 
 export default docs;

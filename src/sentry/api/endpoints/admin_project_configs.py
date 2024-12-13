@@ -46,21 +46,23 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             else:
                 configs[key] = None
 
-        # TODO if we don't think we'll add anything to the endpoint
+        # TODO: if we don't think we'll add anything to the endpoint
         # we may as well return just the configs
         return Response({"configs": configs}, status=200)
 
     def post(self, request: Request) -> Response:
         """Regenerate the project config"""
-        project_id = request.GET.get("projectId")
+        project_id = request.data.get("projectId")
 
-        if project_id is not None:
-            try:
-                schedule_invalidate_project_config(
-                    project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
-                )
+        if not project_id:
+            return Response({"error": "Missing project id"}, status=400)
 
-            except Exception:
-                raise Http404
+        try:
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
+            )
+
+        except Exception:
+            raise Http404
 
         return Response(status=204)

@@ -13,7 +13,7 @@ class BackfillAddUuidToAllRuleActions(TestMigrations):
     def setup_before_migration(self, apps):
         # Create your db state here
         self.notify_event_action = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
-        self.rule = self.create_project_rule(action_match=self.notify_event_action)
+        self.rule = self.create_project_rule(action_data=self.notify_event_action)
 
     @pytest.mark.skip(
         reason="This reaches into code to create projects, rather than migration code. Don't need this test anymore"

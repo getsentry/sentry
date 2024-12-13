@@ -16,12 +16,13 @@ from sentry.integrations.messaging.message_builder import (
     get_title_link,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.shared_integrations.exceptions import ApiTimeoutError
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import RuleTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -48,7 +49,7 @@ class DiscordIssueAlertTest(RuleTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "Event message",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -66,6 +67,20 @@ class DiscordIssueAlertTest(RuleTestCase):
             url=f"{MESSAGE_URL.format(channel_id=self.channel_id)}",
             status=200,
         )
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_lifecycle_metrics(self, mock_record_event):
+        notification_uuid = str(uuid4())
+        self.rule.after(self.event, notification_uuid=notification_uuid)
+
+        assert_slo_metric(mock_record_event)
+
+    @mock.patch(
+        "sentry.integrations.discord.client.DiscordClient.send_message", side_effect=Exception
+    )
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def assert_lifecycle_metrics_failure(self, mock_record_event, mock_send_message):
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @responses.activate
     @mock.patch("sentry.analytics.record")

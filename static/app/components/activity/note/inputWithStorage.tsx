@@ -6,7 +6,7 @@ import {NoteInput} from 'sentry/components/activity/note/input';
 import type {MentionChangeEvent} from 'sentry/components/activity/note/types';
 import type {NoteType} from 'sentry/types/alerts';
 import localStorage from 'sentry/utils/localStorage';
-import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/note';
+import {StreamlinedNoteInput} from 'sentry/views/issueDetails/streamline/sidebar/note';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type InputProps = React.ComponentProps<typeof NoteInput>;
@@ -14,6 +14,7 @@ type InputProps = React.ComponentProps<typeof NoteInput>;
 type Props = {
   itemKey: string;
   storageKey: string;
+  onCancel?: () => void;
   onLoad?: (data: string) => string;
   onSave?: (data: string) => string;
   source?: string;
@@ -145,6 +146,7 @@ function NoteInputWithStorage({
         placeholder={props.placeholder}
         noteId={props.noteId}
         onUpdate={props.onUpdate}
+        onCancel={props.onCancel}
       />
     );
   }

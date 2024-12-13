@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  featureFlagOnboardingPlatforms,
   feedbackOnboardingPlatforms,
   replayPlatforms,
   withPerformanceOnboarding,
@@ -15,7 +16,7 @@ import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 type Props = {
   orgSlug: Organization['slug'];
   platform: PlatformIntegration;
-  productType?: 'feedback' | 'replay' | 'performance';
+  productType?: 'feedback' | 'replay' | 'performance' | 'featureFlags';
   projSlug?: Project['slug'];
 };
 
@@ -45,7 +46,10 @@ export function useLoadGettingStarted({
         !platformPath ||
         (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
         (productType === 'performance' && !withPerformanceOnboarding.has(platform.id)) ||
-        (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platform.id))
+        (productType === 'feedback' &&
+          !feedbackOnboardingPlatforms.includes(platform.id)) ||
+        (productType === 'featureFlags' &&
+          !featureFlagOnboardingPlatforms.includes(platform.id))
       ) {
         setModule('none');
         return;

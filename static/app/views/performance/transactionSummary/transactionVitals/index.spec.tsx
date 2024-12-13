@@ -1,4 +1,5 @@
 import type {Query} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -14,11 +15,16 @@ import {
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
   VITAL_GROUPS,
   ZOOM_KEYS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 interface HistogramData {
   count: number;
@@ -91,6 +97,9 @@ const vitals = [
 
 describe('Performance > Web Vitals', function () {
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+    );
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
@@ -194,9 +203,7 @@ describe('Performance > Web Vitals', function () {
       organization,
     });
 
-    expect(
-      screen.getByRole('heading', {name: '/organizations/:orgId/'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
 
     ['navigation', 'main'].forEach(role => {
       expect(screen.getByRole(role)).toBeInTheDocument();

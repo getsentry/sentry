@@ -8,7 +8,6 @@ import {OnboardingContextProvider} from 'sentry/components/onboarding/onboarding
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
-import ConfigStore from 'sentry/stores/configStore';
 import {DANGEROUS_SET_REACT_ROUTER_6_HISTORY} from 'sentry/utils/browserHistory';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
@@ -35,7 +34,7 @@ function Main() {
     <ThemeAndStyleProvider>
       <QueryClientProvider client={queryClient}>
         <OnboardingContextProvider>
-          {ConfigStore.get('demoMode') && <DemoHeader />}
+          <DemoHeader />
           <RouterProvider router={router} />
         </OnboardingContextProvider>
         {USE_REACT_QUERY_DEVTOOL && (

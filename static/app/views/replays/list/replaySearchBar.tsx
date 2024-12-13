@@ -70,14 +70,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
   };
 }
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  organization: Organization
-): FilterKeySection[] => {
-  if (!organization.features.includes('search-query-builder-replays')) {
-    return [];
-  }
-
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const customTags: Tag[] = Object.values(tags).filter(
     tag =>
       !EXCLUDED_TAGS.includes(tag.key) &&
@@ -149,8 +142,8 @@ function ReplaySearchBar(props: Props) {
 
   const filterKeys = useMemo(() => getReplayFilterKeys(customTags), [customTags]);
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(customTags, organization);
-  }, [customTags, organization]);
+    return getFilterKeySections(customTags);
+  }, [customTags]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string): Promise<string[]> => {
@@ -175,7 +168,10 @@ function ReplaySearchBar(props: Props) {
         endpointParams,
         includeReplays: true,
       }).then(
-        tagValues => (tagValues as TagValue[]).map(({value}) => value),
+        tagValues =>
+          (tagValues as TagValue[])
+            .filter(tagValue => tagValue.name !== '')
+            .map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }

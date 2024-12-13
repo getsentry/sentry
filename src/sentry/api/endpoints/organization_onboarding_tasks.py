@@ -7,17 +7,19 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.serializers import serialize
 from sentry.models.organizationonboardingtask import OnboardingTaskStatus
 
 
 class OnboardingTaskPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"POST": ["org:read"], "GET": ["org:read"]}
 
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OnboardingTaskPermission,)
@@ -41,7 +43,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         # Cannot skip unskippable tasks
         if (
             status == OnboardingTaskStatus.SKIPPED
-            and task_id not in onboarding_tasks.get_skippable_tasks()
+            and task_id not in onboarding_tasks.get_skippable_tasks(organization, request.user)
         ):
             return Response(status=422)
 
@@ -61,6 +63,14 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         )
 
         if rows_affected or created:
-            onboarding_tasks.try_mark_onboarding_complete(organization.id)
+            onboarding_tasks.try_mark_onboarding_complete(organization.id, request.user)
 
         return Response(status=204)
+
+    def get(self, request: Request, organization) -> Response:
+        tasks_to_serialize = list(
+            onboarding_tasks.fetch_onboarding_tasks(organization, request.user)
+        )
+        serialized_tasks = serialize(tasks_to_serialize, request.user)
+
+        return Response({"onboardingTasks": serialized_tasks}, status=200)

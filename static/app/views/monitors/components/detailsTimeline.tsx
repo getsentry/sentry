@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -9,11 +9,11 @@ import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useRouter from 'sentry/utils/useRouter';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {Monitor} from 'sentry/views/monitors/types';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
@@ -21,14 +21,19 @@ import {OverviewRow} from './overviewTimeline/overviewRow';
 import {GridLineLabels, GridLineOverlay} from './timeline/gridLines';
 import {useMonitorStats} from './timeline/hooks/useMonitorStats';
 import {useTimeWindowConfig} from './timeline/hooks/useTimeWindowConfig';
+import type {MonitorBucket} from './timeline/types';
 
 interface Props {
   monitor: Monitor;
-  organization: Organization;
+  /**
+   * Called when monitor stats have been loaded for this timeline.
+   */
+  onStatsLoaded: (stats: MonitorBucket[]) => void;
 }
 
-export function DetailsTimeline({monitor, organization}: Props) {
-  const {location} = useRouter();
+export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -37,16 +42,21 @@ export function DetailsTimeline({monitor, organization}: Props) {
 
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
 
-  const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: [monitor.id],
-    timeWindowConfig,
-  });
-
   const monitorDetailsQueryKey = makeMonitorDetailsQueryKey(
     organization,
     monitor.project.slug,
     monitor.slug,
     {...location.query}
+  );
+
+  const {data: monitorStats} = useMonitorStats({
+    monitors: [monitor.id],
+    timeWindowConfig,
+  });
+
+  useEffect(
+    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]),
+    [onStatsLoaded, monitorStats, monitor.id]
   );
 
   const handleDeleteEnvironment = async (env: string) => {
@@ -103,14 +113,13 @@ export function DetailsTimeline({monitor, organization}: Props) {
         <GridLineLabels timeWindowConfig={timeWindowConfig} />
       </Header>
       <AlignedGridLineOverlay
-        allowZoom={!isPending}
-        showCursor={!isPending}
-        showIncidents={!isPending}
+        allowZoom
+        showCursor
+        showIncidents
         timeWindowConfig={timeWindowConfig}
       />
       <OverviewRow
         monitor={monitor}
-        bucketedData={monitorStats?.[monitor.id]}
         timeWindowConfig={timeWindowConfig}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}

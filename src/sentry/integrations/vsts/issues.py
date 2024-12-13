@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.services.integration import integration_service
@@ -107,9 +108,6 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
             return None, item_tuples
 
         return default_item_type, item_tuples
-
-    def get_create_issue_config_no_group(self, project: str) -> Sequence[Mapping[str, Any]]:
-        return self.get_create_issue_config(None, None, project=project)
 
     @all_silo_function
     def get_create_issue_config(
@@ -361,7 +359,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration):
         client = self.get_client()
 
         integration = integration_service.get_integration(
-            integration_id=self.org_integration.integration_id
+            integration_id=self.org_integration.integration_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             raise IntegrationError("Azure DevOps integration not found")

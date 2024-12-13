@@ -8,7 +8,7 @@ from sentry.models.group import GroupStatus
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 def _make_url(project: Project):
@@ -18,7 +18,7 @@ def _make_url(project: Project):
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
         self.environment = self.create_environment(project=self.project, name="production")
         self.event = self.store_event(
             data={
@@ -217,7 +217,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         old_event = self.store_event(
             data={
                 "event_id": "f" * 32,
-                "timestamp": iso_format(before_now(days=retention_days + 1)),
+                "timestamp": before_now(days=retention_days + 1).isoformat(),
                 "environment": self.environment.name,
             },
             project_id=self.project.id,
@@ -237,8 +237,8 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.hour_ago = iso_format(before_now(minutes=60))
+        self.min_ago = before_now(minutes=1).isoformat()
+        self.hour_ago = before_now(minutes=60).isoformat()
 
         self.project = self.create_project()
         self.environment = self.create_environment(project=self.project)
@@ -315,7 +315,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             },
         )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 401, response.content
 
     def test_already_present(self):
         self.login_as(user=self.user)

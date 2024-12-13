@@ -17,7 +17,6 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
   height: 100%;
-  scrollbar-gutter: stable;
 }
 
 body {
@@ -31,6 +30,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   min-height: 100vh;
+}
+
+// Applied to body
+body.theme-dark {
+  // theme.surface200
+  background: #1A141F;
+  // theme.gray400
+  color: #D6D0DC;
+}
+body.theme-system {
+  @media (prefers-color-scheme: dark) {
+    // theme.surface200
+    background: #1A141F;
+    // theme.gray400
+    color: #D6D0DC;
+  }
 }
 
 h1,

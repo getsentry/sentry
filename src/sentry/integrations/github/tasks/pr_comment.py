@@ -216,17 +216,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
-    enabled_copilot = features.has("projects:ai-autofix", project) or features.has(
-        "organizations:autofix", organization
-    )
+    enabled_copilot = features.has("organizations:gen-ai-features", organization)
     github_copilot_actions = (
         [
             {
-                "name": f"Root cause issue {i} with Sentry",
+                "name": f"Root cause #{i + 1}",
                 "type": "copilot-chat",
-                "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pullrequest_id)}",
+                "prompt": f"@sentry root cause issue {str(issue_id)} with PR URL https://github.com/{repo.name}/pull/{str(pr_key)}",
             }
-            for i, issue_id in enumerate(top_24_issues)
+            for i, issue_id in enumerate(top_24_issues[:3])
         ]
         if enabled_copilot
         else None

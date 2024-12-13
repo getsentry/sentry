@@ -2,6 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.msteams.spec import PROVIDER
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -23,14 +24,18 @@ def get_integration_from_channel_data(data: Mapping[str, Any]) -> RpcIntegration
     team_id = _infer_team_id_from_channel_data(data=data)
     if team_id is None:
         return None
-    return integration_service.get_integration(provider=PROVIDER, external_id=team_id)
+    return integration_service.get_integration(
+        provider=PROVIDER, external_id=team_id, status=ObjectStatus.ACTIVE
+    )
 
 
 def get_integration_for_tenant(data: Mapping[str, Any]) -> RpcIntegration | None:
     try:
         channel_data = data["channelData"]
         tenant_id = channel_data["tenant"]["id"]
-        return integration_service.get_integration(provider=PROVIDER, external_id=tenant_id)
+        return integration_service.get_integration(
+            provider=PROVIDER, external_id=tenant_id, status=ObjectStatus.ACTIVE
+        )
     except Exception as err:
         logger.info("failed to get tenant id from request data", exc_info=err, extra={"data": data})
     return None
@@ -56,7 +61,9 @@ def get_integration_from_card_action(data: Mapping[str, Any]) -> RpcIntegration 
     integration_id = _infer_integration_id_from_card_action(data=data)
     if integration_id is None:
         return None
-    return integration_service.get_integration(integration_id=integration_id)
+    return integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
 
 
 def can_infer_integration(data: Mapping[str, Any]) -> bool:

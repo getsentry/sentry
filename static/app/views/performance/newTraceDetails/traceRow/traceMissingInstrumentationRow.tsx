@@ -1,16 +1,17 @@
 import {t} from 'sentry/locale';
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
+
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import {
   makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {MissingInstrumentationTraceBar} from 'sentry/views/performance/newTraceDetails/traceRow/traceBar';
+  MissingInstrumentationTraceBar,
+} from '../traceRow/traceBar';
 import {
   maybeFocusTraceRow,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
+} from '../traceRow/traceRow';
 
 export function TraceMissingInstrumentationRow(
   props: TraceRowProps<TraceTreeNode<TraceTree.MissingInstrumentationSpan>>
@@ -19,22 +20,22 @@ export function TraceMissingInstrumentationRow(
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
-      <div className="TraceLeftColumn" ref={props.registerListColumnRef}>
-        <div
-          className="TraceLeftColumnInner"
-          style={props.listColumnStyle}
-          onDoubleClick={props.onRowDoubleClick}
-        >
+      <div
+        className="TraceLeftColumn"
+        ref={props.registerListColumnRef}
+        onDoubleClick={props.onRowDoubleClick}
+      >
+        <div className="TraceLeftColumnInner" style={props.listColumnStyle}>
           <div className="TraceChildrenCountWrapper">
             <TraceRowConnectors node={props.node} manager={props.manager} />
           </div>

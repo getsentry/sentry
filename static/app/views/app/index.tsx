@@ -22,6 +22,7 @@ import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
@@ -246,16 +247,16 @@ function App({children, params}: Props) {
         <RouteAnalyticsContextProvider>
           <OrganizationContextProvider>
             <AsyncSDKIntegrationContextProvider>
-              <GlobalDrawer>
-                <GlobalFeedbackForm>
+              <GlobalFeedbackForm>
+                <GlobalDrawer>
                   <MainContainer tabIndex={-1} ref={mainContainerRef}>
                     <GlobalModal onClose={handleModalClose} />
                     <SystemAlerts className="messages-container" />
                     <Indicators className="indicators-container" />
                     <ErrorBoundary>{renderBody()}</ErrorBoundary>
                   </MainContainer>
-                </GlobalFeedbackForm>
-              </GlobalDrawer>
+                </GlobalDrawer>
+              </GlobalFeedbackForm>
             </AsyncSDKIntegrationContextProvider>
           </OrganizationContextProvider>
         </RouteAnalyticsContextProvider>
@@ -271,5 +272,5 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
+  padding-top: ${p => (isDemoModeEnabled() ? p.theme.demo.headerSize : 0)};
 `;

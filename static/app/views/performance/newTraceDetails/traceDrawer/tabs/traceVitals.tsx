@@ -11,12 +11,11 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {IconSize} from 'sentry/utils/theme';
 import useProjects from 'sentry/utils/useProjects';
-import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/guards';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  TRACE_MEASUREMENT_LOOKUP,
-  type TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+import {TraceDrawerComponents} from '../../traceDrawer/details/styles';
+import {isTransactionNode} from '../../traceGuards';
+import type {TraceTree} from '../../traceModels/traceTree';
+import {TRACE_MEASUREMENT_LOOKUP} from '../../traceModels/traceTree.measurements';
 
 interface TraceVitalsProps {
   trace: TraceTree;
@@ -35,7 +34,7 @@ export function TraceVitals(props: TraceVitalsProps) {
 
         return (
           <div key="">
-            <TraceDrawerComponents.HeaderContainer>
+            <TraceDrawerComponents.LegacyHeaderContainer>
               <TraceDrawerComponents.Title>
                 <Tooltip title={node.metadata.project_slug}>
                   <ProjectBadge
@@ -57,7 +56,7 @@ export function TraceVitals(props: TraceVitalsProps) {
                   />
                 </div>
               </TraceDrawerComponents.Title>
-            </TraceDrawerComponents.HeaderContainer>
+            </TraceDrawerComponents.LegacyHeaderContainer>
 
             <VitalsContainer>
               {vital.map((v, i) => {

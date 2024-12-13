@@ -5,6 +5,7 @@ sudo.views
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+
 from __future__ import annotations
 
 from typing import Any

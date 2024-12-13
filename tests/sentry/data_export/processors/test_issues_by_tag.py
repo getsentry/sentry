@@ -8,7 +8,7 @@ from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.eventuser import EventUser
 
 
@@ -35,7 +35,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         self.event = self.store_event(
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": before_now(seconds=3).isoformat(),
                 "user": {"email": self.user.email},
             },
             project_id=self.project.id,

@@ -5,11 +5,12 @@ import type {WebVital} from 'sentry/utils/fields';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {getBucketWidth} from 'sentry/utils/performance/histogram/utils';
 import type {VitalsData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {Point, Rectangle} from './types';
 
 export function generateVitalsRoute({orgSlug}: {orgSlug: string}): string {
-  return `/organizations/${orgSlug}/performance/summary/vitals/`;
+  return `${getTransactionSummaryBaseUrl(orgSlug)}/vitals/`;
 }
 
 export function vitalsRouteWithQuery({

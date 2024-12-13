@@ -21,6 +21,7 @@ import {
   TextAlignRight,
 } from 'sentry/views/insights/common/components/textAlign';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
@@ -93,6 +94,7 @@ export function SpanSamplesTable({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
     if (
@@ -130,6 +132,7 @@ export function SpanSamplesTable({
             },
             spanId: row.span_id,
             source,
+            view,
           })}
         >
           {row['transaction.id'].slice(0, 8)}
@@ -161,6 +164,7 @@ export function SpanSamplesTable({
             },
             spanId: row.span_id,
             source,
+            view,
           })}
         >
           {row.span_id}

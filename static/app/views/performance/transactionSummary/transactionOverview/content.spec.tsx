@@ -7,8 +7,21 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {useLocation} from 'sentry/utils/useLocation';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
+
+jest.mock('sentry/utils/useLocation');
+
+jest.mocked(useLocation).mockReturnValue({
+  action: 'POP',
+  hash: '',
+  key: 'abc123',
+  pathname: '/organizations/org-slug/performance/',
+  query: {},
+  search: '',
+  state: undefined,
+});
 
 function initialize(query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
@@ -128,6 +141,53 @@ describe('Transaction Summary Content', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       body: '',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/profiling/flamegraph/',
+      body: {
+        activeProfileIndex: 0,
+        metadata: {
+          deviceClassification: '',
+          deviceLocale: '',
+          deviceManufacturer: '',
+          deviceModel: '',
+          deviceOSName: '',
+          deviceOSVersion: '',
+          durationNS: 0,
+          organizationID: 0,
+          platform: '',
+          profileID: '',
+          projectID: 0,
+          received: '0001-01-01T00:00:00Z',
+          sampled: false,
+          timestamp: '0001-01-01T00:00:00Z',
+          traceID: '',
+          transactionID: '',
+          transactionName: '',
+          version: '',
+        },
+        platform: '',
+        profiles: [
+          {
+            endValue: 0,
+            isMainThread: true,
+            name: '',
+            samples: [],
+            startValue: 0,
+            threadID: 0,
+            type: 'sampled',
+            unit: 'count',
+            weights: [],
+            sample_durations_ns: null,
+          },
+        ],
+        projectID: 0,
+        shared: {
+          frames: [],
+        },
+        transactionName: '',
+        metrics: [],
+      },
     });
   });
 

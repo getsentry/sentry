@@ -1,5 +1,5 @@
-from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -14,6 +14,7 @@ from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
@@ -21,10 +22,10 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    profile_functions_metrics,
     spans_eap,
     spans_indexed,
     spans_metrics,
+    spans_rpc,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -183,6 +184,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+
+        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
+
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -251,7 +255,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
                         spans_eap,
@@ -274,17 +277,33 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+        use_rpc = request.GET.get("useRpc", "0") == "1"
 
         def _get_event_stats(
             scoped_dataset: Any,
-            query_columns: Sequence[str],
+            query_columns: list[str],
             query: str,
             snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None,
+            comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                if use_rpc and dataset == spans_eap:
+                    return spans_rpc.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        raw_groupby=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        granularity_secs=rollup,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=False,
+                        ),
+                    )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
@@ -302,6 +321,25 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    fallback_to_transactions=features.has(
+                        "organizations:performance-discover-dataset-selector",
+                        organization,
+                        actor=request.user,
+                    ),
+                )
+
+            if use_rpc and dataset == spans_eap:
+                return spans_rpc.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=query,
+                    y_axes=query_columns,
+                    granularity_secs=rollup,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=False,
+                        use_aggregate_conditions=False,
+                    ),
+                    comparison_delta=comparison_delta,
                 )
 
             return scoped_dataset.timeseries_query(
@@ -328,6 +366,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=features.has(
+                    "organizations:performance-discover-dataset-selector",
+                    organization,
+                    actor=request.user,
+                ),
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -340,12 +384,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
 
             def fn(
-                query_columns: Sequence[str],
+                query_columns: list[str],
                 query: str,
                 snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
-                comparison_delta: datetime | None,
+                comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
@@ -470,10 +514,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.TRANSACTION_LIKE
+                                )
                             )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
@@ -484,10 +528,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.ERROR_EVENTS
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.ERROR_EVENTS
+                                )
                             )
                         return error_results
                     else:
@@ -509,6 +553,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         get_event_stats = get_event_stats_factory(dataset)
+        zerofill_results = not (
+            request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
+        )
+        if use_rpc:
+            # The rpc will usually zerofill for us so we don't need to do it ourselves
+            zerofill_results = False
 
         try:
             return Response(
@@ -518,11 +568,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events,
                     allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
+                    zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                 ),
                 status=200,
             )

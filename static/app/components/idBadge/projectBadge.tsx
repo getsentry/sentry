@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -12,6 +13,10 @@ import {BaseBadge, type BaseBadgeProps} from './baseBadge';
 
 export interface ProjectBadgeProps extends BaseBadgeProps {
   project: AvatarProject;
+  /**
+   * Accessibility label for overriden badge link (Must set `to` prop)
+   */
+  ariaLabel?: LinkProps['aria-label'];
   /**
    * If true, this component will not be a link to project details page
    */
@@ -26,6 +31,10 @@ export interface ProjectBadgeProps extends BaseBadgeProps {
    */
   hideOverflow?: boolean | string;
   /**
+   * Overrides the onClick handler for the project badge
+   */
+  onClick?: React.HTMLAttributes<HTMLDivElement>['onClick'];
+  /**
    * Overrides where the project badge links
    */
   to?: LinkProps['to'];
@@ -34,24 +43,26 @@ export interface ProjectBadgeProps extends BaseBadgeProps {
 function ProjectBadge({
   project,
   to,
+  onClick,
   hideOverflow = true,
   hideName = false,
   disableLink = false,
   displayPlatformName = false,
   className,
+  ariaLabel,
   ...props
 }: ProjectBadgeProps) {
   const organization = useOrganization({allowNull: true});
-  const {slug, id} = project;
 
   const badge = (
     <BaseBadge
       hideName={hideName}
+      onClick={onClick}
       displayName={
         <BadgeDisplayName hideOverflow={hideOverflow}>
           {displayPlatformName && project.platform
             ? getPlatformName(project.platform)
-            : slug}
+            : project.slug}
         </BadgeDisplayName>
       }
       project={project}
@@ -60,12 +71,17 @@ function ProjectBadge({
   );
 
   if (!disableLink && organization?.slug) {
-    const defaultTo = `/organizations/${organization.slug}/projects/${slug}/${
-      id ? `?project=${id}` : ''
+    const defaultTo = `/organizations/${organization.slug}/projects/${project.slug}/${
+      project.id ? `?project=${project.id}` : ''
     }`;
 
     return (
-      <StyledLink to={to ?? defaultTo} className={className}>
+      <StyledLink
+        to={to ?? defaultTo}
+        className={className}
+        aria-label={to ? ariaLabel : t('View Project Details')}
+        aria-description={project.slug}
+      >
         {badge}
       </StyledLink>
     );

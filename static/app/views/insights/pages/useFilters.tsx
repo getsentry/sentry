@@ -5,6 +5,7 @@ import {AI_LANDING_SUB_PATH} from 'sentry/views/insights/pages/ai/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 export type DomainView =
   | typeof FRONTEND_LANDING_SUB_PATH
@@ -31,10 +32,10 @@ export type Filters = {
 export const useDomainViewFilters = () => {
   const location = useLocation();
   const pathSegments = location.pathname.split('/').filter(Boolean);
-  const indexOfPerformance = pathSegments.indexOf('performance');
+  const indexOfPerformance = pathSegments.indexOf(DOMAIN_VIEW_BASE_URL);
   const isInDomainView = indexOfPerformance !== -1;
-
   const view = pathSegments[indexOfPerformance + 1] as DomainViewFilters['view'];
+
   if (!domainViews.includes(view || '')) {
     return {isInDomainView: false};
   }

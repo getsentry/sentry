@@ -78,6 +78,11 @@ class ApiGrant(Model):
         app_label = "sentry"
         db_table = "sentry_apigrant"
 
+    def __str__(self):
+        return (
+            f"api_grant_id={self.id}, user_id={self.user.id}, application_id={self.application.id}"
+        )
+
     def get_scopes(self):
         if self.scope_list:
             return self.scope_list

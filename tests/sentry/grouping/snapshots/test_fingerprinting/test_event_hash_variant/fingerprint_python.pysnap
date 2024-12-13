@@ -1,5 +1,5 @@
 ---
-created: '2020-12-08T17:25:03.875766Z'
+created: '2024-11-08T22:03:13.538456+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -13,6 +13,7 @@ config:
       - ReadTimeout
     - - path
       - '**/requests/adapters.py'
+    text: type:"ReadTimeout" path:"**/requests/adapters.py" -> "timeout-in-requests"
   version: 1
 fingerprint:
 - timeout-in-requests
@@ -24,9 +25,9 @@ variants:
       contributes: false
       hint: custom fingerprint takes precedence
     type: component
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: type:"ReadTimeout" path:"**/requests/adapters.py" -> "timeout-in-requests"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - timeout-in-requests
   system:

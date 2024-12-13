@@ -153,9 +153,9 @@ def apply_cors_headers(
         "Content-Type, Authentication, Authorization, Content-Encoding, "
         "sentry-trace, baggage, X-CSRFToken"
     )
-    response[
-        "Access-Control-Expose-Headers"
-    ] = "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    )
 
     if request.META.get("HTTP_ORIGIN") == "null":
         # if ORIGIN header is explicitly specified as 'null' leave it alone
@@ -298,7 +298,7 @@ class Endpoint(APIView):
 
         super().permission_denied(request, message, code)
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -321,7 +321,7 @@ class Endpoint(APIView):
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
             # and caught below.
-            response = super().handle_exception(exc)
+            response = self.handle_exception(exc)
         except Exception as err:
             import sys
             import traceback
@@ -456,7 +456,7 @@ class Endpoint(APIView):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(request, exc)
+            response = self.handle_exception_with_details(request, exc)
 
         if origin:
             self.add_cors_headers(request, response)

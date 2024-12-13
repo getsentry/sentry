@@ -30,9 +30,11 @@ import {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
+import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -74,7 +76,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     if (
       info?.name === DataCategoryExact.SPAN &&
-      this.props.organization.features.includes('spans-usage-tracking')
+      this.props.organization.features.includes('spans-usage-tracking') &&
+      !hasDynamicSamplingCustomFeature(this.props.organization)
     ) {
       return {
         ...info,
@@ -185,7 +188,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     return {
       performance: {
         ...nextLocation,
-        pathname: `/organizations/${organization.slug}/performance/`,
+        pathname: getPerformanceBaseUrl(organization.slug),
       },
       projectDetail: {
         ...nextLocation,
@@ -256,7 +259,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         return !organization.features.includes('spans-usage-tracking');
       }
       if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
-        return organization.features.includes('continuous-profiling-stats');
+        return (
+          organization.features.includes('continuous-profiling-stats') ||
+          organization.features.includes('continuous-profiling')
+        );
       }
       if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
         return !organization.features.includes('continuous-profiling-stats');

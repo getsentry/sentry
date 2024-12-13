@@ -29,10 +29,11 @@ jest.mock('sentry/utils/analytics', () => ({
     })),
     endSpan: jest.fn(),
   },
+  trackAnalytics: jest.fn(),
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, router, location;
+  let organization, project, router, location, anomalies;
   // create wrapper
   const createWrapper = props =>
     render(
@@ -104,6 +105,15 @@ describe('Incident Rules Form', () => {
       method: 'GET',
       url: '/organizations/org-slug/recent-searches/',
       body: [],
+    });
+    anomalies = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
     });
   });
 
@@ -391,6 +401,19 @@ describe('Incident Rules Form', () => {
       expect(
         await screen.findByRole('textbox', {name: 'Level of responsiveness'})
       ).toBeInTheDocument();
+      expect(anomalies).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: {
+              direction: 'up',
+              sensitivity: AlertRuleSensitivity.MEDIUM,
+              expected_seasonality: AlertRuleSeasonality.AUTO,
+              time_period: 60,
+            },
+          }),
+        })
+      );
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
@@ -447,15 +470,15 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('creates an insights metric rule', async () => {
+    it('creates an EAP metric rule', async () => {
       const rule = MetricRuleFixture();
       createWrapper({
         rule: {
           ...rule,
           id: undefined,
-          eventTypes: ['transaction'],
-          aggregate: 'avg(d:spans/exclusive_time@millisecond)',
-          dataset: Dataset.GENERIC_METRICS,
+          eventTypes: [],
+          aggregate: 'count(span.duration)',
+          dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
         },
       });
 
@@ -465,7 +488,7 @@ describe('Incident Rules Form', () => {
       // Enter in name so we can submit
       await userEvent.type(
         screen.getByPlaceholderText('Enter Alert Name'),
-        'Insights Incident Rule'
+        'EAP Incident Rule'
       );
 
       // Set thresholdPeriod
@@ -477,12 +500,12 @@ describe('Incident Rules Form', () => {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            name: 'Insights Incident Rule',
+            name: 'EAP Incident Rule',
             projects: ['project-slug'],
-            eventTypes: ['transaction'],
+            eventTypes: [],
             thresholdPeriod: 10,
-            alertType: 'insights_metrics',
-            dataset: 'generic_metrics',
+            alertType: 'eap_metrics',
+            dataset: 'events_analytics_platform',
           }),
         })
       );
@@ -534,6 +557,33 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('edits query', async () => {
+      createWrapper({
+        name: 'Query Rule',
+        projects: ['project-slug'],
+        eventTypes: ['num_errors'],
+        thresholdPeriod: 10,
+        query: 'is:unresolved',
+        rule,
+        ruleId: rule.id,
+      });
+
+      const queryInput = await screen.findByTestId('query-builder-input');
+      await userEvent.type(queryInput, 'has:http.url');
+      await userEvent.type(queryInput, '{enter}');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query: 'has:http.url',
+          }),
+        })
+      );
+    }, 10000);
 
     it('switches from percent change to count', async () => {
       createWrapper({

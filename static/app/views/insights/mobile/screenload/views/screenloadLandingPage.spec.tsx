@@ -21,7 +21,7 @@ jest.mock('sentry/utils/useProjects');
 describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native', hasInsightsScreenLoad: true});
   const organization = OrganizationFixture({
-    features: ['insights-initial-modules'],
+    features: ['insights-initial-modules', 'insights-entry-points'],
   });
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -63,7 +63,7 @@ describe('PageloadModule', function () {
     },
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
     localStorage.clear();
     browserHistory.push = jest.fn();

@@ -2,10 +2,9 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
@@ -24,6 +23,8 @@ interface Props {
   minHeight?: `${number}px` | `${number}%`;
 }
 
+const BORDER_WIDTH = 3;
+
 export function ReplaySliderDiff({
   minHeight = '0px',
   leftOffsetMs,
@@ -36,18 +37,10 @@ export function ReplaySliderDiff({
 
   return (
     <Fragment>
-      <Header>
-        <Tooltip title={t('How the initial server-rendered page looked.')}>
-          <Before>{t('Before')}</Before>
-        </Tooltip>
-        <Tooltip
-          title={t(
-            'How React re-rendered the page on your browser, after detecting a hydration error.'
-          )}
-        >
-          <After>{t('After')}</After>
-        </Tooltip>
-      </Header>
+      <DiffHeader>
+        <Before />
+        <After />
+      </DiffHeader>
       <WithPadding>
         <Positioned style={{minHeight}} ref={positionedRef}>
           {viewDimensions.width ? (
@@ -80,7 +73,7 @@ function DiffSides({
   viewDimensions: {height: number; width: number};
   width: string | undefined;
 }) {
-  const rightSideElem = useRef<HTMLDivElement>(null);
+  const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
   const {onMouseDown: onDividerMouseDown} = useResizableDrawer({
@@ -88,16 +81,16 @@ function DiffSides({
     initialSize: viewDimensions.width / 2,
     min: 0,
     onResize: newSize => {
-      if (rightSideElem.current) {
-        rightSideElem.current.style.width =
+      const maxWidth = viewDimensions.width - BORDER_WIDTH;
+      if (beforeElemRef.current) {
+        beforeElemRef.current.style.width =
           viewDimensions.width === 0
             ? '100%'
-            : toPixels(Math.min(viewDimensions.width, viewDimensions.width - newSize)) ??
-              '0px';
+            : toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
       if (dividerElem.current) {
         dividerElem.current.style.left =
-          toPixels(Math.min(viewDimensions.width, newSize)) ?? '0px';
+          toPixels(Math.max(BORDER_WIDTH, Math.min(maxWidth, newSize))) ?? '0px';
       }
     },
   });
@@ -127,18 +120,18 @@ function DiffSides({
               <ReplayPlayerStateContextProvider>
                 <StyledNegativeSpaceContainer>
                   <ReplayPlayerMeasurer measure="both">
-                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
+                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </StyledNegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
             </Placement>
           </Cover>
-          <Cover ref={rightSideElem} style={{width: 0}}>
+          <Cover ref={beforeElemRef}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
                 <StyledNegativeSpaceContainer>
                   <ReplayPlayerMeasurer measure="both">
-                    {style => <ReplayPlayer style={style} offsetMs={rightOffsetMs} />}
+                    {style => <ReplayPlayer style={style} offsetMs={leftOffsetMs} />}
                   </ReplayPlayerMeasurer>
                 </StyledNegativeSpaceContainer>
               </ReplayPlayerStateContextProvider>
@@ -152,7 +145,6 @@ function DiffSides({
 }
 
 const WithPadding = styled(NegativeSpaceContainer)`
-  padding-block: ${space(1.5)};
   overflow: visible;
   height: 100%;
 `;
@@ -164,18 +156,20 @@ const Positioned = styled('div')`
 `;
 
 const Cover = styled('div')`
-  border: 3px solid;
+  border: ${BORDER_WIDTH}px solid;
   border-radius: ${space(0.5)};
   height: 100%;
   overflow: hidden;
   position: absolute;
-  right: 0px;
+  left: 0px;
   top: 0px;
 
-  border-color: ${p => p.theme.red300};
+  border-color: ${p => p.theme.green300};
   & + & {
-    border-color: ${p => p.theme.green300};
-    border-left-color: transparent;
+    border: ${BORDER_WIDTH}px solid;
+    border-radius: ${space(0.5)} 0 0 ${space(0.5)};
+    border-color: ${p => p.theme.red300};
+    border-right-width: 0;
   }
 `;
 
@@ -184,7 +178,7 @@ const Placement = styled('div')`
   height: 100%;
   justify-content: center;
   position: absolute;
-  right: 0;
+  left: 0;
   top: 0;
   place-items: center;
 `;
@@ -220,23 +214,6 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
-`;
-
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 0;
-`;
-
-const Before = styled('div')`
-  color: ${p => p.theme.red300};
-  font-weight: bold;
-`;
-
-const After = styled('div')`
-  color: ${p => p.theme.green300};
-  font-weight: bold;
 `;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`

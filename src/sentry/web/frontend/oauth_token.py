@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import logging
+from datetime import datetime
+from typing import Literal, NotRequired, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -9,15 +13,33 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.utils import json, metrics
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
+
+
+class _TokenInformationUser(TypedDict):
+    id: str
+    name: str
+    email: str
+
+
+class _TokenInformation(TypedDict):
+    access_token: str
+    refresh_token: str | None
+    expires_in: int | None
+    expires_at: datetime | None
+    token_type: Literal["bearer"]
+    scope: str
+    user: _TokenInformationUser
+    id_token: NotRequired[OpenIDToken]
+    organization_id: NotRequired[str]
 
 
 @control_silo_view
@@ -47,7 +69,7 @@ class OAuthTokenView(View):
         )
 
     @method_decorator(never_cache)
-    def post(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
@@ -154,12 +176,14 @@ class OAuthTokenView(View):
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None
     ) -> HttpResponse:
-        token_information = {
+        token_information: _TokenInformation = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
-            "expires_in": int((token.expires_at - timezone.now()).total_seconds())
-            if token.expires_at
-            else None,
+            "expires_in": (
+                int((token.expires_at - timezone.now()).total_seconds())
+                if token.expires_at
+                else None
+            ),
             "expires_at": token.expires_at,
             "token_type": "bearer",
             "scope": " ".join(token.get_scopes()),
@@ -172,6 +196,8 @@ class OAuthTokenView(View):
         }
         if id_token:
             token_information["id_token"] = id_token
+        if token.scoping_organization_id:
+            token_information["organization_id"] = str(token.scoping_organization_id)
         return HttpResponse(
             json.dumps(token_information),
             content_type="application/json",

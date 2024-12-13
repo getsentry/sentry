@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import IntegrityError
 from django.db.models import Count, Q, Sum
@@ -16,7 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import BaseOrganizationSerializer
 from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
@@ -34,6 +36,8 @@ from sentry.services.organization import (
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
 from sentry.users.services.user.service import user_service
+
+logger = logging.getLogger(__name__)
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):
@@ -55,7 +59,7 @@ class OrganizationPostSerializer(BaseOrganizationSerializer):
         return value
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Users"])
 @region_silo_endpoint
 class OrganizationIndexEndpoint(Endpoint):
     publish_status = {
@@ -81,7 +85,7 @@ class OrganizationIndexEndpoint(Endpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=OrganizationExamples.LIST_ORGANIZATIONS,
+        examples=UserExamples.LIST_ORGANIZATIONS,
     )
     def get(self, request: Request) -> Response:
         """
@@ -120,6 +124,9 @@ class OrganizationIndexEndpoint(Endpoint):
                     "organization"
                 )
             )
+            if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
+                # If a token is limited to one organization, this endpoint should only return that one organization
+                queryset = queryset.filter(id=request.auth.organization_id)
 
         query = request.GET.get("query")
         if query:

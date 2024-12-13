@@ -5,7 +5,6 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
-from typing_extensions import override
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -108,7 +107,6 @@ class UserEndpoint(Endpoint):
 
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
 
-    @override
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
@@ -140,9 +138,8 @@ class RegionSiloUserEndpoint(Endpoint):
 
     permission_classes = (UserPermission,)
 
-    @override
     def convert_args(
-        self, request: Request, user_id: str | None = None, *args: Any, **kwargs: Any
+        self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         user: RpcUser | User | None = None
 

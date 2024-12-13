@@ -3,6 +3,7 @@
 This is an attempt to have all the interactions with JWT in once place, so that we have once
 central place which handles JWT in a uniform way.
 """
+
 from __future__ import annotations
 
 from collections.abc import Mapping

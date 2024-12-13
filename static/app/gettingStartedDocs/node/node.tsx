@@ -240,12 +240,18 @@ Sentry.init({
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  ...onboarding,
+  introduction: () => null,
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding: getJSServerMetricsOnboarding(),
   performanceOnboarding,
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;

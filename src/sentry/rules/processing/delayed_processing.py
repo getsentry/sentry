@@ -70,9 +70,12 @@ class UniqueConditionQuery(NamedTuple):
 class DataAndGroups(NamedTuple):
     data: EventFrequencyConditionData
     group_ids: set[int]
+    rule_id: int | None = None
 
     def __repr__(self):
-        return f"<DataAndGroups data: {self.data} group_ids: {self.group_ids}>"
+        return (
+            f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
+        )
 
 
 def fetch_project(project_id: int) -> Project | None:
@@ -176,7 +179,7 @@ def get_condition_query_groups(
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 else:
                     condition_groups[condition_query] = DataAndGroups(
-                        condition_data, set(rules_to_groups[rule.id])
+                        condition_data, set(rules_to_groups[rule.id]), rule.id
                     )
     return condition_groups
 
@@ -204,17 +207,17 @@ def bulk_fetch_events(event_ids: list[str], project_id: int) -> dict[str, Event]
 
 def parse_rulegroup_to_event_data(
     rulegroup_to_event_data: dict[str, str]
-) -> dict[tuple[str, str], dict[str, str]]:
+) -> dict[tuple[int, int], dict[str, str]]:
     parsed_rulegroup_to_event_data = {}
     for rule_group, instance_data in rulegroup_to_event_data.items():
         event_data = json.loads(instance_data)
         rule_id, group_id = rule_group.split(":")
-        parsed_rulegroup_to_event_data[(rule_id, group_id)] = event_data
+        parsed_rulegroup_to_event_data[(int(rule_id), int(group_id))] = event_data
     return parsed_rulegroup_to_event_data
 
 
 def build_group_to_groupevent(
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
@@ -255,7 +258,7 @@ def build_group_to_groupevent(
 
 
 def get_group_to_groupevent(
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     project_id: int,
     group_ids: set[int],
 ) -> dict[Group, GroupEvent]:
@@ -305,7 +308,7 @@ def get_condition_group_results(
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
 
-    for unique_condition, (condition_data, group_ids) in condition_groups.items():
+    for unique_condition, (condition_data, group_ids, rule_id) in condition_groups.items():
         cls_id = unique_condition.cls_id
         condition_cls = rules.get(cls_id)
         if condition_cls is None:
@@ -316,7 +319,15 @@ def get_condition_group_results(
             )
             continue
 
-        condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
+        if rule_id:
+            rule = Rule.objects.get(id=rule_id)
+        else:
+            rule = None
+
+        condition_inst = condition_cls(
+            project=project, data=condition_data, rule=rule  # type: ignore[arg-type]
+        )
+
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
             logger.warning("Unregistered condition %r", cls_id, extra={"project_id": project_id})
             continue
@@ -402,7 +413,7 @@ def get_rules_to_fire(
 
 def fire_rules(
     rules_to_fire: DefaultDict[Rule, set[int]],
-    parsed_rulegroup_to_event_data: dict[tuple[str, str], dict[str, str]],
+    parsed_rulegroup_to_event_data: dict[tuple[int, int], dict[str, str]],
     alert_rules: list[Rule],
     project: Project,
 ) -> None:

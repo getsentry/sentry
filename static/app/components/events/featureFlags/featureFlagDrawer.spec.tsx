@@ -1,3 +1,5 @@
+import {TagsFixture} from 'sentry-fixture/tags';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
@@ -27,6 +29,20 @@ async function renderFlagDrawer() {
 }
 
 describe('FeatureFlagDrawer', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/events/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/1/tags/`,
+      body: TagsFixture(),
+    });
+  });
   it('renders the drawer as expected', async function () {
     const drawerScreen = await renderFlagDrawer();
     expect(drawerScreen.getByRole('button', {name: 'Close Drawer'})).toBeInTheDocument();
@@ -42,10 +58,7 @@ describe('FeatureFlagDrawer', function () {
     // Header & Controls
     expect(drawerScreen.getByText('Feature Flags', {selector: 'h3'})).toBeInTheDocument();
     expect(drawerScreen.getByRole('textbox', {name: 'Search Flags'})).toBeInTheDocument();
-    expect(drawerScreen.getByRole('button', {name: 'Newest'})).toBeInTheDocument();
-    expect(
-      drawerScreen.getByRole('button', {name: 'Evaluation Order'})
-    ).toBeInTheDocument();
+    expect(drawerScreen.getByRole('button', {name: 'Sort Flags'})).toBeInTheDocument();
 
     // Contents
     for (const {flag, result} of MOCK_FLAGS) {
@@ -75,39 +88,103 @@ describe('FeatureFlagDrawer', function () {
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
 
-    // the flags are reversed by default, so webVitalsFlag should be below enableReplay
+    // the flags are reversed by default, so webVitalsFlag should be following enableReplay
+    expect(
+      drawerScreen
+        .getByText(enableReplay.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+    ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+
+    const sortControl = drawerScreen.getByRole('button', {
+      name: 'Sort Flags',
+    });
+    await userEvent.click(sortControl);
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest First'}));
+
+    // expect webVitalsFlag to be preceding enableReplay
+    expect(
+      drawerScreen
+        .getByText(enableReplay.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+
+    await userEvent.click(sortControl);
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
+    await userEvent.click(sortControl);
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));
+
+    // enableReplay follows webVitalsFlag in Z-A sort
     expect(
       drawerScreen
         .getByText(webVitalsFlag.flag)
         .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
+  });
 
-    // the sort should be reversed
-    const sortControl = drawerScreen.getByRole('button', {
-      name: 'Newest',
-    });
-    await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Oldest'}));
+  it('renders a sort dropdown with Evaluation Order as the default', async function () {
+    const drawerScreen = await renderFlagDrawer();
 
+    const control = drawerScreen.getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
     expect(
-      drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+      drawerScreen.getByRole('option', {name: 'Evaluation Order'})
+    ).toBeInTheDocument();
+    expect(drawerScreen.getByRole('option', {name: 'Alphabetical'})).toBeInTheDocument();
+  });
 
-    const sortGroupControl = drawerScreen.getByRole('button', {
-      name: 'Evaluation Order',
-    });
-    await userEvent.click(sortGroupControl);
+  it('renders a sort dropdown which affects the granular sort dropdown', async function () {
+    const drawerScreen = await renderFlagDrawer();
+
+    const control = drawerScreen.getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
-    await userEvent.click(sortControl);
-    await userEvent.click(drawerScreen.getByRole('option', {name: 'Z-A'}));
+    await userEvent.click(control);
+    expect(drawerScreen.getByRole('option', {name: 'Alphabetical'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(drawerScreen.getByRole('option', {name: 'A-Z'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
 
-    // webVitalsFlag comes after enableReplay alphabetically
-    expect(
-      drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
-    ).toBe(document.DOCUMENT_POSITION_PRECEDING);
+  it('renders a sort dropdown which disables the appropriate options', async function () {
+    const drawerScreen = await renderFlagDrawer();
+
+    const control = drawerScreen.getByRole('button', {name: 'Sort Flags'});
+    expect(control).toBeInTheDocument();
+    await userEvent.click(control);
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Alphabetical'}));
+    await userEvent.click(control);
+    expect(drawerScreen.getByRole('option', {name: 'Alphabetical'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(drawerScreen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(drawerScreen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await userEvent.click(drawerScreen.getByRole('option', {name: 'Evaluation Order'}));
+    await userEvent.click(control);
+    expect(drawerScreen.getByRole('option', {name: 'Evaluation Order'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(drawerScreen.getByRole('option', {name: 'Z-A'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(drawerScreen.getByRole('option', {name: 'A-Z'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

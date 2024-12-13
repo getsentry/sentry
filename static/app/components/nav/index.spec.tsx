@@ -2,7 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {getAllByRole, render, screen} from 'sentry-test/reactTestingLibrary';
+import {trackAnalytics} from 'sentry/utils/analytics';
+
+jest.mock('sentry/utils/analytics', () => ({
+  trackAnalytics: jest.fn(),
+}));
+
+import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 
@@ -101,7 +107,9 @@ describe('Nav', function () {
     beforeEach(() => {
       render(<Nav />, {
         router: RouterFixture({
-          location: LocationFixture({pathname: '/organizations/org-slug/insights/http/'}),
+          location: LocationFixture({
+            pathname: '/organizations/org-slug/insights/backend/',
+          }),
         }),
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
       });
@@ -116,17 +124,8 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
       const links = getAllByRole(container, 'link');
-      expect(links).toHaveLength(8);
-      [
-        'Requests',
-        'Queries',
-        'Assets',
-        'App Starts',
-        'Web Vitals',
-        'Caches',
-        'Queues',
-        'LLM Monitoring',
-      ].forEach((title, index) => {
+      expect(links).toHaveLength(4);
+      ['Frontend', 'Backend', 'Mobile', 'AI'].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
     });
@@ -163,6 +162,28 @@ describe('Nav', function () {
       ].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
       });
+    });
+  });
+
+  describe('analytics', function () {
+    beforeEach(() => {
+      render(<Nav />, {
+        router: RouterFixture({
+          location: LocationFixture({pathname: '/organizations/org-slug/traces/'}),
+        }),
+        organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
+      });
+    });
+
+    it('tracks primary sidebar item', async function () {
+      const issues = screen.getByRole('link', {name: 'Issues'});
+      await userEvent.click(issues);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'growth.clicked_sidebar',
+        expect.objectContaining({
+          item: 'issues',
+        })
+      );
     });
   });
 });

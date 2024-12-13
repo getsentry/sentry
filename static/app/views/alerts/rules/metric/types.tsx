@@ -42,6 +42,7 @@ export enum Dataset {
   METRICS = 'metrics',
   ISSUE_PLATFORM = 'search_issues',
   REPLAYS = 'replays',
+  EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
 export enum EventTypes {
@@ -159,6 +160,7 @@ export enum TimePeriod {
   // limitations.
   SEVEN_DAYS = '9998m',
   FOURTEEN_DAYS = '14d',
+  TWENTY_EIGHT_DAYS = '28d',
 }
 
 export enum TimeWindow {

@@ -7,7 +7,7 @@ import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAct
 
 describe('DisplayReprocessEventAction', function () {
   it('returns false in case of no event', function () {
-    expect(displayReprocessEventAction()).toBe(false);
+    expect(displayReprocessEventAction(null)).toBe(false);
   });
 
   it('returns false if no exception entry is found', function () {

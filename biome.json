@@ -19,7 +19,6 @@
       "correctness": {
         "noGlobalObjectCalls": "error",
         "noUnreachable": "error",
-        "useHookAtTopLevel": "error",
         "useIsNan": "error",
         "noUnusedPrivateClassMembers": "error",
         "noInvalidUseBeforeDeclaration": "error",
@@ -39,9 +38,7 @@
         "noRestrictedImports": {
           "level": "warn",
           "options": {
-            "paths": {
-              "react-router": "Do not import from react-router. While we transition to 6 there are shims to import from"
-            }
+            "paths": {}
           }
         }
       },
@@ -97,7 +94,8 @@
       "**/*.sourcemap.js",
       "**/*.min.js",
       "fixtures",
-      ".devenv"
+      ".devenv",
+      "package.json"
     ]
   },
   "css": {

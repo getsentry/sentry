@@ -42,9 +42,9 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects_context_map: dict[
-            int, ProjectContext | DailySummaryProjectContext
-        ] = {}  # { project_id: ProjectContext }
+        self.projects_context_map: dict[int, ProjectContext | DailySummaryProjectContext] = (
+            {}
+        )  # { project_id: ProjectContext }
 
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
@@ -462,10 +462,6 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send a notification.
     """
-    if ctx.daily:
-        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
-
-    else:
-        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
-
-    return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)
+    return all(
+        project_ctx.check_if_project_is_empty() for project_ctx in ctx.projects_context_map.values()
+    )

@@ -29,3 +29,6 @@ RESPONSE_NOT_FOUND = OpenApiResponse(description="Not Found")
 
 # 409
 RESPONSE_CONFLICT = OpenApiResponse(description="Conflict")
+
+# 429
+RESPONSE_TOO_MANY_REQUESTS = OpenApiResponse(description="Too Many Requests")

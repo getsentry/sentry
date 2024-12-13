@@ -50,8 +50,8 @@ export function getConfigFromTimeRange(
 ): TimeWindowConfig {
   const elapsedMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
 
-  // Display only the time (no date) when the window is less than 24 hours
-  const timeOnly = elapsedMinutes <= ONE_HOUR * 24;
+  // Display only the time (no date) when the start and end times are the same day
+  const timeOnly = elapsedMinutes <= ONE_HOUR * 24 && start.getDate() === end.getDate();
 
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.

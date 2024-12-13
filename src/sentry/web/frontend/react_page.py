@@ -12,11 +12,17 @@ from django.urls import resolve
 from rest_framework.request import Request
 
 from sentry import features, options
+from sentry.api.utils import generate_region_url
 from sentry.organizations.absolute_url import customer_domain_path, generate_organization_url
 from sentry.organizations.services.organization import organization_service
-from sentry.types.region import subdomain_is_region
+from sentry.types.region import (
+    find_all_multitenant_region_names,
+    get_region_by_name,
+    subdomain_is_region,
+)
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string
+from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
@@ -50,13 +56,13 @@ def resolve_redirect_url(request: HttpRequest | Request, org_slug: str, user_id=
 def resolve_activeorg_redirect_url(request: HttpRequest | Request) -> str | None:
     user: AnonymousUser | RpcUser | None = getattr(request, "user", None)
     if not user or isinstance(user, AnonymousUser):
-        return
+        return None
     session = request.session
     if not session:
-        return
+        return None
     last_active_org = session.get("activeorg", None)
     if not last_active_org:
-        return
+        return None
     return resolve_redirect_url(request=request, org_slug=last_active_org, user_id=user.id)
 
 
@@ -64,17 +70,46 @@ class ReactMixin:
     def meta_tags(self, request: Request, **kwargs):
         return {}
 
+    def preconnect(self) -> list[str]:
+        preconnects = []
+        if settings.STATIC_ORIGIN is not None:
+            preconnects.append(settings.STATIC_ORIGIN)
+        return preconnects
+
+    def dns_prefetch(self) -> list[str]:
+        regions = find_all_multitenant_region_names()
+        domains = []
+        if len(regions) < 2:
+            return domains
+        for region_name in regions:
+            region = get_region_by_name(region_name)
+            domains.append(generate_region_url(region.name))
+        return domains
+
     def handle_react(self, request: Request, **kwargs) -> HttpResponse:
+        org_context = getattr(self, "active_organization", None)
+        react_config = get_client_config(request, org_context)
+
+        user_theme = ""
+        if react_config.get("user", None) and react_config["user"].get("options", {}).get(
+            "theme", None
+        ):
+            user_theme = f"theme-{react_config['user']['options']['theme']}"
+
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
                 {"property": key, "content": value}
                 for key, value in self.meta_tags(request, **kwargs).items()
             ],
+            "dns_prefetch": self.dns_prefetch(),
+            "preconnect": self.preconnect(),
             # Rendering the layout requires serializing the active organization.
             # Since we already have it here from the OrganizationMixin, we can
             # save some work and render it faster.
-            "org_context": getattr(self, "active_organization", None),
+            "org_context": org_context,
+            "react_config": react_config,
+            "user_theme": user_theme,
         }
 
         # Force a new CSRF token to be generated and set in user's
@@ -163,11 +198,11 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
         request.organization = organization
         return self.handle_react(request)
 
 
 class GenericReactPageView(BaseView, ReactMixin):
-    def handle(self, request: Request, **kwargs) -> HttpResponse:
+    def handle(self, request: HttpRequest, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)

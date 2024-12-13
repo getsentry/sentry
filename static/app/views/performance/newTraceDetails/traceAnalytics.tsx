@@ -3,8 +3,8 @@ import * as Sentry from '@sentry/react';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {TraceType} from 'sentry/views/performance/newTraceDetails/traceType';
+
+import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 const trackTraceMetadata = (
   tree: TraceTree,
@@ -136,7 +136,7 @@ const trackViewShortcuts = (organization: Organization) =>
     organization,
   });
 
-const trackTraceWarningType = (type: TraceType, organization: Organization) =>
+const trackTraceWarningType = (type: TraceShape, organization: Organization) =>
   trackAnalytics('trace.trace_warning_type', {
     organization,
     type,
@@ -148,9 +148,49 @@ const trackTraceConfigurationsDocsClicked = (organization: Organization, title: 
     title,
   });
 
+const trackAutogroupingPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.autogrouping_change', {
+    organization,
+    enabled,
+  });
+
+const trackMissingInstrumentationPreferenceChange = (
+  organization: Organization,
+  enabled: boolean
+) =>
+  trackAnalytics('trace.preferences.missing_instrumentation_change', {
+    organization,
+    enabled,
+  });
+
+function trackTraceShape(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
+  switch (tree.shape) {
+    case TraceShape.BROKEN_SUBTRACES:
+    case TraceShape.EMPTY_TRACE:
+    case TraceShape.MULTIPLE_ROOTS:
+    case TraceShape.ONE_ROOT:
+    case TraceShape.NO_ROOT:
+    case TraceShape.ONLY_ERRORS:
+    case TraceShape.BROWSER_MULTIPLE_ROOTS:
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
+      break;
+    default: {
+      Sentry.captureMessage('Unknown trace type');
+    }
+  }
+}
+
 const traceAnalytics = {
   // Trace shape
   trackTraceMetadata,
+  trackTraceShape,
   trackEmptyTraceState,
   trackFailedToFetchTraceState,
   // Drawer actions
@@ -176,6 +216,9 @@ const traceAnalytics = {
   trackQuotaExceededBannerLoaded,
   trackTraceConfigurationsDocsClicked,
   trackMissingSpansDocLinkClicked,
+  // Trace Preferences
+  trackAutogroupingPreferenceChange,
+  trackMissingInstrumentationPreferenceChange,
 };
 
 export {traceAnalytics};

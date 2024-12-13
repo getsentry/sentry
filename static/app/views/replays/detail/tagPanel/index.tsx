@@ -17,40 +17,19 @@ import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-const notTags = [
-  'browser.name',
-  'browser.version',
-  'device.brand',
-  'device.family',
-  'device.model_id',
-  'device.name',
-  'platform',
-  'releases',
-  'replayType',
-  'os.name',
-  'os.version',
-  'sdk.name',
-  'sdk.version',
-  'user.email',
-  'user.username',
-  // TODO(replay): Remove this when backend changes `name` -> `username`
-  'user.name',
-  'user.id',
-  'user.ip',
-];
 const notSearchable = [
-  'sdk.blockAllMedia',
-  'sdk.errorSampleRate ',
-  'sdk.maskAllInputs',
-  'sdk.maskAllText',
-  'sdk.networkCaptureBodies',
-  'sdk.networkDetailHasUrls',
-  'sdk.networkRequestHasHeaders',
-  'sdk.networkResponseHasHeaders',
-  'sdk.sessionSampleRate',
-  'sdk.shouldRecordCanvas',
-  'sdk.useCompression',
-  'sdk.useCompressionOption',
+  'sdk.replay.blockAllMedia',
+  'sdk.replay.errorSampleRate ',
+  'sdk.replay.maskAllInputs',
+  'sdk.replay.maskAllText',
+  'sdk.replay.networkCaptureBodies',
+  'sdk.replay.networkDetailHasUrls',
+  'sdk.replay.networkRequestHasHeaders',
+  'sdk.replay.networkResponseHasHeaders',
+  'sdk.replay.sessionSampleRate',
+  'sdk.replay.shouldRecordCanvas',
+  'sdk.replay.useCompression',
+  'sdk.replay.useCompressionOption',
 ];
 
 function TagPanel() {
@@ -64,7 +43,11 @@ function TagPanel() {
     const unorderedTags = {
       ...tags,
       ...Object.fromEntries(
-        Object.entries(sdkOptions ?? {}).map(([key, value]) => ['sdk.' + key, [value]])
+        Object.entries(sdkOptions ?? {}).map(([key, value]) =>
+          key === 'name' || key === 'version'
+            ? ['sdk.' + key, [value]]
+            : ['sdk.replay.' + key, [value]]
+        )
       ),
     };
 
@@ -86,9 +69,8 @@ function TagPanel() {
     (name: string, value: ReactNode): LocationDescriptor => ({
       pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
       query: {
-        query: notTags.includes(name)
-          ? `${name}:"${value}"`
-          : `tags["${name}"]:"${value}"`,
+        // The replay index endpoint treats unknown filters as tags, by default. Therefore we don't need the tags[] syntax, whether `name` is a tag or not.
+        query: `${name}:"${value}"`,
       },
     }),
     [organization.slug]

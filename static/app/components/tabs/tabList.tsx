@@ -30,7 +30,12 @@ export function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
+  disabled,
 }: {
+  /**
+   * Prevent tabs from being put in the overflow menu.
+   */
+  disabled: boolean | undefined;
   tabItems: TabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
@@ -38,6 +43,10 @@ export function useOverflowTabs({
   const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
 
   useEffect(() => {
+    if (disabled) {
+      return () => {};
+    }
+
     const options = {
       root: tabListRef.current,
       // Nagative right margin to account for overflow menu's trigger button
@@ -70,7 +79,7 @@ export function useOverflowTabs({
     );
 
     return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef]);
+  }, [tabListRef, tabItemsRef, disabled]);
 
   const tabItemKeyToHiddenMap = tabItems.reduce(
     (acc, next) => ({
@@ -142,6 +151,7 @@ function BaseTabList({
     disabled,
     orientation = 'horizontal',
     keyboardActivation = 'manual',
+    disableOverflow,
     ...otherRootProps
   } = rootProps;
 
@@ -178,6 +188,7 @@ function BaseTabList({
     tabListRef,
     tabItemsRef,
     tabItems: props.items,
+    disabled: disableOverflow,
   });
 
   const overflowMenuItems = useMemo(() => {
@@ -240,7 +251,7 @@ function BaseTabList({
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
 /**
- * To be used as a direct child of the <Tabs /> component. See example usage
+ * To be used as a direct child of the `<Tabs />` component. See example usage
  * in tabs.stories.js
  */
 export function TabList({items, variant, ...props}: TabListProps) {

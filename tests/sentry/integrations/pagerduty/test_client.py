@@ -1,5 +1,5 @@
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import call, patch
 
 import pytest
 import responses
@@ -7,9 +7,11 @@ from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
 
@@ -47,13 +49,13 @@ class PagerDutyClientTest(APITestCase):
             metadata={"services": SERVICES},
         )
         self.service = add_service(
-            self.integration.organizationintegration_set.first(),
+            self.integration.organizationintegration_set.get(),
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
         )
 
         self.installation = self.integration.get_installation(self.organization.id)
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
 
         self.event = self.store_event(
             data={
@@ -71,7 +73,8 @@ class PagerDutyClientTest(APITestCase):
         self.group = self.event.group
 
     @responses.activate
-    def test_send_trigger(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_trigger(self, mock_record):
         expected_data = {
             "client": "sentry",
             "client_url": self.group.get_absolute_url(params={"referrer": "pagerduty_integration"}),
@@ -126,6 +129,7 @@ class PagerDutyClientTest(APITestCase):
             )
         ]
         assert self.metrics.incr.mock_calls == calls
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_send_trigger_custom_severity(self):
@@ -157,11 +161,7 @@ class PagerDutyClientTest(APITestCase):
             "https://events.pagerduty.com/v2/enqueue/",
             body=b"{}",
             match=[
-                matchers.header_matcher(
-                    {
-                        "Content-Type": "application/json",
-                    }
-                ),
+                matchers.header_matcher({"Content-Type": "application/json"}),
                 matchers.json_params_matcher(expected_data),
             ],
         )

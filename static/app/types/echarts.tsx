@@ -6,13 +6,15 @@ import type {
 } from 'echarts';
 import type ReactEchartsCore from 'echarts-for-react/lib/core';
 
+import type {Confidence} from 'sentry/types/organization';
+
 export type SeriesDataUnit = {
+  // number because we sometimes use timestamps
   name: string | number;
   value: number;
   itemStyle?: {
     color?: string;
   };
-  // number because we sometimes use timestamps
   onClick?: (series: Series, instance: ECharts) => void;
 };
 
@@ -24,6 +26,7 @@ export type Series = {
     opacity: number;
   };
   color?: string;
+  confidence?: Confidence;
   id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z

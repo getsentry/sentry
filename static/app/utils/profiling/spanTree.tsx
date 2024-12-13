@@ -97,6 +97,7 @@ class SpanTree {
       span_id: transaction.contexts?.trace?.span_id ?? undefined,
       event_id: transaction.eventID,
       parent_span_id: undefined,
+      trace_id: transaction.contexts?.trace?.trace_id ?? undefined,
       op: 'transaction',
     });
 

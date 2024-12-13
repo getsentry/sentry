@@ -245,11 +245,13 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=60,
+                timeout_ms=1000,
                 method="POST",
                 headers=[("some", "header")],
                 body="a body",
                 name="New name",
                 owner=Actor.from_orm_user(self.user),
+                trace_sampling=False,
             )
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -286,11 +288,13 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 environment=self.environment,
                 url="https://santry.io",
                 interval_seconds=proj_sub.uptime_subscription.interval_seconds,
+                timeout_ms=1000,
                 method=proj_sub.uptime_subscription.method,
                 headers=proj_sub.uptime_subscription.headers,
                 body=proj_sub.uptime_subscription.body,
                 name=proj_sub.name,
                 owner=proj_sub.owner,
+                trace_sampling=proj_sub.uptime_subscription.trace_sampling,
             )
 
         with pytest.raises(UptimeSubscription.DoesNotExist):
@@ -329,11 +333,13 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 environment=self.environment,
                 url=proj_sub.uptime_subscription.url,
                 interval_seconds=other_proj_sub.uptime_subscription.interval_seconds,
+                timeout_ms=1000,
                 method=other_proj_sub.uptime_subscription.method,
                 headers=other_proj_sub.uptime_subscription.headers,
                 body=other_proj_sub.uptime_subscription.body,
                 name=other_proj_sub.name,
                 owner=other_proj_sub.owner,
+                trace_sampling=other_proj_sub.uptime_subscription.trace_sampling,
             )
 
         assert (

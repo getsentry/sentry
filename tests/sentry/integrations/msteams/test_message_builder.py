@@ -54,6 +54,7 @@ from sentry.testutils.helpers.notifications import (
     DummyNotificationWithMoreFields,
 )
 from sentry.testutils.skips import requires_snuba
+from sentry.types.actor import Actor
 
 pytestmark = [requires_snuba]
 
@@ -367,17 +368,17 @@ class MSTeamsMessageBuilderTest(TestCase):
             assert 2 == len(card_body)
             assert "Input.ChoiceSet" == card_body[-1]["type"]
 
-        resolve_action, ignore_action, assign_action = actions
+        resolve_action, archive_action, assign_action = actions
         assert "Resolve" == resolve_action["title"]
-        assert "Ignore" == ignore_action["title"]
+        assert "Archive" == archive_action["title"]
         assert "Assign" == assign_action["title"]
 
-        assert _is_show_card_action(ignore_action)
-        body = ignore_action["card"]["body"]
+        assert _is_show_card_action(archive_action)
+        body = archive_action["card"]["body"]
         assert 2 == len(body)
         assert _is_text_block(body[0])
-        assert "Ignore until this happens again..." == body[0]["text"]
-        assert "Ignore" == ignore_action["card"]["actions"][0]["title"]
+        assert "Archive until this happens again..." == body[0]["text"]
+        assert "Archive" == archive_action["card"]["actions"][0]["title"]
 
         assert _is_show_card_action(assign_action)
         body = assign_action["card"]["body"]
@@ -427,7 +428,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert ActionType.SUBMIT == resolve_action["type"]
         assert "Unresolve" == resolve_action["title"]
 
-    def test_ignored_issue_message(self):
+    def test_archived_issue_message(self):
         self.group1.status = GroupStatus.IGNORED
         self.group1.substatus = None
 
@@ -439,9 +440,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         action_set = issue_card["body"][2]["items"][0]
 
         assert _is_action_set(action_set)
-        ignore_action = action_set["actions"][1]
-        assert ActionType.SUBMIT == ignore_action["type"]
-        assert "Stop Ignoring" == ignore_action["title"]
+        archive_action = action_set["actions"][1]
+        assert ActionType.SUBMIT == archive_action["type"]
+        assert "Unarchive" == archive_action["title"]
 
     def test_assigned_issue_message(self):
         GroupAssignee.objects.assign(self.group1, self.user)
@@ -484,7 +485,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         notification_card = MSTeamsNotificationsMessageBuilder(
             self.notification,
             self.context,
-            self.recipient,
+            Actor.from_object(self.recipient),
         ).build_notification_card()
 
         body = notification_card["body"]
@@ -520,7 +521,7 @@ class MSTeamsNotificationMessageBuilderTest(TestCase):
         notification_card = MSTeamsNotificationsMessageBuilder(
             dummy_notification,
             self.context,
-            self.recipient,
+            Actor.from_object(self.recipient),
         ).build_notification_card()
 
         assert 2 == len(notification_card["body"])

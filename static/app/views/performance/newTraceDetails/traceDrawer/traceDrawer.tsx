@@ -11,10 +11,6 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -24,53 +20,44 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
-import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
-import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
+import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import {traceAnalytics} from '../traceAnalytics';
+import {getTraceQueryParams} from '../traceApi/useTrace';
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
+import {DrawerContainerRefContext} from '../traceDrawer/details/drawerContainerRefContext';
+import {TraceProfiles} from '../traceDrawer/tabs/traceProfiles';
+import {TraceVitals} from '../traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
-import {TRACE_DRAWER_DEFAULT_SIZES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {
-  getTraceTabTitle,
-  type TraceTabsReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {getTraceQueryParams} from '../traceApi/useTrace';
-import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
-import {
-  makeTraceNodeBarColor,
-  type TraceTree,
-  type TraceTreeNode,
-} from '../traceModels/traceTree';
+} from '../traceDrawer/usePassiveResizeableDrawer';
+import type {TraceShape, TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {TraceScheduler} from '../traceRenderers/traceScheduler';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
+import {makeTraceNodeBarColor} from '../traceRow/traceBar';
+import type {TraceReducerAction, TraceReducerState} from '../traceState';
+import {TRACE_DRAWER_DEFAULT_SIZES} from '../traceState/tracePreferences';
 import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
-import type {TraceType} from '../traceType';
+import {getTraceTabTitle, type TraceTabsReducerState} from '../traceState/traceTabs';
+import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
-  metaResults: TraceMetaQueryResults;
+  meta: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   scheduler: TraceScheduler;
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
-  traceType: TraceType;
-  traces: TraceSplitResults<TraceFullDetailed> | null;
+  traceType: TraceShape;
 };
 
 export function TraceDrawer(props: TraceDrawerProps) {
@@ -80,6 +67,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const contentContainerRef = useRef<HTMLDivElement>(null);
+  const hasNewTraceUi = useHasTraceNewUi();
 
   // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
@@ -424,7 +412,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-          {traceState.preferences.drawer.layoutOptions.length > 0 ? (
+          {traceState.preferences.drawer.layoutOptions.length > 0 && !hasNewTraceUi ? (
             <TraceLayoutButtons traceDispatch={traceDispatch} trace_state={traceState} />
           ) : null}
         </TabsLayout>
@@ -440,12 +428,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
               {traceState.tabs.current_tab ? (
                 traceState.tabs.current_tab.node === 'trace' ? (
                   <TraceDetails
-                    metaResults={props.metaResults}
+                    meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
                     node={props.trace.root.children[0]}
                     rootEventResults={props.rootEventResults}
-                    traces={props.traces}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
                   />
@@ -458,7 +445,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   />
                 ) : (
                   <TraceTreeNodeDetails
-                    replayRecord={props.replayRecord}
+                    replay={props.replay}
                     manager={props.manager}
                     organization={organization}
                     onParentClick={onParentClick}
@@ -681,7 +668,7 @@ const TabsHeightContainer = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   absolute?: boolean;
 }>`
-  background: ${p => p.theme.backgroundSecondary};
+  background: ${p => p.theme.background};
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
@@ -739,7 +726,7 @@ const TabLayoutControlItem = styled('li')`
   margin: 0;
   position: relative;
   z-index: 10;
-  background-color: ${p => p.theme.backgroundSecondary};
+  background-color: ${p => p.theme.background};
 `;
 
 const Tab = styled('li')`

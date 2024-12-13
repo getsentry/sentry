@@ -1,24 +1,28 @@
-import {Fragment} from 'react';
+import type {MouseEventHandler} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import Feature from 'sentry/components/acl/feature';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
+import {linkStyles} from 'sentry/components/links/styles';
 import {useNavContext} from 'sentry/components/nav/context';
 import Submenu from 'sentry/components/nav/submenu';
-import {useNavIndicator} from 'sentry/components/nav/useNavIndicator';
 import {
   isNavItemActive,
   isNonEmptyArray,
   isSubmenuItemActive,
-  makeLocationDescriptorFromTo,
+  makeLinkPropsFromTo,
   type NavSidebarItem,
   resolveNavItemTo,
 } from 'sentry/components/nav/utils';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function Sidebar() {
   return (
@@ -90,29 +94,101 @@ const SidebarItemList = styled('ul')`
   }
 `;
 
-function SidebarItem({item}: {item: NavSidebarItem}) {
-  const location = useLocation();
-  const isActive = isNavItemActive(item, location);
-  const isSubmenuActive = isSubmenuItemActive(item, location);
-  const _to = resolveNavItemTo(item);
-  const to = _to ? makeLocationDescriptorFromTo(_to) : '#';
+interface SidebarItemProps {
+  item: NavSidebarItem;
+  children?: React.ReactNode;
+  onClick?: MouseEventHandler<HTMLElement>;
+}
+
+function SidebarItem({item}: SidebarItemProps) {
+  const to = resolveNavItemTo(item);
+  const SidebarChild = to ? SidebarLink : SidebarMenu;
+  const organization = useOrganization();
 
   const FeatureGuard = item.feature ? Feature : Fragment;
   const featureGuardProps: any = item.feature ?? {};
 
+  const recordAnalytics = useCallback(
+    () =>
+      trackAnalytics('growth.clicked_sidebar', {item: item.analyticsKey, organization}),
+    [organization, item.analyticsKey]
+  );
+
   return (
     <FeatureGuard {...featureGuardProps}>
       <SidebarItemWrapper>
-        <Link
-          to={to}
-          className={isActive || isSubmenuActive ? 'active' : undefined}
-          aria-current={isActive ? 'page' : undefined}
-        >
+        <SidebarChild item={item} key={item.label} onClick={recordAnalytics}>
           {item.icon}
           <span>{item.label}</span>
-        </Link>
+        </SidebarChild>
       </SidebarItemWrapper>
     </FeatureGuard>
+  );
+}
+
+const NavLink = styled(Link)`
+  position: relative;
+`;
+
+const NavButton = styled('button')`
+  border: none;
+  position: relative;
+  background: transparent;
+  min-width: 58px;
+
+  ${linkStyles}
+`;
+
+function SidebarLink({children, item, onClick}: SidebarItemProps) {
+  const location = useLocation();
+  const isActive = isNavItemActive(item, location);
+  const isSubmenuActive = isSubmenuItemActive(item, location);
+  const to = resolveNavItemTo(item);
+  if (!to) {
+    throw new Error(
+      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
+    );
+  }
+  const linkProps = makeLinkPropsFromTo(to);
+
+  return (
+    <NavLink
+      {...linkProps}
+      onClick={onClick}
+      className={isActive || isSubmenuActive ? 'active' : undefined}
+      aria-current={isActive ? 'page' : undefined}
+    >
+      <InteractionStateLayer hasSelectedBackground={isActive || isSubmenuActive} />
+      {children}
+    </NavLink>
+  );
+}
+
+function SidebarMenu({item, children, onClick}: SidebarItemProps) {
+  if (!item.dropdown) {
+    throw new Error(
+      `Nav item "${item.label}" must have either a \`dropdown\` or \`to\` value!`
+    );
+  }
+  return (
+    <DropdownMenu
+      position="right-end"
+      trigger={(props, isOpen) => {
+        return (
+          <NavButton
+            {...props}
+            onClick={event => {
+              onClick?.(event);
+              props.onClick?.(event);
+            }}
+          >
+            <InteractionStateLayer hasSelectedBackground={isOpen} />
+            {children}
+          </NavButton>
+        );
+      }}
+      items={item.dropdown}
+    />
   );
 }
 
@@ -127,28 +203,18 @@ const SidebarItemWrapper = styled('li')`
       padding-top: ${space(0.5)};
     }
   }
-  a {
+  > a,
+  button {
     display: flex;
     flex-direction: row;
-    height: 32px;
+    height: 40px;
     gap: ${space(1.5)};
     align-items: center;
-    padding: 0 ${space(1.5)};
+    padding: auto ${space(1.5)};
     color: var(--color, currentColor);
     font-size: ${theme.fontSizeMedium};
     font-weight: ${theme.fontWeightNormal};
     line-height: 177.75%;
-    border: 1px solid transparent;
-
-    &:hover {
-      color: var(--color-hover, ${theme.white});
-    }
-
-    &.active {
-      color: var(--color-hover, ${theme.white});
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
 
     & > * {
       pointer-events: none;
@@ -165,19 +231,6 @@ const SidebarItemWrapper = styled('li')`
       gap: ${space(0.5)};
     }
   }
-`;
-
-const SidebarIndicator = styled(motion.span)`
-  position: absolute;
-  left: 0;
-  right: 0;
-  opacity: 0;
-  pointer-events: none;
-  margin-inline: ${space(1)};
-  width: 58px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: ${theme.borderRadius};
 `;
 
 const SidebarFooterWrapper = styled('div')`
@@ -198,22 +251,13 @@ const SidebarHeader = styled('header')`
 `;
 
 function SidebarBody({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
-  // div wrapper is needed to for indicator positioning
-  return (
-    <div>
-      <SidebarIndicator {...indicatorProps} />
-      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
-    </div>
-  );
+  return <SidebarItemList>{children}</SidebarItemList>;
 }
 
 function SidebarFooter({children}) {
-  const {indicatorProps, containerProps} = useNavIndicator();
   return (
     <SidebarFooterWrapper>
-      <SidebarIndicator {...indicatorProps} />
-      <SidebarItemList {...containerProps}>{children}</SidebarItemList>
+      <SidebarItemList>{children}</SidebarItemList>
     </SidebarFooterWrapper>
   );
 }

@@ -10,6 +10,9 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import FUNCTION_COUNT
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
@@ -19,7 +22,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
-from sentry.snuba.dataset import Dataset
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_key_from_query_builder,
@@ -271,6 +274,52 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             assert sub.status == QuerySubscription.Status.ACTIVE.value
             assert sub.subscription_id is not None
 
+    def test_eap_rpc_query_count(self):
+        time_window = 3600
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            time_window=time_window,
+        )
+        with patch("sentry.utils.snuba_rpc._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
+            pool.urlopen.return_value = resp
+
+            create_subscription_in_snuba(sub.id)
+
+            rpc_request_body = pool.urlopen.call_args[1]["body"]
+            createSubscriptionRequest = CreateSubscriptionRequest.FromString(rpc_request_body)
+
+            assert createSubscriptionRequest.time_window_secs == time_window
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.op
+                == ComparisonFilter.Op.OP_EQUALS
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.key.name
+                == "sentry.op"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.filter.comparison_filter.value.val_str
+                == "http.client"
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].aggregate
+                == FUNCTION_COUNT
+            )
+            assert (
+                createSubscriptionRequest.time_series_request.aggregations[0].key.name
+                == "sentry.duration_ms"
+            )
+            # Validate that the spm function uses the correct time window
+            sub = QuerySubscription.objects.get(id=sub.id)
+            assert sub.status == QuerySubscription.Status.ACTIVE.value
+            assert sub.subscription_id is not None
+
 
 class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.UPDATING
@@ -316,6 +365,36 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_eap_rpc_query_count(self):
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            query="span.op:http.client",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        with patch("sentry.utils.snuba_rpc._snuba_pool") as rpc_pool:
+            with patch("sentry.snuba.tasks._snuba_pool") as pool:
+                resp = Mock()
+                resp.status = 202
+                resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
+                rpc_pool.urlopen.return_value = resp
+                pool.urlopen.return_value = resp
+
+                create_subscription_in_snuba(sub.id)
+                sub = QuerySubscription.objects.get(id=sub.id)
+                assert sub.status == QuerySubscription.Status.ACTIVE.value
+                assert sub.subscription_id is not None
+
+                sub.status = QuerySubscription.Status.UPDATING.value
+                sub.update(
+                    status=QuerySubscription.Status.UPDATING.value,
+                    subscription_id=sub.subscription_id,
+                )
+                update_subscription_in_snuba(sub.id)
+                sub = QuerySubscription.objects.get(id=sub.id)
+                assert sub.status == QuerySubscription.Status.ACTIVE.value
+                assert sub.subscription_id is not None
+
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
     expected_status = QuerySubscription.Status.DELETING
@@ -340,6 +419,30 @@ class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
         )
         delete_subscription_from_snuba(sub.id)
         assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_eap_rpc_query_count(self):
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.DELETING,
+            subscription_id=subscription_id,
+            query="span.module:db",
+            aggregate="count(span.duration)",
+            dataset=Dataset.EventsAnalyticsPlatform,
+        )
+        with patch("sentry.snuba.tasks._snuba_pool") as pool:
+            resp = Mock()
+            resp.status = 202
+            pool.urlopen.return_value = resp
+
+            delete_subscription_from_snuba(sub.id)
+            assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+            (method, url) = pool.urlopen.call_args[0]
+            assert method == "DELETE"
+            assert (
+                url
+                == f"/{Dataset.EventsAnalyticsPlatform.value}/{EntityKey.EAPSpans.value}/subscriptions/{subscription_id}"
+            )
 
     def test_no_subscription_id(self):
         sub = self.create_subscription(QuerySubscription.Status.DELETING)

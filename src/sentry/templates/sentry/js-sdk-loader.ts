@@ -209,7 +209,12 @@ declare const __LOADER__IS_LAZY__: any;
         // Cleanup to allow garbage collection
         _window.sentryOnLoad = undefined;
       }
+    } catch (o_O) {
+      console.error('Error while calling `sentryOnLoad` handler:');
+      console.error(o_O);
+    }
 
+    try {
       // We have to make sure to call all callbacks first
       for (let i = 0; i < onLoadCallbacks.length; i++) {
         if (typeof onLoadCallbacks[i] === 'function') {

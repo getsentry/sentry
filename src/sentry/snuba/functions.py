@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -10,7 +10,6 @@ from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
@@ -82,7 +81,7 @@ def timeseries_query(
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
-    comparison_delta: datetime | None = None,
+    comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
@@ -90,6 +89,8 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> Any:
 
     builder = ProfileFunctionsTimeseriesQueryBuilder(
@@ -101,10 +102,12 @@ def timeseries_query(
         selected_columns=selected_columns,
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     results = builder.run_query(referrer=referrer, query_source=query_source)
     results = builder.strip_alias_prefix(results)
+    results = builder.process_results(results)
 
     return SnubaTSResult(
         {
@@ -119,12 +122,7 @@ def timeseries_query(
                 if zerofill_results
                 else results["data"]
             ),
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)
-                    for value in results["meta"]
-                }
-            },
+            "meta": results["meta"],
         },
         snuba_params.start_date,
         snuba_params.end_date,
@@ -152,6 +150,7 @@ def top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 
@@ -271,14 +270,7 @@ def format_top_events_timeseries_results(
                         else item["data"]
                     ),
                     "order": item["order"],
-                    "meta": {
-                        "fields": {
-                            value["name"]: get_json_meta_type(
-                                value["name"], value.get("type"), query_builder
-                            )
-                            for value in result["meta"]
-                        }
-                    },
+                    "meta": result["meta"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,

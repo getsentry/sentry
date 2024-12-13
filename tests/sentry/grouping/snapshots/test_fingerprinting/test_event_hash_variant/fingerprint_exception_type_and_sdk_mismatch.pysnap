@@ -1,8 +1,7 @@
 ---
-created: '2024-01-10T17:07:19.931277Z'
+created: '2024-12-06T19:45:39.610879+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
-# Shows that the custom fingerprinting rule is not applied when type matches, but SDK does not
 ---
 config:
   rules:
@@ -14,6 +13,7 @@ config:
       - sentry.java
     - - type
       - DatabaseUnavailable
+    text: sdk:"sentry.java" type:"DatabaseUnavailable" -> "database-unavailable"
   version: 1
 fingerprint:
 - my-route
@@ -21,18 +21,24 @@ fingerprint:
 title: 'DatabaseUnavailable: For some reason the database went away'
 variants:
   app:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
-      contributes: false
-      hint: exception of system takes precedence
-    type: salted-component
+      contributes: true
+      hint: null
+    type: salted_component
     values:
     - my-route
     - '{{ default }}'
   system:
+    client_values:
+    - my-route
+    - '{{ default }}'
     component:
-      contributes: true
-      hint: null
-    type: salted-component
+      contributes: false
+      hint: exception of app takes precedence
+    type: salted_component
     values:
     - my-route
     - '{{ default }}'

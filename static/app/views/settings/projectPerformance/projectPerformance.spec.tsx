@@ -14,6 +14,7 @@ import {
 import {IssueTitle} from 'sentry/types/group';
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
+  allowedCountValues,
   allowedDurationValues,
   allowedPercentageValues,
   allowedSizeValues,
@@ -192,12 +193,20 @@ describe('projectPerformance', function () {
       sliderIndex: 1,
     },
     {
+      title: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+      threshold: DetectorConfigCustomer.N_PLUS_DB_COUNT,
+      allowedValues: allowedCountValues,
+      defaultValue: 5,
+      newValue: 10,
+      sliderIndex: 2,
+    },
+    {
       title: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
       threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 1000,
       newValue: 3000,
-      sliderIndex: 2,
+      sliderIndex: 3,
     },
     {
       title: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
@@ -205,7 +214,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 300,
       newValue: 500,
-      sliderIndex: 3,
+      sliderIndex: 4,
     },
     {
       title: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
@@ -213,7 +222,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedPercentageValues,
       defaultValue: 0.33,
       newValue: 0.5,
-      sliderIndex: 4,
+      sliderIndex: 5,
     },
     {
       title: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
@@ -221,7 +230,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 1000000,
       newValue: 5000000,
-      sliderIndex: 5,
+      sliderIndex: 6,
     },
     {
       title: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
@@ -229,7 +238,7 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 33,
-      sliderIndex: 6,
+      sliderIndex: 7,
     },
     {
       title: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
@@ -237,7 +246,7 @@ describe('projectPerformance', function () {
       allowedValues: [10, 16, 33, 50],
       defaultValue: 16,
       newValue: 50,
-      sliderIndex: 7,
+      sliderIndex: 8,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
@@ -245,7 +254,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(0, 23),
       defaultValue: 100,
       newValue: 5000,
-      sliderIndex: 8,
+      sliderIndex: 9,
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
@@ -253,7 +262,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedSizeValues.slice(1),
       defaultValue: 512000,
       newValue: 700000,
-      sliderIndex: 9,
+      sliderIndex: 10,
     },
     {
       title: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
@@ -261,7 +270,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(5),
       defaultValue: 500,
       newValue: 400,
-      sliderIndex: 10,
+      sliderIndex: 11,
     },
     {
       title: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
@@ -269,7 +278,7 @@ describe('projectPerformance', function () {
       allowedValues: allowedDurationValues.slice(14),
       defaultValue: 2000,
       newValue: 4000,
-      sliderIndex: 11,
+      sliderIndex: 12,
     },
   ])(
     'renders detector thresholds settings for $title issue',

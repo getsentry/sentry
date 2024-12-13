@@ -96,11 +96,6 @@ declare global {
      */
     __SENTRY_DEV_UI?: boolean;
     /**
-     * Use react-router v6 in compatability mode. This exists while we migrate
-     * off of react-router v3.
-     */
-    __SENTRY_USING_REACT_ROUTER_SIX?: boolean;
-    /**
      * Sentrys version string
      */
     __SENTRY__VERSION?: string;
@@ -182,6 +177,9 @@ export interface Config {
     environment?: string;
     profilesSampleRate?: number;
   };
+  // sentryMode intends to supersede isSelfHosted,
+  // so we can differentiate between "SELF_HOSTED", "SINGLE_TENANT", and "SAAS".
+  sentryMode: 'SELF_HOSTED' | 'SINGLE_TENANT' | 'SAAS';
   shouldPreloadData: boolean;
   singleOrganization: boolean;
   superUserCookieDomain: string | null;
@@ -388,7 +386,7 @@ export interface StatusPageIncidentUpdate {
   /**
    * Status of the incident for tihs update
    */
-  status: 'resolved' | 'monitoring' | 'investigating';
+  status: 'resolved' | 'monitoring' | 'identified' | 'investigating';
   /**
    * ISO Update update time
    */
@@ -444,7 +442,7 @@ export interface StatuspageIncident {
   /**
    * Current status of the incident
    */
-  status: 'resolved' | 'unresolved';
+  status: 'resolved' | 'unresolved' | 'monitoring';
   /**
    * ISO 8601 last updated time
    */

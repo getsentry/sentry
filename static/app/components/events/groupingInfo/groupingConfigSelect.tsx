@@ -10,8 +10,6 @@ import type {EventGroupingConfig} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {GroupingConfigItem} from '.';
-
 type GroupingConfigSelectProps = {
   configId: string;
   eventConfigId: string;
@@ -67,6 +65,16 @@ export function GroupingConfigSelect({
 
 const StyledDropdownButton = styled(DropdownButton)`
   font-weight: inherit;
+`;
+
+const GroupingConfigItem = styled('span')<{
+  isActive?: boolean;
+  isHidden?: boolean;
+}>`
+  font-family: ${p => p.theme.text.familyMono};
+  opacity: ${p => (p.isHidden ? 0.5 : null)};
+  font-weight: ${p => (p.isActive ? 'bold' : null)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default GroupingConfigSelect;

@@ -8,7 +8,7 @@ import {isMac} from '@react-aria/utils';
  *
  * [1] https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/selection/src/utils.ts
  */
-export function isCtrlKeyPressed(e: React.KeyboardEvent) {
+export function isCtrlKeyPressed(e: React.KeyboardEvent | React.MouseEvent) {
   if (isMac()) {
     return e.metaKey;
   }

@@ -1,5 +1,5 @@
 ---
-created: '2020-02-26T19:54:38.550497Z'
+created: '2024-10-24T14:22:50.950702+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,7 +8,7 @@ app:
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
+        stacktrace (ignored because it contains no in-app frames)
           frame (non app frame)
             filename*
               "react-dom.development.js"

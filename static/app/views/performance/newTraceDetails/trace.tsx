@@ -21,45 +21,49 @@ import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTim
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import type {
-  TraceEvents,
-  TraceScheduler,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {
+  scoreToStatus,
+  STATUS_TEXT,
+} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+
+import {TraceTree} from './traceModels/traceTree';
+import type {TraceTreeNode} from './traceModels/traceTreeNode';
+import type {TraceEvents, TraceScheduler} from './traceRenderers/traceScheduler';
 import {
   useVirtualizedList,
   type VirtualizedRow,
-} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceVirtualizedList';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import {TraceAutogroupedRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceAutogroupedRow';
-import {TraceErrorRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceErrorRow';
-import {TraceLoadingRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceLoadingRow';
-import {TraceMissingInstrumentationRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceMissingInstrumentationRow';
-import {TraceRootRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceRootNode';
+} from './traceRenderers/traceVirtualizedList';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {TraceAutogroupedRow} from './traceRow/traceAutogroupedRow';
+import {TraceCollapsedRow} from './traceRow/traceCollapsedRow';
+import {TraceErrorRow} from './traceRow/traceErrorRow';
+import {TraceLoadingRow} from './traceRow/traceLoadingRow';
+import {TraceMissingInstrumentationRow} from './traceRow/traceMissingInstrumentationRow';
+import {TraceRootRow} from './traceRow/traceRootNode';
 import {
   TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME,
   TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME,
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
-} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
-import {TraceSpanRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceSpanRow';
-import {TraceTransactionRow} from 'sentry/views/performance/newTraceDetails/traceRow/traceTransactionRow';
-import type {TraceReducerState} from 'sentry/views/performance/newTraceDetails/traceState';
+} from './traceRow/traceRow';
+import {TraceSpanRow} from './traceRow/traceSpanRow';
+import {TraceTransactionRow} from './traceRow/traceTransactionRow';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
-} from 'sentry/views/performance/newTraceDetails/traceState/traceRovingTabIndex';
-
-import type {TraceTree, TraceTreeNode} from './traceModels/traceTree';
+} from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
+  isCollapsedNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from './guards';
+} from './traceGuards';
+import type {TraceReducerState} from './traceState';
 
 function computeNextIndexFromAction(
   current_index: number,
@@ -88,7 +92,6 @@ function computeNextIndexFromAction(
 
 interface TraceProps {
   forceRerender: number;
-  isEmbedded: boolean;
   isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
@@ -118,7 +121,6 @@ export function Trace({
   scheduler,
   forceRerender,
   trace_id,
-  isEmbedded,
   isLoading,
 }: TraceProps) {
   const theme = useTheme();
@@ -143,6 +145,11 @@ export function Trace({
 
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
+
+  const traceStatePreferencesRef = useRef<
+    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
+  >(traceState.preferences);
+  traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = () => {
@@ -196,9 +203,10 @@ export function Trace({
       rerenderRef.current();
 
       treeRef.current
-        .zoomIn(node, value, {
+        .zoom(node, value, {
           api,
           organization,
+          preferences: traceStatePreferencesRef.current,
         })
         .then(() => {
           rerenderRef.current();
@@ -263,6 +271,7 @@ export function Trace({
           action_source: 'keyboard',
         });
       }
+
       if (event.key === 'ArrowLeft') {
         if (node.zoomedIn) {
           onNodeZoomIn(event, node, false);
@@ -270,10 +279,10 @@ export function Trace({
           onNodeExpand(event, node, false);
         }
       } else if (event.key === 'ArrowRight') {
-        if (!node.expanded) {
-          onNodeExpand(event, node, true);
-        } else if (node.expanded && node.canFetch) {
+        if (node.canFetch) {
           onNodeZoomIn(event, node, true);
+        } else {
+          onNodeExpand(event, node, true);
         }
       }
     },
@@ -328,7 +337,6 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
-          isEmbedded={isEmbedded}
         />
       );
     },
@@ -377,7 +385,7 @@ export function Trace({
       className={`
         ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
-        ${trace.type !== 'trace' ? 'Loading' : ''}
+        ${trace.type !== 'trace' || isLoading ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}
     >
       <div
@@ -393,14 +401,19 @@ export function Trace({
       >
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
+              const status =
+                indicator.score === undefined
+                  ? 'none'
+                  : STATUS_TEXT[scoreToStatus(indicator.score)];
+
               return (
                 <div
                   key={i}
                   ref={r => manager.registerIndicatorRef(r, i, indicator)}
                   className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
                 >
-                  <div className="TraceIndicatorLabel">{indicator.label}</div>
-                  <div className="TraceIndicatorLine" />
+                  <div className={`TraceIndicatorLabel ${status}`}>{indicator.label}</div>
+                  <div className={`TraceIndicatorLine ${status}`} />
                 </div>
               );
             })
@@ -409,7 +422,7 @@ export function Trace({
         {manager.interval_bars.map((_, i) => {
           const indicatorTimestamp = manager.intervals[i] ?? 0;
 
-          if (trace.type !== 'trace') {
+          if (trace.type !== 'trace' || isLoading) {
             return null;
           }
 
@@ -457,7 +470,6 @@ export function Trace({
 
 function RenderTraceRow(props: {
   index: number;
-  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -572,12 +584,12 @@ function RenderTraceRow(props: {
       ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
       : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME;
 
-  const listColumnClassName = node.isOrphaned
+  const listColumnClassName = isTraceNode(node)
     ? TRACE_CHILDREN_COUNT_WRAPPER_ORPHANED_CLASSNAME
     : TRACE_CHILDREN_COUNT_WRAPPER_CLASSNAME;
 
   const listColumnStyle: React.CSSProperties = {
-    paddingLeft: node.depth * props.manager.row_depth_padding,
+    paddingLeft: TraceTree.Depth(node) * props.manager.row_depth_padding,
   };
 
   const rowProps: TraceRowProps<TraceTreeNode<TraceTree.NodeValue>> = {
@@ -586,7 +598,6 @@ function RenderTraceRow(props: {
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
-    isEmbedded: props.isEmbedded,
     onSpanArrowClick: onSpanRowArrowClick,
     manager: props.manager,
     index: props.index,
@@ -630,6 +641,10 @@ function RenderTraceRow(props: {
 
   if (isTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
+  }
+
+  if (isCollapsedNode(node)) {
+    return <TraceCollapsedRow {...rowProps} node={node} />;
   }
 
   return null;
@@ -726,21 +741,11 @@ const TraceStylingWrapper = styled('div')`
   grid-area: trace;
   padding-top: 26px;
 
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --debug: ${p => p.theme.blue300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
-
   &.WithIndicators {
     padding-top: 44px;
 
     &:before {
+      background-color: ${p => p.theme.background};
       height: 44px;
 
       .TraceScrollbarContainer {
@@ -879,6 +884,24 @@ const TraceStylingWrapper = styled('div')`
       line-height: 1;
       margin-top: 2px;
       white-space: nowrap;
+
+      &.Poor {
+        color: ${p => p.theme.red300};
+        border: 1px solid ${p => p.theme.red300};
+        background: ${p => p.theme.red100};
+      }
+
+      &.Meh {
+        color: ${p => p.theme.yellow400};
+        border: 1px solid ${p => p.theme.yellow300};
+        background: ${p => p.theme.yellow100};
+      }
+
+      &.Good {
+        color: ${p => p.theme.green300};
+        border: 1px solid ${p => p.theme.green300};
+        background: ${p => p.theme.green100};
+      }
     }
 
     .TraceIndicatorLine {
@@ -887,13 +910,40 @@ const TraceStylingWrapper = styled('div')`
       top: 20px;
       position: absolute;
       left: 50%;
-      transform: translateX(-2px);
+      transform: translate(-2px, -7px);
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+
+      &.Poor {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.red300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.Meh {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.yellow300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.Good {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.green300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
     }
 
     .Indicator {
@@ -1265,6 +1315,22 @@ const TraceStylingWrapper = styled('div')`
             color: ${p => p.theme.white};
             background-color: ${p => p.theme.red300};
           }
+        }
+      }
+    }
+
+    &.Collapsed {
+      background-color: ${p => p.theme.backgroundSecondary};
+      border-bottom: 1px solid ${p => p.theme.border};
+      border-top: 1px solid ${p => p.theme.border};
+
+      .TraceLeftColumn {
+        padding-left: 14px;
+        width: 100%;
+        color: ${p => p.theme.subText};
+
+        .TraceLeftColumnInner {
+          padding-left: 0 !important;
         }
       }
     }

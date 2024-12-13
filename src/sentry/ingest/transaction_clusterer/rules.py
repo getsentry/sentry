@@ -20,11 +20,9 @@ TRANSACTION_NAME_RULE_TTL_SECS = 90 * 24 * 60 * 60  # 90 days
 
 
 class RuleStore(Protocol):
-    def read(self, project: Project) -> RuleSet:
-        ...
+    def read(self, project: Project) -> RuleSet: ...
 
-    def write(self, project: Project, rules: RuleSet) -> None:
-        ...
+    def write(self, project: Project, rules: RuleSet) -> None: ...
 
 
 class RedisRuleStore:

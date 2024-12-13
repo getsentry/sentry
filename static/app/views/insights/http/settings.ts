@@ -2,6 +2,8 @@ import {t} from 'sentry/locale';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Outbound API Requests');
+export const FRONTEND_MODULE_TITLE = t('Network Requests');
+export const MOBILE_MODULE_TITLE = t('Network Requests');
 export const MODULE_SIDEBAR_TITLE = t('Requests');
 export const DATA_TYPE = t('Request');
 export const DATA_TYPE_PLURAL = t('Requests');
@@ -20,4 +22,7 @@ export const BASE_FILTERS = {
 export const MODULE_DESCRIPTION = t(
   'Monitor outgoing HTTP requests and investigate errors and performance bottlenecks tied to domains.'
 );
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/requests/';
+export const MODULE_DOC_LINK =
+  'https://docs.sentry.io/product/insights/backend/requests/';
+
+export const MODULE_FEATURES = ['insights-initial-modules'];

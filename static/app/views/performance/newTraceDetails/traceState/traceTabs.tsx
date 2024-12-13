@@ -1,11 +1,6 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 import {
   isAutogroupedNode,
@@ -14,7 +9,10 @@ import {
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../guards';
+} from '../traceGuards';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import {traceReducerExhaustiveActionCheck} from '../traceState';
 
 export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -68,7 +66,6 @@ export type TraceTabsReducerAction =
     }
   | {type: 'pin tab'}
   | {payload: number; type: 'unpin tab'}
-  | {type: 'clear'}
   | {type: 'clear clicked tab'};
 
 export function traceTabsReducer(
@@ -181,8 +178,7 @@ export function traceTabsReducer(
       };
     }
 
-    case 'clear clicked tab':
-    case 'clear': {
+    case 'clear clicked tab': {
       const next =
         state.last_clicked_tab === state.current_tab
           ? state.tabs[state.tabs.length - 1]

@@ -223,7 +223,7 @@ export class DeprecatedLine extends Component<Props, State> {
 
   renderExpander() {
     if (!this.isExpandable()) {
-      return null;
+      return <div style={{width: 20, height: 20}} />;
     }
 
     const {isExpanded} = this.state;
@@ -290,7 +290,7 @@ export class DeprecatedLine extends Component<Props, State> {
             frame_count: hiddenFrameCount,
             is_frame_expanded: isShowFramesToggleExpanded,
           }}
-          size="xs"
+          size="zero"
           borderless
           onClick={e => {
             this.props.onShowFramesToggle?.(e);
@@ -364,15 +364,13 @@ export class DeprecatedLine extends Component<Props, State> {
           {this.isExpandable() ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
-              <div>
-                {this.renderLeadHint()}
-                <DefaultTitle
-                  frame={data}
-                  platform={this.props.platform ?? 'other'}
-                  isHoverPreviewed={isHoverPreviewed}
-                  meta={this.props.frameMeta}
-                />
-              </div>
+              {this.renderLeadHint()}
+              <DefaultTitle
+                frame={data}
+                platform={this.props.platform ?? 'other'}
+                isHoverPreviewed={isHoverPreviewed}
+                meta={this.props.frameMeta}
+              />
             </LeftLineTitle>
           </DefaultLineTitleWrapper>
           <DefaultLineTagWrapper>
@@ -508,6 +506,7 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
 const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.25)};
 `;
 
 const RepeatedContent = styled(LeftLineTitle)`
@@ -568,6 +567,7 @@ const StyledLi = styled('li')`
 
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-style: italic;
   font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};

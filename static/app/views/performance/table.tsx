@@ -31,6 +31,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import {
+  type DomainViewFilters,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
 import {getMEPQueryParams} from './landing/widgets/utils';
@@ -59,6 +63,7 @@ type Props = {
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
   columnTitles?: string[];
+  domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
 
@@ -276,6 +281,8 @@ class _Table extends Component<Props, State> {
         this.sendUnparameterizedAnalytic(project);
         this.unparameterizedMetricSet = true;
       }
+      const {isInDomainView, view} = this.props.domainViewFilters ?? {};
+
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,
@@ -286,6 +293,7 @@ class _Table extends Component<Props, State> {
             transaction: String(dataRow.transaction) || '',
             query: summaryView.generateQueryStringObject(),
             projectID,
+            view: (isInDomainView && view) || undefined,
           });
 
       return (
@@ -562,6 +570,7 @@ class _Table extends Component<Props, State> {
                           data={tableData ? tableData.data : []}
                           columnOrder={columnOrder}
                           columnSortBy={columnSortBy}
+                          bodyStyle={{overflow: 'visible'}}
                           grid={{
                             onResizeColumn: this.handleResizeColumn,
                             renderHeadCell: this.renderHeadCellWithMeta(
@@ -595,7 +604,15 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
   const summaryConditions =
     props.summaryConditions ?? props.eventView.getQueryWithAdditionalConditions();
 
-  return <_Table {...props} summaryConditions={summaryConditions} />;
+  const domainViewFilters = useDomainViewFilters();
+
+  return (
+    <_Table
+      {...props}
+      summaryConditions={summaryConditions}
+      domainViewFilters={domainViewFilters}
+    />
+  );
 }
 
 // Align the contained IconStar with the IconStar buttons in individual table

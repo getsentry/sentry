@@ -27,7 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
@@ -241,7 +241,11 @@ function TagDetailsValue({
 }) {
   const valueComponent =
     tagKey === 'user' ? (
-      <UserBadge user={{...tagValue, id: tagValue.id ?? ''}} avatarSize={20} hideEmail />
+      <UserBadge
+        user={{...tagValue, id: tagValue.id ?? tagValue.value}}
+        avatarSize={20}
+        hideEmail
+      />
     ) : (
       <DeviceName value={tagValue.value} />
     );

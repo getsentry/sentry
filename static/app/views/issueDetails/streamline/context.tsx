@@ -12,15 +12,12 @@ export const enum SectionKey {
    * Trace timeline or linked error
    */
   TRACE = 'trace',
-  /**
-   * The full trace view including span waterfall
-   */
-  TRACE_PREVIEW = 'trace-preview',
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
 
   UPTIME = 'uptime', // Only Uptime issues
+  DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
 
   HIGHLIGHTS = 'highlights',
@@ -28,6 +25,7 @@ export const enum SectionKey {
 
   EXCEPTION = 'exception',
   STACKTRACE = 'stacktrace',
+  THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
@@ -45,6 +43,9 @@ export const enum SectionKey {
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
+  /**
+   * Also called images loaded
+   */
   DEBUGMETA = 'debugmeta',
   REQUEST = 'request',
 

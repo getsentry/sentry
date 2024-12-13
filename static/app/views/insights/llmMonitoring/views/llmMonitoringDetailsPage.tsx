@@ -1,11 +1,8 @@
+import {Fragment} from 'react';
+
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {CurrencyUnit, DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -15,13 +12,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {
   useEAPSpans,
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
   EAPNumberOfPipelinesChart,
   EAPPipelineDurationChart,
@@ -33,7 +31,6 @@ import {
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
   SpanFunction,
@@ -52,7 +49,6 @@ type Query = {
 };
 
 export function LLMMonitoringPage({params}: Props) {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation<Query>();
 
   const organization = useOrganization();
@@ -64,7 +60,7 @@ export function LLMMonitoringPage({params}: Props) {
     'span.group': groupId,
     'span.category': 'ai.pipeline',
   };
-  const useEAP = organization?.features?.includes('insights-use-eap');
+  const useEAP = organization.features.includes('insights-use-eap');
 
   const {data: spanMetricData, isPending: areSpanMetricsLoading} = useSpanMetrics(
     {
@@ -120,110 +116,96 @@ export function LLMMonitoringPage({params}: Props) {
   );
   const tokenUsedMetric = (useEAP ? eapTokenData[0] : totalTokenData[0]) ?? {};
 
-  const crumbs = useModuleBreadcrumbs('ai');
-
   return (
     <Layout.Page>
       <NoProjectMessage organization={organization}>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  ...crumbs,
-                  {
-                    label: t('Pipeline Summary'),
-                  },
-                ]}
-              />
-              <Layout.Title>
-                {spanDescription}
-                <FeatureBadge type={RELEASE_LEVEL} />
-              </Layout.Title>
-            </Layout.HeaderContent>
-          </Layout.Header>
-        )}
+        <AiHeader
+          headerTitle={
+            <Fragment>
+              {spanDescription}
+              <FeatureBadge type={RELEASE_LEVEL} />
+            </Fragment>
+          }
+          breadcrumbs={[
+            {
+              label: t('Pipeline Summary'),
+            },
+          ]}
+          module={ModuleName.AI}
+        />
+        <ModuleBodyUpsellHook moduleName={ModuleName.AI}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <ModuleLayout.Layout>
+                <ModuleLayout.Full>
+                  <HeaderContainer>
+                    <ToolRibbon>
+                      <ModulePageFilterBar moduleName={ModuleName.AI} />
+                    </ToolRibbon>
 
-        {isInDomainView && (
-          <Layout.Header>
-            <AiHeader module={ModuleName.AI} />
-          </Layout.Header>
-        )}
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <ModuleLayout.Layout>
-              <ModuleLayout.Full>
-                <HeaderContainer>
-                  <ToolRibbon>
-                    <PageFilterBar condensed>
-                      <ProjectPageFilter />
-                      <EnvironmentPageFilter />
-                      <DatePageFilter />
-                    </PageFilterBar>
-                  </ToolRibbon>
+                    <ReadoutRibbon>
+                      <MetricReadout
+                        title={t('Total Tokens Used')}
+                        value={tokenUsedMetric['sum(ai.total_tokens.used)']}
+                        unit={'count'}
+                        isLoading={
+                          useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
+                        }
+                      />
 
-                  <ReadoutRibbon>
-                    <MetricReadout
-                      title={t('Total Tokens Used')}
-                      value={tokenUsedMetric['sum(ai.total_tokens.used)']}
-                      unit={'count'}
-                      isLoading={
-                        useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
-                      }
-                    />
+                      <MetricReadout
+                        title={t('Total Cost')}
+                        value={tokenUsedMetric['sum(ai.total_cost)']}
+                        unit={CurrencyUnit.USD}
+                        isLoading={
+                          useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
+                        }
+                      />
 
-                    <MetricReadout
-                      title={t('Total Cost')}
-                      value={tokenUsedMetric['sum(ai.total_cost)']}
-                      unit={CurrencyUnit.USD}
-                      isLoading={
-                        useEAP ? isEAPTotalTokenDataLoading : isTotalTokenDataLoading
-                      }
-                    />
+                      <MetricReadout
+                        title={t('Pipeline Duration')}
+                        value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
+                        unit={DurationUnit.MILLISECOND}
+                        isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
+                      />
 
-                    <MetricReadout
-                      title={t('Pipeline Duration')}
-                      value={spanMetrics?.[`avg(${SpanMetricsField.SPAN_DURATION})`]}
-                      unit={DurationUnit.MILLISECOND}
-                      isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
-                    />
-
-                    <MetricReadout
-                      title={t('Pipeline Runs Per Minute')}
-                      value={spanMetrics?.[`${SpanFunction.SPM}()`]}
-                      unit={RateUnit.PER_MINUTE}
-                      isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
-                    />
-                  </ReadoutRibbon>
-                </HeaderContainer>
-              </ModuleLayout.Full>
-              <ModuleLayout.Third>
-                {useEAP ? (
-                  <EAPTotalTokensUsedChart groupId={groupId} />
-                ) : (
-                  <TotalTokensUsedChart groupId={groupId} />
-                )}
-              </ModuleLayout.Third>
-              <ModuleLayout.Third>
-                {useEAP ? (
-                  <EAPNumberOfPipelinesChart groupId={groupId} />
-                ) : (
-                  <NumberOfPipelinesChart groupId={groupId} />
-                )}
-              </ModuleLayout.Third>
-              <ModuleLayout.Third>
-                {useEAP ? (
-                  <EAPPipelineDurationChart groupId={groupId} />
-                ) : (
-                  <PipelineDurationChart groupId={groupId} />
-                )}
-              </ModuleLayout.Third>
-              <ModuleLayout.Full>
-                <PipelineSpansTable groupId={groupId} useEAP={useEAP} />
-              </ModuleLayout.Full>
-            </ModuleLayout.Layout>
-          </Layout.Main>
-        </Layout.Body>
+                      <MetricReadout
+                        title={t('Pipeline Runs Per Minute')}
+                        value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                        unit={RateUnit.PER_MINUTE}
+                        isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
+                      />
+                    </ReadoutRibbon>
+                  </HeaderContainer>
+                </ModuleLayout.Full>
+                <ModuleLayout.Third>
+                  {useEAP ? (
+                    <EAPTotalTokensUsedChart groupId={groupId} />
+                  ) : (
+                    <TotalTokensUsedChart groupId={groupId} />
+                  )}
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  {useEAP ? (
+                    <EAPNumberOfPipelinesChart groupId={groupId} />
+                  ) : (
+                    <NumberOfPipelinesChart groupId={groupId} />
+                  )}
+                </ModuleLayout.Third>
+                <ModuleLayout.Third>
+                  {useEAP ? (
+                    <EAPPipelineDurationChart groupId={groupId} />
+                  ) : (
+                    <PipelineDurationChart groupId={groupId} />
+                  )}
+                </ModuleLayout.Third>
+                <ModuleLayout.Full>
+                  <PipelineSpansTable groupId={groupId} useEAP={useEAP} />
+                </ModuleLayout.Full>
+              </ModuleLayout.Layout>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </NoProjectMessage>
     </Layout.Page>
   );
@@ -231,11 +213,7 @@ export function LLMMonitoringPage({params}: Props) {
 
 function PageWithProviders({params}: Props) {
   return (
-    <ModulePageProviders
-      moduleName="ai"
-      pageTitle={t('Pipeline Summary')}
-      features="insights-addon-modules"
-    >
+    <ModulePageProviders moduleName="ai" pageTitle={t('Pipeline Summary')}>
       <LLMMonitoringPage params={params} />
     </ModulePageProviders>
   );

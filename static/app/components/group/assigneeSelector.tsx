@@ -5,6 +5,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import AssigneeSelectorDropdown, {
   type AssignableEntity,
+  type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import {Button} from 'sentry/components/button';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -19,7 +20,9 @@ interface AssigneeSelectorProps {
   assigneeLoading: boolean;
   group: Group;
   handleAssigneeChange: (assignedActor: AssignableEntity | null) => void;
+  additionalMenuFooterItems?: React.ReactNode;
   memberList?: User[];
+  owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
 export function useHandleAssigneeChange({
@@ -73,12 +76,15 @@ export function AssigneeSelector({
   memberList,
   assigneeLoading,
   handleAssigneeChange,
+  owners,
+  additionalMenuFooterItems,
 }: AssigneeSelectorProps) {
   return (
     <AssigneeSelectorDropdown
       group={group}
       loading={assigneeLoading}
       memberList={memberList}
+      owners={owners}
       onAssign={(assignedActor: AssignableEntity | null) =>
         handleAssigneeChange(assignedActor)
       }
@@ -103,6 +109,7 @@ export function AssigneeSelector({
           />
         </StyledDropdownButton>
       )}
+      additionalMenuFooterItems={additionalMenuFooterItems}
     />
   );
 }

@@ -106,10 +106,10 @@ class ReleaseActivityNotification(ActivityNotification):
         else:
             team_ids = [recipient.id]
 
-        projects: set[Project] = Project.objects.get_for_team_ids(team_ids).filter(
+        projects = Project.objects.get_for_team_ids(team_ids).filter(
             id__in={p.id for p in self.projects}
         )
-        return projects
+        return set(projects)
 
     def get_recipient_context(
         self, recipient: Actor, extra_context: Mapping[str, Any]

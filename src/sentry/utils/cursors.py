@@ -8,8 +8,7 @@ CursorValue = Union[float, int, str]
 
 
 class KeyCallable(Protocol):
-    def __call__(self, value: T, for_prev: bool = ...) -> CursorValue:
-        ...
+    def __call__(self, value: T, for_prev: bool = ...) -> CursorValue: ...
 
 
 OnResultCallable = Callable[[Sequence[T]], Any]

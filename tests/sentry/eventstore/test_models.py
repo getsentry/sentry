@@ -15,7 +15,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
@@ -187,7 +187,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.ip_address is None
 
     def test_issueless_event(self):
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
 
         event = self.store_event(
             data={
@@ -212,7 +212,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": iso_format(before_now(seconds=1)),
+                # snuba does not store subsecond data
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -286,8 +287,9 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Foo bar",
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                # snuba does not store sub-second data
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
@@ -426,7 +428,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         variants = event.get_grouping_variants()
 
         assert hashes == expected_hash_values
-        assert expected_variants == expected_variants
+        assert variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
         assert "default" in variants
@@ -656,7 +658,7 @@ class EventNodeStoreTest(TestCase):
         invalid_event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project1.id,
@@ -664,7 +666,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project2.id,

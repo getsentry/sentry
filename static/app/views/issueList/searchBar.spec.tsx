@@ -83,6 +83,23 @@ describe('IssueListSearchBar', function () {
 
       expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
+
+    it('displays conflicting tags', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'message', name: 'message'}],
+      });
+
+      render(<IssueListSearchBar {...defaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+
+      // Should display `message` and `tags[message]` as separate options
+      expect(await screen.findByRole('option', {name: 'message'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('option', {name: 'tags[message]'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('Tag Values', function () {

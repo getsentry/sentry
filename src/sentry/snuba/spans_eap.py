@@ -49,9 +49,10 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    enable_rpc: bool | None = False,
 ):
     builder = SpansEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         snuba_params=snuba_params,
         query=query,
@@ -95,6 +96,8 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -104,7 +107,7 @@ def timeseries_query(
 
     with sentry_sdk.start_span(op="spans_indexed", name="TimeseriesSpanIndexedQueryBuilder"):
         querybuilder = TimeseriesSpanEAPIndexedQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             snuba_params=snuba_params,
@@ -112,6 +115,7 @@ def timeseries_query(
             selected_columns=columns,
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         result = querybuilder.run_query(referrer, query_source=query_source)
@@ -160,6 +164,7 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -184,7 +189,7 @@ def top_events_timeseries(
             )
 
     top_events_builder = TopEventsSpanEAPQueryBuilder(
-        Dataset.SpansEAP,
+        Dataset.EventsAnalyticsPlatform,
         {},
         rollup,
         top_events["data"],
@@ -201,7 +206,7 @@ def top_events_timeseries(
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsSpanEAPQueryBuilder(
-            Dataset.SpansEAP,
+            Dataset.EventsAnalyticsPlatform,
             {},
             rollup,
             top_events["data"],

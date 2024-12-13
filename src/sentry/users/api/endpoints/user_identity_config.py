@@ -81,7 +81,7 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 @control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (UserAndStaffPermission,)
@@ -102,8 +102,8 @@ class UserIdentityConfigEndpoint(UserEndpoint):
 @control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     permission_classes = (UserAndStaffPermission,)

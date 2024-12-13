@@ -193,7 +193,7 @@ function OnboardingContent({
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const defaultTab = backendPlatform ? 'jsLoader' : 'npm';
+  const defaultTab: string = 'jsLoader';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
     'mode',
     defaultTab
@@ -259,21 +259,18 @@ function OnboardingContent({
                       />
                     ),
                   })}
-                  {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
-                      optionSelect: (
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                          disabled={setupMode() === 'jsLoader'}
-                        />
-                      ),
-                    })}
+                  {jsFrameworkDocs?.platformOptions && (
+                    <PlatformOptionDropdown
+                      platformOptions={jsFrameworkDocs?.platformOptions}
+                      disabled={setupMode() === 'jsLoader'}
+                    />
+                  )}
                 </PlatformSelect>
               ) : (
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}

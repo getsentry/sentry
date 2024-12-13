@@ -87,6 +87,7 @@ const USER_CONTEXT_FILTERS: FilterKeySection = {
   children: [
     SpanIndexedField.USER,
     SpanIndexedField.USER_ID,
+    SpanIndexedField.USER_IP,
     SpanIndexedField.USER_EMAIL,
     SpanIndexedField.USER_USERNAME,
     SpanIndexedField.USER_GEO_SUBREGION,

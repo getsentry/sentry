@@ -16,7 +16,7 @@ defaults:
 jobs:
   did-migration-change:
     name: check if any migration changes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -35,7 +35,7 @@ jobs:
 
   sql:
     name: Generate SQL
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
     strategy:
       matrix:

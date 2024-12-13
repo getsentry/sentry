@@ -246,7 +246,7 @@ class OrganizationReleasesEndpoint(
             organization,
             project_ids=project_ids,
             project_slugs=project_slugs,
-            include_all_accessible="GET" != request.method,
+            include_all_accessible=False,
         )
 
     def get(self, request: Request, organization) -> Response:
@@ -437,8 +437,11 @@ class OrganizationReleasesEndpoint(
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :param string version: a version identifier for this release.  Can
-                               be a version number, a commit hash etc.
+        :param string version: a version identifier for this release. Can
+                               be a version number, a commit hash etc. It cannot contain certain
+                               whitespace characters (`\\r`, `\\n`, `\\f`, `\\x0c`, `\\t`) or any
+                               slashes (`\\`, `/`). The version names `.`, `..` and `latest` are also
+                               reserved, and cannot be used.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
         :param url url: a URL that points to the release.  This can be the
@@ -513,6 +516,23 @@ class OrganizationReleasesEndpoint(
                 raise ConflictError(
                     "Could not create the release it conflicts with existing data",
                 )
+
+            # In case of disabled Open Membership, we have to check for project-level
+            # permissions on the existing release.
+            release_projects = ReleaseProject.objects.filter(release=release)
+            existing_projects = [rp.project for rp in release_projects]
+
+            if not request.access.has_projects_access(existing_projects):
+                projects_str = ", ".join([p.slug for p in existing_projects])
+                return Response(
+                    {
+                        "projects": [
+                            f"You do not have permission to one of the projects: {projects_str}"
+                        ]
+                    },
+                    status=400,
+                )
+
             if created:
                 release_created.send_robust(release=release, sender=self.__class__)
 

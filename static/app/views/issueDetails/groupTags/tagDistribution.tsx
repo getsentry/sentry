@@ -6,7 +6,7 @@ import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,7 +22,9 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   return (
     <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
       <TagHeader>
-        <TagTitle>{tag.key}</TagTitle>
+        <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
+          <TagTitle>{tag.key}</TagTitle>
+        </Tooltip>
         <TagDetailsButton
           borderless
           size="zero"
@@ -76,8 +78,15 @@ export function TagBar({
 }) {
   const percentage = percent(count, total);
   const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+
   return (
-    <Tooltip delay={300} title={`${count} / ${total}`} skipWrapper>
+    <Tooltip
+      title={tct('[count] of [total] tagged events', {
+        count: count.toLocaleString(),
+        total: total.toLocaleString(),
+      })}
+      skipWrapper
+    >
       <TagBarContainer
         displayPercentage={displayPercentage}
         widthPercent={percentage}
@@ -100,6 +109,7 @@ const TagHeader = styled('div')`
 const TagTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TagDetailsButton = styled(LinkButton)<{isVisible: boolean}>`

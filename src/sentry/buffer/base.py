@@ -148,7 +148,6 @@ class Buffer(Service):
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
-        from sentry.event_manager import ScoreClause
         from sentry.models.group import Group
 
         created = False
@@ -162,12 +161,6 @@ class Buffer(Service):
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
             if model is Group:
-                if "last_seen" in update_kwargs and "times_seen" in update_kwargs:
-                    update_kwargs["score"] = ScoreClause(
-                        group=None,
-                        times_seen=update_kwargs["times_seen"],
-                        last_seen=update_kwargs["last_seen"],
-                    )
                 # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
                 # ends up in the cache. This causes issues when handling issue alerts, and likely
                 # elsewhere. Use `update` here since we're already special casing, and we know that

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import SearchBar from 'sentry/components/events/searchBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -54,7 +53,7 @@ import {
   SpanMetricsField,
   type SubregionCode,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
@@ -459,20 +458,12 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           </SegmentedControl.Item>
         </SegmentedControl>
         <StyledSearchBar>
-          {organization.features.includes('search-query-builder-performance') ? (
-            <TransactionSearchQueryBuilder
-              projects={projectIds}
-              initialQuery={query ?? ''}
-              searchSource={`${ModuleName.VITAL}-page-summary`}
-              onSearch={handleSearch}
-            />
-          ) : (
-            <SearchBar
-              query={query}
-              organization={organization}
-              onSearch={handleSearch}
-            />
-          )}
+          <TransactionSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={query ?? ''}
+            searchSource={`${ModuleName.VITAL}-page-summary`}
+            onSearch={handleSearch}
+          />
         </StyledSearchBar>
       </SearchBarContainer>
       {datatype === Datatype.PAGELOADS && (

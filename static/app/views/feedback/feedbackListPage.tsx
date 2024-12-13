@@ -88,7 +88,9 @@ export default function FeedbackListPage({}: Props) {
                     <Container style={{gridArea: 'list'}}>
                       <FeedbackList />
                     </Container>
-                    <FeedbackSearch />
+                    <SearchContainer>
+                      <FeedbackSearch />
+                    </SearchContainer>
                     <Container style={{gridArea: 'details'}}>
                       <FeedbackItemLoader />
                     </Container>
@@ -171,4 +173,9 @@ const Container = styled(FluidHeight)`
 const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
+`;
+
+const SearchContainer = styled('div')`
+  flex-grow: 1;
+  min-width: 0;
 `;

@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 from sentry.api.serializers import serialize
 from sentry.auth import access
-from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
+from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test, no_silo_test

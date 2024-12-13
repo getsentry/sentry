@@ -1,6 +1,8 @@
 import logging
 
+from sentry import features
 from sentry.llm.usecases import LLMUseCase, complete_prompt
+from sentry.models.project import Project
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -32,8 +34,8 @@ def make_input_prompt(message: str):
 
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
 def is_spam(message: str):
-    is_spam = False
-    trimmed_response = ""
+    labeled_spam = False
+    _trimmed_response = ""
     response = complete_prompt(
         usecase=LLMUseCase.SPAM_DETECTION,
         message=make_input_prompt(message),
@@ -41,18 +43,9 @@ def is_spam(message: str):
         max_output_tokens=20,
     )
     if response:
-        is_spam, trimmed_response = trim_response(response)
+        labeled_spam, _trimmed_response = trim_response(response)
 
-    logger.info(
-        "Spam detection",
-        extra={
-            "feedback_message": message,
-            "is_spam": is_spam,
-            "response": response,
-            "trimmed_response": trimmed_response,
-        },
-    )
-    return is_spam
+    return labeled_spam
 
 
 def trim_response(text):
@@ -68,3 +61,9 @@ def trim_response(text):
         return True, trimmed_text
     else:
         return False, trimmed_text
+
+
+def spam_detection_enabled(project: Project) -> bool:
+    return features.has(
+        "organizations:user-feedback-spam-filter-ingest", project.organization
+    ) and project.get_option("sentry:feedback_ai_spam_detection")

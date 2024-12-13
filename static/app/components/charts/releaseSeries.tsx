@@ -46,7 +46,7 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
     let value = conditions[key];
     if (value && (key === 'start' || key === 'end')) {
@@ -291,7 +291,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             '</div>',
             '<div class="tooltip-footer">',
             time,
-            '</div>',
             '</div>',
             '<div class="tooltip-arrow"></div>',
           ].join('');

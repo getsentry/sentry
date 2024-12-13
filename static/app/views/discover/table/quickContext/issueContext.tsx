@@ -3,21 +3,16 @@ import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
-import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
-import {SuspectCommitHeader} from 'sentry/components/events/styles';
-import {StyledPanel, SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
-import Panel from 'sentry/components/panels/panel';
 import {IconWrapper} from 'sentry/components/sidebarSection';
-import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -29,7 +24,7 @@ import {
   Wrapper,
 } from './styles';
 import type {BaseContextProps} from './utils';
-import {ContextType, tenSecondInMs} from './utils';
+import {ContextType} from './utils';
 
 function IssueContext(props: BaseContextProps) {
   const {dataRow, organization} = props;
@@ -46,29 +41,16 @@ function IssueContext(props: BaseContextProps) {
     isError: issueError,
     data: issue,
   } = useApiQuery<Group>(
-    [
-      `/issues/${dataRow['issue.id']}/`,
-      {
-        query: {
-          collapse: 'release',
-          expand: 'inbox',
-        },
-      },
-    ],
+    makeFetchGroupQueryKey({
+      groupId: dataRow['issue.id'],
+      organizationSlug: organization.slug,
+      // The link to issue details doesn't seem to currently pass selected environments
+      environments: [],
+    }),
     {
-      staleTime: tenSecondInMs,
+      staleTime: 30_000,
     }
   );
-
-  // NOTE: Suspect commits are generated from the first event of an issue.
-  // Therefore, all events for an issue have the same suspect commits.
-  const {
-    isPending: eventLoading,
-    isError: eventError,
-    data: event,
-  } = useApiQuery<Event>([`/issues/${dataRow['issue.id']}/events/oldest/`], {
-    staleTime: tenSecondInMs,
-  });
 
   const title = issue?.title;
   const renderTitle = () =>
@@ -154,22 +136,8 @@ function IssueContext(props: BaseContextProps) {
       </IssueContextContainer>
     );
 
-  const renderSuspectCommits = () =>
-    event?.eventID &&
-    issue && (
-      <SuspectCommitsContainer data-test-id="quick-context-suspect-commits-container">
-        <SuspectCommits
-          project={issue.project}
-          eventId={event.eventID}
-          commitRow={QuickContextCommitRow}
-        />
-      </SuspectCommitsContainer>
-    );
-
-  const isLoading = issueLoading || eventLoading;
-  const isError = issueError || eventError;
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (issueLoading || issueError) {
+    return <NoContext isLoading={issueLoading} />;
   }
 
   return (
@@ -177,25 +145,9 @@ function IssueContext(props: BaseContextProps) {
       {renderTitle()}
       {renderStatusAndCounts()}
       {renderAssignee()}
-      {renderSuspectCommits()}
     </Wrapper>
   );
 }
-
-const SuspectCommitsContainer = styled(ContextContainer)`
-  ${SidebarSection.Wrap}, ${Panel}, h6 {
-    margin: 0;
-  }
-
-  ${StyledPanel} {
-    border: none;
-    box-shadow: none;
-  }
-
-  ${SuspectCommitHeader} {
-    margin: ${space(2)} 0 ${space(0.75)};
-  }
-`;
 
 const IssueTitleBody = styled(ContextBody)`
   margin: 0;

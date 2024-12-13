@@ -1,12 +1,14 @@
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
+import {PlatformIcon} from 'platformicons';
 
-import {TraceIcons} from 'sentry/views/performance/newTraceDetails/icons';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
+
+import {TraceIcons} from '../traceIcons';
+import type {TraceTree} from '../traceModels/traceTree';
+import type {TraceTreeNode} from '../traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
 interface ErrorIconsProps {
   errors: TraceTreeNode<TraceTree.Transaction>['errors'];
@@ -97,3 +99,18 @@ export function TracePerformanceIssueIcons(props: TracePerformanceIssueIconsProp
     </Fragment>
   );
 }
+
+export function SpanProjectIcon({platform}: {platform: string}) {
+  const hasTraceNewUi = useHasTraceNewUi();
+
+  if (!hasTraceNewUi) {
+    return null;
+  }
+
+  return <FaintProjectIcon platform={platform} />;
+}
+
+const FaintProjectIcon = styled(PlatformIcon)`
+  opacity: 0.2;
+  filter: grayscale(1);
+`;

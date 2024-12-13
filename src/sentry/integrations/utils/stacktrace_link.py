@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
@@ -30,7 +31,7 @@ def get_link(
     result: RepositoryLinkOutcome = {}
 
     integration = integration_service.get_integration(
-        organization_integration_id=config.organization_integration_id
+        organization_integration_id=config.organization_integration_id, status=ObjectStatus.ACTIVE
     )
     if not integration:
         result["error"] = "integration_not_found"

@@ -14,11 +14,10 @@ import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
-import {
-  MODULE_DOC_LINK,
-  MODULE_TITLE as HTTP_MODULE_TITLE,
-} from 'sentry/views/insights/http/settings';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/http/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -150,6 +149,7 @@ export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
+  const httpModuleTitle = useModuleTitle(ModuleName.HTTP);
 
   const projects = pageFilters.selection.projects;
 
@@ -173,7 +173,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
         {tct(
           'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
-            spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
+            spanCategory: type === 'db' ? t('Database') : httpModuleTitle,
             link: (
               <ExternalLink href={docsLink}>
                 {t('performance monitoring setup')}

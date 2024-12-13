@@ -341,9 +341,10 @@ class ProcessResultTest(ProducerTestMixin):
             status=CHECKSTATUS_SUCCESS,
             scheduled_check_time=datetime.now() - timedelta(minutes=3),
         )
-        with mock.patch(
-            "sentry.uptime.consumers.results_consumer.metrics"
-        ) as metrics, self.feature("organizations:uptime-create-issues"):
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            self.feature("organizations:uptime-create-issues"),
+        ):
             self.send_result(result)
             metrics.incr.assert_has_calls(
                 [

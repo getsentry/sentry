@@ -12,8 +12,10 @@ from sentry.integrations.opsgenie.tasks import (
     ALERT_LEGACY_INTEGRATIONS,
     ALERT_LEGACY_INTEGRATIONS_WITH_NAME,
 )
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, ApiUnauthorized
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
@@ -243,8 +245,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
             self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(self.user)
 
-    @patch("sentry.integrations.opsgenie.tasks.metrics")
-    def test_migrate_plugin(self, mock_metrics):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_migrate_plugin(self, mock_record):
         """
         Test that 2 projects with the Opsgenie plugin activated that have one alert rule each
         and distinct API keys are successfully migrated.
@@ -323,7 +325,8 @@ class OpsgenieMigrationIntegrationTest(APITestCase):
         assert self.plugin.is_configured(self.project) is False
         assert plugin2.is_enabled(project2) is False
         assert plugin2.is_configured(self.project) is False
-        mock_metrics.incr.assert_any_call("opsgenie.migration_success", skip_internal=False)
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     def test_no_duplicate_keys(self):
         """

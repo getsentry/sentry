@@ -28,7 +28,7 @@ env:
 jobs:
   lint:
     name: pre-commit lint
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - # get a non-default github token so that any changes are verified by CI
@@ -75,7 +75,7 @@ jobs:
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ~/.cache/pre-commit
