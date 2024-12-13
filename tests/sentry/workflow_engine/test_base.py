@@ -84,7 +84,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             self.create_data_condition(
                 condition_group=workflow_triggers,
                 type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-                condition="group.times_seen",
+                condition="event.group.times_seen",
                 comparison=1,
                 condition_result=True,
             )

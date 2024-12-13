@@ -28,7 +28,6 @@ class Condition(StrEnum):
     LESS = "lt"
     NOT_EQUAL = "ne"
     GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
-    EVENT_STATE_COMPARISON = "event_state_comparison"
 
 
 condition_ops = {
@@ -95,17 +94,6 @@ class DataCondition(DefaultFieldsModel):
             raise NoRegistrationExistsError(f"No registration exists for {self.type}")
 
         return condition_handler_registry.get(condition_type)
-
-    def get_expected_value(self, value: T, **kwargs) -> T | dict[str, Any]:
-        try:
-            condition_handler: DataConditionHandler[T] | None = self.get_condition_handler()
-        except NoRegistrationExistsError:
-            return value
-
-        if not condition_handler:
-            return value
-
-        return condition_handler.get_expected_value(value, **kwargs)
 
     def evaluate_value(self, value: T) -> DataConditionResult:
         condition_handler: DataConditionHandler[T] | None = None

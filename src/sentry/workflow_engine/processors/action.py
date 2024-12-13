@@ -1,11 +1,11 @@
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import GroupEvent
+from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
 
 
 def evaluate_workflow_action_filters(
-    workflows: set[Workflow], evt: GroupEvent
+    workflows: set[Workflow], job: PostProcessJob
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
@@ -17,7 +17,7 @@ def evaluate_workflow_action_filters(
     ).distinct()
 
     for action_condition in action_conditions:
-        evaluation, result = evaluate_condition_group(action_condition, evt)
+        evaluation, result = evaluate_condition_group(action_condition, job)
 
         if evaluation:
             filtered_action_groups.add(action_condition)

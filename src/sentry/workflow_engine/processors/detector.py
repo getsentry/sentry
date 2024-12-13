@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorGroupKey
@@ -14,11 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 # TODO - cache these by evt.group_id? :thinking:
-def get_detector_by_event(evt: GroupEvent) -> Detector:
-    issue_occurrence = evt.occurrence
+def get_detector_by_event(job: PostProcessJob) -> Detector:
+    issue_occurrence = job["event"].occurrence
 
     if issue_occurrence is None:
-        detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
+        detector = Detector.objects.get(
+            project_id=job["event"].project_id, type=ErrorGroupType.slug
+        )
     else:
         detector = Detector.objects.get(id=issue_occurrence.evidence_data.get("detector_id", None))
 
