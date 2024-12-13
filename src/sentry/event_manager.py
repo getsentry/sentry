@@ -1726,6 +1726,27 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
                 pass
             else:
                 try:
+                    if (
+                        resolution
+                        # The group resolution is "in next release"
+                        and resolution.current_release_version
+                        and resolved_in_activity
+                        # Empty string is a special case for "Resolved in upcoming release"
+                        and resolved_in_activity.data["version"] != ""
+                    ):
+                        logger.warning(
+                            "Mismatch between group resolution and resolved in activity",
+                            extra={
+                                "group_id": group.id,
+                                "activity_id": resolved_in_activity.id,
+                                "activity_version": resolved_in_activity.data["version"],
+                                "release_version": release.version,
+                            },
+                        )
+                except KeyError:
+                    pass
+
+                try:
                     # We should only update last activity version prior to the regression in the
                     # case where we have "Resolved in upcoming release" i.e. version == ""
                     # We also should not override the `data` attribute here because it might have

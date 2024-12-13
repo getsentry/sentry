@@ -566,6 +566,68 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    @mock.patch("sentry.event_manager.logger")
+    def test_group_resolution_should_log_on_mismatch_between_group_resolution_and_resolved_in_activity(
+        self, mock_logger: mock.MagicMock, plugin_is_regression: mock.MagicMock
+    ) -> None:
+        """
+        Detect when the group resolution version does not match the resolved in activity
+        this means that we're making activity logs that don't make sense
+        """
+        plugin_is_regression.return_value = True
+
+        # Create a release and a group associated with it
+        old_release = self.create_release(
+            version="a", date_added=timezone.now() - timedelta(minutes=30)
+        )
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,  # need to work around active_at
+                release=old_release.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        # Create a group resolution that is "in next release"
+        resolution = GroupResolution.objects.create(
+            release=old_release, current_release_version=old_release.version, group=group
+        )
+
+        # Resolve the group in old_release
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": old_release.version},
+        )
+
+        # Create a regression
+        manager = EventManager(
+            make_event(event_id="c" * 32, checksum="a" * 32, timestamp=time(), release="b")
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+
+        activity = Activity.objects.get(id=activity.id)
+        assert activity.data["version"] == old_release.version
+
+        mock_logger.warning.assert_called_once_with(
+            "Mismatch between group resolution and resolved in activity",
+            extra={
+                "group_id": group.id,
+                "activity_id": activity.id,
+                "activity_version": activity.data["version"],
+                "release_version": "b",
+            },
+        )
+
     def test_has_pending_commit_resolution(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
