@@ -22,13 +22,6 @@ class ProjectTeamManager(BaseManager["ProjectTeam"]):
             .select_related("project")
         )
         prefetch_related_objects(project_teams, "project__organization")
-        orgs = {pt.project.organization_id: pt.project.organization for pt in project_teams}
-
-        for project_team in project_teams:
-            if project_team.project.organization_id in orgs:
-                project_team.project.set_cached_field_value(
-                    "organization", orgs[project_team.project.organization_id]
-                )
 
         return project_teams
 
