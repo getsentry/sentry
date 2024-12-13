@@ -23,11 +23,11 @@ import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {
+  IconChat,
   IconCheckmark,
   IconChevron,
   IconClose,
   IconFatal,
-  IconFocus,
   IconOpen,
   IconSad,
 } from 'sentry/icons';
@@ -281,23 +281,19 @@ function StepIcon({step}: {step: AutofixStep}) {
     if (step.changes.every(change => change.pull_request)) {
       return <IconCheckmark size="sm" color="green300" isCircled />;
     }
-    return <IconFocus size="sm" color="gray300" />;
+    return null;
   }
 
   if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
     if (step.causes?.length === 0) {
       return <IconSad size="sm" color="gray300" />;
     }
-    return step.selection ? (
-      <IconCheckmark size="sm" color="green300" isCircled />
-    ) : (
-      <IconFocus size="sm" color="gray300" />
-    );
+    return step.selection ? <IconCheckmark size="sm" color="green300" isCircled /> : null;
   }
 
   switch (step.status) {
     case AutofixStatus.WAITING_FOR_USER_RESPONSE:
-      return <IconFocus size="sm" color="gray300" />;
+      return <IconChat size="sm" color="gray300" />;
     case AutofixStatus.PROCESSING:
       return <ProcessingStatusIndicator size={14} mini hideMessage />;
     case AutofixStatus.CANCELLED:
@@ -403,14 +399,14 @@ function AutofixMessageBox({
           <ContentArea>
             {step && (
               <StepHeader>
-                <StepIconContainer>
-                  <StepIcon step={step} />
-                </StepIconContainer>
                 <StepTitle
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(step.title),
                   }}
                 />
+                <StepIconContainer>
+                  <StepIcon step={step} />
+                </StepIconContainer>
                 <StepHeaderRightSection>
                   {scrollIntoView !== null && (
                     <ScrollIntoViewButtonWrapper>
@@ -444,8 +440,12 @@ function AutofixMessageBox({
               {isRootCauseSelectionStep ? (
                 <AutofixActionSelector
                   options={[
-                    {key: 'suggested_root_cause', label: t('Use suggested root cause')},
                     {key: 'custom_root_cause', label: t('Propose your own root cause')},
+                    {
+                      key: 'suggested_root_cause',
+                      label: t('Use suggested root cause'),
+                      active: true,
+                    },
                   ]}
                   selected={rootCauseMode}
                   onSelect={value => setRootCauseMode(value)}
@@ -469,9 +469,9 @@ function AutofixMessageBox({
               ) : isChangesStep && !prsMade ? (
                 <AutofixActionSelector
                   options={[
-                    {key: 'create_prs', label: t('Approve')},
+                    {key: 'add_tests', label: t('Add Test')},
                     {key: 'give_feedback', label: t('Iterate')},
-                    {key: 'add_tests', label: t('Test')},
+                    {key: 'create_prs', label: t('Approve'), active: true},
                   ]}
                   selected={changesMode}
                   onSelect={value => setChangesMode(value)}
@@ -609,7 +609,6 @@ const StepTitle = styled('div')`
   white-space: nowrap;
   display: flex;
   align-items: center;
-  flex-grow: 1;
 
   span {
     margin-right: ${space(1)};
@@ -625,6 +624,7 @@ const StepHeaderRightSection = styled('div')`
 const StepIconContainer = styled('div')`
   display: flex;
   align-items: center;
+  margin-right: auto;
 `;
 
 const StepHeader = styled('div')`

@@ -205,7 +205,7 @@ describe('AutofixMessageBox', () => {
 
     expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Test'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Test'})).toBeInTheDocument();
   });
 
   it('shows feedback input when "Iterate" is selected', async () => {
@@ -346,13 +346,13 @@ describe('AutofixMessageBox', () => {
 
     expect(screen.getByRole('button', {name: 'Approve'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Iterate'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Test'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Test'})).toBeInTheDocument();
   });
 
   it('shows "Test" button and static message when "Test" is selected', async () => {
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Test'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Test'}));
 
     expect(
       screen.getByText('Write unit tests to make sure the issue is fixed?')
@@ -369,7 +369,7 @@ describe('AutofixMessageBox', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Test'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Test'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Tests'}));
 
     await waitFor(() => {

@@ -11,6 +11,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 interface Option<T extends string> {
   key: T;
   label: string;
+  active?: boolean;
 }
 
 interface Props<T extends string> {
@@ -48,7 +49,7 @@ function AutofixActionSelector<T extends string>({
               {options.map(option => (
                 <Button
                   key={option.key}
-                  priority="default"
+                  priority={option.active ? 'primary' : 'default'}
                   onClick={() => onSelect(option.key)}
                 >
                   {option.label}
