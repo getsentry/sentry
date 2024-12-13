@@ -35,7 +35,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase, TransactionTestCase
 from sentry.testutils.helpers import Feature, apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
@@ -121,7 +120,7 @@ class EventsDatasetTestSetup(SharedSnubaMixin):
             data={
                 "fingerprint": ["put-me-in-group1"],
                 "event_id": "a" * 32,
-                "message": "foo. Also, this message is intended to be greater than 256 characters so that we can put some unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
+                "message": "foo. Indeed, this message is intended to be greater than 256 characters such that we can put this unique string identifier after that point in the string. The purpose of this is in order to verify we are using snuba to search messages instead of Postgres (postgres truncates at 256 characters and clickhouse does not). santryrox.",
                 "environment": "production",
                 "tags": {"server": "example.com", "sentry:user": "event1@example.com"},
                 "timestamp": event1_timestamp,
@@ -2120,7 +2119,6 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query='"bar"')
         assert set(results) == {self.group2}
 
-    @xfail_if_not_postgres("Wildcard searching only supported in Postgres")
     def test_wildcard(self):
         escaped_event = self.store_event(
             data={
