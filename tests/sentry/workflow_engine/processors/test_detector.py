@@ -121,9 +121,16 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test_no_issue_type(self):
-        detector = self.create_detector(type="invalid slug")
+        detector = self.create_detector(type=self.handler_state_type.slug)
         data_packet = self.build_data_packet()
-        with mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger:
+        with (
+            mock.patch("sentry.workflow_engine.models.detector.logger") as mock_logger,
+            mock.patch(
+                "sentry.workflow_engine.models.Detector.group_type",
+                return_value=None,
+                new_callable=mock.PropertyMock,
+            ),
+        ):
             results = process_detectors(data_packet, [detector])
             assert mock_logger.error.call_args[0][0] == "No registered grouptype for detector"
         assert results == []
@@ -326,7 +333,7 @@ class TestEvaluate(BaseDetectorHandlerTest):
         }
 
     def test_no_condition_group(self):
-        detector = self.create_detector()
+        detector = self.create_detector(type=self.handler_type.slug)
         handler = MockDetectorStateHandler(detector)
         with mock.patch(
             "sentry.workflow_engine.handlers.detector.stateful.metrics"

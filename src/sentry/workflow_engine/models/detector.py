@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -60,10 +62,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
-    @property
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
-
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
             UniqueConstraint(
@@ -83,7 +81,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             logger.error(
                 "No registered grouptype for detector",
                 extra={
-                    "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
@@ -105,3 +102,12 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
+
+
+@receiver(pre_save, sender=Detector)
+def enforce_config_schema(sender, instance: Detector, **kwargs):
+    group_type = instance.group_type
+    if not group_type:
+        raise ValueError(f"No group type found with type {instance.type}")
+    config_schema = group_type.detector_config_schema
+    instance.validate_config(config_schema)
