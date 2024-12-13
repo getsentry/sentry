@@ -449,6 +449,7 @@ module = [
     "sentry.tasks.store",
     "sentry.taskworker.*",
     "sentry.testutils.helpers.task_runner",
+    "sentry.testutils.skips",
     "sentry.types.actor",
     "sentry.types.region",
     "sentry.users.*",
