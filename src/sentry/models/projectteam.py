@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import QuerySet, prefetch_related_objects
 from django.db.models.signals import post_delete, post_save
 
 from sentry.backup.scopes import RelocationScope
@@ -21,11 +21,8 @@ class ProjectTeamManager(BaseManager["ProjectTeam"]):
             .order_by("project__name", "project__slug")
             .select_related("project")
         )
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {}
-        for team in teams:
-            if team.organization_id not in orgs:
-                orgs[team.organization_id] = team.organization
+        prefetch_related_objects(project_teams, "project__organization")
+        orgs = {pt.project.organization_id: pt.project.organization for pt in project_teams}
 
         for project_team in project_teams:
             if project_team.project.organization_id in orgs:
