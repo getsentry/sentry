@@ -1013,6 +1013,43 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]
 
+    @patch("sentry_sdk.capture_exception")
+    @patch(
+        "sentry.sentry_apps.utils.alert_rule_action.trigger_sentry_app_action_creators_for_issues"
+    )
+    def test_create_sentry_app_action_failure_500(self, error, exc_id):
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "settings": self.sentry_app_settings_payload,
+                "sentryAppInstallationUuid": self.sentry_app_installation.uuid,
+                "hasSchemaFormConfig": True,
+            },
+        ]
+        payload = {
+            "name": "my super cool rule",
+            "owner": f"user:{self.user.id}",
+            "conditions": [],
+            "filters": [],
+            "actions": actions,
+            "filterMatch": "any",
+            "actionMatch": "any",
+            "frequency": 30,
+        }
+        exc_id.return_value = 1
+        error.side_effect = Exception("ZOINKS")
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=500,
+        )
+
+        assert (
+            f"Something went wrong while trying to create alert rule action. Sentry error ID: {exc_id.return_value}"
+            in response.json().get("actions")[0]
+        )
+
     def test_post_rule_256_char_name(self):
         char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
         response = self.get_success_response(

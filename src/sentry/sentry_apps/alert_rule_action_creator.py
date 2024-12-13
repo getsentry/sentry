@@ -10,8 +10,10 @@ from sentry.sentry_apps.external_requests.alert_rule_action_requester import (
     AlertRuleActionRequester,
     AlertRuleActionResult,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 
 
 @dataclass
@@ -25,16 +27,17 @@ class AlertRuleActionCreator:
             response = self._make_external_request(uri)
             return response
 
-    def _fetch_sentry_app_uri(self):
+    def _fetch_sentry_app_uri(self) -> str:
         component = SentryAppComponent.objects.get(
             type="alert-rule-action", sentry_app=self.sentry_app
         )
         settings = component.schema.get("settings", {})
-        return settings.get("uri")
+        uri = settings.get("uri", None)
+        if not uri:
+            raise SentryAppIntegratorError(APIError("Sentry App request url not found on schema"))
+        return uri
 
-    def _make_external_request(self, uri=None):
-        if uri is None:
-            raise APIError("Sentry App request url not found")
+    def _make_external_request(self, uri: str) -> AlertRuleActionResult:
         response = AlertRuleActionRequester(
             install=self.install,
             uri=uri,
@@ -44,5 +47,5 @@ class AlertRuleActionCreator:
         return response
 
     @cached_property
-    def sentry_app(self):
+    def sentry_app(self) -> SentryApp:
         return self.install.sentry_app

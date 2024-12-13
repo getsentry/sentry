@@ -33,8 +33,8 @@ from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channe
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
-from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
+from sentry.sentry_apps.utils.alert_rule_action import create_sentry_app_alert_rule_issues_component
 from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -285,7 +285,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
 
-            trigger_sentry_app_action_creators_for_issues(actions=kwargs["actions"])
+            result = create_sentry_app_alert_rule_issues_component(actions=kwargs["actions"])
+            if isinstance(result, Response):
+                return result
 
             updated_rule = ProjectRuleUpdater(
                 rule=rule,
