@@ -61,6 +61,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         event_id: str,
         snuba_data: Mapping[str, Any] | None = None,
     ):
+        assert project_id is not None
         self.project_id = project_id
         self.event_id = event_id
         self._snuba_data = snuba_data or {}
@@ -294,10 +295,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        assert project is not None
+        self.project_id = project.id
         self._project_cache = project
 
     @cached_property
