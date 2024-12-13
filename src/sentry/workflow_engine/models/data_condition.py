@@ -19,6 +19,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
+# TODO should this be in types?
 class Condition(StrEnum):
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"

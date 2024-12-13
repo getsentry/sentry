@@ -14,7 +14,7 @@ def process_data_sources(
 ) -> list[tuple[DataPacket, list[Detector]]]:
     metrics.incr("sentry.workflow_engine.process_data_sources", tags={"query_type": query_type})
 
-    data_packet_ids = {packet.query_id for packet in data_packets}
+    data_packet_ids = {int(packet.query_id) for packet in data_packets}
 
     # Fetch all data sources and associated detectors for the given data packets
     with sentry_sdk.start_span(op="sentry.workflow_engine.process_data_sources.fetch_data_sources"):
@@ -23,12 +23,12 @@ def process_data_sources(
         ).prefetch_related(Prefetch("detectors"))
 
     # Build a lookup dict for query_id to detectors
-    query_id_to_detectors = {ds.query_id: list(ds.detectors.all()) for ds in data_sources}
+    query_id_to_detectors = {int(ds.query_id): list(ds.detectors.all()) for ds in data_sources}
 
     # Create the result tuples
     result = []
     for packet in data_packets:
-        detectors = query_id_to_detectors.get(packet.query_id)
+        detectors = query_id_to_detectors.get(int(packet.query_id))
 
         if detectors:
             data_packet_tuple = (packet, detectors)

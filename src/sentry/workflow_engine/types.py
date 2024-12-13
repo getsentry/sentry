@@ -48,3 +48,4 @@ class DataConditionHandler(Generic[T]):
 
 class DetectorType(StrEnum):
     ERROR = "ErrorDetector"
+    METRIC_ALERT_FIRE = "metric_alert_fire"
