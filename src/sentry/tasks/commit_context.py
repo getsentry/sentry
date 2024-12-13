@@ -231,6 +231,9 @@ def process_commit_context(
                 project_id=project.id,
                 group_id=group_id,
                 new_assignment=created,
+                user_id=group_owner.user_id,
+                group_owner_type=group_owner.type,
+                method="scm_integration",
             )
     except UnableToAcquireLock:
         pass
