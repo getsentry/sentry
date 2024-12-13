@@ -3,13 +3,13 @@ from __future__ import annotations
 import abc
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
-from concurrent.futures import ThreadPoolExecutor, wait, ProcessPoolExecutor
-from typing import Generic, Literal, TypeVar, Generator
+from collections.abc import Generator, Mapping
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, wait
+from typing import Generic, Literal, TypeVar
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import BatchStep, Unfold
+from arroyo.processing.strategies import BatchStep
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -19,7 +19,6 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
-from sentry.utils.arroyo import run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         self.mode = mode
         if mode == "parallel":
             self.parallel = True
-            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ProcessPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
@@ -153,26 +152,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         if result is not None:
             self.result_processor(result)
 
-    def create_process_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
-        assert self.parallel_executor is not None
-        grouped_processor = run_task_with_multiprocessing(
-            function=self.process_group,
-            next_step=CommitOffsets(commit),
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            pool=self.pool,
-            input_block_size=self.input_block_size,
-            output_block_size=self.output_block_size,
-        )
-        return BatchStep(
-            max_batch_size=self.max_batch_size,
-            max_batch_time=self.max_batch_time,
-            next_step=Unfold(
-                generator=self.partition_message_batch,
-                next_step=grouped_processor,
-            ),
-        )
-
     def create_thread_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.parallel_executor is not None
         batch_processor = RunTask(
@@ -185,7 +164,9 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             next_step=batch_processor,
         )
 
-    def partition_message_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> Generator[list[T]]:
+    def partition_message_batch(
+        self, message: Message[ValuesBatch[KafkaPayload]]
+    ) -> Generator[list[T]]:
         """
         Takes a batch of messages and partitions them based on the `build_payload_grouping_key` method.
         Returns a generator that yields each partitioned list of messages.
