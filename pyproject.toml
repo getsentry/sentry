@@ -321,7 +321,6 @@ module = [
     "tests.sentry.api.bases.test_team",
     "tests.sentry.api.endpoints.notifications.test_notification_actions_details",
     "tests.sentry.api.endpoints.notifications.test_notification_actions_index",
-    "tests.sentry.api.endpoints.test_event_attachment_details",
     "tests.sentry.api.helpers.test_group_index",
     "tests.sentry.api.test_authentication",
     "tests.sentry.api.test_base",
