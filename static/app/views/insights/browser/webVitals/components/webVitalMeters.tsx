@@ -21,7 +21,6 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {vitalDescription} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   onClick?: (webVital: WebVitals) => void;
@@ -333,7 +332,7 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
       <NoValue />
     );
 
-  const tooltipText = vitalDescription[`measurements.${webVital}`];
+  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`]?.shortDescription;
 
   return (
     <VitalPillContainer>

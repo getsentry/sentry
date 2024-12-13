@@ -6,15 +6,15 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {vitalsRouteWithQuery} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalChart';
+import {vitalDetailRouteWithQuery} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalUtils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 
 import Tab from './transactionSummary/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';
-import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
 type Props = {

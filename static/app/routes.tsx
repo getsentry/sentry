@@ -1542,12 +1542,6 @@ function buildRoutes() {
         )}
       />
       <Route
-        path="vitals/"
-        component={make(
-          () => import('sentry/views/performance/transactionSummary/transactionVitals')
-        )}
-      />
-      <Route
         path="tags/"
         component={make(
           () => import('sentry/views/performance/transactionSummary/transactionTags')
@@ -1848,10 +1842,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/performance/trends'))}
       />
       {transactionSummaryRoutes}
-      <Route
-        path="vitaldetail/"
-        component={make(() => import('sentry/views/performance/vitalDetail'))}
-      />
       <Route
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}

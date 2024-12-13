@@ -42,12 +42,12 @@ import type {Actions} from 'sentry/views/discover/table/cellAction';
 import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+} from 'sentry/views/insights/browser/webVitals/components/legacy/constants';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
 import Filter, {

@@ -30,6 +30,10 @@ import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
+import {
+  PERCENTILE as VITAL_PERCENTILE,
+  VITAL_GROUPS,
+} from 'sentry/views/insights/browser/webVitals/components/legacy/constants';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
@@ -41,10 +45,6 @@ import {
 import type {ChildProps} from '../pageLayout';
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from '../transactionVitals/constants';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent from './content';
