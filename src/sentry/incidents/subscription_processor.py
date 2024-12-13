@@ -43,6 +43,10 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
+from sentry.incidents.utils.process_update_helpers import (
+    get_aggregation_value_helper,
+    get_crash_rate_alert_metrics_aggregation_value_helper,
+)
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
@@ -58,10 +62,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
-from sentry.workflow_engine.process_update_helpers import (
-    get_aggregation_value_helper,
-    get_crash_rate_alert_metrics_aggregation_value_helper,
-)
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
