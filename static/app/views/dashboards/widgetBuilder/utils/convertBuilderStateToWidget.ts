@@ -7,9 +7,9 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {WidgetBuilderState} from '../hooks/useWidgetBuilderState';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const datasetConfig = getDatasetConfig(state.dataset ?? WidgetType.ERRORS);
