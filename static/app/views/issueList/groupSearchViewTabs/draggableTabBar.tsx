@@ -20,7 +20,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
