@@ -49,11 +49,12 @@ def create_sentry_app_alert_rule_component_for_incidents(
             f"Something went wrong while trying to create alert rule action. Sentry error ID: {error_id}",
             status=500,
         )
+    return None
 
 
 def create_sentry_app_alert_rule_issues_component(
     actions: Sequence[Mapping[str, Any]]
-) -> str | Response:
+) -> str | Response | None:
     try:
         created = trigger_sentry_app_action_creators_for_issues(actions)
 
