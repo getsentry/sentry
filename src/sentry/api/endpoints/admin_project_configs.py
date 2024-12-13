@@ -52,8 +52,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
     def post(self, request: Request) -> Response:
         """Regenerate the project config"""
-        project_id = request.GET.get("projectId")
-
+        project_id = request.data.get("projectId")
         if project_id is not None:
             try:
                 schedule_invalidate_project_config(
