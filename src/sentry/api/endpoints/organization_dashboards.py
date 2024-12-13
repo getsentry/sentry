@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, IntegerField, When
+from django.db.models import Case, Exists, IntegerField, OuterRef, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
 
 MAX_RETRIES = 2
@@ -184,9 +184,13 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if features.has("organizations:dashboards-favourite", organization, actor=request.user):
             pin_by = request.query_params.get("pin")
             if pin_by == "favorites":
+                favorited_by_subquery = DashboardFavoriteUser.objects.filter(
+                    dashboard=OuterRef("pk"), user_id=request.user.id
+                )
+
                 order_by_favorites = [
                     Case(
-                        When(dashboardfavoriteuser__user_id=request.user.id, then=-1),
+                        When(Exists(favorited_by_subquery), then=-1),
                         default=1,
                         output_field=IntegerField(),
                     )
