@@ -15,10 +15,9 @@ T = TypeVar("T")
 
 
 class Registry(Generic[T]):
-    def __init__(self, enable_reverse_lookup: bool = True):
+    def __init__(self):
         self.registrations: dict[str, T] = {}
         self.reverse_lookup: dict[T, str] = {}
-        self.enable_reverse_lookup = enable_reverse_lookup
 
     def register(self, key: str):
         def inner(item: T) -> T:
@@ -27,14 +26,13 @@ class Registry(Generic[T]):
                     f"A registration already exists for {key}: {self.registrations[key]}"
                 )
 
-            if self.enable_reverse_lookup:
-                if item in self.reverse_lookup:
-                    raise AlreadyRegisteredError(
-                        f"A registration already exists for {item}: {self.reverse_lookup[item]}"
-                    )
-                self.reverse_lookup[item] = key
+            if item in self.reverse_lookup:
+                raise AlreadyRegisteredError(
+                    f"A registration already exists for {item}: {self.reverse_lookup[item]}"
+                )
 
             self.registrations[key] = item
+            self.reverse_lookup[item] = key
 
             return item
 
@@ -46,8 +44,6 @@ class Registry(Generic[T]):
         return self.registrations[key]
 
     def get_key(self, item: T) -> str:
-        if not self.enable_reverse_lookup:
-            raise NoRegistrationExistsError("Reverse lookup is not enabled")
         if item not in self.reverse_lookup:
             raise NoRegistrationExistsError(f"No registration exists for {item}")
         return self.reverse_lookup[item]

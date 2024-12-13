@@ -16,7 +16,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
-from sentry.utils import json
 
 from .json_config import JSONConfigBase
 
@@ -107,7 +106,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema(sender, instance: Detector, **kwargs):
-    from sentry.workflow_engine.registry import detector_config_schema_registry
-
-    config_schema = detector_config_schema_registry.get(instance.type)
-    instance.validate_config(json.loads(config_schema))
+    group_type = instance.group_type
+    if not group_type:
+        raise ValueError(f"No group type found with type {instance.type}")
+    config_schema = group_type.detector_config_schema
+    instance.validate_config(config_schema)

@@ -5,7 +5,6 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.utils.registry import NoRegistrationExistsError
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
@@ -59,7 +58,7 @@ class TestJsonConfigBase(BaseGroupTypeTest):
 
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
-        with pytest.raises(NoRegistrationExistsError):
+        with pytest.raises(ValueError):
             self.create_detector(name="test_detector", type="no_registration")
 
     def test_detector_mismatched_schema(self):

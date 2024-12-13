@@ -6,7 +6,3 @@ from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, Da
 data_source_type_registry = Registry[type[DataSourceTypeHandler]]()
 condition_handler_registry = Registry[DataConditionHandler[Any]]()
 action_handler_registry = Registry[ActionHandler]()
-
-detector_config_schema_registry = Registry[str](
-    enable_reverse_lookup=False
-)  # json dump, allow duplicate values
