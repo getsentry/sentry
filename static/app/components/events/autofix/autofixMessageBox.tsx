@@ -5,6 +5,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import AutofixActionSelector from 'sentry/components/events/autofix/autofixActionSelector';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
@@ -21,7 +22,6 @@ import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup'
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {
   IconCheckmark,
   IconChevron,
@@ -179,14 +179,14 @@ function SetupAndCreatePRsButton({
 
 interface RootCauseAndFeedbackInputAreaProps {
   actionText: string;
-  changesMode: 'give_feedback' | 'add_tests' | 'create_prs';
+  changesMode: 'give_feedback' | 'add_tests' | 'create_prs' | null;
   groupId: string;
   handleSend: (e: FormEvent<HTMLFormElement>) => void;
   isRootCauseSelectionStep: boolean;
   message: string;
   primaryAction: boolean;
   responseRequired: boolean;
-  rootCauseMode: 'suggested_root_cause' | 'custom_root_cause';
+  rootCauseMode: 'suggested_root_cause' | 'custom_root_cause' | null;
   setMessage: (message: string) => void;
 }
 
@@ -213,7 +213,7 @@ function RootCauseAndFeedbackInputArea({
               onChange={e => setMessage(e.target.value)}
               placeholder={
                 !isRootCauseSelectionStep
-                  ? 'Share helpful context or feedback...'
+                  ? 'Share helpful context or directions...'
                   : rootCauseMode === 'suggested_root_cause'
                     ? '(Optional) Provide any instructions for the fix...'
                     : 'Propose your own root cause...'
@@ -339,12 +339,12 @@ function AutofixMessageBox({
   const contentRef = useRef<HTMLDivElement>(null);
 
   const [rootCauseMode, setRootCauseMode] = useState<
-    'suggested_root_cause' | 'custom_root_cause'
-  >('suggested_root_cause');
+    'suggested_root_cause' | 'custom_root_cause' | null
+  >(null);
 
   const [changesMode, setChangesMode] = useState<
-    'give_feedback' | 'add_tests' | 'create_prs'
-  >('create_prs');
+    'give_feedback' | 'add_tests' | 'create_prs' | null
+  >(null);
 
   const changes =
     isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
@@ -440,113 +440,127 @@ function AutofixMessageBox({
             />
           </ContentArea>
           {!isDisabled && (
-            <ActionBar>
-              {isRootCauseSelectionStep && (
-                <Fragment>
-                  <SegmentedControl
-                    size="xs"
-                    value={rootCauseMode}
-                    onChange={setRootCauseMode}
-                    aria-label={t('Root cause selection')}
-                  >
-                    <SegmentedControl.Item key="suggested_root_cause">
-                      {t('Use suggested root cause')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="custom_root_cause">
-                      {t('Propose your own root cause')}
-                    </SegmentedControl.Item>
-                  </SegmentedControl>
-                </Fragment>
+            <InputSection>
+              {isRootCauseSelectionStep ? (
+                <AutofixActionSelector
+                  options={[
+                    {key: 'suggested_root_cause', label: t('Use suggested root cause')},
+                    {key: 'custom_root_cause', label: t('Propose your own root cause')},
+                  ]}
+                  selected={rootCauseMode}
+                  onSelect={value => setRootCauseMode(value)}
+                  onBack={() => setRootCauseMode(null)}
+                >
+                  {option => (
+                    <RootCauseAndFeedbackInputArea
+                      handleSend={handleSend}
+                      isRootCauseSelectionStep={isRootCauseSelectionStep}
+                      message={message}
+                      rootCauseMode={option.key}
+                      responseRequired={responseRequired}
+                      setMessage={setMessage}
+                      actionText={actionText}
+                      primaryAction={primaryAction}
+                      changesMode={changesMode}
+                      groupId={groupId}
+                    />
+                  )}
+                </AutofixActionSelector>
+              ) : isChangesStep && !prsMade ? (
+                <AutofixActionSelector
+                  options={[
+                    {key: 'create_prs', label: t('Approve')},
+                    {key: 'give_feedback', label: t('Iterate')},
+                    {key: 'add_tests', label: t('Test')},
+                  ]}
+                  selected={changesMode}
+                  onSelect={value => setChangesMode(value)}
+                  onBack={() => setChangesMode(null)}
+                >
+                  {option => (
+                    <Fragment>
+                      {option.key === 'give_feedback' && (
+                        <RootCauseAndFeedbackInputArea
+                          handleSend={handleSend}
+                          isRootCauseSelectionStep={isRootCauseSelectionStep}
+                          message={message}
+                          rootCauseMode={rootCauseMode}
+                          responseRequired={responseRequired}
+                          setMessage={setMessage}
+                          actionText={actionText}
+                          primaryAction
+                          changesMode={option.key}
+                          groupId={groupId}
+                        />
+                      )}
+                      {option.key === 'add_tests' && (
+                        <form onSubmit={handleSend}>
+                          <InputArea>
+                            <StaticMessage>
+                              Write unit tests to make sure the issue is fixed?
+                            </StaticMessage>
+                            <Button type="submit" priority="primary">
+                              Add Tests
+                            </Button>
+                          </InputArea>
+                        </form>
+                      )}
+                      {option.key === 'create_prs' && (
+                        <InputArea>
+                          <StaticMessage>
+                            Draft {changes.length} pull request
+                            {changes.length > 1 ? 's' : ''} for the above changes?
+                          </StaticMessage>
+                          <SetupAndCreatePRsButton changes={changes} groupId={groupId} />
+                        </InputArea>
+                      )}
+                    </Fragment>
+                  )}
+                </AutofixActionSelector>
+              ) : isChangesStep && prsMade ? (
+                <ViewPRButtons aria-label={t('View pull requests')}>
+                  {changes.map(
+                    change =>
+                      change.pull_request?.pr_url && (
+                        <LinkButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          size="xs"
+                          priority="primary"
+                          icon={<IconOpen size="xs" />}
+                          href={change.pull_request.pr_url}
+                          external
+                        >
+                          View PR in {change.repo_name}
+                        </LinkButton>
+                      )
+                  )}
+                </ViewPRButtons>
+              ) : (
+                <RootCauseAndFeedbackInputArea
+                  handleSend={handleSend}
+                  isRootCauseSelectionStep={isRootCauseSelectionStep}
+                  message={message}
+                  rootCauseMode={rootCauseMode}
+                  responseRequired={responseRequired}
+                  setMessage={setMessage}
+                  actionText={actionText}
+                  primaryAction={primaryAction}
+                  changesMode={changesMode}
+                  groupId={groupId}
+                />
               )}
-              {isChangesStep && !prsMade && (
-                <Fragment>
-                  <SegmentedControl
-                    size="xs"
-                    value={changesMode}
-                    onChange={setChangesMode}
-                    aria-label={t('Changes selection')}
-                  >
-                    <SegmentedControl.Item key="create_prs">
-                      {t('Approve')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="give_feedback">
-                      {t('Iterate')}
-                    </SegmentedControl.Item>
-                    <SegmentedControl.Item key="add_tests">
-                      {t('Test')}
-                    </SegmentedControl.Item>
-                  </SegmentedControl>
-                </Fragment>
-              )}
-            </ActionBar>
+            </InputSection>
           )}
+          {isDisabled && <Placeholder />}
         </ContentWrapper>
       </AnimatedContent>
-      <InputSection>
-        {(!isChangesStep || changesMode === 'give_feedback') &&
-          !prsMade &&
-          !isDisabled && (
-            <RootCauseAndFeedbackInputArea
-              handleSend={handleSend}
-              isRootCauseSelectionStep={isRootCauseSelectionStep}
-              message={message}
-              rootCauseMode={rootCauseMode}
-              responseRequired={responseRequired}
-              setMessage={setMessage}
-              actionText={actionText}
-              primaryAction={primaryAction}
-              changesMode={changesMode}
-              groupId={groupId}
-            />
-          )}
-        {isChangesStep && changesMode === 'add_tests' && !prsMade && (
-          <form onSubmit={handleSend}>
-            <InputArea>
-              <Fragment>
-                <StaticMessage>
-                  Write unit tests to make sure the issue is fixed?
-                </StaticMessage>
-                <Button type="submit" priority="primary">
-                  Add Tests
-                </Button>
-              </Fragment>
-            </InputArea>
-          </form>
-        )}
-        {isChangesStep && changesMode === 'create_prs' && !prsMade && (
-          <InputArea>
-            <Fragment>
-              <StaticMessage>
-                Draft {changes.length} pull request{changes.length > 1 ? 's' : ''} for the
-                above changes?
-              </StaticMessage>
-              <SetupAndCreatePRsButton changes={changes} groupId={groupId} />
-            </Fragment>
-          </InputArea>
-        )}
-        {isChangesStep && prsMade && (
-          <ViewPRButtons aria-label={t('View pull requests')}>
-            {changes.map(
-              change =>
-                change.pull_request?.pr_url && (
-                  <LinkButton
-                    key={`${change.repo_external_id}-${Math.random()}`}
-                    size="xs"
-                    priority="primary"
-                    icon={<IconOpen size="xs" />}
-                    href={change.pull_request.pr_url}
-                    external
-                  >
-                    View PR in {change.repo_name}
-                  </LinkButton>
-                )
-            )}
-          </ViewPRButtons>
-        )}
-      </InputSection>
     </Container>
   );
 }
+
+const Placeholder = styled('div')`
+  padding: ${space(1)};
+`;
 
 const ViewPRButtons = styled(ScrollCarousel)`
   width: 100%;
@@ -633,7 +647,6 @@ const StaticMessage = styled('p')`
   padding-top: ${space(1)};
   padding-left: ${space(1)};
   margin-bottom: 0;
-  color: ${p => p.theme.subText};
   border-top: 1px solid ${p => p.theme.border};
 `;
 
@@ -657,13 +670,8 @@ const ProcessingStatusIndicator = styled(LoadingIndicator)`
   }
 `;
 
-const ActionBar = styled('div')`
-  padding-bottom: ${space(1)};
-  padding-left: ${space(2)};
-`;
-
 const InputSection = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: ${space(0.5)} ${space(2)} ${space(2)};
 `;
 
 export default AutofixMessageBox;
