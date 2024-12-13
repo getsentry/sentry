@@ -96,6 +96,22 @@ def get_apex_crash_event(
     )
 
 
+def get_exception(
+    frames: Sequence[Mapping[str, str]],
+    mechanism=None,
+) -> dict[str, object]:
+    if mechanism is None:
+        # linter complains about mutable arguments otherwise
+        mechanism = {"type": "onerror", "handled": False}
+    return {
+        "type": "IllegalArgumentException",
+        "value": "SDK Crash",
+        "module": "java.lang",
+        "stacktrace": {"frames": frames},
+        "mechanism": mechanism,
+    }
+
+
 def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
     result = {
         "event_id": "0a52a8331d3b45089ebd74f8118d4fa1",
@@ -103,17 +119,7 @@ def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -
         "dist": "2",
         "platform": "java",
         "environment": "debug",
-        "exception": {
-            "values": [
-                {
-                    "type": "IllegalArgumentException",
-                    "value": "SDK Crash",
-                    "module": "java.lang",
-                    "stacktrace": {"frames": frames},
-                    "mechanism": {"type": "onerror", "handled": False},
-                }
-            ]
-        },
+        "exception": {"values": [get_exception(frames)]},
         "key_id": "1336851",
         "level": "fatal",
         "contexts": {
