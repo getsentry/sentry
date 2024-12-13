@@ -87,13 +87,17 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
         group_key_detectors = self.bulk_get_detector_state(group_keys)
         dedupe_keys = [self.build_dedupe_value_key(gk) for gk in group_keys]
         pipeline = get_redis_client().pipeline()
+
         for dk in dedupe_keys:
             pipeline.get(dk)
+
         group_key_dedupe_values = {
             gk: int(dv) if dv else 0 for gk, dv in zip(group_keys, pipeline.execute())
         }
+
         pipeline.reset()
         counter_updates = {}
+
         if self.counter_names:
             counter_keys = [
                 self.build_counter_value_key(gk, name)
@@ -120,7 +124,7 @@ class StatefulDetectorHandler(DetectorHandler[T], abc.ABC):
                     else DetectorPriorityLevel.OK
                 ),
                 dedupe_value=group_key_dedupe_values[gk],
-                counter_updates=counter_updates[gk],
+                counter_updates=counter_updates.get(gk, {}),
             )
         return results
 
