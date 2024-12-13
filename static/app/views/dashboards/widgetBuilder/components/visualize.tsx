@@ -316,35 +316,36 @@ function Visualize() {
                         }}
                       />
                     </PrimarySelectRow>
-                    {parameterRefinements.length > 0 && (
-                      <AggregateRefinements>
-                        {parameterRefinements.map((parameter, parameterIndex) => (
-                          <AggregateParameter
-                            key={`${parameter.name}-${parameterIndex}`} // TODO: This shouldn't use index
-                            parameter={parameter}
-                            fieldValue={field}
+                    {field.kind === FieldValueKind.FUNCTION &&
+                      parameterRefinements.length > 0 && (
+                        <ParameterRefinements>
+                          {parameterRefinements.map((parameter, parameterIndex) => {
                             // The current value is displaced by 2 because the first two parameters
                             // are the aggregate name and the column selection
-                            currentValue={
-                              ('function' in field &&
-                                field.function[parameterIndex + 2]) ||
-                              ''
-                            }
-                            onChange={value => {
-                              const newFields = cloneDeep(fields);
-                              if (newFields[index].kind !== FieldValueKind.FUNCTION) {
-                                return;
-                              }
-                              newFields[index].function[parameterIndex + 2] = value;
-                              dispatch({
-                                type: updateAction,
-                                payload: newFields,
-                              });
-                            }}
-                          />
-                        ))}
-                      </AggregateRefinements>
-                    )}
+                            const currentValue = field.function[parameterIndex + 2] || '';
+                            const key = `${field.function.join('_')}-${parameterIndex}`;
+                            return (
+                              <AggregateParameter
+                                key={key}
+                                parameter={parameter}
+                                fieldValue={field}
+                                currentValue={currentValue}
+                                onChange={value => {
+                                  const newFields = cloneDeep(fields);
+                                  if (newFields[index].kind !== FieldValueKind.FUNCTION) {
+                                    return;
+                                  }
+                                  newFields[index].function[parameterIndex + 2] = value;
+                                  dispatch({
+                                    type: updateAction,
+                                    payload: newFields,
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                        </ParameterRefinements>
+                      )}
                   </Fragment>
                 )}
               </FieldBar>
@@ -510,7 +511,7 @@ const AggregateCompactSelect = styled(CompactSelect)`
 
 const LegendAliasInput = styled(Input)``;
 
-const AggregateRefinements = styled('div')`
+const ParameterRefinements = styled('div')`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
