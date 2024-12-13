@@ -1,7 +1,8 @@
 import {type Theme, useTheme} from '@emotion/react';
-import type {Location} from '@sentry/react/build/types/types';
+import type {Location, Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import MarkLine from 'sentry/components/charts/components/markLine';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -25,8 +26,15 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import type {QUERY_KEYS} from 'sentry/views/performance/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import {
+  replaceSeriesName,
+  transformEventStatsSmoothed,
+} from 'sentry/views/performance/trends/utils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export type ViewProps = Pick<EventView, (typeof QUERY_KEYS)[number]>;
 
@@ -416,5 +424,83 @@ export function getVitalChartDefinitions({
     chartOptions,
     markLines,
     utc,
+  };
+}
+
+export enum VitalState {
+  POOR = 'Poor',
+  MEH = 'Meh',
+  GOOD = 'Good',
+}
+
+const vitalStateColors: Record<VitalState, Color> = {
+  [VitalState.POOR]: 'red300',
+  [VitalState.MEH]: 'yellow300',
+  [VitalState.GOOD]: 'green300',
+};
+
+const webVitalPoor = {
+  [WebVital.FP]: 3000,
+  [WebVital.FCP]: 3000,
+  [WebVital.LCP]: 4000,
+  [WebVital.FID]: 300,
+  [WebVital.CLS]: 0.25,
+};
+
+const webVitalMeh = {
+  [WebVital.FP]: 1000,
+  [WebVital.FCP]: 1000,
+  [WebVital.LCP]: 2500,
+  [WebVital.FID]: 100,
+  [WebVital.CLS]: 0.1,
+};
+
+function getVitalChartTitle(webVital: WebVital): string {
+  if (webVital === WebVital.CLS) {
+    return t('CLS p75');
+  }
+  return t('Duration p75');
+}
+
+function getMaxOfSeries(series: Series[]) {
+  let max = -Infinity;
+  for (const {data} of series) {
+    for (const point of data) {
+      max = Math.max(max, point.value);
+    }
+  }
+  return max;
+}
+
+export function generateVitalsRoute({orgSlug}: {orgSlug: string}): string {
+  return `${getTransactionSummaryBaseUrl(orgSlug)}/vitals/`;
+}
+
+export function vitalsRouteWithQuery({
+  orgSlug,
+  transaction,
+  projectID,
+  query,
+}: {
+  orgSlug: string;
+  query: Query;
+  transaction: string;
+  projectID?: string | string[];
+}) {
+  const pathname = generateVitalsRoute({
+    orgSlug,
+  });
+
+  return {
+    pathname,
+    query: {
+      transaction,
+      project: projectID,
+      environment: query.environment,
+      statsPeriod: query.statsPeriod,
+      start: query.start,
+      end: query.end,
+      query: query.query,
+    },
   };
 }
