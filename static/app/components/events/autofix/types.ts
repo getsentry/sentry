@@ -87,6 +87,7 @@ interface BaseStep {
   title: string;
   type: AutofixStepType;
   completedMessage?: string;
+  output_stream?: string | null;
 }
 
 export type CodeSnippetContext = {
