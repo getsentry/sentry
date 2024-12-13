@@ -176,6 +176,14 @@ function ClippedBox(props: ClippedBoxProps) {
     [clipHeight, onReveal, prefersReducedMotion]
   );
 
+  const handleCollapse = useCallback(() => {
+    if (!wrapperRef.current) {
+      throw new Error('Cannot collapse clipped box without a wrapper ref');
+    }
+    wrapperRef.current.style.maxHeight = `${clipHeight}px`;
+    setClipped(true);
+  }, [clipHeight]);
+
   const onWrapperRef = useCallback(
     (node: HTMLDivElement | null) => {
       wrapperRef.current = node;
@@ -281,14 +289,28 @@ function ClippedBox(props: ClippedBoxProps) {
     </Button>
   );
 
+  const showLessButton = (
+    <Button
+      size="xs"
+      priority="primary"
+      onClick={handleCollapse}
+      aria-label={'Show Less'}
+      {...props.buttonProps}
+    >
+      {'Show Less'}
+    </Button>
+  );
+
   return (
     <Wrapper ref={onWrapperRef} className={props.className}>
       <div ref={onContentRef}>
         {props.title ? <Title>{props.title}</Title> : null}
         {props.children}
-        {clipped
-          ? props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>
-          : null}
+        {clipped ? (
+          props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>
+        ) : (
+          <ShowLessWrapper>{showLessButton}</ShowLessWrapper>
+        )}
       </div>
     </Wrapper>
   );
@@ -327,4 +349,10 @@ export const ClipFade = styled('div')`
   > * {
     pointer-events: auto;
   }
+`;
+
+const ShowLessWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  padding: ${space(1)} 0;
 `;
