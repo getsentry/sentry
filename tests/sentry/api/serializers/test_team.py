@@ -3,6 +3,7 @@ from unittest import mock
 from django.conf import settings
 
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project import ProjectSerializer
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
 from sentry.models.organizationmember import InviteStatus
@@ -252,7 +253,9 @@ class TeamWithProjectsSerializerTest(TestCase):
         project2 = self.create_project(teams=[team], organization=organization, name="bar")
 
         result = serialize(team, user, TeamWithProjectsSerializer())
-        serialized_projects = serialize([project2, project], user)
+        serialized_projects = serialize(
+            [project2, project], user, ProjectSerializer(collapse=["unusedFeatures"])
+        )
 
         assert result == {
             "id": str(team.id),
