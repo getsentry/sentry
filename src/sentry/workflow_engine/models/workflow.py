@@ -37,7 +37,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     @property
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
+    def config_schema(self) -> dict[str, Any]:
         # TODO: fill in
         return {}
 
@@ -67,5 +67,4 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
 @receiver(pre_save, sender=Workflow)
 def enforce_config_schema(sender, instance: Workflow, **kwargs):
-    config_schema = instance.CONFIG_SCHEMA
-    instance.validate_config(config_schema)
+    instance.validate_config(instance.config_schema)
