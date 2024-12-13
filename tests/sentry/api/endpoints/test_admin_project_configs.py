@@ -141,10 +141,18 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert actual == expected
 
     def test_invalidate_project_config(self):
-        response = self.get_response(method="post", project_id=self.project.id)
+        data = {"projectId": self.project.id}
+        response = self.get_response(method="post", **data)
         assert response.status_code == 401
+
+        self.login_as(self.user, superuser=False)
+        response = self.get_response(method="post", **data)
+        assert response.status_code == 403
 
         self.login_as(self.superuser, superuser=True)
 
-        response = self.get_response(method="post", project_id=self.project.id)
+        response = self.get_response(method="post")
+        assert response.status_code == 400
+
+        response = self.get_response(method="post", **data)
         assert response.status_code == 204
