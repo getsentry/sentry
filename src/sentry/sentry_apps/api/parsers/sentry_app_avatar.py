@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.serializers import Serializer
 
 from sentry.api.fields.avatar import AvatarField
+from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.utils.avatar import is_black_alpha_only
 
 
@@ -14,17 +15,21 @@ class SentryAppAvatarParser(Serializer):
         attrs = super().validate(attrs)
 
         if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
-            raise serializers.ValidationError({"avatar_photo": "A logo is required."})
+            raise SentryAppError(
+                serializers.ValidationError({"avatar_photo": "A logo is required."})
+            )
 
         if (
             not attrs.get("color")
             and attrs.get("avatar_type") == "upload"
             and not is_black_alpha_only(attrs.get("avatar_photo"))
         ):
-            raise serializers.ValidationError(
-                {
-                    "avatar_photo": "The icon must only use black and should contain an alpha channel."
-                }
+            raise SentryAppError(
+                serializers.ValidationError(
+                    {
+                        "avatar_photo": "The icon must only use black and should contain an alpha channel."
+                    }
+                )
             )
 
         return attrs

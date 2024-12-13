@@ -15,6 +15,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import token_expiration
 from sentry.sentry_apps.token_exchange.validator import Validator
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
@@ -41,7 +42,7 @@ class GrantExchanger:
                 # Once it's exchanged it's no longer valid and should not be
                 # exchangeable, so we delete it.
                 self._delete_grant()
-            except APIUnauthorized:
+            except (SentryAppIntegratorError, APIUnauthorized):
                 logger.info(
                     "grant-exchanger.context",
                     extra={
@@ -65,7 +66,11 @@ class GrantExchanger:
         Validator(install=self.install, client_id=self.client_id, user=self.user).run()
 
         if not self._grant_belongs_to_install() or not self._sentry_app_user_owns_grant():
-            raise APIUnauthorized("Forbidden grant")
+            raise SentryAppIntegratorError(
+                APIUnauthorized(
+                    "Grant does not belong to given sentry app or sentry app installation"
+                )
+            )
 
         if not self._grant_is_active():
             raise APIUnauthorized("Grant has already expired")
@@ -108,7 +113,7 @@ class GrantExchanger:
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise APIUnauthorized("Could not find grant")
+            raise SentryAppIntegratorError(APIUnauthorized("Could not find grant"))
 
     @property
     def application(self) -> ApiApplication:
