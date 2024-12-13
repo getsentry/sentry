@@ -1,5 +1,7 @@
 import functools
+from collections.abc import Callable
 from enum import Enum
+from typing import Any
 
 import sentry_sdk
 from rest_framework.response import Response
@@ -21,10 +23,10 @@ class SentryAppIntegratorError(Exception):
     error_type = SentryAppErrorType.INTEGRATOR
 
 
-def catch_and_handle_sentry_app_errors(func):
+def catch_and_handle_sentry_app_errors(func: Callable[[Any, Any], Any]):
 
     @functools.wraps(func)
-    def decorator(*args, **kwargs):
+    def decorator(*args: Any, **kwargs: Any) -> Any:
         try:
             return func(*args, **kwargs)
         except (SentryAppError, SentryAppIntegratorError) as e:

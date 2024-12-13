@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.urls import reverse
 
@@ -80,4 +82,23 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             response.content
             == b'{"error":"Issue occured while trying to contact testin to link issue"}'
         )
+        assert not PlatformExternalIssue.objects.all()
+
+    @patch("sentry_sdk.capture_exception")
+    @patch("sentry.sentry_apps.external_issues.issue_link_creator.IssueLinkCreator.run")
+    def test_external_issue_doesnt_get_created_exception(self, issue_creator, sentry):
+        self.login_as(user=self.user)
+        data = {
+            "groupId": self.group.id,
+            "action": "create",
+            "fields": {"title": "Hello"},
+            "uri": "/create-issues",
+        }
+        issue_creator.side_effect = Exception("wewps")
+        sentry.return_value = 1
+        response = self.client.post(self.url, data=data, format="json")
+        assert response.status_code == 500
+        assert response.data == {
+            "error": f"Something went wrong! Sentry Error ID: {sentry.return_value}"
+        }
         assert not PlatformExternalIssue.objects.all()
