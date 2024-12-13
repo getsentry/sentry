@@ -584,7 +584,9 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             self.mock_event_links(seq1_timestamp, project.id, "debug", replay1_id, uuid.uuid4().hex)
         )
         self.store_replays(
-            mock_replay_viewed(seq1_timestamp.timestamp(), project.id, replay1_id, viewed_by_id=1)
+            mock_replay_viewed(
+                seq1_timestamp.timestamp(), project.id, replay1_id, viewed_by_id=self.user.id
+            )
         )
 
         with self.feature(self.features):
@@ -680,12 +682,12 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:2",
                 "count_infos:>1",
                 "count_infos:<3",
-                "viewed_by_id:1",
-                "!viewed_by_id:2",
-                "viewed_by_id:[1,2]",
-                "seen_by_id:1",
-                "!seen_by_id:2",
-                "seen_by_id:[1,2]",
+                f"viewed_by_id:{self.user.id}",
+                f"!viewed_by_id:{self.user.id+1}",
+                f"viewed_by_id:[{self.user.id+3},{self.user.id}]",
+                f"seen_by_id:{self.user.id}",
+                f"!seen_by_id:{self.user.id + 1}",
+                f"seen_by_id:[{self.user.id + 3},{self.user.id}]",
                 "viewed_by_me:true",
                 "seen_by_me:true",
             ]
@@ -736,8 +738,8 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*st",
                 "!activity:8",
                 "activity:<2",
-                "viewed_by_id:2",
-                "seen_by_id:2",
+                f"viewed_by_id:{self.user.id+1}",
+                f"seen_by_id:{self.user.id+1}",
                 "viewed_by_me:false",
                 "seen_by_me:false",
                 "user.email:[user2@example.com]",
