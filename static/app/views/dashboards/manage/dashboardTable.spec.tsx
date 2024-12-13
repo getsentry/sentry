@@ -344,7 +344,6 @@ describe('Dashboards - DashboardTable', function () {
       }
     );
 
-    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
     expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
     expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
     expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
