@@ -469,7 +469,7 @@ function AutofixMessageBox({
               ) : isChangesStep && !prsMade ? (
                 <AutofixActionSelector
                   options={[
-                    {key: 'add_tests', label: t('Add Test')},
+                    {key: 'add_tests', label: t('Add tests')},
                     {key: 'give_feedback', label: t('Iterate')},
                     {key: 'create_prs', label: t('Approve'), active: true},
                   ]}
