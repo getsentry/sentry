@@ -78,11 +78,13 @@ def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
         else DetectorPriorityLevel.HIGH
     )
     threshold_type = alert_rule_trigger.alert_rule.threshold_type
+    if not threshold_type:
+        return None
     # XXX: we read the threshold type off of the alert_rule and NOT the alert_rule_trigger
     # alert_rule_trigger.threshold_type is a deprecated feature we are not moving over
 
     data_condition = DataCondition.objects.create(
-        condition=threshold_to_condition[threshold_type],
+        condition=threshold_to_condition.get(threshold_type, AlertRuleThresholdType.ABOVE.value),
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
         type=ConditionType.METRIC_CONDITION,
