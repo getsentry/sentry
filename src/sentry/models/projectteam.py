@@ -19,8 +19,7 @@ class ProjectTeamManager(BaseManager["ProjectTeam"]):
         return (
             self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
             .order_by("project__name", "project__slug")
-            .select_related("project")
-            .prefetch_related("project__organization")
+            .select_related("project", "project__organization")
         )
 
 
