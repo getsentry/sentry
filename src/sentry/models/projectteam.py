@@ -21,9 +21,11 @@ class ProjectTeamManager(BaseManager["ProjectTeam"]):
             .order_by("project__name", "project__slug")
             .select_related("project")
         )
-
         # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in teams}
+        orgs = {}
+        for team in teams:
+            if team.organization_id not in orgs:
+                orgs[team.organization_id] = team.organization
 
         for project_team in project_teams:
             if project_team.project.organization_id in orgs:
