@@ -660,22 +660,6 @@ class AuthLoginView(BaseView):
             elif login_form.is_valid():
                 user = login_form.get_user()
 
-                # Check if the user is a member of the provided organization based on their email
-                membership = organization_service.check_membership_by_email(
-                    email=user.email, organization_id=organization.id
-                )
-
-                # If the user is in a "pending invite acceptance" state and user_id is None,
-                # they are not yet fully associated with the organization.
-                # To ensure they are redirected to the correct organization after accepting the invite,
-                # they need to be added as a member.
-                if membership and membership.user_id is None and membership.is_pending:
-                    organization_service.add_organization_member(
-                        organization_id=organization.id,
-                        default_org_role=organization.default_role,
-                        user_id=user.id,
-                    )
-
                 self._handle_login(request, user, organization)
                 metrics.incr(
                     "login.attempt", instance="success", skip_internal=True, sample_rate=1.0
@@ -684,6 +668,22 @@ class AuthLoginView(BaseView):
                 if not user.is_active:
                     return self.redirect(reverse("sentry-reactivate-account"))
                 if organization:
+                    # Check if the user is a member of the provided organization based on their email
+                    membership = organization_service.check_membership_by_email(
+                        email=user.email, organization_id=organization.id
+                    )
+
+                    # If the user is in a "pending invite acceptance" state and user_id is None,
+                    # they are not yet fully associated with the organization.
+                    # To ensure they are redirected to the correct organization after accepting the invite,
+                    # they need to be added as a member.
+                    if membership and membership.user_id is None and membership.is_pending:
+                        organization_service.add_organization_member(
+                            organization_id=organization.id,
+                            default_org_role=organization.default_role,
+                            user_id=user.id,
+                        )
+
                     # Refresh the organization we fetched prior to login in order to check its login state.
                     org_context = organization_service.get_organization_by_slug(
                         user_id=request.user.id,
