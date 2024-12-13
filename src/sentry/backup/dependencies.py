@@ -433,6 +433,10 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
+            # exclude proxy models since the backup test is already done on a parent if needed
+            if model._meta.proxy:
+                continue
+
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
