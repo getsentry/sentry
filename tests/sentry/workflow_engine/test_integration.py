@@ -3,13 +3,11 @@ from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.features import with_feature
-from sentry.workflow_engine.models import DataPacket, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import process_data_sources, process_detectors
 from sentry.workflow_engine.types import DetectorPriorityLevel
@@ -77,28 +75,6 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
 
         return cache_key
 
-    def create_test_data_source(self) -> DataSource:
-        self.subscription_update: QuerySubscriptionUpdate = {
-            "subscription_id": "123",
-            "values": {"foo": 1},
-            "timestamp": datetime.utcnow(),
-            "entity": "test-entity",
-        }
-
-        self.data_source = self.create_data_source(
-            query_id=self.subscription_update["subscription_id"],
-            organization=self.organization,
-        )
-        self.data_source.detectors.add(self.detector)
-
-        # Create a data_packet from the update for testing
-        self.data_packet = DataPacket[QuerySubscriptionUpdate](
-            query_id=self.subscription_update["subscription_id"],
-            packet=self.subscription_update,
-        )
-
-        return self.data_source
-
 
 class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
     @with_feature("organizations:workflow-engine-metric-alert-processing")
@@ -106,7 +82,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         """
         This test ensures that a data_source can create the correct event in Issue Platform
         """
-        self.create_test_data_source()
+        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
@@ -121,7 +97,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__different_type(self):
-        self.create_test_data_source()
+        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
 
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
@@ -134,7 +110,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self):
-        self.create_test_data_source()
+        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
         self.detector.delete()
 
         with mock.patch(
