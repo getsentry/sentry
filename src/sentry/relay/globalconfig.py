@@ -23,7 +23,6 @@ RELAY_OPTIONS: list[str] = [
     "relay.metric-bucket-distribution-encodings",
     "relay.metric-stats.rollout-rate",
     "relay.span-extraction.sample-rate",
-    "relay.compute-metrics-summaries.sample-rate",
     "relay.span-normalization.allowed_hosts",
 ]
 

@@ -43,7 +43,6 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "profiling.generic_metrics.functions_ingestion.enabled": True,
-        "relay.compute-metrics-summaries.sample-rate": 1.0,
         "relay.metric-bucket-distribution-encodings": {
             "custom": "array",
             "metric_stats": "array",
