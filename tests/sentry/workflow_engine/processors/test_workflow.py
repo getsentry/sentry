@@ -1,6 +1,8 @@
 from unittest import mock
 
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.grouptype import ErrorGroupType
+from sentry.rules.base import EventState
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
@@ -29,6 +31,34 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_error_event(self):
         triggered_workflows = process_workflows(self.group_event)
         assert triggered_workflows == {self.error_workflow}
+
+    def test_error_event_with_kwargs(self):
+        dcg = self.create_data_condition_group()
+        self.create_data_condition(
+            type=Condition.EVENT_STATE_COMPARISON,
+            condition="state.is_regression",
+            comparison=True,
+            condition_result=True,
+            condition_group=dcg,
+        )
+
+        workflow = self.create_workflow(when_condition_group=dcg)
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=workflow,
+        )
+
+        triggered_workflows = process_workflows(
+            self.group_event,
+            state=EventState(
+                is_new=False,
+                is_regression=True,
+                is_new_group_environment=False,
+                has_reappeared=False,
+                has_escalated=False,
+            ),
+        )
+        assert triggered_workflows == {self.error_workflow, workflow}
 
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})

@@ -21,6 +21,7 @@ def get_data_conditions_for_group(data_condition_group_id: int) -> list[DataCond
 def evaluate_condition_group(
     data_condition_group: DataConditionGroup,
     value: T,
+    **kwargs,
 ) -> ProcessedDataConditionResult:
     """
     Evaluate the conditions for a given group and value.
@@ -38,7 +39,7 @@ def evaluate_condition_group(
         return True, []
 
     for condition in conditions:
-        evaluation_result = condition.evaluate_value(value)
+        evaluation_result = condition.evaluate_value(condition.get_expected_value(value, **kwargs))
         is_condition_triggered = evaluation_result is not None
 
         if is_condition_triggered:

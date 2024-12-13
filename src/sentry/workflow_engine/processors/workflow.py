@@ -11,23 +11,27 @@ from sentry.workflow_engine.processors.detector import get_detector_by_event
 logger = logging.getLogger(__name__)
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], evt: GroupEvent) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], evt: GroupEvent, **kwargs
+) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
-        if workflow.evaluate_trigger_conditions(evt):
+        if workflow.evaluate_trigger_conditions(evt, **kwargs):
             triggered_workflows.add(workflow)
 
     return triggered_workflows
 
 
-def process_workflows(evt: GroupEvent) -> set[Workflow]:
+def process_workflows(evt: GroupEvent, **kwargs) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
     the workflow will be added to a unique list of triggered workflows.
 
     Finally, each of the triggered workflows will have their actions evaluated and executed.
+
+    **kwargs are added only for issue alerts, as there is a EventState object that is evaluated in conditions.
     """
     # Check to see if the GroupEvent has an issue occurrence
     try:
@@ -39,7 +43,7 @@ def process_workflows(evt: GroupEvent) -> set[Workflow]:
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(Workflow.objects.filter(detectorworkflow__detector_id=detector.id).distinct())
-    triggered_workflows = evaluate_workflow_triggers(workflows, evt)
+    triggered_workflows = evaluate_workflow_triggers(workflows, evt, **kwargs)
     actions = evaluate_workflow_action_filters(triggered_workflows, evt)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
