@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -9,7 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   type AggregationKeyWithAlias,
-  AggregationRefinement,
+  type AggregationRefinement,
   generateFieldAsString,
   parseFunction,
   prettifyTagKey,
@@ -25,7 +26,6 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {cloneDeep} from 'lodash';
 
 const NONE = 'none';
 
@@ -229,8 +229,10 @@ function Visualize() {
                               'parameters' in newAggregate.value.meta
                             ) {
                               newAggregate?.value.meta.parameters.forEach(
-                                (parameter, index) => {
-                                  newFunction[index + 1] = parameter.defaultValue;
+                                (parameter, parameterIndex) => {
+                                  // Increment by 1 to skip past the aggregate name
+                                  newFunction[parameterIndex + 1] =
+                                    parameter.defaultValue;
                                 }
                               );
                             }
