@@ -150,7 +150,6 @@ module = [
     "sentry.api.endpoints.project_ownership",
     "sentry.api.endpoints.project_release_files",
     "sentry.api.endpoints.project_repo_path_parsing",
-    "sentry.api.endpoints.project_rule_preview",
     "sentry.api.endpoints.project_rules_configuration",
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.team_details",
