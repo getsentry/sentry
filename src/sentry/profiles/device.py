@@ -148,7 +148,7 @@ APPLETVGEN3 = "Apple TV (3rd gen)"
 
 # https://www.theiphonewiki.com/wiki/Models
 IOS_MODELS: dict[str, str] = {
-    #iPhone
+    # iPhone
     "iPhone1,1": "iPhone (1st gen)",
     "iPhone1,2": "iPhone 3G",
     "iPhone2,1": "iPhone 3GS",
@@ -206,7 +206,6 @@ IOS_MODELS: dict[str, str] = {
     "iPhone17,2": "iPhone 16 Pro Max",
     "iPhone17,3": "iPhone 16",
     "iPhone17,4": "iPhone 16 Plus",
-    
     # iPod Touch
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
@@ -215,7 +214,6 @@ IOS_MODELS: dict[str, str] = {
     "iPod5,1": "iPod touch (5th gen)",
     "iPod7,1": "iPod touch (6th gen)",
     "iPod9,1": "iPod touch (7th gen)",
-        
     # iPad
     "iPad1,1": "iPad (1st gen)",
     "iPad2,1": IPAD2,
@@ -238,7 +236,6 @@ IOS_MODELS: dict[str, str] = {
     "iPad11,7": IPADGEN8,
     "iPad12,1": IPADGEN9,
     "iPad12,2": IPADGEN9,
-    
     # iPad Air
     "iPad4,1": IPADAIRGEN1,
     "iPad4,2": IPADAIRGEN1,
@@ -255,7 +252,6 @@ IOS_MODELS: dict[str, str] = {
     "iPad14,9": IPADAIRGEN6,
     "iPad14,10": IPADAIRGEN7,
     "iPad14,11": IPADAIRGEN7,
-    
     # iPad Pro
     "iPad6,7": IPADPRO12GEN1,
     "iPad6,3": IPADPRO9GEN1,
@@ -289,8 +285,7 @@ IOS_MODELS: dict[str, str] = {
     "iPad16,4": IPADPRO11GEN5,
     "iPad16,5": IPADPRO12GEN7,
     "iPad16,6": IPADPRO12GEN7,
-
-    #iPad Mini
+    # iPad Mini
     "iPad2,5": IPADMINIGEN1,
     "iPad2,6": IPADMINIGEN1,
     "iPad2,7": IPADMINIGEN1,
@@ -312,7 +307,6 @@ IOS_MODELS: dict[str, str] = {
     "iPad14,4": IPADPRO11GEN4,
     "iPad14,5": IPADPRO12GEN6,
     "iPad14,6": IPADPRO12GEN6,
-    
     # Apple Watch
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,
@@ -350,7 +344,6 @@ IOS_MODELS: dict[str, str] = {
     "Watch7,9": APPLEWATCHSERIES10,
     "Watch7,10": APPLEWATCHSERIES10,
     "Watch7,11": APPLEWATCHSERIES10,
-    
     # Apple Watch SE
     "Watch5,9": APPLEWATCHSE1,
     "Watch5,10": APPLEWATCHSE1,
@@ -360,11 +353,9 @@ IOS_MODELS: dict[str, str] = {
     "Watch6,11": APPLEWATCHSE2,
     "Watch6,12": APPLEWATCHSE2,
     "Watch6,13": APPLEWATCHSE2,
-    
     # Apple Watch Ultra
     "Watch6,18": "Apple Watch Ultra (1st gen)",
     "Watch7,5": "Apple Watch Ultra (2nd gen)",
-    
     # Apple TV
     "AppleTV1,1": "Apple TV (1st gen)",
     "AppleTV2,1": "Apple TV (2nd gen)",
