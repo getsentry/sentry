@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.group import Group
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
@@ -10,11 +11,14 @@ from sentry.testutils.factories import EventType
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
+    DataPacket,
+    DataSource,
     Detector,
     DetectorWorkflow,
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -66,9 +70,13 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         self,
         name_prefix="test",
         workflow_triggers: DataConditionGroup | None = None,
-        detector_type: str = ErrorGroupType.slug,
+        detector_type: str = MetricAlertFire.slug,
         **kwargs,
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
+        """
+        Create a Worfkllow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
+        These models are configured to work together to test the workflow engine.
+        """
         workflow_triggers = workflow_triggers or self.create_data_condition_group()
 
         if not workflow_triggers.conditions.exists():
@@ -99,6 +107,46 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         )
 
         return workflow, detector, detector_workflow, workflow_triggers
+
+    def create_test_query_data_source(self, detector) -> tuple[DataSource, DataPacket]:
+        """
+        Create a DataSource and DataPacket for testing; this will create a fake QuerySubscriptionUpdate and link it to a data_source.
+
+        A detector is required to create this test data, so we can ensure that the detector
+        has a condition to evaluate for the data_packet that evalutes to true.
+        """
+        subscription_update: QuerySubscriptionUpdate = {
+            "subscription_id": "123",
+            "values": {"foo": 1},
+            "timestamp": datetime.now(UTC),
+            "entity": "test-entity",
+        }
+
+        data_source = self.create_data_source(
+            query_id=subscription_update["subscription_id"],
+            organization=self.organization,
+        )
+
+        data_source.detectors.add(detector)
+
+        if detector.workflow_condition_group is None:
+            detector.workflow_condition_group = self.create_data_condition_group(logic_type="any")
+            detector.save()
+
+            self.create_data_condition(
+                condition_group=detector.workflow_condition_group,
+                type=Condition.EQUAL,
+                condition_result=DetectorPriorityLevel.HIGH,
+                comparison=1,
+            )
+
+        # Create a data_packet from the update for testing
+        data_packet = DataPacket[QuerySubscriptionUpdate](
+            query_id=subscription_update["subscription_id"],
+            packet=subscription_update,
+        )
+
+        return data_source, data_packet
 
     def create_workflow_action(
         self,

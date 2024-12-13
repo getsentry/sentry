@@ -1,6 +1,6 @@
 from unittest import mock
 
-from sentry.incidents.grouptype import MetricAlertFire
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
@@ -14,12 +14,13 @@ class TestProcessWorkflows(BaseWorkflowTest):
             self.detector,
             self.detector_workflow,
             self.workflow_triggers,
-        ) = self.create_detector_and_workflow(detector_type=MetricAlertFire.slug)
+        ) = self.create_detector_and_workflow()
 
         self.error_workflow, self.error_detector, self.detector_workflow_error, _ = (
             self.create_detector_and_workflow(
                 name_prefix="error",
                 workflow_triggers=self.create_data_condition_group(),
+                detector_type=ErrorGroupType.slug,
             )
         )
 
