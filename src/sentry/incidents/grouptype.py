@@ -52,8 +52,8 @@ class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate
 
     @property
     def counter_names(self) -> list[str]:
-        # Placeholder for now, this should be a list of counters that we want to upadte as we go above warning / critical
-        return ["activated"]
+        # Placeholder for now, this should be a list of counters that we want to update as we go above warning / critical
+        return []
 
     def get_dedupe_value(self, data_packet: DataPacket[QuerySubscriptionUpdate]) -> int:
         return int(data_packet.packet.get("timestamp", datetime.now(UTC)).timestamp())
