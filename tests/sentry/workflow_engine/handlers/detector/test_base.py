@@ -64,7 +64,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict]):
     def get_dedupe_value(self, data_packet: DataPacket[dict]) -> int:
         return data_packet.packet.get("dedupe", 0)
 
-    def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str, int]:
+    def get_group_key_values(self, data_packet: DataPacket[dict]) -> dict[str | None, int]:
         return data_packet.packet.get("group_vals", {})
 
     def build_occurrence_and_event_data(
