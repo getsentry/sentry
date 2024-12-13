@@ -53,6 +53,9 @@ class SDKCrashDetector:
         if mechanism_type and mechanism_type in self.config.ignore_mechanism_type:
             return False
 
+        if mechanism_type and mechanism_type in self.config.allow_mechanism_type:
+            return True
+
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
@@ -61,9 +64,6 @@ class SDKCrashDetector:
 
         is_fatal = get_path(event_data, "level") == "fatal"
         if is_fatal and self.config.report_fatal_errors:
-            return True
-
-        if mechanism_type in ["AppExitInfo", "ANR"]:
             return True
 
         return False

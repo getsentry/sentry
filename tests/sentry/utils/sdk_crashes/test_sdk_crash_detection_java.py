@@ -354,14 +354,35 @@ def test_anr_detected(mock_sdk_crash_reporter, mock_random, store_event, configs
                         sdk_frame_module="io.sentry.Hub",
                         system_frame_module="java.lang.reflect.Method",
                     ),
-                    mechanism={"type": "AppExitInfo"},
+                    mechanism={"type": "ANR", "handled": True},
                 ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_appexitinfo_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(
+        exception={
+            "values": [
                 get_exception(
                     frames=get_frames(
                         sdk_frame_module="io.sentry.Hub",
                         system_frame_module="java.lang.reflect.Method",
                     ),
-                    mechanism={"type": "ANR", "handled": True},
+                    mechanism={"type": "AppExitInfo"},
                 ),
             ]
         }
