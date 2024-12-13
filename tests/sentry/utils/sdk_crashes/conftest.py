@@ -26,6 +26,7 @@ def empty_cocoa_config() -> SDKCrashDetectionConfig:
         sdk_names={},
         report_fatal_errors=False,
         ignore_mechanism_type=set(),
+        allow_mechanism_type=set(),
         system_library_path_patterns=set(),
         sdk_frame_config=SDKFrameConfig(
             function_patterns=set(),
