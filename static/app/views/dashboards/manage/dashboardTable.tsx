@@ -359,5 +359,5 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledIconStar = styled(IconStar)`
-  margin-left: 2px;
+  margin-left: ${space(0.25)};
 `;
