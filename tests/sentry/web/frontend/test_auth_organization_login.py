@@ -891,7 +891,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
-        assert resp.redirect_chain == [("/auth/login/", 302), ("/organizations/foo/issues/", 302)]
+        assert resp.redirect_chain == [("/auth/login/", 302)]
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
