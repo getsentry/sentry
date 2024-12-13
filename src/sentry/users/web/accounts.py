@@ -411,7 +411,9 @@ def confirm_signed_email(
     level = messages.SUCCESS
 
     try:
-        data = unsign(signed_data, salt=EMAIL_CONFIRMATION_SALT)
+        data = unsign(
+            signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=172800
+        )  # max age is 2 days in seconds
 
         # is the currently logged in user the one that
         # wants to add the email to their account
