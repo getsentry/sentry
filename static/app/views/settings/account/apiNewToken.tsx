@@ -22,7 +22,6 @@ import PermissionSelection from 'sentry/views/settings/organizationDeveloperSett
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 export default function ApiNewToken() {
-  const [, setName] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<Permissions>({
     Event: 'no-access',
     Team: 'no-access',
@@ -102,7 +101,6 @@ export default function ApiNewToken() {
                     name="name"
                     label={t('Name')}
                     help={t('A name to help you identify this token.')}
-                    onChange={setName}
                   />
                 </PanelBody>
               </Panel>
