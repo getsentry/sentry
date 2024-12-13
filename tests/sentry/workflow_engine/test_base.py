@@ -75,7 +75,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     ) -> tuple[Workflow, Detector, DetectorWorkflow, DataConditionGroup]:
         """
         Create a Worfkllow, Detector, DetectorWorkflow, and DataConditionGroup for testing.
-        These models are configuerd to be related to each other.
+        These models are configured to work together to test the workflow engine.
         """
         workflow_triggers = workflow_triggers or self.create_data_condition_group()
 
