@@ -161,7 +161,7 @@ Required context variables:
             const initWithCreds = {
               ...init,
               headers: { ...init.headers, ...bearer },
-              credentials: 'same-origin',
+              credentials: 'include',
             };
             const response = await fetch(url, initWithCreds);
             return {
