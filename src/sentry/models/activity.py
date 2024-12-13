@@ -23,8 +23,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
-from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
@@ -191,6 +192,18 @@ class Activity(Model):
                 )
 
     def send_notification(self):
+        if self.group:
+            group_type = get_group_type_by_type_id(self.group.type)
+            has_status_change_notifications = group_type.enable_status_change_workflow_notifications
+            is_status_change = self.type in {
+                activity.value for activity in STATUS_CHANGE_ACTIVITY_TYPES
+            }
+
+            # Skip sending the activity notification if the group type does not
+            # support status change workflow notifications
+            if is_status_change and not has_status_change_notifications:
+                return
+
         activity.send_activity_notifications.delay(self.id)
 
 
