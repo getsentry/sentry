@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
@@ -615,29 +616,33 @@ class Fixtures:
         type="",
         condition_result=None,
         condition_group=None,
+        **kwargs,
     ):
         if condition_result is None:
             condition_result = str(DetectorPriorityLevel.HIGH.value)
         if condition_group is None:
             condition_group = self.create_data_condition_group()
+
         return Factories.create_data_condition(
             condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,
             condition_group=condition_group,
+            **kwargs,
         )
 
     def create_detector(
         self,
         *args,
         project=None,
+        type=ErrorGroupType.slug,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, **kwargs)
+        return Factories.create_detector(*args, project=project, type=type, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
@@ -660,7 +665,7 @@ class Fixtures:
     def create_workflow_data_condition_group(self, *args, **kwargs):
         return Factories.create_workflow_data_condition_group(*args, **kwargs)
 
-    # workflow_engine action
+    # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
 

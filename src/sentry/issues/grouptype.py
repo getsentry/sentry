@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
 from django.apps import apps
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
-    from sentry.workflow_engine.processors.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 
 import logging
@@ -177,6 +177,7 @@ class GroupType:
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
+    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

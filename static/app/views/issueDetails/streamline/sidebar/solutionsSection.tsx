@@ -5,7 +5,7 @@ import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import useDrawer from 'sentry/components/globalDrawer';
-import {GroupSummary, useGroupSummary} from 'sentry/components/group/groupSummary';
+import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,7 +50,8 @@ export default function SolutionsSection({
             viewAllButton?.contains(element) ||
             document.getElementById('sentry-feedback')?.contains(element) ||
             document.getElementById('autofix-rethink-input')?.contains(element) ||
-            document.getElementById('autofix-write-access-modal')?.contains(element)
+            document.getElementById('autofix-write-access-modal')?.contains(element) ||
+            element.closest('[data-overlay="true"]')
           ) {
             return false;
           }
@@ -60,12 +61,6 @@ export default function SolutionsSection({
       }
     );
   };
-
-  const {
-    data: summaryData,
-    isPending: isSummaryLoading,
-    isError: isSummaryError,
-  } = useGroupSummary(group, event, project);
 
   const aiConfig = useAiConfig(group, event, project);
 
@@ -107,16 +102,10 @@ export default function SolutionsSection({
       );
     }
 
-    // Show the summary's loading state if we're still loading the autofix setup
     if (aiConfig.hasSummary) {
       return (
         <Summary>
-          <GroupSummary
-            data={summaryData ?? undefined}
-            isError={isSummaryError}
-            isPending={isSummaryLoading}
-            preview
-          />
+          <GroupSummary group={group} event={event} project={project} preview />
         </Summary>
       );
     }

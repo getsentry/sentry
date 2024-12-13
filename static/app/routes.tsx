@@ -967,6 +967,21 @@ function buildRoutes() {
         name={t('Dynamic Sampling')}
         component={make(() => import('sentry/views/settings/dynamicSampling'))}
       />
+      <Route path="feature-flags/" name={t('Feature Flags')}>
+        <IndexRoute
+          component={make(() => import('sentry/views/settings/featureFlags'))}
+        />
+        <Route
+          path="new-provider/"
+          name={t('Add New Provider')}
+          component={make(
+            () =>
+              import(
+                'sentry/views/settings/featureFlags/organizationFeatureFlagsNewSecret'
+              )
+          )}
+        />
+      </Route>
     </Route>
   );
 

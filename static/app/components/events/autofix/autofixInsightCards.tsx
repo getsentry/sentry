@@ -86,13 +86,15 @@ export function ExpandableInsightContext({
   title,
   icon,
   rounded,
+  expandByDefault = false,
 }: {
   children: React.ReactNode;
   title: string;
+  expandByDefault?: boolean;
   icon?: React.ReactNode;
   rounded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(expandByDefault);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -581,6 +583,7 @@ const UserMessageContainer = styled('div')`
 const UserMessage = styled('div')`
   margin-left: ${space(2)};
   flex-shrink: 100;
+  word-break: break-word;
 `;
 
 const NoInsightsYet = styled('div')`
@@ -730,6 +733,7 @@ const MiniHeader = styled('p')`
   padding-right: ${space(2)};
   padding-left: ${space(2)};
   width: 95%;
+  word-break: break-word;
 `;
 
 const ExpandableContext = styled('div')<{isRounded?: boolean}>`

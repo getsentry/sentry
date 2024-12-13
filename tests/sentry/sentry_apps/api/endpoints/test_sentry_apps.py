@@ -41,6 +41,36 @@ EXPECTED = {
 }
 
 
+class MockOrganizationRoles:
+    TEST_ORG_ROLES = [
+        {
+            "id": "alice",
+            "name": "Alice",
+            "desc": "In Wonderland",
+            "scopes": ["rabbit:follow"],
+        },
+        {
+            "id": "owner",
+            "name": "Owner",
+            "desc": "Minimal version of Owner",
+            "scopes": ["org:admin"],
+        },
+    ]
+
+    TEST_TEAM_ROLES = [
+        {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
+    ]
+
+    def __init__(self):
+        from sentry.roles.manager import RoleManager
+
+        self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+        self.organization_roles = self.default_manager.organization_roles
+
+    def get(self, x):
+        return self.organization_roles.get(x)
+
+
 class SentryAppsTest(APITestCase):
     endpoint = "sentry-api-0-sentry-apps"
 
@@ -342,6 +372,21 @@ class GetSentryAppsTest(SentryAppsTest):
 
         response = self.get_success_response(status_code=200)
         assert internal_app.uuid not in [a["uuid"] for a in response.data]
+
+    def test_billing_users_dont_see_apps(self):
+        mock_org_roles = MockOrganizationRoles()
+        with (patch("sentry.roles.organization_roles.get", mock_org_roles.get),):
+            alice = self.create_member(
+                user=self.create_user(), organization=self.organization, role="alice"
+            )
+            self.login_as(alice)
+
+            response = self.get_success_response(
+                qs_params={"status": "unpublished"}, status_code=200
+            )
+            assert response.status_code == 200
+            content = orjson.loads(response.content)
+            assert content == []
 
 
 @control_silo_test

@@ -92,6 +92,7 @@ def timeseries_query(
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -100,7 +101,7 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
 
     with sentry_sdk.start_span(op="spans_indexed", name="TimeseriesSpanIndexedQueryBuilder"):
-        query = TimeseriesSpanIndexedQueryBuilder(
+        query_obj = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             {},
             rollup,
@@ -109,18 +110,19 @@ def timeseries_query(
             selected_columns=columns,
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
-        result = query.run_query(referrer, query_source=query_source)
+        result = query_obj.run_query(referrer, query_source=query_source)
     with sentry_sdk.start_span(op="spans_indexed", name="query.transform_results"):
-        result = query.process_results(result)
+        result = query_obj.process_results(result)
         result["data"] = (
             discover.zerofill(
                 result["data"],
                 snuba_params.start_date,
                 snuba_params.end_date,
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else result["data"]
@@ -227,7 +229,7 @@ def top_events_timeseries(
             {
                 "data": (
                     discover.zerofill(
-                        [], snuba_params.start_date, snuba_params.end_date, rollup, "time"
+                        [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
                     )
                     if zerofill_results
                     else []
@@ -241,7 +243,7 @@ def top_events_timeseries(
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
-        issues = {}
+        issues: dict[int, str | None] = {}
         translated_groupby = top_events_builder.translated_groupby
 
         results = (
@@ -262,8 +264,9 @@ def top_events_timeseries(
                     "spans_indexed.top-events.timeseries.key-mismatch",
                     extra={"result_key": result_key, "top_event_keys": list(results.keys())},
                 )
-        for key, item in results.items():
-            results[key] = SnubaTSResult(
+
+        return {
+            key: SnubaTSResult(
                 {
                     "data": (
                         discover.zerofill(
@@ -271,7 +274,7 @@ def top_events_timeseries(
                             snuba_params.start_date,
                             snuba_params.end_date,
                             rollup,
-                            "time",
+                            ["time"],
                         )
                         if zerofill_results
                         else item["data"]
@@ -282,5 +285,5 @@ def top_events_timeseries(
                 snuba_params.end_date,
                 rollup,
             )
-
-    return results
+            for key, item in results.items()
+        }

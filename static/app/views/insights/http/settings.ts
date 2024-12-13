@@ -3,6 +3,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Outbound API Requests');
 export const FRONTEND_MODULE_TITLE = t('Network Requests');
+export const MOBILE_MODULE_TITLE = t('Network Requests');
 export const MODULE_SIDEBAR_TITLE = t('Requests');
 export const DATA_TYPE = t('Request');
 export const DATA_TYPE_PLURAL = t('Requests');

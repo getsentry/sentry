@@ -114,7 +114,6 @@ def load_data(
     trace_context=None,
     fingerprint=None,
     event_id=None,
-    metrics_summary=None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -192,9 +191,6 @@ def load_data(
         else:
             start_timestamp = start_timestamp.replace(tzinfo=timezone.utc)
         data["start_timestamp"] = start_timestamp.timestamp()
-
-        if metrics_summary is not None:
-            data["_metrics_summary"] = metrics_summary
 
         if trace is None:
             trace = uuid4().hex
@@ -411,15 +407,6 @@ def create_sample_event(
         spans,
     )
 
-    if not data:
-        logger.info(
-            "create_sample_event: no data loaded",
-            extra={
-                "project_id": project.id,
-                "sample_event": True,
-            },
-        )
-        return
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:
             data["contexts"]["trace"][key] = kwargs.pop(key)

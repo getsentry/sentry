@@ -17,9 +17,14 @@ import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSele
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
+  isWidgetInvalid?: boolean;
 }
 
-function WidgetPreview({dashboard, dashboardFilters}: WidgetPreviewProps) {
+function WidgetPreview({
+  dashboard,
+  dashboardFilters,
+  isWidgetInvalid,
+}: WidgetPreviewProps) {
   const organization = useOrganization();
   const location = useLocation();
   const router = useRouter();
@@ -39,15 +44,14 @@ function WidgetPreview({dashboard, dashboardFilters}: WidgetPreviewProps) {
   // TODO: The way we create the widget here does not propagate a widget ID
   // to pass to the legend encoder decoder.
   const unselectedReleasesForCharts = {
-    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
-      'Releases',
-      'widget-builder'
-    )]: false,
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend('Releases', undefined)]:
+      false,
   };
 
   return (
     <WidgetCard
       disableFullscreen
+      isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}
       selection={pageFilters.selection}
@@ -68,10 +72,6 @@ function WidgetPreview({dashboard, dashboardFilters}: WidgetPreviewProps) {
           : undefined
       }
       widgetLegendState={widgetLegendState}
-      // TODO: This can only be set once we have the filter bar in place
-      isWidgetInvalid={false}
-      // isWidgetInvalid={!state.queryConditionsValid}
-
       // TODO: This will be filled in once we start supporting thresholds
       onDataFetched={() => {}}
       // onDataFetched={onDataFetched}

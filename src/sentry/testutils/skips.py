@@ -12,15 +12,6 @@ from django.conf import settings
 T = TypeVar("T", bound=Callable[..., Any])
 
 
-def is_arm64() -> bool:
-    return os.uname().machine == "arm64"
-
-
-requires_not_arm64 = pytest.mark.skipif(
-    is_arm64(), reason="this test fails in our arm64 testing env"
-)
-
-
 def xfail_if_not_postgres(reason: str) -> Callable[[T], T]:
     def decorator(function: T) -> T:
         return pytest.mark.xfail(os.environ.get("TEST_SUITE") != "postgres", reason=reason)(

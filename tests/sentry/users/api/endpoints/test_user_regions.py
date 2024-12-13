@@ -85,7 +85,7 @@ class UserUserRolesTest(APITestCase):
         self.create_organization(region="de", owner=self.user)
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         response = self.get_success_response(
-            "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token}"}
+            "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token.token}"}
         )
         assert "regions" in response.data
         assert response.data["regions"] == [de.api_serialize(), us.api_serialize()]
@@ -99,7 +99,7 @@ class UserUserRolesTest(APITestCase):
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         self.get_error_response(
             other_user.id,
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token}"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token.token}"},
             status_code=403,
         )
 
@@ -110,7 +110,9 @@ class UserUserRolesTest(APITestCase):
 
         auth_token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
         self.get_error_response(
-            "me", extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token}"}, status_code=403
+            "me",
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {auth_token.token}"},
+            status_code=403,
         )
 
     @override_regions(region_config)
