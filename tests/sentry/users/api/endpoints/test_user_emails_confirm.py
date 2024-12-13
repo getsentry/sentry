@@ -211,4 +211,11 @@ class UserEmailsConfirmTest(APITestCase):
         resp = self.client.get(
             reverse("sentry-account-confirm-signed-email", args=[signed_data]), follow=True
         )
-        assert resp.status_code == 404
+        assert resp.status_code == 200
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert (
+            messages[0].message
+            == "There was an error confirming your email. Please try again or visit your Account Settings to resend the verification email."
+        )

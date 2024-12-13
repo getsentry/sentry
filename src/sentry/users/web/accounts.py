@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_user
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import router, transaction
-from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
@@ -405,7 +405,10 @@ def confirm_signed_email(
 
     use_signed_urls = options.get("user-settings.signed-url-confirmation-emails")
     if not use_signed_urls:
-        return HttpResponseNotFound()
+        msg = ERR_CONFIRMING_EMAIL
+        level = messages.ERROR
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
 
     msg = _("Thanks for confirming your email")
     level = messages.SUCCESS
