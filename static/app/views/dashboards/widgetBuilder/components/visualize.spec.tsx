@@ -367,6 +367,44 @@ describe('Visualize', () => {
       'spans.db'
     );
   });
+
+  it('properly transitions between aggregates of higher to no parameter count', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count_if(transaction.duration,equals,testValue)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'None'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'count'
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['count()'],
+        }),
+      })
+    );
+  });
+
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
     render(
       <WidgetBuilderProvider>

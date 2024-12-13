@@ -243,17 +243,17 @@ function Visualize() {
                                     currentField.function[i + 1] =
                                       newAggregate.value.meta.parameters[i].defaultValue;
                                   }
+                                }
 
-                                  // Wipe out the remaining parameters that are unnecessary
-                                  // This is necessary for transitioning between aggregates that have
-                                  // more parameters to ones of fewer parameters
-                                  for (
-                                    let i = newAggregate.value.meta.parameters.length;
-                                    i < MAX_FUNCTION_PARAMETERS;
-                                    i++
-                                  ) {
-                                    currentField.function[i + 1] = undefined;
-                                  }
+                                // Wipe out the remaining parameters that are unnecessary
+                                // This is necessary for transitioning between aggregates that have
+                                // more parameters to ones of fewer parameters
+                                for (
+                                  let i = newAggregate.value.meta.parameters.length;
+                                  i < MAX_FUNCTION_PARAMETERS;
+                                  i++
+                                ) {
+                                  currentField.function[i + 1] = undefined;
                                 }
                               }
                             } else {
