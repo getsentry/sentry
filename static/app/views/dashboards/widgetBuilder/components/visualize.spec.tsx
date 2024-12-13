@@ -221,6 +221,93 @@ describe('Visualize', () => {
     expect(screen.getByLabelText('Equation')).toHaveValue('count() * 2');
   });
 
+  it('renders a field without an aggregate in tables', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['transaction.duration'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('transaction.duration');
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'None'
+    );
+  });
+
+  it('allows setting a field without an aggregate in tables', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'None'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction.duration'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'None'
+    );
+  });
+
+  it('allows setting an equation in tables', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+    await userEvent.click(screen.getByLabelText('Equation'));
+    await userEvent.click(screen.getByRole('listitem', {name: 'count()'}));
+    await userEvent.type(screen.getByLabelText('Equation'), '* 2');
+
+    expect(screen.getByLabelText('Equation')).toHaveValue('count() * 2');
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
