@@ -174,6 +174,9 @@ class GroupType:
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
     detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
+    # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
+    enable_status_change_workflow_notifications: bool = True
     detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
@@ -636,6 +639,7 @@ class MetricIssuePOC(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
 
 
 def should_create_group(
