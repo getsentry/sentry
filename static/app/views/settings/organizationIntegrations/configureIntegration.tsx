@@ -255,7 +255,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         <LinkButton
           aria-label={t('Open this server in the Discord app')}
           size="sm"
-          href={`discord://discord.com/channels/${integration.externalId}`}
+          href={`https://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}
         </LinkButton>
