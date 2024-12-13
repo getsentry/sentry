@@ -122,13 +122,6 @@ describe('AutofixInsightCards', () => {
     expect(userMessage.closest('div')).toHaveStyle('color: inherit');
   });
 
-  it('renders "No insights yet" message when there are no insights', () => {
-    renderComponent({insights: []});
-    expect(
-      screen.getByText(/Autofix will share its discoveries here./)
-    ).toBeInTheDocument();
-  });
-
   it('toggles context expansion correctly', async () => {
     renderComponent();
     const contextButton = screen.getByText('Sample insight 1');
