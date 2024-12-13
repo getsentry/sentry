@@ -26,6 +26,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
+import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -72,7 +73,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
-
   const config = getConfigForIssueType(group, group.project);
 
   const {
@@ -161,6 +161,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const currentEventSeries = useCurrentEventMarklineSeries({
+    event,
+    group,
+  });
   const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
@@ -228,6 +232,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
+    if (currentEventSeries.markLine) {
+      seriesData.push(currentEventSeries as BarChartSeries);
+    }
+
     if (releaseSeries.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
@@ -241,6 +249,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     visibleSeries,
     userSeries,
     eventSeries,
+    currentEventSeries,
     releaseSeries,
     flagSeries,
     theme,
