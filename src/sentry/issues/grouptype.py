@@ -5,7 +5,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
 from django.apps import apps
@@ -174,6 +174,7 @@ class GroupType:
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
     detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)

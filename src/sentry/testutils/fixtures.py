@@ -12,6 +12,7 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
@@ -635,12 +636,13 @@ class Fixtures:
         self,
         *args,
         project=None,
+        type=ErrorGroupType.slug,
         **kwargs,
     ) -> Detector:
         if project is None:
             project = self.create_project(organization=self.organization)
 
-        return Factories.create_detector(*args, project=project, **kwargs)
+        return Factories.create_detector(*args, project=project, type=type, **kwargs)
 
     def create_detector_state(self, *args, **kwargs) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
