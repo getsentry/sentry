@@ -1,6 +1,11 @@
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.utils import metrics
 
+"""
+We pull these methods out of the subscription processor to be used by the
+workflow engine data condition handlers.
+"""
+
 # NOTE (mifu67): this is set to None in the subscription processor code and doesn't
 # seem to be used. Maybe we don't need the logic gated by it?
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
