@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import socket
 from collections.abc import Callable
 from typing import Any, TypeVar
@@ -10,15 +9,6 @@ import pytest
 from django.conf import settings
 
 T = TypeVar("T", bound=Callable[..., Any])
-
-
-def xfail_if_not_postgres(reason: str) -> Callable[[T], T]:
-    def decorator(function: T) -> T:
-        return pytest.mark.xfail(os.environ.get("TEST_SUITE") != "postgres", reason=reason)(
-            function
-        )
-
-    return decorator
 
 
 def skip_for_relay_store(reason: str) -> Callable[[T], T]:
