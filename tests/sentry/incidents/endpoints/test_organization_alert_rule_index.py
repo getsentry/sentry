@@ -807,7 +807,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             resp = self.get_response(self.organization.slug, **alert_rule)
 
         assert resp.status_code == 400
-        assert error_message in resp.data["sentry_app"]
+        assert error_message in resp.data
 
     def test_no_label(self):
         rule_one_trigger_no_label = {
