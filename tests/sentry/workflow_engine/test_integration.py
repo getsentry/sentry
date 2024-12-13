@@ -110,7 +110,7 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
     def test_workflow_engine__data_source__no_detectors(self):
-        self.create_test_data_source()
+        self.data_source, self.data_packet = self.create_test_query_data_source(self.detector)
         self.detector.delete()
 
         with mock.patch(
