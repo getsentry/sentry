@@ -1,8 +1,8 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -21,6 +21,7 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -90,7 +91,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
     return EventView.fromNewQueryWithPageFilters(discoverQuery, selection);
   }, [dataset, sortBys, query, selection, visibleFields]);
 
-  const columns = useMemo(() => eventView.getColumns(), [eventView]);
+  const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
 
   const result = useSpansQuery({
     eventView,
@@ -115,14 +116,8 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
     confidence,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: visibleFields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(visibleFields, tableRef);
 
   const meta = result.meta ?? {};
 
@@ -131,7 +126,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
 
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {visibleFields.map((field, i) => {
@@ -152,26 +147,33 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
               }
 
               return (
-                <StyledTableHeadCell
-                  align={align}
-                  key={i}
-                  isFirst={i === 0}
-                  onClick={updateSort}
-                >
-                  <span>{tag?.name ?? prettifyTagKey(field)}</span>
-                  {defined(direction) && (
-                    <IconArrow
-                      size="xs"
-                      direction={
-                        direction === 'desc'
-                          ? 'down'
-                          : direction === 'asc'
-                            ? 'up'
-                            : undefined
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{tag?.name ?? prettifyTagKey(field)}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== visibleFields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
                       }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
                     />
                   )}
-                </StyledTableHeadCell>
+                </TableHeadCell>
               );
             })}
           </TableRow>
@@ -192,7 +194,7 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
                   return (
                     <TableBodyCell key={j}>
                       <FieldRenderer
-                        column={columns[j]}
+                        column={columnsFromEventView[j]}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -215,7 +217,3 @@ export function SpansTable({confidence, setError}: SpansTableProps) {
     </Fragment>
   );
 }
-
-const StyledTableHeadCell = styled(TableHeadCell)`
-  cursor: pointer;
-`;
