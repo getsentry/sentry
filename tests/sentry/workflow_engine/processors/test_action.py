@@ -28,7 +28,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.create_data_condition(
             condition_group=self.action_group,
             type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="group.times_seen",
+            condition="event.group.times_seen",
             comparison=1,
             condition_result=True,
         )
