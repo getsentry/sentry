@@ -1,3 +1,5 @@
+import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,11 +8,17 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useParams} from 'sentry/utils/useParams';
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import {
+  type DashboardDetails,
+  type DashboardFilters,
+  DisplayType,
+  type Widget,
+} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
@@ -19,14 +27,34 @@ import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualiz
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
+  dashboard: DashboardDetails;
+  dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
-function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutProps) {
+function WidgetBuilderSlideout({
+  isOpen,
+  onClose,
+  onSave,
+  dashboard,
+  dashboardFilters,
+}: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
+  const theme = useTheme();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const isEditing = widgetIndex !== undefined;
   const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
   const isChartWidget =
@@ -64,6 +92,14 @@ function WidgetBuilderSlideout({isOpen, onClose, onSave}: WidgetBuilderSlideoutP
         <Section>
           <WidgetBuilderTypeSelector />
         </Section>
+        {windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) && (
+          <Section>
+            <WidgetPreviewContainer
+              dashboard={dashboard}
+              dashboardFilters={dashboardFilters}
+            />
+          </Section>
+        )}
         <Section>
           <Visualize />
         </Section>

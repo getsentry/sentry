@@ -49,6 +49,20 @@ function WidgetBuilderV2({
   const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const theme = useTheme();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isSmallScreen =
+    windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
 
   const [{translate}, setTranslate] = useState<{
     initialTranslate: Translate;
@@ -108,14 +122,18 @@ function WidgetBuilderV2({
                         });
                       }}
                       onSave={onSave}
+                      dashboard={dashboard}
+                      dashboardFilters={dashboardFilters}
                     />
-                    <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
-                      <WidgetPreviewContainer
-                        dashboardFilters={dashboardFilters}
-                        dashboard={dashboard}
-                        translate={translate}
-                      />
-                    </DndContext>
+                    {!isSmallScreen && (
+                      <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
+                        <WidgetPreviewContainer
+                          dashboardFilters={dashboardFilters}
+                          dashboard={dashboard}
+                          translate={translate}
+                        />
+                      </DndContext>
+                    )}
                   </WidgetBuilderContainer>
                 </ContainerWithoutSidebar>
               </SpanTagsProvider>
@@ -129,20 +147,21 @@ function WidgetBuilderV2({
 
 export default WidgetBuilderV2;
 
-function WidgetPreviewContainer({
+export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
   translate,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  translate: Translate;
+  translate?: Translate;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
 
+  // if scrolled past preview, disable dragging
   const isDragEnabled =
     window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
 
@@ -222,36 +241,34 @@ const Backdrop = styled('div')`
 `;
 
 const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
-  width: 30vw;
-  min-width: 400px;
+  width: 100%;
+  min-width: 100%;
   height: ${p => (p.isTable ? 'auto' : '400px')};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
-  z-index: ${p => p.theme.zIndex.modal};
+  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 30vw;
+    min-width: 400px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
 `;
 
 const DraggableWidgetContainer = styled(`div`)`
   align-content: center;
-  z-index: ${p => p.theme.zIndex.modal};
+  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
   margin: auto;
-
-  touch-action: none; /* Prevents touch scrolling while dragging */
-  cursor: grab;
-
-  &:active {
-    cursor: grabbing;
-  }
+  cursor: auto;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
+    z-index: ${p => p.theme.zIndex.modal};
     transform: none;
     cursor: auto;
-
-    &:active {
-      cursor: auto;
-    }
   }
 `;
 
