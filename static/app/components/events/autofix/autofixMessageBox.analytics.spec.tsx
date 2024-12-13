@@ -45,11 +45,13 @@ describe('AutofixMessageBox Analytics', () => {
     mockButton.mockClear();
   });
 
-  it('passes correct analytics props for suggested root cause without instructions', () => {
+  it('passes correct analytics props for suggested root cause without instructions', async () => {
     const onSendMock = jest.fn();
     render(
       <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
     );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
 
     expect(mockButton).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -69,6 +71,8 @@ describe('AutofixMessageBox Analytics', () => {
     render(
       <AutofixMessageBox {...defaultProps} onSend={onSendMock} isRootCauseSelectionStep />
     );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Use suggested root cause'}));
 
     const input = screen.getByPlaceholderText(
       '(Optional) Provide any instructions for the fix...'
@@ -126,7 +130,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     // Find the last call to Button that matches our Create PR button
     const createPRButtonCall = mockButton.mock.calls.find(
@@ -156,7 +160,7 @@ describe('AutofixMessageBox Analytics', () => {
 
     render(<AutofixMessageBox {...changesStepProps} />);
 
-    await userEvent.click(screen.getByRole('radio', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     // Find the last call to Button that matches our Setup button
     const setupButtonCall = mockButton.mock.calls.find(
