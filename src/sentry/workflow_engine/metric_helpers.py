@@ -62,6 +62,12 @@ def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
     except AlertRuleDetector.DoesNotExist:
         return None
 
+    threshold_to_condition = {
+        AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
+        AlertRuleThresholdType.BELOW.value: Condition.LESS,
+        AlertRuleThresholdType.ABOVE_AND_BELOW.value: Condition.ABOVE_AND_BELOW,
+    }
+
     data_condition_group = alert_rule_detector.detector.workflow_condition_group
     if not data_condition_group:
         return None
@@ -72,12 +78,11 @@ def create_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
         else DetectorPriorityLevel.HIGH
     )
     threshold_type = alert_rule_trigger.alert_rule.threshold_type
-    condition = (
-        Condition.GREATER if threshold_type == AlertRuleThresholdType.ABOVE else Condition.LESS
-    )
+    # XXX: we read the threshold type off of the alert_rule and NOT the alert_rule_trigger
+    # alert_rule_trigger.threshold_type is a deprecated feature we are not moving over
 
     data_condition = DataCondition.objects.create(
-        condition=condition,
+        condition=threshold_to_condition[threshold_type],
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
         type=ConditionType.METRIC_CONDITION,
