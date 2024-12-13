@@ -146,7 +146,7 @@ APPLETVGEN1 = "Apple TV (1st gen)"
 APPLETVGEN2 = "Apple TV (2nd gen)"
 APPLETVGEN3 = "Apple TV (3rd gen)"
 
-# https://www.theiphonewiki.com/wiki/Models
+# see https://theapplewiki.com/wiki/models
 IOS_MODELS: dict[str, str] = {
     # iPhone
     "iPhone1,1": "iPhone (1st gen)",
@@ -281,6 +281,10 @@ IOS_MODELS: dict[str, str] = {
     "iPad13,9": IPADPRO12GEN5,
     "iPad13,10": IPADPRO12GEN5,
     "iPad13,11": IPADPRO12GEN5,
+    "iPad14,3": IPADPRO11GEN4,
+    "iPad14,4": IPADPRO11GEN4,
+    "iPad14,5": IPADPRO12GEN6,
+    "iPad14,6": IPADPRO12GEN6,
     "iPad16,3": IPADPRO11GEN5,
     "iPad16,4": IPADPRO11GEN5,
     "iPad16,5": IPADPRO12GEN7,
@@ -303,10 +307,6 @@ IOS_MODELS: dict[str, str] = {
     "iPad13,19": IPADGEN10,
     "iPad14,1": IPADMINIGEN6,
     "iPad14,2": IPADMINIGEN6,
-    "iPad14,3": IPADPRO11GEN4,
-    "iPad14,4": IPADPRO11GEN4,
-    "iPad14,5": IPADPRO12GEN6,
-    "iPad14,6": IPADPRO12GEN6,
     # Apple Watch
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,
