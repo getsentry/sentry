@@ -102,7 +102,7 @@ Required context variables:
           'did-login': ({ cookie, token }) => {
             if (cookie) {
               document.cookie = getCookieValue(cookie, window.location.hostname);
-              document.cookie = getCookieValue(cookie, regionUrl);
+              document.cookie = getCookieValue(cookie, new URL(regionUrl).hostname);
               log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
             }
             if (token) {
