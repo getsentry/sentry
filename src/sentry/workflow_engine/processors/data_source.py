@@ -23,7 +23,7 @@ def process_data_sources(
         ).prefetch_related(Prefetch("detectors"))
 
     # Build a lookup dict for query_id to detectors
-    query_id_to_detectors = {str(ds.query_id): list(ds.detectors.all()) for ds in data_sources}
+    query_id_to_detectors = {ds.query_id: list(ds.detectors.all()) for ds in data_sources}
 
     # Create the result tuples
     result = []
