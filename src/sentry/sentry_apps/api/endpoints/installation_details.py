@@ -19,6 +19,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationUpdater,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.utils.audit import create_audit_entry
 
 
@@ -31,6 +32,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         "PUT": ApiPublishStatus.UNKNOWN,
     }
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, installation) -> Response:
         return Response(
             serialize(
@@ -40,6 +42,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
             )
         )
 
+    @catch_and_handle_sentry_app_errors
     def delete(self, request: Request, installation) -> Response:
         sentry_app_installation = SentryAppInstallation.objects.get(id=installation.id)
         with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
@@ -71,6 +74,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         )
         return Response(status=204)
 
+    @catch_and_handle_sentry_app_errors
     def put(self, request: Request, installation) -> Response:
         serializer = SentryAppInstallationParser(installation, data=request.data, partial=True)
 

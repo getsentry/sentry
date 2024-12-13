@@ -15,6 +15,10 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseE
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.sentry_apps.utils.errors import (
+    SentryAppIntegratorError,
+    catch_and_handle_sentry_app_errors,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +42,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, installation) -> Response:
         scope = sentry_sdk.Scope.get_isolation_scope()
 
@@ -74,7 +79,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 ).run()
             else:
                 return Response({"error": "Invalid grant_type"}, status=403)
-        except APIUnauthorized as e:
+        except (SentryAppIntegratorError, APIUnauthorized) as e:
             logger.warning(
                 e,
                 exc_info=True,
@@ -85,7 +90,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                     "sentry_app_id": installation.sentry_app.id,
                 },
             )
-            return Response({"error": e.msg or "Unauthorized"}, status=403)
+            raise
 
         attrs = {"state": request.json_body.get("state"), "application": None}
 

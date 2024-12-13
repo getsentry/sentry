@@ -15,6 +15,7 @@ from sentry.sentry_apps.api.serializers.sentry_app import (
     SentryAppSerializer as ResponseSentryAppSerializer,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 
 @control_silo_endpoint
@@ -24,6 +25,7 @@ class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    @catch_and_handle_sentry_app_errors
     @add_integration_platform_metric_tag
     def get(
         self,

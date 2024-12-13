@@ -1,16 +1,15 @@
 import logging
 
-from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.coreapi import APIError
 from sentry.models.project import Project
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
 from sentry.sentry_apps.external_requests.select_requester import SelectRequester
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 logger = logging.getLogger("sentry.sentry-apps")
 
@@ -22,6 +21,7 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, installation) -> Response:
         try:
             project = Project.objects.get(
@@ -40,18 +40,6 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
         if project:
             kwargs.update({"project_slug": project.slug})
 
-        try:
-            choices = SelectRequester(**kwargs).run()
-        except ValidationError as e:
-            return Response(
-                {"error": e.message},
-                status=400,
-            )
-        except APIError:
-            message = f'Error retrieving select field options from {request.GET.get("uri")}'
-            return Response(
-                {"error": message},
-                status=400,
-            )
+        choices = SelectRequester(**kwargs).run()
 
         return Response(choices)

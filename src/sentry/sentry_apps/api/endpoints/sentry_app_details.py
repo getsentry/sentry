@@ -18,7 +18,6 @@ from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
-    catch_raised_errors,
 )
 from sentry.sentry_apps.api.parsers.sentry_app import SentryAppParser
 from sentry.sentry_apps.api.serializers.sentry_app import (
@@ -28,6 +27,10 @@ from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import (
+    SentryAppIntegratorError,
+    catch_and_handle_sentry_app_errors,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -52,6 +55,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     }
     permission_classes = (SentryAppDetailsEndpointPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         return Response(
             serialize(
@@ -62,7 +66,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             )
         )
 
-    @catch_raised_errors
+    @catch_and_handle_sentry_app_errors
     def put(self, request: Request, sentry_app) -> Response:
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
@@ -151,6 +155,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         return Response(serializer.errors, status=400)
 
+    @catch_and_handle_sentry_app_errors
     def delete(self, request: Request, sentry_app) -> Response:
         if sentry_app.metadata.get("partnership_restricted", False):
             return Response(
@@ -171,6 +176,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                             deletions.exec_sync(install)
                     except RequestException as exc:
                         sentry_sdk.capture_exception(exc)
+                        raise SentryAppIntegratorError(exc)
 
             with transaction.atomic(using=router.db_for_write(SentryApp)):
                 deletions.exec_sync(sentry_app)

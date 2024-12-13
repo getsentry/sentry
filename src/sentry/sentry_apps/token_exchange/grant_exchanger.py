@@ -73,7 +73,7 @@ class GrantExchanger:
             )
 
         if not self._grant_is_active():
-            raise APIUnauthorized("Grant has already expired")
+            raise SentryAppIntegratorError(APIUnauthorized("Grant has already expired"))
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id

@@ -8,6 +8,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 
 @region_silo_endpoint
@@ -16,6 +17,7 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
         "DELETE": ApiPublishStatus.UNKNOWN,
     }
 
+    @catch_and_handle_sentry_app_errors
     def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(
@@ -24,7 +26,10 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
                 service_type=installation.sentry_app.slug,
             )
         except PlatformExternalIssue.DoesNotExist:
-            return Response(status=404)
+            return Response(
+                {"error": f"Could not find external issue from {installation.sentry_app.slug}"},
+                status=404,
+            )
 
         deletions.exec_sync(platform_external_issue)
 

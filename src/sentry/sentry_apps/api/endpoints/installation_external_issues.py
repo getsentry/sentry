@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -17,6 +16,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer as ResponsePlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 
 class PlatformExternalIssueSerializer(serializers.Serializer):
@@ -32,6 +32,7 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, installation) -> Response:
         data = request.data
 
@@ -41,26 +42,22 @@ class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
                 project_id__in=Project.objects.filter(organization_id=installation.organization_id),
             )
         except Group.DoesNotExist:
-            return Response(status=404)
+            return Response(
+                {"error": f"Could not find requested issue with ID {data.get("issueId")}"},
+                status=404,
+            )
 
         serializer = PlatformExternalIssueSerializer(data=request.data)
         if serializer.is_valid():
-            try:
-                external_issue = ExternalIssueCreator(
-                    install=installation,
-                    group=group,
-                    web_url=data["webUrl"],
-                    project=data["project"],
-                    identifier=data["identifier"],
-                ).run()
-            except Exception as e:
-                error_id = capture_exception(e)
-                return Response(
-                    {
-                        "error": f"An issue occured while trying to create external issue. Sentry error ID: {error_id}"
-                    },
-                    status=500,
-                )
+
+            external_issue = ExternalIssueCreator(
+                install=installation,
+                group=group,
+                web_url=data["webUrl"],
+                project=data["project"],
+                identifier=data["identifier"],
+            ).run()
+
             return Response(
                 serialize(
                     objects=external_issue, serializer=ResponsePlatformExternalIssueSerializer()
