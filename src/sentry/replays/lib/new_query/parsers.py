@@ -30,7 +30,6 @@ def parse_duration(value: str) -> int:
     milliseconds = parse_int(value)
     if milliseconds % 1000:
         # TODO: remove once we support milliseconds.
-        # TODO: this error isn't actually returned to the frontend, it's caught and then we raise a ParseError
         raise CouldNotParseValue(
             f"Replays only supports second-resolution timestamps at this time. Try '{milliseconds // 1000}s' instead."
         )
