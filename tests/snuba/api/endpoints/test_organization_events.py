@@ -38,7 +38,6 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -3373,7 +3372,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
-    @requires_not_arm64
     def test_null_user_misery_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
@@ -3393,7 +3391,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["user_misery(300)"] == 0
 
-    @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
