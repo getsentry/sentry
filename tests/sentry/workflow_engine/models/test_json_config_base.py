@@ -47,7 +47,7 @@ class TestJsonConfigBase(BaseGroupTypeTest):
         }
         with (
             patch(
-                "sentry.workflow_engine.models.Workflow.CONFIG_SCHEMA",
+                "sentry.workflow_engine.models.Workflow.config_schema",
                 return_value=self.example_schema,
                 new_callable=PropertyMock,
             ),
