@@ -104,7 +104,7 @@ IPADAIRGEN3 = "iPad Air (3rd gen)"
 IPADAIRGEN4 = "iPad Air (4th gen)"
 IPADAIRGEN5 = "iPad Air (5th gen)"
 IPADAIRGEN6 = "iPad Air (6th gen)"
-IPADAIRGEN6 = "iPad Air (7th gen)"
+IPADAIRGEN7 = "iPad Air (7th gen)"
 
 IPADPRO9GEN1 = "iPad Pro (9.7-inch)"
 IPADPRO10 = "iPad Pro (10.5-inch)"
