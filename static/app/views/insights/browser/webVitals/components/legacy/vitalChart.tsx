@@ -26,15 +26,20 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
-import type {QUERY_KEYS} from 'sentry/views/performance/utils';
 import {useLocation} from 'sentry/utils/useLocation';
+import {
+  VitalState,
+  vitalStateColors,
+  webVitalMeh,
+  webVitalPoor,
+} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalUtils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {
   replaceSeriesName,
   transformEventStatsSmoothed,
 } from 'sentry/views/performance/trends/utils';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
+import type {QUERY_KEYS} from 'sentry/views/performance/utils';
 
 export type ViewProps = Pick<EventView, (typeof QUERY_KEYS)[number]>;
 
@@ -426,34 +431,6 @@ export function getVitalChartDefinitions({
     utc,
   };
 }
-
-export enum VitalState {
-  POOR = 'Poor',
-  MEH = 'Meh',
-  GOOD = 'Good',
-}
-
-const vitalStateColors: Record<VitalState, Color> = {
-  [VitalState.POOR]: 'red300',
-  [VitalState.MEH]: 'yellow300',
-  [VitalState.GOOD]: 'green300',
-};
-
-const webVitalPoor = {
-  [WebVital.FP]: 3000,
-  [WebVital.FCP]: 3000,
-  [WebVital.LCP]: 4000,
-  [WebVital.FID]: 300,
-  [WebVital.CLS]: 0.25,
-};
-
-const webVitalMeh = {
-  [WebVital.FP]: 1000,
-  [WebVital.FCP]: 1000,
-  [WebVital.LCP]: 2500,
-  [WebVital.FID]: 100,
-  [WebVital.CLS]: 0.1,
-};
 
 function getVitalChartTitle(webVital: WebVital): string {
   if (webVital === WebVital.CLS) {

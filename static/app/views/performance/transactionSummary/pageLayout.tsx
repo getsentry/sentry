@@ -30,6 +30,7 @@ import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/pe
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
+import {vitalsRouteWithQuery} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalChart';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
@@ -44,7 +45,6 @@ import {profilesRouteWithQuery} from './transactionProfiles/utils';
 import {replaysRouteWithQuery} from './transactionReplays/utils';
 import {spansRouteWithQuery} from './transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import TransactionHeader, {type Props as TransactionHeaderProps} from './header';
 import Tab from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';

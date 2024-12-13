@@ -23,7 +23,9 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
-import {VitalBar} from 'sentry/views/performance/transactionSummary/transactionVitals/vitalBar';
+import {VitalBar} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalBar';
+import {_VitalChart} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalChart';
+import {vitalDetailRouteWithQuery} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalUtils';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -32,8 +34,6 @@ import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
-import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {Accordion} from '../components/accordion';
