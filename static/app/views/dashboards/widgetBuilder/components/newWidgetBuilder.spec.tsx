@@ -84,6 +84,10 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
