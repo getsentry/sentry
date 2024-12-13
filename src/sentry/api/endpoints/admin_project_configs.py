@@ -53,13 +53,16 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
     def post(self, request: Request) -> Response:
         """Regenerate the project config"""
         project_id = request.data.get("projectId")
-        if project_id is not None:
-            try:
-                schedule_invalidate_project_config(
-                    project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
-                )
 
-            except Exception:
-                raise Http404
+        if not project_id:
+            return Response({"error": "Missing project id"}, status=400)
+
+        try:
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
+            )
+
+        except Exception:
+            raise Http404
 
         return Response(status=204)
