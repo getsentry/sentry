@@ -26,3 +26,4 @@ class MetricAlertFire(GroupType):
     enable_escalation_detection = False
     detector_handler = MetricAlertDetectorHandler
     detector_validator = MetricAlertsDetectorValidator
+    detector_config_schema = {}  # TODO(colleen): update this
