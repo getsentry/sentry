@@ -281,7 +281,9 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             </div>
           );
         })}
-        <AutofixOutputStream step={lastStep} />
+        {lastStep.output_stream && (
+          <AutofixOutputStream stream={lastStep.output_stream} />
+        )}
       </StepsContainer>
 
       <AutofixMessageBox

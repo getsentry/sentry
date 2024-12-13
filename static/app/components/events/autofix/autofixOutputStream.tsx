@@ -3,13 +3,12 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import type {AutofixStep} from 'sentry/components/events/autofix/types';
 import {IconArrow} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
 interface Props {
-  step: AutofixStep;
+  stream: string;
 }
 
 const shimmer = keyframes`
@@ -21,18 +20,13 @@ const shimmer = keyframes`
   }
 `;
 
-export function AutofixOutputStream({step}: Props) {
+export function AutofixOutputStream({stream}: Props) {
   const [displayedText, setDisplayedText] = useState('');
-  const intervalRef = useRef<number>();
   const previousText = useRef('');
   const currentIndexRef = useRef(0);
 
   useEffect(() => {
-    if (!step.output_stream) {
-      return undefined;
-    }
-
-    const newText = step.output_stream;
+    const newText = stream;
 
     // Reset animation if the new text is completely different
     if (!newText.startsWith(displayedText)) {
@@ -41,25 +35,19 @@ export function AutofixOutputStream({step}: Props) {
       setDisplayedText('');
     }
 
-    intervalRef.current = window.setInterval(() => {
+    const interval = window.setInterval(() => {
       if (currentIndexRef.current < newText.length) {
         setDisplayedText(newText.slice(0, currentIndexRef.current + 1));
         currentIndexRef.current++;
       } else {
-        window.clearInterval(intervalRef.current);
+        window.clearInterval(interval);
       }
     }, 15);
 
     return () => {
-      if (intervalRef.current !== undefined) {
-        window.clearInterval(intervalRef.current);
-      }
+      window.clearInterval(interval);
     };
-  }, [displayedText, step.output_stream]);
-
-  if (!step.output_stream) {
-    return null;
-  }
+  }, [displayedText, stream]);
 
   return (
     <AnimatePresence mode="wait">
