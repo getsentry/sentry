@@ -10,12 +10,11 @@ from django.db.models import Q
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
-from sentry import features, nodestore, options
+from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
-from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
@@ -55,10 +54,6 @@ SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)
-
-
-class FeatureError(Exception):
-    pass
 
 
 class GroupEventRow(TypedDict):
@@ -142,8 +137,6 @@ def initialize_backfill(
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
-    if not features.has("projects:similarity-embeddings-backfill", project):
-        raise FeatureError("Project does not have feature")
 
     last_processed_project_index_ret = (
         last_processed_project_index if last_processed_project_index else 0
@@ -571,26 +564,13 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 def _make_nodestore_call(project, node_keys):
-    try:
-        bulk_data = _retry_operation(
-            nodestore.backend.get_multi,
-            node_keys,
-            retries=3,
-            delay=2,
-            exceptions=NODESTORE_RETRY_EXCEPTIONS,
-        )
-    except NODESTORE_RETRY_EXCEPTIONS as e:
-        extra = {
-            "organization_id": project.organization.id,
-            "project_id": project.id,
-            "node_keys": json.dumps(node_keys),
-            "error": e.message,
-        }
-        logger.exception(
-            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-            extra=extra,
-        )
-        raise
+    bulk_data = _retry_operation(
+        nodestore.backend.get_multi,
+        node_keys,
+        retries=3,
+        delay=2,
+        exceptions=NODESTORE_RETRY_EXCEPTIONS,
+    )
 
     return bulk_data
 
@@ -699,16 +679,6 @@ def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
                 time.sleep(delay * (2**attempt))
             else:
                 raise
-
-
-# TODO: delete this and its tests
-def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
-    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
-    if data is None:
-        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
-    event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-    event.data = data
-    return event
 
 
 def delete_seer_grouping_records(

@@ -244,6 +244,9 @@ class User(Model, AbstractBaseUser):
     def has_unverified_emails(self) -> bool:
         return self.get_unverified_emails().exists()
 
+    def has_verified_primary_email(self) -> bool:
+        return self.emails.filter(is_verified=True, email=self.email).exists()
+
     def has_usable_password(self) -> bool:
         if self.password == "" or self.password is None:
             # This is the behavior we've been relying on from Django 1.6 - 2.0.

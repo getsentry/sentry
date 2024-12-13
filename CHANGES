@@ -1,3 +1,35 @@
+24.11.2
+-------
+
+### Various fixes & improvements
+
+- fix(dashboards): Abbreviate `LineChartWidget` Y axis integers (#81937) by @gggritso
+- Revert "chore(profiling): remove profiling.stack_trace_rules.allowed_project_ids option (#81903)" (d0bea1aa) by @getsentry-bot
+- feat(widget-builder): Add limit field to widget builder hook (#81944) by @nikkikapadia
+- fix(alerts): Fix EAP alert filter bar to behave more like explore (#81946) by @edwardgou-sentry
+- feat(alerts): Renames eap metrics in ui to spans (#81917) by @edwardgou-sentry
+- feat(alerts): Limits eap alert time windows and periods (#81916) by @edwardgou-sentry
+- chore(insights): Remove bundle analysis UI flag (#81932) by @gggritso
+- feat(widget-builder): Batch URL param changes (#81923) by @narsaynorath
+- fix(merged): Always show a link for latests event of a merged group (#81947) by @leeandher
+- fix(dashboards): Add missing propagated props in `LineChartWidget` (#81935) by @gggritso
+- chore(profiling): remove profiling.stack_trace_rules.allowed_project_ids option (#81903) by @viglia
+- feat(new-trace): remove prefix related (#81918) by @doralchan
+- :mag: nit(integration slo): cleanup tests (#81943) by @iamrajjoshi
+- ref(widget-builder): Split out tests (#81949) by @narsaynorath
+- fix(trace-view): Web Vitals scores (#81945) by @0Calories
+- ref(insights): Simplify `SpanTimeCharts` (#81931) by @gggritso
+- fix(oauth): only remove the related tokens (#81677) by @sentaur-athena
+- :wrench: chore(integration slo): cleaning up tests and use util method (#81936) by @iamrajjoshi
+- feat(issue summary): Change 3-dot menu to dropdown (#81928) by @roaga
+- feat(sdk): Upgrade @sentry SDKs to v8.43.0 (#81925) by @aliu39
+- Better logging for backpressure (#81648) by @kneeyo1
+- feat(dashboards): add success message when favoriting dashboards (#81887) by @harshithadurai
+- feat(ui): Add dark app loading theme (#81611) by @scttcper
+- ref(dashboards): Export Widget component props (#81924) by @gggritso
+
+_Plus 442 more_
+
 24.11.1
 -------
 

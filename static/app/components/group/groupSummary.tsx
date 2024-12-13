@@ -1,10 +1,9 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Placeholder from 'sentry/components/placeholder';
-import {IconEllipsis, IconFatal, IconFocus, IconRefresh, IconSpan} from 'sentry/icons';
+import {IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -13,6 +12,7 @@ import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
@@ -90,16 +90,13 @@ export function GroupSummary({
 }) {
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
-  const [showEventDetails, setShowEventDetails] = useState(false);
+  const openFeedbackForm = useFeedbackForm();
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
     project,
     forceEvent
   );
-
-  const popupRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (forceEvent && !isPending) {
@@ -108,58 +105,51 @@ export function GroupSummary({
     }
   }, [forceEvent, isPending, refresh]);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        showEventDetails &&
-        popupRef.current &&
-        buttonRef.current &&
-        !popupRef.current.contains(e.target as Node) &&
-        !buttonRef.current.contains(e.target as Node)
-      ) {
-        setShowEventDetails(false);
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside);
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-    };
-  }, [showEventDetails]);
-
-  const tooltipContent = data?.eventId ? (
-    event?.id === data.eventId ? (
-      t('Based on this event')
-    ) : (
-      <TooltipContentWrapper>
-        <span>
-          {t('Based on event ')}
-          <EventLink
-            to={
-              window.location.origin +
-              normalizeUrl(
-                `/organizations/${organization.slug}/issues/${data.groupId}/events/${data.eventId}/`
-              )
-            }
-          >
-            {data.eventId.substring(0, 8)}
-          </EventLink>
-        </span>
-        <Button
-          size="xs"
-          icon={<IconRefresh size="xs" />}
-          busy={isPending}
-          aria-label={t('Summarize this event instead')}
-          title={t('Summarize this event instead')}
-          onClick={() => {
-            setForceEvent(true);
-          }}
-        />
-      </TooltipContentWrapper>
-    )
-  ) : (
-    ''
-  );
+  const eventDetailsItems = [
+    {
+      key: 'event-info',
+      label:
+        event?.id === data?.eventId ? (
+          t('Based on this event')
+        ) : (
+          <span>{t('See original event (%s)', data?.eventId?.substring(0, 8))}</span>
+        ),
+      to:
+        event?.id === data?.eventId
+          ? undefined
+          : window.location.origin +
+            normalizeUrl(
+              `/organizations/${organization.slug}/issues/${data?.groupId}/events/${data?.eventId}/`
+            ),
+    },
+    ...(event?.id !== data?.eventId
+      ? [
+          {
+            key: 'refresh',
+            label: t('Summarize this event instead'),
+            onAction: () => setForceEvent(true),
+            disabled: isPending,
+          },
+        ]
+      : []),
+    ...(openFeedbackForm
+      ? [
+          {
+            key: 'feedback',
+            label: t('Give feedback'),
+            onAction: () => {
+              openFeedbackForm({
+                messagePlaceholder: t('How can we make Issue Summary better for you?'),
+                tags: {
+                  ['feedback.source']: 'issue_details_ai_autofix',
+                  ['feedback.owner']: 'ml-ai',
+                },
+              });
+            },
+          },
+        ]
+      : []),
+  ];
 
   const insightCards = [
     {
@@ -190,18 +180,20 @@ export function GroupSummary({
       {isError ? <div>{t('Error loading summary')}</div> : null}
       <Content>
         {data?.eventId && !isPending && (
-          <TooltipWrapper id="group-summary-tooltip-wrapper">
-            <Button
-              ref={buttonRef}
-              size="xs"
-              icon={<StyledIconEllipsis size="xs" />}
-              aria-label={t('Event details')}
-              borderless
-              onClick={() => setShowEventDetails(!showEventDetails)}
+          <TooltipWrapper id="group-summary-tooltip-wrapper" preview={preview}>
+            <DropdownMenu
+              items={eventDetailsItems}
+              triggerProps={{
+                icon: <StyledIconEllipsis size="xs" />,
+                'aria-label': t('Event details'),
+                size: 'xs',
+                borderless: true,
+                showChevron: false,
+              }}
+              isDisabled={isPending}
+              position="bottom-end"
+              offset={4}
             />
-            {showEventDetails && (
-              <EventDetailsPopup ref={popupRef}>{tooltipContent}</EventDetailsPopup>
-            )}
           </TooltipWrapper>
         )}
         <InsightGrid>
@@ -323,38 +315,10 @@ const CardContent = styled('div')`
   flex: 1;
 `;
 
-const TooltipWrapper = styled('div')`
+const TooltipWrapper = styled('div')<{preview?: boolean}>`
   position: absolute;
-  top: 0;
+  top: ${p => (p.preview ? `-32px` : `-${space(0.5)}`)};
   right: 0;
-`;
-
-const EventLink = styled(Link)`
-  color: ${p => p.theme.linkColor};
-  :hover {
-    color: ${p => p.theme.linkHoverColor};
-  }
-`;
-
-const TooltipContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
-`;
-
-const EventDetailsPopup = styled('div')`
-  position: absolute;
-  right: calc(100% + ${space(0.5)});
-  top: 50%;
-  transform: translateY(-50%);
-  padding: ${space(1.5)};
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  z-index: 0;
-  white-space: nowrap;
 `;
 
 const StyledIconEllipsis = styled(IconEllipsis)`

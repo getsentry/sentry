@@ -44,8 +44,8 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
 }
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
-# The RPC limits us to 1000 points per timeseries
-MAX_ROLLUP_POINTS = 1000
+# The RPC limits us to 2016 points per timeseries
+MAX_ROLLUP_POINTS = 2016
 # Copied from snuba, a number of total seconds
 VALID_GRANULARITIES = frozenset(
     {
@@ -55,6 +55,7 @@ VALID_GRANULARITIES = frozenset(
         2 * 60,
         5 * 60,
         10 * 60,
+        15 * 60,
         30 * 60,  # minutes
         1 * 3600,
         3 * 3600,

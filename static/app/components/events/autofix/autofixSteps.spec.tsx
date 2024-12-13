@@ -150,7 +150,8 @@ describe('AutofixSteps', () => {
 
   it('handles iterating on changes step', async () => {
     MockApiClient.addMockResponse({
-      url: '/issues/group1/autofix/setup/',
+      url: '/issues/group1/autofix/setup/?check_write_access=true',
+      method: 'GET',
       body: {
         genAIConsent: {ok: true},
         integration: {ok: true},
@@ -193,6 +194,8 @@ describe('AutofixSteps', () => {
     };
 
     render(<AutofixSteps {...propsWithChanges} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Iterate'}));
 
     const input = screen.getByPlaceholderText('Share helpful context or feedback...');
     await userEvent.type(input, 'Feedback on changes');

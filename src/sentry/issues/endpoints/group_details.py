@@ -18,7 +18,7 @@ from sentry.api.helpers.group_index import (
     delete_group_list,
     get_first_last_release,
     prep_search,
-    update_groups,
+    update_groups_with_search_fn,
 )
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
@@ -329,6 +329,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :param string status: the new status for the issue.  Valid values
                               are ``"resolved"``, ``resolvedInNextRelease``,
                               ``"unresolved"``, and ``"ignored"``.
+        :param map statusDetails: additional details about the resolution.
+                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
+                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
+                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
+                                  ``"ignoreUserWindow"``.
         :param string assignedTo: the user or team that should be assigned to
                                   this issue. Can be of the form ``"<user_id>"``,
                                   ``"user:<user_id>"``, ``"<username>"``,
@@ -351,7 +356,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            response = update_groups(
+            response = update_groups_with_search_fn(
                 request, [group.id], [project], project.organization_id, search_fn
             )
             # if action was discard, there isn't a group to serialize anymore

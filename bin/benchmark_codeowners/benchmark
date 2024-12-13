@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # isort: skip_file
+# flake8: noqa: S002
+
 
 """
 This script benchmarks the performance of issue owner assignment in Sentry.
@@ -15,7 +17,13 @@ import time
 from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.utils import json
+import sentry_sdk
+from sentry.models.projectteam import ProjectTeam
+
+# disable sentry as it creates lots of noise in the output
+sentry_sdk.init(None)
 
 
 def main(code_mapping_file, event_data_file):
@@ -42,6 +50,30 @@ def main(code_mapping_file, event_data_file):
         name=project_name, slug=project_slug, id=project_id, organization_id=org.id
     )
 
+    # create teams for all actors
+    teams_to_create = []
+    seen_teams = set()
+    for rule in code_mapping["rules"]:
+        for owner in rule["owners"]:
+            team_name = owner["identifier"]
+            if team_name not in seen_teams:
+                teams_to_create.append(
+                    Team(
+                        name=team_name,
+                        slug=team_name,
+                        organization_id=org.id,
+                        id=owner["id"],
+                    )
+                )
+                seen_teams.add(team_name)
+
+    # delete teams from previous runs
+    Team.objects.filter(id__in=[team.id for team in teams_to_create]).delete()
+
+    Team.objects.bulk_create(teams_to_create)
+    for team in Team.objects.filter(organization_id=org.id):
+        ProjectTeam.objects.create(project_id=project.id, team_id=team.id)
+
     # create a projectownership
     ProjectOwnership.objects.get_or_create(
         project_id=project.id,
@@ -51,9 +83,18 @@ def main(code_mapping_file, event_data_file):
     event_data = get_event_data()
 
     start = time.time()
-    ProjectOwnership.get_issue_owners(project.id, event_data)
+    issue_owners = ProjectOwnership.get_issue_owners(project.id, event_data)
     elapsed_time = time.time() - start
     print(f"Time taken: {elapsed_time:.6f} seconds")  # noqa
+    print("Ownership rules:")
+    for rule, teams, rule_type in issue_owners:
+        print(f"\nRule:")
+        print(f"  Type: {rule_type}")
+        print(f"  Pattern: {rule.matcher.pattern}")
+        print("  Teams:")
+        for team in teams:  # type: ignore[assignment]
+            if isinstance(team, Team):  # Only handle Team objects
+                print(f"    - {team.name} (id: {team.id})")
 
 
 if __name__ == "__main__":
