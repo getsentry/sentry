@@ -4,7 +4,7 @@ from django.test import override_settings
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.testutils.cases import APITestCase, PermissionTestCase
+from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 ATTACHMENT_CONTENT = b"File contents here" * 10_000
 
 
-class CreateAttachmentMixin:
+class CreateAttachmentMixin(TestCase):
     def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
@@ -151,6 +151,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         delete_activity = Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
         assert delete_activity.project == self.project
         assert delete_activity.group_id == group_id
+        assert delete_activity.group is not None
         assert delete_activity.group.id == group_id
 
 
