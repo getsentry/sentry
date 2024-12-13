@@ -778,7 +778,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_backfill_logger, mock_utils_logger
     ):
         """
-        Test that the metadata is set for all groups showing that the record hs been created,
+        Test that the metadata is set for all groups showing that the record has been created,
         where number of groups > the batch size, 10.
         """
         function_names = [f"another_function_{str(i)}" for i in range(10)]
