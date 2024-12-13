@@ -6616,6 +6616,53 @@
     "table_name": "workflow_engine_detectorworkflow",
     "uniques": []
   },
+  "workflow_engine.errordetector": {
+    "dangling": true,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "organization": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.organization",
+        "nullable": true
+      },
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
+        "nullable": true
+      },
+      "workflow_condition_group": {
+        "kind": "FlexibleForeignKey",
+        "model": "workflow_engine.dataconditiongroup",
+        "nullable": true
+      }
+    },
+    "model": "workflow_engine.errordetector",
+    "relocation_dependencies": [],
+    "relocation_scope": "Organization",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "workflow_engine_detector",
+    "uniques": [
+      [
+        "workflow_condition_group"
+      ]
+    ]
+  },
   "workflow_engine.workflow": {
     "dangling": false,
     "foreign_keys": {

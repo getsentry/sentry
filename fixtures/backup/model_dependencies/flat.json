@@ -913,6 +913,13 @@
     "workflow_engine.detector",
     "workflow_engine.workflow"
   ],
+  "workflow_engine.errordetector": [
+    "sentry.organization",
+    "sentry.project",
+    "sentry.team",
+    "sentry.user",
+    "workflow_engine.dataconditiongroup"
+  ],
   "workflow_engine.workflow": [
     "sentry.environment",
     "sentry.organization",
