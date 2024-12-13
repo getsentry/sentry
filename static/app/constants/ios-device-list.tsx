@@ -3,7 +3,9 @@
 // the purpose of the script is to extract only the iOS information that Sentry cares about
 // and discard the rest of the JSON so we do not end up bloating bundle size.
 
+// see https://theapplewiki.com/wiki/models
 const iOSDeviceMapping: Record<string, string> = {
+  // iPod touch
   'iPod1,1': 'iPod touch',
   'iPod2,1': 'iPod touch (2nd generation)',
   'iPod3,1': 'iPod touch (3rd generation)',
@@ -11,6 +13,7 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPod5,1': 'iPod touch (5th generation)',
   'iPod7,1': 'iPod touch (6th generation)',
   'iPod9,1': 'iPod touch (7th generation)',
+  // iPhone
   'iPhone1,1': 'iPhone',
   'iPhone1,2': 'iPhone 3G',
   'iPhone2,1': 'iPhone 3GS',
@@ -64,6 +67,11 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPhone15,5': 'iPhone 15 Plus',
   'iPhone16,1': 'iPhone 15 Pro',
   'iPhone16,2': 'iPhone 15 Pro Max',
+  'iPhone17,1': 'iPhone 16 Pro',
+  'iPhone17,2': 'iPhone 16 Pro Max',
+  'iPhone17,3': 'iPhone 16',
+  'iPhone17,4': 'iPhone 16 Plus',
+  // iPad Pro
   'iPad6,7': 'iPad Pro (12.9-inch)',
   'iPad6,8': 'iPad Pro (12.9-inch)',
   'iPad6,3': 'iPad Pro (9.7-inch)',
@@ -96,6 +104,11 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad13,11': 'iPad Pro (12.9-inch) (5th generation)',
   'iPad14,5': 'iPad Pro (12.9-inch) (6th generation)',
   'iPad14,6': 'iPad Pro (12.9-inch) (6th generation)',
+  'iPad16,3': 'iPad Pro (11-inch) (5th generation)',
+  'iPad16,4': 'iPad Pro (11-inch) (5th generation)',
+  'iPad16,5': 'iPad Pro (12.9-inch) (7th generation)',
+  'iPad16,6': 'iPad Pro (12.9-inch) (7th generation)',
+  // iPad mini
   'iPad2,5': 'iPad mini',
   'iPad2,6': 'iPad mini',
   'iPad2,7': 'iPad mini',
@@ -111,6 +124,7 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad11,2': 'iPad mini (5th generation)',
   'iPad14,1': 'iPad mini (6th generation)',
   'iPad14,2': 'iPad mini (6th generation)',
+  // iPad Air
   'iPad4,1': 'iPad Air',
   'iPad4,2': 'iPad Air',
   'iPad4,3': 'iPad Air',
@@ -122,6 +136,11 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad13,2': 'iPad Air (4th generation)',
   'iPad13,16': 'iPad Air (5th generation)',
   'iPad13,17': 'iPad Air (5th generation)',
+  'iPad14,8': 'iPad Air (6th generation)',
+  'iPad14,9': 'iPad Air (6th generation)',
+  'iPad14,10': 'iPad Air (7th generation)',
+  'iPad14,11': 'iPad Air (7th generation)',
+  // iPad
   'iPad1,1': 'iPad',
   'iPad2,1': 'iPad 2',
   'iPad2,2': 'iPad 2',
@@ -145,9 +164,7 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPad12,2': 'iPad (9th generation)',
   'iPad13,18': 'iPad (10th generation)',
   'iPad13,19': 'iPad (10th generation)',
-  'AudioAccessory1,1': 'HomePod',
-  'AudioAccessory1,2': 'HomePod',
-  'AudioAccessory5,1': 'HomePod mini',
+  // Apple Watch
   'Watch1,1': 'Apple Watch (1st generation)',
   'Watch1,2': 'Apple Watch (1st generation)',
   'Watch2,6': 'Apple Watch Series 1',
@@ -192,7 +209,11 @@ const iOSDeviceMapping: Record<string, string> = {
   'Watch7,4': 'Apple Watch Series 9',
   'Watch7,3': 'Apple Watch Series 9',
   'Watch7,5': 'Apple Watch Ultra 2',
-
+  'Watch7,8': 'Apple Watch Series 10',
+  'Watch7,9': 'Apple Watch Series 10',
+  'Watch7,10': 'Apple Watch Series 10',
+  'Watch7,11': 'Apple Watch Series 10',
+  // Apple TV
   'AppleTV1,1': 'Apple TV (1st generation)',
   'AppleTV2,1': 'Apple TV (2nd generation)',
   'AppleTV3,1': 'Apple TV (3rd generation)',
@@ -201,13 +222,6 @@ const iOSDeviceMapping: Record<string, string> = {
   'AppleTV6,2': 'Apple TV 4K',
   'AppleTV11,1': 'Apple TV 4K (2nd generation)',
   'AppleTV14,1': 'Apple TV 4K (3rd generation)',
-  'AirTag1,1': 'AirTag',
-  'AirPods1,1': 'AirPods (1st generation)',
-  'AirPods2,1,AirPods2,1': 'AirPods (2nd generation)',
-  'AirPods1,3,Audio2,1': 'AirPods (3rd generation)',
-  'AirPods2,2,AirPodsPro1,1,iProd8,1': 'AirPods Pro',
-  'AirPodsPro1,2': 'AirPods Pro (2nd generation)',
-  'AirPodsMax1,1,iProd8,6': 'AirPods Max',
 };
 
 export {iOSDeviceMapping};
