@@ -9,7 +9,7 @@ from typing import Generic, Literal, TypeVar
 
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import BatchStep
+from arroyo.processing.strategies import BatchStep, Unfold
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -19,6 +19,7 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
+from sentry.utils.arroyo import run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +152,26 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         result = self.decode_payload(message.payload)
         if result is not None:
             self.result_processor(result)
+
+    def create_process_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+        assert self.parallel_executor is not None
+        grouped_processor = run_task_with_multiprocessing(
+            function=self.process_group,
+            next_step=CommitOffsets(commit),
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            pool=self.pool,
+            input_block_size=self.input_block_size,
+            output_block_size=self.output_block_size,
+        )
+        return BatchStep(
+            max_batch_size=self.max_batch_size,
+            max_batch_time=self.max_batch_time,
+            next_step=Unfold(
+                generator=self.partition_message_batch,
+                next_step=grouped_processor,
+            ),
+        )
 
     def create_thread_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.parallel_executor is not None
