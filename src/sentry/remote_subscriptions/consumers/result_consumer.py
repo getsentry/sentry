@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import defaultdict
 from collections.abc import Generator, Mapping
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Generic, Literal, TypeVar
 
 import sentry_sdk
@@ -87,7 +87,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
         self.mode = mode
         if mode == "parallel":
             self.parallel = True
-            self.parallel_executor = ProcessPoolExecutor(max_workers=max_workers)
+            self.parallel_executor = ThreadPoolExecutor(max_workers=max_workers)
 
         if max_batch_size is not None:
             self.max_batch_size = max_batch_size
