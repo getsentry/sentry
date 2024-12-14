@@ -197,12 +197,12 @@ export function EventFeatureFlagList({
     }
   }, [hasFlags, hydratedFlags.length, organization]);
 
-  if (showCTA) {
+  if (showCTA && group.issueCategory !== 'cron') {
     return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
   // if contexts.flags is not set, hide the section
-  if (!hasFlagContext) {
+  if (!hasFlagContext || group.issueCategory === 'cron') {
     return null;
   }
 
