@@ -1,7 +1,6 @@
 from unittest import mock
 
 from sentry.eventstream.base import GroupState
-from sentry.incidents.grouptype import MetricAlertFire
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models import DataConditionGroup
