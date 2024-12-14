@@ -1002,10 +1002,8 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     # If the flag is enabled, use the code below
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    evt = job["event"]
-
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(evt)
+        process_workflows(job)
 
 
 def process_rules(job: PostProcessJob) -> None:
