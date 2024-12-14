@@ -1,7 +1,13 @@
+from unittest import mock
+
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import process_data_sources
+from sentry.workflow_engine.registry import data_source_type_registry
+
+# Setup a mock data source for the tests
+data_source_type_registry.register("test")(mock.Mock)
 
 
 class TestProcessDataSources(TestCase):
