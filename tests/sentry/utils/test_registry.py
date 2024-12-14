@@ -43,6 +43,7 @@ class RegistryTest(TestCase):
             pass
 
         assert test_registry.get("something") == registered_func
+        assert test_registry.get("something 2") == registered_func
 
         with pytest.raises(NoRegistrationExistsError):
             test_registry.get("something else")
