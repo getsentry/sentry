@@ -15,6 +15,11 @@ T = TypeVar("T")
 
 
 class Registry(Generic[T]):
+    """
+    A simple generic registry that allows for registering and retrieving items by key. Reverse lookup by value is enabled by default.
+    If you have duplicate values, you may want to disable reverse lookup.
+    """
+
     def __init__(self, enable_reverse_lookup=True):
         self.registrations: dict[str, T] = {}
         self.reverse_lookup: dict[T, str] = {}
