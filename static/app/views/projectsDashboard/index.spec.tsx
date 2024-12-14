@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
@@ -21,8 +22,8 @@ jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
-    (fn, timeout) =>
-    (...args) => {
+    (fn: () => void, timeout: number) =>
+    (...args: any[]) => {
       if (debounceMap.has(fn)) {
         clearTimeout(debounceMap.get(fn));
       }
@@ -149,6 +150,149 @@ describe('ProjectsDashboard', function () {
       expect(await screen.findByText('My Teams')).toBeInTheDocument();
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+    });
+
+    it('renders only projects for my teams by default', async function () {
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [],
+          isBookmarked: true,
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={org}
+          teams={teamsWithTwoProjects}
+          {...RouteComponentPropsFixture()}
+        />
+      );
+      expect(await screen.findByText('My Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
+    });
+
+    it('renders all projects if open membership is enabled', async function () {
+      const {
+        organization: openOrg,
+        router,
+        routerProps,
+      } = initializeOrg({
+        organization: {features: ['open-membership']},
+        router: {
+          location: {query: {team: ''}},
+        },
+      });
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={openOrg}
+          teams={teamsWithTwoProjects}
+          {...routerProps}
+        />,
+        {
+          router,
+          organization: openOrg,
+        }
+      );
+      expect(await screen.findByText('All Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
+    });
+
+    it('renders only projects for my teams if open membership is disabled', async function () {
+      const {
+        organization: closedOrg,
+        router,
+        routerProps,
+      } = initializeOrg({
+        organization: {features: []},
+        router: {
+          location: {query: {team: ''}},
+        },
+      });
+      const teamA = TeamFixture({slug: 'team1', isMember: true});
+      const teamProjects = [
+        ProjectFixture({
+          id: '1',
+          slug: 'project1',
+          teams: [teamA],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ];
+
+      ProjectsStore.loadInitialData([
+        ...teamProjects,
+        ProjectFixture({
+          id: '2',
+          slug: 'project2',
+          teams: [],
+          firstEvent: new Date().toISOString(),
+          stats: [],
+        }),
+      ]);
+      const teamsWithTwoProjects = [TeamFixture({projects: teamProjects})];
+
+      render(
+        <Dashboard
+          api={api}
+          error={null}
+          loadingTeams={false}
+          organization={closedOrg}
+          teams={teamsWithTwoProjects}
+          {...routerProps}
+        />,
+        {
+          router,
+          organization: closedOrg,
+        }
+      );
+      expect(await screen.findByText('All Teams')).toBeInTheDocument();
+      expect(screen.getAllByTestId('badge-display-name')).toHaveLength(1);
     });
 
     it('renders correct project with selected team', async function () {

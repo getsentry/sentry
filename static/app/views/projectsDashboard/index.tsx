@@ -102,10 +102,11 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
   const canJoinTeam = organization.access.includes('team:read');
+  const hasOpenMembership = organization.features.includes('open-membership');
 
   const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
   const filteredTeams =
-    selectedTeams[0] === 'myteams'
+    selectedTeams[0] === 'myteams' || selectedTeams.length === 0
       ? teams
       : teams.filter(team => selectedTeams.includes(team.id));
 
@@ -117,13 +118,11 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
 
   const currentProjects =
     // No teams are specifically selected and query parameter is present
-    // Use all projects
-    location.query.team === ''
+    // Use all projects if open membership is enabled
+    location.query.team === '' && hasOpenMembership
       ? projects
       : // No teams are specifically selected - Use "myteams"
-        selectedTeams.length === 0
-        ? projects
-        : filteredTeamProjects;
+        filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
