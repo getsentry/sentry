@@ -8,7 +8,6 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
 import {
   useExploreFields,
   useExploreMode,
@@ -23,7 +22,6 @@ import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface ExploreTablesProps {
-  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
