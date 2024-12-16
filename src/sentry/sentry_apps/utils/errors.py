@@ -1,5 +1,4 @@
 import functools
-from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
@@ -23,7 +22,7 @@ class SentryAppIntegratorError(Exception):
     error_type = SentryAppErrorType.INTEGRATOR
 
 
-def catch_and_handle_sentry_app_errors(func: Callable[[Any, Any], Any]):
+def catch_and_handle_sentry_app_errors(func: Any):
 
     @functools.wraps(func)
     def decorator(*args: Any, **kwargs: Any) -> Any:
