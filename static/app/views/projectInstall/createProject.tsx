@@ -163,6 +163,7 @@ function CreateProject() {
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
         });
+
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
