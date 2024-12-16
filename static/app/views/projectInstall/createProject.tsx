@@ -152,6 +152,17 @@ function CreateProject() {
         if (ruleData) {
           ruleIds.push(ruleData.id);
         }
+        trackAnalytics('project_creation_page.created', {
+          organization,
+          issue_alert: defaultRules
+            ? 'Default'
+            : shouldCreateCustomRule
+              ? 'Custom'
+              : 'No Rule',
+          project_id: projectData.id,
+          platform: selectedPlatform.key,
+          rule_ids: ruleIds,
+        });
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
