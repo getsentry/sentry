@@ -50,6 +50,6 @@ class ProjectDsymsDocs(APIDocsTestCase):
             data,
             format="multipart",
         )
-        request = RequestFactory(SERVER_NAME="de.sentry.io", secure=True).post(self.url, data)
+        request = RequestFactory().post(self.url, data, SERVER_NAME="de.sentry.io", secure=True)
 
         self.validate_schema(request, response)
