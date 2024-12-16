@@ -98,6 +98,28 @@ Required context variables:
           return `${cookie}; domain=${domain}; path=/; max-age=31536000; SameSite=none; partitioned; secure`;
         }
 
+        const controlSiloPathPatterns = [
+          /^\/auth\/.*/,
+          /^\/account\/.*/,
+          /^\/api\/0\/users\/.*/,
+          /^\/api\/0\/api-tokens\/.*/,
+          /^\/api\/0\/sentry-apps\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/audit-logs\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/broadcasts\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/integrations\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/config\/integrations\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/sentry-apps\/.*/,
+          /^\/api\/0\/organizations\/[^/]+\/sentry-app-installations\/.*/,
+          /^\/api\/0\/api-authorizations\/.*/,
+          /^\/api\/0\/api-applications\/.*/,
+          /^\/api\/0\/doc-integrations\/.*/,
+          /^\/api\/0\/assistant\/.*/,
+        ];
+
+        function isControlSiloPath(path) {
+          return controlSiloPathPatterns.some(pattern => pattern.test(path));
+        }
+
         const loginWindowMessageDispatch = {
           'did-login': ({ cookie, token }) => {
             if (cookie) {
@@ -157,7 +179,10 @@ Required context variables:
             // tokens be destroyed and reload the iframe in an unauth state.
             log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
 
-            const url = new URL('/api/0' + path, regionUrl);
+            const domain = isControlSiloPath('/api/0' + path)
+              ? organizationUrl
+              : regionUrl;
+            const url = new URL('/api/0' + path, domain);
             const initWithCreds = {
               ...init,
               headers: { ...init.headers, ...bearer },
