@@ -248,9 +248,7 @@ export default function IssueAlertNotificationOptions(
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          analyticsParams={{
-            view: MessagingIntegrationAnalyticsView.PROJECT_CREATION,
-          }}
+          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
         />
       )}
     </Fragment>

@@ -21,16 +21,14 @@ export enum MessagingIntegrationAnalyticsView {
 }
 
 type Props = {
-  analyticsParams?: {
-    view: MessagingIntegrationAnalyticsView;
-  };
+  analyticsView: MessagingIntegrationAnalyticsView;
   projectId?: string;
   refetchConfigs?: () => void;
 };
 
 function SetupMessagingIntegrationButton({
   refetchConfigs,
-  analyticsParams,
+  analyticsView,
   projectId,
 }: Props) {
   const providerKeys = ['slack', 'discord', 'msteams'];
@@ -112,9 +110,7 @@ function SetupMessagingIntegrationButton({
                       )}
                     onAddIntegration={onAddIntegration}
                     {...(projectId && {modalParams: {projectId: projectId}})}
-                    analyticsView={
-                      analyticsParams?.view ?? MessagingIntegrationAnalyticsView.DEFAULT
-                    }
+                    analyticsView={analyticsView}
                   />
                 ),
                 {
