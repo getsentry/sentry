@@ -9,15 +9,15 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
 import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
 
 export enum MessagingIntegrationAnalyticsView {
-  ALERT_RULE_CREATION = 'alert_rule_creation',
-  PROJECT_CREATION = 'project_creation',
+  ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
+  PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
+  DEFAULT = 'messaging_integration_onboarding',
 }
 
 type Props = {
@@ -112,16 +112,15 @@ function SetupMessagingIntegrationButton({
                       )}
                     onAddIntegration={onAddIntegration}
                     {...(projectId && {modalParams: {projectId: projectId}})}
+                    analyticsView={
+                      analyticsParams?.view ?? MessagingIntegrationAnalyticsView.DEFAULT
+                    }
                   />
                 ),
                 {
                   closeEvents: 'escape-key',
                 }
               );
-              trackAnalytics('onboarding.messaging_integration_modal_rendered', {
-                organization,
-                ...analyticsParams,
-              });
             }}
           >
             {t('Connect to messaging')}
