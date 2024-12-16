@@ -1,12 +1,8 @@
 ---
-created: '2024-11-08T18:04:20.848101+00:00'
+created: '2024-12-16T06:50:24.051451+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-checksum:
-  hash: "not a legit checksum"
-  checksum: "not a legit checksum"
---------------------------------------------------------------------------
 hashed_checksum:
   hash: "de46d023e69b171b90ccf3ebca7aede4"
   checksum: "de46d023e69b171b90ccf3ebca7aede4"

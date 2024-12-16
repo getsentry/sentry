@@ -2115,14 +2115,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
         )
 
-    def test_checksum_rehashed(self) -> None:
+    def test_invalid_checksum_gets_hashed(self) -> None:
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
+        assert len(hashes) == 1
+        assert hashes[0] == hash_from_values(checksum)
 
     def test_legacy_attributes_moved(self) -> None:
         event_params = make_event(
