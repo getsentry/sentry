@@ -17,7 +17,6 @@ import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messaging
 export enum MessagingIntegrationAnalyticsView {
   ALERT_RULE_CREATION = 'alert_rule_creation_messaging_integration_onboarding',
   PROJECT_CREATION = 'project_creation_messaging_integration_onboarding',
-  DEFAULT = 'messaging_integration_onboarding',
 }
 
 type Props = {
