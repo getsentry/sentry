@@ -71,9 +71,7 @@ def handle_viewed_by_me_filters(
 
         value = search_filter.value.value
         if not isinstance(value, str) or value.lower() not in ["true", "false"]:
-            raise ParseError(
-                f"Could not parse value '{search_filter.value.value}' for `{search_filter.key.name}`"
-            )
+            raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
         value = value.lower() == "true"
 
         if request_user_id is None:
@@ -113,11 +111,10 @@ def handle_search_filters(
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue as e:
-                err_msg = f"Could not parse value '{search_filter.value.value}' for `{search_filter.key.name}`."
-                if e.args:
-                    err_msg += (
-                        f" {e.args[0]}"  # avoid using str(e) as it may expose stack trace info
-                    )
+                err_msg = f"Could not parse value for `{search_filter.key.name}`."
+                if e.args and e.args[0]:
+                    # avoid using str(e) as it may expose stack trace info
+                    err_msg += f" Detail: {e.args[0]}"
                 raise ParseError(err_msg)
 
             if look_back == "AND":
