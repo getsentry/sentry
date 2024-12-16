@@ -147,8 +147,8 @@ export function SpanDescription({
                 });
           }}
         >
-          <StyledIconGraph type="area" size="xs" />
-          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
+          <StyledIconGraph type="scatter" size="xs" />
+          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
         </Link>
       </BodyContentWrapper>
     );
@@ -389,7 +389,7 @@ function LegacySpanDescription({
                 });
           }}
         >
-          {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
+          {hasNewSpansUIFlag ? t('More Samples') : t('View Similar Spans')}
         </LinkButton>
       </ButtonGroup>
     );

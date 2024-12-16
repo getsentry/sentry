@@ -2,14 +2,13 @@ import styled from '@emotion/styled';
 
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import Link from 'sentry/components/links/link';
-import {IconStats} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconGraph} from 'sentry/icons/iconGraph';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -57,8 +56,8 @@ function SpanSummaryLink(props: Props) {
           });
         }}
       >
-        <StyledIconStats size="xs" />
-        {t('View Query Summary')}
+        <StyledIconGraph type="area" size="xs" />
+        {t('View Summary')}
       </Link>
     );
   }
@@ -83,8 +82,8 @@ function SpanSummaryLink(props: Props) {
           });
         }}
       >
-        <StyledIconStats size="xs" />
-        {tct('View [dataType] Summary', {dataType: DATA_TYPE})}
+        <StyledIconGraph size="xs" />
+        {t('View Summary')}
       </Link>
     );
   }
@@ -92,7 +91,7 @@ function SpanSummaryLink(props: Props) {
   return null;
 }
 
-const StyledIconStats = styled(IconStats)`
+const StyledIconGraph = styled(IconGraph)`
   margin-right: ${space(0.5)};
 `;
 
