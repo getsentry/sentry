@@ -26,11 +26,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
-from sentry.sentry_apps.utils.errors import (
-    SentryAppError,
-    SentryAppIntegratorError,
-    catch_and_handle_sentry_app_errors,
-)
+from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -91,7 +87,7 @@ class SentryAppsPermission(SentryPermission):
 
         # User must be a part of the Org they're trying to create the app in.
         if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
-            raise SentryAppError(
+            raise SentryAppIntegratorError(
                 APIUnauthorized("Organization must be active and user must be a member"),
                 status_code=403,
             )
@@ -231,7 +227,7 @@ class SentryAppPermission(SentryPermission):
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
             if not any(sentry_app.owner_id == org.id for org in organizations):
-                raise SentryAppError(
+                raise SentryAppIntegratorError(
                     APIUnauthorized(
                         "User must be in the app owner's organization for unpublished apps"
                     )
@@ -264,7 +260,6 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
-    @catch_and_handle_sentry_app_errors
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):
