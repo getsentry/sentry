@@ -27,14 +27,13 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
-from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -164,7 +163,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import AuthProvider, Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -422,70 +421,12 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
-        func = kwargs.pop("func", None)
-        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
-        conn = connections[using]
-
-        context = _AssertQueriesContext(self, queries, debug, conn)
-        if func is None:
-            return context
-
-        with context:
-            func(*args, **kwargs)
-
     def get_mock_uuid(self):
         class uuid:
             hex = "abc123"
             bytes = b"\x00\x01\x02"
 
         return uuid
-
-
-class _AssertQueriesContext(CaptureQueriesContext):
-    def __init__(self, test_case, queries, debug, connection):
-        self.test_case = test_case
-        self.queries = queries
-        self.debug = debug
-        super().__init__(connection)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        super().__exit__(exc_type, exc_value, traceback)
-        if exc_type is not None:
-            return
-
-        parsed_queries = parse_queries(self.captured_queries)
-
-        if self.debug:
-            import pprint
-
-            pprint.pprint("====================== Raw Queries ======================")
-            pprint.pprint(self.captured_queries)
-            pprint.pprint("====================== Table writes ======================")
-            pprint.pprint(parsed_queries)
-
-        for table, num in parsed_queries.items():
-            expected = self.queries.get(table, 0)
-            if expected == 0:
-                import pprint
-
-                pprint.pprint(
-                    "WARNING: no query against %s emitted, add debug=True to see all the queries"
-                    % (table)
-                )
-            else:
-                self.test_case.assertTrue(
-                    num == expected,
-                    "%d write queries expected on `%s`, got %d, add debug=True to see all the queries"
-                    % (expected, table, num),
-                )
-
-        for table, num in self.queries.items():
-            executed = parsed_queries.get(table, None)
-            self.test_case.assertFalse(
-                executed is None,
-                "no query against %s emitted, add debug=True to see all the queries" % (table),
-            )
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
