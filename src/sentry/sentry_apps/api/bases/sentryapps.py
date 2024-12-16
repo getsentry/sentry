@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
-from django.http import Http404
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
@@ -13,6 +12,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -26,7 +26,11 @@ from sentry.organizations.services.organization import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryApp, app_service
-from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    catch_and_handle_sentry_app_errors,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -88,7 +92,8 @@ class SentryAppsPermission(SentryPermission):
         # User must be a part of the Org they're trying to create the app in.
         if context.organization.status != OrganizationStatus.ACTIVE or not context.member:
             raise SentryAppError(
-                APIUnauthorized("Organization must be active and user must be a member")
+                APIUnauthorized("Organization must be active and user must be a member"),
+                status_code=403,
             )
 
         assert request.method, "method must be present in request to get permissions"
@@ -114,7 +119,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         organization_slug = request.json_body.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
-            raise ValidationError({"organization": to_single_line_str(error_message)})
+            raise SentryAppError(
+                ValidationError({"organization": to_single_line_str(error_message)})
+            )
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
@@ -126,7 +133,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
-            raise ValidationError({"organization": to_single_line_str(error_message)})
+            raise SentryAppError(
+                ValidationError({"organization": to_single_line_str(error_message)})
+            )
 
         return context
 
@@ -138,7 +147,9 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         )
         if context is None or context.member is None:
             error_message = f"User does not belong to the '{organization_slug}' organization."
-            raise PermissionDenied(to_single_line_str(error_message))
+            raise SentryAppIntegratorError(
+                PermissionDenied(to_single_line_str(error_message)), status_code=403
+            )
         return context
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
@@ -253,13 +264,16 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ):
         try:
             sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
-            raise SentryAppIntegratorError(Http404("Could not find the requested sentry app"))
+            raise SentryAppIntegratorError(
+                ResourceDoesNotExist("Could not find the requested sentry app"), status_code=404
+            )
 
         self.check_object_permissions(request, sentry_app)
 
@@ -278,7 +292,9 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         else:
             sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_id_or_slug)
         if sentry_app is None:
-            raise SentryAppIntegratorError(Http404("Could not find the requested sentry app"))
+            raise SentryAppIntegratorError(
+                ResourceDoesNotExist("Could not find the requested sentry app"), status_code=404
+            )
 
         self.check_object_permissions(request, sentry_app)
 
@@ -310,7 +326,7 @@ class SentryAppInstallationsPermission(SentryPermission):
         )
         if not any(organization.id == org.id for org in organizations):
             raise SentryAppIntegratorError(
-                APIUnauthorized("User must belong to the given organization")
+                APIUnauthorized("User must belong to the given organization"), status_code=403
             )
 
         assert request.method, "method must be present in request to get permissions"
@@ -336,7 +352,9 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
             )
 
         if organization is None:
-            raise SentryAppIntegratorError(Http404("Could not find requested organization"))
+            raise SentryAppIntegratorError(
+                ResourceDoesNotExist("Could not find requested organization"), status_code=404
+            )
         self.check_object_permissions(request, organization)
 
         kwargs["organization"] = organization
@@ -392,7 +410,9 @@ class SentryAppInstallationPermission(SentryPermission):
             or not org_context.member
             or org_context.organization.status != OrganizationStatus.ACTIVE
         ):
-            raise SentryAppIntegratorError(Http404("Given organization is not valid"))
+            raise SentryAppIntegratorError(
+                ResourceDoesNotExist("Given organization is not valid"), status_code=404
+            )
 
         assert request.method, "method must be present in request to get permissions"
         return ensure_scoped_permission(request, self.scope_map.get(request.method))
@@ -405,7 +425,10 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         installations = app_service.get_many(filter=dict(uuids=[uuid]))
         installation = installations[0] if installations else None
         if installation is None:
-            raise SentryAppIntegratorError(Http404("Could not find given sentry app installation"))
+            raise SentryAppIntegratorError(
+                ResourceDoesNotExist("Could not find given sentry app installation"),
+                status_code=404,
+            )
 
         self.check_object_permissions(request, installation)
 
