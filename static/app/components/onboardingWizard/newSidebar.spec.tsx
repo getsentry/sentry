@@ -113,6 +113,11 @@ describe('NewSidebar', function () {
   it('show skipable confirmation when skipping a task', async function () {
     const {organization} = initializeOrg();
 
+    const mockUpdate = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/onboarding-tasks/`,
+      method: 'POST',
+    });
+
     render(
       <NewOnboardingSidebar
         onClose={jest.fn()}
@@ -125,11 +130,6 @@ describe('NewSidebar', function () {
         organization,
       }
     );
-
-    const mockUpdate = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/onboarding-tasks/`,
-      method: 'POST',
-    });
 
     // Manually expand second group
     userEvent.click(screen.getByRole('button', {name: 'Expand'}));
