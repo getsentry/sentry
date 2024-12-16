@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,6 +32,7 @@ type WidgetBuilderSlideoutProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setIsPreviewDraggable: (draggable: boolean) => void;
 };
 
 function WidgetBuilderSlideout({
@@ -40,6 +41,7 @@ function WidgetBuilderSlideout({
   onSave,
   dashboard,
   dashboardFilters,
+  setIsPreviewDraggable,
 }: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
@@ -62,6 +64,26 @@ function WidgetBuilderSlideout({
     state.displayType !== DisplayType.TABLE;
 
   const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
+
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const isSmallScreen =
+    windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPreviewDraggable(!entry.isIntersecting);
+      },
+      {threshold: 0}
+    );
+
+    if (previewRef.current) {
+      observer.observe(previewRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [setIsPreviewDraggable]);
 
   return (
     <SlideOverPanel
@@ -92,14 +114,16 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderTypeSelector />
         </Section>
-        {windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) && (
-          <Section>
-            <WidgetPreviewContainer
-              dashboard={dashboard}
-              dashboardFilters={dashboardFilters}
-            />
-          </Section>
-        )}
+        <div ref={previewRef}>
+          {isSmallScreen && (
+            <Section>
+              <WidgetPreviewContainer
+                dashboard={dashboard}
+                dashboardFilters={dashboardFilters}
+              />
+            </Section>
+          )}
+        </div>
         <Section>
           <Visualize />
         </Section>

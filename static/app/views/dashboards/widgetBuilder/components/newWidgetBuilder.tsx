@@ -51,6 +51,7 @@ function WidgetBuilderV2({
   const {selection} = usePageFilters();
   const theme = useTheme();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -124,13 +125,15 @@ function WidgetBuilderV2({
                       onSave={onSave}
                       dashboard={dashboard}
                       dashboardFilters={dashboardFilters}
+                      setIsPreviewDraggable={setIsPreviewDraggable}
                     />
-                    {!isSmallScreen && (
+                    {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
                         <WidgetPreviewContainer
                           dashboardFilters={dashboardFilters}
                           dashboard={dashboard}
                           translate={translate}
+                          isDraggable={isPreviewDraggable}
                         />
                       </DndContext>
                     )}
@@ -151,9 +154,11 @@ export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
   translate,
+  isDraggable,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
+  isDraggable?: boolean;
   translate?: Translate;
 }) {
   const {state} = useWidgetBuilderContext();
@@ -161,9 +166,10 @@ export function WidgetPreviewContainer({
   const location = useLocation();
   const theme = useTheme();
 
-  // if scrolled past preview, disable dragging
+  // if small screen and draggable, enable dragging
   const isDragEnabled =
-    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
+    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) &&
+    isDraggable;
 
   const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
     id: WIDGET_PREVIEW_DRAG_ID,
@@ -193,6 +199,8 @@ export function WidgetPreviewContainer({
                     ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
                     : undefined,
                   opacity: isDragging ? 0.5 : 1,
+                  zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+                  cursor: isDragEnabled ? 'grab' : undefined,
                 }}
                 {...attributes}
                 {...listeners}
@@ -207,6 +215,13 @@ export function WidgetPreviewContainer({
                     damping: 50,
                   }}
                   isTable={state.displayType === DisplayType.TABLE}
+                  style={{
+                    width: isDragEnabled ? '300px' : undefined,
+                    height:
+                      isDragEnabled && state.displayType !== DisplayType.TABLE
+                        ? '200px'
+                        : undefined,
+                  }}
                 >
                   <WidgetPreview
                     dashboardFilters={dashboardFilters}
