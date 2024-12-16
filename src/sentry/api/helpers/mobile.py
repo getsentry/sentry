@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.api.helpers.android_models import ANDROID_MODELS
-from sentry.profiles.device import IOS_MODELS
+from sentry.api.helpers.ios_models import IOS_MODELS
 
 
 def get_readable_device_name(device: str) -> str | None:
