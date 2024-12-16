@@ -489,6 +489,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         data, "contexts", "os", "raw_description"
     )
     os_version = get_path(data, "contexts", "os", "version")
+    is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
 
     if os_version:
         os_version = os_version.split(".", 1)[0]
@@ -497,7 +498,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=neither,
-            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "neither",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -509,7 +515,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=both,
-            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "both",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -517,7 +528,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=old,
-            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "old",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -525,7 +541,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=symx,
-            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "symx",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
