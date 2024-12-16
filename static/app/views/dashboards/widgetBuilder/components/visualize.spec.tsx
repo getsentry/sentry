@@ -6,6 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {TagCollection} from 'sentry/types/group';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -13,9 +14,11 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
+jest.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
   let organization;
+  let mockNavigate;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -27,6 +30,9 @@ describe('Visualize', () => {
     });
 
     jest.mocked(useSpanTags).mockReturnValue({});
+
+    mockNavigate = jest.fn();
+    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
   });
 
   it('renders basic aggregates correctly from the URL params', async () => {
@@ -306,6 +312,195 @@ describe('Visualize', () => {
     await userEvent.type(screen.getByLabelText('Equation'), '* 2');
 
     expect(screen.getByLabelText('Equation')).toHaveValue('count() * 2');
+  });
+
+  it('maintains the selected column when switching from field to aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              yAxis: ['transaction.duration'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction.duration'
+    );
+  });
+
+  it('maintains the selected column when switching from aggregate to aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['max(spans.db)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'spans.db'
+    );
+  });
+
+  it('properly transitions between aggregates of higher to no parameter count', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count_if(transaction.duration,equals,testValue)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'None'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'count'
+    );
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['count()'],
+        }),
+      })
+    );
+  });
+
+  it('properly transitions between aggregates of higher to lower parameter count', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count_if(transaction.duration,equals,testValue)'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction.duration'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'count_miserable'
+    );
+    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['count_miserable(transaction.duration,300)'],
+        }),
+      })
+    );
+  });
+
+  it('adds the default value for an aggregate with 2 parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['transaction.duration'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_miserable'}));
+
+    // TODO: This is supposed to only allow the user field
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction.duration'
+    );
+  });
+
+  it('adds the default values for an aggregate with 3 parameters', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['transaction'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_if'}));
+
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'transaction'
+    );
+    expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
+      'count_if'
+    );
+    expect(screen.getByText('is equal to')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('300')).toBeInTheDocument();
   });
 
   describe('spans', () => {
