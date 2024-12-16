@@ -95,6 +95,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
+from sentry.models.tempest_credentials import TempestCredentials
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.logic import SentryAppUpdater
@@ -712,6 +713,15 @@ class ExhaustiveFixtures(Fixtures):
         AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
         AlertRuleTriggerDataCondition.objects.create(
             alert_rule_trigger=trigger, data_condition=data_condition
+        )
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
         )
 
         return org

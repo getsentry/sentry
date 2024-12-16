@@ -18,7 +18,7 @@ class TempestCredentials(DefaultFieldsModel):
     # Contains sensitive information which we don't want to export/import - it should be configured again manually
     __relocation_scope__ = RelocationScope.Excluded
 
-    created_by = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
 
     # message that is shown next to the client id/secret pair
