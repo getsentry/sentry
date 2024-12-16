@@ -1,3 +1,5 @@
+import logging
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -5,7 +7,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.snuba.models import QuerySubscription
+from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
     Action,
@@ -25,6 +27,8 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition, ConditionType
 from sentry.workflow_engine.types import ActionType, DataSourceType, DetectorPriorityLevel
 
+logger = logging.getLogger(__name__)
+
 
 def migrate_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> None:
     try:
@@ -32,6 +36,10 @@ def migrate_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> 
             alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
         )
     except AlertRuleTriggerDataCondition.DoesNotExist:
+        logger.exception(
+            "AlertRuleTriggerDataCondition does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger_action.alert_rule_trigger.id},
+        )
         return None
 
     data = {
@@ -54,12 +62,18 @@ def migrate_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> 
     )
 
 
-def migrate_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
+def migrate_metric_data_condition(
+    alert_rule_trigger: AlertRuleTrigger,
+) -> tuple[DataCondition, AlertRuleTriggerDataCondition] | None:
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(
             alert_rule=alert_rule_trigger.alert_rule
         )
     except AlertRuleDetector.DoesNotExist:
+        logger.exception(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
+        )
         return None
 
     threshold_to_condition = {
@@ -70,6 +84,10 @@ def migrate_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
 
     data_condition_group = alert_rule_detector.detector.workflow_condition_group
     if not data_condition_group:
+        logger.warning(
+            "Could not find data_condition_group",
+            extra={"detector_id": alert_rule_detector.id},
+        )
         return None
 
     condition_result = (
@@ -81,6 +99,10 @@ def migrate_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
     # XXX: we read the threshold type off of the alert_rule and NOT the alert_rule_trigger
     # alert_rule_trigger.threshold_type is a deprecated feature we are not moving over
     if threshold_type is None:
+        logger.warning(
+            "No threshold type",
+            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
+        )
         return None
 
     data_condition = DataCondition.objects.create(
@@ -90,9 +112,10 @@ def migrate_metric_data_condition(alert_rule_trigger: AlertRuleTrigger) -> None:
         type=ConditionType.METRIC_CONDITION,
         condition_group=data_condition_group,
     )
-    AlertRuleTriggerDataCondition.objects.create(
+    alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
         alert_rule_trigger=alert_rule_trigger, data_condition=data_condition
     )
+    return data_condition, alert_rule_trigger_data_condition
 
 
 def create_metric_alert_lookup_tables(
@@ -101,16 +124,24 @@ def create_metric_alert_lookup_tables(
     workflow: Workflow,
     data_source: DataSource,
     data_condition_group: DataConditionGroup,
-) -> None:
-    AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
-    AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
-    DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-    WorkflowDataConditionGroup.objects.create(
+) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow, WorkflowDataConditionGroup]:
+    alert_rule_detector = AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
+    alert_rule_workflow = AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
+    detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
+    workflow_data_condition_group = WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group, workflow=workflow
+    )
+    return (
+        alert_rule_detector,
+        alert_rule_workflow,
+        detector_workflow,
+        workflow_data_condition_group,
     )
 
 
-def create_data_source(organization_id, snuba_query) -> DataSource | None:
+def create_data_source(
+    organization_id: int, snuba_query: SnubaQuery | None = None
+) -> DataSource | None:
     if not snuba_query:
         return None
 
@@ -126,14 +157,19 @@ def create_data_source(organization_id, snuba_query) -> DataSource | None:
     )
 
 
-def create_data_condition_group(organization_id) -> DataConditionGroup:
+def create_data_condition_group(organization_id: int) -> DataConditionGroup:
     return DataConditionGroup.objects.create(
         logic_type=DataConditionGroup.Type.ANY,
         organization_id=organization_id,
     )
 
 
-def create_workflow(name, organization_id, data_condition_group, user) -> Workflow:
+def create_workflow(
+    name: str,
+    organization_id: int,
+    data_condition_group: DataConditionGroup,
+    user: RpcUser | None = None,
+) -> Workflow:
     return Workflow.objects.create(
         name=name,
         organization_id=organization_id,
@@ -143,7 +179,12 @@ def create_workflow(name, organization_id, data_condition_group, user) -> Workfl
     )
 
 
-def create_detector(alert_rule, project_id, data_condition_group, user) -> Detector:
+def create_detector(
+    alert_rule: AlertRule,
+    project_id: int,
+    data_condition_group: DataConditionGroup,
+    user: RpcUser | None = None,
+) -> Detector:
     return Detector.objects.create(
         project_id=project_id,
         enabled=True,
@@ -166,24 +207,53 @@ def create_detector(alert_rule, project_id, data_condition_group, user) -> Detec
 def migrate_alert_rule(
     alert_rule: AlertRule,
     user: RpcUser | None = None,
-) -> None:
+) -> (
+    tuple[
+        DataSource,
+        DataConditionGroup,
+        Workflow,
+        Detector,
+        DetectorState,
+        AlertRuleDetector,
+        AlertRuleWorkflow,
+        DetectorWorkflow,
+        WorkflowDataConditionGroup,
+    ]
+    | None
+):
     organization_id = alert_rule.organization_id
     project = alert_rule.projects.first()
     if not project:
         return None
 
     data_source = create_data_source(organization_id, alert_rule.snuba_query)
+    if not data_source:
+        return None
+
     data_condition_group = create_data_condition_group(organization_id)
     workflow = create_workflow(alert_rule.name, organization_id, data_condition_group, user)
     detector = create_detector(alert_rule, project.id, data_condition_group, user)
 
     detector.data_sources.set([data_source])
     data_source.detectors.set([detector])
-    DetectorState.objects.create(
+    detector_state = DetectorState.objects.create(
         detector=detector,
         active=False,
         state=DetectorPriorityLevel.OK,
     )
-    create_metric_alert_lookup_tables(
-        alert_rule, detector, workflow, data_source, data_condition_group
+    alert_rule_detector, alert_rule_workflow, detector_workflow, workflow_data_condition_group = (
+        create_metric_alert_lookup_tables(
+            alert_rule, detector, workflow, data_source, data_condition_group
+        )
+    )
+    return (
+        data_source,
+        data_condition_group,
+        workflow,
+        detector,
+        detector_state,
+        alert_rule_detector,
+        alert_rule_workflow,
+        detector_workflow,
+        workflow_data_condition_group,
     )
