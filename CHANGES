@@ -775,7 +775,7 @@ By: @DominikB2014 (#58939, #58937, #58891, #58785, #58768, #58792, #58770)
 - feat(spans): Record resource spans for clustering (#58689) by @jjbayer
 - feat(metric-extraction): validate specs (#59981) by @obostjancic
 - ref(browser-starfish): use the shared domain selector in resource module (#59950) by @DominikB2014
-- feat(database): "View Query Summary" links in span waterfall (#59785) by @gggritso
+- feat(database): "View Summary" links in span waterfall (#59785) by @gggritso
 - chore(starfish): Rename breadcrumb, remove duplicate sidebar item (#59980) by @shruthilayaj
 - feat(profiling): add differential flamegraph boilerplate to statistical issue (#59905) by @JonasBa
 - feat(starfish): Use short release version and truncate (#59936) by @shruthilayaj
