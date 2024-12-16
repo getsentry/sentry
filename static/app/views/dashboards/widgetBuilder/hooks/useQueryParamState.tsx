@@ -1,13 +1,11 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
 
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {defined} from 'sentry/utils';
-import {type decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {type decodeList, decodeScalar, type decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+
+import {useUrlBatchContext} from '../contexts/urlParamBatchContext';
 
 interface UseQueryParamStateWithScalarDecoder<T> {
   fieldName: string;
@@ -23,9 +21,17 @@ interface UseQueryParamStateWithListDecoder<T> {
   serializer?: (value: T) => string[];
 }
 
+interface UseQueryParamStateWithSortsDecoder<T> {
+  decoder: typeof decodeSorts;
+  fieldName: string;
+  serializer: (value: T) => string[];
+  deserializer?: (value: ReturnType<typeof decodeSorts>) => T;
+}
+
 type UseQueryParamStateProps<T> =
   | UseQueryParamStateWithScalarDecoder<T>
-  | UseQueryParamStateWithListDecoder<T>;
+  | UseQueryParamStateWithListDecoder<T>
+  | UseQueryParamStateWithSortsDecoder<T>;
 
 /**
  * Hook to manage a state that is synced with a query param in the URL
@@ -40,8 +46,7 @@ export function useQueryParamState<T = string>({
   deserializer,
   serializer,
 }: UseQueryParamStateProps<T>): [T | undefined, (newField: T | undefined) => void] {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const {batchUrlParamUpdates} = useUrlBatchContext();
 
   // The URL query params give us our initial state
   const parsedQueryParams = useLocationQuery({
@@ -64,45 +69,32 @@ export function useQueryParamState<T = string>({
         (decodedValue as T);
   });
 
-  // Debounce the update to the URL query params
-  // to avoid unnecessary re-renders
-  const updateQueryParam = useMemo(
-    () =>
-      debounce((newURLParamValues: string | string[] | undefined) => {
-        navigate({
-          ...location,
-          query: {...location.query, [fieldName]: newURLParamValues},
-        });
-      }, DEFAULT_DEBOUNCE_DURATION),
-    [location, navigate, fieldName]
-  );
-
   const updateField = useCallback(
     (newField: T | undefined) => {
       setLocalState(newField);
 
       if (!defined(newField)) {
-        updateQueryParam(undefined);
+        batchUrlParamUpdates({[fieldName]: undefined});
       } else if (serializer) {
-        updateQueryParam(serializer(newField));
+        batchUrlParamUpdates({[fieldName]: serializer(newField)});
       } else {
         // At this point, only update the query param if the new field is a string, number, boolean, or array
         if (
           ['string', 'number', 'boolean'].includes(typeof newField) ||
           Array.isArray(newField)
         ) {
-          updateQueryParam(newField as any);
+          batchUrlParamUpdates({[fieldName]: newField as any});
         } else {
           Sentry.captureException(
             new Error(
               'useQueryParamState: newField is not a primitive value and not provided a serializer'
             )
           );
-          updateQueryParam(undefined);
+          batchUrlParamUpdates({[fieldName]: undefined});
         }
       }
     },
-    [updateQueryParam, serializer]
+    [batchUrlParamUpdates, serializer, fieldName]
   );
 
   return [localState, updateField];

@@ -37,6 +37,7 @@ export default class ApiNewToken extends Component<{}, State> {
         Project: 'no-access',
         Release: 'no-access',
         Organization: 'no-access',
+        Alerts: 'no-access',
       },
       newToken: null,
     };

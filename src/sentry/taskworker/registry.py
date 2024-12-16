@@ -57,11 +57,19 @@ class TaskNamespace:
         return self._producer
 
     def get(self, name: str) -> Task[Any, Any]:
+        """
+        Get a registered task by name
+
+        Raises KeyError when an unknown task is provided.
+        """
         if name not in self._registered_tasks:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self._registered_tasks[name]
 
     def contains(self, name: str) -> bool:
+        """
+        Check if a task name has been registered
+        """
         return name in self._registered_tasks
 
     def register(
@@ -73,14 +81,38 @@ class TaskNamespace:
         processing_deadline_duration: int | datetime.timedelta | None = None,
         at_most_once: bool = False,
     ) -> Callable[[Callable[P, R]], Task[P, R]]:
-        """register a task, used as a decorator"""
+        """
+        Register a task.
+
+        Applied as a decorator to functions to enable them to be run
+        asynchronously via taskworkers.
+
+        Parameters
+        ----------
+
+        name: str
+            The name of the task. This is serialized and must be stable across deploys.
+        retry: Retry | None
+            The retry policy for the task. If none and at_most_once is not enabled
+            the Task namespace default retry policy will be used.
+        expires: int | datetime.timedelta
+            The number of seconds a task activation is valid for. After this
+            duration the activation will be discarded and not executed.
+        at_most_once : bool
+            Enable at-most-once execution. Tasks with `at_most_once` cannot
+            define retry policies, and use a worker side idempotency key to
+            prevent processing deadline based retries.
+        """
 
         def wrapped(func: Callable[P, R]) -> Task[P, R]:
+            task_retry = retry
+            if not at_most_once:
+                task_retry = retry or self.default_retry
             task = Task(
                 name=name,
                 func=func,
                 namespace=self,
-                retry=retry or self.default_retry,
+                retry=task_retry,
                 expires=expires or self.default_expires,
                 processing_deadline_duration=(
                     processing_deadline_duration or self.default_processing_deadline_duration

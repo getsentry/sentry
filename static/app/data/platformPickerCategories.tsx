@@ -13,6 +13,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'javascript',
   'javascript-angular',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-vue',
   'node',

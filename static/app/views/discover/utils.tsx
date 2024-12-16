@@ -591,13 +591,17 @@ export function generateFieldOptions({
   if (Array.isArray(spanOperationBreakdownKeys)) {
     spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
-      fieldOptions[`span_op_breakdown:${breakdownField}`] = {
-        label: breakdownField,
-        value: {
-          kind: FieldValueKind.BREAKDOWN,
-          meta: {name: breakdownField, dataType: 'duration'},
-        },
-      };
+      if (!fieldKeys.includes(breakdownField)) {
+        // These span op breakdowns are sometimes included in the fieldKeys
+        // so check before we add them, or else we surface duplicates
+        fieldOptions[`span_op_breakdown:${breakdownField}`] = {
+          label: breakdownField,
+          value: {
+            kind: FieldValueKind.BREAKDOWN,
+            meta: {name: breakdownField, dataType: 'duration'},
+          },
+        };
+      }
     });
   }
 

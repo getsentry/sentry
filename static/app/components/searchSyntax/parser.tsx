@@ -770,9 +770,12 @@ export class TokenConverter {
    * Checks a filter against some non-grammar validation rules
    */
   checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
-    if (![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG].includes(key.type)) {
+    if (
+      ![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG, Token.KEY_AGGREGATE].includes(key.type)
+    ) {
       return null;
     }
+
     const keyName = getKeyName(
       key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
     );

@@ -1,6 +1,6 @@
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -95,6 +95,37 @@ export function updateDashboardVisit(
   );
 
   return promise;
+}
+
+export async function updateDashboardFavorite(
+  api: Client,
+  orgId: string,
+  dashboardId: string | string[],
+  isFavorited: boolean
+): Promise<void> {
+  try {
+    await api.requestPromise(
+      `/organizations/${orgId}/dashboards/${dashboardId}/favorite/`,
+      {
+        method: 'PUT',
+        data: {
+          isFavorited,
+        },
+      }
+    );
+    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
+  } catch (response) {
+    const errorResponse = response?.responseJSON ?? null;
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+    } else if (isFavorited) {
+      addErrorMessage(t('Unable to favorite dashboard'));
+    } else {
+      addErrorMessage(t('Unable to unfavorite dashboard'));
+    }
+    throw response;
+  }
 }
 
 export function fetchDashboard(

@@ -56,7 +56,7 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-function computeShortInterval(datetimeObj: DateTimeObject): boolean {
+export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }

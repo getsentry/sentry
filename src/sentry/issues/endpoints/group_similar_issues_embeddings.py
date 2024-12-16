@@ -27,7 +27,6 @@ from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-MAX_FRAME_COUNT = 50
 
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
@@ -75,7 +74,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         if killswitch_enabled(group.project.id):
             return Response([])
 
@@ -88,7 +87,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
                     grouping_info, platform=latest_event.platform
                 )
             except TooManyOnlySystemFramesException:
-                stacktrace_string = ""
+                pass
+            except Exception:
+                logger.exception("Unexpected exception in stacktrace string formatting")
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event

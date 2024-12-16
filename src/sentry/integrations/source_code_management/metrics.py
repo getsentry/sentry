@@ -21,29 +21,30 @@ class SCMIntegrationInteractionType(StrEnum):
     """
 
     # RepositoryIntegration
-    GET_STACKTRACE_LINK = "GET_STACKTRACE_LINK"
-    GET_CODEOWNER_FILE = "GET_CODEOWNER_FILE"
-    CHECK_FILE = "CHECK_FILE"
+    GET_STACKTRACE_LINK = "get_stacktrace_link"
+    GET_CODEOWNER_FILE = "get_codeowner_file"
+    CHECK_FILE = "check_file"
 
     # SourceCodeIssueIntegration (SCM only)
-    GET_REPOSITORY_CHOICES = "GET_REPOSITORY_CHOICES"
+    GET_REPOSITORY_CHOICES = "get_repository_choices"
 
     # SourceCodeSearchEndpoint
-    HANDLE_SEARCH_ISSUES = "HANDLE_SEARCH_ISSUES"
-    HANDLE_SEARCH_REPOSITORIES = "HANDLE_SEARCH_REPOSITORIES"
-    GET = "GET"
+    HANDLE_SEARCH_ISSUES = "handle_search_issues"
+    HANDLE_SEARCH_REPOSITORIES = "handle_search_repositories"
+    GET = "get"
 
     # CommitContextIntegration
-    GET_BLAME_FOR_FILES = "GET_BLAME_FOR_FILES"
-    CREATE_COMMENT = "CREATE_COMMENT"
-    UPDATE_COMMENT = "UPDATE_COMMENT"
-    QUEUE_COMMENT_TASK = "QUEUE_COMMENT_TASK"
+    GET_BLAME_FOR_FILES = "get_blame_for_files"
+    CREATE_COMMENT = "create_comment"
+    UPDATE_COMMENT = "update_comment"
+    QUEUE_COMMENT_TASK = "queue_comment_task"
 
     # Tasks
-    LINK_ALL_REPOS = "LINK_ALL_REPOS"
+    LINK_ALL_REPOS = "link_all_repos"
 
     # GitHub only
-    DERIVE_CODEMAPPINGS = "DERIVE_CODEMAPPINGS"
+    DERIVE_CODEMAPPINGS = "derive_codemappings"
+    STUDENT_PACK = "student_pack"
 
 
 @dataclass

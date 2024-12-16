@@ -264,7 +264,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
     let options: Record<string, string> = TIME_WINDOW_MAP;
     const {alertType} = this.props;
 
-    if (alertType === 'custom_metrics' || alertType === 'insights_metrics') {
+    if (alertType === 'custom_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
       options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }
@@ -285,6 +285,19 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         TimeWindow.FIFTEEN_MINUTES,
         TimeWindow.THIRTY_MINUTES,
         TimeWindow.ONE_HOUR,
+      ]);
+    }
+
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      options = pick(TIME_WINDOW_MAP, [
+        TimeWindow.FIVE_MINUTES,
+        TimeWindow.TEN_MINUTES,
+        TimeWindow.FIFTEEN_MINUTES,
+        TimeWindow.THIRTY_MINUTES,
+        TimeWindow.ONE_HOUR,
+        TimeWindow.TWO_HOURS,
+        TimeWindow.FOUR_HOURS,
+        TimeWindow.ONE_DAY,
       ]);
     }
 
@@ -747,9 +760,8 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   flexibleControlStateSize
                 >
                   {({onChange, onBlur, initialData, value}) => {
-                    return (hasCustomMetrics(organization) &&
-                      alertType === 'custom_metrics') ||
-                      alertType === 'insights_metrics' ? (
+                    return hasCustomMetrics(organization) &&
+                      alertType === 'custom_metrics' ? (
                       <MetricSearchBar
                         mri={getMRI(aggregate)}
                         projectIds={[project.id]}
@@ -769,15 +781,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                           <EAPSpanSearchQueryBuilder
                             numberTags={tags?.number ?? {}}
                             stringTags={tags?.string ?? {}}
-                            initialQuery={initialData?.query ?? ''}
+                            initialQuery={value ?? ''}
                             searchSource="alerts"
                             onSearch={(query, {parsedQuery}) => {
                               onFilterSearch(query, parsedQuery);
                               onChange(query, {});
-                            }}
-                            onBlur={(query, {parsedQuery}) => {
-                              onFilterSearch(query, parsedQuery);
-                              onBlur(query);
                             }}
                             supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                             projects={[parseInt(project.id, 10)]}

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import GroupEvent
+    from sentry.workflow_engine.models import Action, Detector
 
 T = TypeVar("T")
 
@@ -24,7 +28,19 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
+class ActionHandler:
+    @staticmethod
+    def execute(group_event: GroupEvent, action: Action, detector: Detector) -> None:
+        raise NotImplementedError
+
+
 class DataSourceTypeHandler(Generic[T]):
     @staticmethod
     def bulk_get_query_object(data_sources) -> dict[int, T | None]:
+        raise NotImplementedError
+
+
+class DataConditionHandler(Generic[T]):
+    @staticmethod
+    def evaluate_value(value: T, comparison: Any, condition: str) -> DataConditionResult:
         raise NotImplementedError

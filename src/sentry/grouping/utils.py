@@ -20,13 +20,22 @@ def is_default_fingerprint_var(value):
 
 
 def hash_from_values(values):
+    """
+    Primarily used at the end of the grouping process, to get a final hash value once the all of the
+    variants have been constructed, but also used as a hack to compare exception components (by
+    stringifying their reprs) when calculating variants for chained exceptions.
+    """
     result = md5()
     for value in values:
         result.update(force_bytes(value, errors="replace"))
     return result.hexdigest()
 
 
-def get_rule_bool(value):
+def bool_from_string(value):
+    """
+    Convert various string representations of boolean values ("1", "yes", "true", "0", "no",
+    "false") into actual booleans.
+    """
     if value:
         value = value.lower()
         if value in ("1", "yes", "true"):
@@ -57,12 +66,12 @@ def get_fingerprint_value(var, data):
         return func or "<no-function>"
     elif var in ("path", "stack.abs_path"):
         frame = get_crash_frame_from_event_data(data)
-        func = frame.get("abs_path") or frame.get("filename") if frame else None
-        return func or "<no-abs-path>"
+        abs_path = frame.get("abs_path") or frame.get("filename") if frame else None
+        return abs_path or "<no-abs-path>"
     elif var == "stack.filename":
         frame = get_crash_frame_from_event_data(data)
-        func = frame.get("filename") or frame.get("abs_path") if frame else None
-        return func or "<no-filename>"
+        filename = frame.get("filename") or frame.get("abs_path") if frame else None
+        return filename or "<no-filename>"
     elif var in ("module", "stack.module"):
         frame = get_crash_frame_from_event_data(data)
         mod = frame.get("module") if frame else None
@@ -78,6 +87,7 @@ def get_fingerprint_value(var, data):
     elif var == "logger":
         return data.get("logger") or "<no-logger>"
     elif var.startswith("tags."):
+        # Turn "tags.some_tag" into just "some_tag"
         tag = var[5:]
         for t, value in data.get("tags") or ():
             if t == tag:

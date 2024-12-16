@@ -137,7 +137,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __str__(self):
-        return force_str(self.token)
+        return f"token_id={force_str(self.id)}"
 
     def _set_plaintext_token(self, token: str) -> None:
         """Set the plaintext token for one-time reading

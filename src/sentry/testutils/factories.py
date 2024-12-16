@@ -25,7 +25,6 @@ from django.core.files.base import ContentFile
 from django.db import router, transaction
 from django.test.utils import override_settings
 from django.utils import timezone
-from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
@@ -54,7 +53,6 @@ from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentProject,
-    IncidentSeen,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
@@ -621,7 +619,7 @@ class Factories:
         status: int | None = ReleaseStatus.OPEN,
     ):
         if version is None:
-            version = force_str(hexlify(os.urandom(20)))
+            version = hexlify(os.urandom(20)).decode()
 
         if date_added is None:
             date_added = timezone.now()
@@ -1005,6 +1003,9 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, **kwargs):
+        from sentry.models.group import GroupStatus
+        from sentry.types.group import GroupSubStatus
+
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
         if "type" not in kwargs["data"]:
@@ -1014,6 +1015,10 @@ class Factories:
         if "metadata" in kwargs:
             metadata = kwargs.pop("metadata")
             kwargs["data"].setdefault("metadata", {}).update(metadata)
+        if "status" not in kwargs:
+            kwargs["status"] = GroupStatus.UNRESOLVED
+            kwargs["substatus"] = GroupSubStatus.NEW
+
         return Group.objects.create(project=project, **kwargs)
 
     @staticmethod
@@ -1509,7 +1514,6 @@ class Factories:
         date_started=None,
         date_detected=None,
         date_closed=None,
-        seen_by=None,
         alert_rule=None,
         subscription=None,
         activation=None,
@@ -1536,11 +1540,7 @@ class Factories:
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
-        if seen_by:
-            for user in seen_by:
-                IncidentSeen.objects.create(
-                    incident=incident, user_id=user.id, last_seen=timezone.now()
-                )
+
         return incident
 
     @staticmethod
@@ -2074,7 +2074,7 @@ class Factories:
             organization = Factories.create_organization()
         if name is None:
             name = petname.generate(2, " ", letters=10).title()
-        return Workflow.objects.create(organization=organization, name=name)
+        return Workflow.objects.create(organization=organization, name=name, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2102,9 +2102,7 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_data_condition(
-        **kwargs,
-    ) -> DataCondition:
+    def create_data_condition(**kwargs) -> DataCondition:
         return DataCondition.objects.create(**kwargs)
 
     @staticmethod

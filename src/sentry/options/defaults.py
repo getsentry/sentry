@@ -906,13 +906,13 @@ register(
 register(
     "seer.similarity.global-rate-limit",
     type=Dict,
-    default={"limit": 20, "window": 1},
+    default={"limit": 20, "window": 1},  # window is in seconds
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "seer.similarity.per-project-rate-limit",
     type=Dict,
-    default={"limit": 5, "window": 1},
+    default={"limit": 5, "window": 1},  # window is in seconds
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1120,11 +1120,6 @@ register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AU
 
 # Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
 register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Controls the sample rate of metrics summaries computation in Relay.
-register(
-    "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
 
 # Controls whether generic inbound filters are sent to Relay.
 register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2366,8 +2361,25 @@ register(
 
 # Relocation: the step at which new relocations should be autopaused, requiring admin approval
 # before continuing.
+# DEPRECATED: will be removed after the new `relocation.autopause.*` options are fully rolled out.
 register(
     "relocation.autopause",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.self-hosted",
+    default="",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Relocation: the step at which new `SELF_HOSTED` relocations should be autopaused, requiring an
+# admin to unpause before continuing.
+register(
+    "relocation.autopause.saas-to-saas",
     default="",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2816,12 +2828,6 @@ register(
 )
 
 register(
-    "celery_split_queue_legacy_mode",
-    default=["post_process_transactions"],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "celery_split_queue_rollout",
     default={"post_process_transactions": 1.0},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2899,15 +2905,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# list of project IDs for which we'll apply
-# stack trace rules to the profiles in case
-# there are any rules defined
-register(
-    "profiling.stack_trace_rules.allowed_project_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "performance.event-tracker.sample-rate.transactions",
     default=0.0,
@@ -2932,5 +2929,13 @@ register(
     "sentry.similarity.indexing.enabled",
     default=True,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enforces a QueryBuilder check that the first relevant event has been sent for each project
+register(
+    "sentry.search.events.project.check_event",
+    default=0.0,
+    type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
