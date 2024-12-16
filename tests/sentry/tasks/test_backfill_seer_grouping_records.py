@@ -165,6 +165,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                     "group_id": event.group_id,
                 }
             )
+            # Create 2 hashes per group
+            GroupHash.objects.create(
+                project_id=event.group.project.id,
+                group_id=event.group.id,
+                hash="".join(choice(ascii_uppercase) for _ in range(32)),
+            )
 
         return {"rows": rows, "events": events}
 
@@ -184,13 +190,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert event.group
         event.group.times_seen = times_seen
         event.group.save()
-
-        # Create two hashes per group
-        GroupHash.objects.create(
-            project_id=event.group.project.id,
-            group_id=event.group.id,
-            hash="".join(choice(ascii_uppercase) for _ in range(32)),
-        )
         return event
 
     def assert_groups_metadata_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
