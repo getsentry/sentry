@@ -30,7 +30,9 @@ type WidgetBuilderSlideoutProps = {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
+  isWidgetInvalid: boolean;
   onClose: () => void;
+  onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
   setIsPreviewDraggable: (draggable: boolean) => void;
 };
@@ -39,9 +41,11 @@ function WidgetBuilderSlideout({
   isOpen,
   onClose,
   onSave,
+  onQueryConditionChange,
   dashboard,
   dashboardFilters,
   setIsPreviewDraggable,
+  isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
@@ -120,6 +124,7 @@ function WidgetBuilderSlideout({
               <WidgetPreviewContainer
                 dashboard={dashboard}
                 dashboardFilters={dashboardFilters}
+                isWidgetInvalid={isWidgetInvalid}
               />
             </Section>
           )}
@@ -128,7 +133,9 @@ function WidgetBuilderSlideout({
           <Visualize />
         </Section>
         <Section>
-          <WidgetBuilderQueryFilterBuilder />
+          <WidgetBuilderQueryFilterBuilder
+            onQueryConditionChange={onQueryConditionChange}
+          />
         </Section>
         {isChartWidget && (
           <Section>

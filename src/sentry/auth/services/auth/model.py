@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class RpcApiKey(RpcModel):
     id: int = -1
     organization_id: int = -1
-    key: str = ""
+    key: str = Field(repr=False, default="")
     status: int = 0
     allowed_origins: list[str] = Field(default_factory=list)
     label: str = ""
@@ -35,8 +35,8 @@ class RpcApiToken(RpcModel):
     organization_id: int | None = None
     application_id: int | None = None
     application_is_active: bool = False
-    token: str = ""
-    hashed_token: str | None = None
+    token: str = Field(repr=False, default="")
+    hashed_token: str | None = Field(repr=False, default=None)
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)

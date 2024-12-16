@@ -294,10 +294,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        self.project_id = project.id
         self._project_cache = project
 
     @cached_property

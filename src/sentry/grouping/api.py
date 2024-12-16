@@ -156,7 +156,7 @@ def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     ingestion so that the grouping algorithm can be re-run later.
 
     This is called early on in normalization so that everything that is needed
-    to group the project is pulled into the event.
+    to group the event is pulled into the event data.
     """
     loader = PrimaryGroupingConfigLoader()
     return loader.get_config_dict(project)
@@ -285,8 +285,10 @@ def _get_component_trees_for_variants(
     precedence_hint: str | None = None
     all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent]] = {}
 
+    # `iter_strategies` presents strategies in priority order, which allows us to go with the first
+    # one which produces a result. (See `src/sentry/grouping/strategies/configurations.py` for the
+    # strategies used by each config.)
     for strategy in context.config.iter_strategies():
-        # Defined in src/sentry/grouping/strategies/base.py
         current_strategy_components_by_variant = strategy.get_grouping_components(
             event, context=context
         )
@@ -334,32 +336,18 @@ def get_grouping_variants_for_event(
     event: Event, config: StrategyConfiguration | None = None
 ) -> dict[str, BaseVariant]:
     """Returns a dict of all grouping variants for this event."""
-    # If a checksum is set the only variant that comes back from this
-    # event is the checksum variant.
+    # If a checksum is set the only variant that comes back from this event is the checksum variant.
     #
     # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
     # strategies but mark them as non-contributing, with explanations why?
-    #
-    # TODO: In the case where we have to hash the checksum to get a value in the right format, we
-    # store the raw value as well (provided it's not so long that it will overflow the DB field).
-    # Even when we do this, though, we don't set the raw value as non-cotributing, and we don't add
-    # an "ignored because xyz" hint on the variant, which we should.
     checksum = event.data.get("checksum")
     if checksum:
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
-
-        variants: dict[str, BaseVariant] = {
-            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
-        }
-
-        # The legacy code path also supported arbitrary values here but
-        # it will blow up if it results in more than 32 bytes of data
-        # as this cannot be inserted into the database.  (See GroupHash.hash)
-        if len(checksum) <= 32:
-            variants["checksum"] = ChecksumVariant(checksum)
-
-        return variants
+        else:
+            return {
+                "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            }
 
     # Otherwise we go to the various forms of fingerprint handling.  If the event carries
     # a materialized fingerprint info from server side fingerprinting we forward it to the
@@ -375,11 +363,11 @@ def get_grouping_variants_for_event(
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
+    variants: dict[str, BaseVariant] = {}
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
-        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
             root_component.update(
                 contributes=False,
@@ -397,13 +385,11 @@ def get_grouping_variants_for_event(
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
-        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
 
     # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
-        variants = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = SaltedComponentVariant(

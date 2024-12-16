@@ -49,6 +49,8 @@ function WidgetBuilderV2({
   const escapeKeyPressed = useKeyPress('Escape');
   const organization = useOrganization();
   const {selection} = usePageFilters();
+
+  const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
@@ -123,9 +125,11 @@ function WidgetBuilderV2({
                         });
                       }}
                       onSave={onSave}
+                      onQueryConditionChange={setQueryConditionsValid}
                       dashboard={dashboard}
                       dashboardFilters={dashboardFilters}
                       setIsPreviewDraggable={setIsPreviewDraggable}
+                      isWidgetInvalid={!queryConditionsValid}
                     />
                     {(!isSmallScreen || isPreviewDraggable) && (
                       <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
@@ -134,6 +138,7 @@ function WidgetBuilderV2({
                           dashboard={dashboard}
                           translate={translate}
                           isDraggable={isPreviewDraggable}
+                          isWidgetInvalid={!queryConditionsValid}
                         />
                       </DndContext>
                     )}
@@ -153,11 +158,13 @@ export default WidgetBuilderV2;
 export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
+  isWidgetInvalid,
   translate,
   isDraggable,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
+  isWidgetInvalid: boolean;
   isDraggable?: boolean;
   translate?: Translate;
 }) {
@@ -214,18 +221,20 @@ export function WidgetPreviewContainer({
                     stiffness: 500,
                     damping: 50,
                   }}
-                  isTable={state.displayType === DisplayType.TABLE}
                   style={{
                     width: isDragEnabled ? '300px' : undefined,
                     height:
                       isDragEnabled && state.displayType !== DisplayType.TABLE
                         ? '200px'
-                        : undefined,
+                        : state.displayType === DisplayType.TABLE
+                          ? 'auto'
+                          : '400px',
                   }}
                 >
                   <WidgetPreview
                     dashboardFilters={dashboardFilters}
                     dashboard={dashboard}
+                    isWidgetInvalid={isWidgetInvalid}
                   />
                 </SampleWidgetCard>
               </DraggableWidgetContainer>
@@ -255,10 +264,9 @@ const Backdrop = styled('div')`
   opacity: 0;
 `;
 
-const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
+const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
-  height: ${p => (p.isTable ? 'auto' : '400px')};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
