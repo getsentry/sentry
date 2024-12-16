@@ -213,9 +213,7 @@ def handle_search_filters(
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
             except CouldNotParseValue:
-                raise ParseError(
-                    f"Could not parse value '{search_filter.value.value}' for `{search_filter.key.name}`"
-                )
+                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
 
             if look_back == "AND":
                 look_back = None

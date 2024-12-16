@@ -19,7 +19,10 @@ def parse_float(value: str) -> float:
 
 def parse_int(value: str) -> int:
     """Coerce to int or fail."""
-    return int(parse_float(value))
+    try:
+        return int(parse_float(value))
+    except (ValueError, CouldNotParseValue):
+        raise CouldNotParseValue("Failed to parse int.")
 
 
 def parse_duration(value: str) -> int:
