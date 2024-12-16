@@ -10,7 +10,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
+import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
@@ -49,6 +49,7 @@ import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
 
 interface ExploreChartsProps {
   query: string;
+  setConfidence: Dispatch<SetStateAction<Confidence>>;
   setError: Dispatch<SetStateAction<string>>;
 }
 
@@ -69,7 +70,7 @@ const exploreChartTypeOptions = [
 
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
-export function ExploreCharts({query, setError}: ExploreChartsProps) {
+export function ExploreCharts({query, setConfidence, setError}: ExploreChartsProps) {
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
@@ -189,6 +190,13 @@ export function ExploreCharts({query, setError}: ExploreChartsProps) {
 
     return 'high';
   }, [dataset, timeSeriesResult.data]);
+
+  useEffect(() => {
+    // only update the confidence once the result has loaded
+    if (!timeSeriesResult.isPending) {
+      setConfidence(resultConfidence);
+    }
+  }, [setConfidence, resultConfidence, timeSeriesResult.isPending]);
 
   useEffect(() => {
     setError(timeSeriesResult.error?.message ?? '');

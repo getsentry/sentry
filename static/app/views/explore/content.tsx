@@ -21,6 +21,7 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   type AggregationKey,
@@ -78,6 +79,7 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [confidence, setConfidence] = useState<Confidence>(null);
   const [chartError, setChartError] = useState<string>('');
   const [tableError, setTableError] = useState<string>('');
 
@@ -169,8 +171,12 @@ function ExploreContentImpl({}: ExploreContentProps) {
                   {tableError || chartError}
                 </Alert>
               )}
-              <ExploreCharts query={query} setError={setChartError} />
-              <ExploreTables setError={setTableError} />
+              <ExploreCharts
+                query={query}
+                setConfidence={setConfidence}
+                setError={setChartError}
+              />
+              <ExploreTables confidence={confidence} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
