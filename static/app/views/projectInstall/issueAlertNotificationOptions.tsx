@@ -141,13 +141,7 @@ export function useCreateNotificationAction() {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
-      if (
-        !organization.features.includes(
-          'messaging-integration-onboarding-project-creation'
-        ) ||
-        !shouldCreateRule ||
-        !isCreatingIntegrationNotification
-      ) {
+      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
         return undefined;
       }
 
@@ -191,15 +185,7 @@ export function useCreateNotificationAction() {
         },
       });
     },
-    [
-      actions,
-      api,
-      provider,
-      integration,
-      channel,
-      organization.features,
-      organization.slug,
-    ]
+    [actions, api, provider, integration, channel, organization.slug]
   );
 
   return {
