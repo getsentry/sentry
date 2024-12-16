@@ -2899,50 +2899,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         ) as self.mock_post:
             yield
 
-    def assert_performance_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert "N+1 Query" in attachment["text"]
-        assert (
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in attachment["blocks"][1]["text"]["text"]
-        )
-        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
-        notification_uuid = self.get_notification_uuid(title_link)
-        assert (
-            attachment["blocks"][-2]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
-        )
-
-    def assert_performance_issue_blocks(
-        self,
-        blocks,
-        org: Organization,
-        project_slug: str,
-        group,
-        referrer,
-        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
-        issue_link_extra_params=None,
-    ):
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
-        if issue_link_extra_params is not None:
-            issue_link += issue_link_extra_params
-        assert (
-            blocks[1]["text"]["text"]
-            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
-        )
-        assert (
-            blocks[2]["text"]["text"]
-            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
-        )
-        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
-        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
-        assert (
-            blocks[4]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
     def assert_performance_issue_blocks_with_culprit_blocks(
         self,
         blocks,
@@ -2971,17 +2927,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
-    def assert_generic_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
-        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
-        assert (
-            attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_blocks(
