@@ -10,9 +10,7 @@ import IssueAlertNotificationOptions, {
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', function () {
-  const organization = OrganizationFixture({
-    features: ['messaging-integration-onboarding-project-creation'],
-  });
+  const organization = OrganizationFixture();
   const integrations: OrganizationIntegration[] = [];
   const mockSetAction = jest.fn();
 
