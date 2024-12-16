@@ -152,22 +152,6 @@ function CreateProject() {
         if (ruleData) {
           ruleIds.push(ruleData.id);
         }
-        trackAnalytics('project_creation_page.created', {
-          organization,
-          issue_alert: defaultRules
-            ? 'Default'
-            : shouldCreateCustomRule
-              ? 'Custom'
-              : 'No Rule',
-          project_id: projectData.id,
-          platform: selectedPlatform.key,
-          rule_ids: ruleIds,
-          has_onboarding_feature_flag: organization.features.includes(
-            'messaging-integration-onboarding-project-creation'
-          ),
-          created_integration_notification: shouldCreateRule ?? false,
-        });
-
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
@@ -296,7 +280,6 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
-    organization.features.includes('messaging-integration-onboarding-project-creation') &&
     shouldCreateRule &&
     notificationProps.actions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
