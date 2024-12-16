@@ -16,8 +16,8 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {
-  addOrganizationFeaturesHook,
-  getSentryFeaturesHook,
+  addOrganizationFeaturesHandler,
+  buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -45,9 +45,9 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
-  addOrganizationFeaturesHook({
+  addOrganizationFeaturesHandler({
     organization: org,
-    hook: getSentryFeaturesHook('feature.organizations:'),
+    handler: buildSentryFeaturesHandler('feature.organizations:'),
   });
 
   OrganizationStore.onUpdate(org, {replace: true});

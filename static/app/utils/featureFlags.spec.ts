@@ -2,11 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
-  addOrganizationFeaturesHook,
-  addProjectFeaturesHook,
+  addOrganizationFeaturesHandler,
+  addProjectFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 
-describe('addOrganizationFeaturesHook', () => {
+describe('addOrganizationFeaturesHandler', () => {
   let organization;
 
   beforeEach(() => {
@@ -15,29 +15,29 @@ describe('addOrganizationFeaturesHook', () => {
     });
   });
 
-  it('should pass the flag name and result to the hook on each evaluation', () => {
-    const mockHook = jest.fn();
-    addOrganizationFeaturesHook({organization, hook: mockHook});
+  it('should pass the flag name and result to the handler on each evaluation', () => {
+    const mockHandler = jest.fn();
+    addOrganizationFeaturesHandler({organization, handler: mockHandler});
 
     organization.features.includes('enable-replay');
     organization.features.includes('replay-mobile-ui');
     organization.features.includes('enable-issues');
 
-    expect(mockHook).toHaveBeenNthCalledWith(1, 'enable-replay', true);
-    expect(mockHook).toHaveBeenNthCalledWith(2, 'replay-mobile-ui', false);
-    expect(mockHook).toHaveBeenNthCalledWith(3, 'enable-issues', true);
+    expect(mockHandler).toHaveBeenNthCalledWith(1, 'enable-replay', true);
+    expect(mockHandler).toHaveBeenNthCalledWith(2, 'replay-mobile-ui', false);
+    expect(mockHandler).toHaveBeenNthCalledWith(3, 'enable-issues', true);
   });
 
   it('should not change the functionality of `includes`', () => {
-    const mockHook = jest.fn();
-    addOrganizationFeaturesHook({organization, hook: mockHook});
+    const mockHandler = jest.fn();
+    addOrganizationFeaturesHandler({organization, handler: mockHandler});
     expect(organization.features.includes('enable-issues')).toBe(true);
     expect(organization.features.includes('enable-replay')).toBe(true);
     expect(organization.features.includes('replay-mobile-ui')).toBe(false);
   });
 });
 
-describe('addProjectFeaturesHook', () => {
+describe('addProjectFeaturesHandler', () => {
   let project;
 
   beforeEach(() => {
@@ -46,22 +46,22 @@ describe('addProjectFeaturesHook', () => {
     });
   });
 
-  it('should pass the flag name and result to the hook on each evaluation', () => {
-    const mockHook = jest.fn();
-    addProjectFeaturesHook({project, hook: mockHook});
+  it('should pass the flag name and result to the handler on each evaluation', () => {
+    const mockHandler = jest.fn();
+    addProjectFeaturesHandler({project, handler: mockHandler});
 
     project.features.includes('enable-replay');
     project.features.includes('replay-mobile-ui');
     project.features.includes('enable-issues');
 
-    expect(mockHook).toHaveBeenNthCalledWith(1, 'enable-replay', true);
-    expect(mockHook).toHaveBeenNthCalledWith(2, 'replay-mobile-ui', false);
-    expect(mockHook).toHaveBeenNthCalledWith(3, 'enable-issues', true);
+    expect(mockHandler).toHaveBeenNthCalledWith(1, 'enable-replay', true);
+    expect(mockHandler).toHaveBeenNthCalledWith(2, 'replay-mobile-ui', false);
+    expect(mockHandler).toHaveBeenNthCalledWith(3, 'enable-issues', true);
   });
 
   it('should not change the functionality of `includes`', () => {
-    const mockHook = jest.fn();
-    addProjectFeaturesHook({project, hook: mockHook});
+    const mockHandler = jest.fn();
+    addProjectFeaturesHandler({project, handler: mockHandler});
     expect(project.features.includes('enable-issues')).toBe(true);
     expect(project.features.includes('enable-replay')).toBe(true);
     expect(project.features.includes('replay-mobile-ui')).toBe(false);

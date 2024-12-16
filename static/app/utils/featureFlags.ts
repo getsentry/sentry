@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
  * @param prefix - optionally specifies a prefix for flag names, before calling
  *  the SDK hook
  */
-export function getSentryFeaturesHook(
+export function buildSentryFeaturesHandler(
   prefix?: string
 ): (name: string, value: unknown) => void {
   const featureFlagsIntegration =
@@ -32,47 +32,47 @@ export function getSentryFeaturesHook(
 }
 
 /**
- * Registers a hook that processes feature names and values on each call to
+ * Registers a handler that processes feature names and values on each call to
  * organization.features.includes().
  */
-export function addOrganizationFeaturesHook({
+export function addOrganizationFeaturesHandler({
   organization,
-  hook,
+  handler,
 }: {
-  hook: (name: string, value: unknown) => void;
+  handler: (name: string, value: unknown) => void;
   organization: Organization;
 }) {
-  const handler = {
+  const includesHandler = {
     apply: (includes: any, orgFeatures: string[], flagName: string[]) => {
       // Evaluate the result of .includes() and pass it to hook before returning
       const flagResult = includes.apply(orgFeatures, flagName);
-      hook(flagName[0], flagResult);
+      handler(flagName[0], flagResult);
       return flagResult;
     },
   };
-  const proxy = new Proxy(organization.features.includes, handler);
+  const proxy = new Proxy(organization.features.includes, includesHandler);
   organization.features.includes = proxy;
 }
 
 /**
- * Registers a hook that processes feature names and values on each call to
+ * Registers a handler that processes feature names and values on each call to
  * organization.features.includes().
  */
-export function addProjectFeaturesHook({
+export function addProjectFeaturesHandler({
   project,
-  hook,
+  handler,
 }: {
-  hook: (name: string, value: unknown) => void;
+  handler: (name: string, value: unknown) => void;
   project: Project;
 }) {
-  const handler = {
+  const includesHandler = {
     apply: (includes: any, projFeatures: string[], flagName: string[]) => {
       // Evaluate the result of .includes() and pass it to hook before returning
       const flagResult = includes.apply(projFeatures, flagName);
-      hook(flagName[0], flagResult);
+      handler(flagName[0], flagResult);
       return flagResult;
     },
   };
-  const proxy = new Proxy(project.features.includes, handler);
+  const proxy = new Proxy(project.features.includes, includesHandler);
   project.features.includes = proxy;
 }
