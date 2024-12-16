@@ -92,7 +92,7 @@ export function EventDetailsHeader({
             analyticsEventKey="issue_details.issue_tags_clicked"
             analyticsEventName="Issue Details: Issue Tags Clicked"
           >
-            {t('Issue Tags')}
+            {t('All Tags')}
           </IssueTagsButton>
         </GraphSection>
       </FilterContainer>
