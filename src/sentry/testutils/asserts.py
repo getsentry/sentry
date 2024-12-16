@@ -55,14 +55,6 @@ def assert_org_audit_log_exists(**kwargs):
     assert org_audit_log_exists(**kwargs)
 
 
-def assert_org_audit_log_does_not_exist(**kwargs):
-    assert not org_audit_log_exists(**kwargs)
-
-
-def delete_all_org_audit_logs():
-    return AuditLogEntry.objects.all().delete()
-
-
 """
 Helper functions to assert integration SLO metrics
 """
