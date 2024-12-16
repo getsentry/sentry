@@ -351,6 +351,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         Unlike other API requests, files must be uploaded using the
         traditional multipart/form-data content-type.
 
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
+
         The file uploaded is a zip archive of a Apple .dSYM folder which
         contains the individual debug images.  Uploading through this endpoint
         will create different files for the contained images.
