@@ -164,7 +164,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "apple-ios-profiling-onboarding-1-install",
         "apple-ios-profiling-onboarding-4-upload",
         "apple-macos",
-        "c",
+        # "c", A native platform -> excluded for now
         "capacitor",
         "cfml",
         "cocoa",
@@ -186,12 +186,13 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "javascript-nuxt",
         "javascript-solidstart",
         "kotlin",
-        "minidump",
-        # "native", Holding off for now
-        # "native-qt",
+        # "minidump", A native platform -> excluded for now
+        # "native", A native platform -> excluded for now
+        # "native-qt", A native platform -> excluded for now
         "nintendo-switch",
         "objc",
-        # "other" and null platform will be excluded for now
+        # The null and empty platform are also excluded for now
+        # "other"
         "powershell",
         "rust",
         "swift",
