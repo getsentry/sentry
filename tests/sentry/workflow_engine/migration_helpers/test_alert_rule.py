@@ -15,10 +15,10 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.metric_helpers import (
-    create_metric_action,
-    create_metric_data_condition,
-    create_metric_detector_and_workflow,
+from sentry.workflow_engine.migration_helpers.alert_rule import (
+    migrate_alert_rule,
+    migrate_metric_action,
+    migrate_metric_data_condition,
 )
 from sentry.workflow_engine.models import (
     Action,
@@ -52,7 +52,7 @@ class MetricHelpersTest(APITestCase):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert)
@@ -116,7 +116,7 @@ class MetricHelpersTest(APITestCase):
             detection_type=AlertRuleDetectionType.DYNAMIC,
             time_window=30,
         )
-        create_metric_detector_and_workflow(dynamic_metric_alert, self.rpc_user)
+        migrate_alert_rule(dynamic_metric_alert, self.rpc_user)
 
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=dynamic_metric_alert)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=dynamic_metric_alert)
@@ -165,7 +165,7 @@ class MetricHelpersTest(APITestCase):
         dynamic_alert_rule_trigger = self.create_alert_rule_trigger(
             alert_rule=dynamic_metric_alert, alert_threshold=0
         )
-        create_metric_data_condition(dynamic_alert_rule_trigger)
+        migrate_metric_data_condition(dynamic_alert_rule_trigger)
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
             alert_rule_trigger=dynamic_alert_rule_trigger
         )
@@ -186,30 +186,8 @@ class MetricHelpersTest(APITestCase):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
-        create_metric_data_condition(self.alert_rule_trigger)
-        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
-            alert_rule_trigger=self.alert_rule_trigger
-        )
-        data_condition_group_id = (
-            alert_rule_trigger_data_condition.data_condition.condition_group.id
-        )
-        data_condition = DataCondition.objects.get(condition_group=data_condition_group_id)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        data_condition_group = workflow.when_condition_group
-
-        assert data_condition.condition == Condition.GREATER
-        assert data_condition.comparison == self.alert_rule_trigger.alert_threshold
-        assert data_condition.condition_result == DetectorPriorityLevel.HIGH
-        assert data_condition.condition_group == data_condition_group
-
-    def test_create_dynamic_metric_alert_trigger(self):
-        """
-        Test that when we call the helper methods we create all the ACI models correctly for a dynamic alert rule trigger
-        """
-        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
-        create_metric_data_condition(self.alert_rule_trigger)
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        migrate_metric_data_condition(self.alert_rule_trigger)
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
             alert_rule_trigger=self.alert_rule_trigger
         )
@@ -230,9 +208,9 @@ class MetricHelpersTest(APITestCase):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger action
         """
-        create_metric_detector_and_workflow(self.metric_alert, self.rpc_user)
-        create_metric_data_condition(self.alert_rule_trigger)
-        create_metric_action(self.alert_rule_trigger_action)
+        migrate_alert_rule(self.metric_alert, self.rpc_user)
+        migrate_metric_data_condition(self.alert_rule_trigger)
+        migrate_metric_action(self.alert_rule_trigger_action)
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
             alert_rule_trigger=self.alert_rule_trigger
         )
