@@ -20,6 +20,11 @@ function ResourceButtons() {
         subtitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
         link="https://docs.sentry.io/platforms/android/session-replay/#privacy"
       />
+      <Resource
+        title={t('Identify Users')}
+        subtitle={t('Identify your users through a specific attribute, such as email.')}
+        link="https://docs.sentry.io/platforms/android/enriching-events/identify-user/"
+      />
     </ButtonContainer>
   );
 }
