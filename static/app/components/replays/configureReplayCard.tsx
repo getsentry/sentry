@@ -55,6 +55,11 @@ function ResourceButtons() {
         link="https://docs.sentry.io/platforms/javascript/session-replay/privacy/#privacy-configuration"
       />
       <Resource
+        title={t('Identify Users')}
+        subtitle={t('Identify your users through a specific attribute, such as email.')}
+        link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users"
+      />
+      <Resource
         title={t('Network Details')}
         subtitle={t('Capture request and response headers or bodies')}
         link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#network-details"
