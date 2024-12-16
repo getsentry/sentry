@@ -14,10 +14,7 @@ class LoginSuccessViewTest(APITestCase):
         # Note no login
 
     def test_get_requires_auth(self):
-        """
-        Unauthenticated requests should redirect to /auth/login.
-        Similar to self.assertRequiresAuthentication, which is outdated.
-        """
+        """Unauthenticated requests should redirect to /auth/login."""
         res = self.client.get(self.url)
         assert res.status_code == 302
         assert reverse("sentry-login") in res["Location"]
