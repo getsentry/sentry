@@ -17,12 +17,23 @@ MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
-        "csharp",
+        "android",
+        "as3",
+        # "c", A native platform -> excluded for now
+        "cfml",
         "cocoa",
+        "csharp",
+        "elixir",
         "go",
+        "groovy",
+        "haskell",
         "java",
         "javascript",
+        # "native", A native platform -> excluded for now
         "node",
+        "objc",
+        # "other", Since we can't be sure of what this is, we'll exclude it for now
+        "perl",
         "php",
         "python",
         "ruby",
@@ -489,12 +500,6 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"eligible": False, "blocker": "unsupported-platform"},
-        )
-        # We can temporarily collect their values and add them to the metric
-        metrics.incr(
-            "grouping.similarity.blocked_event_platform",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"platform": event.platform or "None"},
         )
         return False
 
