@@ -1,5 +1,4 @@
 import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 import {PlatformIcon} from 'platformicons';
 
@@ -107,10 +106,5 @@ export function SpanProjectIcon({platform}: {platform: string}) {
     return null;
   }
 
-  return <FaintProjectIcon platform={platform} />;
+  return <PlatformIcon platform={platform} />;
 }
-
-const FaintProjectIcon = styled(PlatformIcon)`
-  opacity: 0.2;
-  filter: grayscale(1);
-`;
