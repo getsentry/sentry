@@ -1,6 +1,11 @@
 from rest_framework.exceptions import Throttled
 from rest_framework.views import exception_handler
 
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    sentry_app_error_exception_handler,
+)
 from sentry.utils.snuba import RateLimitExceeded
 
 
@@ -9,5 +14,9 @@ def custom_exception_handler(exc, context):
         # If Snuba throws a RateLimitExceeded then it'll likely be available
         # after another second.
         exc = Throttled(wait=1)
+
+    # If we get an error in a base class, we need to return a standardized format
+    if isinstance(exc, (SentryAppError, SentryAppIntegratorError)):
+        return sentry_app_error_exception_handler(exc, context)
 
     return exception_handler(exc, context)

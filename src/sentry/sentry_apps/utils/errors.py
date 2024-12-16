@@ -15,11 +15,29 @@ class SentryAppErrorType(Enum):
 # Represents a user/client error that occured during a Sentry App process
 class SentryAppError(Exception):
     error_type = SentryAppErrorType.CLIENT
+    status_code = 400
+
+    def __init__(
+        self,
+        error: Exception | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        if status_code:
+            self.status_code = status_code
 
 
 # Represents an error caused by a 3p integrator during a Sentry App process
 class SentryAppIntegratorError(Exception):
     error_type = SentryAppErrorType.INTEGRATOR
+    status_code = 400
+
+    def __init__(
+        self,
+        error: Exception | None = None,
+        status_code: int | None = None,
+    ) -> None:
+        if status_code:
+            self.status_code = status_code
 
 
 def catch_and_handle_sentry_app_errors(func: Any):
@@ -29,7 +47,7 @@ def catch_and_handle_sentry_app_errors(func: Any):
         try:
             return func(*args, **kwargs)
         except (SentryAppError, SentryAppIntegratorError) as e:
-            return Response({"error": str(e)}, status=400)
+            return Response({"error": str(e)}, status=e.status_code)
         except Exception as e:
             error_id = sentry_sdk.capture_exception(e)
             return Response(
@@ -37,3 +55,10 @@ def catch_and_handle_sentry_app_errors(func: Any):
             )
 
     return decorator
+
+
+# Errors in base API classes will first go through DRFs default exception handler
+# so we need to intercept and reraise here to apply our custom handler
+@catch_and_handle_sentry_app_errors
+def sentry_app_error_exception_handler(exc, context):
+    raise exc
