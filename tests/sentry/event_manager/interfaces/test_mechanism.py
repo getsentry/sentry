@@ -12,7 +12,7 @@ def make_mechanism_snapshot(insta_snapshot):
             data={"exception": {"values": [{"type": "FooError", "mechanism": data}]}}
         )
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         mechanism = evt.interfaces["exception"].values[0].mechanism
 
         insta_snapshot(
