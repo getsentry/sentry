@@ -130,7 +130,9 @@ function WidgetPreviewContainer({
                   stiffness: 500,
                   damping: 50,
                 }}
-                isTable={state.displayType === DisplayType.TABLE}
+                style={{
+                  height: state.displayType === DisplayType.TABLE ? 'auto' : '400px',
+                }}
               >
                 <WidgetPreview
                   dashboardFilters={dashboardFilters}
@@ -164,10 +166,9 @@ const Backdrop = styled('div')`
   opacity: 0;
 `;
 
-const SampleWidgetCard = styled(motion.div)<{isTable: boolean}>`
+const SampleWidgetCard = styled(motion.div)`
   width: 30vw;
   min-width: 400px;
-  height: ${p => (p.isTable ? 'auto' : '400px')};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
