@@ -1,8 +1,14 @@
+from unittest import mock
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    create_data_condition_group,
+    create_data_source,
+    create_detector,
+    create_workflow,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_condition,
@@ -26,7 +32,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DataSourceType, DetectorPriorityLevel
 
 
-class MetricHelpersTest(APITestCase):
+class AlertRuleMigrationHelpersTest(APITestCase):
     def setUp(self):
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
@@ -106,6 +112,23 @@ class MetricHelpersTest(APITestCase):
         assert data_condition.condition_result == DetectorPriorityLevel.HIGH
         assert data_condition.condition_group == data_condition_group
 
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_create_metric_alert_trigger_no_alert_rule_detector(self, mock_logger):
+        create_data_source(self.organization.id, self.metric_alert.snuba_query)
+        data_condition_group = create_data_condition_group(self.organization.id)
+        create_workflow(
+            self.metric_alert.name, self.organization.id, data_condition_group, self.rpc_user
+        )
+        create_detector(self.metric_alert, self.project.id, data_condition_group, self.rpc_user)
+        # skip creating lookup tables
+        migrate_metric_data_condition(self.alert_rule_trigger)
+        mock_logger.exception.assert_called_with(
+            "AlertRuleDetector does not exist",
+            extra={
+                "alert_rule_id": self.alert_rule_trigger.id,
+            },
+        )
+
     def test_create_metric_alert_trigger_action(self):
         """
         Test that when we call the helper methods we create all the ACI models correctly for an alert rule trigger action
@@ -123,3 +146,20 @@ class MetricHelpersTest(APITestCase):
             condition_group_id=data_condition_group_id
         )
         assert Action.objects.filter(id=data_condition_group_action.action.id).exists()
+
+    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
+    def test_create_metric_alert_trigger_action_no_alert_rule_trigger_data_condition(
+        self, mock_logger
+    ):
+        other_metric_alert = self.create_alert_rule()
+        other_alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=other_metric_alert)
+
+        migrate_alert_rule(other_metric_alert, self.rpc_user)
+        migrate_metric_data_condition(other_alert_rule_trigger)
+        migrate_metric_action(self.alert_rule_trigger_action)
+        mock_logger.exception.assert_called_with(
+            "AlertRuleTriggerDataCondition does not exist",
+            extra={
+                "alert_rule_trigger_id": self.alert_rule_trigger.id,
+            },
+        )
