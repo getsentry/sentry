@@ -79,7 +79,7 @@ def migrate_metric_data_condition(
     threshold_to_condition = {
         AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
         AlertRuleThresholdType.BELOW.value: Condition.LESS,
-        AlertRuleThresholdType.ABOVE_AND_BELOW.value: Condition.ABOVE_AND_BELOW,
+        # TODO add ABOVE_AND_BELOW for anomaly detection
     }
 
     data_condition_group = alert_rule_detector.detector.workflow_condition_group
