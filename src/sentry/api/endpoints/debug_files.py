@@ -321,9 +321,6 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         Delete a debug information file for a given project.
 
-        Requests to this endpoint should use the region-specific domain
-        eg. `us.sentry.io` or `de.sentry.io`
-
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           file belongs to.
         :pparam string project_id_or_slug: the id or slug of the project to delete the
