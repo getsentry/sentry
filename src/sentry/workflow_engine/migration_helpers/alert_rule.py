@@ -30,7 +30,9 @@ from sentry.workflow_engine.types import ActionType, DataSourceType, DetectorPri
 logger = logging.getLogger(__name__)
 
 
-def migrate_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> None:
+def migrate_metric_action(
+    alert_rule_trigger_action: AlertRuleTriggerAction,
+) -> tuple[Action, DataConditionGroupAction] | None:
     try:
         alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
             alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
@@ -56,10 +58,11 @@ def migrate_metric_action(alert_rule_trigger_action: AlertRuleTriggerAction) -> 
         target_identifier=alert_rule_trigger_action.target_identifier,
         target_type=alert_rule_trigger_action.target_type,
     )
-    DataConditionGroupAction.objects.create(
+    data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
         action_id=action.id,
     )
+    return action, data_condition_group_action
 
 
 def migrate_metric_data_condition(
