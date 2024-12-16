@@ -137,3 +137,43 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
 
         # Check if the user is redirected to the correct organization
         self.browser.find_element(By.XPATH, f"//*[text() = '{self.org.name}']")
+
+    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
+    def test_existing_user_invite_2fa_enforced_org(self):
+        """
+        Test that a user who has an existing Sentry account can accept an invite to another organization
+        and is required to go through the 2FA configuration view.
+        """
+        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+        # Setup: Create a second user and make them a member of an organization
+        email = "dummy@example.com"
+        password = "dummy"
+        user2 = self.create_user(email=email)
+        user2.set_password(password)
+        user2.save()
+        self.create_organization(name="Second Org", owner=user2)
+
+        # Action: Invite User2 to the first organization
+        new_member = self.create_member(
+            user=None,
+            email=user2.email,
+            organization=self.org,
+            role="owner",
+            teams=[self.team],
+        )
+        # Simulate the user accessing the invite link
+        self.browser.get(new_member.get_invite_link().split("/", 3)[-1])
+        self.browser.wait_until('[data-test-id="accept-invite"]')
+
+        # Accept the invitation using the existing account
+        self.browser.click('a[data-test-id="link-with-existing"]')
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+
+        # Handle form validation: Prevent default invalid event blocking
+        self.browser.driver.execute_script(
+            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
+        )
+
+        # Login using existing credentials
+        self._sign_in_user(email, password)
+        assert self.browser.element_exists_by_test_id("2fa-warning")
