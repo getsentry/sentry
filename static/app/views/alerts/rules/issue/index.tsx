@@ -1239,9 +1239,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               <SetupMessagingIntegrationButton
                 projectId={project.id}
                 refetchConfigs={this.refetchConfigs}
-                analyticsParams={{
-                  view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
-                }}
+                analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
               />
             </SetConditionsListItem>
             <ContentIndent>

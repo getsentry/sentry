@@ -25,7 +25,7 @@ describe('SetupAlertIntegrationButton', function () {
     <SetupMessagingIntegrationButton
       projectId={project.id}
       refetchConfigs={jest.fn()}
-      analyticsParams={{view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}}
+      analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );
 
