@@ -215,11 +215,6 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures):
-    def assertRequiresAuthentication(self, path, method="GET"):
-        resp = getattr(self.client, method.lower())(path)
-        assert resp.status_code == 302
-        assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
-
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
