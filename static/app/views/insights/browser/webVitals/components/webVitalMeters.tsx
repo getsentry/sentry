@@ -336,7 +336,7 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
 
   return (
     <VitalPillContainer>
-      <Tooltip title={tooltipText}>
+      <Tooltip title={tooltipText?.shortDescription}>
         <VitalPillName status={status}>
           {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
         </VitalPillName>
