@@ -349,18 +349,10 @@ def get_grouping_variants_for_event(
     if checksum:
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
-
-        variants: dict[str, BaseVariant] = {
-            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
-        }
-
-        # The legacy code path also supported arbitrary values here but
-        # it will blow up if it results in more than 32 bytes of data
-        # as this cannot be inserted into the database.  (See GroupHash.hash)
-        if len(checksum) <= 32:
-            variants["checksum"] = ChecksumVariant(checksum)
-
-        return variants
+        else:
+            return {
+                "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            }
 
     # Otherwise we go to the various forms of fingerprint handling.  If the event carries
     # a materialized fingerprint info from server side fingerprinting we forward it to the
