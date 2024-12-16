@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any
 
 import sentry_sdk
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
 
@@ -19,9 +20,13 @@ class SentryAppError(Exception):
 
     def __init__(
         self,
-        error: Exception | None = None,
+        error: Exception | APIException | None = None,
         status_code: int | None = None,
     ) -> None:
+        if isinstance(error, APIException):
+            # APIException's default serialization will return a dict, we just want the message
+            self.args = error.args or error.default_detail
+
         if status_code:
             self.status_code = status_code
 
@@ -33,9 +38,13 @@ class SentryAppIntegratorError(Exception):
 
     def __init__(
         self,
-        error: Exception | None = None,
+        error: Exception | APIException | None = None,
         status_code: int | None = None,
     ) -> None:
+        if isinstance(error, APIException):
+            # APIException's default serialization will return a dict, we just want the message
+            self.args = error.args or error.default_detail
+
         if status_code:
             self.status_code = status_code
 
