@@ -145,7 +145,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
   'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
   'trace.trace_layout.view_similar_spans': 'View Similar Spans in Trace',
-  'trace.trace_layout.view_span_summary': 'View Span Summary in Trace',
+  'trace.trace_layout.view_span_summary': 'More Samples in Trace',
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
