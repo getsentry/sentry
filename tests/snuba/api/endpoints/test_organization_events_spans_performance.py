@@ -1,4 +1,3 @@
-import time
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -12,7 +11,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
@@ -33,26 +31,6 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-
-    def update_snuba_config_ensure(self, config, poll=60, wait=1):
-        self.snuba_update_config(config)
-
-        for i in range(poll):
-            updated = True
-
-            new_config = json.loads(self.snuba_get_config().decode("utf-8"))
-
-            for k, v in config.items():
-                if new_config.get(k) != v:
-                    updated = False
-                    break
-
-            if updated:
-                return
-
-            time.sleep(wait)
-
-        assert False, "snuba config not updated in time"
 
     def create_event(self, **kwargs):
         if "span_id" not in kwargs:
