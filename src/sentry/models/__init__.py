@@ -109,7 +109,6 @@ from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
 from .teamreplica import *  # NOQA
-from .tempest_credentials import *  # NOQA
 from .tombstone import *  # NOQA
 from .transaction_threshold import *  # NOQA
 from .userreport import *  # NOQA
