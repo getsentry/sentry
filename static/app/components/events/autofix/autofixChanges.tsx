@@ -49,10 +49,24 @@ function AutofixRepoChange({
 }
 
 const cardAnimationProps: AnimationProps = {
-  exit: {opacity: 0},
-  initial: {opacity: 0, y: 20},
-  animate: {opacity: 1, y: 0},
-  transition: testableTransition({duration: 0.3}),
+  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
+  initial: {opacity: 0, height: 0, scale: 0.8},
+  animate: {opacity: 1, height: 'auto', scale: 1},
+  transition: testableTransition({
+    duration: 1.0,
+    height: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    scale: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    y: {
+      type: 'tween',
+      ease: 'easeOut',
+    },
+  }),
 };
 
 export function AutofixChanges({step, groupId, runId}: AutofixChangesProps) {
@@ -116,7 +130,9 @@ const PreviewContent = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const AnimationWrapper = styled(motion.div)``;
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+`;
 
 const PrefixText = styled('span')``;
 
