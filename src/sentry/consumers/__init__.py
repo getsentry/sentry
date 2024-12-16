@@ -173,6 +173,13 @@ def ingest_transactions_options() -> list[click.Option]:
             help="Save event directly in consumer without celery",
         )
     )
+    options.append(
+        click.Option(
+            ["--stale-threshold-sec", "stale_threshold_sec"],
+            type=int,
+            help="If a value is provided, send messages older than stale_threshold_sec to stale topic",
+        )
+    )
     return options
 
 
