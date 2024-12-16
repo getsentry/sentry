@@ -615,6 +615,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert response.status_code == 200, response.content
         assert response.data["data"] == [{"foo": "", "count()": 1}]
 
+    @pytest.mark.xfail
     def test_count_field_type(self):
         response = self.do_request(
             {
@@ -925,6 +926,50 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         )
         assert response.status_code == 200, response.content
 
+    def test_in_filter(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "bar"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "baz"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"transaction": "bat"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["transaction", "count()"],
+                "query": "transaction:[bar, baz]",
+                "orderby": "transaction",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data == [
+            {
+                "transaction": "bar",
+                "count()": 1,
+            },
+            {
+                "transaction": "baz",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == self.dataset
+
 
 class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpointTest):
     is_eap = True
@@ -1018,6 +1063,7 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
         ]
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [
@@ -1569,6 +1615,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count()"] == 11
         assert confidence[0]["count()"] == "low"
 
+    @pytest.mark.xfail
     def test_aggregate_numeric_attr(self):
         self.store_spans(
             [

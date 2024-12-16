@@ -1,8 +1,9 @@
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
-import {useChartInterval} from './useChartInterval';
+import {getIntervalOptionsForPageFilter, useChartInterval} from './useChartInterval';
 
 describe('useChartInterval', function () {
   beforeEach(() => {
@@ -22,9 +23,9 @@ describe('useChartInterval', function () {
 
     expect(intervalOptions).toEqual([
       {value: '1h', label: '1 hour'},
-      {value: '4h', label: '4 hours'},
+      {value: '3h', label: '3 hours'},
+      {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
-      {value: '1w', label: '1 week'},
     ]);
     expect(chartInterval).toEqual('1h'); // default
 
@@ -51,4 +52,37 @@ describe('useChartInterval', function () {
     });
     expect(chartInterval).toEqual('1m');
   });
+});
+
+describe('getIntervalOptionsForPageFilter', function () {
+  it.each([
+    '1h',
+    '23h',
+    '1d',
+    '6d',
+    '7d',
+    '13d',
+    '14d',
+    '29d',
+    '30d',
+    '59d',
+    '60d',
+    '89d',
+    '90d',
+  ])(
+    'returns interval options with resulting in less than 1000 buckets',
+    function (period) {
+      const periodInHours = parsePeriodToHours(period);
+      const options = getIntervalOptionsForPageFilter({
+        period,
+        start: null,
+        end: null,
+        utc: null,
+      });
+      options.forEach(({value}) => {
+        const intervalInHours = parsePeriodToHours(value);
+        expect(periodInHours / intervalInHours).toBeLessThan(1000);
+      });
+    }
+  );
 });

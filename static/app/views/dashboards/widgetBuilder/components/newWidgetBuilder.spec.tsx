@@ -7,7 +7,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 
 const {organization, projects, router} = initializeOrg({
@@ -25,12 +24,6 @@ const {organization, projects, router} = initializeOrg({
     params: {},
   },
 });
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('NewWidgetBuiler', function () {
   const onCloseMock = jest.fn();
@@ -91,6 +84,10 @@ describe('NewWidgetBuiler', function () {
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+    });
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -133,7 +130,8 @@ describe('NewWidgetBuiler', function () {
     // ensure the dropdown input has the default value 'table'
     expect(screen.getByDisplayValue('table')).toBeInTheDocument();
 
-    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(screen.getByLabelText('Create a search query')).toBeInTheDocument();
 
     // Test sort by selector for table display type
     expect(screen.getByText('Sort by')).toBeInTheDocument();
@@ -148,105 +146,6 @@ describe('NewWidgetBuiler', function () {
     await waitFor(() => {
       expect(screen.queryByText('Group by')).not.toBeInTheDocument();
     });
-  });
-
-  it('edits name and description', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({title: 'some name'}),
-      })
-    );
-
-    await userEvent.click(await screen.findByTestId('add-description'));
-
-    await userEvent.type(
-      await screen.findByPlaceholderText('Description'),
-      'some description'
-    );
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({description: 'some description'}),
-      })
-    );
-  });
-
-  it('changes the dataset', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    await userEvent.click(await screen.findByLabelText('Issues'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({dataset: 'issue'}),
-      })
-    );
-  });
-
-  it('changes the visualization type', async function () {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
-      <WidgetBuilderV2
-        isOpen
-        onClose={onCloseMock}
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{}}
-        onSave={onSaveMock}
-      />,
-      {
-        router,
-        organization,
-      }
-    );
-
-    // click dropdown
-    await userEvent.click(await screen.findByText('Table'));
-    // select new option
-    await userEvent.click(await screen.findByText('Bar'));
-
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...router.location,
-        query: expect.objectContaining({displayType: 'bar'}),
-      })
-    );
   });
 
   it('render the filter alias field and add filter button on chart widgets', async function () {

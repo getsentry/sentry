@@ -196,10 +196,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
         assert description["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
 
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
@@ -242,10 +239,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             == "db - SELECT `books\\_author`.`id`, `books\\_author`.`name` FROM `books\\_author` WHERE `books\\_author`.`id` = %s LIMIT 21"
         )
 
-        assert len(mock_record_event.mock_calls) == 2
-        start, end = mock_record_event.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert end.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record_event, EventLifecycleOutcome.SUCCESS)
 
     def test_render_label(self):
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Tatooine"})
