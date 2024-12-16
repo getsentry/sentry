@@ -234,7 +234,6 @@ def migrate_alert_rule(
     workflow = create_workflow(alert_rule.name, organization_id, data_condition_group, user)
     detector = create_detector(alert_rule, project.id, data_condition_group, user)
 
-    detector.data_sources.set([data_source])
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
