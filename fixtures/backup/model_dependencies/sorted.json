@@ -120,6 +120,7 @@
   "sentry.userreport",
   "sentry.useroption",
   "sentry.useremail",
+  "sentry.tempestcredentials",
   "sentry.snubaquery",
   "sentry.sentryapp",
   "sentry.rule",

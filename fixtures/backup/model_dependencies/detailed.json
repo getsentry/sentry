@@ -5973,6 +5973,29 @@
       ]
     ]
   },
+  "sentry.tempestcredentials": {
+    "dangling": false,
+    "foreign_keys": {
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
+      "project": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.project",
+        "nullable": false
+      }
+    },
+    "model": "sentry.tempestcredentials",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_tempestcredentials",
+    "uniques": []
+  },
   "sentry.timeseriessnapshot": {
     "dangling": true,
     "foreign_keys": {},
