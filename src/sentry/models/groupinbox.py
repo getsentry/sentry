@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Iterable
+from datetime import datetime
 from enum import Enum
+from typing import TypedDict
 
 import jsonschema
 import sentry_sdk
@@ -135,10 +140,24 @@ def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None)
             pass
 
 
-def get_inbox_details(group_list):
+class InboxReasonDetails(TypedDict):
+    until: str | None
+    count: int | None
+    window: int | None
+    user_count: int | None
+    user_window: int | None
+
+
+class InboxDetails(TypedDict):
+    reason: int
+    reason_details: InboxReasonDetails | None
+    date_added: datetime
+
+
+def get_inbox_details(group_list: Iterable[Group]) -> dict[int, InboxDetails]:
     group_ids = [g.id for g in group_list]
     group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
-    inbox_stats = {
+    return {
         gi.group_id: {
             "reason": gi.reason,
             "reason_details": gi.reason_details,
@@ -146,5 +165,3 @@ def get_inbox_details(group_list):
         }
         for gi in group_inboxes
     }
-
-    return inbox_stats

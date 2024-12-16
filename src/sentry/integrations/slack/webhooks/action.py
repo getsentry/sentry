@@ -123,7 +123,6 @@ def update_group(
         group_ids=[group.id],
         projects=[group.project],
         organization_id=group.organization.id,
-        search_fn=None,
         user=user,
         data=data,
     )

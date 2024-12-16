@@ -240,6 +240,9 @@ class EventDatastore:
         return self._release
 
     def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
         return getattr(self, "_get_" + match_type)()
 
 
@@ -375,7 +378,12 @@ MATCHERS = {
 
 
 class FingerprintMatcher:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or to not match, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
@@ -422,7 +430,7 @@ class FingerprintMatcher:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+        # `path` is special in that it tests against two values (`abs_path` and `filename`)
         if self.key == "path":
             value = values.get("abs_path")
             if self._positive_path_match(value):
@@ -433,7 +441,7 @@ class FingerprintMatcher:
                     return True
             return False
 
-        # message tests against value as well as this is what users expect
+        # message tests against exception value also, as this is what users expect
         if self.key == "message":
             for key in ("message", "value"):
                 value = values.get(key)
