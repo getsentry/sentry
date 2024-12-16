@@ -31,3 +31,6 @@ class RateLimiter(Service):
 
     def validate(self) -> None:
         raise NotImplementedError
+
+    def reset(self, key: str, project: Project | None = None, window: int | None = None) -> None:
+        return

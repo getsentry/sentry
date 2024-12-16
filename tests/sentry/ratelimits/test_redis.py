@@ -64,3 +64,10 @@ class RedisRateLimiterTest(TestCase):
             assert not limited
             assert value == 1
             assert reset_time == expected_reset_time + 5
+
+    def test_reset(self):
+        with freeze_time("2000-01-01"):
+            assert not self.backend.is_limited("foo", 1, self.project)
+            assert self.backend.is_limited("foo", 1, self.project)
+            self.backend.reset("foo", self.project)
+            assert not self.backend.is_limited("foo", 1, self.project)
