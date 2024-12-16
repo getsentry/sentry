@@ -24,7 +24,7 @@ import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -197,12 +197,16 @@ export function EventFeatureFlagList({
     }
   }, [hasFlags, hydratedFlags.length, organization]);
 
-  if (showCTA && group.issueCategory !== 'cron') {
+  if (group.issueCategory !== IssueCategory.ERROR) {
+    return null;
+  }
+
+  if (showCTA) {
     return <FeatureFlagInlineCTA projectId={event.projectID} />;
   }
 
   // if contexts.flags is not set, hide the section
-  if (!hasFlagContext || group.issueCategory === 'cron') {
+  if (!hasFlagContext) {
     return null;
   }
 
