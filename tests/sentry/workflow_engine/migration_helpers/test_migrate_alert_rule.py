@@ -125,7 +125,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         mock_logger.exception.assert_called_with(
             "AlertRuleDetector does not exist",
             extra={
-                "alert_rule_id": self.alert_rule_trigger.id,
+                "alert_rule_id": self.alert_rule_trigger.alert_rule.id,
             },
         )
 
