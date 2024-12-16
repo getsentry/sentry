@@ -10,7 +10,10 @@ import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
-type TPayload = {hasSeen: boolean} | {status: GroupStatus} | {assignedTo: Actor | null};
+type TPayload =
+  | {hasSeen: boolean}
+  | {status: GroupStatus}
+  | {assignedTo: Actor | undefined};
 type TData = unknown;
 type TError = unknown;
 type TVariables = [TFeedbackIds, TPayload];
@@ -78,7 +81,7 @@ export default function useMutateFeedback({
 
   const assign = useCallback(
     (
-      assignedTo: Actor | null,
+      assignedTo: Actor | undefined,
       options?: MutateOptions<TData, TError, TVariables, TContext>
     ) => {
       mutation.mutate([feedbackIds, {assignedTo}], options);
