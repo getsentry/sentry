@@ -824,10 +824,6 @@
     "sentry.organization",
     "sentry.team"
   ],
-  "sentry.tempestcredentials": [
-    "sentry.project",
-    "sentry.user"
-  ],
   "sentry.timeseriessnapshot": [],
   "sentry.user": [],
   "sentry.useravatar": [
@@ -859,6 +855,10 @@
     "sentry.userrole"
   ],
   "social_auth.usersocialauth": [
+    "sentry.user"
+  ],
+  "tempest.tempestcredentials": [
+    "sentry.project",
     "sentry.user"
   ],
   "uptime.projectuptimesubscription": [
