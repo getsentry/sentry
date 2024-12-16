@@ -157,7 +157,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
                 "title": "title",
             }
-            event = self.create_event(self.project.id, data)
+            event = self.create_event(self.project.id, data, times_seen=5)
             assert event.group is not None
             events.append(event)
             rows.append(
@@ -176,7 +176,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         return {"rows": rows, "events": events}
 
     def create_event(
-        self, project_id: int, data: Mapping[str, Any] | None = None, times_seen: int = 5
+        self, project_id: int, data: Mapping[str, Any] | None = None, times_seen: int = 1
     ) -> Event:
         _data = data or {
             "exception": EXCEPTION,
@@ -188,8 +188,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             project_id=project_id,
             assert_no_errors=False,
         )
-        event.group.times_seen = times_seen
-        event.group.save()
+        assert event.group is not None
+        if times_seen > 1:
+            event.group.times_seen = times_seen
+            event.group.save()
         return event
 
     def assert_groups_metadata_updated(self, groups: BaseQuerySet[Group, Group]) -> None:
@@ -329,8 +331,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             hashes.update({group_id: self.group_hashes[group_id]})
         # Create one event where the stacktrace has no exception
         event = self.create_event(self.project.id, data={})
-        rows.append({"event_id": event.event_id, "group_id": event.group_id})
         assert event.group is not None
+        rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
         bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
@@ -603,7 +605,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         project2 = self.create_project(organization=self.organization)
-        self.create_event(project2.id)
+        self.create_event(project2.id, times_seen=5)
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
@@ -649,7 +651,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         project2 = self.create_project(organization=self.organization)
-        self.create_event(project2.id)
+        self.create_event(project2.id, times_seen=5)
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
@@ -789,7 +791,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
                 "timestamp": before_now(seconds=10).isoformat(),
             }
-            self.create_event(self.project.id, data)
+            self.create_event(self.project.id, data, times_seen=2)
 
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
@@ -1814,7 +1816,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
         project_same_cohort_not_eligible.platform = "not_eligible_platform"
         project_same_cohort_not_eligible.save()
-        self.create_event(project_same_cohort_not_eligible.id)
+        self.create_event(project_same_cohort_not_eligible.id, times_seen=5)
 
         # Create one project where project_id % thread_number != worker_number
         self.create_project(organization=self.organization, id=self.project.id + 1)
