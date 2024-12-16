@@ -489,6 +489,12 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
             tags={"eligible": False, "blocker": "unsupported-platform"},
         )
+        # We can temporarily collect their values and add them to the metric
+        metrics.incr(
+            "grouping.similarity.blocked_event_platform",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"platform": event.platform or "None"},
+        )
         return False
 
     metrics.incr(
