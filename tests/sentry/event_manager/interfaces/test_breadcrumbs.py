@@ -10,7 +10,7 @@ def make_breadcrumbs_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"breadcrumbs": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         breadcrumbs = evt.interfaces.get("breadcrumbs")
 
         insta_snapshot(
