@@ -1151,20 +1151,6 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @contextmanager
-    def disable_snuba_query_cache(self):
-        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-        yield
-        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
-
-    @classmethod
-    def snuba_get_config(cls):
-        return _snuba_pool.request("GET", "/config.json").data
-
-    @classmethod
-    def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
-
     def create_project(self, **kwargs) -> Project:
         if "flags" not in kwargs:
             # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
@@ -1263,16 +1249,6 @@ class SnubaTestCase(BaseTestCase):
                 body=json.dumps(data),
                 headers={},
             ).status
-            == 200
-        )
-
-    def store_outcome(self, group):
-        data = [self.__wrap_group(group)]
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=json.dumps(data),
-            ).status_code
             == 200
         )
 
