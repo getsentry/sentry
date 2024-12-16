@@ -1,6 +1,7 @@
 import logging
 import time
 from base64 import b64encode
+from urllib.parse import urlencode
 
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -112,12 +113,16 @@ class TwoFactorAuthView(BaseView):
                 return interface
 
     def send_notification_email(self, email, ip_address):
+        recover_uri = "{path}?{query}".format(
+            path=reverse("sentry-account-recover"), query=urlencode({"email": email})
+        )
         context = {
             "datetime": timezone.now(),
             "email": email,
             "geo": geo_by_addr(ip_address),
             "ip_address": ip_address,
             "url": absolute_uri(reverse("sentry-account-settings-security")),
+            "recover_url": absolute_uri(recover_uri),
         }
 
         subject = "Suspicious Activity Detected"
