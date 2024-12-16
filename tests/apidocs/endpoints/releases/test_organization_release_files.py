@@ -49,6 +49,8 @@ class ReleaseFilesListDocsTest(APIDocsTestCase):
             data,
             format="multipart",
         )
-        request = RequestFactory().post(self.url, data=data, content_type="multipart/form-data")
+        request = RequestFactory(SERVER_NAME="us.sentry.io", secure=True).post(
+            self.url, data=data, content_type="multipart/form-data"
+        )
 
         self.validate_schema(request, response)
