@@ -468,13 +468,10 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Telemetry Experience
-/src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
-/tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_metric*                                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
-/src/sentry/api/endpoints/projects_metrics.py                                    @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
@@ -490,11 +487,8 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /src/sentry/sentry_metrics/visibility/                                           @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/visibility/                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/extraction_rules.py                                   @getsentry/telemetry-experience
-/tests/sentry/sentry_metrics/test_extraction_rules.py                            @getsentry/telemetry-experience
 /src/sentry/snuba/metrics/                                                       @getsentry/telemetry-experience
 /tests/sentry/snuba/metrics/                                                     @getsentry/telemetry-experience
-/src/sentry/relay/config/metric_extraction.py                                    @getsentry/telemetry-experience
-/tests/sentry/relay/config/test_metric_extraction.py                             @getsentry/telemetry-experience
 
 /static/app/actionCreators/metrics.spec.tsx                                      @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
@@ -506,8 +500,6 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /static/app/types/project.tsx                                                    @getsentry/telemetry-experience
 /static/app/utils/metrics/                                                       @getsentry/telemetry-experience
 /static/app/views/metrics/                                                       @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracy.spec.tsx    @getsentry/telemetry-experience
-/static/app/views/performance/landing/dynamicSamplingMetricsAccuracyAlert.tsx    @getsentry/telemetry-experience
 /static/app/views/settings/project/dynamicSampling/                              @getsentry/telemetry-experience
 /static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/settings/projectMetrics/*                                      @getsentry/telemetry-experience
