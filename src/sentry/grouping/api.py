@@ -363,11 +363,11 @@ def get_grouping_variants_for_event(
     # At this point we need to calculate the default event values.  If the
     # fingerprint is salted we will wrap it.
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
+    variants: dict[str, BaseVariant] = {}
 
     # If no defaults are referenced we produce a single completely custom
     # fingerprint and mark all other variants as non-contributing
     if defaults_referenced == 0:
-        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
             root_component.update(
                 contributes=False,
@@ -385,13 +385,11 @@ def get_grouping_variants_for_event(
 
     # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
-        variants = {}
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
 
     # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
-        variants = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = SaltedComponentVariant(
