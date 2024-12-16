@@ -25,7 +25,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition, ConditionType
-from sentry.workflow_engine.types import ActionType, DataSourceType, DetectorPriorityLevel
+from sentry.workflow_engine.types import DataSourceType, DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def migrate_metric_action(
     }
     action = Action.objects.create(
         required=False,
-        type=ActionType.NOTIFICATION,
+        type=Action.Type.NOTIFICATION,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
