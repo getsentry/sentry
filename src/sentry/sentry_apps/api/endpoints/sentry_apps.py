@@ -23,6 +23,7 @@ from sentry.sentry_apps.api.serializers.sentry_app import (
 )
 from sentry.sentry_apps.logic import SentryAppCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -38,6 +39,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
     }
     owner = ApiOwner.ISSUES
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
         elevated_user = is_active_superuser(request) or is_active_staff(request)
@@ -69,6 +71,7 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
             ),
         )
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, organization) -> Response:
         data = {
             "name": request.json_body.get("name"),

@@ -8,6 +8,7 @@ from sentry import analytics, deletions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.coreapi import APIUnauthorized
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppBaseEndpoint,
@@ -15,6 +16,10 @@ from sentry.sentry_apps.api.bases.sentryapps import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.sentry_apps.utils.errors import (
+    SentryAppIntegratorError,
+    catch_and_handle_sentry_app_errors,
+)
 
 
 @control_silo_endpoint
@@ -32,14 +37,17 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
         try:
             kwargs["api_token"] = ApiToken.objects.get(id=api_token_id)
         except (ApiToken.DoesNotExist, ValueError):
-            raise Http404
+            raise SentryAppIntegratorError(APIUnauthorized("Couldn't find the given api token"))
 
         return (args, kwargs)
 
+    @catch_and_handle_sentry_app_errors
     def delete(self, request: Request, sentry_app, api_token) -> Response:
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
-            raise Http404
+            raise SentryAppIntegratorError(
+                APIUnauthorized("Given token is not owned by this sentry app")
+            )
 
         if not sentry_app.is_internal:
             return Response(
@@ -58,7 +66,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 install_token = SentryAppInstallationToken.objects.get(api_token=api_token)
                 sentry_app_installation = install_token.sentry_app_installation
             except SentryAppInstallationToken.DoesNotExist:
-                raise Http404
+                raise SentryAppIntegratorError(Http404("Could not find given token"))
 
             deletions.exec_sync(install_token)
 

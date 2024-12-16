@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsMixin, control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 
 @control_silo_endpoint
@@ -15,6 +16,7 @@ class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
     }
     permission_classes = (SentryAppStatsPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam float since
