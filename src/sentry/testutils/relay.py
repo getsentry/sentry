@@ -35,9 +35,6 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
 
-    def use_relay(self):
-        return True
-
     def post_and_retrieve_event(self, data):
         url = self.get_relay_store_url(self.project.id)
         responses.add_passthru(url)
