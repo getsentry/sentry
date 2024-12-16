@@ -835,9 +835,6 @@ CELERY_IMPORTS = (
     "sentry.integrations.tasks",
 )
 
-# tmp(michal): Default configuration for post_process* queues split
-SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
-
 # Enable split queue routing
 CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
 
@@ -2493,7 +2490,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.11.1"
+SELF_HOSTED_STABLE_VERSION = "24.11.2"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

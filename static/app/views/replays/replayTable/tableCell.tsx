@@ -179,13 +179,17 @@ function OSBrowserDropdownFilter({
   );
 }
 
+const DEFAULT_NUMERIC_DROPDOWN_FORMATTER = (val: number) => val.toString();
+
 function NumericDropdownFilter({
   type,
   val,
   triggerOverlay,
+  formatter = DEFAULT_NUMERIC_DROPDOWN_FORMATTER,
 }: {
   type: string;
   val: number;
+  formatter?: (val: number) => string;
   triggerOverlay?: boolean;
 }) {
   const location = useLocation<ReplayListLocationQuery>();
@@ -197,7 +201,7 @@ function NumericDropdownFilter({
           label: 'Add to filter',
           onAction: generateAction({
             key: type,
-            value: val.toString(),
+            value: formatter(val),
             edit: 'set',
             location,
           }),
@@ -207,7 +211,7 @@ function NumericDropdownFilter({
           label: 'Show values greater than',
           onAction: generateAction({
             key: type,
-            value: '>' + val.toString(),
+            value: '>' + formatter(val),
             edit: 'set',
             location,
           }),
@@ -217,7 +221,7 @@ function NumericDropdownFilter({
           label: 'Show values less than',
           onAction: generateAction({
             key: type,
-            value: '<' + val.toString(),
+            value: '<' + formatter(val),
             edit: 'set',
             location,
           }),
@@ -227,7 +231,7 @@ function NumericDropdownFilter({
           label: t('Exclude from filter'),
           onAction: generateAction({
             key: type,
-            value: val.toString(),
+            value: formatter(val),
             edit: 'remove',
             location,
           }),
@@ -528,7 +532,11 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
       <Container>
         <Duration duration={[replay.duration.asMilliseconds(), 'ms']} precision="sec" />
         {showDropdownFilters ? (
-          <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
+          <NumericDropdownFilter
+            type="duration"
+            val={replay.duration.asSeconds()}
+            formatter={(val: number) => `${val}s`}
+          />
         ) : null}
       </Container>
     </Item>
