@@ -178,11 +178,15 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def create_event(
         self, project_id: int, data: Mapping[str, Any] | None = None, times_seen: int = 1
     ) -> Event:
-        _data = data or {
-            "exception": EXCEPTION,
-            "title": "title",
-            "timestamp": before_now(seconds=10).isoformat(),
-        }
+        _data = (
+            {
+                "exception": EXCEPTION,
+                "title": "title",
+                "timestamp": before_now(seconds=10).isoformat(),
+            }
+            if data is None
+            else data
+        )
         event = self.store_event(
             data=_data,
             project_id=project_id,
