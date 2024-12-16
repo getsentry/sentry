@@ -1,9 +1,9 @@
 from django.conf import settings
 from django.db import models
 
+from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.relocation import RelocationScope
 
 
 class MessageType(models.TextChoices):
