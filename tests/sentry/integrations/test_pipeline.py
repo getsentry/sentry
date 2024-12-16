@@ -16,7 +16,9 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.region import override_regions
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.region import Region, RegionCategory
 from sentry.users.models.identity import Identity
 
 
@@ -44,6 +46,10 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.external_id = "dummy_id-123"
         self.provider.needs_default_identity = False
         self.provider.is_region_restricted = False
+        self.regions = [
+            Region("na", 0, "North America", RegionCategory.MULTI_TENANT),
+            Region("eu", 5, "Europe", RegionCategory.MULTI_TENANT),
+        ]
 
     def tearDown(self):
         super().tearDown()
@@ -146,7 +152,10 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(region_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
+        with (
+            override_regions(self.regions),
+            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
+        ):
             self.pipeline.finish_pipeline()
             _data, success = resp.call_args[0]
             assert success
@@ -163,7 +172,10 @@ class FinishPipelineTestCase(IntegrationTestCase):
             mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
-        with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
+        with (
+            override_regions(self.regions),
+            patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp,
+        ):
             self.pipeline.finish_pipeline()
             data, success = resp.call_args[0]
             if SiloMode.get_current_mode() == SiloMode.MONOLITH:
