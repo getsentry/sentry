@@ -489,6 +489,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         data, "contexts", "os", "raw_description"
     )
     os_version = get_path(data, "contexts", "os", "version")
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/
     is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
 
     if os_version:
@@ -507,10 +508,6 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
             sample_rate=1.0,
         )
 
-    # TODO: This seems to just be wrong
-    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
-    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
-    # that matched both.
     if both := apple_symbol_stats.get("both"):
         metrics.incr(
             "apple_symbol_availability_v2",
