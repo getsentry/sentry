@@ -56,7 +56,7 @@ function ResourceButtons() {
       />
       <Resource
         title={t('Identify Users')}
-        subtitle={t('Identify your users through a specific format, such as email.')}
+        subtitle={t('Identify your users through a specific attribute, such as email.')}
         link="https://docs.sentry.io/platforms/javascript/session-replay/configuration/#identifying-users"
       />
       <Resource
