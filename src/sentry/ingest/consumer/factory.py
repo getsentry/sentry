@@ -11,10 +11,11 @@ from arroyo.processing.strategies import (
     FilterStep,
     ProcessingStrategy,
     ProcessingStrategyFactory,
+    Reduce,
     RunTask,
 )
 from arroyo.processing.strategies.produce import Produce
-from arroyo.types import Commit, FilteredPayload, Message, Partition
+from arroyo.types import BaseValue, Commit, FilteredPayload, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
@@ -215,6 +216,9 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
     ) -> ProcessingStrategy[KafkaPayload]:
         mp = self.multi_process
 
+        def accumulator(result: None, value: BaseValue[Any]) -> None:
+            return None
+
         final_step = CommitOffsets(commit)
 
         event_function = partial(
@@ -224,18 +228,31 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
             no_celery_mode=self.no_celery_mode,
         )
 
+        # Collapse messages from each route as we only need to commit it afterwards
+        # and can discard the actual message payload
+        def build_reduce(next_step: ProcessingStrategy[Any]) -> ProcessingStrategy[Any]:
+            return Reduce(
+                1000,
+                0.5,
+                lambda result, value: None,
+                lambda: None,
+                maybe_multiprocess_step(mp, event_function, next_step, self._pool),
+            )
+
         def build_process_transaction_route(
             merge_step: MergeRoutes[Any],
         ) -> ProcessingStrategy[Any]:
-            return maybe_multiprocess_step(mp, event_function, merge_step, self._pool)
+            return build_reduce(maybe_multiprocess_step(mp, event_function, merge_step, self._pool))
 
         def build_stale_message_route(
             merge_step: MergeRoutes[Any],
         ) -> ProcessingStrategy[Any]:
-            return Produce(
-                self.stale_msg_producer,
-                ArroyoTopic(self.topic_defn["real_topic_name"]),
-                merge_step,
+            return build_reduce(
+                Produce(
+                    self.stale_msg_producer,
+                    ArroyoTopic(self.topic_defn["real_topic_name"]),
+                    merge_step,
+                )
             )
 
         if self.stale_threshold_sec is not None:
