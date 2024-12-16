@@ -158,6 +158,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "title": "title",
             }
             event = self.create_event(self.project.id, data)
+            assert event.group is not None
             events.append(event)
             rows.append(
                 {
@@ -187,7 +188,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             project_id=project_id,
             assert_no_errors=False,
         )
-        assert event.group
         event.group.times_seen = times_seen
         event.group.save()
         return event
@@ -330,6 +330,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Create one event where the stacktrace has no exception
         event = self.create_event(self.project.id, data={})
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
+        assert event.group is not None
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
         bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
@@ -382,6 +383,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "timestamp": before_now(seconds=10).isoformat(),
             },
         )
+        assert event.group is not None
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         group_hash = GroupHash.objects.filter(group_id=event.group.id).first()
         assert group_hash
