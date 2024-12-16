@@ -135,6 +135,9 @@
       {
         "auth_token": ["project:releases"]
       }
+    ],
+    "servers": [
+      {"url": "https://{region}.sentry.io"}
     ]
   }
 }
