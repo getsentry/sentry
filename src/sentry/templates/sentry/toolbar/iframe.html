@@ -26,7 +26,6 @@ Required context variables:
         const logging = '{{ logging|escapejs }}';
         const organizationSlug = '{{ organization_slug|escapejs }}';
         const projectIdOrSlug = '{{ project_id_or_slug|escapejs }}';
-
         const organizationUrl = '{{ organization_url|escapejs }}';
         const regionUrl = '{{ region_url|escapejs }}';
 
@@ -102,7 +101,6 @@ Required context variables:
           'did-login': ({ cookie, token }) => {
             if (cookie) {
               document.cookie = getCookieValue(cookie, window.location.hostname);
-              document.cookie = getCookieValue(cookie, new URL(regionUrl).hostname);
               log('Saved a cookie', document.cookie.indexOf(cookie) >= 0);
             }
             if (token) {
@@ -157,7 +155,7 @@ Required context variables:
             // tokens be destroyed and reload the iframe in an unauth state.
             log('Has access info', { cookie: Boolean(document.cookie), accessToken: Boolean(accessToken) });
 
-            const url = new URL('/api/0' + path, regionUrl);
+            const url = new URL('/api/0' + path, organizationUrl);
             const initWithCreds = {
               ...init,
               headers: { ...init.headers, ...bearer },
