@@ -185,7 +185,7 @@ sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2
 sentry-forked-django-stubs==5.1.1.post1
-sentry-forked-djangorestframework-stubs==3.15.1.post2
+sentry-forked-djangorestframework-stubs==3.15.2.post1
 sentry-kafka-schemas==0.1.122
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
