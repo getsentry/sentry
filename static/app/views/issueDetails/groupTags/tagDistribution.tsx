@@ -14,6 +14,37 @@ import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
+  const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+
+  return (
+    <PreviewDistribution>
+      <TagPreviewHeader>
+        <TagPreviewTitle>{tag.key}</TagPreviewTitle>
+      </TagPreviewHeader>
+      <TagValueContent>
+        {tag.topValues.map((tagValue, tagValueIdx) => (
+          <TagValueRow key={tagValueIdx}>
+            <Tooltip delay={300} title={tagValue.name} skipWrapper>
+              <TagPreviewValue>
+                <DeviceName value={tagValue.name} />
+              </TagPreviewValue>
+            </Tooltip>
+            <TagBar count={tagValue.count} total={tag.totalValues} />
+          </TagValueRow>
+        ))}
+        {hasOther && (
+          <TagValueRow>
+            <TagPreviewValue>{t('Other')}</TagPreviewValue>
+            <TagBar count={tag.totalValues - totalVisible} total={tag.totalValues} />
+          </TagValueRow>
+        )}
+      </TagValueContent>
+    </PreviewDistribution>
+  );
+}
+
 export function TagDistribution({tag}: {tag: GroupTag}) {
   const location = useLocation();
   const {baseUrl} = useGroupDetailsRoute();
@@ -106,10 +137,22 @@ const TagHeader = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
+const TagPreviewHeader = styled(TagHeader)`
+  margin-bottom: ${space(0.5)};
+`;
+
+const PreviewDistribution = styled('div')`
+  flex-basis: 100%;
+`;
+
 const TagTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
+`;
+
+const TagPreviewTitle = styled(TagTitle)`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const TagDetailsButton = styled(LinkButton)<{isVisible: boolean}>`
@@ -133,6 +176,18 @@ const TagValueRow = styled('div')`
 `;
 
 const TagValue = styled(Link)`
+  display: block;
+  text-align: right;
+  color: ${p => p.theme.subText};
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-right: ${space(1)};
+  justify-self: end;
+  max-width: calc(100% - ${space(2)});
+`;
+
+const TagPreviewValue = styled('div')`
   display: block;
   text-align: right;
   color: ${p => p.theme.subText};
