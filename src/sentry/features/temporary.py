@@ -622,3 +622,11 @@ def register_temporary_features(manager: FeatureManager):
         FeatureHandlerStrategy.FLAGPOLE,
         api_expose=False,
     )
+
+    # Controls access to tempest features
+    manager.add(
+        "organizations:tempest-access",
+        OrganizationFeature,
+        FeatureHandlerStrategy.FLAGPOLE,
+        api_expose=True,
+    )
