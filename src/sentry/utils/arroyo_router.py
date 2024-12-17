@@ -9,7 +9,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, Partition, TStrategyPayload
 
-from sentry.utils.arroyo_guard import guard
+from sentry.utils.arroyo_guard import NonFinalStrategy, guard
 
 TResult = TypeVar("TResult")
 
@@ -35,10 +35,9 @@ class MergeRoutes(ProcessingStrategy[TResult], Generic[TResult]):
         pass
 
 
-@guard(max_buffer_size=10)
+@guard
 class Router(
-    ProcessingStrategy[TStrategyPayload],
-    Generic[TStrategyPayload, TResult],
+    NonFinalStrategy[TStrategyPayload, TResult],
 ):
     def __init__(
         self,
@@ -137,3 +136,6 @@ class MessageBuffer(Generic[TResult]):
 
         self.messages.popleft()
         return message
+
+    def __len__(self) -> int:
+        return len(self.messages)

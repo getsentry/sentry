@@ -1,7 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Callable
 from typing import Any, Deque, Generic, TypeVar
 
 from arroyo.dlq import InvalidMessage
@@ -26,11 +25,8 @@ class NonFinalStrategy(ProcessingStrategy[TStrategyPayload], HasNextStep[TResult
 
 
 def guard(
-    max_buffer_size: int = 10,
-) -> Callable[
-    [type[NonFinalStrategy[TStrategyPayload, TResult]]],
-    type[NonFinalStrategy[TStrategyPayload, TResult]],
-]:
+    cls: type[NonFinalStrategy[TStrategyPayload, TResult]]
+) -> type[NonFinalStrategy[TStrategyPayload, TResult]]:
     """
     Handles backpressure and invalid messages for any strategy. If
     MessageRejected or InvalidMessage is received from the inner strategy
@@ -40,73 +36,69 @@ def guard(
     in any part of the strategy.
 
     `next_step` must be the first arg in the constructor.
-
     """
 
-    def guard_inner(
-        cls: type[NonFinalStrategy[TStrategyPayload, TResult]]
-    ) -> type[NonFinalStrategy[TStrategyPayload, TResult]]:
+    class Guard(NonFinalStrategy[TStrategyPayload, TResult]):
+        def __init__(
+            self, next_step: ProcessingStrategy[TResult], *args: Any, **kwargs: Any
+        ) -> None:
+            self.__messages_carried_over: Deque[Message[TResult]] = deque()
+            self.__invalid_messages: Deque[InvalidMessage] = deque()
+            self.__instance = cls(next_step, *args, **kwargs)
+            self.__inner_submit = next_step.submit
 
-        class Guard(NonFinalStrategy[TStrategyPayload, TResult]):
-            def __init__(
-                self, next_step: ProcessingStrategy[TResult], *args: Any, **kwargs: Any
-            ) -> None:
-                self.__messages_carried_over: Deque[Message[TResult]] = deque()
-                self.__invalid_messages: Deque[InvalidMessage] = deque()
-                self.__instance = cls(next_step, *args, **kwargs)
-                self.__inner_submit = next_step.submit
-
-                def wrapped_inner_submit(msg: Message[TResult]) -> None:
-                    self.__messages_carried_over.append(msg)
-                    self.__process_pending_messages()
-
-                setattr(next_step, "submit", wrapped_inner_submit)
-                assert isinstance(next_step, ProcessingStrategy)
-
-            def __process_pending_messages(self) -> None:
-                while self.__invalid_messages:
-                    raise self.__invalid_messages.popleft()
-
-                while self.__messages_carried_over:
-                    try:
-                        self.__inner_submit(self.__messages_carried_over[0])
-                        self.__messages_carried_over.popleft()
-                    except MessageRejected:
-                        break
-                    except InvalidMessage as exc:
-                        self.__invalid_messages.append(exc)
-
-            def submit(self, msg: Message[TStrategyPayload]) -> None:
-                if len(self.__messages_carried_over) > max_buffer_size:
-                    raise MessageRejected
-
+            def wrapped_inner_submit(msg: Message[TResult]) -> None:
                 self.__messages_carried_over.append(msg)
                 self.__process_pending_messages()
 
-            def poll(self) -> None:
-                self.__process_pending_messages()
-                self.__instance.poll()
+            setattr(next_step, "submit", wrapped_inner_submit)
+            assert isinstance(next_step, ProcessingStrategy)
 
-            def close(self) -> None:
-                self.__instance.close()
+        def __process_pending_messages(self) -> None:
+            while self.__invalid_messages:
+                raise self.__invalid_messages.popleft()
 
-            def terminate(self) -> None:
-                self.__instance.terminate()
+            while self.__messages_carried_over:
+                try:
+                    self.__inner_submit(self.__messages_carried_over[0])
+                    self.__messages_carried_over.popleft()
+                except MessageRejected:
+                    break
+                except InvalidMessage as exc:
+                    self.__invalid_messages.append(exc)
+                    break
 
-            def join(self, timeout: float | None = None) -> None:
-                self.__process_pending_messages()
-                self.__instance.join(timeout)
+        def submit(self, msg: Message[TStrategyPayload]) -> None:
+            if self.__messages_carried_over:
+                raise MessageRejected
+            elif self.__invalid_messages:
+                raise self.__invalid_messages.popleft()
 
-            def __getattr__(self, name: str) -> Any:
-                # Forward all other attributes to the original class
-                return getattr(cls, name)
+            self.__instance.submit(msg)
+            self.__process_pending_messages()
 
-        # Return modified class, keep original metadata
-        Guard.__name__ = cls.__name__
-        Guard.__doc__ = cls.__doc__
-        Guard.__module__ = cls.__module__
-        Guard.__qualname__ = cls.__qualname__
+        def poll(self) -> None:
+            self.__process_pending_messages()
+            self.__instance.poll()
 
-        return Guard
+        def close(self) -> None:
+            self.__instance.close()
 
-    return guard_inner
+        def terminate(self) -> None:
+            self.__instance.terminate()
+
+        def join(self, timeout: float | None = None) -> None:
+            self.__process_pending_messages()
+            self.__instance.join(timeout)
+
+        def __getattr__(self, name: str) -> Any:
+            # Forward all other attributes to the original class
+            return getattr(cls, name)
+
+    # Return modified class, keep original metadata
+    Guard.__name__ = cls.__name__
+    Guard.__doc__ = cls.__doc__
+    Guard.__module__ = cls.__module__
+    Guard.__qualname__ = cls.__qualname__
+
+    return Guard
