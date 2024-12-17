@@ -152,24 +152,8 @@ const baseRules = {
   // https://eslint.org/docs/rules/radix
   radix: ['error'],
 
-  // Disabled because of prettier
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'computed-property-spacing': ['off'],
-
-  // Disabled because of prettier
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'array-bracket-spacing': ['off'],
-
-  // Disabled because of prettier
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'object-curly-spacing': ['off'],
-
   // https://eslint.org/docs/rules/object-shorthand
   'object-shorthand': ['error', 'properties'],
-
-  // Disabled because of prettier
-  // https://eslint.org/docs/rules/space-infix-ops.html
-  'space-infix-ops': ['off'],
 
   // https://eslint.org/docs/rules/vars-on-top
   'vars-on-top': ['off'],
@@ -310,10 +294,6 @@ const reactReactRules = {
   //
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
   'react/sort-comp': ['warn'],
-
-  // Disabled because of prettier
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
-  'react/jsx-wrap-multilines': ['off'],
 
   // Consistent <Component booleanProp /> (never add ={true})
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
@@ -760,6 +740,7 @@ const extendsList = [
 if (detectDeprecations) {
   extendsList.push('plugin:deprecation/recommended');
 }
+extendsList.push('prettier'); // From package: `eslint-config-prettier`. Keep this last in the list
 
 module.exports = {
   root: true,
