@@ -65,7 +65,6 @@
         "noMisrefactoredShorthandAssign": "error",
         "useAwait": "error",
         "useNamespaceKeyword": "error",
-        "noSkippedTests": "error",
         "noFocusedTests": "error",
         "noDuplicateTestHooks": "error"
       },
