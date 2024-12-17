@@ -43,7 +43,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not self.has_feature(request, project):
             raise NotFound
 
