@@ -1,6 +1,5 @@
 import {createContext, Fragment, useContext, useEffect} from 'react';
 import {createPortal} from 'react-dom';
-import isPropValid from '@emotion/is-prop-valid';
 import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -92,9 +91,9 @@ function Tooltip({
   );
 }
 
-const TooltipContent = styled(Overlay, {shouldForwardProp: isPropValid})<{
-  maxWidth?: number;
-}>`
+const TooltipContent = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'maxWidth',
+})<{maxWidth?: number}>`
   padding: ${space(1)} ${space(1.5)};
   overflow-wrap: break-word;
   max-width: ${p => p.maxWidth ?? 225}px;
