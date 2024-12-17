@@ -83,6 +83,9 @@ class TwoFactorTest(TestCase):
     @mock.patch("time.sleep")
     def test_rate_limit(self, mock_validate, mock_sleep):
         user = self.create_user()
+        user.set_password("helloworld!")
+        user.save()
+
         interface = TotpInterface()
         interface.enroll(user)
 
@@ -105,3 +108,19 @@ class TwoFactorTest(TestCase):
         url = absolute_uri(reverse("sentry-account-settings-security"))
         assert url in msg.body
         assert "IP address: 127.0.0.1" in msg.body
+
+        with freeze_time("2000-01-01"):
+            # 2FA rate limiter is reset after updating the password
+            url = absolute_uri(reverse("sentry-api-0-user-password", args=[user.id]))
+            self.client.put(
+                url,
+                content_type="application/json",
+                data={
+                    "password": "helloworld!",
+                    "passwordNew": "testpassword",
+                    "passwordVerify": "testpassword",
+                },
+            )
+
+            resp = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
+            assert resp.status_code != 429
