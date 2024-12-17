@@ -2241,6 +2241,9 @@ SENTRY_USE_GROUP_ATTRIBUTES = True
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
+# This flag activates the taskbroker in devservices
+SENTRY_USE_TASKBROKER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2418,6 +2421,21 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # we don't build linux/arm64 snuba images anymore
             # apple silicon users should have working emulation under colima 0.6.2
             # or docker desktop
+            "platform": "linux/amd64",
+        }
+    ),
+    "taskbroker": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/taskbroker:latest",
+            "ports": {"50051/tcp": 50051},
+            "environment": {
+                "TASKBROKER_KAFKA_CLUSTER": (
+                    "kafka-kafka-1"
+                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
+                    else "sentry_kafka"
+                ),
+            },
+            "only_if": settings.SENTRY_USE_TASKBROKER,
             "platform": "linux/amd64",
         }
     ),
