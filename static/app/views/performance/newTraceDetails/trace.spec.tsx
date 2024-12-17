@@ -1101,17 +1101,22 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(preferencesDropdownTrigger);
 
-        expect(await screen.findByText('No Instrumentation')).toBeInTheDocument();
+        const noInstrumentationOption = await screen.findByTestId(
+          'missing-instrumentation'
+        );
 
         // Toggle no instrumentation off
-        await userEvent.click(await screen.findByText('No Instrumentation'));
+        await userEvent.click(noInstrumentationOption!);
+        await userEvent.click(preferencesDropdownTrigger);
 
         await waitFor(() => {
           expect(screen.queryByText('No Instrumentation')).not.toBeInTheDocument();
         });
 
-        // Toggle no instrumentation on
-        await userEvent.click(await screen.findByText('No Instrumentation'));
+        // // Toggle no instrumentation on
+        await userEvent.click(preferencesDropdownTrigger);
+        await userEvent.click(noInstrumentationOption!);
+        await userEvent.click(preferencesDropdownTrigger);
         expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
       });
     });
