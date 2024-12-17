@@ -39,7 +39,7 @@ condition_ops = {
 T = TypeVar("T")
 
 
-def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
+def get_nested_value(data: Any, path: str, default: Any = None) -> Any:
     try:
         value = data
         for part in path.split("."):
@@ -108,11 +108,10 @@ class DataCondition(DefaultFieldsModel):
         return condition_handler_registry.get(condition_type)
 
     def evaluate_value(self, value: T) -> DataConditionResult:
-        condition_handler: DataConditionHandler[T] | None = None
+        handler: DataConditionHandler[T] | None = None
 
         try:
-            # Use a custom hanler
-            condition_handler = self.get_condition_handler()
+            handler = self.get_condition_handler()
         except NoRegistrationExistsError:
             logger.exception(
                 "No registration exists for DataCondition",
@@ -125,8 +124,8 @@ class DataCondition(DefaultFieldsModel):
             # If there's a filter on the value, then we need to extract the nested value.
             evaluation_value = get_nested_value(value, self.input_data_filter)
 
-        if condition_handler is not None:
-            result = condition_handler.evaluate_value(evaluation_value, self.comparison_value)
+        if handler is not None:
+            result = handler.evaluate_value(evaluation_value, self.comparison_value)
 
         if result:
             return self.get_condition_result()
