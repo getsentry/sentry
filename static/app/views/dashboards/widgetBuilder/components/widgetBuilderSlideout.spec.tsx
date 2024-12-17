@@ -62,6 +62,9 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     expect(await screen.findByText('Sort by')).toBeInTheDocument();
+    expect(await screen.findByText('Limit to 5 results')).toBeInTheDocument();
+    expect(await screen.findByText('High to low')).toBeInTheDocument();
+    expect(await screen.findByText('(Required)')).toBeInTheDocument();
   });
 
   it('should show the sort by step if the widget is a table', async () => {
