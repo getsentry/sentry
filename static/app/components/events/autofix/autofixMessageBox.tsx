@@ -3,22 +3,16 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import AutofixActionSelector from 'sentry/components/events/autofix/autofixActionSelector';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
-import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
+import {SetupAndCreatePRsButton} from 'sentry/components/events/autofix/autofixPrButton';
 import {
-  type AutofixCodebaseChange,
   AutofixStatus,
   type AutofixStep,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
-import {
-  makeAutofixQueryKey,
-  useAutofixData,
-} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Input from 'sentry/components/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
@@ -79,102 +73,6 @@ interface AutofixMessageBoxProps {
   primaryAction?: boolean;
   scrollIntoView?: (() => void) | null;
   scrollText?: string;
-}
-
-function CreatePRsButton({
-  changes,
-  groupId,
-}: {
-  changes: AutofixCodebaseChange[];
-  groupId: string;
-}) {
-  const autofixData = useAutofixData({groupId});
-  const api = useApi();
-  const queryClient = useQueryClient();
-  const [hasClickedCreatePr, setHasClickedCreatePr] = useState(false);
-
-  const createPRs = () => {
-    setHasClickedCreatePr(true);
-    for (const change of changes) {
-      createPr({change});
-    }
-  };
-
-  const {mutate: createPr} = useMutation({
-    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: autofixData?.run_id,
-          payload: {
-            type: 'create_pr',
-            repo_external_id: change.repo_external_id,
-            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
-          },
-        },
-      });
-    },
-    onSuccess: () => {
-      addSuccessMessage(t('Created pull requests.'));
-      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-    },
-    onError: () => {
-      setHasClickedCreatePr(false);
-      addErrorMessage(t('Failed to create a pull request'));
-    },
-  });
-
-  return (
-    <Button
-      priority="primary"
-      onClick={createPRs}
-      icon={
-        hasClickedCreatePr && <ProcessingStatusIndicator size={14} mini hideMessage />
-      }
-      busy={hasClickedCreatePr}
-      analyticsEventName="Autofix: Create PR Clicked"
-      analyticsEventKey="autofix.create_pr_clicked"
-      analyticsParams={{group_id: groupId}}
-    >
-      Create PR{changes.length > 1 ? 's' : ''}
-    </Button>
-  );
-}
-
-function SetupAndCreatePRsButton({
-  changes,
-  groupId,
-}: {
-  changes: AutofixCodebaseChange[];
-  groupId: string;
-}) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
-
-  if (
-    !changes.every(
-      change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
-    )
-  ) {
-    return (
-      <Button
-        priority="primary"
-        onClick={() => {
-          openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
-        }}
-        analyticsEventName="Autofix: Create PR Setup Clicked"
-        analyticsEventKey="autofix.create_pr_setup_clicked"
-        analyticsParams={{group_id: groupId}}
-        title={t('Enable write access to create pull requests')}
-      >
-        {t('Create PRs')}
-      </Button>
-    );
-  }
-
-  return <CreatePRsButton changes={changes} groupId={groupId} />;
 }
 
 interface RootCauseAndFeedbackInputAreaProps {
@@ -275,10 +173,10 @@ function RootCauseAndFeedbackInputArea({
 
 function StepIcon({step}: {step: AutofixStep}) {
   if (step.type === AutofixStepType.CHANGES) {
-    if (step.changes?.length === 0) {
+    if (Object.keys(step.codebase_changes).length === 0) {
       return <IconSad size="sm" color="gray300" />;
     }
-    if (step.changes.every(change => change.pull_request)) {
+    if (Object.values(step.codebase_changes).every(change => change.pull_request)) {
       return <IconCheckmark size="sm" color="green300" isCircled />;
     }
     return null;
@@ -343,7 +241,9 @@ function AutofixMessageBox({
   >(null);
 
   const changes =
-    isChangesStep && step?.type === AutofixStepType.CHANGES ? step.changes : [];
+    isChangesStep && step?.type === AutofixStepType.CHANGES
+      ? Object.values(step.codebase_changes)
+      : [];
   const prsMade =
     step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
@@ -509,9 +409,13 @@ function AutofixMessageBox({
                         <InputArea>
                           <StaticMessage>
                             Draft {changes.length} pull request
-                            {changes.length > 1 ? 's' : ''} for the above changes?
+                            {changes.length > 1 ? 's' : ''} for the latest changes?
                           </StaticMessage>
-                          <SetupAndCreatePRsButton changes={changes} groupId={groupId} />
+                          <SetupAndCreatePRsButton
+                            changes={changes}
+                            groupId={groupId}
+                            changesStepId={step!.id}
+                          />
                         </InputArea>
                       )}
                     </Fragment>

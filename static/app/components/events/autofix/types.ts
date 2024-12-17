@@ -154,8 +154,8 @@ export type AutofixCodebaseChange = {
   repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
 };
 
-export interface AutofixChangesStep extends BaseStep {
-  changes: AutofixCodebaseChange[];
+export interface AutofixChangesStep extends Omit<AutofixDefaultStep, 'type'> {
+  codebase_changes: Record<string, AutofixCodebaseChange>;
   type: AutofixStepType.CHANGES;
 }
 
