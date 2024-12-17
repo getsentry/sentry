@@ -6,20 +6,29 @@ import partition from 'lodash/partition';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import SkipConfirm from 'sentry/components/onboardingWizard/skipConfirm';
 import type {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing from 'sentry/components/progressRing';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconChevron,
+  IconClose,
+  IconNot,
+  IconSupport,
+  IconSync,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -56,82 +65,177 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
 }
 
 interface TaskCardProps {
-  description: React.ReactNode;
-  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
-  title: string;
-  action?: React.ReactNode;
-  iconTooltipText?: string;
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  actions?: React.ReactNode;
+  className?: string;
+  description?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
-  progress?: number;
 }
 
 function TaskCard({
   description,
-  iconTooltipText,
-  status,
-  progress,
+  icon,
   title,
-  action,
+  actions,
   onClick,
+  className,
 }: TaskCardProps) {
+  return (
+    <TaskCardWrapper
+      role={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={className}
+    >
+      {onClick && <InteractionStateLayer />}
+      <TaskCardIcon>{icon}</TaskCardIcon>
+      <TaskCardDescription>
+        {title}
+        {description && <p>{description}</p>}
+      </TaskCardDescription>
+      <TaskCardActions>{actions}</TaskCardActions>
+    </TaskCardWrapper>
+  );
+}
+
+interface TaskStatusIconProps {
+  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
+  progress?: number;
+  tooltipText?: string;
+}
+
+function TaskStatusIcon({status, tooltipText, progress}: TaskStatusIconProps) {
   const theme = useTheme();
 
   const progressValue = progress ?? 0;
 
   return (
-    <TaskCardWrapper
-      role={onClick ? 'button' : undefined}
-      onClick={onClick}
-      hasProgress={progressValue > 0}
-    >
-      {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>
-        <Tooltip
-          title={iconTooltipText}
-          disabled={!iconTooltipText}
-          containerDisplayMode="flex"
-        >
-          {status === 'complete' ? (
-            <IconCheckmark
-              css={css`
-                color: ${theme.success};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
-              isCircled
+    <Tooltip title={tooltipText} disabled={!tooltipText} containerDisplayMode="flex">
+      {status === 'complete' ? (
+        <IconCheckmark
+          css={css`
+            color: ${theme.success};
+            height: ${theme.fontSizeLarge};
+            width: ${theme.fontSizeLarge};
+          `}
+          isCircled
+        />
+      ) : status === 'skipped' ? (
+        <IconNot
+          css={css`
+            color: ${theme.disabled};
+            height: ${theme.fontSizeLarge};
+            width: ${theme.fontSizeLarge};
+          `}
+        />
+      ) : status === 'pending' ? (
+        <IconSync // TODO(Telemetry): Remove pending status
+          css={css`
+            color: ${theme.pink400};
+            height: ${theme.fontSizeLarge};
+            width: ${theme.fontSizeLarge};
+          `}
+        />
+      ) : (
+        <ProgressRing
+          value={progressValue * 100}
+          progressEndcaps="round"
+          size={16}
+          barWidth={2}
+        />
+      )}
+    </Tooltip>
+  );
+}
+
+interface SkipConfirmationProps {
+  onConfirm: () => void;
+  onDismiss: () => void;
+}
+
+function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
+  const organization = useOrganization();
+  const theme = useTheme();
+
+  return (
+    <SkipConfirmationWrapper>
+      <TaskCard
+        title={t('Not sure what to do? We’re here for you!')}
+        icon={
+          <IconChevron
+            direction="up"
+            css={css`
+              color: ${theme.disabled};
+              height: ${theme.fontSizeLarge};
+              width: ${theme.fontSizeLarge};
+            `}
+            isCircled
+          />
+        }
+        actions={
+          <Fragment>
+            <Button
+              borderless
+              size="zero"
+              aria-label={t('Just Skip')}
+              title={t('Just Skip')}
+              icon={<IconClose color="gray300" isCircled />}
+              onClick={event => {
+                event.stopPropagation();
+                onConfirm();
+              }}
             />
-          ) : status === 'skipped' ? (
-            <IconNot
-              css={css`
-                color: ${theme.disabled};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
+            <DropdownMenu
+              position="top-start"
+              triggerProps={{
+                'aria-label': t('Help'),
+                title: t('Help'),
+                icon: <IconSupport color="gray300" />,
+                showChevron: false,
+                size: 'zero',
+                borderless: true,
+              }}
+              items={[
+                {
+                  key: 'search',
+                  label: t('Search Support, Docs and More'),
+                  onAction() {
+                    openHelpSearchModal({organization});
+                  },
+                },
+                {
+                  key: 'help',
+                  label: t('Visit Help Center'),
+                  // TODO(Telemetry): Make it open in a new tab
+                  to: 'https://sentry.zendesk.com/hc/en-us',
+                },
+                {
+                  key: 'discord',
+                  label: t('Join our Discord'),
+                  to: 'https://discord.com/invite/sentry',
+                },
+                {
+                  key: 'support',
+                  label: t('Contact Support'),
+                  to: `mailto:${ConfigStore.get('supportEmail')}`,
+                },
+              ]}
             />
-          ) : status === 'pending' ? (
-            <IconSync // TODO(Telemetry): Remove pending status
-              css={css`
-                color: ${theme.pink400};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
+            <Button
+              borderless
+              size="zero"
+              aria-label={t('Dismiss Skip')}
+              title={t('Dismiss Skip')}
+              icon={<IconClose color="gray300" />}
+              onClick={event => {
+                event.stopPropagation();
+                onDismiss();
+              }}
             />
-          ) : (
-            <ProgressRing
-              value={progressValue * 100}
-              progressEndcaps="round"
-              size={16}
-              barWidth={2}
-            />
-          )}
-        </Tooltip>
-      </TaskCardIcon>
-      <TaskCardDescription>
-        <strong>{title}</strong>
-        <p>{description}</p>
-      </TaskCardDescription>
-      <div>{action}</div>
-    </TaskCardWrapper>
+          </Fragment>
+        }
+      />
+    </SkipConfirmationWrapper>
   );
 }
 
@@ -146,6 +250,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
+  const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
@@ -224,34 +329,32 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
             ? undefined
             : handleClick
         }
+        icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
         description={task.description}
-        iconTooltipText={iconTooltipText}
-        status={task.status}
-        title={task.title}
-        action={
+        title={<strong>{task.title}</strong>}
+        actions={
           task.status === 'complete' || task.status === 'skipped'
             ? undefined
             : task.requisiteTasks.length === 0 && (
                 <TaskActions>
                   {task.skippable && (
-                    <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
-                      {({skip}) => (
-                        <Button
-                          borderless
-                          size="zero"
-                          aria-label={t('Close')}
-                          title={t('Skip Task')}
-                          icon={<IconClose color="gray300" isCircled />}
-                          onClick={skip}
-                          css={css`
-                            /* If the pulsing indicator is active, the close button
-                             * should be above it so it's clickable.
-                             */
-                            z-index: 1;
-                          `}
-                        />
-                      )}
-                    </SkipConfirm>
+                    <Button
+                      borderless
+                      size="zero"
+                      aria-label={t('Close')}
+                      title={t('Skip Task')}
+                      icon={<IconClose color="gray300" isCircled />}
+                      onClick={event => {
+                        event.stopPropagation();
+                        setShowSkipConfirmation(!showSkipConfirmation);
+                      }}
+                      css={css`
+                        /* If the pulsing indicator is active, the close button
+                        * should be above it so it's clickable.
+                        */
+                        z-index: 1;
+                      `}
+                    />
                   )}
                   {task.SupplementComponent && showWaitingIndicator && (
                     <task.SupplementComponent task={task} />
@@ -260,6 +363,12 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
               )
         }
       />
+      {showSkipConfirmation && (
+        <SkipConfirmation
+          onConfirm={() => handleMarkSkipped(task.task)}
+          onDismiss={() => setShowSkipConfirmation(false)}
+        />
+      )}
     </TaskWrapper>
   );
 }
@@ -320,16 +429,21 @@ function TaskGroup({
 
   return (
     <TaskGroupWrapper>
-      <TaskCard
-        title={title}
+      <TaskGroupHeader
+        title={<strong>{title}</strong>}
         description={tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
           totalCompletedTasks: completedTasks.length,
           totalTasks: tasks.length,
         })}
-        status={completedTasks.length === tasks.length ? 'complete' : 'inProgress'}
-        progress={completedTasks.length / tasks.length}
+        hasProgress={completedTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
-        action={
+        icon={
+          <TaskStatusIcon
+            status={completedTasks.length === tasks.length ? 'complete' : 'inProgress'}
+            progress={completedTasks.length / tasks.length}
+          />
+        }
+        actions={
           <Button
             icon={<Chevron direction={isExpanded ? 'up' : 'down'} />}
             aria-label={isExpanded ? t('Collapse') : t('Expand')}
@@ -438,7 +552,7 @@ export function NewOnboardingSidebar({
 const Wrapper = styled(SidebarPanel)`
   width: 100%;
   @media (min-width: ${p => p.theme.breakpoints.xsmall}) {
-    width: 450px;
+    width: 460px;
   }
 `;
 
@@ -465,6 +579,12 @@ const TaskGroupWrapper = styled('div')`
   }
 `;
 
+const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
+  p {
+    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
+  }
+`;
+
 const TaskGroupBody = styled(motion.ul)`
   border-radius: ${p => p.theme.borderRadius};
   list-style-type: none;
@@ -475,10 +595,6 @@ const TaskGroupBody = styled(motion.ul)`
 const TaskWrapper = styled(motion.li)`
   gap: ${space(1)};
 `;
-
-TaskWrapper.defaultProps = {
-  layout: true,
-};
 
 const TaskActions = styled('div')`
   display: flex;
@@ -493,10 +609,10 @@ const BottomLeft = styled('img')`
   margin-top: ${space(3)};
 `;
 
-const TaskCardWrapper = styled('div')<{hasProgress: boolean}>`
+const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: max-content 1fr 20px;
+  grid-template-columns: max-content 1fr max-content;
   gap: ${space(1.5)};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.borderRadius};
@@ -504,7 +620,6 @@ const TaskCardWrapper = styled('div')<{hasProgress: boolean}>`
   p {
     margin: 0;
     font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
   }
 `;
 
@@ -516,4 +631,18 @@ const TaskCardIcon = styled('div')`
   display: flex;
   align-items: center;
   height: 20px;
+`;
+
+const TaskCardActions = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 20px;
+  gap: ${space(1)};
+  align-items: flex-start;
+`;
+
+const SkipConfirmationWrapper = styled('div')`
+  margin: ${space(1)} 0;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
 `;
