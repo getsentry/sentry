@@ -7,6 +7,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     apply_server_fingerprinting,
     get_default_grouping_config_dict,
@@ -527,7 +528,7 @@ class BuiltInFingerprintingTest(TestCase):
             "tags": {"transaction": "/"},
         }
 
-    def _get_event_for_trace(self, stacktrace):
+    def _get_event_for_trace(self, stacktrace: dict[str, Any]) -> Event:
         mgr = EventManager(data=stacktrace, grouping_config=GROUPING_CONFIG)
         mgr.normalize()
         data = mgr.get_data()
