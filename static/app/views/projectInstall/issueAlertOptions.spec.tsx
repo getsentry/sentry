@@ -14,9 +14,7 @@ import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issu
 import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
-  const organization = OrganizationFixture({
-    features: ['messaging-integration-onboarding-project-creation'],
-  });
+  const organization = OrganizationFixture();
   const URL = `/projects/${organization.slug}/rule-conditions/`;
 
   const notificationProps: IssueAlertNotificationProps = {

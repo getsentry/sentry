@@ -55,8 +55,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # The type of detector that is being used, this is used to determine the class
-    # to load for the detector
+    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
     type = models.CharField(max_length=200)
 
     # The user that created the detector
@@ -106,8 +105,14 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema(sender, instance: Detector, **kwargs):
+    """
+    Ensures the detector type is valid in the grouptype registry.
+    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    """
     group_type = instance.group_type
+
     if not group_type:
         raise ValueError(f"No group type found with type {instance.type}")
+
     config_schema = group_type.detector_config_schema
     instance.validate_config(config_schema)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -44,8 +44,3 @@ class DataConditionHandler(Generic[T]):
     @staticmethod
     def evaluate_value(value: T, comparison: Any, condition: str) -> DataConditionResult:
         raise NotImplementedError
-
-
-class DetectorType(StrEnum):
-    ERROR = "ErrorDetector"
-    METRIC_ALERT_FIRE = "metric_alert_fire"
