@@ -724,7 +724,7 @@ def test_generate_rules_return_custom_rules(get_blended_sample_rate, default_old
 
     # no custom rule requests ==> no custom rules
     rules = generate_rules(default_old_project)
-    # only the BOOST_LOW_VOLUME_PROJECTS_RULE should be around (allways on)
+    # only the BOOST_LOW_VOLUME_PROJECTS_RULE should be around (always on)
     assert len(rules) == 1
     assert rules[0]["id"] == 1000
 

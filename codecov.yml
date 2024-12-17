@@ -25,7 +25,6 @@ coverage:
     - static/app/routes.tsx
     - static/app/**/*.stories.tsx
     - static/app/**/__stories__/
-    - tests/
 
 component_management:
   individual_components:
