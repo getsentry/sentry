@@ -27,6 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   useExploreDataset,
   useExploreQuery,
+  useExploreTitle,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -57,6 +58,7 @@ interface TracesTableProps {
 }
 
 export function TracesTable({confidence, setError}: TracesTableProps) {
+  const title = useExploreTitle();
   const dataset = useExploreDataset();
   const query = useExploreQuery();
   const visualizes = useExploreVisualizes();
@@ -95,6 +97,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
     ],
     userQuery: query,
     confidence,
+    title,
   });
 
   const {data, isPending, isError, getResponseHeader} = result;

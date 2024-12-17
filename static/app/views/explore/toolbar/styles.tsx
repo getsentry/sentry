@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 export const ToolbarSection = styled('div')`
   margin-bottom: ${space(2)};
@@ -15,14 +16,16 @@ export const ToolbarHeader = styled('div')`
   margin-bottom: ${space(0.5)};
 `;
 
-export const ToolbarLabel = styled('h6')<{disabled?: boolean}>`
+export const ToolbarLabel = styled('h6')<{disabled?: boolean; underlined?: boolean}>`
   color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
   height: ${p => p.theme.form.md.height};
   min-height: ${p => p.theme.form.md.minHeight};
   font-size: ${p => p.theme.form.md.fontSize};
-  text-decoration: underline dotted
-    ${p => (p.disabled ? p.theme.gray300 : p.theme.gray300)};
   margin: 0;
+  ${p =>
+    !defined(p.underlined) || p.underlined
+      ? `text-decoration: underline dotted ${p.disabled ? p.theme.gray300 : p.theme.gray300}`
+      : ''};
 `;
 
 export const ToolbarHeaderButton = styled(Button)<{disabled?: boolean}>`
