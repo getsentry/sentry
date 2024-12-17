@@ -47,7 +47,10 @@ from sentry.incidents.utils.process_update_helpers import (
     get_aggregation_value_helper,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -62,6 +65,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -383,6 +388,15 @@ class SubscriptionProcessor:
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            data_packet = DataPacket[QuerySubscriptionUpdate](
+                query_id=self.subscription.id, packet=subscription_update
+            )
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         self.last_update = subscription_update["timestamp"]
 
