@@ -115,7 +115,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         )
         analytics.record(
             "second_platform.added",
-            user_id=user_id,
+            user_id=user.id if user else None,
             organization_id=project.organization_id,
             project_id=project.id,
         )
