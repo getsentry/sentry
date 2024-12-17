@@ -19,6 +19,8 @@ sentry: 0802_remove_grouping_auto_update_option
 
 social_auth: 0002_default_auto_field
 
+tempest: 0001_create_tempest_credentials_model
+
 uptime: 0018_add_trace_sampling_field_to_uptime
 
 workflow_engine: 0015_create_rule_lookup_tables
