@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import partition from 'lodash/partition';
@@ -22,7 +22,11 @@ import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {
+  type OnboardingTask,
+  OnboardingTaskKey,
+  type OnboardingTaskStatus,
+} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';
@@ -55,94 +59,14 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   };
 }
 
-interface TaskCardProps {
-  description: React.ReactNode;
-  status: 'complete' | 'inProgress' | 'skipped' | 'pending';
-  title: string;
-  action?: React.ReactNode;
-  iconTooltipText?: string;
-  onClick?: (e: React.MouseEvent) => void;
-  progress?: number;
-}
-
-function TaskCard({
-  description,
-  iconTooltipText,
-  status,
-  progress,
-  title,
-  action,
-  onClick,
-}: TaskCardProps) {
-  const theme = useTheme();
-
-  const progressValue = progress ?? 0;
-
-  return (
-    <TaskCardWrapper
-      role={onClick ? 'button' : undefined}
-      onClick={onClick}
-      hasProgress={progressValue > 0}
-    >
-      {onClick && <InteractionStateLayer />}
-      <TaskCardIcon>
-        <Tooltip
-          title={iconTooltipText}
-          disabled={!iconTooltipText}
-          containerDisplayMode="flex"
-        >
-          {status === 'complete' ? (
-            <IconCheckmark
-              css={css`
-                color: ${theme.success};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
-              isCircled
-            />
-          ) : status === 'skipped' ? (
-            <IconNot
-              css={css`
-                color: ${theme.disabled};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
-            />
-          ) : status === 'pending' ? (
-            <IconSync // TODO(Telemetry): Remove pending status
-              css={css`
-                color: ${theme.pink400};
-                height: ${theme.fontSizeLarge};
-                width: ${theme.fontSizeLarge};
-              `}
-            />
-          ) : (
-            <ProgressRing
-              value={progressValue * 100}
-              progressEndcaps="round"
-              size={16}
-              barWidth={2}
-            />
-          )}
-        </Tooltip>
-      </TaskCardIcon>
-      <TaskCardDescription>
-        <strong>{title}</strong>
-        <p>{description}</p>
-      </TaskCardDescription>
-      <div>{action}</div>
-    </TaskCardWrapper>
-  );
-}
-
-interface TaskProps {
+interface TaskProps extends Pick<OnboardingTaskStatus, 'status'> {
   hidePanel: () => void;
   task: OnboardingTask;
   completed?: boolean;
   showWaitingIndicator?: boolean;
 }
 
-function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
+function Task({task, status, hidePanel, showWaitingIndicator}: TaskProps) {
   const api = useApi();
   const organization = useOrganization();
   const router = useRouter();
@@ -203,68 +127,79 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
     [task, organization, api]
   );
 
-  const iconTooltipText = useMemo(() => {
-    switch (task.status) {
-      case 'complete':
-        return t('Task completed');
-      case 'pending':
-        return task.pendingTitle ?? t('Task in progress\u2026');
-      case 'skipped':
-        return t('Task skipped');
-      default:
-        return undefined;
-    }
-  }, [task.status, task.pendingTitle]);
+  if (status === 'complete') {
+    return (
+      <TaskWrapper css={taskCompletedCss}>
+        <strong>{task.title}</strong>
+        <Tooltip title={t('Task completed')} containerDisplayMode="flex">
+          <IconCheckmark color="green300" isCircled />
+        </Tooltip>
+      </TaskWrapper>
+    );
+  }
+
+  if (status === 'skipped') {
+    return (
+      <TaskWrapper css={taskCompletedCss}>
+        <strong>{task.title}</strong>
+        <Tooltip title={t('Task skipped')} containerDisplayMode="flex">
+          <IconNot color="gray300" />
+        </Tooltip>
+      </TaskWrapper>
+    );
+  }
 
   return (
-    <TaskWrapper>
-      <TaskCard
-        onClick={
-          task.status === 'complete' || task.status === 'skipped'
-            ? undefined
-            : handleClick
-        }
-        description={task.description}
-        iconTooltipText={iconTooltipText}
-        status={task.status}
-        title={task.title}
-        action={
-          task.status === 'complete' || task.status === 'skipped'
-            ? undefined
-            : task.requisiteTasks.length === 0 && (
-                <TaskActions>
-                  {task.skippable && (
-                    <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
-                      {({skip}) => (
-                        <Button
-                          borderless
-                          size="zero"
-                          aria-label={t('Close')}
-                          title={t('Skip Task')}
-                          icon={<IconClose color="gray300" isCircled />}
-                          onClick={skip}
-                          css={css`
-                            /* If the pulsing indicator is active, the close button
-                             * should be above it so it's clickable.
-                             */
-                            z-index: 1;
-                          `}
-                        />
-                      )}
-                    </SkipConfirm>
-                  )}
-                  {task.SupplementComponent && showWaitingIndicator && (
-                    <task.SupplementComponent task={task} />
-                  )}
-                </TaskActions>
-              )
-        }
-      />
+    <TaskWrapper onClick={handleClick} css={taskIncompleteCss}>
+      <InteractionStateLayer />
+      <div>
+        <strong>{task.title}</strong>
+        <p>{task.description}</p>
+      </div>
+      {task.requisiteTasks.length === 0 && (
+        <TaskActions>
+          {task.skippable && (
+            <SkipConfirm onSkip={() => handleMarkSkipped(task.task)}>
+              {({skip}) => (
+                <Button
+                  borderless
+                  size="zero"
+                  aria-label={t('Close')}
+                  icon={<IconClose size="xs" color="gray300" />}
+                  onClick={skip}
+                  css={css`
+                    /* If the pulsing indicator is active, the close button
+                     * should be above it so it's clickable.
+                     */
+                    z-index: 1;
+                  `}
+                />
+              )}
+            </SkipConfirm>
+          )}
+          {task.SupplementComponent && showWaitingIndicator && (
+            <task.SupplementComponent task={task} />
+          )}
+          {status === 'pending' && (
+            <Tooltip
+              title={task.pendingTitle ?? t('Task in progress\u2026')}
+              containerDisplayMode="flex"
+              css={css`
+                justify-content: center;
+                cursor: default;
+              `}
+            >
+              <IconSync color="pink400" />
+            </Tooltip>
+          )}
+        </TaskActions>
+      )}
     </TaskWrapper>
   );
 }
 
 interface TaskGroupProps {
+  description: string;
   /**
    * Used for analytics
    */
@@ -279,6 +214,7 @@ interface TaskGroupProps {
 
 function TaskGroup({
   title,
+  description,
   tasks,
   expanded,
   hidePanel,
@@ -320,40 +256,68 @@ function TaskGroup({
 
   return (
     <TaskGroupWrapper>
-      <TaskCard
-        title={title}
-        description={tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
-          totalCompletedTasks: completedTasks.length,
-          totalTasks: tasks.length,
-        })}
-        status={completedTasks.length === tasks.length ? 'complete' : 'inProgress'}
-        progress={completedTasks.length / tasks.length}
+      <TaskGroupHeader
+        role="button"
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
-        action={
-          <Button
-            icon={<Chevron direction={isExpanded ? 'up' : 'down'} />}
-            aria-label={isExpanded ? t('Collapse') : t('Expand')}
-            aria-expanded={isExpanded}
-            size="zero"
-            borderless
+      >
+        {toggleable && <InteractionStateLayer />}
+        <div>
+          <TaskGroupTitle>
+            <strong>{title}</strong>
+            {incompletedTasks.length === 0 && (
+              <Tooltip title={t('All tasks completed')} containerDisplayMode="flex">
+                <IconCheckmark color="green300" isCircled />
+              </Tooltip>
+            )}
+          </TaskGroupTitle>
+          <p>{description}</p>
+        </div>
+        {toggleable && (
+          <Chevron
+            direction={isExpanded ? 'up' : 'down'}
+            role="presentation"
+            size="large"
           />
-        }
-      />
+        )}
+      </TaskGroupHeader>
       {isExpanded && (
         <Fragment>
           <hr />
           <TaskGroupBody>
+            <TaskGroupProgress>
+              {tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
+                totalCompletedTasks: completedTasks.length,
+                totalTasks: tasks.length,
+              })}
+              <ProgressRing
+                value={(completedTasks.length / tasks.length) * 100}
+                progressEndcaps="round"
+                size={16}
+                barWidth={2}
+              />
+            </TaskGroupProgress>
             {incompletedTasks.map(task => (
               <Task
                 key={task.task}
                 task={task}
                 hidePanel={hidePanel}
                 showWaitingIndicator={taskKeyForWaitingIndicator === task.task}
+                status={task.status}
               />
             ))}
-            {completedTasks.map(task => (
-              <Task key={task.task} task={task} hidePanel={hidePanel} />
-            ))}
+            {completedTasks.length > 0 && (
+              <Fragment>
+                <TaskGroupProgress completed>{t('Completed')}</TaskGroupProgress>
+                {completedTasks.map(task => (
+                  <Task
+                    key={task.task}
+                    task={task}
+                    hidePanel={hidePanel}
+                    status={task.status}
+                  />
+                ))}
+              </Fragment>
+            )}
           </TaskGroupBody>
         </Fragment>
       )}
@@ -370,7 +334,7 @@ interface NewSidebarProps
   onClose: () => void;
 }
 
-export function NewOnboardingSidebar({
+export function DeprecatedNewOnboardingSidebar({
   onClose,
   orientation,
   collapsed,
@@ -406,6 +370,9 @@ export function NewOnboardingSidebar({
       <Content>
         <TaskGroup
           title={t('Getting Started')}
+          description={t(
+            'Complete these essential setups to capture your first errors, add commit and release information and get alerted when something’s wrong.'
+          )}
           tasks={sortedGettingStartedTasks}
           hidePanel={onClose}
           expanded={
@@ -418,6 +385,9 @@ export function NewOnboardingSidebar({
         {sortedBeyondBasicsTasks.length > 0 && (
           <TaskGroup
             title={t('Beyond the Basics')}
+            description={t(
+              'Ready to level-up? Get even more value out of Sentry by enabling advanced features and fine-tuning your workflow.'
+            )}
             tasks={sortedBeyondBasicsTasks}
             hidePanel={onClose}
             expanded={
@@ -465,15 +435,77 @@ const TaskGroupWrapper = styled('div')`
   }
 `;
 
-const TaskGroupBody = styled(motion.ul)`
+const TaskGroupHeader = styled('div')<{toggleable?: boolean}>`
+  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  padding: ${space(1)} ${space(1.5)};
+  gap: ${space(1.5)};
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
+  align-items: center;
+
+  p {
+    margin: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
+`;
+
+const TaskGroupTitle = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const TaskGroupBody = styled('div')`
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const TaskGroupProgress = styled('div')<{completed?: boolean}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  padding: ${space(0.75)} ${space(1.5)};
+  ${p =>
+    p.completed
+      ? css`
+          color: ${p.theme.green300};
+        `
+      : css`
+          color: ${p.theme.subText};
+          display: grid;
+          grid-template-columns: 1fr max-content;
+          align-items: center;
+          gap: ${space(1)};
+        `}
+`;
+
+const taskIncompleteCss = css`
+  position: relative;
+  cursor: pointer;
+  align-items: flex-start;
+`;
+
+const taskCompletedCss = css`
+  strong {
+    opacity: 0.5;
+  }
+  align-items: center;
 `;
 
 const TaskWrapper = styled(motion.li)`
+  padding: ${space(1)} ${space(1.5)};
+  border-radius: ${p => p.theme.borderRadius};
+  display: grid;
+  grid-template-columns: 1fr max-content;
   gap: ${space(1)};
+
+  p {
+    margin: 0;
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+  }
 `;
 
 TaskWrapper.defaultProps = {
@@ -483,7 +515,6 @@ TaskWrapper.defaultProps = {
 const TaskActions = styled('div')`
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: ${space(1)};
 `;
 
@@ -491,29 +522,4 @@ const BottomLeft = styled('img')`
   width: 60%;
   transform: rotate(180deg);
   margin-top: ${space(3)};
-`;
-
-const TaskCardWrapper = styled('div')<{hasProgress: boolean}>`
-  position: relative;
-  display: grid;
-  grid-template-columns: max-content 1fr 20px;
-  gap: ${space(1.5)};
-  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(1.5)};
-  p {
-    margin: 0;
-    font-size: ${p => p.theme.fontSizeSmall};
-    color: ${p => (p.hasProgress ? p.theme.successText : p.theme.subText)};
-  }
-`;
-
-const TaskCardDescription = styled('div')`
-  line-height: 20px;
-`;
-
-const TaskCardIcon = styled('div')`
-  display: flex;
-  align-items: center;
-  height: 20px;
 `;
