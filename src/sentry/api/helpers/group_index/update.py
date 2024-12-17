@@ -243,17 +243,17 @@ def update_groups(
     )
 
 
+# XXX: The callers can probably call two different functions depending if the UI calls
+# with group IDs or not
 def update_groups_with_search_fn(
     request: Request,
     group_ids: Sequence[int | str] | None,
     projects: Sequence[Project],
     organization_id: int,
-    search_fn: SearchFunction | None,
-    user: RpcUser | User | AnonymousUser | None = None,
-    data: Mapping[str, Any] | None = None,
+    search_fn: SearchFunction,
 ) -> Response:
     group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
-    if search_fn and not group_ids:
+    if not group_ids:
         try:
             # It can raise ValidationError
             cursor_result, _ = search_fn(
@@ -273,7 +273,7 @@ def update_groups_with_search_fn(
     if not group_ids or not group_list:
         return Response({"detail": "No groups found"}, status=204)
 
-    return update_groups(request, group_list, user, data)
+    return update_groups(request, group_list)
 
 
 def validate_request(
