@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from sentry.types.group import PriorityLevel
@@ -17,10 +17,6 @@ class DetectorPriorityLevel(IntEnum):
     LOW = PriorityLevel.LOW
     MEDIUM = PriorityLevel.MEDIUM
     HIGH = PriorityLevel.HIGH
-
-
-class DataSourceType(StrEnum):
-    SNUBA_QUERY_SUBSCRIPTION = "SnubaQuerySubscription"
 
 
 # The unique key used to identify a group within a DataPacket result.

@@ -25,7 +25,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition, ConditionType
-from sentry.workflow_engine.types import DataSourceType, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +156,7 @@ def create_data_source(
     return DataSource.objects.create(
         organization_id=organization_id,
         query_id=query_subscription.id,
-        type=DataSourceType.SNUBA_QUERY_SUBSCRIPTION,
+        type="snuba_query_subscription",
     )
 
 

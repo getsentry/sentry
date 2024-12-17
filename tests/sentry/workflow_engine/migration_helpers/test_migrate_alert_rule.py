@@ -29,7 +29,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DataSourceType, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class AlertRuleMigrationHelpersTest(APITestCase):
@@ -82,7 +82,7 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         data_source = DataSource.objects.get(
             organization_id=self.metric_alert.organization_id, query_id=query_subscription.id
         )
-        assert data_source.type == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        assert data_source.type == "snuba_query_subscription"
         detector_state = DetectorState.objects.get(detector=detector)
         assert detector_state.active is False
         assert detector_state.state == str(DetectorPriorityLevel.OK.value)
