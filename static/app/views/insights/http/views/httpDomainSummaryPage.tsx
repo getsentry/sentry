@@ -37,6 +37,7 @@ import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/re
 import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
+import {OpenInExploreButton} from 'sentry/views/insights/http/components/openInDiscoverButton';
 import {
   DomainTransactionsTable,
   isAValidSort,
@@ -196,6 +197,7 @@ export function HTTPDomainSummaryPage() {
       },
     ],
     module: ModuleName.HTTP,
+    headerActions: <OpenInExploreButton query={MutableSearch.fromQueryObject(filters)} />,
   };
 
   return (
