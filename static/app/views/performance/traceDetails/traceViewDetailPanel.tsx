@@ -1,4 +1,4 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -136,7 +136,7 @@ function BreadCrumbsSection({
   organization: Organization;
 }) {
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
-  const breadCrumbsContainerRef = createRef<HTMLDivElement>();
+  const breadCrumbsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => {
