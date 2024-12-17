@@ -1110,13 +1110,17 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
-        expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(0);
+        await waitFor(() => {
+          expect(screen.queryByText(/No Instrumentation/i)).not.toBeInTheDocument();
+        });
 
         // // Toggle no instrumentation on
         await userEvent.click(preferencesDropdownTrigger);
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
-        expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(1);
+        await waitFor(() => {
+          expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(1);
+        });
       });
     });
   });
