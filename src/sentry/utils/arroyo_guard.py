@@ -51,7 +51,8 @@ def guard(
             def __init__(
                 self, next_step: ProcessingStrategy[TResult], *args: Any, **kwargs: Any
             ) -> None:
-                self.__messages_carried_over: Deque[Message[TResult] | InvalidMessage] = deque()
+                self.__messages_carried_over: Deque[Message[TResult]] = deque()
+                self.__invalid_messages = Deque[InvalidMessage] = deque()
                 self.__instance = cls(next_step, *args, **kwargs)
                 self.__inner_submit = next_step.submit
 
@@ -61,7 +62,7 @@ def guard(
                     except MessageRejected:
                         self.__messages_carried_over.append(msg)
                     except InvalidMessage as exc:
-                        self.__messages_carried_over.append(exc)
+                        self.__invalid_messages.append(exc)
 
                 setattr(next_step, "submit", wrapped_inner_submit)
                 assert isinstance(next_step, ProcessingStrategy)
@@ -73,10 +74,10 @@ def guard(
                 self.__instance.submit(msg)
 
             def poll(self) -> None:
-                while self.__messages_carried_over:
-                    if isinstance(self.__messages_carried_over[0], InvalidMessage):
-                        raise self.__messages_carried_over.popleft()
+                while self.__invalid_messages:
+                    raise self.__messages_carried_over.popleft()
 
+                while self.__messages_carried_over:
                     try:
                         self.__inner_submit(self.__messages_carried_over[0])
                         self.__messages_carried_over.popleft()
