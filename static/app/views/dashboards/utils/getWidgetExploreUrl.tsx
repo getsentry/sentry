@@ -1,5 +1,3 @@
-import pick from 'lodash/pick';
-
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -7,7 +5,7 @@ import {
   getAggregateAlias,
   isAggregateFieldOrEquation,
 } from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeBoolean, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
@@ -81,10 +79,19 @@ export function getWidgetExploreUrl(
   });
   locationQueryParams.field = fields;
 
+  const datetime = {
+    end: decodeScalar(locationQueryParams.end) ?? null,
+    period: decodeScalar(locationQueryParams.statsPeriod) ?? null,
+    start: decodeScalar(locationQueryParams.start) ?? null,
+    utc: decodeBoolean(locationQueryParams.utc) ?? null,
+  };
+
   const queryParams = {
     // Page filters should propagate
-    ...pick(locationQueryParams, ['project', 'environment']),
-    selection,
+    selection: {
+      ...selection,
+      datetime,
+    },
     orgSlug: organization.slug,
     mode: exploreMode,
     visualize: [
@@ -94,7 +101,7 @@ export function getWidgetExploreUrl(
       },
     ],
     groupBy: fields?.filter(field => !isAggregateFieldOrEquation(field)),
-    field: locationQueryParams.field,
+    field: decodeList(locationQueryParams.field),
     query: decodeScalar(locationQueryParams.query),
     sort:
       defined(fields) && defined(locationQueryParams.sort)

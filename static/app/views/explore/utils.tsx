@@ -15,23 +15,25 @@ export function getExploreUrl({
   query,
   groupBy,
   sort,
+  field,
 }: {
   interval: string;
   orgSlug: string;
   selection: PageFilters;
   visualize: Omit<Visualize, 'label'>[];
+  field?: string[];
   groupBy?: string[];
   mode?: Mode;
   query?: string;
   sort?: string;
 }) {
-  const {start, end, period: statsPeriod} = selection.datetime;
+  const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
   const queryParams = {
     dataset: DiscoverDatasets.SPANS_EAP_RPC,
     project: projects,
     environment: environments,
-    statsPeriod: statsPeriod,
+    statsPeriod,
     start,
     end,
     interval,
@@ -40,6 +42,10 @@ export function getExploreUrl({
     visualize: visualize.map(v => JSON.stringify(v)),
     groupBy,
     sort,
+    field,
+    utc,
   };
-  return normalizeUrl(`/organizations/${orgSlug}/traces/?${qs.stringify(queryParams)}`);
+  return normalizeUrl(
+    `/organizations/${orgSlug}/traces/?${qs.stringify(queryParams, {skipNull: true})}`
+  );
 }
