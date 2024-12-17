@@ -51,7 +51,7 @@ def migrate_metric_action(
     }
     action = Action.objects.create(
         required=False,
-        type=Action.Type.NOTIFICATION,
+        type=Action.Type.NOTIFICATION,  # TODO: this is going to change to be the delivery method
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
