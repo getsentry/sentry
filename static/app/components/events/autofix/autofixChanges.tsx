@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -12,10 +12,12 @@ import {
   AutofixStatus,
 } from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconFix} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type AutofixChangesProps = {
   changesVersionIndex: number;
@@ -46,6 +48,7 @@ function AutofixRepoChange({
           <AutofixViewPrButton
             repoName={change.repo_name}
             prUrl={change.pull_request?.pr_url}
+            isPrimary={false}
           />
         )}
       </RepoChangesHeader>
@@ -92,6 +95,15 @@ export function AutofixChanges({
   const data = useAutofixData({groupId});
   const [isExpanded, setIsExpanded] = useState(!hasStepBelow);
 
+  const previousHasStepBelow = usePrevious(hasStepBelow);
+
+  useEffect(() => {
+    // When a new step shows up below this one, we want to auto collapse it.
+    if (previousHasStepBelow && !hasStepBelow) {
+      setIsExpanded(false);
+    }
+  }, [previousHasStepBelow, hasStepBelow]);
+
   if (step.status === 'ERROR' || data?.status === 'ERROR') {
     return (
       <RepoChangeContent>
@@ -132,6 +144,10 @@ export function AutofixChanges({
       : t('Latest Changes (version %s)', changesVersionIndex + 1)
     : t('Changes');
 
+  const changesAreReady = Object.values(step.codebase_changes).every(
+    change => change.diff_str
+  );
+
   return (
     <AnimatePresence initial>
       <AnimationWrapper key="card" {...cardAnimationProps}>
@@ -152,24 +168,33 @@ export function AutofixChanges({
               </HeaderText>
             </HeaderTextWrapper>
             <HeaderButtonsWrapper>
-              {(!hasStepBelow || isExpanded) && !allChangesHavePullRequests && (
-                <SetupAndCreatePRsButton
-                  changes={Object.values(step.codebase_changes)}
-                  groupId={groupId}
-                  hasStepBelow={hasStepBelow}
-                  changesStepId={step.id}
-                />
-              )}
-              {hasStepBelow && (
-                <CollapseButton
-                  aria-label={isExpanded ? t('Collapse changes') : t('Expand changes')}
-                >
-                  <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
-                </CollapseButton>
+              {changesAreReady ? (
+                <React.Fragment>
+                  {(!hasStepBelow || isExpanded) && !allChangesHavePullRequests && (
+                    <SetupAndCreatePRsButton
+                      changes={Object.values(step.codebase_changes)}
+                      groupId={groupId}
+                      hasStepBelow={hasStepBelow}
+                      changesStepId={step.id}
+                      isPrimary={false}
+                    />
+                  )}
+                  {hasStepBelow && (
+                    <CollapseButton
+                      aria-label={
+                        isExpanded ? t('Collapse changes') : t('Expand changes')
+                      }
+                    >
+                      <IconChevron direction={isExpanded ? 'up' : 'down'} size="sm" />
+                    </CollapseButton>
+                  )}
+                </React.Fragment>
+              ) : (
+                <StyledLoadingIndicator size={14} mini hideMessage />
               )}
             </HeaderButtonsWrapper>
           </HeaderRow>
-          {(!hasStepBelow || isExpanded) && (
+          {(!hasStepBelow || isExpanded) && changesAreReady && (
             <ClippedBox clipHeight={408}>
               {Object.values(step.codebase_changes).map((change, i) => (
                 <Fragment key={change.repo_external_id}>
@@ -230,8 +255,9 @@ const PullRequestTitle = styled('div')`
 const RepoChangesHeader = styled('div')`
   padding: ${space(2)} 0;
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: ${space(2)};
 `;
 
 const Separator = styled('hr')`
@@ -259,7 +285,15 @@ const HeaderRow = styled('div')<{expandable?: boolean}>`
 const HeaderButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${space(2)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: 0;
+    height: 16px;
+    width: 16px;
+  }
 `;
 
 const HeaderText = styled('div')<{isPreviousChanges?: boolean}>`

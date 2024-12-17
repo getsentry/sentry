@@ -468,7 +468,7 @@ const Placeholder = styled('div')`
 
 const ViewPRButtons = styled(ScrollCarousel)`
   width: 100%;
-  padding: 0 ${space(1)};
+  padding: 0 ${space(1)} ${space(2)} ${space(1)};
 `;
 
 const ScrollIntoViewButtonWrapper = styled('div')`

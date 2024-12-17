@@ -306,7 +306,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           <AutofixOutputStream stream={lastStep.output_stream} />
         )}
       </StepsContainer>
-
       <AutofixMessageBox
         displayText={activeLog ?? ''}
         step={lastStep}
