@@ -1,5 +1,5 @@
 ---
-created: '2024-12-09T17:40:04.889774+00:00'
+created: '2024-12-17T00:52:52.986214+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1629,6 +1629,16 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - user
   model_name: social_auth.usersocialauth
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_added
+    - date_updated
+  - class: ForeignKeyComparator
+    fields:
+    - created_by_id
+    - project
+  model_name: tempest.tempestcredentials
 - comparators:
   - class: ForeignKeyComparator
     fields:
