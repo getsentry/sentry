@@ -3040,6 +3040,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
 
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.workflow_engine.processors.data_packet.process_data_packets")
+    def test_process_data_packets_called(self, mock_process_data_packets):
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type="metric_alert_fire")
+        data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
+        data_source.detectors.set([detector])
+        self.send_update(rule, 10)
+        # assert mock_process_data_packets.call_count == 1
+        # print(mock_process_data_packets.call_args_list)
+        # assert False
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)

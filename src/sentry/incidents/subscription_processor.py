@@ -62,6 +62,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import delete_snuba_subscription
 from sentry.utils import metrics, redis, snuba_rpc
 from sentry.utils.dates import to_datetime
+from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.processors.data_packet import process_data_packets
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -383,6 +385,17 @@ class SubscriptionProcessor:
         if subscription_update["timestamp"] <= self.last_update:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
+
+        if features.has(
+            "organizations:workflow-engine-metric-alert-processing",
+            self.subscription.project.organization,
+        ):
+            # NOTE: feed the data through the new pipeline, but don't do anything with it yet.
+            # This will eventually change.
+            data_packet = DataPacket[QuerySubscriptionUpdate](
+                query_id=self.subscription.id, packet=subscription_update
+            )
+            process_data_packets([data_packet], "snuba_query_subscription")
 
         self.last_update = subscription_update["timestamp"]
 
