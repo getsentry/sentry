@@ -2,6 +2,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
@@ -18,6 +19,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.TEAM_GDX
 
     permission_classes = (TempestCredentialsPermission,)
 
