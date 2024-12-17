@@ -15,7 +15,7 @@ from arroyo.processing.strategies import (
     RunTask,
 )
 from arroyo.processing.strategies.produce import Produce
-from arroyo.types import BaseValue, Commit, FilteredPayload, Message, Partition
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 
 from sentry.conf.types.kafka_definition import Topic
@@ -216,9 +216,6 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
     ) -> ProcessingStrategy[KafkaPayload]:
         mp = self.multi_process
 
-        def accumulator(result: None, value: BaseValue[Any]) -> None:
-            return None
-
         final_step = CommitOffsets(commit)
 
         event_function = partial(
@@ -234,7 +231,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
             return Reduce(
                 1000,
                 0.5,
-                lambda result, value: None,
+                lambda _result, _value: None,
                 lambda: None,
                 maybe_multiprocess_step(mp, event_function, next_step, self._pool),
             )
