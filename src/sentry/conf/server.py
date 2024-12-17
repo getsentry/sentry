@@ -405,6 +405,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
+    "sentry.tempest",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -2948,6 +2949,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "remote_subscriptions",
     "uptime",
     "workflow_engine",
+    "tempest",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

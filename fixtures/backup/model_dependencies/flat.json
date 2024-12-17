@@ -857,6 +857,10 @@
   "social_auth.usersocialauth": [
     "sentry.user"
   ],
+  "tempest.tempestcredentials": [
+    "sentry.project",
+    "sentry.user"
+  ],
   "uptime.projectuptimesubscription": [
     "sentry.environment",
     "sentry.project",
