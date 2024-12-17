@@ -52,30 +52,20 @@ def guard(
                 self, next_step: ProcessingStrategy[TResult], *args: Any, **kwargs: Any
             ) -> None:
                 self.__messages_carried_over: Deque[Message[TResult]] = deque()
-                self.__invalid_messages = Deque[InvalidMessage] = deque()
+                self.__invalid_messages: Deque[InvalidMessage] = deque()
                 self.__instance = cls(next_step, *args, **kwargs)
                 self.__inner_submit = next_step.submit
 
                 def wrapped_inner_submit(msg: Message[TResult]) -> None:
-                    try:
-                        self.__inner_submit(msg)
-                    except MessageRejected:
-                        self.__messages_carried_over.append(msg)
-                    except InvalidMessage as exc:
-                        self.__invalid_messages.append(exc)
+                    self.__messages_carried_over.append(msg)
+                    self.__process_pending_messages()
 
                 setattr(next_step, "submit", wrapped_inner_submit)
                 assert isinstance(next_step, ProcessingStrategy)
 
-            def submit(self, msg: Message[TStrategyPayload]) -> None:
-                if len(self.__messages_carried_over) > max_buffer_size:
-                    raise MessageRejected
-
-                self.__instance.submit(msg)
-
-            def poll(self) -> None:
+            def __process_pending_messages(self) -> None:
                 while self.__invalid_messages:
-                    raise self.__messages_carried_over.popleft()
+                    raise self.__invalid_messages.popleft()
 
                 while self.__messages_carried_over:
                     try:
@@ -84,8 +74,16 @@ def guard(
                     except MessageRejected:
                         break
                     except InvalidMessage as exc:
-                        self.__messages_carried_over.append(exc)
+                        self.__invalid_messages.append(exc)
 
+            def submit(self, msg: Message[TStrategyPayload]) -> None:
+                if len(self.__messages_carried_over) > max_buffer_size:
+                    raise MessageRejected
+
+                self.__instance.submit(msg)
+
+            def poll(self) -> None:
+                self.__process_pending_messages()
                 self.__instance.poll()
 
             def close(self) -> None:
