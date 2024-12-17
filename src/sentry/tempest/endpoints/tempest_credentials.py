@@ -19,7 +19,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.UNOWNED  # TODO (vgrozdanic): add team gdx to CODEOWNERS
+    owner = ApiOwner.TELEMETRY_EXPERIENCE  # TODO (vgrozdanic): add team gdx to CODEOWNERS
 
     permission_classes = (TempestCredentialsPermission,)
 
