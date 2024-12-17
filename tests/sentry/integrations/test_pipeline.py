@@ -6,9 +6,11 @@ from sentry.integrations.example import AliasedIntegrationProvider, ExampleInteg
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
@@ -446,6 +448,45 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.finish_pipeline()
 
         assert run.called
+
+    @patch("sentry.integrations.pipeline.logger")
+    def test_disallow_with_no_permission(self, mock_logger, *args):
+        member_user = self.create_user()
+        self.create_member(user=member_user, organization=self.organization, role="member")
+        self.login_as(member_user)
+
+        # partially copied from IntegrationTestCase.setUp()
+        # except the user is not an owner
+        with assume_test_silo_mode(SiloMode.REGION):
+            rpc_organization = serialize_rpc_organization(self.organization)
+
+        self.request = self.make_request(member_user)
+
+        self.pipeline = IntegrationPipeline(
+            request=self.request,
+            organization=rpc_organization,
+            provider_key=self.provider.key,
+        )
+        self.pipeline.initialize()
+        self.save_session()
+
+        data = {
+            "external_id": self.external_id,
+            "name": "Name",
+            "metadata": {"url": "https://example.com"},
+        }
+        self.pipeline.state.data = data
+
+        # attempt to finish pipeline with no 'org:integrations' scope
+        self.pipeline.finish_pipeline()
+
+        extra = {
+            "error_message": "User has no 'org:integrations' scope.",
+            "organization_id": self.organization.id,
+            "user_id": member_user.id,
+            "provider_key": "example",
+        }
+        mock_logger.info.assert_called_with("build-integration.permission_error", extra=extra)
 
 
 @control_silo_test

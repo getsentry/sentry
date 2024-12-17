@@ -104,7 +104,7 @@ class IntegrationPipeline(Pipeline):
             and org_context.member
             and "org:integrations" not in org_context.member.scopes
         ):
-            self.get_logger().info(
+            logger.info(
                 "build-integration.permission_error",
                 extra={
                     "error_message": "User has no 'org:integrations' scope.",
