@@ -229,13 +229,14 @@ class EventOrdering(Enum):
     ]
 
 
-def get_oldest_or_latest_event_for_environments(
-    ordering: EventOrdering, environments: Sequence[str], group: Group
+def get_oldest_or_latest_event(
+    group: Group,
+    ordering: EventOrdering,
+    conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> GroupEvent | None:
-    conditions = []
-
-    if len(environments) > 0:
-        conditions.append(["environment", "IN", environments])
+    filter_conditions = conditions if conditions else []
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -243,7 +244,11 @@ def get_oldest_or_latest_event_for_environments(
         dataset = Dataset.IssuePlatform
 
     _filter = eventstore.Filter(
-        conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
+        start=start,
+        end=end,
+        conditions=filter_conditions,
+        project_ids=[group.project_id],
+        group_ids=[group.id],
     )
     events = eventstore.backend.get_events(
         filter=_filter,
@@ -260,32 +265,32 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
-def get_recommended_event_for_environments(
-    environments: Sequence[Environment],
+def get_recommended_event(
     group: Group,
     conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    all_conditions = []
-    if len(environments) > 0:
-        all_conditions.append(
-            Condition(Column("environment"), Op.IN, [e.name for e in environments])
-        )
-    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
-    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+    all_conditions = [
+        Condition(Column("project_id"), Op.IN, [group.project.id]),
+        Condition(Column("group_id"), Op.IN, [group.id]),
+    ]
 
     if conditions:
         all_conditions.extend(conditions)
 
-    end = group.last_seen + timedelta(minutes=1)
-    start = end - timedelta(days=7)
+    default_end = group.last_seen + timedelta(minutes=1)
+    default_start = default_end - timedelta(days=7)
 
     expired, _ = outside_retention_with_modified_start(
-        start, end, Organization(group.project.organization_id)
+        start=start if start else default_start,
+        end=end if end else default_end,
+        organization=Organization(group.project.organization_id),
     )
 
     if expired:
@@ -294,8 +299,8 @@ def get_recommended_event_for_environments(
     events = eventstore.backend.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
-        start=start,
-        end=end,
+        start=start if start else default_start,
+        end=end if end else default_end,
         conditions=all_conditions,
         limit=1,
         orderby=EventOrdering.RECOMMENDED.value,
@@ -764,28 +769,57 @@ class Group(Model):
             # Otherwise it has not been shared yet.
             return None
 
-    def get_latest_event(self) -> GroupEvent | None:
-        if not hasattr(self, "_latest_event"):
-            self._latest_event = self.get_latest_event_for_environments()
-
-        return self._latest_event
+    def get_latest_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        return get_oldest_or_latest_event(
+            group=self,
+            ordering=EventOrdering.LATEST,
+            conditions=conditions,
+            start=start,
+            end=end,
+        )
 
     def get_latest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
-        return get_oldest_or_latest_event_for_environments(
-            EventOrdering.LATEST,
-            environments,
-            self,
+        conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
+        return self.get_latest_event(conditions=conditions)
+
+    def get_oldest_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        return get_oldest_or_latest_event(
+            group=self,
+            ordering=EventOrdering.OLDEST,
+            conditions=conditions,
+            start=start,
+            end=end,
         )
 
     def get_oldest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
-        return get_oldest_or_latest_event_for_environments(
-            EventOrdering.OLDEST,
-            environments,
-            self,
+        conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
+        return self.get_oldest_event(conditions=conditions)
+
+    def get_recommended_event(
+        self,
+        conditions: Sequence[Condition] | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> GroupEvent | None:
+        return get_recommended_event(
+            group=self,
+            conditions=conditions,
+            start=start,
+            end=end,
         )
 
     def get_recommended_event_for_environments(
@@ -795,10 +829,14 @@ class Group(Model):
         *,
         always_return_event: bool = True,
     ) -> GroupEvent | None:
-        maybe_event = get_recommended_event_for_environments(
-            environments,
-            self,
-            conditions,
+        all_conditions = conditions if conditions else []
+        if len(environments) > 0:
+            all_conditions.append(
+                Condition(Column("environment"), Op.IN, [e.name for e in environments])
+            )
+        maybe_event = get_recommended_event(
+            group=self,
+            conditions=all_conditions,
         )
 
         if maybe_event:

@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Condition, Or
@@ -19,6 +20,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -29,6 +31,7 @@ from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.project_event_details import (
     GroupEventDetailsResponse,
     wrap_event_response,
@@ -161,9 +164,24 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         """
         environments = [e for e in get_environments(request, group.project.organization)]
         environment_names = [e.name for e in environments]
-        # The streamlined UI doesn't want a fallback if a query has no results.
-        should_always_return_event = not features.has(
-            "organizations:issue-details-streamline", group.organization, actor=request.user
+        # # The enforced streamlined UI doesn't want a fallback event if the filters yield no results.
+        request.GET.get("no_fallback") is not None or features.has(
+            "organizations:issue-details-streamline-enforce",
+            group.organization,
+            actor=request.user,
+        )
+
+        try:
+            _start, _end = get_date_range_from_params(request.GET, optional=True)
+        except InvalidParams as e:
+            raise ParseError(detail=str(e))
+
+        query = request.GET.get("query")
+
+        conditions: list[Condition] = (
+            issue_search_query_to_conditions(query, group, request.user, environments)
+            if query
+            else []
         )
 
         if event_id == "latest":
@@ -188,7 +206,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                         event = group.get_recommended_event_for_environments(
                             environments=environments,
                             conditions=conditions,
-                            always_return_event=should_always_return_event,
                         )
                     except ValidationError:
                         return Response(status=400)
@@ -202,10 +219,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                     "api.endpoints.group_event_details.get",
                     tags={"type": "helpful", "query": False},
                 ):
-                    event = group.get_recommended_event_for_environments(
-                        environments=environments,
-                        always_return_event=should_always_return_event,
-                    )
+                    event = group.get_recommended_event_for_environments(environments=environments)
         else:
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(
@@ -213,7 +227,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 )
             # TODO: Remove `for_group` check once performance issues are moved to the issue platform
 
-            if event is not None and hasattr(event, "for_group") and event.group:
+            if event is not None and event.group:
                 event = event.for_group(event.group)
 
         if event is None:
