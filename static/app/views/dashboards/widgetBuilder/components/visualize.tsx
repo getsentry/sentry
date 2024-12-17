@@ -184,6 +184,13 @@ function Visualize() {
                 state.dataset === WidgetType.SPANS
                   ? prettifyTagKey(option.value.meta.name)
                   : option.value.meta.name,
+
+              // For the spans dataset, all of the options are measurements,
+              // so we force the number badge to show
+              trailingItems:
+                state.dataset === WidgetType.SPANS ? (
+                  <TypeBadge kind={FieldKind.MEASUREMENT} />
+                ) : null,
             }));
 
           const aggregateOptions = aggregates.map(option => ({
