@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -90,7 +91,10 @@ class MetricAlertFire(GroupType):
                 "type": ["integer", "null"],
                 "enum": [None, 300, 900, 6000, 86400, 604800, 2592000],
             },
-            "detection_type": {"type": "string"},
+            "detection_type": {
+                "type": "string",
+                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
+            },
             "sensitivity": {"type": ["string", "null"]},
             "seasonality": {"type": ["string", "null"]},
         },
