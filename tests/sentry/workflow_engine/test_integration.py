@@ -3,6 +3,7 @@ from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
@@ -87,7 +88,9 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
+            processed_packets = process_data_sources(
+                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
 
             for packet, detectors in processed_packets:
                 results = process_detectors(packet, detectors)
@@ -116,7 +119,9 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
+            processed_packets = process_data_sources(
+                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
 
             assert processed_packets == []
             mock_producer.assert_not_called()
