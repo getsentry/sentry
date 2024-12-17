@@ -79,7 +79,22 @@ class MetricAlertFire(GroupType):
     enable_escalation_detection = False
     detector_handler = MetricAlertDetectorHandler
     detector_validator = MetricAlertsDetectorValidator
-    detector_config_schema = {}  # TODO(colleen): update this
+    detector_config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of a metric alert firing",
+        "type": "object",
+        "required": ["threshold_period", "detection_type"],
+        "properties": {
+            "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
+            "comparison_delta": {
+                "type": ["integer", "null"],
+                "enum": [None, 300, 900, 6000, 86400, 604800, 2592000],
+            },
+            "detection_type": {"type": "string"},
+            "sensitivity": {"type": ["string", "null"]},
+            "seasonality": {"type": ["string", "null"]},
+        },
+    }
 
     @classmethod
     def allow_post_process_group(cls, organization: Organization) -> bool:
