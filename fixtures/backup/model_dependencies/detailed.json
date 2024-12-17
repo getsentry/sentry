@@ -6263,7 +6263,12 @@
       "Region"
     ],
     "table_name": "tempest_tempestcredentials",
-    "uniques": []
+    "uniques": [
+      [
+        "client_id",
+        "project"
+      ]
+    ]
   },
   "uptime.projectuptimesubscription": {
     "dangling": false,
