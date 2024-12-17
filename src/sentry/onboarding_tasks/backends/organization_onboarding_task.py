@@ -31,7 +31,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
         )
 
     def try_mark_onboarding_complete(
-        self, organization_id: int, user: User | RpcUser | AnonymousUser, has_sourcemaps=False
+        self, organization_id: int, user: User | RpcUser | AnonymousUser
     ):
         if OrganizationOption.objects.filter(
             organization_id=organization_id, key="onboarding:complete"
@@ -47,11 +47,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
 
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:quick-start-updates", organization, actor=user):
-            required_tasks = (
-                OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCEMAPS
-                if has_sourcemaps
-                else OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITHOUT_SOURCEMAPS
-            )
+            required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
         else:
             required_tasks = OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
 
