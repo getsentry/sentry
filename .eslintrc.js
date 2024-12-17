@@ -164,8 +164,9 @@ const baseRules = {
   // https://eslint.org/docs/rules/space-in-brackets.html
   'object-curly-spacing': ['off'],
 
+  // TODO(ryan953): Enable this rule
   // https://eslint.org/docs/rules/object-shorthand
-  'object-shorthand': ['error', 'properties'],
+  'object-shorthand': ['off', 'properties'],
 
   // Disabled because of prettier
   // https://eslint.org/docs/rules/space-infix-ops.html
