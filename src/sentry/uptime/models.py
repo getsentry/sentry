@@ -112,8 +112,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
-    # The url to check
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     slug = models.CharField(max_length=255)
     name = models.CharField(max_length=255)
 
