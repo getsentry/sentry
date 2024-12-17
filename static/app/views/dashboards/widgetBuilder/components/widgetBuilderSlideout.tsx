@@ -58,11 +58,13 @@ function WidgetBuilderSlideout({
     state.displayType !== DisplayType.BIG_NUMBER &&
     state.displayType !== DisplayType.TABLE;
 
-  const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
-
   const previewRef = useRef<HTMLDivElement>(null);
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  const showSortByStep =
+    (isChartWidget && state.fields && state.fields.length > 0) ||
+    state.displayType === DisplayType.TABLE;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -132,7 +134,7 @@ function WidgetBuilderSlideout({
             <WidgetBuilderGroupBySelector />
           </Section>
         )}
-        {isNotBigNumberWidget && (
+        {showSortByStep && (
           <Section>
             <WidgetBuilderSortBySelector />
           </Section>
