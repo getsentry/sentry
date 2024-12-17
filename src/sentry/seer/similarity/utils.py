@@ -334,15 +334,12 @@ def generate_stacktrace_string(
         },
     )
 
-    # Metric for errors with no header, only one frame and no filename
-    # TODO: Determine how often this occurs and if we should send to seer, then remove metric
+    # Return empty stacktrace for events with no header, only one frame and no filename
+    # since this is too little info to group on
     if frame_metrics["has_no_filename"] and len(result_parts) == 1:
         header, frames = result_parts[0][0], result_parts[0][1]
         if header == "" and len(frames) == 1:
-            metrics.incr(
-                "seer.grouping.no_header_one_frame_no_filename",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            )
+            stacktrace_str = ""
 
     return stacktrace_str.strip()
 
