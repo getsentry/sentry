@@ -129,11 +129,11 @@ export function getMetricQueries(
 
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
-      id: id,
+      id,
       type: MetricExpressionType.QUERY,
-      condition: condition,
-      mri: mri,
-      aggregation: aggregation,
+      condition,
+      mri,
+      aggregation,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
@@ -165,7 +165,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
       }
 
       return {
-        id: id,
+        id,
         type: MetricExpressionType.EQUATION,
         formula: query.aggregates[0].slice(9),
         isHidden: !!query.isHidden,
@@ -266,7 +266,7 @@ export function expressionsToWidget(
   return {
     title,
     interval,
-    displayType: displayType,
+    displayType,
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: expressions.map(e => {
