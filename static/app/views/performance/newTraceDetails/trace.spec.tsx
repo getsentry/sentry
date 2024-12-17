@@ -669,7 +669,7 @@ async function completeTestSetup() {
             start_timestamp: start + 0.7,
             timestamp: start + 0.8,
           }),
-          // Missing instrumentation gap
+          // No Instrumentation gap
           makeSpan({
             op: 'queue',
             description: 'process',
@@ -969,7 +969,7 @@ describe('trace view', () => {
       });
     });
 
-    it('scrolls to missing instrumentation node', async () => {
+    it('scrolls to no instrumentation node', async () => {
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
@@ -980,7 +980,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
-        expect(rows[7].textContent?.includes('Missing instrumentation')).toBe(true);
+        expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
       });
     });
 
@@ -1053,14 +1053,14 @@ describe('trace view', () => {
       expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
     });
 
-    it('does not inject missing instrumentation if user preference is disabled', async () => {
+    it('does not inject no instrumentation if user preference is disabled', async () => {
       mockTracePreferences({missing_instrumentation: false});
       mockQueryString('?node=span-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
 
       await findAllByText(virtualizedContainer, /process/i);
-      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/No Instrumentation/i)).not.toBeInTheDocument();
     });
 
     describe('preferences', () => {
@@ -1089,30 +1089,30 @@ describe('trace view', () => {
         expect(await screen.findAllByText('Autogrouped')).toHaveLength(2);
       });
 
-      it('toggles missing instrumentation', async () => {
+      it('toggles no instrumentation', async () => {
         mockTracePreferences({missing_instrumentation: true});
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await findAllByText(virtualizedContainer, /Missing instrumentation/i);
+        await findAllByText(virtualizedContainer, /No Instrumentation/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
 
-        // Toggle missing instrumentation off
+        // Toggle no instrumentation off
         await userEvent.click(preferencesDropdownTrigger);
 
-        expect(await screen.findByText('Missing Instrumentation')).toBeInTheDocument();
+        expect(await screen.findByText('No Instrumentation')).toBeInTheDocument();
 
-        // Toggle missing instrumentation off
-        await userEvent.click(await screen.findByText('Missing Instrumentation'));
+        // Toggle no instrumentation off
+        await userEvent.click(await screen.findByText('No Instrumentation'));
 
         await waitFor(() => {
-          expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
+          expect(screen.queryByText('No Instrumentation')).not.toBeInTheDocument();
         });
 
-        // Toggle missing instrumentation on
-        await userEvent.click(await screen.findByText('Missing Instrumentation'));
-        expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
+        // Toggle no instrumentation on
+        await userEvent.click(await screen.findByText('No Instrumentation'));
+        expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
       });
     });
   });

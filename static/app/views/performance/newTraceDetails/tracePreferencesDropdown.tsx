@@ -28,7 +28,7 @@ const TRACE_PREFERENCES_DROPDOWN_OPTIONS: SelectOption<string>[] = [
     ),
   },
   {
-    label: t('Missing Instrumentation'),
+    label: t('No Instrumentation'),
     value: 'missing-instrumentation',
     details: t(
       'Shows when there is more than 100ms of unaccounted elapsed time between two spans.'
