@@ -1,3 +1,35 @@
+24.12.0
+-------
+
+### Various fixes & improvements
+
+- chore(utils): allow duplicate values in registry by making reverse lookup optional (#82114) by @cathteng
+- feat(workflow_engine): Add `process_data_packets` method (#82002) by @saponifi3d
+- ref(workflow_engine): Remove DetectorType (#82111) by @saponifi3d
+- chore(aci milestone 3): move aggregation value helpers to incidents directory (#82103) by @mifu67
+- ref(feedback): remove spam detection logs - replaced by redash (#82071) by @aliu39
+- fix(activity): Update activity message for linked issues (#82064) by @snigdhas
+- ref(replay): improve error messages for invalid searches that raise CouldNotParseValue (#82048) by @aliu39
+- fix(toolbar): Include credentials with fetch requests (#82108) by @ryan953
+- feat(autofix): Add support for streamed output (#82024) by @roaga
+- :sparkles: feat(discord): add button to redirect for user linking (#82104) by @iamrajjoshi
+- feat(workflow_engine): Adding support for `process_workflows` in the IssuePlatform (#81975) by @saponifi3d
+- ref: remove skip_for_relay_store (#82106) by @asottile-sentry
+- feat(metric-issues): Configure workflow notifications by group type (#81609) by @snigdhas
+- fix(iphone-codes): update frontend definitions (#82100) by @armcknight
+- ref: improve grouphash_metadata test (#82101) by @asottile-sentry
+- fix(iphone-codes): update BE mapping; remove unused method (#82094) by @armcknight
+- ref: remove xfail_if_not_postgres (#82097) by @asottile-sentry
+- ref: fix typing for endpoints.project_rule_preview (#82089) by @asottile-sentry
+- ref: fix types for test_event_attachment_details (#82091) by @asottile-sentry
+- ref: remove requires_not_arm64 (#82093) by @asottile-sentry
+- chore(aci): enforce config schema without subclassing (#81979) by @cathteng
+- ref: fix types for eventstore.test_base (#82092) by @asottile-sentry
+- chore(stacktrace): Make source map tooltip aligned (#82016) by @MichaelSun48
+- ref: delete unused GroupEnvironmentWithStatsSerializer (#82090) by @asottile-sentry
+
+_Plus 93 more_
+
 24.11.2
 -------
 
