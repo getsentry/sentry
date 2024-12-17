@@ -1,14 +1,5 @@
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {DisplayType, type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-
-export const DEFAULT_WIDGET: Widget = {
-  displayType: DisplayType.TABLE,
-  interval: '',
-  queries: [ErrorsConfig.defaultWidgetQuery],
-  title: '',
-  widgetType: WidgetType.ERRORS,
-};
 
 /**
  * Converts a widget to a set of query params that can be used to

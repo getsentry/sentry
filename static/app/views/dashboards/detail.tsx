@@ -58,10 +58,9 @@ import {
 } from 'sentry/views/dashboards/utils';
 import WidgetBuilderV2 from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {
-  convertWidgetToBuilderStateParams,
-  DEFAULT_WIDGET,
-} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+import {DATA_SET_TO_WIDGET_TYPE} from 'sentry/views/dashboards/widgetBuilder/widgetBuilder';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {MetricsDataSwitcherAlert} from 'sentry/views/performance/landing/metricsDataSwitcherAlert';
 
@@ -701,7 +700,9 @@ class DashboardDetail extends Component<Props, State> {
               pathname,
               query: {
                 ...location.query,
-                ...convertWidgetToBuilderStateParams(DEFAULT_WIDGET),
+                ...convertWidgetToBuilderStateParams(
+                  getDefaultWidget(DATA_SET_TO_WIDGET_TYPE[dataset ?? DataSet.ERRORS])
+                ),
               },
             })
           );

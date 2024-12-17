@@ -1,21 +1,10 @@
-import {DisplayType} from 'sentry/views/dashboards/types';
-import {
-  convertWidgetToBuilderStateParams,
-  DEFAULT_WIDGET,
-} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
   it('should not pass along yAxis when converting a table to builder params', () => {
-    const widget = {
-      ...DEFAULT_WIDGET,
-      displayType: DisplayType.TABLE,
-      queries: [
-        {
-          ...DEFAULT_WIDGET.queries[0],
-          aggregates: ['count()'],
-        },
-      ],
-    };
+    const widget = {...getDefaultWidget(WidgetType.ERRORS), aggregates: ['count()']};
     const params = convertWidgetToBuilderStateParams(widget);
     expect(params.yAxis).toEqual([]);
   });
