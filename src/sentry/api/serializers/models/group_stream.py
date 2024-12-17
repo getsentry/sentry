@@ -7,10 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from rest_framework.exceptions import ValidationError
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
-
 
 from sentry import features, release_health, tsdb
 from sentry.api.serializers import serialize
@@ -403,7 +402,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 item.project.organization,
                 actor=request.user,
             ):
-                raise ValidationError("Event attachments feature is not enabled for this organization")
+                raise ValidationError(
+                    "Event attachments feature is not enabled for this organization"
+                )
 
             for item in item_list:
                 latest_event = item.get_latest_event()
