@@ -4,7 +4,9 @@ from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
 
 
-@action_handler_registry.register(Action.Type.NOTIFICATION)
+# TODO - Enable once the PR to allow for multiple of the same funcs is merged
+# @action_handler_registry.register(Action.Type.PAGERDUTY)
+@action_handler_registry.register(Action.Type.SLACK)
 class NotificationActionHandler(ActionHandler):
     @staticmethod
     def execute(
