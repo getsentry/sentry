@@ -21,7 +21,7 @@ type Props = ModalRenderProps & {
   windowOptions: SelectValue<number>[];
 };
 
-export default function CustomIgnoreCountModal({props}: {props: Props}) {
+export default function CustomIgnoreCountModal(props: Props) {
   const [count, setCount] = useState<number>(100);
   const [window, setWindow] = useState<number | null>(null);
   const {
@@ -30,10 +30,11 @@ export default function CustomIgnoreCountModal({props}: {props: Props}) {
     Body,
     countLabel,
     label,
-    closeModal,
     windowOptions,
     countName,
     windowName,
+    onSelected,
+    closeModal,
   } = props;
 
   const handleSubmit = () => {
@@ -41,8 +42,8 @@ export default function CustomIgnoreCountModal({props}: {props: Props}) {
     if (window) {
       statusDetails[windowName] = window;
     }
-    props.onSelected(statusDetails);
-    props.closeModal();
+    onSelected(statusDetails);
+    closeModal();
   };
 
   return (
