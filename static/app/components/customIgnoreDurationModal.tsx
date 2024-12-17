@@ -18,9 +18,9 @@ export default function CustomIgnoreDurationModal(props: Props) {
   const {Header, Body, Footer, onSelected, closeModal} = props;
   const label = t('Ignore this issue until \u2026');
 
-  const snoozeDateInputRef = useRef<HTMLInputElement>();
+  const snoozeDateInputRef = useRef<HTMLInputElement>(null);
 
-  const snoozeTimeInputRef = useRef<HTMLInputElement>();
+  const snoozeTimeInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedIgnoreMinutes = () => {
     const dateStr = snoozeDateInputRef.current?.value; // YYYY-MM-DD
