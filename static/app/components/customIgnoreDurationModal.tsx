@@ -1,4 +1,4 @@
-import {createRef, Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
@@ -18,9 +18,9 @@ export default function CustomIgnoreDurationModal(props: Props) {
   const {Header, Body, Footer, onSelected, closeModal} = props;
   const label = t('Ignore this issue until \u2026');
 
-  const snoozeDateInputRef = createRef<HTMLInputElement>();
+  const snoozeDateInputRef = useRef<HTMLInputElement>();
 
-  const snoozeTimeInputRef = createRef<HTMLInputElement>();
+  const snoozeTimeInputRef = useRef<HTMLInputElement>();
 
   const selectedIgnoreMinutes = () => {
     const dateStr = snoozeDateInputRef.current?.value; // YYYY-MM-DD
