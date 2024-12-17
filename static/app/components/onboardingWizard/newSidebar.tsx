@@ -245,8 +245,8 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
                           onClick={skip}
                           css={css`
                             /* If the pulsing indicator is active, the close button
-                       * should be above it so it's clickable.
-                       */
+                             * should be above it so it's clickable.
+                             */
                             z-index: 1;
                           `}
                         />
