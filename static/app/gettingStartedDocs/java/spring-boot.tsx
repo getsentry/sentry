@@ -11,7 +11,10 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -297,6 +300,7 @@ const docs: Docs<PlatformOptions> = {
   replayOnboardingJsLoader,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   customMetricsOnboarding: getJavaMetricsOnboarding(),
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

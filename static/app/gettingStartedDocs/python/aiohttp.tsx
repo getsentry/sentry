@@ -7,7 +7,10 @@ import {
   type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {
   AlternativeConfiguration,
   crashReportOnboardingPython,
@@ -169,6 +172,7 @@ const docs: Docs = {
   }),
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding: featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;
