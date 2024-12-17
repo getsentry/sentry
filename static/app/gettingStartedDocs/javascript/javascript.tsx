@@ -30,7 +30,10 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -683,6 +686,7 @@ ${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
+  feedbackOnboardingJsLoader,
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,
