@@ -110,3 +110,33 @@ def test_enable_sso_user_triggers_signal() -> None:
         adopted = FeatureAdoption.objects.filter().first()
         assert adopted
         assert adopted.feature_id == adoption_manager.get_by_slug("sso").id
+
+
+@control_silo_test
+@django_db_all(transaction=True)
+def test_do_not_enable_sso_if_alternative_provider_exists() -> None:
+    org = Factories.create_organization()
+    alternative_provider_key = "fly-non-partner"
+    provider_config = {"id": "x123x"}
+    auth_service.enable_partner_sso(
+        organization_id=org.id,
+        provider_key=alternative_provider_key,
+        provider_config=provider_config,
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=alternative_provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1
+
+    provider_key = "fly"
+    auth_service.enable_partner_sso(
+        organization_id=org.id, provider_key=provider_key, provider_config=provider_config
+    )
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 0
+    auth_provider_query = AuthProvider.objects.filter(
+        organization_id=org.id, provider=alternative_provider_key, config=provider_config
+    )
+    assert auth_provider_query.count() == 1

@@ -7,6 +7,7 @@ from django.db import router, transaction
 from django.db.models import Count, F
 
 from sentry import audit_log
+from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME
 from sentry.auth.services.auth import (
     AuthService,
     RpcApiKey,
@@ -49,9 +50,19 @@ class DatabaseBackedAuthService(AuthService):
         sender: str | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
-            auth_provider_query = AuthProvider.objects.filter(
-                organization_id=organization_id, provider=provider_key, config=provider_config
-            )
+            if provider_key == "fly":
+                auth_provider_query = AuthProvider.objects.filter(
+                    organization_id=organization_id,
+                    provider__in=[
+                        possible_provider_key.value
+                        for possible_provider_key in SPONSOR_OAUTH_NAME.keys()
+                    ],
+                    config=provider_config,
+                )
+            else:
+                auth_provider_query = AuthProvider.objects.filter(
+                    organization_id=organization_id, provider=provider_key, config=provider_config
+                )
             if not auth_provider_query.exists():
                 auth_provider = AuthProvider.objects.create(
                     organization_id=organization_id, provider=provider_key, config=provider_config
@@ -79,7 +90,18 @@ class DatabaseBackedAuthService(AuthService):
         self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
-            auth_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+            if provider == "fly":
+                auth_provider = AuthProvider.objects.filter(
+                    provider__in=[
+                        possible_provider_key.value
+                        for possible_provider_key in SPONSOR_OAUTH_NAME.keys()
+                    ],
+                    config=config,
+                ).first()
+            else:
+                auth_provider = AuthProvider.objects.filter(
+                    provider=provider, config=config
+                ).first()
             if auth_provider is None:
                 return
             # Add Auth identity for partner's SSO if it doesn't exist
