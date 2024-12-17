@@ -73,6 +73,21 @@ class TestTempestCredentials(APITestCase):
         )
         assert response.status_code == 401
 
+    def test_non_admin_cant_create_tempest_credentials(self):
+        non_admin_user = self.create_user()
+        self.create_member(
+            user=non_admin_user, organization=self.project.organization, role="member"
+        )
+        with Feature({"organizations:tempest-access": True}):
+            self.login_as(non_admin_user)
+            response = self.get_error_response(
+                self.project.organization.slug,
+                self.project.slug,
+                method="POST",
+                **self.valid_credentials_data,
+            )
+            assert response.status_code == 403
+
     def test_create_tempest_credentials_with_invalid_data(self):
         with Feature({"organizations:tempest-access": True}):
             self.login_as(self.user)
