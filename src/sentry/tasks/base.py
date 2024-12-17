@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import logging
-import resource
 from collections.abc import Callable, Iterable
-from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 from typing import Any, TypeVar
@@ -15,6 +13,7 @@ from django.db.models import Model
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
+from sentry.utils.memory import track_memory_usage
 from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
@@ -57,19 +56,6 @@ class TaskSiloLimit(SiloLimit):
         if hasattr(decorated_task, "name"):
             limited_func.name = decorated_task.name
         return limited_func
-
-
-def get_rss_usage():
-    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-
-
-@contextmanager
-def track_memory_usage(metric, **kwargs):
-    before = get_rss_usage()
-    try:
-        yield
-    finally:
-        metrics.distribution(metric, get_rss_usage() - before, unit="byte", **kwargs)
 
 
 def load_model_from_db(
