@@ -134,7 +134,7 @@ class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
                     "threshold_period": self.metric_alert.threshold_period,
                     "comparison_delta": self.metric_alert.comparison_delta,
                     "sensitivity": self.metric_alert.sensitivity,
-                    "seasonality": 42,
+                    "seasonality": self.metric_alert.seasonality,
                 },
             )
 
