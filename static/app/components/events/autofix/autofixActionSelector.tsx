@@ -45,7 +45,7 @@ function AutofixActionSelector<T extends string>({
             }}
             transition={testableTransition({duration: 0.1})}
           >
-            <ButtonBar merged>
+            <ButtonBar gap={1}>
               {options.map(option => (
                 <Button
                   key={option.key}
