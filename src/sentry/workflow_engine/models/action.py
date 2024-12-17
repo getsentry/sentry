@@ -30,7 +30,9 @@ class Action(DefaultFieldsModel):
     __repr__ = sane_repr("id", "type")
 
     class Type(models.TextChoices):
-        NOTIFICATION = "notification"
+        EMAIL = "email"
+        SLACK = "slack"
+        PAGERDUTY = "pagerduty"
         WEBHOOK = "webhook"
 
     # The type field is used to denote the type of action we want to trigger
