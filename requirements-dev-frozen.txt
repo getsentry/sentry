@@ -180,7 +180,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.18.2
+sentry-arroyo==2.19.7
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2
