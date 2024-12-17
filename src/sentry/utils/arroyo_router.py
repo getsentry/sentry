@@ -104,8 +104,8 @@ class MessageBuffer(Generic[TResult]):
     """
 
     def __init__(self, routes: Sequence[str]) -> None:
-        # Maintains the last committed offsets for each route and partition
-        self.committed_offsets: Mapping[str, MutableMapping[Partition, int]] = {
+        # Maintains the last committable offsets for each route and partition
+        self.committable_offsets: Mapping[str, MutableMapping[Partition, int]] = {
             r: {} for r in routes
         }
         # Keeps track of all messages together with the route on which it was sent
@@ -117,11 +117,11 @@ class MessageBuffer(Generic[TResult]):
     def remove(self, message: Message[Any], routing_key: str) -> None:
         for partition, committable_offset in message.committable.items():
 
-            if self.committed_offsets[routing_key].get(partition):
+            if self.committable_offsets[routing_key].get(partition):
                 if committable_offset > self.committed_offsets[routing_key][partition]:
-                    self.committed_offsets[routing_key][partition] = committable_offset
+                    self.committable_offsets[routing_key][partition] = committable_offset
             else:
-                self.committed_offsets[routing_key][partition] = committable_offset
+                self.committable_offsets[routing_key][partition] = committable_offset
 
     def poll(self) -> Message[TResult] | None:
         if not self.messages:
@@ -131,9 +131,9 @@ class MessageBuffer(Generic[TResult]):
 
         # Ensure the message isn't returned if it's not completed yet
         for partition, committable_offset in message.committable.items():
-            committed_offset = self.committed_offsets[route].get(partition)
+            partition_offset = self.committable_offsets[route].get(partition)
 
-            if committed_offset is None or committable_offset > committed_offset:
+            if partition_offset is None or committable_offset > partition_offset:
                 return None
 
         self.messages.popleft()
