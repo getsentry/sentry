@@ -8,9 +8,14 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
+import {
+  useExploreFields,
+  useExploreMode,
+  useSetExploreFields,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -18,28 +23,31 @@ import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface ExploreTablesProps {
+  confidence: Confidence;
   setError: Dispatch<SetStateAction<string>>;
 }
 
-export function ExploreTables({setError}: ExploreTablesProps) {
-  const [resultMode] = useResultMode();
+export function ExploreTables(props: ExploreTablesProps) {
+  const mode = useExploreMode();
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregatesTable setError={setError} />}
-      {resultMode === 'samples' && <ExploreSamplesTable setError={setError} />}
+      {mode === Mode.AGGREGATE && <ExploreAggregatesTable {...props} />}
+      {mode === Mode.SAMPLES && <ExploreSamplesTable {...props} />}
     </Fragment>
   );
 }
 
-function ExploreAggregatesTable({setError}: ExploreTablesProps) {
-  return <AggregatesTable setError={setError} />;
+function ExploreAggregatesTable(props: ExploreTablesProps) {
+  return <AggregatesTable {...props} />;
 }
 
-function ExploreSamplesTable({setError}: ExploreTablesProps) {
+function ExploreSamplesTable(props: ExploreTablesProps) {
   const [tab, setTab] = useTab();
 
-  const [fields, setFields] = useSampleFields();
+  const fields = useExploreFields();
+  const setFields = useSetExploreFields();
+
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
@@ -75,8 +83,8 @@ function ExploreSamplesTable({setError}: ExploreTablesProps) {
           {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable setError={setError} />}
-      {tab === Tab.TRACE && <TracesTable setError={setError} />}
+      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.TRACE && <TracesTable {...props} />}
     </Fragment>
   );
 }

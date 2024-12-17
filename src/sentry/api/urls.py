@@ -83,7 +83,10 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
-from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
+from sentry.flags.endpoints.secrets import (
+    OrganizationFlagsWebHookSigningSecretEndpoint,
+    OrganizationFlagsWebHookSigningSecretsEndpoint,
+)
 from sentry.incidents.endpoints.organization_alert_rule_activations import (
     OrganizationAlertRuleActivationsEndpoint,
 )
@@ -310,6 +313,8 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
+from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -430,6 +435,7 @@ from .endpoints.organization_codeowners_associations import (
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
+    OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from .endpoints.organization_dashboard_widget_details import (
@@ -508,7 +514,6 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
-    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
     OrganizationProfilingHasChunksEndpoint,
 )
@@ -1291,6 +1296,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-dashboard-visit",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/favorite/$",
+        OrganizationDashboardFavoriteEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-favorite",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
         ShortIdLookupEndpoint.as_view(),
         name="sentry-api-0-short-id-lookup",
@@ -2009,7 +2019,12 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-hooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/$",
+        OrganizationFlagsWebHookSigningSecretsEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secrets",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/(?P<signing_secret_id>\d+)/$",
         OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
@@ -2114,11 +2129,6 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
-                ),
-                re_path(
-                    r"^chunks-flamegraph/$",
-                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
@@ -2778,6 +2788,17 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/uptime/$",
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
+    ),
+    # Tempest
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/$",
+        TempestCredentialsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/(?P<tempest_credentials_id>\d+)/$",
+        TempestCredentialsDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials-details",
     ),
     *workflow_urls.urlpatterns,
 ]

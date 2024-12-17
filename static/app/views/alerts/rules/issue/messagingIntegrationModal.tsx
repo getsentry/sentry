@@ -5,9 +5,11 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import AddIntegrationRow from 'sentry/views/alerts/rules/issue/addIntegrationRow';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
 type Props = ModalRenderProps & {
+  analyticsView: MessagingIntegrationAnalyticsView;
   headerContent: React.ReactNode;
   providers: IntegrationProvider[];
   bodyContent?: React.ReactNode;
@@ -24,6 +26,7 @@ function MessagingIntegrationModal({
   providers,
   modalParams,
   onAddIntegration,
+  analyticsView,
 }: Props) {
   return (
     <Fragment>
@@ -43,7 +46,7 @@ function MessagingIntegrationModal({
                   installStatus: 'Not Installed',
                   analyticsParams: {
                     already_installed: false,
-                    view: 'messaging_integration_onboarding',
+                    view: analyticsView,
                   },
                   onAddIntegration: onAddIntegration,
                   ...(modalParams && {modalParams}),

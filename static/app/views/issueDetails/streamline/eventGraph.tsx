@@ -26,6 +26,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
+import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
@@ -72,8 +73,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
-  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
-
   const config = getConfigForIssueType(group, group.project);
 
   const {
@@ -162,6 +161,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const currentEventSeries = useCurrentEventMarklineSeries({
+    event,
+    group,
+  });
   const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
@@ -229,11 +232,15 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       });
     }
 
+    if (currentEventSeries.markLine) {
+      seriesData.push(currentEventSeries as BarChartSeries);
+    }
+
     if (releaseSeries.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine && hasFeatureFlagFeature) {
+    if (flagSeries.markLine && flagSeries.type === 'line') {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
@@ -242,10 +249,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     visibleSeries,
     userSeries,
     eventSeries,
+    currentEventSeries,
     releaseSeries,
     flagSeries,
     theme,
-    hasFeatureFlagFeature,
     isUnfilteredStatsEnabled,
     unfilteredEventSeries,
     unfilteredUserSeries,
@@ -268,7 +275,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     show: true,
     top: 4,
     right: 8,
-    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
+    data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.gray200,

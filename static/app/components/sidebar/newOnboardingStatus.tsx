@@ -5,10 +5,15 @@ import styled from '@emotion/styled';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {DeprecatedNewOnboardingSidebar} from 'sentry/components/onboardingWizard/deprecatedNewSidebar';
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {
+  findCompleteTasks,
+  hasQuickStartUpdatesFeatureGA,
+  taskIsDone,
+} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -151,6 +156,7 @@ export function NewOnboardingStatus({
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        showText={!shouldAccordionFloat}
         onMouseEnter={() => {
           refetch();
         }}
@@ -184,15 +190,24 @@ export function NewOnboardingStatus({
           </div>
         )}
       </Container>
-      {isActive && (
-        <NewOnboardingSidebar
-          orientation={orientation}
-          collapsed={collapsed}
-          onClose={hidePanel}
-          gettingStartedTasks={gettingStartedTasks}
-          beyondBasicsTasks={beyondBasicsTasks}
-        />
-      )}
+      {isActive &&
+        (hasQuickStartUpdatesFeatureGA(organization) ? (
+          <NewOnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+            gettingStartedTasks={gettingStartedTasks}
+            beyondBasicsTasks={beyondBasicsTasks}
+          />
+        ) : (
+          <DeprecatedNewOnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+            gettingStartedTasks={gettingStartedTasks}
+            beyondBasicsTasks={beyondBasicsTasks}
+          />
+        ))}
     </Fragment>
   );
 }
@@ -242,11 +257,11 @@ const hoverCss = (p: {theme: Theme}) => css`
   }
 `;
 
-const Container = styled('div')<{isActive: boolean}>`
-  padding: 9px 19px 9px 16px;
+const Container = styled('div')<{isActive: boolean; showText: boolean}>`
+  padding: 9px 16px;
   cursor: pointer;
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: ${p => (p.showText ? 'max-content 1fr' : 'max-content')};
   gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;

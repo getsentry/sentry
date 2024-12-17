@@ -9,7 +9,7 @@ def make_sdk_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"sdk": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         insta_snapshot(
             {"errors": evt.data.get("errors"), "to_json": evt.interfaces.get("sdk").to_json()}
         )

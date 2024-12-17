@@ -4,6 +4,7 @@ from datetime import datetime
 from re import Match
 from typing import cast
 
+import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -54,9 +55,13 @@ class SearchResolver:
         field(default_factory=dict)
     )
 
+    @sentry_sdk.trace
     def resolve_meta(self, referrer: str) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.params", self.params)
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
@@ -65,10 +70,16 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
+    @sentry_sdk.trace
     def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         query = self.__resolve_query(querystring)
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.query_string", querystring)
+            span.set_tag("SearchResolver.resolved_query", query)
+            span.set_tag("SearchResolver.environment_query", environment_query)
 
         # The RPC request meta does not contain the environment.
         # So we have to inject it as a query condition.
@@ -325,6 +336,7 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
+    @sentry_sdk.trace
     def resolve_columns(
         self, selected_columns: list[str]
     ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
@@ -332,9 +344,12 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
+        span = sentry_sdk.get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
+        if span:
+            span.set_tag("SearchResolver.selected_columns", stripped_columns)
         has_aggregates = False
         for column in stripped_columns:
             match = fields.is_function(column)
@@ -372,6 +387,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
+    @sentry_sdk.trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
@@ -420,8 +436,9 @@ class SearchResolver:
             if field_type not in constants.TYPE_MAP:
                 raise InvalidSearchQuery(f"Unsupported type {field_type} in {column}")
 
+            search_type = cast(constants.SearchType, field_type)
             column_definition = ResolvedColumn(
-                public_alias=column, internal_name=field, search_type=field_type
+                public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
 
@@ -431,6 +448,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
+    @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
     ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:
@@ -496,19 +514,24 @@ class SearchResolver:
         # Proto doesn't support anything more than 1 argument yet
         if len(parsed_columns) > 1:
             raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_columns) == 1:
-            resolved_argument = (
-                parsed_columns[0].proto_definition
-                if isinstance(parsed_columns[0].proto_definition, AttributeKey)
-                else None
+        elif len(parsed_columns) == 1 and isinstance(
+            parsed_columns[0].proto_definition, AttributeKey
+        ):
+            parsed_column = parsed_columns[0]
+            resolved_argument = parsed_column.proto_definition
+            search_type = (
+                parsed_column.search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
             )
         else:
             resolved_argument = None
+            search_type = function_definition.default_search_type
 
         resolved_function = ResolvedFunction(
             public_alias=alias,
             internal_name=function_definition.internal_function,
-            search_type=function_definition.search_type,
+            search_type=search_type,
             internal_type=function_definition.internal_type,
             processor=function_definition.processor,
             extrapolation=function_definition.extrapolation,

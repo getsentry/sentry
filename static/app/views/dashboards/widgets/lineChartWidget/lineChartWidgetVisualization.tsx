@@ -5,21 +5,25 @@ import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
+import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
+import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
-import {formatChartValue} from './formatChartValue';
+import {formatTooltipValue} from './formatTooltipValue';
+import {formatYAxisValue} from './formatYAxisValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
@@ -27,11 +31,14 @@ export interface LineChartWidgetVisualizationProps {
   dataCompletenessDelay?: number;
   meta?: Meta;
   releases?: Release[];
-  utc?: boolean;
 }
 
 export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
-  const chartRef = useRef<ReactEchartsRef>(null);
+  const chartRef = useRef<EChartsReactCore | null>(null);
+  const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
+
+  const pageFilters = usePageFilters();
+  const {start, end, period, utc} = pageFilters.selection.datetime;
   const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
@@ -52,7 +59,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       );
     };
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, props.utc ?? false);
+    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
 
   const chartZoomProps = useChartZoom({
@@ -128,14 +135,30 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      valueFormatter: value => {
+        return formatTooltipValue(value, type, unit);
+      },
       truncate: true,
-      utc: props.utc ?? false,
+      utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
 
+  let visibleSeriesCount = props.timeseries.length;
+  if (releaseSeries) {
+    visibleSeriesCount += 1;
+  }
+
+  const showLegend = visibleSeriesCount > 1;
+
   return (
     <BaseChart
-      ref={chartRef}
+      ref={e => {
+        chartRef.current = e;
+
+        if (e?.getEchartsInstance) {
+          registerWithWidgetSyncContext(e.getEchartsInstance());
+        }
+      }}
       autoHeightResize
       series={[
         ...completeSeries.map(timeserie => {
@@ -169,25 +192,39 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
             data: [],
           }),
       ].filter(defined)}
-      utc={props.utc}
-      legend={{
-        top: 0,
+      grid={{
         left: 0,
+        top: showLegend ? 25 : 10,
+        right: 4,
+        bottom: 0,
+        containLabel: true,
       }}
+      legend={
+        showLegend
+          ? {
+              top: 0,
+              left: 0,
+            }
+          : undefined
+      }
       tooltip={{
         trigger: 'axis',
         axisPointer: {
           type: 'cross',
         },
         formatter,
-        valueFormatter: value => {
-          return formatChartValue(value, type, unit);
+      }}
+      xAxis={{
+        axisLabel: {
+          padding: [0, 10, 0, 10],
+          width: 60,
         },
+        splitNumber: 0,
       }}
       yAxis={{
         axisLabel: {
           formatter(value: number) {
-            return formatChartValue(value, type, unit);
+            return formatYAxisValue(value, type, unit);
           },
         },
         axisPointer: {
@@ -204,6 +241,11 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       }}
       {...chartZoomProps}
       isGroupedByDate
+      useMultilineDate
+      start={start ? new Date(start) : undefined}
+      end={end ? new Date(end) : undefined}
+      period={period}
+      utc={utc ?? undefined}
     />
   );
 }

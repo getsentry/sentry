@@ -254,13 +254,20 @@ class MetricChart extends PureComponent<Props, State> {
             </StyledSectionValue>
           </Fragment>
         </StyledInlineContainer>
-        {!isSessionAggregate(rule.aggregate) && (
-          <Feature features="discover-basic">
-            <Button size="sm" {...props}>
-              {buttonText}
-            </Button>
-          </Feature>
-        )}
+        {!isSessionAggregate(rule.aggregate) &&
+          (getAlertTypeFromAggregateDataset(rule) === 'eap_metrics' ? (
+            <Feature features="visibility-explore-view">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ) : (
+            <Feature features="discover-basic">
+              <Button size="sm" {...props}>
+                {buttonText}
+              </Button>
+            </Feature>
+          ))}
       </StyledChartControls>
     );
   }
@@ -579,7 +586,6 @@ class MetricChart extends PureComponent<Props, State> {
       }
     }
 
-    const alertType = getAlertTypeFromAggregateDataset(rule);
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -588,7 +594,7 @@ class MetricChart extends PureComponent<Props, State> {
         newAlertOrQuery: false,
         useOnDemandMetrics: isOnDemandAlert,
       }),
-      ...getForceMetricsLayerQueryExtras(organization, dataset, alertType),
+      ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
 
     if (shouldUseErrorsDataset(dataset, query)) {
