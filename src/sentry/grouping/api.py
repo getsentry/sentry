@@ -207,11 +207,10 @@ def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyC
         config_dict = get_default_grouping_config_dict()
     elif "id" not in config_dict:
         raise ValueError("Malformed configuration dictionary")
-    config_dict = dict(config_dict)
-    config_id = config_dict.pop("id")
+    config_id = config_dict["id"]
     if config_id not in CONFIGURATIONS:
         raise GroupingConfigNotFound(config_id)
-    return CONFIGURATIONS[config_id](**config_dict)
+    return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
 
 
 def load_default_grouping_config() -> StrategyConfiguration:
