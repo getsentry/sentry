@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, NotRequired, TypedDict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 from sentry.grouping.component import (
     AppGroupingComponent,
@@ -35,18 +36,20 @@ class BaseVariant(ABC):
         return None
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self.type
 
-    def _get_metadata_as_dict(self):
+    # This has to return `Mapping` rather than `dict` so that subtypes can override the return value
+    # with a TypedDict if they choose. See https://github.com/python/mypy/issues/4976.
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {}
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, Any]:
         rv = {"type": self.type, "description": self.description, "hash": self.get_hash()}
         rv.update(self._get_metadata_as_dict())
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.get_hash()!r} ({self.type})>"
 
     def __eq__(self, other: object) -> bool:
@@ -70,7 +73,7 @@ class ChecksumVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return self.checksum
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, str]:
         return {"checksum": self.checksum}
 
 
@@ -82,7 +85,7 @@ class HashedChecksumVariant(ChecksumVariant):
         self.checksum = checksum
         self.raw_checksum = raw_checksum
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, str]:
         return {"checksum": self.checksum, "raw_checksum": self.raw_checksum}
 
 
@@ -116,7 +119,7 @@ class PerformanceProblemVariant(BaseVariant):
     def get_hash(self) -> str | None:
         return self.problem.fingerprint
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         problem_data = self.problem.to_dict()
         evidence_hashes = self.event_performance_problem.evidence_hashes
 
@@ -137,20 +140,20 @@ class ComponentVariant(BaseVariant):
         self.config = strategy_config
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self.component.description
 
     @property
-    def contributes(self):
+    def contributes(self) -> bool:
         return self.component.contributes
 
     def get_hash(self) -> str | None:
         return self.component.get_hash()
 
-    def _get_metadata_as_dict(self):
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
         return {"component": self.component.as_dict(), "config": self.config.as_dict()}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return super().__repr__() + f" contributes={self.contributes} ({self.description})"
 
 
@@ -188,7 +191,7 @@ class CustomFingerprintVariant(BaseVariant):
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "custom fingerprint"
 
     def get_hash(self) -> str | None:
@@ -204,7 +207,7 @@ class BuiltInFingerprintVariant(CustomFingerprintVariant):
     type = "built_in_fingerprint"
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "Sentry defined fingerprint"
 
 
@@ -225,7 +228,7 @@ class SaltedComponentVariant(ComponentVariant):
         self.info = fingerprint_info
 
     @property
-    def description(self):
+    def description(self) -> str:
         return "modified " + self.component.description
 
     def get_hash(self) -> str | None:
@@ -241,10 +244,11 @@ class SaltedComponentVariant(ComponentVariant):
                 final_values.append(value)
         return hash_from_values(final_values)
 
-    def _get_metadata_as_dict(self):
-        rv = ComponentVariant._get_metadata_as_dict(self)
-        rv.update(expose_fingerprint_dict(self.values, self.info))
-        return rv
+    def _get_metadata_as_dict(self) -> Mapping[str, Any]:
+        return {
+            **ComponentVariant._get_metadata_as_dict(self),
+            **expose_fingerprint_dict(self.values, self.info),
+        }
 
 
 class VariantsByDescriptor(TypedDict, total=False):
