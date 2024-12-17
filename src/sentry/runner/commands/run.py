@@ -418,6 +418,12 @@ def cron(**options: Any) -> None:
         "offsets mean data-loss.\n\n"
     ),
 )
+@click.option(
+    "--rebalancing-mode",
+    default=None,
+    type=click.Choice(["cooperative-sticky"]),
+    help="Select rebalancing mode.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str, consumer_args: tuple[str, ...], topic: str | None, **options: Any

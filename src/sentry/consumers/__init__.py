@@ -439,6 +439,7 @@ def get_stream_processor(
     enable_dlq: bool = True,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
+    rebalancing_mode: str | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -499,6 +500,9 @@ def get_stream_processor(
 
         if group_instance_id is not None:
             consumer_config["group.instance.id"] = group_instance_id
+
+        if rebalancing_mode is not None:
+            consumer_config["partition.assignment.strategy"] = "cooperative-sticky"
 
         return consumer_config
 
