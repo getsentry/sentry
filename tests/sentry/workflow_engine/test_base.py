@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from unittest import mock
 from uuid import uuid4
 
 from sentry.eventstore.models import Event, GroupEvent
@@ -8,6 +9,7 @@ from sentry.models.group import Group
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import EventType
+from sentry.utils.registry import AlreadyRegisteredError
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -18,8 +20,16 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
+
+try:
+    type_mock = mock.Mock()
+    data_source_type_registry.register("test")(type_mock)
+except AlreadyRegisteredError:
+    # Ensure "test" is mocked for tests, but don't fail if already registered here.
+    pass
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):

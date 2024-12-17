@@ -12,9 +12,8 @@ class DataSourceTest(BaseWorkflowTest):
             self.create_data_source(type="invalid_type")
 
     def test_data_source_valid_type(self):
-        type_mock = mock.Mock()
-        data_source_type_registry.register("test")(type_mock)
-        assert data_source_type_registry.get("test") == type_mock
+        # Make sure the mock was registered in test_base
+        assert isinstance(data_source_type_registry.get("test"), mock.Mock)
 
         data_source = self.create_data_source(type="test")
         assert data_source is not None

@@ -6,9 +6,6 @@ from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import process_data_sources
 from sentry.workflow_engine.registry import data_source_type_registry
 
-# Setup a mock data source for the tests
-data_source_type_registry.register("test")(mock.Mock)
-
 
 class TestProcessDataSources(TestCase):
     def create_snuba_query(self, **kwargs):
@@ -22,6 +19,9 @@ class TestProcessDataSources(TestCase):
         )
 
     def setUp(self):
+        # check that test_base registers the data_source_type_registry
+        assert isinstance(data_source_type_registry.get("test"), mock.Mock)
+
         self.query = self.create_snuba_query()
         self.query_two = self.create_snuba_query()
 
