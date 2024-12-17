@@ -1110,13 +1110,13 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
-        expect(screen.queryAllByText('No Instrumentation')).toHaveLength(0);
+        expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(0);
 
         // // Toggle no instrumentation on
         await userEvent.click(preferencesDropdownTrigger);
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
-        expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
+        expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(1);
       });
     });
   });
