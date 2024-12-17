@@ -1,4 +1,4 @@
-import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -99,8 +99,8 @@ type Props = {
 
 function TransactionBar(props: Props) {
   const [showDetail, setShowDetail] = useState(false);
-  const transactionRowDOMRef = createRef<HTMLDivElement>();
-  const transactionTitleRef = createRef<HTMLDivElement>();
+  const transactionRowDOMRef = useRef<HTMLDivElement>(null);
+  const transactionTitleRef = useRef<HTMLDivElement>(null);
   let spanContentRef: HTMLDivElement | null = null;
 
   const handleWheel = useCallback(

@@ -1,4 +1,4 @@
-import {Component, createRef, Fragment, useEffect} from 'react';
+import {Component, Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
@@ -44,7 +44,7 @@ type Props = {
 };
 
 function ScrollToGuide({children}: {children: React.ReactNode}) {
-  const containerElement = createRef<HTMLSpanElement>();
+  const containerElement = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (containerElement.current) {
