@@ -6,7 +6,6 @@ from uuid import uuid1
 
 import pytest
 
-from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
@@ -873,11 +872,7 @@ class GetStacktraceStringTest(TestCase):
         exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
             "values"
         ] = []
-        get_stacktrace_string(exception)
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_called_with(
-            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
-        )
+        assert get_stacktrace_string(exception) == ""
 
 
 class EventContentIsSeerEligibleTest(TestCase):
