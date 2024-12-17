@@ -538,7 +538,7 @@ class BuiltInFingerprintingTest(TestCase):
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(project_id=1, data=data)
 
     def test_built_in_chunkload_rules(self):
         """
@@ -734,7 +734,7 @@ class BuiltInFingerprintingTest(TestCase):
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        event = eventstore.backend.create_event(data=data)
+        event = eventstore.backend.create_event(project_id=1, data=data)
 
         assert event.data.data["_fingerprint_info"]["matched_rule"] == {
             "attributes": {},

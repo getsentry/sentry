@@ -42,7 +42,7 @@ class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
 
     def post(self, request: Request):
         # Override any incoming JSON for these fields
-        data = request.json_body
+        data = request.data
         data["is_draft"] = True
         data["metadata"] = self.generate_incoming_metadata(request)
         serializer = DocIntegrationSerializer(data=data)

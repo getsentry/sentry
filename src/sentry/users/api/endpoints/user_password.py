@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.auth import password_validation
+from sentry.ratelimits import backend as ratelimiter
 from sentry.security.utils import capture_security_activity
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
@@ -89,4 +90,8 @@ class UserPasswordEndpoint(UserEndpoint):
             ip_address=request.META["REMOTE_ADDR"],
             send_email=True,
         )
+
+        ratelimiter.reset(f"auth-2fa:user:{user.id}", window=20)
+        ratelimiter.reset(f"auth-2fa-long:user:{user.id}", window=60 * 60)
+
         return Response(status=status.HTTP_204_NO_CONTENT)
