@@ -405,6 +405,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
+    "sentry.tempest",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -1458,7 +1459,18 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
+        "SERVERS": [
+            {
+                "url": "https://{region}.sentry.io",
+                "variables": {
+                    "region": {
+                        "default": "us",
+                        "description": "The data-storage-location for an organization",
+                        "enum": ["us", "de"],
+                    },
+                },
+            },
+        ],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -2229,6 +2241,9 @@ SENTRY_USE_GROUP_ATTRIBUTES = True
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
+# This flag activates the taskbroker in devservices
+SENTRY_USE_TASKBROKER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2406,6 +2421,21 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             # we don't build linux/arm64 snuba images anymore
             # apple silicon users should have working emulation under colima 0.6.2
             # or docker desktop
+            "platform": "linux/amd64",
+        }
+    ),
+    "taskbroker": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/taskbroker:latest",
+            "ports": {"50051/tcp": 50051},
+            "environment": {
+                "TASKBROKER_KAFKA_CLUSTER": (
+                    "kafka-kafka-1"
+                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
+                    else "sentry_kafka"
+                ),
+            },
+            "only_if": settings.SENTRY_USE_TASKBROKER,
             "platform": "linux/amd64",
         }
     ),
@@ -2937,6 +2967,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "remote_subscriptions",
     "uptime",
     "workflow_engine",
+    "tempest",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

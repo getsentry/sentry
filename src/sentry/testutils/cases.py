@@ -27,14 +27,13 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
 from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
-from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -114,7 +113,6 @@ from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -138,7 +136,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -164,7 +161,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import AuthProvider, Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -422,70 +419,12 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
-        func = kwargs.pop("func", None)
-        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
-        conn = connections[using]
-
-        context = _AssertQueriesContext(self, queries, debug, conn)
-        if func is None:
-            return context
-
-        with context:
-            func(*args, **kwargs)
-
     def get_mock_uuid(self):
         class uuid:
             hex = "abc123"
             bytes = b"\x00\x01\x02"
 
         return uuid
-
-
-class _AssertQueriesContext(CaptureQueriesContext):
-    def __init__(self, test_case, queries, debug, connection):
-        self.test_case = test_case
-        self.queries = queries
-        self.debug = debug
-        super().__init__(connection)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        super().__exit__(exc_type, exc_value, traceback)
-        if exc_type is not None:
-            return
-
-        parsed_queries = parse_queries(self.captured_queries)
-
-        if self.debug:
-            import pprint
-
-            pprint.pprint("====================== Raw Queries ======================")
-            pprint.pprint(self.captured_queries)
-            pprint.pprint("====================== Table writes ======================")
-            pprint.pprint(parsed_queries)
-
-        for table, num in parsed_queries.items():
-            expected = self.queries.get(table, 0)
-            if expected == 0:
-                import pprint
-
-                pprint.pprint(
-                    "WARNING: no query against %s emitted, add debug=True to see all the queries"
-                    % (table)
-                )
-            else:
-                self.test_case.assertTrue(
-                    num == expected,
-                    "%d write queries expected on `%s`, got %d, add debug=True to see all the queries"
-                    % (expected, table, num),
-                )
-
-        for table, num in self.queries.items():
-            executed = parsed_queries.get(table, None)
-            self.test_case.assertFalse(
-                executed is None,
-                "no query against %s emitted, add debug=True to see all the queries" % (table),
-            )
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
@@ -943,24 +882,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
 
-    def get_condition_activity(self, **kwargs) -> ConditionActivity:
-        kwargs.setdefault("group_id", self.event.group.id)
-        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
-        kwargs.setdefault("timestamp", self.event.datetime)
-        return ConditionActivity(**kwargs)
-
-    def passes_activity(
-        self,
-        rule: RuleBase,
-        condition_activity: ConditionActivity | None = None,
-        event_map: dict[str, Any] | None = None,
-    ):
-        if condition_activity is None:
-            condition_activity = self.get_condition_activity()
-        if event_map is None:
-            event_map = {}
-        return rule.passes_activity(condition_activity, event_map)
-
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
             event = self.event
@@ -1210,20 +1131,6 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @contextmanager
-    def disable_snuba_query_cache(self):
-        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-        yield
-        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
-
-    @classmethod
-    def snuba_get_config(cls):
-        return _snuba_pool.request("GET", "/config.json").data
-
-    @classmethod
-    def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
-
     def create_project(self, **kwargs) -> Project:
         if "flags" not in kwargs:
             # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
@@ -1322,16 +1229,6 @@ class SnubaTestCase(BaseTestCase):
                 body=json.dumps(data),
                 headers={},
             ).status
-            == 200
-        )
-
-    def store_outcome(self, group):
-        data = [self.__wrap_group(group)]
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=json.dumps(data),
-            ).status_code
             == 200
         )
 

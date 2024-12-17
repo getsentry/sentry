@@ -15,6 +15,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.pipeline import Pipeline, PipelineAnalyticsEntry
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
@@ -94,6 +95,25 @@ class IntegrationPipeline(Pipeline):
         )
 
     def finish_pipeline(self):
+        org_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.request.user.id
+        )
+
+        if (
+            org_context
+            and org_context.member
+            and "org:integrations" not in org_context.member.scopes
+        ):
+            logger.info(
+                "build-integration.permission_error",
+                extra={
+                    "error_message": "User has no 'org:integrations' scope.",
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                    "provider_key": self.provider.key,
+                },
+            )
+
         try:
             data = self.provider.build_integration(self.state.data)
         except IntegrationError as e:

@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {DndContext, type Translate, useDraggable} from '@dnd-kit/core';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -10,6 +11,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -36,6 +38,8 @@ type WidgetBuilderV2Props = {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
+const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
+
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -48,6 +52,18 @@ function WidgetBuilderV2({
   const {selection} = usePageFilters();
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
+  const theme = useTheme();
+  const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
+
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  const [{translate}, setTranslate] = useState<{
+    initialTranslate: Translate;
+    translate: Translate;
+  }>({
+    initialTranslate: {x: 0, y: 0},
+    translate: {x: 0, y: 0},
+  });
 
   useEffect(() => {
     if (escapeKeyPressed) {
@@ -56,6 +72,25 @@ function WidgetBuilderV2({
       }
     }
   }, [escapeKeyPressed, isOpen, onClose]);
+
+  const handleDragEnd = () => {
+    setTranslate(({translate: newTranslate}) => {
+      return {
+        translate: newTranslate,
+        initialTranslate: newTranslate,
+      };
+    });
+  };
+
+  const handleDragMove = ({delta}) => {
+    setTranslate(({initialTranslate}) => ({
+      initialTranslate,
+      translate: {
+        x: initialTranslate.x + delta.x,
+        y: initialTranslate.y + delta.y,
+      },
+    }));
+  };
 
   return (
     <Fragment>
@@ -72,15 +107,31 @@ function WidgetBuilderV2({
                   <WidgetBuilderContainer>
                     <WidgetBuilderSlideout
                       isOpen={isOpen}
-                      onClose={onClose}
+                      onClose={() => {
+                        onClose();
+                        setTranslate({
+                          initialTranslate: {x: 0, y: 0},
+                          translate: {x: 0, y: 0},
+                        });
+                      }}
                       onSave={onSave}
                       onQueryConditionChange={setQueryConditionsValid}
-                    />
-                    <WidgetPreviewContainer
-                      dashboardFilters={dashboardFilters}
                       dashboard={dashboard}
+                      dashboardFilters={dashboardFilters}
+                      setIsPreviewDraggable={setIsPreviewDraggable}
                       isWidgetInvalid={!queryConditionsValid}
                     />
+                    {(!isSmallScreen || isPreviewDraggable) && (
+                      <DndContext onDragEnd={handleDragEnd} onDragMove={handleDragMove}>
+                        <WidgetPreviewContainer
+                          dashboardFilters={dashboardFilters}
+                          dashboard={dashboard}
+                          translate={translate}
+                          isDraggable={isPreviewDraggable}
+                          isWidgetInvalid={!queryConditionsValid}
+                        />
+                      </DndContext>
+                    )}
                   </WidgetBuilderContainer>
                 </ContainerWithoutSidebar>
               </SpanTagsProvider>
@@ -94,18 +145,34 @@ function WidgetBuilderV2({
 
 export default WidgetBuilderV2;
 
-function WidgetPreviewContainer({
+export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
   isWidgetInvalid,
+  translate,
+  isDraggable,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
+  isDraggable?: boolean;
+  translate?: Translate;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
   const location = useLocation();
+  const theme = useTheme();
+
+  // if small screen and draggable, enable dragging
+  const isDragEnabled =
+    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) &&
+    isDraggable;
+
+  const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
+    id: WIDGET_PREVIEW_DRAG_ID,
+    disabled: !isDragEnabled,
+    // May need to add 'handle' prop if we want to drag the preview by a specific area
+  });
 
   return (
     <DashboardsMEPProvider>
@@ -121,25 +188,46 @@ function WidgetPreviewContainer({
               location={location}
               forceTransactions={metricsDataSide.forceTransactionsOnly}
             >
-              <SampleWidgetCard
-                initial={{opacity: 0, x: '50%', y: 0}}
-                animate={{opacity: 1, x: 0, y: 0}}
-                exit={{opacity: 0, x: '50%', y: 0}}
-                transition={{
-                  type: 'spring',
-                  stiffness: 500,
-                  damping: 50,
-                }}
+              <DraggableWidgetContainer
+                ref={setNodeRef}
+                id={WIDGET_PREVIEW_DRAG_ID}
                 style={{
-                  height: state.displayType === DisplayType.TABLE ? 'auto' : '400px',
+                  transform: isDragEnabled
+                    ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+                    : undefined,
+                  opacity: isDragging ? 0.5 : 1,
+                  zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+                  cursor: isDragEnabled ? 'grab' : undefined,
                 }}
+                {...attributes}
+                {...listeners}
               >
-                <WidgetPreview
-                  dashboardFilters={dashboardFilters}
-                  dashboard={dashboard}
-                  isWidgetInvalid={isWidgetInvalid}
-                />
-              </SampleWidgetCard>
+                <SampleWidgetCard
+                  initial={{opacity: 0, x: '50%', y: 0}}
+                  animate={{opacity: 1, x: 0, y: 0}}
+                  exit={{opacity: 0, x: '50%', y: 0}}
+                  transition={{
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 50,
+                  }}
+                  style={{
+                    width: isDragEnabled ? '300px' : undefined,
+                    height:
+                      isDragEnabled && state.displayType !== DisplayType.TABLE
+                        ? '200px'
+                        : state.displayType === DisplayType.TABLE
+                          ? 'auto'
+                          : '400px',
+                  }}
+                >
+                  <WidgetPreview
+                    dashboardFilters={dashboardFilters}
+                    dashboard={dashboard}
+                    isWidgetInvalid={isWidgetInvalid}
+                  />
+                </SampleWidgetCard>
+              </DraggableWidgetContainer>
             </MEPSettingProvider>
           )}
         </MetricsDataSwitcher>
@@ -167,15 +255,34 @@ const Backdrop = styled('div')`
 `;
 
 const SampleWidgetCard = styled(motion.div)`
-  width: 30vw;
-  min-width: 400px;
+  width: 100%;
+  min-width: 100%;
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
+  z-index: ${p => p.theme.zIndex.initial};
+  position: relative;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    width: 30vw;
+    min-width: 400px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+`;
+
+const DraggableWidgetContainer = styled(`div`)`
   align-content: center;
-  z-index: ${p => p.theme.zIndex.modal};
+  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
   margin: auto;
+  cursor: auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    z-index: ${p => p.theme.zIndex.modal};
+    transform: none;
+    cursor: auto;
+  }
 `;
 
 const ContainerWithoutSidebar = styled('div')`

@@ -1,7 +1,7 @@
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {Dataset, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
-import {getExploreUrl} from 'sentry/views/alerts/rules/utils';
+import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
 
 describe('getExploreUrl', () => {
   it('should return the correct url', () => {
@@ -11,7 +11,7 @@ describe('getExploreUrl', () => {
     rule.aggregate = 'p75(span.duration)';
     rule.query = 'span.op:http.client';
     rule.environment = 'prod';
-    const url = getExploreUrl({
+    const url = getAlertRuleExploreUrl({
       rule,
       orgSlug: 'slug',
       period: '7d',
