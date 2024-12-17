@@ -458,6 +458,12 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
+                id="paai",
+                option="project-abuse-quota.attachment-item-limit",
+                categories=[DataCategory.ATTACHMENT_ITEM],
+                scope=QuotaScope.PROJECT,
+            ),
+            AbuseQuota(
                 id="pas",
                 option="project-abuse-quota.session-limit",
                 categories=[DataCategory.SESSION],
