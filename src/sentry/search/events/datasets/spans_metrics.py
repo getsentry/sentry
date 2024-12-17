@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
@@ -16,7 +16,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLStringArg, get_function_alias
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
+from sentry.snuba.metrics.naming_layer.mri import SpanMRI, parse_mri
 from sentry.snuba.referrer import Referrer
 
 
@@ -76,6 +76,30 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if metric_id != 0:
             self.builder.metric_ids.add(metric_id)
         return metric_id
+
+    def reflective_result_type(
+        self, index: int = 0
+    ) -> Callable[[list[fields.FunctionArg], dict[str, Any]], str]:
+        """
+        Return the type of the metric, defaults to super implementation
+        """
+        super_result_type_fn = super().reflective_result_type(index)
+
+        def result_type_fn(
+            function_arguments: list[fields.FunctionArg], parameter_values: dict[str, Any]
+        ) -> str:
+            argument = function_arguments[index]
+            value = parameter_values[argument.name]
+            mri = constants.SPAN_METRICS_MAP.get(value)
+            if mri is not None:
+                parsed_mri = parse_mri(mri)
+                if parsed_mri is not None and parsed_mri.unit in constants.RESULT_TYPES:
+                    return parsed_mri.unit
+
+            # if the mri is not found, then we fallback to the super implementation
+            return super_result_type_fn(function_arguments, parameter_values)
+
+        return result_type_fn
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:

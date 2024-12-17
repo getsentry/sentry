@@ -32,7 +32,6 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.meta_resolver_map["mobile.frames_delay"] = "second"
 
     @property
     def use_default_tags(self) -> bool:
