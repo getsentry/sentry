@@ -580,7 +580,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id, owner, True)
+        try_mark_onboarding_complete(project.organization_id, owner)
 
 
 @event_processed.connect(weak=False)
