@@ -1032,7 +1032,6 @@ class OrganizationOnboardingTaskTest(TestCase):
                 )
                 is not None
             )
-
             record_analytics.assert_called_with(
                 "project.created",
                 user_id=self.user.id,
@@ -1048,7 +1047,6 @@ class OrganizationOnboardingTaskTest(TestCase):
             transaction_event.update({"user": None})
             event = self.store_event(data=transaction_event, project_id=project.id)
             transaction_processed.send(project=project, event=event, sender=type(project))
-
             assert (
                 OrganizationOnboardingTask.objects.get(
                     organization=self.organization,
@@ -1057,7 +1055,6 @@ class OrganizationOnboardingTaskTest(TestCase):
                 )
                 is not None
             )
-
             record_analytics.assert_called_with(
                 "first_transaction.sent",
                 default_user_id=self.organization.default_owner_id,
@@ -1076,6 +1073,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 },
                 project_id=project.id,
             )
+            event_processed.send(project=project, event=error_event, sender=type(project))
             assert (
                 OrganizationOnboardingTask.objects.get(
                     organization=self.organization,
@@ -1127,12 +1125,64 @@ class OrganizationOnboardingTaskTest(TestCase):
                 query_type=None,
             )
 
+            # Unminify your code
+            sourcemap_event = load_data("javascript")
+            sourcemap_event.update(
+                {
+                    "exception": {
+                        "values": [
+                            {
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "data": {
+                                                "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "type": "TypeError",
+                            }
+                        ]
+                    },
+                }
+            )
+            event_with_sourcemap = self.store_event(data=sourcemap_event, project_id=project.id)
+            event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.SOURCEMAPS,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
+                "first_sourcemaps.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+            record_analytics.assert_called_with(
+                "first_sourcemaps_for_project.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+
             # Track releases
             transaction_event = load_data("transaction")
-            transaction_event.update({"release": "my-first-release", "tags": [], "user": None})
+            transaction_event.update({"release": "my-first-release", "tags": []})
             event = self.store_event(data=transaction_event, project_id=project.id)
             transaction_processed.send(project=project, event=event, sender=type(project))
-
             assert (
                 OrganizationOnboardingTask.objects.get(
                     organization=self.organization,
@@ -1141,7 +1191,9 @@ class OrganizationOnboardingTaskTest(TestCase):
                 )
                 is not None
             )
-            record_analytics.assert_called_with(
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
                 "first_release_tag.sent",
                 user_id=self.user.id,
                 project_id=project.id,
@@ -1179,7 +1231,6 @@ class OrganizationOnboardingTaskTest(TestCase):
                 organization=self.organization, teams=[self.team], email=user.email
             )
             member_invited.send(member=member, user=user, sender=type(member))
-
             assert (
                 OrganizationOnboardingTask.objects.get(
                     organization=self.organization,
