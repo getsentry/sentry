@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Generic, Protocol, TypeVar, overload
+from typing import Any, Generic, Protocol, Self, TypeVar, overload
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
@@ -106,7 +106,7 @@ class GroupingContext:
                 return d[key]
         raise KeyError(key)
 
-    def __enter__(self) -> "GroupingContext":
+    def __enter__(self) -> Self:
         self.push()
         return self
 
