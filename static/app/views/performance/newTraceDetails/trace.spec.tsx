@@ -1094,7 +1094,9 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await findAllByText(virtualizedContainer, /No Instrumentation/i);
+        await waitFor(async () => {
+          await findAllByText(virtualizedContainer, /No Instrumentation/i);
+        });
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
 
