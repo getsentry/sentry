@@ -1,4 +1,4 @@
-import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -133,8 +133,8 @@ function NewTraceDetailsTransactionBar(props: Props) {
     isHighlighted || highlightEmbeddedSpan
   );
   const [isIntersecting, setIntersecting] = useState(false);
-  const transactionRowDOMRef = createRef<HTMLDivElement>();
-  const transactionTitleRef = createRef<HTMLDivElement>();
+  const transactionRowDOMRef = useRef<HTMLDivElement>(null);
+  const transactionTitleRef = useRef<HTMLDivElement>(null);
   let spanContentRef: HTMLDivElement | null = null;
   const navigate = useNavigate();
 
