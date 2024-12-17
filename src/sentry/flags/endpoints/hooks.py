@@ -6,20 +6,14 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.flags.endpoints import OrganizationFlagsEndpoint
-from sentry.flags.providers import (
-    DeserializationError,
-    InvalidProvider,
-    handle_provider_event,
-    validate_provider_event,
-    write,
-)
+from sentry.flags.providers import DeserializationError, InvalidProvider, get_provider, write
 from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
-class OrganizationFlagsHooksEndpoint(OrganizationFlagsEndpoint):
+class OrganizationFlagsHooksEndpoint(OrganizationEndpoint):
     authentication_classes = ()
     owner = ApiOwner.REPLAY
     permission_classes = ()
@@ -32,16 +26,13 @@ class OrganizationFlagsHooksEndpoint(OrganizationFlagsEndpoint):
             return Response("Not enabled.", status=404)
 
         try:
-            if not validate_provider_event(
-                provider,
-                request.body,
-                request.headers,
-                organization.id,
-            ):
-                return Response("Not authorized.", status=401)
+            provider_cls = get_provider(organization.id, provider, request.headers)
 
-            write(handle_provider_event(provider, request.data, organization.id))
-            return Response(status=200)
+            if not provider_cls.validate(request.body):
+                return Response("Not authorized.", status=401)
+            else:
+                write(provider_cls.handle(request.data))
+                return Response(status=200)
         except InvalidProvider:
             raise ResourceDoesNotExist
         except DeserializationError as exc:
