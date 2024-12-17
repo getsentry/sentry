@@ -146,6 +146,8 @@ from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, QuerySubscriptionDataSourceHandler
+from sentry.tempest.models import MessageType as TempestMessageType
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -603,6 +605,34 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_tempest_credentials(
+        project: Project,
+        created_by: User | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        message: str = "",
+        message_type: str | None = None,
+        latest_fetched_item_id: str | None = None,
+    ):
+        if client_id is None:
+            client_id = str(uuid4())
+        if client_secret is None:
+            client_secret = str(uuid4())
+        if message_type is None:
+            message_type = TempestMessageType.ERROR
+
+        return TempestCredentials.objects.create(
+            project=project,
+            created_by_id=created_by.id if created_by else None,
+            client_id=client_id,
+            client_secret=client_secret,
+            message=message,
+            message_type=message_type,
+            latest_fetched_item_id=latest_fetched_item_id,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
