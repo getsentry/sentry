@@ -17,12 +17,23 @@ MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
-        "csharp",
+        "android",
+        "as3",
+        # "c", A native platform -> excluded for now
+        "cfml",
         "cocoa",
+        "csharp",
+        "elixir",
         "go",
+        "groovy",
+        "haskell",
         "java",
         "javascript",
+        # "native", A native platform -> excluded for now
         "node",
+        "objc",
+        # "other", Since we can't be sure of what this is, we'll exclude it for now
+        "perl",
         "php",
         "python",
         "ruby",
@@ -159,6 +170,46 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "java-spring",
         "java-spring-boot",
         "perl",
+        # Remaining platforms
+        "apple",
+        "apple-ios-profiling-onboarding-1-install",
+        "apple-ios-profiling-onboarding-4-upload",
+        "apple-macos",
+        # "c", A native platform -> excluded for now
+        "capacitor",
+        "cfml",
+        "cocoa",
+        "cocoa-objc",
+        "cocoa-swift",
+        "dotnet-aspnet",
+        "dotnet-aspnetcore",
+        "dotnet-awslambda",
+        "dotnet-gcpfunctions",
+        "dotnet-google-cloud-functions",
+        "dotnet-maui",
+        "dotnet-uwp",
+        "dotnet-winforms",
+        "dotnet-wpf",
+        "dotnet-xamarin",
+        "electron",
+        "elixir",
+        "javascript-nextjs",
+        "javascript-nuxt",
+        "javascript-solidstart",
+        "kotlin",
+        # "minidump", A native platform -> excluded for now
+        # "native", A native platform -> excluded for now
+        # "native-qt", A native platform -> excluded for now
+        "nintendo-switch",
+        "objc",
+        # The null and empty platform are also excluded for now
+        # "other"
+        "powershell",
+        "rust",
+        "swift",
+        "switt",
+        "unity",
+        "unreal",
     ]
 )
 BASE64_ENCODED_PREFIXES = [
