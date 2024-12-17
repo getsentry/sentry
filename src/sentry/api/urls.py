@@ -314,6 +314,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
+from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -2793,6 +2794,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/$",
         TempestCredentialsEndpoint.as_view(),
         name="sentry-api-0-project-tempest-credentials",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/(?P<tempest_credentials_id>\d+)/$",
+        TempestCredentialsDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials-details",
     ),
     *workflow_urls.urlpatterns,
 ]
