@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useMedia from 'sentry/utils/useMedia';
 import {useParams} from 'sentry/utils/useParams';
 import {
   type DashboardDetails,
@@ -50,16 +51,6 @@ function WidgetBuilderSlideout({
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const theme = useTheme();
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const isEditing = widgetIndex !== undefined;
   const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
@@ -71,8 +62,7 @@ function WidgetBuilderSlideout({
 
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const isSmallScreen =
-    windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

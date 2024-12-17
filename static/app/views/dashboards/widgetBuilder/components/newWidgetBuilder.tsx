@@ -11,6 +11,7 @@ import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metr
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -52,20 +53,9 @@ function WidgetBuilderV2({
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
 
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const isSmallScreen =
-    windowWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   const [{translate}, setTranslate] = useState<{
     initialTranslate: Translate;
