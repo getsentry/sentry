@@ -284,7 +284,7 @@ def _get_component_trees_for_variants(
 ) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent]] = {}
+    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
     # one which produces a result. (See `src/sentry/grouping/strategies/configurations.py` for the
