@@ -1330,7 +1330,10 @@ BGTASKS = {
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
-TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_IMPORTS: tuple[str, ...] = (
+    # Used for tests
+    "sentry.taskworker.tasks.examples",
+)
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
 
