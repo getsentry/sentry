@@ -236,22 +236,26 @@ def get_oldest_or_latest_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-    filter_conditions = conditions if conditions else []
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    _filter = eventstore.Filter(
+    all_conditions = [
+        Condition(Column("project_id"), Op.IN, [group.project.id]),
+        Condition(Column("group_id"), Op.IN, [group.id]),
+    ]
+
+    if conditions:
+        all_conditions.extend(conditions)
+
+    events = eventstore.backend.get_events_snql(
+        organization_id=group.project.organization_id,
+        group_id=group.id,
         start=start,
         end=end,
-        conditions=filter_conditions,
-        project_ids=[group.project_id],
-        group_ids=[group.id],
-    )
-    events = eventstore.backend.get_events(
-        filter=_filter,
+        conditions=all_conditions,
         limit=1,
         orderby=ordering.value,
         referrer="Group.get_latest",
@@ -837,6 +841,7 @@ class Group(Model):
         If neither are found, returns None.
         """
         maybe_event = get_recommended_event(
+            group=self,
             conditions=conditions,
             start=start,
             end=end,

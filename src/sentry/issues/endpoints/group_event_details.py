@@ -161,7 +161,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         """
         Retrieves the details of an issue event.
         """
-        metric = "api.endpoints.group_event_details.get"
         organization = group.project.organization
 
         environments = [e for e in get_environments(request, organization)]
@@ -169,8 +168,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
-        except InvalidParams as e:
-            raise ParseError(detail=str(e))
+        except InvalidParams:
+            raise ParseError(detail="Invalid date range")
 
         query = request.GET.get("query")
         try:
@@ -180,25 +179,38 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 else []
             )
         except ValidationError:
-            return Response(status=400)
+            raise ParseError(detail="Invalid event query")
+
         except Exception:
             logging.exception(
                 "group_event_details.parse_query",
                 extra={"query": query, "group": group.id, "organization": organization.id},
             )
-            return Response(status=500)
+            raise ParseError(detail="Unable to parse query")
+
+        metric = "api.endpoints.group_event_details.get"
+        error_response = {"detail": "Unable to apply query. Change or remove it and try again."}
 
         if event_id == "latest":
             with metrics.timer(metric, tags={"type": "latest", "query": bool(query)}):
-                event = group.get_latest_event(conditions=conditions, start=start, end=end)
+                try:
+                    event = group.get_latest_event(conditions=conditions, start=start, end=end)
+                except ValueError:
+                    return Response(error_response, status=400)
 
         elif event_id == "oldest":
             with metrics.timer(metric, tags={"type": "oldest", "query": bool(query)}):
-                event = group.get_oldest_event(conditions=conditions, start=start, end=end)
+                try:
+                    event = group.get_oldest_event(conditions=conditions, start=start, end=end)
+                except ValueError:
+                    return Response(error_response, status=400)
 
         elif event_id == "recommended":
             with metrics.timer(metric, tags={"type": "helpful", "query": bool(query)}):
-                event = group.get_recommended_event(conditions=conditions, start=start, end=end)
+                try:
+                    event = group.get_recommended_event(conditions=conditions, start=start, end=end)
+                except ValueError:
+                    return Response(error_response, status=400)
 
         else:
             with metrics.timer(metric, tags={"type": "event"}):
