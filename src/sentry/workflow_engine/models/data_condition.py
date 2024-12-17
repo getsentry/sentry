@@ -58,11 +58,6 @@ class DataCondition(DefaultFieldsModel):
     # The type of condition, this is used to initialize the condition classes
     type = models.CharField(max_length=200, choices=Condition.choices)
 
-    # The operator used on the condition
-    operator = models.CharField(
-        max_length=200, null=True, choices=[(key, key) for key in condition_ops.keys()]
-    )
-
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
         related_name="conditions",
@@ -106,14 +101,14 @@ class DataCondition(DefaultFieldsModel):
             # Use a custom hanler
             condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
-            # If it's not a custom handler, use the default operators
-            if self.operator is not None:
-                condition = Condition(self.operator)
-                op = condition_ops.get(condition, None)
+            op = condition_ops.get(self.type, None)
+
+        if self.input_data_filter:
+            # TODO - move the data filter method to here, and apply it to `value`
+            pass
 
         if condition_handler is not None:
-            data_filter = self.input_data_filter or ""
-            result = condition_handler.evaluate_value(value, self.comparison_value, data_filter)
+            result = condition_handler.evaluate_value(value, self.comparison_value)
         elif op is not None:
             result = op(cast(Any, value), self.comparison)
         else:
