@@ -1474,6 +1474,9 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         }
 
+    def test_other_category_span(self):
+        super().test_other_category_span()
+
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
     """These tests aren't fully passing yet, currently inheriting xfail from the eap tests"""
@@ -1697,6 +1700,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_module_alias(self):
         super().test_module_alias()
 
+    @pytest.mark.xfail(
+        reason="wip: depends on rpc having a way to set a different default in virtual contexts"
+    )
     def test_span_module(self):
         super().test_span_module()
 
