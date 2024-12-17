@@ -84,15 +84,17 @@ class Router(
             route.join(remaining)
 
         remaining = deadline - time.time() if deadline else None
-        self.next_step.join(deadline)
+        self.next_step.join(remaining)
 
     def close(self) -> None:
         for route in self.routes.values():
             route.close()
+        self.next_step.close()
 
     def terminate(self) -> None:
         for route in self.routes.values():
             route.terminate()
+        self.next_step.terminate()
 
 
 class MessageBuffer(Generic[TResult]):
