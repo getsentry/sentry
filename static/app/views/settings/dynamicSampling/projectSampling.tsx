@@ -58,7 +58,7 @@ export function ProjectSampling() {
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
 
   const formState = useFormState({
-    initialValues: initialValues,
+    initialValues,
     enableReInitialize: true,
   });
 

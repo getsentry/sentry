@@ -152,9 +152,8 @@ const baseRules = {
   // https://eslint.org/docs/rules/radix
   radix: ['error'],
 
-  // TODO(ryan953): Enable this rule
   // https://eslint.org/docs/rules/object-shorthand
-  'object-shorthand': ['off', 'properties'],
+  'object-shorthand': ['error', 'properties'],
 
   // https://eslint.org/docs/rules/vars-on-top
   'vars-on-top': ['off'],
