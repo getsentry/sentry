@@ -13,6 +13,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -50,7 +51,7 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.incidents.utils.types import AlertRuleActivationConditionType, DataSourceType
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -3044,12 +3045,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
-        detector = self.create_detector(name="hojicha", type="metric_alert_fire")
-        data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
+        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        data_source = self.create_data_source(query_id=self.sub.id)
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
         assert mock_process_data_packets.call_count == 1
-        assert mock_process_data_packets.call_args_list[0][0][1] == "snuba_query_subscription"
+        assert (
+            mock_process_data_packets.call_args_list[0][0][1]
+            == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+        )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].query_id == rule.snuba_query.id
         assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
