@@ -669,7 +669,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, ReturnedVariants],
+    exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
