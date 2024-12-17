@@ -113,6 +113,13 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             ),
             project_id=project.id,
         )
+        analytics.record(
+            "second_platform.added",
+            user_id=user_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+        )
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @first_event_received.connect(weak=False)
@@ -573,7 +580,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id, owner)
+        try_mark_onboarding_complete(project.organization_id, owner, True)
 
 
 @event_processed.connect(weak=False)
@@ -733,6 +740,7 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
+                try_mark_onboarding_complete(organization_id, user)
     else:
         task = OrganizationOnboardingTask.objects.filter(
             organization_id=organization_id,

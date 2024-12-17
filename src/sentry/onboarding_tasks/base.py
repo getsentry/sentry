@@ -43,6 +43,6 @@ class OnboardingTaskBackend(Service, Generic[T]):
         raise NotImplementedError
 
     def try_mark_onboarding_complete(
-        self, organization_id: int, user: User | RpcUser | AnonymousUser
+        self, organization_id: int, user: User | RpcUser | AnonymousUser, has_sourcemaps: bool
     ):
         raise NotImplementedError
