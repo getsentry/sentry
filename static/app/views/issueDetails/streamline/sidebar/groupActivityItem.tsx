@@ -499,7 +499,7 @@ export default function getGroupActivityItem(
         }
 
         return {
-          title: title,
+          title,
           message: tct('by [author] on [provider] titled [title]', {
             author,
             provider: data.provider,

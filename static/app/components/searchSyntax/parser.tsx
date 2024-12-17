@@ -526,7 +526,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseDate(value) : undefined,
     date: date.flat().join(''),
     time: Array.isArray(time) ? time.flat().flat().join('').replace('T', '') : time,
@@ -540,7 +540,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseRelativeDate(value, {unit, sign}) : undefined,
     sign,
     unit,
@@ -553,7 +553,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseDuration(value, unit) : undefined,
     unit,
   });
@@ -584,7 +584,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_SIZE as const,
-    value: value,
+    value,
     // units are case insensitive, normalize them in their parsed representation
     // so that we dont have to compare all possible permutations.
     parsed: this.config.parse ? parseSize(value, unit) : undefined,
@@ -594,14 +594,14 @@ export class TokenConverter {
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parsePercentage(value) : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseBoolean(value) : undefined,
   });
 

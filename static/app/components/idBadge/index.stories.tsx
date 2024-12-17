@@ -89,7 +89,7 @@ export default storyBook(IdBadge, story => {
       teamRoleList: [],
       teamRoles: [],
       teams: [],
-      user: user,
+      user,
       flags: {
         'idp:provisioned': false,
         'idp:role-restricted': false,

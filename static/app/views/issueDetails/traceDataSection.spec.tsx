@@ -244,12 +244,12 @@ describe('TraceDataSection', () => {
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
         group_id: issuePlatformBody.data[0]['issue.id'],
-        organization: organization,
+        organization,
       }
     );
     expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
       group_id: issuePlatformBody.data[0]['issue.id'],
-      organization: organization,
+      organization,
       area: 'issue_details',
     });
   });
@@ -369,12 +369,12 @@ function createEvent({
   stack_function?: string[];
 }) {
   const event = {
-    culprit: culprit,
+    culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: 'foo',
     'project.name': 'bar',
-    title: title,
+    title,
     id: '12345',
     transaction: 'n/a',
     'event.type': event_type,
@@ -391,7 +391,7 @@ function createEvent({
   } else if (event['event.type'] === '') {
     return_event = {
       ...event,
-      message: message,
+      message,
     };
   } else {
     return_event = event;

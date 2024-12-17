@@ -269,7 +269,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   );
 
   const legend = Legend({
-    theme: theme,
+    theme,
     orient: 'horizontal',
     align: 'left',
     show: true,

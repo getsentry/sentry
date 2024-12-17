@@ -99,7 +99,7 @@ export function makeTraceContinuousProfilingLink(
   return generateContinuousProfileFlamechartRouteWithQuery({
     orgSlug: options.orgSlug,
     projectSlug: options.projectSlug,
-    profilerId: profilerId,
+    profilerId,
     start: start.toISOString(),
     end: end.toISOString(),
     query: queryWithEventData,

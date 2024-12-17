@@ -181,7 +181,7 @@ const docs: Docs = {
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
   feedbackOnboardingJsLoader,
 };
 

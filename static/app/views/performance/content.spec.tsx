@@ -275,7 +275,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -291,7 +291,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {project: [1]});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -307,7 +307,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {project: ['-1']});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(screen.queryByText('Pinpoint problems')).not.toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe('Performance > Content', function () {
   it('Default period for trends does not call updateDateTime', async function () {
     const {router} = initializeTrendsData({query: 'tag:value'}, false);
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -354,7 +354,7 @@ describe('Performance > Content', function () {
     });
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -383,7 +383,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {view: undefined});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
@@ -394,7 +394,7 @@ describe('Performance > Content', function () {
     const {router} = initializeTrendsData({view: undefined}, false);
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
@@ -404,7 +404,7 @@ describe('Performance > Content', function () {
     const {router} = initializeTrendsData({query: 'device.family:Mac'}, false);
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
@@ -429,7 +429,7 @@ describe('Performance > Content', function () {
     const {router} = initializeData(projects, {view: undefined});
 
     render(<WrappedComponent router={router} />, {
-      router: router,
+      router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();

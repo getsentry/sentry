@@ -321,7 +321,7 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />,
       {
-        router: router,
+        router,
         organization: {
           features: ['dashboards-favourite', ...organization.features],
         },
@@ -365,7 +365,7 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />,
       {
-        router: router,
+        router,
         organization: {
           features: ['dashboards-favourite', ...organization.features],
         },
