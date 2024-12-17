@@ -113,7 +113,6 @@ from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -137,7 +136,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -884,24 +882,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
 
-    def get_condition_activity(self, **kwargs) -> ConditionActivity:
-        kwargs.setdefault("group_id", self.event.group.id)
-        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
-        kwargs.setdefault("timestamp", self.event.datetime)
-        return ConditionActivity(**kwargs)
-
-    def passes_activity(
-        self,
-        rule: RuleBase,
-        condition_activity: ConditionActivity | None = None,
-        event_map: dict[str, Any] | None = None,
-    ):
-        if condition_activity is None:
-            condition_activity = self.get_condition_activity()
-        if event_map is None:
-            event_map = {}
-        return rule.passes_activity(condition_activity, event_map)
-
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
             event = self.event
@@ -1151,20 +1131,6 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @contextmanager
-    def disable_snuba_query_cache(self):
-        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-        yield
-        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
-
-    @classmethod
-    def snuba_get_config(cls):
-        return _snuba_pool.request("GET", "/config.json").data
-
-    @classmethod
-    def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
-
     def create_project(self, **kwargs) -> Project:
         if "flags" not in kwargs:
             # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
@@ -1263,16 +1229,6 @@ class SnubaTestCase(BaseTestCase):
                 body=json.dumps(data),
                 headers={},
             ).status
-            == 200
-        )
-
-    def store_outcome(self, group):
-        data = [self.__wrap_group(group)]
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=json.dumps(data),
-            ).status_code
             == 200
         )
 
