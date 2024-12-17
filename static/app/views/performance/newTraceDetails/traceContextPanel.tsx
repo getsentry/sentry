@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
@@ -12,6 +12,11 @@ import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  DEFAULT_TRACE_VIEW_PREFERENCES,
+  loadTraceViewPreferences,
+} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
 const MIN_HEIGHT = 0;
 const DEFAULT_HEIGHT = 150;
@@ -25,6 +30,23 @@ type Props = {
 export function TraceContextPanel({tree, rootEvent}: Props) {
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const containerRef = useRef<HTMLDivElement>(null);
+  const traceDispatch = useTraceStateDispatch();
+
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('trace-view-preferences') ||
+      DEFAULT_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  useEffect(() => {
+    const loadedHeight = preferences.drawer.sizes['trace context height'];
+
+    if (containerRef.current) {
+      setHeight(loadedHeight);
+      containerRef.current.style.setProperty('--panel-height', `${loadedHeight}px`);
+    }
+  }, [preferences.drawer.sizes, containerRef]);
 
   const handleMouseDown = useCallback(
     (event: React.MouseEvent) => {
@@ -62,6 +84,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
         );
 
         setHeight(finalHeight);
+        traceDispatch({type: 'set trace context height', payload: finalHeight});
 
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
@@ -70,7 +93,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [height]
+    [height, traceDispatch]
   );
 
   const renderTags = useCallback(() => {
