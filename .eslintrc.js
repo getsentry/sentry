@@ -152,20 +152,24 @@ const baseRules = {
   // https://eslint.org/docs/rules/radix
   radix: ['error'],
 
+  // Disabled because of prettier
   // https://eslint.org/docs/rules/space-in-brackets.html
-  'computed-property-spacing': ['error', 'never'],
+  'computed-property-spacing': ['off'],
 
+  // Disabled because of prettier
   // https://eslint.org/docs/rules/space-in-brackets.html
-  'array-bracket-spacing': ['error', 'never'],
+  'array-bracket-spacing': ['off'],
 
+  // Disabled because of prettier
   // https://eslint.org/docs/rules/space-in-brackets.html
-  'object-curly-spacing': ['error', 'never'],
+  'object-curly-spacing': ['off'],
 
   // https://eslint.org/docs/rules/object-shorthand
   'object-shorthand': ['error', 'properties'],
 
+  // Disabled because of prettier
   // https://eslint.org/docs/rules/space-infix-ops.html
-  'space-infix-ops': ['error'],
+  'space-infix-ops': ['off'],
 
   // https://eslint.org/docs/rules/vars-on-top
   'vars-on-top': ['off'],
