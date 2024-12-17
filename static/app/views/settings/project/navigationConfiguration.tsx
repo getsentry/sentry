@@ -21,6 +21,7 @@ export default function getConfiguration({
 }: ConfigParams): NavigationSection[] {
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
   return [
     {
       name: t('Project'),
@@ -129,7 +130,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/tempest/`,
           title: t('Tempest'),
-          show: () => !!(organization && hasTempestAccess(organization)),
+          show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],
     },
