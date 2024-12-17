@@ -90,6 +90,61 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         assert response.status_code == 200, response.content
 
+    def test_handle_nans_from_snuba_top_n(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "description": "foo",
+                        "measurements": {"lcp": {"value": 1}},
+                    },
+                    start_ts=self.day_ago,
+                ),
+                self.create_span({"description": "foo"}, start_ts=self.day_ago),
+                self.create_span({"description": "foo"}, start_ts=self.two_days_ago),
+                self.create_span(
+                    {
+                        "description": "bar",
+                        "measurements": {"lcp": {"value": 2}},
+                    },
+                    start_ts=self.day_ago,
+                ),
+                self.create_span({"description": "bar"}, start_ts=self.day_ago),
+                self.create_span({"description": "bar"}, start_ts=self.two_days_ago),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "field": ["span.description", "p50(measurements.lcp)", "avg(measurements.lcp)"],
+                "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 1,
+                "partial": 1,
+                "per_page": 50,
+                "interval": "1d",
+                "statsPeriod": "7d",
+                "orderby": "-avg_measurements_lcp",
+                "sort": "-avg_measurements_lcp",
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        # We cannot actually assert the value because the `spans_indexed` is
+        # producing the wrong result and treating missing values as 0s which
+        # skews the final aggregation.
+        # This is also the reason it never errored because snuba never returns
+        # nans in this situation.
+        #
+        # for k in response.data:
+        #     for agg in ["p50(measurements.lcp)", "avg(measurements.lcp)"]:
+        #         for row in response.data[k][agg]["data"]:
+        #             assert row[1][0]["count"] in {0, 1, 2}
+        # assert response.data["Other"]
+
     def test_count_unique(self):
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
@@ -857,3 +912,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         )
         assert response.status_code == 400, response.content
+
+    @pytest.mark.xfail(reason="division by 0 error in snuba")
+    def test_handle_nans_from_snuba_top_n(self):
+        super().test_handle_nans_from_snuba_top_n()
