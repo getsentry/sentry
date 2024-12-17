@@ -20,7 +20,6 @@ import {
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -353,24 +352,31 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
               />
               {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                 <ChartFooter>
-                  {defined(extrapolationMetaResults.data?.[0]?.['count_sample()']) &&
-                  defined(
-                    extrapolationMetaResults.data?.[0]?.['avg_sample(sampling_rate)']
-                  )
-                    ? tct(
-                        '*[sampleCount] samples extrapolated with an average sampling rate of [sampleRate]',
-                        {
+                  {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
+                    ? t('* Extrapolated from \u2026')
+                    : resultConfidence === 'low'
+                      ? tct('* Extrapolated from [insufficientSamples]', {
+                          insufficientSamples: (
+                            <Tooltip
+                              title={t(
+                                'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
+                              )}
+                            >
+                              <InsufficientSamples>
+                                {t('insufficient samples')}
+                              </InsufficientSamples>
+                            </Tooltip>
+                          ),
+                        })
+                      : tct('* Extrapolated from [sampleCount] samples', {
                           sampleCount: (
                             <Count
-                              value={extrapolationMetaResults.data[0]['count_sample()']}
+                              value={
+                                extrapolationMetaResults.data?.[0]?.['count_sample()']
+                              }
                             />
                           ),
-                          sampleRate: formatPercentage(
-                            extrapolationMetaResults.data[0]['avg_sample(sampling_rate)']
-                          ),
-                        }
-                      )
-                    : t('foo')}
+                        })}
                 </ChartFooter>
               )}
             </ChartPanel>
@@ -401,7 +407,7 @@ function useExtrapolationMeta({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'avg_sample(sampling_rate)', 'min(sampling_rate)'],
+      fields: ['count_sample()', 'min(sampling_rate)'],
       query: search.formatString(),
       version: 2,
       dataset,
@@ -454,4 +460,8 @@ const ChartFooter = styled('div')`
   display: inline-block;
   margin-top: ${space(1.5)};
   margin-bottom: 0;
+`;
+
+const InsufficientSamples = styled('span')`
+  text-decoration: underline dotted ${p => p.theme.gray300};
 `;
