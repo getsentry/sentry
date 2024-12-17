@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -33,3 +34,11 @@ class TempestCredentials(DefaultFieldsModel):
 
     # id of the latest item fetched via tempest
     latest_fetched_item_id = models.CharField(null=True)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["client_id", "project"],
+                name="sentry_tempestcredentials_client_project_uniq",
+            )
+        ]
