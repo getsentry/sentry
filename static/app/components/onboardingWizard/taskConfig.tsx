@@ -7,6 +7,7 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {
   hasQuickStartUpdatesFeature,
+  hasQuickStartUpdatesFeatureGA,
   taskIsDone,
 } from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -218,6 +219,7 @@ export function getOnboardingTasks({
             <EventWaitingIndicator
               text={t('Waiting for error')}
               hasQuickStartUpdatesFeature
+              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
             />
           );
         }
@@ -323,6 +325,7 @@ export function getOnboardingTasks({
           <EventWaitingIndicator
             text={t('Waiting for error')}
             hasQuickStartUpdatesFeature
+            hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
           />
         );
       },
@@ -391,7 +394,12 @@ export function getOnboardingTasks({
           if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
             return null;
           }
-          return <EventWaitingIndicator hasQuickStartUpdatesFeature />;
+          return (
+            <EventWaitingIndicator
+              hasQuickStartUpdatesFeature
+              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
+            />
+          );
         }
 
         return !!projects?.length &&
@@ -466,6 +474,7 @@ export function getOnboardingTasks({
             <EventWaitingIndicator
               text={t('Waiting for user session')}
               hasQuickStartUpdatesFeature
+              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
             />
           );
         }
@@ -578,32 +587,44 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
   }));
 }
 
-const PulsingIndicator = styled('div')<{hasQuickStartUpdatesFeature?: boolean}>`
+const PulsingIndicator = styled('div')<{
+  hasQuickStartUpdatesFeature?: boolean;
+  hasQuickStartUpdatesFeatureGA?: boolean;
+}>`
   ${pulsingIndicatorStyles};
   ${p =>
-    p.hasQuickStartUpdatesFeature
+    p.hasQuickStartUpdatesFeatureGA
       ? css`
-          margin: 0 ${space(0.5)};
+          margin: 0;
         `
-      : css`
-          margin-right: ${space(1)};
-        `}
+      : p.hasQuickStartUpdatesFeature
+        ? css`
+            margin: 0 ${space(0.5)};
+          `
+        : css`
+            margin-right: ${space(1)};
+          `}
 `;
 
 const EventWaitingIndicator = styled(
   ({
     hasQuickStartUpdatesFeature: quickStartUpdatesFeature,
+    hasQuickStartUpdatesFeatureGA: quickStartUpdatesFeatureGA,
     text,
     ...p
   }: React.HTMLAttributes<HTMLDivElement> & {
     hasQuickStartUpdatesFeature?: boolean;
+    hasQuickStartUpdatesFeatureGA?: boolean;
     text?: string;
   }) => {
     if (quickStartUpdatesFeature) {
       return (
         <div {...p}>
           <Tooltip title={text || t('Waiting for event')}>
-            <PulsingIndicator hasQuickStartUpdatesFeature />
+            <PulsingIndicator
+              hasQuickStartUpdatesFeature
+              hasQuickStartUpdatesFeatureGA={quickStartUpdatesFeatureGA}
+            />
           </Tooltip>
         </div>
       );
