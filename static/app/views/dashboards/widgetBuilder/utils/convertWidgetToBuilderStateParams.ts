@@ -1,5 +1,14 @@
+import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {DisplayType, type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+
+export const DEFAULT_WIDGET: Widget = {
+  displayType: DisplayType.TABLE,
+  interval: '',
+  queries: [ErrorsConfig.defaultWidgetQuery],
+  title: '',
+  widgetType: WidgetType.ERRORS,
+};
 
 /**
  * Converts a widget to a set of query params that can be used to
@@ -8,7 +17,7 @@ import type {WidgetBuilderStateQueryParams} from 'sentry/views/dashboards/widget
 export function convertWidgetToBuilderStateParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
-  const yAxis = widget.queries.flatMap(q => q.aggregates);
+  let yAxis = widget.queries.flatMap(q => q.aggregates);
   const query = widget.queries.flatMap(q => q.conditions);
   const sort = widget.queries.flatMap(q => q.orderby);
 
@@ -18,6 +27,7 @@ export function convertWidgetToBuilderStateParams(
     widget.displayType === DisplayType.BIG_NUMBER
   ) {
     field = widget.queries.flatMap(q => q.fields ?? []);
+    yAxis = [];
   } else {
     field = widget.queries.flatMap(q => q.columns);
   }
