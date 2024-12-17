@@ -25,3 +25,26 @@ class SkipOnboardingTaskTest(APITestCase):
         )
 
         assert oot
+
+    def test_skip_skippable_tasks(self):
+        """
+        Test if the tasks marked as skippable in the new quick start are skipped
+        """
+        with self.feature("organizations:quick-start-updates"):
+            skippable_tasks = OrganizationOnboardingTask.NEW_SKIPPABLE_TASKS
+            for task_id in skippable_tasks:
+                self.get_success_response(
+                    self.organization.slug,
+                    **{
+                        "task": OrganizationOnboardingTask.TASK_KEY_MAP.get(task_id),
+                        "status": "skipped",
+                    },
+                )
+                assert (
+                    OrganizationOnboardingTask.objects.get(
+                        organization=self.organization,
+                        task=task_id,
+                        status=OnboardingTaskStatus.SKIPPED,
+                    )
+                    is not None
+                )
