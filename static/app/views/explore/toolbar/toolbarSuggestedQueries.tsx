@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {
@@ -109,12 +110,13 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
         <SuggestedQueriesContainer>
           {suggestedQueries.map(suggestedQuery => {
             return (
-              <Tag
+              <StyledTag
                 key={suggestedQuery.title}
+                type="info"
                 onClick={() => setExploreSuggestedQuery(suggestedQuery)}
               >
                 {suggestedQuery.title}
-              </Tag>
+              </StyledTag>
             );
           })}
         </SuggestedQueriesContainer>
@@ -312,6 +314,11 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
 
 const StyledPanel = styled(Panel)`
   padding: ${space(2)};
+  background: linear-gradient(
+    269.35deg,
+    ${p => p.theme.backgroundTertiary} 0.32%,
+    rgba(245, 243, 247, 0) 99.69%
+  );
 `;
 
 const SuggestedQueriesContainer = styled('div')`
@@ -321,13 +328,6 @@ const SuggestedQueriesContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 
-const Tag = styled('div')`
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  padding: 0px ${space(1)};
-  border-radius: 20px;
-  background-color: ${p => p.theme.background};
-  border: solid 1px ${p => p.theme.border};
+const StyledTag = styled(Tag)`
   cursor: pointer;
 `;
