@@ -144,7 +144,7 @@ class GroupingContext:
 
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> BaseGroupingComponent:
+    ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -220,7 +220,7 @@ class Strategy(Generic[ConcreteInterface]):
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: str | None = None
-    ) -> None | BaseGroupingComponent | ReturnedVariants:
+    ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface_name)
