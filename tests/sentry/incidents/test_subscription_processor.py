@@ -3041,16 +3041,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert occurrence.fingerprint == status_change.fingerprint
 
     @with_feature("organizations:workflow-engine-metric-alert-processing")
-    @mock.patch("sentry.workflow_engine.processors.data_packet.process_data_packets")
+    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
     def test_process_data_packets_called(self, mock_process_data_packets):
         rule = self.rule
         detector = self.create_detector(name="hojicha", type="metric_alert_fire")
         data_source = self.create_data_source(query_id=rule.snuba_query.id, type="incidents")
         data_source.detectors.set([detector])
         self.send_update(rule, 10)
-        # assert mock_process_data_packets.call_count == 1
-        # print(mock_process_data_packets.call_args_list)
-        # assert False
+        assert mock_process_data_packets.call_count == 1
+        assert mock_process_data_packets.call_args_list[0][0][1] == "snuba_query_subscription"
+        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
+        assert data_packet_list[0].query_id == rule.snuba_query.id
+        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
 
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
