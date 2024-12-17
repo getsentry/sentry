@@ -27,6 +27,7 @@ from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -279,6 +280,9 @@ class Fixtures:
 
     def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)
+
+    def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
+        return Factories.create_tempest_credentials(project, *args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
