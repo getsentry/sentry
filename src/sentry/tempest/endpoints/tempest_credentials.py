@@ -20,6 +20,7 @@ from sentry.tempest.serializers import DRFTempestCredentialsSerializer, TempestC
 class TempestCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.GDX
 
