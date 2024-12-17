@@ -2426,7 +2426,11 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "image": "ghcr.io/getsentry/taskbroker:latest",
             "ports": {"50051/tcp": 50051},
             "environment": {
-                "TASKBROKER_KAFKA_CLUSTER": "sentry_kafka:9093",
+                "TASKBROKER_KAFKA_CLUSTER": (
+                    "kafka-kafka-1"
+                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
+                    else "sentry_kafka"
+                ),
             },
             "only_if": options.get("taskbroker.enabled"),
             # we don't build linux/arm64 snuba images anymore
