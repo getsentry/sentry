@@ -463,43 +463,37 @@ const StyledPanel = styled(Panel)`
 
 function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const breakdown = generateStats(event, {type: 'no_filter'});
-  const spansCount =
-    event.entries?.find(entry => entry.type === 'spans')?.data?.length ?? 0;
 
   return (
     <HighlightsOpsBreakdownWrapper>
       <HighlightsSpanCount>
-        {tct('This transaction contains [spansCount] spans', {
-          spansCount,
-        })}
+        {t('Most frequent span ops for this transaction are')}
       </HighlightsSpanCount>
-      {breakdown.slice(0, 5).map(currOp => {
-        const {name, percentage} = currOp;
+      <TopOpsList>
+        {breakdown.slice(0, 3).map(currOp => {
+          const {name, percentage} = currOp;
 
-        const operationName = typeof name === 'string' ? name : t('Other');
-        const color = pickBarColor(operationName);
-        const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
+          const operationName = typeof name === 'string' ? name : t('Other');
+          const color = pickBarColor(operationName);
+          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
-        return (
-          <HighlightsOpRow key={operationName}>
-            <IconCircleFill size="xs" color={color as Color} />
-            {operationName}
-            <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-          </HighlightsOpRow>
-        );
-      })}
-      {breakdown.length > 5 ? (
-        <HighlightsOpsBreakdownMoreCount>
-          {tct('+ [moreCount] more', {moreCount: breakdown.length - 5})}
-        </HighlightsOpsBreakdownMoreCount>
-      ) : null}
+          return (
+            <HighlightsOpRow key={operationName}>
+              <IconCircleFill size="xs" color={color as Color} />
+              {operationName}
+              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
+            </HighlightsOpRow>
+          );
+        })}
+      </TopOpsList>
     </HighlightsOpsBreakdownWrapper>
   );
 }
 
-const HighlightsOpsBreakdownMoreCount = styled('div')`
-  font-size: 12px;
-  color: ${p => p.theme.subText};
+const TopOpsList = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
 `;
 
 const HighlightsOpPct = styled('div')`
