@@ -59,7 +59,7 @@ class GroupingInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(project_id=1, data=data)
 
     def _save_event_with_pipeline(
         self,
@@ -147,7 +147,7 @@ class FingerprintInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        evt = eventstore.backend.create_event(data=data)
+        evt = eventstore.backend.create_event(project_id=1, data=data)
         return config, evt
 
 
