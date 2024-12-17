@@ -4,6 +4,7 @@ from datetime import datetime
 from re import Match
 from typing import cast
 
+import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -54,9 +55,13 @@ class SearchResolver:
         field(default_factory=dict)
     )
 
+    @sentry_sdk.trace
     def resolve_meta(self, referrer: str) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.params", self.params)
         return RequestMeta(
             organization_id=self.params.organization_id,
             referrer=referrer,
@@ -65,10 +70,16 @@ class SearchResolver:
             end_timestamp=self.params.rpc_end_date,
         )
 
+    @sentry_sdk.trace
     def resolve_query(self, querystring: str | None) -> TraceItemFilter | None:
         """Given a query string in the public search syntax eg. `span.description:foo` construct the TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         query = self.__resolve_query(querystring)
+        span = sentry_sdk.get_current_span()
+        if span:
+            span.set_tag("SearchResolver.query_string", querystring)
+            span.set_tag("SearchResolver.resolved_query", query)
+            span.set_tag("SearchResolver.environment_query", environment_query)
 
         # The RPC request meta does not contain the environment.
         # So we have to inject it as a query condition.
@@ -325,6 +336,7 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
+    @sentry_sdk.trace
     def resolve_columns(
         self, selected_columns: list[str]
     ) -> tuple[list[ResolvedColumn | ResolvedFunction], list[VirtualColumnContext]]:
@@ -332,9 +344,12 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
+        span = sentry_sdk.get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
+        if span:
+            span.set_tag("SearchResolver.selected_columns", stripped_columns)
         has_aggregates = False
         for column in stripped_columns:
             match = fields.is_function(column)
@@ -372,6 +387,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
+    @sentry_sdk.trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedColumn], list[VirtualColumnContext | None]]:
@@ -432,6 +448,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
+    @sentry_sdk.trace
     def resolve_aggregates(
         self, columns: list[str]
     ) -> tuple[list[ResolvedFunction], list[VirtualColumnContext | None]]:

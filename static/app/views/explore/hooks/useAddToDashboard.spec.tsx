@@ -1,41 +1,40 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  PageParamsProvider,
+  useSetExploreMode,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 jest.mock('sentry/actionCreators/modal');
-jest.mock('sentry/views/explore/hooks/useVisualizes');
-jest.mock('sentry/views/explore/hooks/useResultsMode');
-
-function TestPage({visualizeIndex}: {visualizeIndex: number}) {
-  const {addToDashboard} = useAddToDashboard();
-  return <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>;
-}
 
 describe('AddToDashboardButton', () => {
+  let setMode, setVisualizes;
+
+  function TestPage({visualizeIndex}: {visualizeIndex: number}) {
+    setMode = useSetExploreMode();
+    setVisualizes = useSetExploreVisualizes();
+    const {addToDashboard} = useAddToDashboard();
+    return (
+      <button onClick={() => addToDashboard(visualizeIndex)}>Add to Dashboard</button>
+    );
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
-
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
-        {
-          yAxes: ['avg(span.duration)'],
-          chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
-        },
-      ],
-      jest.fn(),
-    ]);
-
-    jest.mocked(useResultMode).mockReturnValue(['samples', jest.fn()]);
   });
 
   it('opens the dashboard modal with the correct query for samples mode', async () => {
-    render(<TestPage visualizeIndex={0} />);
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>
+    );
 
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
@@ -90,24 +89,26 @@ describe('AddToDashboardButton', () => {
   });
 
   it('opens the dashboard modal with the correct query based on the visualize index', async () => {
-    // Mock a second visualize object
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={1} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    act(() =>
+      setVisualizes([
         {
           yAxes: ['avg(span.duration)'],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
         {
           yAxes: ['max(span.duration)'],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
-      ],
-      jest.fn(),
-    ]);
+      ])
+    );
 
-    render(<TestPage visualizeIndex={1} />);
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     // The group by and the yAxes are encoded as the fields for the defaultTableQuery
@@ -161,9 +162,15 @@ describe('AddToDashboardButton', () => {
   });
 
   it('uses the yAxes for the aggregate mode', async () => {
-    jest.mocked(useResultMode).mockReturnValue(['aggregate', jest.fn()]);
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
 
-    render(<TestPage visualizeIndex={0} />);
+    act(() => setMode(Mode.AGGREGATE));
+
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(
@@ -202,9 +209,16 @@ describe('AddToDashboardButton', () => {
   });
 
   it('takes the first 3 yAxes', async () => {
-    jest.mocked(useResultMode).mockReturnValue(['aggregate', jest.fn()]);
-    jest.mocked(useVisualizes).mockReturnValue([
-      [
+    render(
+      <PageParamsProvider>
+        <TestPage visualizeIndex={0} />
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    act(() => setMode(Mode.AGGREGATE));
+    act(() =>
+      setVisualizes([
         {
           yAxes: [
             'avg(span.duration)',
@@ -215,11 +229,9 @@ describe('AddToDashboardButton', () => {
           chartType: ChartType.LINE,
           label: 'Custom Explore Widget',
         },
-      ],
-      jest.fn(),
-    ]);
+      ])
+    );
 
-    render(<TestPage visualizeIndex={0} />);
     await userEvent.click(screen.getByText('Add to Dashboard'));
 
     expect(openAddToDashboardModal).toHaveBeenCalledWith(

@@ -17,11 +17,23 @@ MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
     [
+        "android",
+        "as3",
+        # "c", A native platform -> excluded for now
+        "cfml",
+        "cocoa",
         "csharp",
+        "elixir",
         "go",
+        "groovy",
+        "haskell",
         "java",
         "javascript",
+        # "native", A native platform -> excluded for now
         "node",
+        "objc",
+        # "other", Since we can't be sure of what this is, we'll exclude it for now
+        "perl",
         "php",
         "python",
         "ruby",
@@ -141,6 +153,7 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "android-profiling-onboarding-1-install",
         "android-profiling-onboarding-3-configure-profiling",
         "android-profiling-onboarding-4-upload",
+        "apple-ios",
         "csharp",
         "csharp-aspnetcore",
         "dart",
@@ -157,6 +170,46 @@ SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
         "java-spring",
         "java-spring-boot",
         "perl",
+        # Remaining platforms
+        "apple",
+        "apple-ios-profiling-onboarding-1-install",
+        "apple-ios-profiling-onboarding-4-upload",
+        "apple-macos",
+        # "c", A native platform -> excluded for now
+        "capacitor",
+        "cfml",
+        "cocoa",
+        "cocoa-objc",
+        "cocoa-swift",
+        "dotnet-aspnet",
+        "dotnet-aspnetcore",
+        "dotnet-awslambda",
+        "dotnet-gcpfunctions",
+        "dotnet-google-cloud-functions",
+        "dotnet-maui",
+        "dotnet-uwp",
+        "dotnet-winforms",
+        "dotnet-wpf",
+        "dotnet-xamarin",
+        "electron",
+        "elixir",
+        "javascript-nextjs",
+        "javascript-nuxt",
+        "javascript-solidstart",
+        "kotlin",
+        # "minidump", A native platform -> excluded for now
+        # "native", A native platform -> excluded for now
+        # "native-qt", A native platform -> excluded for now
+        "nintendo-switch",
+        "objc",
+        # The null and empty platform are also excluded for now
+        # "other"
+        "powershell",
+        "rust",
+        "swift",
+        "switt",
+        "unity",
+        "unreal",
     ]
 )
 BASE64_ENCODED_PREFIXES = [
@@ -238,7 +291,6 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
         if (
             platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
             and frame_metrics["is_frames_truncated"]
-            and not app_hash
         ):
             raise TooManyOnlySystemFramesException
 
@@ -412,7 +464,7 @@ def get_stacktrace_string_with_metrics(
             metrics.incr(
                 key,
                 sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-only-system-frames"},
+                tags={"call_made": False, "blocker": "over-threshold-frames"},
             )
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
@@ -459,7 +511,10 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: GroupEvent | Event | None = None) -> bool:
+def killswitch_enabled(
+    project_id: int | None,
+    event: GroupEvent | Event | None = None,
+) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """

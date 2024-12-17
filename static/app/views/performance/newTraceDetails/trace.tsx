@@ -401,10 +401,10 @@ export function Trace({
       >
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
-              const score = indicator.score
-                ? Math.round(indicator.score * 100)
-                : undefined;
-              const status = score ? STATUS_TEXT[scoreToStatus(score)] : 'none';
+              const status =
+                indicator.score === undefined
+                  ? 'none'
+                  : STATUS_TEXT[scoreToStatus(indicator.score)];
 
               return (
                 <div
