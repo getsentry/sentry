@@ -247,8 +247,6 @@ def update_groups(
     )
 
 
-# XXX: The callers can probably call two different functions depending if the UI calls
-# with group IDs or not
 def update_groups_with_search_fn(
     request: Request,
     group_ids: Sequence[int | str] | None,
