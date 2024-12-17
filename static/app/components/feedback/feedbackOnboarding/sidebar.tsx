@@ -261,7 +261,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           ]}
           value={setupMode()}
           onChange={setSetupMode}
-          disabledChoices={[['jsLoader', t('Coming soon!')]]}
           tooltipPosition={'top-start'}
         />
       ) : (
@@ -333,8 +332,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
-    // TODO: update this when we add feedback to the loader
-    return 'replayOnboardingJsLoader';
+    return 'feedbackOnboardingJsLoader';
   }
 
   return (
