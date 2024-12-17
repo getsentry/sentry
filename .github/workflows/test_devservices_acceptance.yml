@@ -101,7 +101,7 @@ jobs:
 
       - name: Bring up devservices
         run: |
-          devservices up --mode acceptance-tests
+          devservices up --mode acceptance-ci
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
