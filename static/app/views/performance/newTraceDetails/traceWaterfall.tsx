@@ -321,6 +321,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
+        if (isTraceNode(node)) {
+          if (!hasTraceNewUi) {
+            traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
+          }
+          return;
+        }
+
         if (queryStringAnimationTimeoutRef.current) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
@@ -351,11 +358,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           });
         }
 
-        if (isTraceNode(node)) {
-          traceDispatch({type: 'activate tab', payload: TRACE_TAB.node});
-          return;
-        }
-
         traceDispatch({
           type: 'activate tab',
           payload: node,
@@ -363,7 +365,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [traceDispatch, hasTraceNewUi]
   );
 
   const onRowClick = useCallback(
