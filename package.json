@@ -192,6 +192,7 @@
     "babel-jest": "29.7.0",
     "benchmark": "^2.1.4",
     "eslint": "8.57.1",
+    "eslint-config-prettier": "^9.1.0",
     "eslint-import-resolver-typescript": "^3.6.3",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jest": "^28.8.3",
