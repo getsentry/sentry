@@ -1,3 +1,6 @@
+from collections.abc import MutableMapping
+from typing import Any
+
 from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,7 +10,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.relay import projectconfig_cache
+from sentry.relay.config import get_project_config
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 
@@ -29,7 +34,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             try:
                 project = Project.objects.get_from_cache(id=project_id)
                 for project_key in project.key_set.all():
-                    project_keys.append(project_key.public_key)
+                    project_keys.append(project_key)
 
             except Exception:
                 raise Http404
@@ -39,13 +44,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             project_keys.append(project_key_param)
 
         configs = {}
-        for key in project_keys:
-            cached_config = projectconfig_cache.backend.get(key)
-            if cached_config is not None:
-                configs[key] = cached_config
-            else:
-                configs[key] = None
-
+        configs = self._get_project_config_sync(project, project_keys)
         # TODO: if we don't think we'll add anything to the endpoint
         # we may as well return just the configs
         return Response({"configs": configs}, status=200)
@@ -57,6 +56,15 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         if not project_id:
             return Response({"error": "Missing project id"}, status=400)
 
+        project_keys = []
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            for project_key in project.key_set.all():
+                project_keys.append(project_key)
+
+        except Exception:
+            raise Http404
+
         try:
             schedule_invalidate_project_config(
                 project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
@@ -65,4 +73,20 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         except Exception:
             raise Http404
 
-        return Response(status=204)
+        configs = self._get_project_config_sync(project, project_keys)
+        return Response({"configs": configs}, status=200)
+
+    def _get_project_config_sync(self, project: Project, project_keys: list[ProjectKey]):
+        configs: MutableMapping[str, MutableMapping[str, Any]] = {}
+
+        for project_key in project_keys:
+            cached_config = projectconfig_cache.backend.get(project_key.public_key)
+            if cached_config is not None:
+                configs[project_key.public_key] = cached_config
+            else:
+                configs[project_key.public_key] = get_project_config(
+                    project, project_keys=[project_key]
+                ).to_dict()
+
+        projectconfig_cache.backend.set_many(configs)
+        return configs

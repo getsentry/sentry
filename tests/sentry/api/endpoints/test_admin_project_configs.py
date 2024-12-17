@@ -154,5 +154,13 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.get_response(method="post")
         assert response.status_code == 400
 
+        # Test project config that is not currently cached
         response = self.get_response(method="post", **data)
-        assert response.status_code == 204
+        assert response.status_code == 200
+        data = response.data["configs"]
+        assert len(data) == 1
+
+        # Test project config that is currently cached
+        response = self.get_response(method="post", **data)
+        assert response.status_code == 200
+        assert len(data) == 1
