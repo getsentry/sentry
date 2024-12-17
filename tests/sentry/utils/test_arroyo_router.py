@@ -1,9 +1,11 @@
 import itertools
 from datetime import datetime
 
+from arroyo.processing.strategies.noop import Noop
+from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-from sentry.utils.arroyo_router import MessageBuffer
+from sentry.utils.arroyo_router import MessageBuffer, Router
 
 
 def test_message_buffer() -> None:
@@ -21,7 +23,7 @@ def test_message_buffer() -> None:
 
     # All messages are in-flight, poll returns nothing
     assert buffer.poll() is None
-    assert len(buffer) == 4
+    assert len(buffer.messages) == 4
 
     # The first message was completed, now it can be polled
     buffer.remove(Message(BrokerValue(None, partition, 0, None)), "route_a")
@@ -29,7 +31,7 @@ def test_message_buffer() -> None:
     assert msg is not None
     assert msg.value.offset == 0
     assert buffer.poll() is None
-    assert len(buffer) == 3
+    assert len(buffer.messages) == 3
 
     # Still waiting for route_b
     buffer.remove(Message(BrokerValue(None, partition, 2, None)), "route_a")
@@ -41,4 +43,18 @@ def test_message_buffer() -> None:
     assert buffer.poll() is not None
     assert buffer.poll() is not None
     assert buffer.poll() is None
-    assert len(buffer) == 0
+    assert len(buffer.messages) == 0
+
+
+def test_router() -> None:
+    def routing_func(msg) -> str:
+        return "add_one"
+
+    route_builders = {
+        "add_one": lambda next: RunTask(next, lambda msg: msg.value + 1),
+        "add_two": lambda next: RunTask(next, lambda msg: msg.value + 2),
+    }
+
+    router = Router(Noop(), route_builders, routing_func)
+
+    # TODO: Write test

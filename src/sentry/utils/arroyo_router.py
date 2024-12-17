@@ -62,6 +62,7 @@ class Router(
             raise MessageRejected
 
         message_route = self.routing_func(message)
+        self.routes[message_route].submit(message)
         self.buffer.remove(message, message_route)
 
         while True:
@@ -108,9 +109,6 @@ class MessageBuffer(Generic[TResult]):
         }
         # Keeps track of all messages together with the route on which it was sent
         self.messages: Deque[tuple[str, Message[TResult]]] = deque()
-
-    # def __len__(self) -> int:
-    #     return len(self.messages)
 
     def add(self, message: Message[TResult], routing_key: str) -> None:
         self.messages.append((routing_key, message))
