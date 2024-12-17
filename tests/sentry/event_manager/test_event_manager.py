@@ -46,7 +46,7 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import load_grouping_config
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -2275,7 +2275,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
+        grouping_config: GroupingConfig = {
+            "id": DEFAULT_GROUPING_CONFIG,
+            "enhancements": enhancements_str,
+        }
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
