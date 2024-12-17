@@ -151,19 +151,19 @@ Delete a signing secret.
 
 A flag log event must be emitted after every flag definition change which influences a flag's evaluation. Updates to a flag's internal metadata that does not change a flag's evaluation logic do not need to be emitted to Sentry's audit-log. We are only concerned with changes which could have influenced behavior.
 
-Sentry does not currently have a concept of disambiguating flag changes by project and environment. Everything is done at the organization level. Flag's which change for multiple environment or projects or whatever internal grouping exists within the generic provider are de-duped.
+Sentry does not currently have a concept of disambiguating flag changes by project and environment. Everything is done at the organization level. Flag's which change for multiple environment or projects or whatever internal grouping exists within the generic provider must be de-duplicated. To support this, providers set a "change_id" field which groups the same change to multiple projects and environments so only one audit-log record is written in Sentry.
 
 **Data Attributes**
 
-| Column          | Type   | Description                                          |
-| --------------- | ------ | ---------------------------------------------------- |
-| action          | string | Enum of `created`, `updated`, or `deleted`.          |
-| change_id       | number | A unique 64-bit integer representing the change.     |
-| created_at      | string | String formatted UTC date time: YYYY-MM-DDTHH:MM:SS. |
-| created_by      | object | Created-by object.                                   |
-| created_by.id   | string | User identifier which made the change.               |
-| created_by.type | string | Enum of `email`, `id`, or `name`.                    |
-| flag            | string | The name of the flag changed.                        |
+| Column          | Type   | Description                                                             |
+| --------------- | ------ | ----------------------------------------------------------------------- |
+| action          | string | Enum of `created`, `updated`, or `deleted`.                             |
+| change_id       | number | A unique 64-bit idempotency token representing a discrete change event. |
+| created_at      | string | String formatted UTC date time: YYYY-MM-DDTHH:MM:SS.                    |
+| created_by      | object | Created-by object.                                                      |
+| created_by.id   | string | User identifier which made the change.                                  |
+| created_by.type | string | Enum of `email`, `id`, or `name`.                                       |
+| flag            | string | The name of the flag changed.                                           |
 
 **Meta Attributes**
 
