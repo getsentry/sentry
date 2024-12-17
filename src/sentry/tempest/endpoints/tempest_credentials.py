@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,13 +13,14 @@ from sentry.api.serializers.base import serialize
 from sentry.models.project import Project
 from sentry.tempest.models import TempestCredentials
 from sentry.tempest.permissions import TempestCredentialsPermission
-from sentry.tempest.serializers import TempestCredentialsSerializer
+from sentry.tempest.serializers import DRFTempestCredentialsSerializer, TempestCredentialsSerializer
 
 
 @region_silo_endpoint
 class TempestCredentialsEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.GDX
 
@@ -40,3 +42,17 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user, TempestCredentialsSerializer()),
             paginator_cls=OffsetPaginator,
         )
+
+    def post(self, request: Request, project: Project) -> Response:
+        if not self.has_feature(request, project):
+            raise NotFound
+
+        serializer = DRFTempestCredentialsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save(created_by_id=request.user.id, project=project)
+        except IntegrityError:
+            return Response(
+                {"detail": "A credential with this client ID already exists."}, status=400
+            )
+        return Response(serializer.data, status=201)

@@ -1,3 +1,5 @@
+from rest_framework import serializers
+
 from sentry.api.serializers.base import Serializer, register
 from sentry.tempest.models import TempestCredentials
 
@@ -17,3 +19,24 @@ class TempestCredentialsSerializer(Serializer):
             "latestFetchedItemId": obj.latest_fetched_item_id,
             "createdById": obj.created_by_id,
         }
+
+
+class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
+    clientId = serializers.CharField(source="client_id")
+    clientSecret = serializers.CharField(source="client_secret")
+    message = serializers.CharField(read_only=True)
+    messageType = serializers.CharField(source="message_type", read_only=True)
+    latestFetchedItemId = serializers.CharField(source="latest_fetched_item_id", read_only=True)
+    createdById = serializers.CharField(source="created_by_id", read_only=True)
+
+    class Meta:
+        model = TempestCredentials
+        fields = [
+            "id",
+            "clientId",
+            "clientSecret",
+            "message",
+            "messageType",
+            "latestFetchedItemId",
+            "createdById",
+        ]
