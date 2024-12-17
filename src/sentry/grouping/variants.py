@@ -25,8 +25,9 @@ class FingerprintVariantMetadata(TypedDict):
 
 
 class BaseVariant(ABC):
-    # This is true if `get_hash` does not return `None`.
-    contributes = True
+    @property
+    def contributes(self) -> bool:
+        return True
 
     @property
     @abstractmethod
