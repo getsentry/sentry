@@ -1,5 +1,6 @@
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -28,7 +29,7 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
             "organizations:tempest-access", project.organization, actor=request.user
         )
 
-    def get(self, request, project):
+    def get(self, request: Request, project: Project) -> Response:
         if not self.has_feature(request, project):
             raise NotFound
 
