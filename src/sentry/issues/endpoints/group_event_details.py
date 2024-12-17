@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from snuba_sdk import Condition, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -30,7 +30,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.project_event_details import (
     GroupEventDetailsResponse,
@@ -162,66 +161,47 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         """
         Retrieves the details of an issue event.
         """
-        environments = [e for e in get_environments(request, group.project.organization)]
+        metric = "api.endpoints.group_event_details.get"
+        organization = group.project.organization
+
+        environments = [e for e in get_environments(request, organization)]
         environment_names = [e.name for e in environments]
-        # The enforced streamlined UI doesn't want a fallback event if the filters yield no results.
-        request.GET.get("no_fallback") is not None or features.has(
-            "organizations:issue-details-streamline-enforce",
-            group.organization,
-            actor=request.user,
-        )
 
         try:
-            _start, _end = get_date_range_from_params(request.GET, optional=True)
+            start, end = get_date_range_from_params(request.GET, optional=True)
         except InvalidParams as e:
             raise ParseError(detail=str(e))
 
         query = request.GET.get("query")
-
-        conditions: list[Condition] = (
-            issue_search_query_to_conditions(query, group, request.user, environments)
-            if query
-            else []
-        )
+        try:
+            conditions: list[Condition] = (
+                issue_search_query_to_conditions(query, group, request.user, environments)
+                if query
+                else []
+            )
+        except ValidationError:
+            return Response(status=400)
+        except Exception:
+            logging.exception(
+                "group_event_details.parse_query",
+                extra={"query": query, "group": group.id, "organization": organization.id},
+            )
+            return Response(status=500)
 
         if event_id == "latest":
-            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
-                event: Event | GroupEvent | None = group.get_latest_event_for_environments(
-                    environment_names
-                )
+            with metrics.timer(metric, tags={"type": "latest", "query": bool(query)}):
+                event = group.get_latest_event(conditions=conditions, start=start, end=end)
+
         elif event_id == "oldest":
-            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
-                event = group.get_oldest_event_for_environments(environment_names)
+            with metrics.timer(metric, tags={"type": "oldest", "query": bool(query)}):
+                event = group.get_oldest_event(conditions=conditions, start=start, end=end)
+
         elif event_id == "recommended":
-            query = request.GET.get("query")
-            if query:
-                with metrics.timer(
-                    "api.endpoints.group_event_details.get",
-                    tags={"type": "helpful", "query": True},
-                ):
-                    try:
-                        conditions = issue_search_query_to_conditions(
-                            query, group, request.user, environments
-                        )
-                        event = group.get_recommended_event_for_environments(
-                            environments=environments,
-                            conditions=conditions,
-                        )
-                    except ValidationError:
-                        return Response(status=400)
-                    except Exception:
-                        logging.exception(
-                            "group_event_details:get_helpful",
-                        )
-                        return Response(status=500)
-            else:
-                with metrics.timer(
-                    "api.endpoints.group_event_details.get",
-                    tags={"type": "helpful", "query": False},
-                ):
-                    event = group.get_recommended_event_for_environments(environments=environments)
+            with metrics.timer(metric, tags={"type": "helpful", "query": bool(query)}):
+                event = group.get_recommended_event(conditions=conditions, start=start, end=end)
+
         else:
-            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
+            with metrics.timer(metric, tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(
                     group.project.id, event_id, group_id=group.id
                 )
