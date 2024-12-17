@@ -254,8 +254,11 @@ def update_groups_with_search_fn(
     organization_id: int,
     search_fn: SearchFunction,
 ) -> Response:
-    group_ids, group_list = get_group_ids_and_group_list(organization_id, projects, group_ids)
-    if not group_ids:
+    group_list = []
+    if group_ids:
+        group_list = get_group_list(organization_id, projects, group_ids)
+
+    if not group_list:
         try:
             # It can raise ValidationError
             cursor_result, _ = search_fn(
@@ -270,9 +273,9 @@ def update_groups_with_search_fn(
                 {"detail": "Invalid query. Error getting group ids and group list"}, status=400
             )
 
-        group_ids = [g.id for g in list(cursor_result)]
+        group_list = list(cursor_result)
 
-    if not group_ids or not group_list:
+    if not group_list:
         return Response({"detail": "No groups found"}, status=204)
 
     return update_groups(request, group_list)
@@ -302,40 +305,26 @@ def validate_request(
     return serializer
 
 
-def get_group_ids_and_group_list(
+def get_group_list(
     organization_id: int,
     projects: Sequence[Project],
-    group_ids: Sequence[int | str] | None,
-) -> tuple[list[int | str], list[Group]]:
+    group_ids: Sequence[int | str],
+) -> list[Group]:
     """
-    Gets group IDs and group list based on provided filters.
+    Gets group list based on provided filters.
 
     Args:
         organization_id: ID of the organization
         projects: Sequence of projects to filter groups by
-        group_ids: Optional sequence of specific group IDs to fetch
+        group_ids: Sequence of specific group IDs to fetch
 
-    Returns:
-        Tuple of:
-            - List of group IDs that were found
-            - List of Group objects that were found
-
-    Notes:
-        - If group_ids provided, filters to only valid groups in the org/projects
+    Returns: List of Group objects filtered to only valid groups in the org/projects
     """
-    _group_ids: list[int | str] = []
-    _group_list: list[Group] = []
-
-    if group_ids:
-        _group_list = list(
-            Group.objects.filter(
-                project__organization_id=organization_id, project__in=projects, id__in=group_ids
-            )
+    return list(
+        Group.objects.filter(
+            project__organization_id=organization_id, project__in=projects, id__in=group_ids
         )
-        # filter down group ids to only valid matches
-        _group_ids = [g.id for g in _group_list]
-
-    return _group_ids, _group_list
+    )
 
 
 def handle_resolve_in_release(
