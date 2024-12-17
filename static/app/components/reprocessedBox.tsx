@@ -18,9 +18,13 @@ type Props = {
   className?: string;
 };
 
-function ReprocessedBox(props: Props) {
-  const {orgSlug, reprocessActivity, groupCount, className, groupId} = props;
-
+function ReprocessedBox({
+  orgSlug,
+  reprocessActivity,
+  groupCount,
+  className,
+  groupId,
+}: Props) {
   const getBannerUniqueId = () => {
     const {id} = reprocessActivity;
 
