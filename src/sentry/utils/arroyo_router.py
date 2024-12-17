@@ -87,10 +87,12 @@ class Router(
         self.next_step.join(deadline)
 
     def close(self) -> None:
-        pass
+        for route in self.routes.values():
+            route.close()
 
     def terminate(self) -> None:
-        pass
+        for route in self.routes.values():
+            route.terminate()
 
 
 class MessageBuffer(Generic[TResult]):
