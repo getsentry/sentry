@@ -55,7 +55,7 @@ class DataSource(DefaultFieldsModel):
 
 
 @receiver(pre_save, sender=DataSource)
-def ensure_valid_type(sender, instance: DataSource, **kwargs):
+def ensure_type_handler_registered(sender, instance: DataSource, **kwargs):
     """
     Ensure that the type of the data source is valid and registered in the data_source_type_registry
     """

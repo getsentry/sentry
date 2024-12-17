@@ -7,7 +7,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DataSourceTest(BaseWorkflowTest):
-    def test_inavlid_data_source_type(self):
+    def test_invalid_data_source_type(self):
         with pytest.raises(ValueError):
             self.create_data_source(type="invalid_type")
 
