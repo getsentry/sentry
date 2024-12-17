@@ -80,6 +80,7 @@ def guard(
                 if len(self.__messages_carried_over) > max_buffer_size:
                     raise MessageRejected
 
+                self.__process_pending_messages()
                 self.__instance.submit(msg)
 
             def poll(self) -> None:
@@ -93,7 +94,7 @@ def guard(
                 self.__instance.terminate()
 
             def join(self, timeout: float | None = None) -> None:
-                # TODO: processs messages_ccarried_over
+                self.__process_pending_messages()
                 self.__instance.join(timeout)
 
             def __getattr__(self, name: str) -> Any:
@@ -109,3 +110,66 @@ def guard(
         return Guard
 
     return guard_inner
+
+
+class Guard(ProcessingStrategy[TStrategyPayload]):
+    """
+    Handles backpressure and invalid messages for any strategy. If
+    MessageRejected or InvalidMessage is received from the inner strategy
+    from the inner strategy the message is carried over by the guard for
+    future submission / reraise so the parent strategy does not have to implement
+    any handling for this scenario and can safely call `next_step.submit()`
+    in any part of the strategy.
+
+    Usage:
+    ```
+    class StepOne(...):
+        def __init__(self, next_step):
+            self.next_step = Guard(next_step)
+    ```
+    """
+
+    def __init__(
+        self, next_step: ProcessingStrategy[TStrategyPayload], max_buffer_size: int = 10
+    ) -> None:
+        self.next_step = next_step
+        self.max_buffer_size = max_buffer_size
+        self.__messages_carried_over: Deque[Message[TResult] | InvalidMessage] = deque()
+        self.__invalid_messages: Deque[Message[TResult] | InvalidMessage] = deque()
+
+    def __process_pending_messages(self) -> None:
+        # re-raise any invalid messages first
+        while self.__invalid_messages:
+            raise self.__messages_carried_over.popleft()
+
+        # re-submit carried over messages in order
+        while self.__messages_carried_over:
+            try:
+                self.next_step(self.__messages_carried_over[0])
+                self.__messages_carried_over.popleft()
+            except MessageRejected:
+                break
+            except InvalidMessage as exc:
+                self.__invalid_messages.append(exc)
+
+    def submit(self, message: Message[TStrategyPayload]) -> None:
+        if len(self.__messages_carried_over) > self.max_buffer_size:
+            raise MessageRejected
+
+        self.__messages_carried_over.append(message)
+        self.__process_pending_messages()
+
+    def poll(self) -> None:
+        self.__process_pending_messages()
+
+        self.next_step.poll()
+
+    def join(self, timeout: float | None = None) -> None:
+        self.__process_pending_messages()
+        self.next_step.join(timeout)
+
+    def close(self) -> None:
+        self.next_step.close()
+
+    def terminate(self) -> None:
+        self.next_step.terminate()
