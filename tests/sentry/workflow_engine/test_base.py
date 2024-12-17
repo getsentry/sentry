@@ -166,7 +166,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         action_group = self.create_data_condition_group(logic_type="any-short")
 
         action = self.create_action(
-            type=Action.Type.NOTIFICATION,
+            type=Action.Type.SLACK,
             data={"message": "test"},
             **kwargs,
         )
