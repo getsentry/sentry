@@ -26,9 +26,9 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
-                <TagPreviewValue>
+                <TagValue>
                   <DeviceName value={tagValue.name} />
-                </TagPreviewValue>
+                </TagValue>
               </Tooltip>
               <TagBarValue>{displayPercentage}</TagBarValue>
               <TagBar percentage={percentage} />
@@ -37,7 +37,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         })}
         {hasOther && (
           <TagValueRow>
-            <TagPreviewValue>{t('Other')}</TagPreviewValue>
+            <TagValue>{t('Other')}</TagValue>
             <TagBar
               percentage={percent(tag.totalValues - totalVisible, tag.totalValues)}
             />
@@ -168,18 +168,6 @@ const TagValue = styled('div')`
   overflow: hidden;
   white-space: nowrap;
   margin-right: ${space(0.5)};
-`;
-
-const TagPreviewValue = styled('div')`
-  display: block;
-  text-align: right;
-  color: ${p => p.theme.subText};
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  margin-right: ${space(1)};
-  justify-self: end;
-  max-width: calc(100% - ${space(2)});
 `;
 
 const TagBarContainer = styled('div')`
