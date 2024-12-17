@@ -1108,6 +1108,7 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
+        // does this work?
         expect(screen.queryAllByText('No Instrumentation')).toHaveLength(0);
 
         // // Toggle no instrumentation on
