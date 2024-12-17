@@ -28,8 +28,13 @@ from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
-# Use forking processes so that django is initialized
-mp_context = multiprocessing.get_context("fork")
+mp_context = multiprocessing.get_context("spawn")
+
+
+def _init_pool_process() -> None:
+    """initialize pool workers by loading all task modules"""
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
 
 
 def _process_activation(activation: TaskActivation) -> None:
@@ -90,7 +95,7 @@ class TaskWorker:
     def _build_pool(self) -> None:
         if self._pool:
             self._pool.terminate()
-        self._pool = mp_context.Pool(processes=1)
+        self._pool = mp_context.Pool(processes=1, initializer=_init_pool_process)
 
     def do_imports(self) -> None:
         for module in settings.TASKWORKER_IMPORTS:
@@ -148,7 +153,7 @@ class TaskWorker:
 
         if not activation:
             metrics.incr("taskworker.worker.get_task.not_found")
-            logger.info("No task fetched")
+            logger.debug("No task fetched")
             return None
 
         metrics.incr("taskworker.worker.get_task.success")

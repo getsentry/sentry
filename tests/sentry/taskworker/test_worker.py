@@ -1,6 +1,5 @@
 from unittest import mock
 
-from django.test import override_settings
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -9,57 +8,30 @@ from sentry_protos.sentry.v1.taskworker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.registry import taskregistry
-from sentry.taskworker.retry import Retry, RetryError
+import sentry.taskworker.tasks.examples as example_tasks
 from sentry.taskworker.worker import TaskWorker
 from sentry.testutils.cases import TestCase
 
-test_namespace = taskregistry.create_namespace(
-    name="tests",
-    retry=Retry(times=2),
-)
-
-
-@test_namespace.register(name="test.simple_task")
-def simple_task():
-    pass
-
-
-@test_namespace.register(name="test.retry_task")
-def retry_task():
-    raise RetryError
-
-
-@test_namespace.register(name="test.fail_task")
-def fail_task():
-    raise ValueError("nope")
-
-
-@test_namespace.register(name="test.at_most_once", at_most_once=True)
-def at_most_once_task():
-    pass
-
-
 SIMPLE_TASK = TaskActivation(
     id="111",
-    taskname="test.simple_task",
-    namespace="tests",
+    taskname="examples.simple_task",
+    namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
 
 RETRY_TASK = TaskActivation(
     id="222",
-    taskname="test.retry_task",
-    namespace="tests",
+    taskname="examples.retry_task",
+    namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
 
 FAIL_TASK = TaskActivation(
     id="333",
-    taskname="test.fail_task",
-    namespace="tests",
+    taskname="examples.fail_task",
+    namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
@@ -74,15 +46,19 @@ UNDEFINED_TASK = TaskActivation(
 
 AT_MOST_ONCE_TASK = TaskActivation(
     id="555",
-    taskname="test.at_most_once",
-    namespace="tests",
+    taskname="examples.at_most_once",
+    namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
     processing_deadline_duration=1,
 )
 
 
-@override_settings(TASKWORKER_IMPORTS=("tests.sentry.taskworker.test_worker",))
 class TestTaskWorker(TestCase):
+    def test_tasks_exist(self) -> None:
+        assert example_tasks.simple_task
+        assert example_tasks.retry_task
+        assert example_tasks.at_most_once_task
+
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(rpc_host="127.0.0.1:50051", max_task_count=100)
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
