@@ -390,8 +390,6 @@ class SubscriptionProcessor:
             "organizations:workflow-engine-metric-alert-processing",
             self.subscription.project.organization,
         ):
-            # NOTE: feed the data through the new pipeline, but don't do anything with it yet.
-            # This will eventually change.
             data_packet = DataPacket[QuerySubscriptionUpdate](
                 query_id=self.subscription.id, packet=subscription_update
             )
