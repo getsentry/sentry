@@ -1108,9 +1108,8 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
-
         await waitFor(() => {
-          expect(screen.queryByText('No Instrumentation')).not.toBeInTheDocument();
+          expect(screen.queryAllByText('No Instrumentation')).toHaveLength(0);
         });
 
         // // Toggle no instrumentation on
