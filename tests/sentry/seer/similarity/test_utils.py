@@ -562,7 +562,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -614,7 +614,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -668,7 +668,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception)
+            stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
             assert (
                 stacktrace_str.count("outer line")
@@ -688,7 +688,7 @@ class GetStacktraceStringTest(TestCase):
             )
             for i in range(1, MAX_FRAME_COUNT + 2)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
         for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
@@ -784,7 +784,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames, "java")
+        stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
         num_frames = 0
         for i in range(1, 11):
@@ -812,7 +812,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_frames)
+            stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
             assert stacktrace_str.count("context line") == expected_frame_count
 

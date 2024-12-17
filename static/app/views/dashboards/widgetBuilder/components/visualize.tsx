@@ -1,17 +1,21 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   type AggregationKeyWithAlias,
+  type AggregationRefinement,
   generateFieldAsString,
   parseFunction,
   prettifyTagKey,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,8 +25,28 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
+import {
+  BufferedInput,
+  type ParameterDescription,
+} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+
+type AggregateFunction = [
+  AggregationKeyWithAlias,
+  string,
+  AggregationRefinement,
+  AggregationRefinement,
+];
+
+const MAX_FUNCTION_PARAMETERS = 4;
+const NONE = 'none';
+
+const NONE_AGGREGATE = {
+  label: t('None'),
+  value: NONE,
+};
 
 function Visualize() {
   const organization = useOrganization();
@@ -53,11 +77,7 @@ function Visualize() {
     [organization, tags, customMeasurements, datasetConfig]
   );
 
-  // TODO: no parameters should show up as primary options?
-  // let aggregateOptions = Object.values(fieldOptions).filter(
-  //   option => option.value.kind === 'function' && option.value.meta.parameters.length > 0
-  // );
-  const aggregateOptions = useMemo(
+  const aggregates = useMemo(
     () =>
       Object.values(fieldOptions).filter(option =>
         datasetConfig.filterYAxisOptions?.(state.displayType ?? DisplayType.TABLE)(option)
@@ -86,7 +106,6 @@ function Visualize() {
           const columnOptions = Object.values(fieldOptions)
             .filter(option => {
               return (
-                // TODO: This should allow for aggregates without parameters
                 option.value.kind !== FieldValueKind.FUNCTION &&
                 (datasetConfig.filterYAxisAggregateParams?.(
                   field,
@@ -103,54 +122,232 @@ function Visualize() {
                   : option.value.meta.name,
             }));
 
+          const aggregateOptions = aggregates.map(option => ({
+            value: option.value.meta.name,
+            label: option.value.meta.name,
+          }));
+
+          let matchingAggregate;
+          if (
+            fields[index].kind === FieldValueKind.FUNCTION &&
+            FieldValueKind.FUNCTION in fields[index]
+          ) {
+            matchingAggregate = aggregates.find(
+              option =>
+                option.value.meta.name ===
+                parseFunction(stringFields?.[index] ?? '')?.name
+            );
+          }
+
+          const parameterRefinements =
+            matchingAggregate?.value.meta.parameters.length > 1
+              ? matchingAggregate?.value.meta.parameters.slice(1)
+              : [];
+
           return (
             <FieldRow key={index}>
               <FieldBar data-testid={'field-bar'}>
-                <ColumnCompactSelect
-                  searchable
-                  options={columnOptions}
-                  value={parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''}
-                  onChange={newField => {
-                    // TODO: Handle scalars (i.e. no aggregate, for tables)
-                    // Update the current field's aggregate with the new aggregate
-                    if (field.kind === 'function') {
-                      field.function[1] = newField.value as string;
+                {field.kind === FieldValueKind.EQUATION ? (
+                  <StyledArithmeticInput
+                    name="arithmetic"
+                    key="parameter:text"
+                    type="text"
+                    required
+                    value={field.field}
+                    onUpdate={value =>
+                      dispatch({
+                        type: updateAction,
+                        payload: fields.map((_field, i) =>
+                          i === index ? {..._field, field: value} : _field
+                        ),
+                      })
                     }
-                    dispatch({
-                      type: updateAction,
-                      payload: fields,
-                    });
-                  }}
-                  triggerProps={{
-                    'aria-label': t('Column Selection'),
-                  }}
-                />
-                {/* TODO: Add equation options */}
-                {/* TODO: Handle aggregates with no parameters */}
-                {/* TODO: Handle aggregates with multiple parameters */}
-                <AggregateCompactSelect
-                  options={aggregateOptions.map(option => ({
-                    value: option.value.meta.name,
-                    label: option.value.meta.name,
-                  }))}
-                  value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
-                  onChange={newAggregate => {
-                    // TODO: Handle scalars (i.e. no aggregate, for tables)
-                    // Update the current field's aggregate with the new aggregate
-                    const currentField = fields?.[index];
-                    if (currentField.kind === 'function') {
-                      currentField.function[0] =
-                        newAggregate.value as AggregationKeyWithAlias;
-                    }
-                    dispatch({
-                      type: updateAction,
-                      payload: fields,
-                    });
-                  }}
-                  triggerProps={{
-                    'aria-label': t('Aggregate Selection'),
-                  }}
-                />
+                    options={fields}
+                    placeholder={t('Equation')}
+                    aria-label={t('Equation')}
+                  />
+                ) : (
+                  <Fragment>
+                    <PrimarySelectRow>
+                      <ColumnCompactSelect
+                        searchable
+                        options={columnOptions}
+                        value={
+                          field.kind === FieldValueKind.FUNCTION
+                            ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ??
+                              ''
+                            : field.field
+                        }
+                        onChange={newField => {
+                          // Update the current field's aggregate with the new aggregate
+                          if (field.kind === FieldValueKind.FUNCTION) {
+                            field.function[1] = newField.value as string;
+                          }
+                          if (field.kind === FieldValueKind.FIELD) {
+                            field.field = newField.value as string;
+                          }
+                          dispatch({
+                            type: updateAction,
+                            payload: fields,
+                          });
+                        }}
+                        triggerProps={{
+                          'aria-label': t('Column Selection'),
+                        }}
+                        disabled={
+                          fields[index].kind === FieldValueKind.FUNCTION &&
+                          matchingAggregate?.value.meta.parameters.length === 0
+                        }
+                      />
+                      <AggregateCompactSelect
+                        options={
+                          isChartWidget
+                            ? aggregateOptions
+                            : [NONE_AGGREGATE, ...aggregateOptions]
+                        }
+                        value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
+                        onChange={aggregateSelection => {
+                          const isNone = aggregateSelection.value === NONE;
+                          const newFields = cloneDeep(fields);
+                          const currentField = newFields[index];
+                          const newAggregate = aggregates.find(
+                            option => option.value.meta.name === aggregateSelection.value
+                          );
+                          // Update the current field's aggregate with the new aggregate
+                          if (!isNone) {
+                            if (currentField.kind === FieldValueKind.FUNCTION) {
+                              // Handle setting an aggregate from an aggregate
+                              currentField.function[0] =
+                                aggregateSelection.value as AggregationKeyWithAlias;
+                              if (
+                                newAggregate?.value.meta &&
+                                'parameters' in newAggregate.value.meta
+                              ) {
+                                // There are aggregates that have no parameters, so wipe out the argument
+                                // if it's supposed to be empty
+                                if (newAggregate.value.meta.parameters.length === 0) {
+                                  currentField.function[1] = '';
+                                } else {
+                                  currentField.function[1] =
+                                    (currentField.function[1] ||
+                                      newAggregate.value.meta.parameters[0]
+                                        .defaultValue) ??
+                                    '';
+                                  // Set the remaining parameters for the new aggregate
+                                  for (
+                                    let i = 1; // The first parameter is the column selection
+                                    i < newAggregate.value.meta.parameters.length;
+                                    i++
+                                  ) {
+                                    // Increment by 1 to skip past the aggregate name
+                                    currentField.function[i + 1] =
+                                      newAggregate.value.meta.parameters[i].defaultValue;
+                                  }
+                                }
+
+                                // Wipe out the remaining parameters that are unnecessary
+                                // This is necessary for transitioning between aggregates that have
+                                // more parameters to ones of fewer parameters
+                                for (
+                                  let i = newAggregate.value.meta.parameters.length;
+                                  i < MAX_FUNCTION_PARAMETERS;
+                                  i++
+                                ) {
+                                  currentField.function[i + 1] = undefined;
+                                }
+                              }
+                            } else {
+                              if (
+                                !newAggregate ||
+                                !('parameters' in newAggregate.value.meta)
+                              ) {
+                                return;
+                              }
+
+                              // Handle setting an aggregate from a field
+                              const newFunction: AggregateFunction = [
+                                aggregateSelection.value as AggregationKeyWithAlias,
+                                (currentField.field ||
+                                  newAggregate?.value.meta?.parameters?.[0]
+                                    ?.defaultValue) ??
+                                  '',
+                                newAggregate?.value.meta?.parameters?.[1]?.defaultValue ??
+                                  undefined,
+                                newAggregate?.value.meta?.parameters?.[2]?.defaultValue ??
+                                  undefined,
+                              ];
+                              if (
+                                newAggregate?.value.meta &&
+                                'parameters' in newAggregate.value.meta
+                              ) {
+                                newAggregate?.value.meta.parameters.forEach(
+                                  (parameter, parameterIndex) => {
+                                    // Increment by 1 to skip past the aggregate name
+                                    newFunction[parameterIndex + 1] =
+                                      newFunction[parameterIndex + 1] ??
+                                      parameter.defaultValue;
+                                  }
+                                );
+                              }
+                              newFields[index] = {
+                                kind: FieldValueKind.FUNCTION,
+                                function: newFunction,
+                              };
+                            }
+                          } else {
+                            // Handle selecting None so we can select just a field, e.g. for samples
+                            // If none is selected, set the field to a field value
+                            newFields[index] = {
+                              kind: FieldValueKind.FIELD,
+                              field:
+                                'function' in currentField
+                                  ? (currentField.function[1] as string) ??
+                                    columnOptions[0].value
+                                  : '',
+                            };
+                          }
+                          dispatch({
+                            type: updateAction,
+                            payload: newFields,
+                          });
+                        }}
+                        triggerProps={{
+                          'aria-label': t('Aggregate Selection'),
+                        }}
+                      />
+                    </PrimarySelectRow>
+                    {field.kind === FieldValueKind.FUNCTION &&
+                      parameterRefinements.length > 0 && (
+                        <ParameterRefinements>
+                          {parameterRefinements.map((parameter, parameterIndex) => {
+                            // The current value is displaced by 2 because the first two parameters
+                            // are the aggregate name and the column selection
+                            const currentValue = field.function[parameterIndex + 2] || '';
+                            const key = `${field.function.join('_')}-${parameterIndex}`;
+                            return (
+                              <AggregateParameter
+                                key={key}
+                                parameter={parameter}
+                                fieldValue={field}
+                                currentValue={currentValue}
+                                onChange={value => {
+                                  const newFields = cloneDeep(fields);
+                                  if (newFields[index].kind !== FieldValueKind.FUNCTION) {
+                                    return;
+                                  }
+                                  newFields[index].function[parameterIndex + 2] = value;
+                                  dispatch({
+                                    type: updateAction,
+                                    payload: newFields,
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                        </ParameterRefinements>
+                      )}
+                  </Fragment>
+                )}
               </FieldBar>
               <FieldExtras>
                 <LegendAliasInput
@@ -190,7 +387,7 @@ function Visualize() {
                 // TODO: Define a default aggregate/field for the datasets?
                 {
                   function: ['count', '', undefined, undefined],
-                  kind: 'function',
+                  kind: FieldValueKind.FUNCTION,
                 },
               ],
             })
@@ -198,15 +395,100 @@ function Visualize() {
         >
           {t('+ Add Series')}
         </AddButton>
-        <AddButton priority="link" aria-label={t('Add Equation')} onClick={() => {}}>
-          {t('+ Add Equation')}
-        </AddButton>
+        {datasetConfig.enableEquations && (
+          <AddButton
+            priority="link"
+            aria-label={t('Add Equation')}
+            onClick={() =>
+              dispatch({
+                type: updateAction,
+                payload: [...(fields ?? []), {kind: FieldValueKind.EQUATION, field: ''}],
+              })
+            }
+          >
+            {t('+ Add Equation')}
+          </AddButton>
+        )}
       </AddButtons>
     </Fragment>
   );
 }
 
 export default Visualize;
+
+function AggregateParameter({
+  parameter,
+  fieldValue,
+  onChange,
+  currentValue,
+}: {
+  currentValue: string;
+  fieldValue: QueryFieldValue;
+  onChange: (value: string) => void;
+  parameter: ParameterDescription;
+}) {
+  if (parameter.kind === 'value') {
+    const inputProps = {
+      required: parameter.required,
+      value:
+        parameter.value ?? ('defaultValue' in parameter && parameter?.defaultValue) ?? '',
+      onUpdate: value => {
+        onChange(value);
+      },
+      placeholder: parameter.placeholder,
+    };
+    switch (parameter.dataType) {
+      case 'number':
+        return (
+          <BufferedInput
+            name="refinement"
+            key="parameter:number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*(\.[0-9]*)?"
+            {...inputProps}
+          />
+        );
+      case 'integer':
+        return (
+          <BufferedInput
+            name="refinement"
+            key="parameter:integer"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            {...inputProps}
+          />
+        );
+      default:
+        return (
+          <BufferedInput
+            name="refinement"
+            key="parameter:text"
+            type="text"
+            {...inputProps}
+          />
+        );
+    }
+  }
+  if (parameter.kind === 'dropdown') {
+    return (
+      <SelectControl
+        key="dropdown"
+        name="dropdown"
+        menuPlacement="auto"
+        placeholder={t('Select value')}
+        options={parameter.options}
+        value={currentValue}
+        required={parameter.required}
+        onChange={({value}) => {
+          onChange(value);
+        }}
+      />
+    );
+  }
+  throw new Error(`Unknown parameter type encountered for ${fieldValue}`);
+}
 
 const ColumnCompactSelect = styled(CompactSelect)`
   flex: 1 1 auto;
@@ -229,8 +511,26 @@ const AggregateCompactSelect = styled(CompactSelect)`
 
 const LegendAliasInput = styled(Input)``;
 
-const FieldBar = styled('div')`
+const ParameterRefinements = styled('div')`
   display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
+
+  > * {
+    flex: 1;
+  }
+`;
+
+const FieldBar = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: ${space(1)};
+  flex: 3;
+`;
+
+const PrimarySelectRow = styled('div')`
+  display: flex;
+  width: 100%;
   flex: 3;
 
   & > ${ColumnCompactSelect} > button {
@@ -272,4 +572,8 @@ const Fields = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const StyledArithmeticInput = styled(ArithmeticInput)`
+  width: 100%;
 `;

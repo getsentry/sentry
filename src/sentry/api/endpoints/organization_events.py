@@ -431,6 +431,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
         def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
             if use_rpc and dataset == spans_eap:

@@ -474,6 +474,13 @@ function GroupActivityItem({
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+        if (data.new === true) {
+          return tct('[author] linked this issue to [issue] on [provider]', {
+            author,
+            issue: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
+            provider: data.provider,
+          });
+        }
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,

@@ -51,8 +51,8 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 

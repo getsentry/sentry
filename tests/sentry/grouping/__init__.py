@@ -59,7 +59,7 @@ class GroupingInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(project_id=1, data=data)
 
     def _save_event_with_pipeline(
         self,
@@ -147,7 +147,7 @@ class FingerprintInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        evt = eventstore.backend.create_event(data=data)
+        evt = eventstore.backend.create_event(project_id=1, data=data)
         return config, evt
 
 
@@ -202,6 +202,7 @@ def dump_variant(
 
     lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
+    # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's probably why
     for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, BaseGroupingComponent):
             lines.append("{}{}:".format("  " * indent, key))

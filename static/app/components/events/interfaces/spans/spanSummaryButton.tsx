@@ -54,7 +54,7 @@ function SpanSummaryButton(props: Props) {
           });
         }}
       >
-        {t('View Query Summary')}
+        {t('View Summary')}
       </LinkButton>
     );
   }
