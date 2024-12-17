@@ -1,109 +1,95 @@
-import {type CSSProperties, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function TagDistribution({tag}: {tag: GroupTag}) {
   const location = useLocation();
-  const {baseUrl} = useGroupDetailsRoute();
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
-      <TagHeader>
-        <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
-          <TagTitle>{tag.key}</TagTitle>
-        </Tooltip>
-        <TagDetailsButton
-          borderless
-          size="zero"
-          to={{
-            pathname: `${location.pathname}${tag.key}/`,
-            query: location.query,
-            replace: true,
-          }}
-          isVisible={isHovered}
-        >
-          {t('Details')}
-        </TagDetailsButton>
-      </TagHeader>
-      <TagValueContent>
-        {tag.topValues.map((tagValue, tagValueIdx) => (
-          <TagValueRow key={tagValueIdx}>
-            <Tooltip delay={300} title={tagValue.name} skipWrapper>
-              <TagValue
-                to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                  query: {
-                    ...location.query,
-                    query: tagValue.query || `${tag.key}:"${tagValue.value}"`,
-                  },
-                }}
-              >
-                {tag.key === 'release' ? (
-                  <Version version={tagValue.name} anchor={false} />
-                ) : (
-                  <DeviceName value={tagValue.name} />
-                )}
-              </TagValue>
-            </Tooltip>
-            <TagBar count={tagValue.count} total={tag.totalValues} />
-          </TagValueRow>
-        ))}
-      </TagValueContent>
+    <div>
+      <TagPanel
+        to={{
+          pathname: `${location.pathname}${tag.key}/`,
+          query: location.query,
+        }}
+      >
+        <TagHeader>
+          <Tooltip title={tag.key} showOnlyOnOverflow skipWrapper>
+            <TagTitle>{tag.key}</TagTitle>
+          </Tooltip>
+        </TagHeader>
+        <TagValueContent>
+          {tag.topValues.map((tagValue, tagValueIdx) => {
+            const percentage = percent(tagValue.count, tag.totalValues);
+            const displayPercentage =
+              percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+            return (
+              <TagValueRow key={tagValueIdx}>
+                <Tooltip delay={300} title={tagValue.name} skipWrapper>
+                  <TagValue>
+                    {tag.key === 'release' ? (
+                      <Version version={tagValue.name} anchor={false} />
+                    ) : (
+                      <DeviceName value={tagValue.name} />
+                    )}
+                  </TagValue>
+                </Tooltip>
+                <Tooltip
+                  title={tct('[count] of [total] tagged events', {
+                    count: tagValue.count.toLocaleString(),
+                    total: tag.totalValues.toLocaleString(),
+                  })}
+                  skipWrapper
+                >
+                  <TagBarValue>{displayPercentage}</TagBarValue>
+                </Tooltip>
+                <TagBar percentage={percentage} />
+              </TagValueRow>
+            );
+          })}
+        </TagValueContent>
+      </TagPanel>
     </div>
   );
 }
 
 export function TagBar({
-  count,
-  total,
+  percentage,
+  style,
   ...props
 }: {
-  count: number;
-  total: number;
+  percentage: number;
   className?: string;
-  style?: CSSProperties;
+  style?: React.CSSProperties;
 }) {
-  const percentage = percent(count, total);
-  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
-
-  return (
-    <Tooltip
-      title={tct('[count] of [total] tagged events', {
-        count: count.toLocaleString(),
-        total: total.toLocaleString(),
-      })}
-      skipWrapper
-    >
-      <TagBarContainer
-        displayPercentage={displayPercentage}
-        widthPercent={percentage}
-        {...props}
-      >
-        <TagBarValue>{displayPercentage}</TagBarValue>
-      </TagBarContainer>
-    </Tooltip>
-  );
+  return <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />;
 }
 
-const TagHeader = styled('div')`
+const TagPanel = styled(Link)`
+  display: block;
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.border};
+  padding: ${space(1)};
+
+  &:hover > h5 {
+    text-decoration: underline;
+  }
+`;
+
+const TagHeader = styled('h5')`
   grid-area: header;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid ${p => p.theme.translucentBorder};
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
+  color: ${p => p.theme.textColor};
 `;
 
 const TagTitle = styled('div')`
@@ -112,17 +98,16 @@ const TagTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const TagDetailsButton = styled(LinkButton)<{isVisible: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => (p.isVisible ? p.theme.subText : 'transparent')};
-`;
-
 // The 40px is a buffer to prevent percentages from overflowing
 const TagValueContent = styled('div')`
   display: grid;
-  grid-template-columns: 50% 1fr 40px;
+  grid-template-columns: 4fr auto 45px;
   color: ${p => p.theme.subText};
+  grid-column-gap: ${space(1)};
+
+  & > :nth-child(2n) {
+    background-color: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const TagValueRow = styled('div')`
@@ -132,23 +117,17 @@ const TagValueRow = styled('div')`
   align-items: center;
 `;
 
-const TagValue = styled(Link)`
-  display: block;
-  text-align: right;
-  color: ${p => p.theme.subText};
+const TagValue = styled('div')`
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
-  margin-right: ${space(1)};
-  justify-self: end;
-  max-width: calc(100% - ${space(2)});
+  margin-right: ${space(0.5)};
 `;
 
-const TagBarContainer = styled('div')<{displayPercentage: string; widthPercent: number}>`
+const TagBarContainer = styled('div')`
   height: ${space(1)};
   position: relative;
   flex: 1;
-  width: calc(${p => p.widthPercent}%);
   min-width: ${space(1)};
   display: flex;
   align-items: center;
@@ -164,8 +143,5 @@ const TagBarContainer = styled('div')<{displayPercentage: string; widthPercent: 
 `;
 
 const TagBarValue = styled('div')`
-  margin-left: 100%;
-  padding-left: ${space(0.5)};
-
-  color: ${p => p.theme.subText};
+  text-align: right;
 `;
