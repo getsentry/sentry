@@ -130,7 +130,7 @@ export function ProjectsEditTable({
           count: item?.count || 0,
           ownCount: item?.ownCount || 0,
           subProjects: item?.subProjects ?? EMPTY_ARRAY,
-          project: project,
+          project,
           initialSampleRate: initialValue[project.id],
           sampleRate: value[project.id],
           error: error?.[project.id],

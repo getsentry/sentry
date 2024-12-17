@@ -62,7 +62,7 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
       return !isInvalid;
     })
     .map<ContextItem>(([alias, ctx]) => ({
-      alias: alias,
+      alias,
       type: overrideTypesWithAliases.has(alias) ? alias : ctx?.type,
       value: ctx,
     }));

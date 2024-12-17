@@ -222,7 +222,7 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
     return undefined;
   }
   return function () {
-    openCreateAlertModal({metricsQuery: metricsQuery, organization});
+    openCreateAlertModal({metricsQuery, organization});
   };
 }
 

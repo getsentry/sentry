@@ -60,11 +60,11 @@ function getSentryIntegrations() {
       depth: 6,
     }),
     Sentry.reactRouterV6BrowserTracingIntegration({
-      useEffect: useEffect,
-      useLocation: useLocation,
-      useNavigationType: useNavigationType,
-      createRoutesFromChildren: createRoutesFromChildren,
-      matchRoutes: matchRoutes,
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({

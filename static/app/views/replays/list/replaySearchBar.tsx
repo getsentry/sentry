@@ -126,9 +126,9 @@ function ReplaySearchBar(props: Props) {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: start,
-      end: end,
-      statsPeriod: statsPeriod,
+      start,
+      end,
+      statsPeriod,
     },
     {}
   );
@@ -154,9 +154,9 @@ function ReplaySearchBar(props: Props) {
       }
 
       const endpointParams = {
-        start: start,
-        end: end,
-        statsPeriod: statsPeriod,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({

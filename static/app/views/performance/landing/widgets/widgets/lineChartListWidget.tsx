@@ -691,7 +691,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const cacheMissRate = listItem[fieldString] as any;
 
           const target = normalizeUrl(
-            `/${moduleRoute}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+            `/${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
 
           return (

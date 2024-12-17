@@ -222,7 +222,7 @@ function SearchBar(props: SearchBarProps) {
               projectIds: projectIdStrings,
               endpointParams,
               // allows searching for tags on transactions as well
-              includeTransactions: includeTransactions,
+              includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,

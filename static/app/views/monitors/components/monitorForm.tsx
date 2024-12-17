@@ -240,7 +240,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
-              owner: owner,
+              owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,

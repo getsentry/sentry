@@ -38,7 +38,7 @@ describe('MessagingIntegrationModal', function () {
   );
 
   it('renders', async function () {
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
 
     const heading = await screen.findByRole('heading', {
       name: /connect with a messaging tool/i,

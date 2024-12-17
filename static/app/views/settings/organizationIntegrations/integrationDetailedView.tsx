@@ -255,7 +255,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     return (
       <IntegrationContext.Provider
         value={{
-          provider: provider,
+          provider,
           type: this.integrationType,
           installStatus: this.installationStatus,
           analyticsParams: {

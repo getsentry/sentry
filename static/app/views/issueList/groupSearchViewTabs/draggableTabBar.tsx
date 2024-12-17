@@ -369,7 +369,7 @@ export function DraggableTabBar({
         if (tab.key === viewId) {
           return {
             ...tab,
-            label: label,
+            label,
             query: saveQueryToView ? query : '',
             querySort: IssueSortOptions.DATE,
             unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
@@ -389,7 +389,7 @@ export function DraggableTabBar({
           ...location,
           query: {
             ...queryParams,
-            query: query,
+            query,
             sort: IssueSortOptions.DATE,
           },
         },

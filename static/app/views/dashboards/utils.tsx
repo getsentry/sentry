@@ -647,7 +647,7 @@ export function appendQueryDatasetParam(
   queryDataset?: SavedQueryDatasets
 ) {
   if (hasDatasetSelector(organization) && queryDataset) {
-    return {queryDataset: queryDataset};
+    return {queryDataset};
   }
   return {};
 }

@@ -453,7 +453,7 @@ export class VirtualizedViewManager {
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x: x,
+        x,
         y: 0,
       });
 

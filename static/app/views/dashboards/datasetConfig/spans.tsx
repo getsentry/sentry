@@ -78,7 +78,7 @@ export const SpansConfig: DatasetConfig<
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions: getTableSortOptions,
+  getTableSortOptions,
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [

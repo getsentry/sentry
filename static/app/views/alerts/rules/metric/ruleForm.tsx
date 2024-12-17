@@ -836,7 +836,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             queryType: DatasetMEPAlertQueryTypes[dataset],
             sensitivity: sensitivity ?? null,
             seasonality: seasonality ?? null,
-            detectionType: detectionType,
+            detectionType,
           },
           {
             duplicateRule: this.isDuplicateRule ? 'true' : 'false',
@@ -1228,7 +1228,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      formattedAggregate: formattedAggregate,
+      formattedAggregate,
       dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,

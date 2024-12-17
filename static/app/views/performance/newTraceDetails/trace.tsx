@@ -375,7 +375,7 @@ export function Trace({
     manager,
     items: trace.list,
     container: scrollContainer,
-    render: render,
+    render,
     scheduler,
   });
 

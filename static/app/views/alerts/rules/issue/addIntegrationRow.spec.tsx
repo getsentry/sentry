@@ -22,7 +22,7 @@ describe('AddIntegrationRow', function () {
   const getComponent = () => (
     <IntegrationContext.Provider
       value={{
-        provider: provider,
+        provider,
         type: 'first_party',
         installStatus: 'Not Installed',
         analyticsParams: {

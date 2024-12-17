@@ -56,9 +56,9 @@ function useMetrics(
 
   const newQuery: NewQuery = {
     name: '',
-    fields: fields,
+    fields,
     query: queryString,
-    dataset: dataset,
+    dataset,
     version: 2,
     projects: selection.projects,
   };
@@ -71,7 +71,7 @@ function useMetrics(
     eventView: tableEventView,
     ...useTableQuery({
       eventView: tableEventView,
-      enabled: enabled,
+      enabled,
       referrer: Referrer.SCREENS_SCREEN_TABLE,
     }),
   };

@@ -27,7 +27,7 @@ export function getAlertsUrl({
   const statsPeriod = getStatsPeriod(pageFilters);
   const environment = pageFilters.environments;
   const queryParams = {
-    aggregate: aggregate,
+    aggregate,
     dataset,
     project: project.slug,
     eventTypes: 'transaction',

@@ -162,7 +162,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
   const recentFilters = useRecentSearchFilters();
   const {data: recentSearches} = useRecentSearches();
   const {sections, selectedSection, setSelectedSection} = useFilterKeySections({
-    recentSearches: recentSearches,
+    recentSearches,
   });
 
   const filterKeyMenuItems = useMemo(() => {

@@ -41,7 +41,7 @@ describe('MessagingIntegrationAlertRule', function () {
     channel: 'channel',
     integration: slackIntegrations[0],
     provider: 'slack',
-    providersToIntegrations: providersToIntegrations,
+    providersToIntegrations,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),

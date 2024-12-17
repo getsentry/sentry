@@ -20,7 +20,7 @@ export class ContinuousProfile extends Profile {
       duration: (lastSample.timestamp - firstSample.timestamp) * 1e3,
       endedAt: lastSample.timestamp * 1e3,
       startedAt: firstSample.timestamp * 1e3,
-      threadId: threadId,
+      threadId,
       name: threadName,
       type: 'flamechart',
       unit: 'milliseconds',

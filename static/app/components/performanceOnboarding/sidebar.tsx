@@ -269,7 +269,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     api,
     projectKeyId,
     dsn,
-    organization: organization,
+    organization,
     platformKey: currentProject.platform || 'other',
     projectId: currentProject.id,
     projectSlug: currentProject.slug,

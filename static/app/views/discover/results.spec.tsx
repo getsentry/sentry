@@ -261,7 +261,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -310,7 +310,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -373,7 +373,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -410,7 +410,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -447,7 +447,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -483,7 +483,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -525,7 +525,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -561,7 +561,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -603,7 +603,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -640,7 +640,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -707,7 +707,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -745,7 +745,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -822,7 +822,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -899,7 +899,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -980,7 +980,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1043,7 +1043,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
@@ -1086,7 +1086,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       expect(await screen.findByText('this is a tip')).toBeInTheDocument();
@@ -1117,7 +1117,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1154,7 +1154,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1194,7 +1194,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() =>
@@ -1260,7 +1260,7 @@ describe('Results', function () {
           location={router.location}
           router={router}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() =>
@@ -1328,7 +1328,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await screen.findAllByText(getTransactionViews(organization)[0].name);
@@ -1380,7 +1380,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() => {
@@ -1414,7 +1414,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() => {
@@ -1458,7 +1458,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() => {
@@ -1496,7 +1496,7 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {router: router, organization}
+        {router, organization}
       );
 
       await waitFor(() => {
@@ -1535,7 +1535,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1613,7 +1613,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1705,7 +1705,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1828,7 +1828,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );
@@ -1946,7 +1946,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />,
         {
-          router: router,
+          router,
           organization,
         }
       );

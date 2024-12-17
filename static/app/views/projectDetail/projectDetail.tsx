@@ -102,7 +102,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       return fetchTagValues({
-        api: api,
+        api,
         orgSlug: organization.slug,
         tagKey: key,
         search,

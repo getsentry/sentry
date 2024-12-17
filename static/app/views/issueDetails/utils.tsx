@@ -265,7 +265,7 @@ export function useIsSampleEvent(): boolean {
 
   const {data} = useGroupTagsReadable(
     {
-      groupId: groupId,
+      groupId,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

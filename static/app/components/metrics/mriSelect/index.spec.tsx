@@ -13,7 +13,7 @@ function createMetricMeta(
     operations: [],
     projectIds: [],
     type: 'd',
-    unit: unit,
+    unit,
   };
 }
 

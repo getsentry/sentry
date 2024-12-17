@@ -85,7 +85,7 @@ export function getColdAppStartPerformance(metric: MetricValue): VitalStatus {
     value: metric,
     formattedValue: formatMetricValue(metric),
     score: status,
-    description: description,
+    description,
   };
 }
 
@@ -112,7 +112,7 @@ export function getWarmAppStartPerformance(metric: MetricValue): VitalStatus {
     value: metric,
     formattedValue: formatMetricValue(metric),
     score: status,
-    description: description,
+    description,
   };
 }
 

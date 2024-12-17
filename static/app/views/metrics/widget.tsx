@@ -601,10 +601,10 @@ export function getChartTimeseries(
     const isMultiQuery = filteredQueries.length > 1;
 
     return group.map(entry => ({
-      unit: unit,
-      operation: operation,
+      unit,
+      operation,
       values: entry.series,
-      scalingFactor: scalingFactor,
+      scalingFactor,
       name: getMetricsSeriesName(query, entry.by, isMultiQuery),
       id: getMetricsSeriesId(query, entry.by),
       queryIndex: index,

@@ -54,7 +54,7 @@ function useOpenEditHighlightsModal({
 }) {
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization: organization,
+    organization,
     project: detailedProject,
   });
 
