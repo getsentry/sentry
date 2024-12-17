@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from sentry import features
 from sentry.incidents.endpoints.validators import MetricAlertsDetectorValidator
-from sentry.incidents.models.alert_rule import AlertRuleDetectionType
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, ComparisonDeltaChoices
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -17,6 +17,9 @@ from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey
+
+COMPARISON_DELTA_CHOICES = [choice.value for choice in ComparisonDeltaChoices]
+COMPARISON_DELTA_CHOICES.append(None)
 
 
 class MetricAlertDetectorHandler(StatefulDetectorHandler[QuerySubscriptionUpdate]):
@@ -89,7 +92,7 @@ class MetricAlertFire(GroupType):
             "threshold_period": {"type": "integer", "minimum": 1, "maximum": 20},
             "comparison_delta": {
                 "type": ["integer", "null"],
-                "enum": [None, 300, 900, 6000, 86400, 604800, 2592000],
+                "enum": COMPARISON_DELTA_CHOICES,
             },
             "detection_type": {
                 "type": "string",
