@@ -108,7 +108,7 @@ function SetupMessagingIntegrationButton({
                           provider !== undefined
                       )}
                     onAddIntegration={onAddIntegration}
-                    {...(projectId && {modalParams: {projectId: projectId}})}
+                    {...(projectId && {modalParams: {projectId}})}
                     analyticsView={analyticsView}
                   />
                 ),

@@ -172,7 +172,7 @@ export function CustomMetricsEventData({
             chartUnit: lastMeta?.unit ?? 'none',
             metricType: type,
             metricUnit: unit,
-            summaryItem: summaryItem,
+            summaryItem,
             deviation,
             deviationPercent,
           };
@@ -222,7 +222,7 @@ export function CustomMetricsEventData({
             interval: '10s',
             widgets: [
               {
-                mri: mri,
+                mri,
                 displayType: MetricDisplayType.LINE,
                 aggregation: getDefaultAggregation(mri),
                 query: Object.entries(summaryItem.tags ?? {})

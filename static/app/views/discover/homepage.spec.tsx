@@ -519,7 +519,7 @@ describe('Discover > Homepage', () => {
       ],
     });
     initialData = initializeOrg({
-      organization: organization,
+      organization,
       router: {
         location: LocationFixture(),
       },
@@ -600,7 +600,7 @@ describe('Discover > Homepage', () => {
       ],
     });
     initialData = initializeOrg({
-      organization: organization,
+      organization,
       router: {
         location: LocationFixture(),
       },

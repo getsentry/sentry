@@ -51,7 +51,7 @@ describe('Screens Landing Page', function () {
   });
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
-    project: project,
+    project,
     selectedPlatform: 'Android',
     isProjectCrossPlatform: true,
   });

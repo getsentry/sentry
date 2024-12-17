@@ -73,12 +73,12 @@ function useOrganizationProjects({
   );
 
   return useQuery<Project[], RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
         query: {
-          query: query,
+          query,
         },
       });
     },

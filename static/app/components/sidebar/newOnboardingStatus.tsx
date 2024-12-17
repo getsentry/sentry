@@ -120,7 +120,7 @@ export function NewOnboardingStatus({
     }
 
     trackAnalytics('quick_start.completed', {
-      organization: organization,
+      organization,
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });

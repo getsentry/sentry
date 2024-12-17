@@ -75,7 +75,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               pathname: `/organizations/${
                 organization.slug
               }/releases/${encodeURIComponent(activation.activator)}/`,
-              query: {project: project},
+              query: {project},
             }}
             style={{textOverflow: 'ellipsis', overflowX: 'inherit'}}
           >

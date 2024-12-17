@@ -206,7 +206,7 @@ class EventsTable extends Component<Props, State> {
             timestamp: dataRow.timestamp,
             location: locationWithTab,
             organization,
-            transactionName: transactionName,
+            transactionName,
             source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
             view: this.props.domainViewFilters?.view,
           });

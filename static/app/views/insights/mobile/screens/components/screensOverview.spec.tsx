@@ -49,7 +49,7 @@ describe('ScreensOverview', () => {
   });
 
   jest.mocked(useCrossPlatformProject).mockReturnValue({
-    project: project,
+    project,
     isProjectCrossPlatform: true,
     selectedPlatform: 'Android',
   });

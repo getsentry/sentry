@@ -576,12 +576,12 @@ class TriggersChart extends PureComponent<Props, State> {
 
     if (isSessionAggregate(aggregate)) {
       const baseProps: ComponentProps<typeof SessionsRequest> = {
-        api: api,
-        organization: organization,
+        api,
+        organization,
         project: projects.map(({id}) => Number(id)),
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
-        query: query,
+        query,
         interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],

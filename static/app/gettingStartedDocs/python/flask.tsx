@@ -244,7 +244,7 @@ const docs: Docs = {
   }),
   performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
   feedbackOnboardingJsLoader,
 };
 

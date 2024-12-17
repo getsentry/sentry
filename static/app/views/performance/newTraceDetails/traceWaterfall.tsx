@@ -284,8 +284,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           type: 'set results',
           results: matches,
           resultsLookup: lookup,
-          resultIteratorIndex: resultIteratorIndex,
-          resultIndex: resultIndex,
+          resultIteratorIndex,
+          resultIndex,
           previousNode: activeNodeSearchResult,
           node,
         });
@@ -453,7 +453,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         traceDispatch({
           type: 'set roving index',
           node: maybeNode,
-          index: index,
+          index,
           action_source: 'click',
         });
 
@@ -584,8 +584,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
-        node: node,
-        index: index,
+        node,
+        index,
         action_source: 'load',
       });
     });

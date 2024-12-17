@@ -21,7 +21,7 @@ describe('DataSecrecy', function () {
       body: null,
     });
 
-    render(<DataSecrecy />, {organization: organization});
+    render(<DataSecrecy />, {organization});
 
     await waitFor(() => {
       expect(screen.getByText('Support Access')).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('DataSecrecy', function () {
       body: null,
     });
 
-    render(<DataSecrecy />, {organization: organization});
+    render(<DataSecrecy />, {organization});
 
     await waitFor(() => {
       expect(screen.getByText('Support Access')).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('DataSecrecy', function () {
       },
     });
 
-    render(<DataSecrecy />, {organization: organization});
+    render(<DataSecrecy />, {organization});
 
     await waitFor(() => {
       expect(screen.getByText('Support Access')).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('DataSecrecy', function () {
     });
 
     organization.allowSuperuserAccess = false;
-    render(<DataSecrecy />, {organization: organization});
+    render(<DataSecrecy />, {organization});
 
     await waitFor(() => {
       const accessMessage = screen.getByText(

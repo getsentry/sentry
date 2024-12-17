@@ -1235,7 +1235,7 @@ class EventView {
     }
     return {
       pathname: normalizeUrl(`/organizations/${slug}/discover/${target}/`),
-      query: query,
+      query,
     };
   }
 

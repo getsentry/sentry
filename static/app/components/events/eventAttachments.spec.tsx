@@ -27,7 +27,7 @@ describe('EventAttachments', function () {
 
   const props = {
     group: undefined,
-    project: project,
+    project,
     event,
   };
 

@@ -52,7 +52,7 @@ describe('MessagingIntegrationAlertRule', function () {
     );
     render(
       <IssueAlertNotificationOptions {...notificationProps} shouldRenderSetupButton />,
-      {organization: organization}
+      {organization}
     );
     await screen.findByText(/notify via email/i);
     expect(screen.queryByText(/notify via integration/i)).not.toBeInTheDocument();
@@ -69,7 +69,7 @@ describe('MessagingIntegrationAlertRule', function () {
         status: 'active',
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
   });
@@ -81,7 +81,7 @@ describe('MessagingIntegrationAlertRule', function () {
         status: 'active',
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     await screen.findByText(/notify via email/i);
     await screen.findByText(/notify via integration/i);
     await userEvent.click(screen.getByText(/notify via integration/i));
