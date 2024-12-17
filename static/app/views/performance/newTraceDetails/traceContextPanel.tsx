@@ -42,7 +42,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
   useEffect(() => {
     const loadedHeight = preferences.drawer.sizes['trace context height'];
 
-    if (containerRef.current) {
+    if (containerRef.current && loadedHeight !== undefined) {
       setHeight(loadedHeight);
       containerRef.current.style.setProperty('--panel-height', `${loadedHeight}px`);
     }
