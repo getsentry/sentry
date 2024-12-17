@@ -65,6 +65,7 @@ def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
     resp = _make_rpc_request("EndpointTraceItemTable", "v1", req.meta.referrer, req)
     response = TraceItemTableResponse()
     response.ParseFromString(resp.data)
+    print("response_after_rpc", response)
     return response
 
 
