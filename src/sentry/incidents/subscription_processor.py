@@ -47,7 +47,10 @@ from sentry.incidents.utils.process_update_helpers import (
     get_aggregation_value_helper,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
-from sentry.incidents.utils.types import DataSourceType, QuerySubscriptionUpdate
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.models.project import Project
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -393,7 +396,7 @@ class SubscriptionProcessor:
             data_packet = DataPacket[QuerySubscriptionUpdate](
                 query_id=self.subscription.id, packet=subscription_update
             )
-            process_data_packets([data_packet], DataSourceType.SNUBA_QUERY_SUBSCRIPTION)
+            process_data_packets([data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         self.last_update = subscription_update["timestamp"]
 

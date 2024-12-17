@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum, StrEnum
+from enum import Enum
 from typing import Any, TypedDict
 
 
@@ -15,5 +15,4 @@ class AlertRuleActivationConditionType(Enum):
     DEPLOY_CREATION = 1
 
 
-class DataSourceType(StrEnum):
-    SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"
+DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"

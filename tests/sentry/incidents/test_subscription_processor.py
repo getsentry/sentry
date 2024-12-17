@@ -51,7 +51,10 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType, DataSourceType
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AlertRuleActivationConditionType,
+)
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -3052,7 +3055,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert mock_process_data_packets.call_count == 1
         assert (
             mock_process_data_packets.call_args_list[0][0][1]
-            == DataSourceType.SNUBA_QUERY_SUBSCRIPTION
+            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         )
         data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
         assert data_packet_list[0].query_id == self.sub.id
