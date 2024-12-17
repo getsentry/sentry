@@ -1119,7 +1119,7 @@ describe('trace view', () => {
         await userEvent.click(noInstrumentationOption!);
         await userEvent.click(preferencesDropdownTrigger);
         await waitFor(() => {
-          expect(screen.queryAllByText(/No Instrumentation/i)).toHaveLength(1);
+          expect(screen.queryByText(/No Instrumentation/i)).toBeInTheDocument();
         });
       });
     });
