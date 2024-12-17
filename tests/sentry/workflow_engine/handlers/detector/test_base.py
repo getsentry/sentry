@@ -127,8 +127,8 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             type=type,
         )
         self.create_data_condition(
-            condition="gt",
-            comparison=5,
+            type="gt",
+            comparison_value=5,
             condition_result=DetectorPriorityLevel.HIGH,
             condition_group=detector.workflow_condition_group,
         )

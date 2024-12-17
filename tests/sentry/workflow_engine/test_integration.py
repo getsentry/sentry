@@ -32,7 +32,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
             condition_group=detector_conditions,
             type=Condition.EQUAL,
             condition_result=DetectorPriorityLevel.HIGH,
-            comparison=1,
+            comparison_value=1,
         )
         self.detector.workflow_condition_group = detector_conditions
         self.detector.save()

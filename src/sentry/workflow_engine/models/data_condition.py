@@ -1,7 +1,6 @@
 import logging
 import operator
-from collections.abc import Callable
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar
 
 from django.db import models
 
@@ -40,6 +39,21 @@ condition_ops = {
 T = TypeVar("T")
 
 
+def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
+    try:
+        value = data
+        for part in path.split("."):
+            if hasattr(value, part):
+                value = getattr(value, part)
+            elif hasattr(value, "get"):
+                value = value.get(part)
+            else:
+                return default
+        return value
+    except Exception:
+        return default
+
+
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
     """
@@ -47,7 +61,7 @@ class DataCondition(DefaultFieldsModel):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    __repr__ = sane_repr("type", "condition", "condition_group")
+    __repr__ = sane_repr("type", "comparison_value", "condition_group")
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison_value = models.JSONField()
@@ -95,33 +109,24 @@ class DataCondition(DefaultFieldsModel):
 
     def evaluate_value(self, value: T) -> DataConditionResult:
         condition_handler: DataConditionHandler[T] | None = None
-        op: Callable | None = None
 
         try:
             # Use a custom hanler
             condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
-            op = condition_ops.get(self.type, None)
+            logger.exception(
+                "No registration exists for DataCondition",
+                extra={"condition": self.type, "id": self.id},
+            )
+            return None
 
+        evaluation_value = value
         if self.input_data_filter:
-            # TODO - move the data filter method to here, and apply it to `value`
-            pass
+            # If there's a filter on the value, then we need to extract the nested value.
+            evaluation_value = get_nested_value(value, self.input_data_filter)
 
         if condition_handler is not None:
-            result = condition_handler.evaluate_value(value, self.comparison_value)
-        elif op is not None:
-            result = op(cast(Any, value), self.comparison)
-        else:
-            logger.error(
-                "Invalid Data Condition Evaluation",
-                extra={
-                    "id": self.id,
-                    "type": self.type,
-                    "operator": self.operator,
-                },
-            )
-
-            return None
+            result = condition_handler.evaluate_value(evaluation_value, self.comparison_value)
 
         if result:
             return self.get_condition_result()

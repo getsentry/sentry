@@ -676,9 +676,8 @@ class ExhaustiveFixtures(Fixtures):
 
         # TODO @saponifi3d: Update comparison to be DetectorState.Critical
         data_condition = self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="WorkflowCondition",
+            type="eq",
+            comparison_value="critical",
             condition_result="True",
             condition_group=notification_condition_group,
         )
@@ -701,10 +700,9 @@ class ExhaustiveFixtures(Fixtures):
             action=trigger_workflows_action, condition_group=detector_conditions
         )
         self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="DetectorCondition",
-            condition_result="True",
+            type="eq",
+            comparison_value=75,
+            condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
