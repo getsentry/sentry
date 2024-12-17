@@ -12,11 +12,13 @@ import {space} from 'sentry/styles/space';
 import {
   type AggregationKeyWithAlias,
   type AggregationRefinement,
+  classifyTagKey,
   generateFieldAsString,
   parseFunction,
   prettifyTagKey,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -31,6 +33,7 @@ import {
   type ParameterDescription,
 } from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 type AggregateFunction = [
@@ -59,10 +62,65 @@ function Visualize() {
     state.displayType !== DisplayType.BIG_NUMBER;
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
-  if (state.dataset === WidgetType.SPANS && isChartWidget) {
-    tags = numericSpanTags;
-  } else if (state.dataset === WidgetType.SPANS && !isChartWidget) {
-    tags = stringSpanTags;
+
+  // Span column options are explicitly defined and bypass all of the
+  // fieldOptions filtering and logic used for showing options for
+  // chart types.
+  let spanColumnOptions;
+  if (state.dataset === WidgetType.SPANS) {
+    // Explicitly merge numeric and string tags to ensure filtering
+    // compatibility for timeseries chart types.
+    tags = {...numericSpanTags, ...stringSpanTags};
+
+    const columns =
+      state.fields
+        ?.filter(field => field.kind === FieldValueKind.FIELD)
+        .map(field => field.field) ?? [];
+    spanColumnOptions = [
+      // Columns that are not in the tag responses, e.g. old tags
+      ...columns
+        .filter(
+          column =>
+            column !== '' &&
+            !stringSpanTags.hasOwnProperty(column) &&
+            !numericSpanTags.hasOwnProperty(column)
+        )
+        .map(column => {
+          return {
+            label: prettifyTagKey(column),
+            value: column,
+            textValue: column,
+            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+          };
+        }),
+      ...Object.values(stringSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+        };
+      }),
+      ...Object.values(numericSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+        };
+      }),
+    ];
+    spanColumnOptions.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -103,15 +161,21 @@ function Visualize() {
           // For charts, we show aggregate parameter options for the y-axis as primary options.
           // For tables, we show all string tags and fields as primary options, as well
           // as aggregates that don't take parameters.
+          const columnFilterMethod = isChartWidget
+            ? datasetConfig.filterYAxisAggregateParams?.(
+                field,
+                state.displayType ?? DisplayType.LINE
+              )
+            : field.kind === FieldValueKind.FUNCTION
+              ? datasetConfig.filterAggregateParams
+              : datasetConfig.filterTableOptions;
           const columnOptions = Object.values(fieldOptions)
             .filter(option => {
+              // Don't show any aggregates under the columns, and if
+              // there isn't a filter method, just show the option
               return (
                 option.value.kind !== FieldValueKind.FUNCTION &&
-                (datasetConfig.filterYAxisAggregateParams?.(
-                  field,
-                  state.displayType ?? DisplayType.TABLE
-                )?.(option) ??
-                  true)
+                (columnFilterMethod?.(option, field) ?? true)
               );
             })
             .map(option => ({
@@ -120,6 +184,13 @@ function Visualize() {
                 state.dataset === WidgetType.SPANS
                   ? prettifyTagKey(option.value.meta.name)
                   : option.value.meta.name,
+
+              // For the spans dataset, all of the options are measurements,
+              // so we force the number badge to show
+              trailingItems:
+                state.dataset === WidgetType.SPANS ? (
+                  <TypeBadge kind={FieldKind.MEASUREMENT} />
+                ) : null,
             }));
 
           const aggregateOptions = aggregates.map(option => ({
@@ -171,7 +242,12 @@ function Visualize() {
                     <PrimarySelectRow>
                       <ColumnCompactSelect
                         searchable
-                        options={columnOptions}
+                        options={
+                          state.dataset === WidgetType.SPANS &&
+                          field.kind !== FieldValueKind.FUNCTION
+                            ? spanColumnOptions
+                            : columnOptions
+                        }
                         value={
                           field.kind === FieldValueKind.FUNCTION
                             ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ??

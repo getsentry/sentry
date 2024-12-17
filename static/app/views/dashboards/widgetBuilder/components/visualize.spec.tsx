@@ -508,7 +508,7 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'tags[span.duration,number]': {
+            'span.duration': {
               key: 'span.duration',
               name: 'span.duration',
               kind: 'measurement',
@@ -595,6 +595,62 @@ describe('Visualize', () => {
       expect(screen.getByText('p99')).toBeInTheDocument();
       expect(screen.getByText('p100')).toBeInTheDocument();
       expect(screen.getByText('sum')).toBeInTheDocument();
+    });
+
+    it('shows the correct column options for the aggregate field type', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['p90(span.duration)'],
+              },
+            }),
+          }),
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
+      expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
+      expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
+    });
+
+    it('shows the correct column options for the non-aggregate field type', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            }),
+          }),
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
+      expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
+      expect(within(listbox).getByText('span.description')).toBeInTheDocument();
     });
   });
 });
