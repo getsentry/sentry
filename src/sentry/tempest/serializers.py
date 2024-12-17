@@ -1,6 +1,8 @@
-from sentry.api.serializers.base import Serializer
+from sentry.api.serializers.base import Serializer, register
+from sentry.tempest.models import TempestCredentials
 
 
+@register(TempestCredentials)
 class TempestCredentialsSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
