@@ -1,5 +1,3 @@
-__all__ = [
-    "GroupEventConditionHandler",
-]
+__all__ = ["GroupEventConditionHandler"]
 
 from .group_event import GroupEventConditionHandler

@@ -100,7 +100,7 @@ class DataCondition(DefaultFieldsModel):
         op: Callable | None = None
 
         try:
-            # Use a custom hanler
+            # Use a custom handler
             condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
             # If it's not a custom handler, use the default operators

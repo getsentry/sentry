@@ -1,4 +1,4 @@
-from sentry.eventstore.models import GroupEvent
+from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler
@@ -8,7 +8,7 @@ from sentry.workflow_engine.types import ActionHandler
 class NotificationActionHandler(ActionHandler):
     @staticmethod
     def execute(
-        evt: GroupEvent,
+        job: PostProcessJob,
         action: Action,
         detector: Detector,
     ) -> None:
