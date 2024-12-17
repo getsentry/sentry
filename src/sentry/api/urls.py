@@ -2788,6 +2788,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
     ),
+    # Tempest
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/$",
+        TempestCredentialsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials",
+    ),
     *workflow_urls.urlpatterns,
 ]
 
@@ -3265,12 +3271,6 @@ urlpatterns = [
         r"^secret-scanning/github/$",
         SecretScanningGitHubEndpoint.as_view(),
         name="sentry-api-0-secret-scanning-github",
-    ),
-    # Tempest
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/$",
-        TempestCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-tempest-credentials",
     ),
     # Catch all
     re_path(
