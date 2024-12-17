@@ -632,3 +632,7 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 # Taskworkers
 /src/sentry/taskworker/                                       @getsentry/taskworker
 /tests/sentry/taskworker/                                     @getsentry/taskworker
+
+# Tempest
+/src/sentry/tempest/                                       @getsentry/gdx
+/tests/sentry/tempest/                                     @getsentry/gdx
