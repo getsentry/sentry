@@ -1,3 +1,5 @@
+import {useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -5,12 +7,19 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useMedia from 'sentry/utils/useMedia';
 import {useParams} from 'sentry/utils/useParams';
-import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
+import {
+  type DashboardDetails,
+  type DashboardFilters,
+  DisplayType,
+  type Widget,
+} from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
 import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
+import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
@@ -19,10 +28,14 @@ import Visualize from 'sentry/views/dashboards/widgetBuilder/components/visualiz
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
 type WidgetBuilderSlideoutProps = {
+  dashboard: DashboardDetails;
+  dashboardFilters: DashboardFilters;
   isOpen: boolean;
+  isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  setIsPreviewDraggable: (draggable: boolean) => void;
 };
 
 function WidgetBuilderSlideout({
@@ -30,9 +43,15 @@ function WidgetBuilderSlideout({
   onClose,
   onSave,
   onQueryConditionChange,
+  dashboard,
+  dashboardFilters,
+  setIsPreviewDraggable,
+  isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
+  const theme = useTheme();
+
   const isEditing = widgetIndex !== undefined;
   const title = isEditing ? t('Edit Widget') : t('Create Custom Widget');
   const isChartWidget =
@@ -40,6 +59,25 @@ function WidgetBuilderSlideout({
     state.displayType !== DisplayType.TABLE;
 
   const isNotBigNumberWidget = state.displayType !== DisplayType.BIG_NUMBER;
+
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPreviewDraggable(!entry.isIntersecting);
+      },
+      {threshold: 0}
+    );
+
+    if (previewRef.current) {
+      observer.observe(previewRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [setIsPreviewDraggable]);
 
   return (
     <SlideOverPanel
@@ -70,6 +108,17 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderTypeSelector />
         </Section>
+        <div ref={previewRef}>
+          {isSmallScreen && (
+            <Section>
+              <WidgetPreviewContainer
+                dashboard={dashboard}
+                dashboardFilters={dashboardFilters}
+                isWidgetInvalid={isWidgetInvalid}
+              />
+            </Section>
+          )}
+        </div>
         <Section>
           <Visualize />
         </Section>
