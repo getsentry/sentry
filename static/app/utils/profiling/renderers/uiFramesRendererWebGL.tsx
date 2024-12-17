@@ -225,7 +225,6 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     });
 
     // Use shader program
-    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
   }
 
@@ -252,7 +251,6 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
       return;
     }
 
-    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
 
     const projectionMatrix = makeProjectionMatrix(
