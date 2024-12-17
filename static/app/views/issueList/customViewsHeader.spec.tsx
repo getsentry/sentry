@@ -354,7 +354,7 @@ describe('CustomViewsHeader', () => {
       );
     });
 
-    // biome-ignore lint/suspicious/noSkippedTests: <This behavior works when testing in browser, need to debug why its failing tests>
+    // eslint-disable-next-line jest/no-disabled-tests
     it.skip('retains unsaved changes after switching tabs', async () => {
       render(<CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
         router: unsavedTabRouter,
@@ -725,7 +725,7 @@ describe('CustomViewsHeader', () => {
         expect(unsavedTabRouter.push).not.toHaveBeenCalled();
       });
 
-      // biome-ignore lint/suspicious/noSkippedTests: Works in browser, unclear why its not passing this test
+      // eslint-disable-next-line jest/no-disabled-tests
       it.skip('should save changes when hitting ctrl+s', async () => {
         const mockPutRequest = MockApiClient.addMockResponse({
           url: `/organizations/org-slug/group-search-views/`,
