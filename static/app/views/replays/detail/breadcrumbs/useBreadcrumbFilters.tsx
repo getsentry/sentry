@@ -50,6 +50,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   keydown: 'KeyDown',
   input: 'Input',
   tap: 'User Tap',
+  swipe: 'User Swipe',
   device: 'Device',
   app: 'App',
   custom: 'Custom',
