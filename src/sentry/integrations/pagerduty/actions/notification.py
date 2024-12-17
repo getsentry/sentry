@@ -41,7 +41,6 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 ],
             },
         }
-        self.__class__.label = self.label
 
     def _get_service(self):
         oi = self.get_organization_integration()
