@@ -24,6 +24,7 @@ import {
   getSortBysFromLocation,
   updateLocationWithSortBys,
 } from './sortBys';
+import {defaultTitle, getTitleFromLocation, updateLocationWithTitle} from './title';
 import {
   defaultVisualizes,
   getVisualizesFromLocation,
@@ -39,6 +40,7 @@ interface ReadablePageParams {
   query: string;
   sortBys: Sort[];
   visualizes: Visualize[];
+  title?: string;
 }
 
 interface WritablePageParams {
@@ -48,7 +50,18 @@ interface WritablePageParams {
   mode?: Mode | null;
   query?: string | null;
   sortBys?: Sort[] | null;
+  title?: string | null;
   visualizes?: Omit<Visualize, 'label'>[] | null;
+}
+
+export interface SuggestedQuery {
+  fields: string[];
+  groupBys: string[];
+  mode: Mode;
+  query: string;
+  sortBys: Sort[];
+  title: string;
+  visualizes: Omit<Visualize, 'label'>[];
 }
 
 function defaultPageParams(): ReadablePageParams {
@@ -58,6 +71,7 @@ function defaultPageParams(): ReadablePageParams {
   const mode = defaultMode();
   const query = defaultQuery();
   const visualizes = defaultVisualizes();
+  const title = defaultTitle();
   const sortBys = defaultSortBys(mode, fields, visualizes);
 
   return {
@@ -67,6 +81,7 @@ function defaultPageParams(): ReadablePageParams {
     mode,
     query,
     sortBys,
+    title,
     visualizes,
   };
 }
@@ -88,6 +103,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
     const query = getQueryFromLocation(location);
     const visualizes = getVisualizesFromLocation(location);
     const sortBys = getSortBysFromLocation(location, mode, fields, groupBys, visualizes);
+    const title = getTitleFromLocation(location);
 
     return {
       dataset,
@@ -96,6 +112,7 @@ export function PageParamsProvider({children}: PageParamsProviderProps) {
       mode,
       query,
       sortBys,
+      title,
       visualizes,
     };
   }, [location]);
@@ -139,6 +156,11 @@ export function useExploreSortBys(): Sort[] {
   return pageParams.sortBys;
 }
 
+export function useExploreTitle(): string | undefined {
+  const pageParams = useExplorePageParams();
+  return pageParams.title;
+}
+
 export function useExploreVisualizes(): Visualize[] {
   const pageParams = useExplorePageParams();
   return pageParams.visualizes;
@@ -158,6 +180,7 @@ export function useSetExplorePageParams() {
       updateLocationWithQuery(target, pageParams.query);
       updateLocationWithSortBys(target, pageParams.sortBys);
       updateLocationWithVisualizes(target, pageParams.visualizes);
+      updateLocationWithTitle(target, pageParams.title);
       navigate(target);
     },
     [location, navigate]
@@ -248,6 +271,24 @@ export function useSetExploreVisualizes() {
   return useCallback(
     (visualizes: Omit<Visualize, 'label'>[]) => {
       setPageParams({visualizes});
+    },
+    [setPageParams]
+  );
+}
+
+export function useSetExploreSuggestedQuery() {
+  const setPageParams = useSetExplorePageParams();
+  return useCallback(
+    (query: SuggestedQuery) => {
+      setPageParams({
+        fields: query.fields,
+        groupBys: query.groupBys,
+        mode: query.mode,
+        query: query.query,
+        sortBys: query.sortBys,
+        visualizes: query.visualizes,
+        title: query.title,
+      });
     },
     [setPageParams]
   );
