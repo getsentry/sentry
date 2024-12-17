@@ -174,10 +174,14 @@ def update_groups(
     user = user or request.user
     acting_user = user if user and user.is_authenticated else None
     data = data or request.data
-    # XXX: Validate that all groups belong to the same organization and project
+
     # so we won't have to requery for each group
     project_lookup = {g.project_id: g.project for g in groups}
     projects = list(project_lookup.values())
+
+    # Assert all projects belong to the same organization
+    if len({p.organization_id for p in projects}) > 1:
+        return Response({"detail": "All groups must belong to same organization."}, status=400)
 
     if not groups:
         return Response({"detail": "No groups found"}, status=204)
