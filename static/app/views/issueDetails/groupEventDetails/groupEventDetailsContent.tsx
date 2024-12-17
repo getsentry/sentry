@@ -241,6 +241,7 @@ export function EventDetailsContent({
                 defined(eventEntries[EntryType.THREADS])
               )
             }
+            // Prevent the container span from shrinking the content
             containerClassName={css`
               display: block !important;
             `}
