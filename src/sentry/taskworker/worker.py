@@ -25,6 +25,7 @@ from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
+from sentry.utils.memory import track_memory_usage
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
@@ -49,7 +50,10 @@ def _process_activation(activation: TaskActivation) -> None:
         op="task.taskworker",
         name=f"{activation.namespace}:{activation.taskname}",
     )
-    with sentry_sdk.start_transaction(transaction):
+    with (
+        track_memory_usage("taskworker.worker.memory_change"),
+        sentry_sdk.start_transaction(transaction),
+    ):
         taskregistry.get(activation.namespace).get(activation.taskname)(*args, **kwargs)
 
 
