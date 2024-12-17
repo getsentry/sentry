@@ -761,6 +761,7 @@ const extendsList = [
 if (detectDeprecations) {
   extendsList.push('plugin:deprecation/recommended');
 }
+extendsList.push('prettier'); // Keep this last in the list
 
 module.exports = {
   root: true,
