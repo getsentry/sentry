@@ -775,6 +775,10 @@ class Group(Model):
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> GroupEvent | None:
+        """
+        Returns the latest/newest event given the conditions and time range.
+        If no event is found, returns None.
+        """
         return get_oldest_or_latest_event(
             group=self,
             ordering=EventOrdering.LATEST,
@@ -786,6 +790,10 @@ class Group(Model):
     def get_latest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
+        """
+        Legacy special case of `self.get_latest_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_latest_event` directly.
+        """
         conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
         return self.get_latest_event(conditions=conditions)
 
@@ -795,6 +803,10 @@ class Group(Model):
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> GroupEvent | None:
+        """
+        Returns the oldest event given the conditions and time range.
+        If no event is found, returns None.
+        """
         return get_oldest_or_latest_event(
             group=self,
             ordering=EventOrdering.OLDEST,
@@ -806,6 +818,10 @@ class Group(Model):
     def get_oldest_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
+        """
+        Legacy special case of `self.get_oldest_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_oldest_event` directly.
+        """
         conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
         return self.get_oldest_event(conditions=conditions)
 
@@ -815,38 +831,37 @@ class Group(Model):
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> GroupEvent | None:
-        return get_recommended_event(
-            group=self,
+        """
+        Returns a recommended event given the conditions and time range.
+        If a helpful recommendation is not found, it will fallback to the latest event.
+        If neither are found, returns None.
+        """
+        maybe_event = get_recommended_event(
             conditions=conditions,
             start=start,
             end=end,
+        )
+        return (
+            maybe_event
+            if maybe_event
+            else self.get_latest_event(conditions=conditions, start=start, end=end)
         )
 
     def get_recommended_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
         conditions: Sequence[Condition] | None = None,
-        *,
-        always_return_event: bool = True,
     ) -> GroupEvent | None:
+        """
+        Legacy special case of `self.get_recommended_event` for environments and no date range.
+        Kept for compatability, but it's advised to use `self.get_recommended_event` directly.
+        """
         all_conditions = conditions if conditions else []
         if len(environments) > 0:
             all_conditions.append(
                 Condition(Column("environment"), Op.IN, [e.name for e in environments])
             )
-        maybe_event = get_recommended_event(
-            group=self,
-            conditions=all_conditions,
-        )
-
-        if maybe_event:
-            return maybe_event
-
-        return (
-            self.get_latest_event_for_environments([env.name for env in environments])
-            if always_return_event
-            else None
-        )
+        return self.get_recommended_event(conditions=all_conditions)
 
     def get_suspect_commit(self) -> Commit | None:
         from sentry.models.groupowner import GroupOwner, GroupOwnerType

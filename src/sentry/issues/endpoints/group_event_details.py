@@ -164,7 +164,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         """
         environments = [e for e in get_environments(request, group.project.organization)]
         environment_names = [e.name for e in environments]
-        # # The enforced streamlined UI doesn't want a fallback event if the filters yield no results.
+        # The enforced streamlined UI doesn't want a fallback event if the filters yield no results.
         request.GET.get("no_fallback") is not None or features.has(
             "organizations:issue-details-streamline-enforce",
             group.organization,
@@ -225,8 +225,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 event = eventstore.backend.get_event_by_id(
                     group.project.id, event_id, group_id=group.id
                 )
-            # TODO: Remove `for_group` check once performance issues are moved to the issue platform
-
             if event is not None and event.group:
                 event = event.for_group(event.group)
 
