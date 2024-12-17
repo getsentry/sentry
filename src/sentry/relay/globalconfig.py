@@ -15,7 +15,6 @@ RELAY_OPTIONS: list[str] = [
     "profiling.profile_metrics.unsampled_profiles.platforms",
     "profiling.profile_metrics.unsampled_profiles.sample_rate",
     "profiling.profile_metrics.unsampled_profiles.enabled",
-    "profiling.generic_metrics.functions_ingestion.enabled",
     "relay.span-usage-metric",
     "relay.cardinality-limiter.mode",
     "relay.cardinality-limiter.error-sample-rate",
