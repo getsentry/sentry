@@ -3,6 +3,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
@@ -124,6 +125,11 @@ export default function getConfiguration({
           show: () =>
             !!organization?.features?.includes('session-replay-ui') &&
             !isSelfHostedErrorsOnly,
+        },
+        {
+          path: `${pathPrefix}/tempest/`,
+          title: t('Tempest'),
+          show: () => !!(organization && hasTempestAccess(organization)),
         },
       ],
     },
