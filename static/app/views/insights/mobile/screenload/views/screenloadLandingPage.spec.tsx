@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -66,7 +65,6 @@ describe('PageloadModule', function () {
   let eventsMock: jest.Mock;
   beforeEach(function () {
     localStorage.clear();
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [

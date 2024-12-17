@@ -5,12 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import type {Event} from 'sentry/types/event';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 describe('EventCustomPerformanceMetrics', function () {
-  beforeEach(function () {
-    browserHistory.push = jest.fn();
-  });
   it('should not render anything', function () {
     const {router, organization} = initializeOrg();
     render(

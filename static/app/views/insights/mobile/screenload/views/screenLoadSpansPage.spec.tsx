@@ -6,7 +6,6 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -124,7 +123,6 @@ describe('Screen Summary', function () {
       });
       mockResponses(organization, project);
       localStorage.clear();
-      browserHistory.push = jest.fn();
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
@@ -219,7 +217,6 @@ describe('Screen Summary', function () {
       });
       mockResponses(organization, project);
       localStorage.clear();
-      browserHistory.push = jest.fn();
       eventsMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
       });
