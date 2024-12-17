@@ -76,7 +76,7 @@ const feedbackOnboardingJsLoader: OnboardingConfig = {
       ],
     },
   ],
-  configure: _params => [
+  configure: () => [
     {
       type: StepType.CONFIGURE,
       description: t(
