@@ -11,7 +11,6 @@ from arroyo.types import Message, TStrategyPayload
 logger = logging.getLogger(__name__)
 
 TResult = TypeVar("TResult")
-TResult_co = TypeVar("TResult_co", covariant=True)
 
 
 class HasNextStep(ABC, Generic[TResult]):
