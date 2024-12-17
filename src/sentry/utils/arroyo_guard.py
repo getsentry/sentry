@@ -80,8 +80,8 @@ def guard(
                 if len(self.__messages_carried_over) > max_buffer_size:
                     raise MessageRejected
 
+                self.__messages_carried_over.append(msg)
                 self.__process_pending_messages()
-                self.__instance.submit(msg)
 
             def poll(self) -> None:
                 self.__process_pending_messages()
