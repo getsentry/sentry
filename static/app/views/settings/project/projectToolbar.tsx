@@ -30,6 +30,7 @@ function ProjectToolbarSettings({organization, project, params: {projectId}}: Pr
           type: 'textarea',
           rows: 3,
           autosize: true,
+          formatMessageValue: false,
 
           // additional data/props that is related to rendering of form field rather than data
           label: t('Allowed Origins'),
