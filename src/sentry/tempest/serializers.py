@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
 from sentry.tempest.models import TempestCredentials
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
@@ -27,15 +28,14 @@ class TempestCredentialsSerializer(Serializer):
 
     def get_attrs(
         self,
-        item_list: serializers.Sequence[serializers.Any],
-        user: serializers.Any,
-        **kwargs: serializers.Any,
-    ) -> serializers.MutableMapping[serializers.Any, serializers.Any]:
+        item_list: list[TempestCredentials],
+        user: RpcUser,
+    ) -> dict[int, RpcUser]:
         attrs = {}
         user_ids = {item.created_by_id for item in item_list}
         users = user_service.get_many_by_id(user_ids)
-        for user in users:
-            attrs[user.id] = user
+        for rpc_user in users:
+            attrs[rpc_user.id] = rpc_user
         return attrs
 
 
