@@ -798,7 +798,9 @@ class Group(Model):
         Legacy special case of `self.get_latest_event` for environments and no date range.
         Kept for compatability, but it's advised to use `self.get_latest_event` directly.
         """
-        conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
+        conditions = (
+            [Condition(Column("environment"), Op.IN, environments)] if len(environments) > 0 else []
+        )
         return self.get_latest_event(conditions=conditions)
 
     def get_oldest_event(
@@ -826,7 +828,9 @@ class Group(Model):
         Legacy special case of `self.get_oldest_event` for environments and no date range.
         Kept for compatability, but it's advised to use `self.get_oldest_event` directly.
         """
-        conditions = [["environment", "IN", environments]] if len(environments) > 0 else []
+        conditions = (
+            [Condition(Column("environment"), Op.IN, environments)] if len(environments) > 0 else []
+        )
         return self.get_oldest_event(conditions=conditions)
 
     def get_recommended_event(

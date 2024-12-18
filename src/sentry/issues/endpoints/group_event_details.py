@@ -9,7 +9,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from snuba_sdk import Condition, Or
+from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
 from sentry import eventstore
@@ -180,13 +180,15 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             )
         except ValidationError:
             raise ParseError(detail="Invalid event query")
-
         except Exception:
             logging.exception(
                 "group_event_details.parse_query",
                 extra={"query": query, "group": group.id, "organization": organization.id},
             )
             raise ParseError(detail="Unable to parse query")
+
+        if environments:
+            conditions.append(Condition(Column("environment"), Op.IN, environment_names))
 
         metric = "api.endpoints.group_event_details.get"
         error_response = {"detail": "Unable to apply query. Change or remove it and try again."}
