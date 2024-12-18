@@ -143,6 +143,10 @@ class EventJsonEndpoint(ProjectEndpoint):
                             continue
                         if "user.ip" in span["sentry_tags"]:
                             del span["sentry_tags"]["user.ip"]
+                        if "user" in span["sentry_tags"] and span["sentry_tags"]["user"].startswith(
+                            "ip:"
+                        ):
+                            span["sentry_tags"]["user"] = "ip:[ip]"
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
