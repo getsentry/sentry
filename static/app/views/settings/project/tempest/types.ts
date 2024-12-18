@@ -6,8 +6,10 @@ export enum MessageType {
 export type TempestCredentials = {
   clientId: string;
   clientSecret: string;
-  createdAt: string;
+  createdByEmail: string;
   createdById: number;
+  dateAdded: string;
+  dateUpdated: string;
   id: number;
   message: string;
   messageType: MessageType;

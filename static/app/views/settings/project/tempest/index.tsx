@@ -34,9 +34,9 @@ export default function TempestSettings({organization, project}: Props) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Playstation')} />
+      <SentryDocumentTitle title={t('PlayStation')} />
       <SettingsPageHeader
-        title={t('Playstation')}
+        title={t('PlayStation')}
         action={addNewCredentials(hasWriteAccess, organization, project)}
       />
 
