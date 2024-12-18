@@ -10,7 +10,6 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
 )
 from sentry.testutils.cases import TestCase
-from sentry.utils.types import NonNone
 
 
 def find_given_child_component[
@@ -93,12 +92,14 @@ class ComponentTest(TestCase):
             assert stacktrace_component
 
             frame_components = stacktrace_component.values
-            assert [
-                NonNone(
-                    find_given_child_component(frame_component, FunctionGroupingComponent)
-                ).values[0]
-                for frame_component in frame_components
-            ] == ["handleRequest", "playFetch"]
+            found = []
+            for frame_component in frame_components:
+                child_component = find_given_child_component(
+                    frame_component, FunctionGroupingComponent
+                )
+                assert child_component is not None
+                found.append(child_component.values[0])
+            assert found == ["handleRequest", "playFetch"]
 
             assert [frame_component.in_app for frame_component in frame_components] == [False, True]
 
