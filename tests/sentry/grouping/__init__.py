@@ -201,15 +201,27 @@ def dump_variant(
                     lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
 
     lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
+    if hasattr(variant, "contributing_component"):
+        contributing_component_id = (
+            variant.contributing_component.id
+            if variant.contributing_component is not None
+            else to_json(None)
+        )
+        lines.append(
+            "{}contributing component: {}".format("  " * indent, contributing_component_id)
+        )
 
-    # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's probably why
+    # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's
+    # probably why
     for key, value in sorted(variant.__dict__.items()):
+        if key in ["config", "hash", "contributing_component"]:
+            # We do not want to dump the config, and we've already dumped the hash and the
+            # contributing component
+            continue
+
         if isinstance(value, BaseGroupingComponent):
             lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
-        elif key in ["config", "hash"]:
-            # We do not want to dump the config, and we've already dumped the hash
-            continue
         else:
             lines.append("{}{}: {}".format("  " * indent, key, to_json(value)))
 
