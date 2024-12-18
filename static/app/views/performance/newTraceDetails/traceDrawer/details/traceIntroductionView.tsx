@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
+
+import image from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import image from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
 export function TraceIntroductionView() {
   return (

@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import {TraceIntroductionView} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/traceIntroductionView';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
@@ -16,7 +17,6 @@ import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {SpanNodeDetails} from '../details/span/index';
 import {TransactionNodeDetails} from '../details/transaction/index';
-import {TraceIntroductionView} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/traceIntroductionView';
 
 export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
