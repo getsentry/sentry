@@ -42,7 +42,7 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
 # An original set of platforms were backfilled allowing more than 30 system contributing frames
 # being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
 # these set of platforms but for now we will blacklist them.
-SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
+EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
     [
         "bun",
         "cordova",
@@ -147,7 +147,7 @@ SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
         "ruby-rails",
     ]
 )
-SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
+SEER_ELIGIBLE_PLATFORMS = EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK | frozenset(
     [
         "android",
         "android-profiling-onboarding-1-install",
@@ -289,7 +289,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             exception, frame_metrics
         )
         if (
-            platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
+            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
             and frame_metrics["is_frames_truncated"]
         ):
             raise TooManyOnlySystemFramesException
