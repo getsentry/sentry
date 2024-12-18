@@ -615,9 +615,8 @@ class Fixtures:
 
     def create_data_condition(
         self,
-        condition="eq",
         comparison="10",
-        type="",
+        type="eq",
         condition_result=None,
         condition_group=None,
         **kwargs,
@@ -628,7 +627,6 @@ class Fixtures:
             condition_group = self.create_data_condition_group()
 
         return Factories.create_data_condition(
-            condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,

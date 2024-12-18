@@ -81,8 +81,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EQUAL,
+            input_data_filter="occurrence.evidence_data.detector_id",
             comparison=self.detector.id,
             condition_result=75,
         )
@@ -96,8 +96,8 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EQUAL,
+            input_data_filter="occurrence.evidence_data.detector_id",
             comparison=self.detector.id + 1,
         )
 

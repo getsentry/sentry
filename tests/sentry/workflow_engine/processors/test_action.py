@@ -25,8 +25,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
             condition_group=self.action_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="group.times_seen",
+            type=Condition.EQUAL,
+            input_data_filter="group.times_seen",
             comparison=1,
             condition_result=True,
         )
@@ -38,8 +38,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # Add a filter to the action's group
         self.create_data_condition(
             condition_group=self.action_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EQUAL,
+            input_data_filter="occurrence.evidence_data.detector_id",
             comparison=self.detector.id + 1,
         )
 

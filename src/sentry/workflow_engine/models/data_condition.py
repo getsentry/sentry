@@ -1,6 +1,5 @@
 import logging
 import operator
-from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -38,6 +37,21 @@ condition_ops = {
 }
 
 T = TypeVar("T")
+
+
+def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
+    try:
+        value = data
+        for part in path.split("."):
+            if hasattr(value, part):
+                value = getattr(value, part)
+            elif hasattr(value, "get"):
+                value = value.get(part)
+            else:
+                return default
+        return value
+    except Exception:
+        return default
 
 
 @region_silo_model
@@ -84,7 +98,7 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def get_condition_handler(self) -> DataConditionHandler[T] | None:
+    def get_handler(self) -> DataConditionHandler[T]:
         try:
             condition_type = Condition(self.type)
         except ValueError:
@@ -94,27 +108,10 @@ class DataCondition(DefaultFieldsModel):
         return condition_handler_registry.get(condition_type)
 
     def evaluate_value(self, value: T) -> DataConditionResult:
-        condition_handler: DataConditionHandler[T] | None = None
-        op: Callable | None = None
-
         try:
-            # Use a custom hanler
-            condition_handler = self.get_condition_handler()
+            handler: DataConditionHandler[T] = self.get_handler()
         except NoRegistrationExistsError:
-            # If it's not a custom handler, use the default operators
-            if self.condition:
-                condition = Condition(self.condition)
-                op = condition_ops.get(condition, None)
-
-        if condition_handler is not None:
-            if not self.condition:
-                self.condition = ""
-
-            result = condition_handler.evaluate_value(value, self.comparison, self.condition)
-        elif op is not None:
-            result = op(cast(Any, value), self.comparison)
-        else:
-            logger.error(
+            logger.exception(
                 "Invalid Data Condition Evaluation",
                 extra={
                     "id": self.id,
@@ -123,7 +120,13 @@ class DataCondition(DefaultFieldsModel):
                 },
             )
 
-            return None
+        filtered_value = value
+        if self.input_data_filter:
+            # casting to any is a bit of a hack here, we lose type safety by doing this :thinking:
+            # we might be able to use `self.input_data_filter` to branch the logic on evaluate_value types
+            filtered_value = cast(Any, get_nested_value(value, self.input_data_filter))
+
+        result = handler.evaluate_value(filtered_value, self.comparison)
 
         if result:
             return self.get_condition_result()
