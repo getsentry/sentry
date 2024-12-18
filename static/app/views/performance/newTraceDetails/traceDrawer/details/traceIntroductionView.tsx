@@ -6,6 +6,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {
+  KEYBOARD_SHORTCUTS,
+  ShortcutsLayout,
+  Shortcuts,
+  TIMELINE_SHORTCUTS,
+} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 
 export function TraceIntroductionView() {
   return (
@@ -19,18 +25,39 @@ export function TraceIntroductionView() {
       </HeaderContainer>
 
       <ContentWrapper>
-        <p>
+        <InfoText>
           {t(
             `Welcome to the world of distributed tracing! Chances are, you’ve got multiple services connected and acting like dominos.
             Traces help you understand what span operations cascade into another, debugging errors, slowdowns, etc.
             Click any of the bars to get the nitty gritty details of what happened there or learn about some of the most popular workflows from here.`
           )}
-        </p>
+        </InfoText>
 
         <LinksWithImage>
           <LinkSection />
-          <ImageWrapper src={image} />
+          <ImageWrapper src={image} alt={t('Sentry cant fix this')} />
         </LinksWithImage>
+
+        <ShortcutSection>
+          <ShortcutsLayout>
+            <div>
+              <Shortcuts>
+                {KEYBOARD_SHORTCUTS.map(([key, description]) => (
+                  <Shortcut key={key}>
+                    <strong>{key}</strong>
+                    <div>{description}</div>
+                  </Shortcut>
+                ))}
+                {TIMELINE_SHORTCUTS.map(([key, description]) => (
+                  <Shortcut key={key}>
+                    <strong>{key}</strong>
+                    <div>{description}</div>
+                  </Shortcut>
+                ))}
+              </Shortcuts>
+            </div>
+          </ShortcutsLayout>
+        </ShortcutSection>
       </ContentWrapper>
     </MainContainer>
   );
@@ -127,11 +154,17 @@ const ContentWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
+const InfoText = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
 const LinksWithImage = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+
+  margin-bottom: ${space(3)};
 `;
 
 const StyledList = styled('ul')`
@@ -140,6 +173,30 @@ const StyledList = styled('ul')`
 `;
 
 const ImageWrapper = styled('img')`
-  max-width: 350px;
+  max-width: 400px;
+  max-height: 400px;
+
   min-width: 100px;
+  min-height: 100px;
+`;
+
+const ShortcutSection = styled('div')`
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(2)};
+`;
+
+const Shortcut = styled('li')`
+  height: 28px;
+  display: grid;
+  grid-template-columns: min-content 1fr;
+
+  strong {
+    display: inline-block;
+    min-width: 130px;
+  }
+
+  div {
+    min-width: 150px;
+  }
 `;
