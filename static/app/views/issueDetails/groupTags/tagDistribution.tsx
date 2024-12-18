@@ -15,7 +15,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const hasOther = totalVisible < tag.totalValues;
 
   return (
-    <PreviewDistribution>
+    <div>
       <TagHeader>
         <TagPreviewTitle>{tag.key}</TagPreviewTitle>
       </TagHeader>
@@ -44,7 +44,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
           </TagValueRow>
         )}
       </TagValueContent>
-    </PreviewDistribution>
+    </div>
   );
 }
 
@@ -128,10 +128,6 @@ const TagHeader = styled('h5')`
   justify-content: space-between;
   margin-bottom: ${space(0.5)};
   color: ${p => p.theme.textColor};
-`;
-
-const PreviewDistribution = styled('div')`
-  flex-basis: 100%;
 `;
 
 const TagTitle = styled('div')`

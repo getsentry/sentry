@@ -28,7 +28,8 @@ export default function IssueTagsPreview({
     const sortedTags = tags
       ?.filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
-    return sortedTags?.slice(0, 2) ?? [];
+
+    return sortedTags?.slice(0, 1) ?? [];
   }, [tags]);
 
   if (isPending) {
@@ -56,13 +57,9 @@ export default function IssueTagsPreview({
 }
 
 const TagsPreview = styled('div')`
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-  gap: ${space(1)};
   padding-top: ${space(1)};
-  max-width: 30%;
-  width: 350px;
+  max-width: 25%;
+  width: 145px;
 `;
 
 const SectionDivider = styled('div')`
