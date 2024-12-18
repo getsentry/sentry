@@ -355,6 +355,11 @@ def get_grouping_variants_for_event(
     raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
     fingerprint_type = get_fingerprint_type(raw_fingerprint)
+    resolved_fingerprint = (
+        raw_fingerprint
+        if fingerprint_type == "default"
+        else resolve_fingerprint_values(raw_fingerprint, event.data)
+    )
 
     context = GroupingContext(config or load_default_grouping_config())
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
@@ -372,7 +377,6 @@ def get_grouping_variants_for_event(
             )
             variants[variant_name] = ComponentVariant(root_component, context.config)
 
-        resolved_fingerprint = resolve_fingerprint_values(raw_fingerprint, event.data)
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
             variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
@@ -385,7 +389,6 @@ def get_grouping_variants_for_event(
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
     elif fingerprint_type == "hybrid":
-        resolved_fingerprint = resolve_fingerprint_values(raw_fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = SaltedComponentVariant(
                 resolved_fingerprint, root_component, context.config, fingerprint_info
