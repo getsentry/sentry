@@ -1504,21 +1504,9 @@ function buildRoutes() {
     />
   );
 
-  const moduleUrlToModule: Record<keyof typeof MODULE_BASE_URLS, ModuleName> = {
-    'mobile-screens': ModuleName.MOBILE_SCREENS,
-    'mobile-ui': ModuleName.MOBILE_UI,
-    'screen-rendering': ModuleName.SCREEN_RENDERING,
-    ai: ModuleName.AI,
-    app_start: ModuleName.APP_START,
-    cache: ModuleName.CACHE,
-    db: ModuleName.DB,
-    http: ModuleName.HTTP,
-    queue: ModuleName.QUEUE,
-    resource: ModuleName.RESOURCE,
-    screen_load: ModuleName.SCREEN_LOAD,
-    other: ModuleName.OTHER,
-    vital: ModuleName.VITAL,
-  };
+  const moduleUrlToModule: Record<string, ModuleName> = Object.fromEntries(
+    Object.values(ModuleName).map(name => [MODULE_BASE_URLS[name], name])
+  );
 
   const insightsRedirects = Object.values(MODULE_BASE_URLS)
     .map(
