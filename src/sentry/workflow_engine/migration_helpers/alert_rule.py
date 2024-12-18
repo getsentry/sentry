@@ -1,5 +1,6 @@
 # NOTE: will have to rebase and add these changes to the file created by Colleen once her changes land
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.models import QuerySubscription
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -39,7 +40,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
         data_source = DataSource.objects.get(
             organization=organization,
             query_id=query_subscription.id,
-            type="snuba_query_subscription",  # TODO: rebase and use the constant
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
         )
     except DataSource.DoesNotExist:
         return None
