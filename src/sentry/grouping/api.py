@@ -351,9 +351,9 @@ def get_grouping_variants_for_event(
 
     # Otherwise we go to the various forms of grouping based on fingerprints and/or event data
     # (stacktrace, message, etc.)
-    fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
+    raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
-    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
+    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in raw_fingerprint)
 
     context = GroupingContext(config or load_default_grouping_config())
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
@@ -371,21 +371,23 @@ def get_grouping_variants_for_event(
             )
             variants[variant_name] = ComponentVariant(root_component, context.config)
 
-        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
+        resolved_fingerprint = resolve_fingerprint_values(raw_fingerprint, event.data)
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
             variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
-                fingerprint, fingerprint_info
+                resolved_fingerprint, fingerprint_info
             )
         else:
-            variants["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
-    elif defaults_referenced == 1 and len(fingerprint) == 1:
+            variants["custom_fingerprint"] = CustomFingerprintVariant(
+                resolved_fingerprint, fingerprint_info
+            )
+    elif defaults_referenced == 1 and len(raw_fingerprint) == 1:
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
     else:
-        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
+        resolved_fingerprint = resolve_fingerprint_values(raw_fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = SaltedComponentVariant(
-                fingerprint, root_component, context.config, fingerprint_info
+                resolved_fingerprint, root_component, context.config, fingerprint_info
             )
 
     # Ensure we have a fallback hash if nothing else works out
