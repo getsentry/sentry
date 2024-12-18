@@ -73,14 +73,14 @@ class InvalidProvider(Exception):
 
 def get_provider(
     organization_id: int, provider_name: str, headers: HttpHeaders
-) -> ProviderProtocol[dict[str, Any]]:
+) -> ProviderProtocol[dict[str, Any]] | None:
     match provider_name:
         case "launchdarkly":
             return LaunchDarklyProvider(organization_id, signature=headers.get("X-LD-Signature"))
         case "generic":
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
-
-    raise InvalidProvider()
+        case _:
+            return None
 
 
 """LaunchDarkly provider."""

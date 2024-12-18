@@ -8,7 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.flags.providers import DeserializationError, InvalidProvider, get_provider, write
+from sentry.flags.providers import DeserializationError, get_provider, write
 from sentry.models.organization import Organization
 
 
@@ -27,14 +27,13 @@ class OrganizationFlagsHooksEndpoint(OrganizationEndpoint):
 
         try:
             provider_cls = get_provider(organization.id, provider, request.headers)
-
-            if not provider_cls.validate(request.body):
+            if provider_cls is None:
+                raise ResourceDoesNotExist
+            elif not provider_cls.validate(request.body):
                 return Response("Not authorized.", status=401)
             else:
                 write(provider_cls.handle(request.data))
                 return Response(status=200)
-        except InvalidProvider:
-            raise ResourceDoesNotExist
         except DeserializationError as exc:
             sentry_sdk.capture_exception()
             return Response(exc.errors, status=200)
