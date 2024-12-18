@@ -4,6 +4,8 @@ import uuid
 from collections.abc import Sequence
 from unittest.mock import patch
 
+from snuba_sdk import Column, Condition, Op
+
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
@@ -253,3 +255,168 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         group = Group.objects.get()
         group.last_seen = before_now(days=91)
         assert _get_recommended_non_null(group).event_id == event.event_id
+
+
+class GroupTestSnubaErrorIssue(
+    TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin
+):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "environment": "staging",
+                "fingerprint": ["group-1"],
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+        self.event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(minutes=2)),
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+        self.event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-1"],
+                "tags": {"organization.slug": "sentry"},
+                "environment": "staging",
+                "contexts": {
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+
+    def test_recommended_event(self):
+        group = Group.objects.get()
+        assert isinstance(group, Group)
+
+        # No filter
+        assert group.get_recommended_event().event_id == self.event_b.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert group.get_recommended_event(conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert group.get_recommended_event(conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert group.get_recommended_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert group.get_recommended_event(conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert group.get_recommended_event(conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            group.get_recommended_event(
+                start=before_now(seconds=120),
+                end=before_now(seconds=30),
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            group.get_recommended_event(
+                start=before_now(hours=1),
+                end=before_now(seconds=90),
+            ).event_id
+            == self.event_b.event_id
+        )
+
+    def test_latest_event(self):
+        group = Group.objects.get()
+        assert isinstance(group, Group)
+
+        # No filter
+        assert group.get_latest_event().event_id == self.event_a.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert group.get_latest_event(conditions=conditions).event_id == self.event_a.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert group.get_latest_event(conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert group.get_latest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert group.get_latest_event(conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert group.get_latest_event(conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            group.get_latest_event(
+                start=before_now(seconds=120),
+                end=before_now(seconds=30),
+            ).event_id
+            == self.event_a.event_id
+        )
+        assert (
+            group.get_latest_event(
+                start=before_now(hours=1),
+                end=before_now(seconds=90),
+            ).event_id
+            == self.event_b.event_id
+        )
+
+    def test_oldest_event(self):
+        group = Group.objects.get()
+        assert isinstance(group, Group)
+
+        # No filter
+        assert group.get_oldest_event().event_id == self.event_c.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert group.get_oldest_event(conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert group.get_oldest_event(conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert group.get_oldest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert group.get_oldest_event(conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert group.get_oldest_event(conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            group.get_oldest_event(
+                start=before_now(seconds=150),
+                end=before_now(seconds=30),
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            group.get_oldest_event(
+                start=before_now(hours=1),
+                end=before_now(seconds=90),
+            ).event_id
+            == self.event_c.event_id
+        )
