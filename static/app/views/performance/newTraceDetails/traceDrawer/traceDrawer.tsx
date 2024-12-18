@@ -102,9 +102,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
-  const isDrawerMinized =
+  const isDrawerMinimized =
     traceStateRef.current.preferences.drawer.minimized ||
     (hasNewTraceUi && !traceStateRef.current.tabs.current_tab?.node);
+
+  const minimizedBottomDrawerSize = hasNewTraceUi ? 0 : 27;
 
   const initialSizeRef = useRef<Record<string, number> | null>(null);
   if (!initialSizeRef.current) {
@@ -132,10 +134,10 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.scheduler.dispatch('set container physical space', [0, 0, width, height]);
       }
 
-      minimized = minimized ?? isDrawerMinized;
+      minimized = minimized ?? isDrawerMinimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
-        if (size <= min && !minimized) {
+        if (size <= min && !minimized && !hasNewTraceUi) {
           traceDispatch({
             type: 'minimize drawer',
             payload: true,
@@ -157,7 +159,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         cancelAnimationTimeout(resizeEndRef.current);
       }
       resizeEndRef.current = requestAnimationTimeout(() => {
-        if (isDrawerMinized) {
+        if (isDrawerMinimized) {
           return;
         }
         const drawer_size =
@@ -172,7 +174,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
-        min = minimized ? 27 : size;
+        min = minimized ? minimizedBottomDrawerSize : size;
       } else {
         min = minimized ? 0 : size;
       }
@@ -188,7 +190,15 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, props.manager, props.scheduler, traceDispatch, isDrawerMinized]
+    [
+      props.traceGridRef,
+      props.manager,
+      props.scheduler,
+      traceDispatch,
+      isDrawerMinimized,
+      hasNewTraceUi,
+      minimizedBottomDrawerSize,
+    ]
   );
 
   const [drawerRef, setDrawerRef] = useState<HTMLDivElement | null>(null);
@@ -203,7 +213,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         height: 0,
       };
 
-      const initialSize = isDrawerMinized
+      const initialSize = isDrawerMinimized
         ? 0
         : traceState.preferences.layout === 'drawer bottom'
           ? height * initialSizeInPercentage
@@ -215,7 +225,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         ref: drawerRef,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.traceGridRef, traceState.preferences.layout, drawerRef, isDrawerMinized]);
+    }, [props.traceGridRef, traceState.preferences.layout, drawerRef, isDrawerMinimized]);
 
   const resizableDrawerOptions: UsePassiveResizableDrawerOptions = useMemo(() => {
     return {
@@ -247,9 +257,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
     traceAnalytics.trackDrawerMinimize(organization);
     traceDispatch({
       type: 'minimize drawer',
-      payload: !isDrawerMinized,
+      payload: !isDrawerMinimized,
     });
-    if (!isDrawerMinized) {
+    if (!isDrawerMinimized) {
       onResize(0, 0, true, true);
       size.current = drawerOptions.min;
     } else {
@@ -278,13 +288,13 @@ export function TraceDrawer(props: TraceDrawerProps) {
     onResize,
     traceDispatch,
     props.traceGridRef,
-    isDrawerMinized,
+    isDrawerMinimized,
     organization,
     drawerOptions,
   ]);
 
   const onDoubleClickResetToDefault = useCallback(() => {
-    if (!isDrawerMinized) {
+    if (!isDrawerMinimized) {
       onMinimizeClick();
       return;
     }
@@ -309,7 +319,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     drawerOptions.min,
     traceState.preferences.layout,
     props.traceGridRef,
-    isDrawerMinized,
+    isDrawerMinimized,
     traceDispatch,
   ]);
 
@@ -318,11 +328,11 @@ export function TraceDrawer(props: TraceDrawerProps) {
     if (initializedRef.current) {
       return;
     }
-    if (isDrawerMinized && props.traceGridRef) {
+    if (isDrawerMinimized && props.traceGridRef) {
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
         props.traceGridRef.style.gridTemplateColumns = `1fr`;
-        props.traceGridRef.style.gridTemplateRows = `1fr minmax(${27}px, 0%)`;
-        size.current = 27;
+        props.traceGridRef.style.gridTemplateRows = `1fr minmax(${minimizedBottomDrawerSize}px, 0%)`;
+        size.current = minimizedBottomDrawerSize;
       } else if (traceStateRef.current.preferences.layout === 'drawer left') {
         props.traceGridRef.style.gridTemplateColumns = `minmax(${0}px, 0%) 1fr`;
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
@@ -335,7 +345,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       initializedRef.current = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.traceGridRef]);
+  }, [props.traceGridRef, minimizedBottomDrawerSize]);
 
   // Syncs the height of the tabs with the trace indicators
   const hasIndicators =
@@ -343,7 +353,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
     traceState.preferences.layout !== 'drawer bottom';
 
   if (
-    isDrawerMinized &&
+    isDrawerMinimized &&
     (traceState.preferences.layout !== 'drawer bottom' || hasNewTraceUi)
   ) {
     return hasNewTraceUi ? null : (
@@ -422,7 +432,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
           ) : null}
         </TabsLayout>
       </TabsHeightContainer>
-      {isDrawerMinized ? null : (
+      {isDrawerMinimized ? null : (
         <DrawerContainerRefContext.Provider value={contentContainerRef}>
           <Content
             ref={contentContainerRef}
