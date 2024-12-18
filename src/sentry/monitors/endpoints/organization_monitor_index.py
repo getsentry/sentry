@@ -365,8 +365,11 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = dict(validator.validated_data)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         monitor_guids = result.pop("ids", [])
-        monitors = Monitor.objects.filter(guid__in=monitor_guids)
+        monitors = Monitor.objects.filter(guid__in=monitor_guids, project_id__in=project_ids)
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
