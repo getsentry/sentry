@@ -297,6 +297,8 @@ def _get_component_trees_for_variants(
             all_strategies_components_by_variant.setdefault(variant_name, []).append(component)
 
             if component.contributes:
+                # If we haven't yet found a winner.. now we have! Keep track of which strategy won
+                # so we can add hints to the others indicating what took precedence
                 if winning_strategy is None:
                     winning_strategy = strategy.name
                     variant_descriptor = "/".join(
@@ -314,6 +316,8 @@ def _get_component_trees_for_variants(
                         ),
                         "" if strategy.name.endswith("s") else "s",
                     )
+                # On the other hand, if another strategy before this one was already the winner, we
+                # don't want any of this strategy's components to contribute to grouping
                 elif strategy.name != winning_strategy:
                     component.update(contributes=False, hint=precedence_hint)
 
@@ -325,8 +329,14 @@ def _get_component_trees_for_variants(
             "system": SystemGroupingComponent,
         }
         root_component = component_class_by_variant[variant_name](values=components)
+
+        # The root component will pull its `contributes` value from the components it wraps - if
+        # none of them contributes, it will also be marked as non-contributing. But those components
+        # might not have the same reasons for not contributing (`hint` values), so it can't pull
+        # that them - it's gotta be set here.
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
+
         component_trees_by_variant[variant_name] = root_component
 
     return component_trees_by_variant
