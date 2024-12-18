@@ -42,5 +42,5 @@ class DataSourceTypeHandler(Generic[T]):
 
 class DataConditionHandler(Generic[T]):
     @staticmethod
-    def evaluate_value(value: T, comparison: Any, condition: str) -> DataConditionResult:
+    def evaluate_value(value: T, comparison: Any) -> DataConditionResult:
         raise NotImplementedError
