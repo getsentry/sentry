@@ -37,7 +37,7 @@ describe('getDefaultWidget', () => {
           conditions: '',
           aggregates: ['count(span.duration)'],
           columns: [],
-          orderby: '',
+          orderby: '-count(span.duration)',
           fieldAliases: [],
           name: '',
         },
