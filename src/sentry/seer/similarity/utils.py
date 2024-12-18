@@ -42,69 +42,19 @@ EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
         "ruby",
     ]
 )
-SEER_ELIGIBLE_PLATFORMS = EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK | frozenset(
+# Existing projects with these platforms shouldn't be backfilled and new projects with these
+# platforms shouldn't have Seer enabled.
+SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        "android",
-        "android-profiling-onboarding-1-install",
-        "android-profiling-onboarding-3-configure-profiling",
-        "android-profiling-onboarding-4-upload",
-        "apple-ios",
-        "csharp",
-        "csharp-aspnetcore",
-        "dart",
-        "dotnet",
-        "flutter",
-        "groovy",
-        "java",
-        "java-android",
-        "java-appengine",
-        "java-log4j",
-        "java-log4j2",
-        "java-logging",
-        "java-logback",
-        "java-spring",
-        "java-spring-boot",
-        "perl",
-        # Remaining platforms
-        "apple",
-        "apple-ios-profiling-onboarding-1-install",
-        "apple-ios-profiling-onboarding-4-upload",
-        "apple-macos",
-        # "c", A native platform -> excluded for now
-        "capacitor",
-        "cfml",
-        "cocoa",
-        "cocoa-objc",
-        "cocoa-swift",
-        "dotnet-aspnet",
-        "dotnet-aspnetcore",
-        "dotnet-awslambda",
-        "dotnet-gcpfunctions",
-        "dotnet-google-cloud-functions",
-        "dotnet-maui",
-        "dotnet-uwp",
-        "dotnet-winforms",
-        "dotnet-wpf",
-        "dotnet-xamarin",
-        "electron",
-        "elixir",
-        "javascript-nextjs",
-        "javascript-nuxt",
-        "javascript-solidstart",
-        "kotlin",
-        # "minidump", A native platform -> excluded for now
-        # "native", A native platform -> excluded for now
-        # "native-qt", A native platform -> excluded for now
-        "nintendo-switch",
-        "objc",
-        # The null and empty platform are also excluded for now
-        # "other"
-        "powershell",
-        "rust",
-        "swift",
-        "switt",
-        "unity",
-        "unreal",
+        # Native platforms
+        "c",
+        "minidump",
+        "native",
+        "native-qt",
+        # We have no clue what's in these projects
+        "other",
+        "",
+        None,
     ]
 )
 BASE64_ENCODED_PREFIXES = [
@@ -490,7 +440,7 @@ def project_is_seer_eligible(project: Project) -> bool:
     the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
-    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+    is_seer_eligible_platform = project.platform not in SEER_INELIGIBLE_PROJECT_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
