@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -10,7 +11,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
+
+import {CredentialRow} from './CredentialRow';
 
 interface Props {
   organization: Organization;
@@ -19,6 +23,10 @@ interface Props {
 
 export default function TempestSettings({organization, project}: Props) {
   const hasWriteAccess = useHasTempestWriteAccess();
+  const {data: tempestCredentials, isLoading} = useFetchTempestCredentials(
+    organization,
+    project
+  );
 
   if (!hasTempestAccess(organization)) {
     return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
@@ -31,6 +39,16 @@ export default function TempestSettings({organization, project}: Props) {
         title={t('Playstation')}
         action={addNewCredentials(hasWriteAccess, organization, project)}
       />
+
+      <PanelTable
+        headers={[t('Client ID'), t('Client Secret'), t('Created At'), t('Created By')]}
+        isLoading={isLoading}
+        isEmpty={!tempestCredentials?.length}
+      >
+        {tempestCredentials?.map(credential => (
+          <CredentialRow key={credential.id} credential={credential} />
+        ))}
+      </PanelTable>
     </Fragment>
   );
 }

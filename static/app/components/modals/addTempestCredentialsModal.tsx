@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import AddTempestCredentialsForm from 'sentry/views/settings/project/tempest/addTempestCredentialsForm';
+import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 
 interface Props extends ModalRenderProps {
   organization: Organization;
@@ -12,7 +13,13 @@ interface Props extends ModalRenderProps {
 }
 
 export default function AddCredentialsModal({Body, Header, ...props}: Props) {
-  const {organization, project} = props;
+  const {closeModal, organization, project} = props;
+  const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
+
+  const onSuccess = () => {
+    closeModal();
+    invalidateCredentialsCache();
+  };
 
   return (
     <Fragment>
@@ -22,6 +29,7 @@ export default function AddCredentialsModal({Body, Header, ...props}: Props) {
           {...props}
           organization={organization}
           project={project}
+          onSuccess={onSuccess}
         />
       </Body>
     </Fragment>
