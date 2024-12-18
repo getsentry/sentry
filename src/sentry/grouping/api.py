@@ -374,18 +374,16 @@ def get_grouping_variants_for_event(
     context = GroupingContext(config or load_default_grouping_config())
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
     variants: dict[str, BaseVariant] = {}
+    for variant_name, root_component in component_trees_by_variant.items():
+        variants[variant_name] = ComponentVariant(root_component, context.config)
 
     # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
     # we need to create an addiional fingerprint variant and mark the existing variants as
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
     if fingerprint_type == "custom":
-        for variant_name, root_component in component_trees_by_variant.items():
-            root_component.update(
-                contributes=False,
-                hint="custom fingerprint takes precedence",
-            )
-            variants[variant_name] = ComponentVariant(root_component, context.config)
+        for variant in variants.values():
+            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
 
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
             variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
@@ -395,13 +393,10 @@ def get_grouping_variants_for_event(
             variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
-    elif fingerprint_type == "default":
-        for variant_name, root_component in component_trees_by_variant.items():
-            variants[variant_name] = ComponentVariant(root_component, context.config)
     elif fingerprint_type == "hybrid":
-        for variant_name, root_component in component_trees_by_variant.items():
-            variants[variant_name] = SaltedComponentVariant(
-                resolved_fingerprint, root_component, context.config, fingerprint_info
+        for variant_name, variant in variants.items():
+            variants[variant_name] = SaltedComponentVariant.from_component_variant(
+                variant, resolved_fingerprint, fingerprint_info
             )
 
     # Ensure we have a fallback hash if nothing else works out
