@@ -2,15 +2,17 @@ import functools
 import logging
 import os
 from collections.abc import Mapping, MutableMapping
+from datetime import datetime
 from typing import Any
 
 import orjson
 import sentry_sdk
+from arroyo.dlq import InvalidMessage
 from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import EventManager, save_attachment
 from sentry.eventstore.processing import event_processing_store, transaction_processing_store
@@ -169,6 +171,21 @@ def process_event(
     else:
         processing_store = event_processing_store
 
+    if (
+        consumer_type == ConsumerType.Transactions or data.get("type") == "transaction"
+    ) and options.get("transactions.stale_dlq_enabled"):
+        # check timestamp
+        timestamp = message.get("timestamp") if message.get("timestamp") else start_time
+
+        if timestamp and datetime.datetime.now() - timestamp > options.get(
+            "transactions.stale_dlq_threshold_ms"
+        ):
+
+            raise InvalidMessage(
+                message.get("partition"),
+                message.get("offset"),
+                reason="Stale Message",
+            )
     sentry_sdk.set_extra("event_type", data.get("type"))
 
     with sentry_sdk.start_span(

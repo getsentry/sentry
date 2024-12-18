@@ -2908,3 +2908,18 @@ register(
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# feature flag testing for DLQ Kafka transactions
+register(
+    "transactions.stale_dlq_enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "transactions.stale_dlq_threshold_ms",
+    default=600000,
+    type=int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
