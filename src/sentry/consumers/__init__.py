@@ -569,19 +569,20 @@ def get_stream_processor(
     else:
         stale_topic = None
 
+    dlq_policy = None
+
     if enable_dlq or stale_threshold_sec:
         dlq_producer = build_dlq_producer(dlq_topic=dlq_topic, stale_topic=stale_topic)
 
-        dlq_policy = DlqPolicy(
-            dlq_producer,
-            DlqLimit(
-                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
-                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
-            ),
-            None,
-        )
-    else:
-        dlq_policy = None
+        if dlq_producer:
+            dlq_policy = DlqPolicy(
+                dlq_producer,
+                DlqLimit(
+                    max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                    max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
+                ),
+                None,
+            )
 
     return StreamProcessor(
         consumer=consumer,
