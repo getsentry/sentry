@@ -21,7 +21,7 @@ from sentry.conf.types.kafka_definition import (
     Topic,
     validate_consumer_definition,
 )
-from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, build_dlq_producer
+from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper, maybe_build_dlq_producer
 from sentry.consumers.validate_schema import ValidateSchema
 from sentry.eventstream.types import EventStreamEventType
 from sentry.ingest.types import ConsumerType
@@ -569,20 +569,17 @@ def get_stream_processor(
     else:
         stale_topic = None
 
-    dlq_policy = None
+    dlq_producer = maybe_build_dlq_producer(dlq_topic=dlq_topic, stale_topic=stale_topic)
 
-    if enable_dlq or stale_threshold_sec:
-        dlq_producer = build_dlq_producer(dlq_topic=dlq_topic, stale_topic=stale_topic)
-
-        if dlq_producer:
-            dlq_policy = DlqPolicy(
-                dlq_producer,
-                DlqLimit(
-                    max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
-                    max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
-                ),
-                None,
-            )
+    if dlq_producer:
+        dlq_policy = DlqPolicy(
+            dlq_producer,
+            DlqLimit(
+                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
+                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
+            ),
+            None,
+        )
 
     return StreamProcessor(
         consumer=consumer,

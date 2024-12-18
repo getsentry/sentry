@@ -66,7 +66,7 @@ def _get_dlq_producer(topic: Topic | None) -> KafkaDlqProducer | None:
     return KafkaDlqProducer(KafkaProducer(config), ArroyoTopic(real_topic))
 
 
-def build_dlq_producer(
+def maybe_build_dlq_producer(
     dlq_topic: Topic | None,
     stale_topic: Topic | None,
 ) -> MultipleDestinationDlqProducer | None:
