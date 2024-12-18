@@ -1,5 +1,4 @@
 import math
-
 from hashlib import sha1
 
 import pytest
