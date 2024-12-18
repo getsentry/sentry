@@ -15,7 +15,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
         self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.build_occurrence_data(evidence_data={"detector_id": self.detector.id})
+            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
 
     def test_basic__no_filter(self):
@@ -25,8 +25,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
     def test_basic__with_filter__passes(self):
         self.create_data_condition(
             condition_group=self.action_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="group.times_seen",
+            type=Condition.EVENT_SEEN_COUNT,
             comparison=1,
             condition_result=True,
         )
@@ -38,8 +37,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         # Add a filter to the action's group
         self.create_data_condition(
             condition_group=self.action_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EVENT_CREATED_BY_DETECTOR,
             comparison=self.detector.id + 1,
         )
 
