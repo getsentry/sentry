@@ -279,9 +279,9 @@ def apply_server_fingerprinting(
         event["_fingerprint_info"] = fingerprint_info
 
 
-def _get_component_trees_for_variants(
+def _get_variants_from_strategies(
     event: Event, context: GroupingContext
-) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
+) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
     all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
@@ -321,7 +321,8 @@ def _get_component_trees_for_variants(
                 elif strategy.name != winning_strategy:
                     component.update(contributes=False, hint=precedence_hint)
 
-    component_trees_by_variant = {}
+    variants = {}
+
     for variant_name, components in all_strategies_components_by_variant.items():
         component_class_by_variant = {
             "app": AppGroupingComponent,
@@ -337,9 +338,12 @@ def _get_component_trees_for_variants(
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
 
-        component_trees_by_variant[variant_name] = root_component
+        variants[variant_name] = ComponentVariant(
+            component=root_component,
+            strategy_config=context.config,
+        )
 
-    return component_trees_by_variant
+    return variants
 
 
 # This is called by the Event model in get_grouping_variants()
@@ -371,36 +375,49 @@ def get_grouping_variants_for_event(
         else resolve_fingerprint_values(raw_fingerprint, event.data)
     )
 
+    # Run all of the event-data-based grouping strategies. Any which apply will create grouping
+    # components, which will then be grouped into variants by variant type (system, app, default).
     context = GroupingContext(config or load_default_grouping_config())
-    component_trees_by_variant = _get_component_trees_for_variants(event, context)
-    variants: dict[str, BaseVariant] = {}
-    for variant_name, root_component in component_trees_by_variant.items():
-        variants[variant_name] = ComponentVariant(root_component, context.config)
+    strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
+        event, context
+    )
+
+    # Create a separate container for these for now to preserve the typing of
+    # `strategy_component_variants`
+    additional_variants: dict[str, BaseVariant] = {}
 
     # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
     # we need to create an addiional fingerprint variant and mark the existing variants as
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
     if fingerprint_type == "custom":
-        for variant in variants.values():
+        for variant in strategy_component_variants.values():
             variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
 
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
-            variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
+            additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
         else:
-            variants["custom_fingerprint"] = CustomFingerprintVariant(
+            additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
     elif fingerprint_type == "hybrid":
-        for variant_name, variant in variants.items():
-            variants[variant_name] = SaltedComponentVariant.from_component_variant(
+        for variant_name, variant in strategy_component_variants.items():
+            # Since we're reusing the variant names, when all of the variants are combined, these
+            # salted versions will replace the unsalted versions
+            additional_variants[variant_name] = SaltedComponentVariant.from_component_variant(
                 variant, resolved_fingerprint, fingerprint_info
             )
 
-    # Ensure we have a fallback hash if nothing else works out
-    if not any(x.contributes for x in variants.values()):
-        variants["fallback"] = FallbackVariant()
+    final_variants = {
+        **strategy_component_variants,
+        # Add these in second, so the salted versions of any variants replace the unsalted versions
+        **additional_variants,
+    }
 
-    return variants
+    # Ensure we have a fallback hash if nothing else works out
+    if not any(x.contributes for x in final_variants.values()):
+        final_variants["fallback"] = FallbackVariant()
+
+    return final_variants
