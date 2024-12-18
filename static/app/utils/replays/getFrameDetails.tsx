@@ -43,6 +43,7 @@ import type {
   RawBreadcrumbFrame,
   ReplayFrame,
   SlowClickFrame,
+  SwipeFrame,
   TapFrame,
   WebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -202,6 +203,13 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
+  }),
+  'ui.swipe': (frame: SwipeFrame) => ({
+    color: 'blue400',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Swipe',
+    icon: <IconTap size="xs" />,
   }),
   'ui.tap': (frame: TapFrame) => ({
     color: 'purple400',
