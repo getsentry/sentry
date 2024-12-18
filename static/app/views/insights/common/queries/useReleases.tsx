@@ -1,5 +1,6 @@
 import chunk from 'lodash/chunk';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -13,14 +14,22 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
-export function useReleases(searchTerm?: string) {
+export function useReleases({
+  searchTerm,
+  sortBy,
+}: {
+  searchTerm?: string;
+  sortBy?: ReleasesSortByOption;
+} = {}) {
   const organization = useOrganization();
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
   const api = useApi();
 
+  const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
@@ -30,7 +39,8 @@ export function useReleases(searchTerm?: string) {
           per_page: 50,
           environment: environments,
           query: searchTerm,
-          sort: 'date',
+          sort: activeSort === 'number_events' ? 'date' : activeSort,
+          flatten: activeSort === 'date' || activeSort === 'number_events' ? 0 : 1,
         },
       },
     ],
