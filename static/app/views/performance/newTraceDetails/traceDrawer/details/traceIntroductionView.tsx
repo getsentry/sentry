@@ -136,6 +136,7 @@ const LinksWithImage = styled('div')`
 
 const StyledList = styled('ul')`
   min-width: 200px;
+  color: ${p => p.theme.blue300};
 `;
 
 const ImageWrapper = styled('img')`
