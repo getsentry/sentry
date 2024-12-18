@@ -144,9 +144,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 
       <Actions>
         <Tooltip
-          title={t(
-            'You must be an organization owner, manager or admin to revoke a token.'
-          )}
+          title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
         >
           <Confirm
