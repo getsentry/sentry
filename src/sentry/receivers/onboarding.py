@@ -118,7 +118,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        try_mark_onboarding_complete(project.organization_id, default_user)
+        try_mark_onboarding_complete(project.organization_id, user if user else default_user)
 
 
 @first_event_received.connect(weak=False)
