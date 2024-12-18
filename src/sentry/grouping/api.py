@@ -355,9 +355,7 @@ def get_grouping_variants_for_event(
     fingerprint_info = event.data.get("_fingerprint_info", {})
     defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
 
-    if config is None:
-        config = load_default_grouping_config()
-    context = GroupingContext(config)
+    context = GroupingContext(config or load_default_grouping_config())
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
     variants: dict[str, BaseVariant] = {}
 
