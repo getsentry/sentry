@@ -43,4 +43,6 @@ class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
             "messageType",
             "latestFetchedItemId",
             "createdById",
+            "dateAdded",
+            "dateUpdated",
         ]
