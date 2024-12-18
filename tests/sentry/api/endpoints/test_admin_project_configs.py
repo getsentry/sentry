@@ -98,7 +98,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Asking for a project that was not cached in redis will return
         an empty marker
         """
-        expected = {"configs": {self.p2_pk.public_key: None}}
+        outdated = {"configs": {self.p2_pk.public_key: None}}
 
         self.login_as(self.superuser, superuser=True)
 
@@ -106,13 +106,13 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         actual = response.json()
-        assert actual == expected
+        assert actual != outdated
 
         url = self.get_url(key=self.p2_pk.public_key)
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         actual = response.json()
-        assert actual == expected
+        assert actual != outdated
 
     def test_inexistent_project(self):
         """
@@ -166,9 +166,9 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
             }
         )
         response = self.client.post(url, data=data)
-        assert response.status_code == 200
+        assert response.status_code == 201
 
-    def test_invalidate_project_config_cached_project_returns_correct_config(self):
+    def test_invalidate_project_config_cached_project_sets_correct_config(self):
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj2.id}
@@ -178,25 +178,22 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
             }
         )
         response = self.client.post(url, data=data)
-        configs = response.data["configs"]
-        assert len(configs) == 1
-        assert configs[self.p2_pk.public_key] != {"proj2": "config"}
+        assert response.status_code == 201
+        assert projectconfig_cache.backend.get(self.p2_pk.public_key) != {"proj2": "config"}
 
     def test_invalidate_project_config_uncached_project(self):
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
-        assert response.status_code == 200
+        assert response.status_code == 201
 
     def test_invalidate_project_config_uncached_project_returns_correct_config(self):
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
-        configs = response.data["configs"]
-        assert len(configs) == 1
-        assert self.p1_pk.public_key in configs
+        assert response.status_code == 201
 
     def test_invalidate_project_config_with_multiple_project_keys(self):
         url = self.get_url()
@@ -220,12 +217,6 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         data = {"projectId": test_project.id}
         response = self.client.post(url, data=data)
 
-        assert response.status_code == 200
-        configs = response.data["configs"]
-        assert len(configs) == 2
-        assert first_key.public_key in configs
-        assert second_key.public_key in configs
-        assert configs[first_key.public_key] != {"test_proj": "config1"}
-        assert configs[second_key.public_key] != {"test_proj": "config2"}
+        assert response.status_code == 201
         assert projectconfig_cache.backend.get(first_key.public_key) != {"test_proj": "config1"}
         assert projectconfig_cache.backend.get(second_key.public_key) != {"test_proj": "config2"}

@@ -49,21 +49,37 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
             else:
                 project = None
             if project_key_param:
-                project_key = ProjectKey.objects.get(public_key=project_key_param)
+                supplied_project_key = ProjectKey.objects.get(public_key=project_key_param)
             else:
-                project_key = None
+                supplied_project_key = None
         except Exception:
             raise Http404
 
-        project_keys = self._get_project_keys(project, project_key)
+        project_keys = self._get_project_keys(project, supplied_project_key)
 
-        configs: MutableMapping[str, ProjectConfig | None] = {}
+        configs: MutableMapping[str, MutableMapping[str, Any] | ProjectConfig | None] = {}
+        uncached_keys = []
         for project_key in project_keys:
-            cached_config = projectconfig_cache.backend.get(project_key.public_key)
-            if cached_config is not None:
-                configs[project_key.public_key] = cached_config
+            if isinstance(project_key, ProjectKey) and project_key.public_key is not None:
+                cached_config = projectconfig_cache.backend.get(project_key.public_key)
+                if cached_config is not None:
+                    configs[project_key.public_key] = cached_config
+                else:
+                    configs[project_key.public_key] = None
+                    uncached_keys.append(project_key)
+
+        if uncached_keys:
+            if supplied_project_key is not None:
+                generated_configs = self._get_project_config_sync(
+                    supplied_project_key.project, uncached_keys
+                )
+            elif project is not None:
+                generated_configs = self._get_project_config_sync(project, uncached_keys)
             else:
-                configs[project_key.public_key] = None
+                generated_configs = {}
+
+            for key, config in generated_configs.items():
+                configs[key] = config
 
         return Response({"configs": configs}, status=200)
 
@@ -88,7 +104,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
         configs = self._get_project_config_sync(project, project_keys)
         projectconfig_cache.backend.set_many(configs)
-        return Response({"configs": configs}, status=200)
+        return Response(status=201)
 
     def _get_project_keys(
         self, project: Project | None = None, project_key: ProjectKey | None = None
@@ -104,12 +120,15 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
         return project_keys
 
-    def _get_project_config_sync(self, project: Project, project_keys: list[ProjectKey]):
+    def _get_project_config_sync(
+        self, project: Project, project_keys: list[ProjectKey]
+    ) -> MutableMapping[str, MutableMapping[str, Any]]:
         configs: MutableMapping[str, MutableMapping[str, Any]] = {}
 
         for project_key in project_keys:
-            configs[project_key.public_key] = get_project_config(
-                project, project_keys=[project_key]
-            ).to_dict()
+            if project_key.public_key is not None:
+                configs[project_key.public_key] = get_project_config(
+                    project, project_keys=[project_key]
+                ).to_dict()
 
         return configs
