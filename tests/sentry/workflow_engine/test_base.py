@@ -93,8 +93,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             # create a trigger condition for a new event
             self.create_data_condition(
                 condition_group=workflow_triggers,
-                type=Condition.EQUAL,
-                input_data_filter="group.times_seen",
+                type=Condition.EVENT_SEEN_COUNT,
                 comparison=1,
                 condition_result=True,
             )
