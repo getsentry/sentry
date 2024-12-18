@@ -167,6 +167,7 @@ export function EAPSpanSearchQueryBuilder({
   stringTags,
   getFilterTokenWarning,
   supportedAggregates = [],
+  projects,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -215,7 +216,7 @@ export function EAPSpanSearchQueryBuilder({
           orgSlug: organization.slug,
           fieldKey: tag.key,
           search: queryString,
-          projectIds: selection.projects.map(String),
+          projectIds: (projects ?? selection.projects).map(String),
           endpointParams: normalizeDateTimeParams(selection.datetime),
           dataset: 'spans',
         });
@@ -224,7 +225,7 @@ export function EAPSpanSearchQueryBuilder({
         throw new Error(`Unable to fetch event field values: ${e}`);
       }
     },
-    [api, organization.slug, selection.projects, selection.datetime, numberTags]
+    [api, organization.slug, selection.projects, projects, selection.datetime, numberTags]
   );
 
   return (
