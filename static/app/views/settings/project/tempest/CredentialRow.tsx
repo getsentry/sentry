@@ -17,7 +17,7 @@ export function CredentialRow({credential}: {credential: TempestCredentials}) {
       </Flex>
 
       <Flex align="center">
-        {credential.createdByEmail ? credential.createdByEmail : '-'}
+        {credential.createdByEmail ? credential.createdByEmail : '\u2014'}
       </Flex>
     </Fragment>
   );
