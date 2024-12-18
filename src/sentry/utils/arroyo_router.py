@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections import deque
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Any, Deque, Generic, TypeVar
+from typing import Deque, Generic, TypeVar
 
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
@@ -62,12 +62,11 @@ class Router(
 
         message_route = self.routing_func(message)
         self.routes[message_route].submit(message)
-        self.buffer.remove(message, message_route)
 
         while True:
             next_message = self.buffer.poll()
             if next_message:
-                self.next_step.submit(next_message)  # this is fine because of backpresure_guard
+                self.next_step.submit(next_message)  # this is fine because of guard
             else:
                 break
 
@@ -99,8 +98,9 @@ class Router(
 
 class MessageBuffer(Generic[TResult]):
     """
-    Keeps track of the in-flight offsets for all routes, and buffers messages for submission
-    to the next step so that messages to subsequent stages are submitted in order.
+    Keeps track of the in-flight offsets for all routes, and buffers messages for
+    submission to the next step so that messages to subsequent stages are submitted only
+    after it's committable offset is reached on all routes.
     """
 
     def __init__(self, routes: Sequence[str]) -> None:
@@ -108,17 +108,21 @@ class MessageBuffer(Generic[TResult]):
         self.committable_offsets: Mapping[str, MutableMapping[Partition, int]] = {
             r: {} for r in routes
         }
-        # Keeps track of all messages together with the route on which it was sent
+
+        # the low watermarks?
+        self.committable_offsets: Mapping[str, MutableMapping[Partition, int]] = {
+            r: {} for r in routes
+        }
+
+        # Keeps track of all completed messages together with the route on which it was sent
         self.messages: Deque[tuple[str, Message[TResult]]] = deque()
 
     def add(self, message: Message[TResult], routing_key: str) -> None:
         self.messages.append((routing_key, message))
 
-    def remove(self, message: Message[Any], routing_key: str) -> None:
         for partition, committable_offset in message.committable.items():
-
             if self.committable_offsets[routing_key].get(partition):
-                if committable_offset > self.committed_offsets[routing_key][partition]:
+                if committable_offset > self.committable_offsets[routing_key][partition]:
                     self.committable_offsets[routing_key][partition] = committable_offset
             else:
                 self.committable_offsets[routing_key][partition] = committable_offset
