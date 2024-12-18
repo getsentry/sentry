@@ -880,9 +880,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})
-    def test_basic_auth_flow_as_invited_user(self):
+    def test_basic_auth_flow_as_not_invited_user(self):
         user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, email="foor@example.com")
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
@@ -896,9 +895,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
 
-    def test_basic_auth_flow_as_invited_user_not_single_org_mode(self):
+    def test_basic_auth_flow_as_not_invited_user_not_single_org_mode(self):
         user = self.create_user("u2@example.com")
-        self.create_member(organization=self.organization, email="u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
