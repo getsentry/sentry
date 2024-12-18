@@ -34,14 +34,11 @@ def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEve
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()
-
-        min_ago = iso_format(before_now(minutes=1))
-
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "environment": "production",
-                "timestamp": min_ago,
+                "timestamp": iso_format(before_now(minutes=3)),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -50,13 +47,17 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": min_ago,
+                "timestamp": iso_format(before_now(minutes=2)),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
         )
         self.store_event(
-            data={"event_id": "c" * 32, "timestamp": min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "c" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+            },
             project_id=project.id,
         )
 
@@ -98,13 +99,12 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
 
     def test_error_issue_get_helpful_for_environments(self):
         project = self.create_project()
-        min_ago = iso_format(before_now(minutes=1))
         replay_id = uuid.uuid4().hex
 
         event_all_helpful_params = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": min_ago,
+                "timestamp": iso_format(before_now(minutes=3)),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -122,7 +122,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": min_ago,
+                "timestamp": iso_format(before_now(minutes=2)),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -133,7 +133,11 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             assert_no_errors=False,
         )
         event_none_helpful_params = self.store_event(
-            data={"event_id": "c" * 32, "timestamp": min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "c" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+            },
             project_id=project.id,
         )
 
