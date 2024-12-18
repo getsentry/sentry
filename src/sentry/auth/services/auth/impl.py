@@ -7,7 +7,6 @@ from django.db import router, transaction
 from django.db.models import Count, F
 
 from sentry import audit_log
-from sentry.auth.partnership_configs import SPONSOR_OAUTH_NAME
 from sentry.auth.services.auth import (
     AuthService,
     RpcApiKey,
@@ -26,6 +25,12 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
+
+# If querying for a provider, we also check for equivalent providers
+EQUIVALENT_PROVIDERS = {
+    "fly": ["fly", "fly-non-partner"],
+    "fly-non-partner": ["fly", "fly-non-partner"],
+}
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -50,13 +55,10 @@ class DatabaseBackedAuthService(AuthService):
         sender: str | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
-            if provider_key == "fly":
+            if provider_key in EQUIVALENT_PROVIDERS:
                 auth_provider_query = AuthProvider.objects.filter(
                     organization_id=organization_id,
-                    provider__in=[
-                        possible_provider_key.value
-                        for possible_provider_key in SPONSOR_OAUTH_NAME.keys()
-                    ],
+                    provider__in=EQUIVALENT_PROVIDERS[provider_key],
                     config=provider_config,
                 )
             else:
@@ -90,12 +92,9 @@ class DatabaseBackedAuthService(AuthService):
         self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
-            if provider == "fly":
+            if provider in EQUIVALENT_PROVIDERS:
                 auth_provider = AuthProvider.objects.filter(
-                    provider__in=[
-                        possible_provider_key.value
-                        for possible_provider_key in SPONSOR_OAUTH_NAME.keys()
-                    ],
+                    provider__in=EQUIVALENT_PROVIDERS[provider],
                     config=config,
                 ).first()
             else:
