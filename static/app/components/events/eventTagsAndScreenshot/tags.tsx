@@ -56,9 +56,12 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
       });
     }, [event.tags]);
 
+    // Prevent drawer button from appearing on performance pages
+    const isOnIssueDetails = location.pathname.includes('/issues/');
+
     const actions = (
       <ButtonBar gap={1}>
-        {hasStreamlinedUI && event.groupID && (
+        {hasStreamlinedUI && event.groupID && isOnIssueDetails && (
           <LinkButton
             to={{
               pathname: `${location.pathname}${TabPaths[Tab.TAGS]}`,
