@@ -128,8 +128,8 @@ export default function getConfiguration({
             !isSelfHostedErrorsOnly,
         },
         {
-          path: `${pathPrefix}/tempest/`,
-          title: t('Tempest'),
+          path: `${pathPrefix}/playstation/`,
+          title: t('Playstation'),
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],

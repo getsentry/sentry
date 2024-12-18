@@ -563,8 +563,8 @@ function buildRoutes() {
         />
       </Route>
       <Route
-        path="tempest/"
-        name={t('Tempest')}
+        path="playstation/"
+        name={t('Playstation')}
         component={make(() => import('sentry/views/settings/project/tempest'))}
       />
       <Route
