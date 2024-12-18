@@ -18,6 +18,8 @@ class TempestCredentialsSerializer(Serializer):
             "messageType": obj.message_type,
             "latestFetchedItemId": obj.latest_fetched_item_id,
             "createdById": obj.created_by_id,
+            "dateAdded": obj.date_added,
+            "dateUpdated": obj.date_updated,
         }
 
 
@@ -28,6 +30,8 @@ class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
     messageType = serializers.CharField(source="message_type", read_only=True)
     latestFetchedItemId = serializers.CharField(source="latest_fetched_item_id", read_only=True)
     createdById = serializers.CharField(source="created_by_id", read_only=True)
+    dateAdded = serializers.DateTimeField(source="date_added", read_only=True)
+    dateUpdated = serializers.DateTimeField(source="date_updated", read_only=True)
 
     class Meta:
         model = TempestCredentials
@@ -39,4 +43,6 @@ class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
             "messageType",
             "latestFetchedItemId",
             "createdById",
+            "dateAdded",
+            "dateUpdated",
         ]
