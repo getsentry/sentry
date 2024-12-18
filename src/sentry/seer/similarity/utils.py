@@ -15,201 +15,46 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
+# Events' `platform` values are tested against this list before events are sent to Seer. Checking
+# this separately from backfill status allows us to backfill projects which have events from
+# multiple platforms, some supported and some not, and not worry about events from the unsupported
+# platforms getting sent to Seer during ingest.
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(
     [
-        "android",
-        "as3",
-        # "c", A native platform -> excluded for now
-        "cfml",
-        "cocoa",
-        "csharp",
-        "elixir",
+        # Native platforms
+        "c",
+        "native",
+        # We don't know what's in the event
+        "other",
+    ]
+)
+# Event platforms corresponding to project platforms which were backfilled before we started
+# blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
+# prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
+# just not going to apply the filter to events from these platforms.
+EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
+    [
         "go",
-        "groovy",
-        "haskell",
-        "java",
         "javascript",
-        # "native", A native platform -> excluded for now
         "node",
-        "objc",
-        # "other", Since we can't be sure of what this is, we'll exclude it for now
-        "perl",
         "php",
         "python",
         "ruby",
     ]
 )
-# An original set of platforms were backfilled allowing more than 30 system contributing frames
-# being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
-# these set of platforms but for now we will blacklist them.
-SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
+# Existing projects with these platforms shouldn't be backfilled and new projects with these
+# platforms shouldn't have Seer enabled.
+SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        "bun",
-        "cordova",
-        "deno",
-        "django",
-        "go",
-        "go-echo",
-        "go-fasthttp",
-        "go-fiber",
-        "go-gin",
-        "go-http",
-        "go-iris",
-        "go-martini",
-        "go-negroni",
-        "ionic",
-        "javascript",
-        "javascript-angular",
-        "javascript-angularjs",
-        "javascript-astro",
-        "javascript-backbone",
-        "javascript-browser",
-        "javascript-electron",
-        "javascript-ember",
-        "javascript-gatsby",
-        "javascript-nextjs",
-        "javascript-performance-onboarding-1-install",
-        "javascript-performance-onboarding-2-configure",
-        "javascript-performance-onboarding-3-verify",
-        "javascript-react",
-        "javascript-react-performance-onboarding-1-install",
-        "javascript-react-performance-onboarding-2-configure",
-        "javascript-react-performance-onboarding-3-verify",
-        "javascript-react-with-error-monitoring",
-        "javascript-react-with-error-monitoring-performance-and-replay",
-        "javascript-remix",
-        "javascript-replay-onboarding-1-install",
-        "javascript-replay-onboarding-2-configure",
-        "javascript-solid",
-        "javascript-svelte",
-        "javascript-sveltekit",
-        "javascript-vue",
-        "javascript-vue-with-error-monitoring",
-        "node",
-        "node-awslambda",
-        "node-azurefunctions",
-        "node-connect",
-        "node-express",
-        "node-fastify",
-        "node-gcpfunctions",
-        "node-hapi",
-        "node-koa",
-        "node-nestjs",
-        "node-nodeawslambda",
-        "node-nodegcpfunctions",
-        "node-profiling-onboarding-0-alert",
-        "node-profiling-onboarding-1-install",
-        "node-profiling-onboarding-2-configure-performance",
-        "node-profiling-onboarding-3-configure-profiling",
-        "node-serverlesscloud",
-        "PHP",
-        "php",
-        "php-laravel",
-        "php-monolog",
-        "php-symfony",
-        "php-symfony2",
-        "python",
-        "python-aiohttp",
-        "python-asgi",
-        "python-awslambda",
-        "python-azurefunctions",
-        "python-bottle",
-        "python-celery",
-        "python-chalice",
-        "python-django",
-        "python-falcon",
-        "python-fastapi",
-        "python-flask",
-        "python-gcpfunctions",
-        "python-profiling-onboarding-0-alert",
-        "python-profiling-onboarding-1-install",
-        "python-profiling-onboarding-3-configure-profiling",
-        "python-pylons",
-        "python-pymongo",
-        "python-pyramid",
-        "python-pythonawslambda",
-        "python-pythonazurefunctions",
-        "python-pythongcpfunctions",
-        "python-pythonserverless",
-        "python-quart",
-        "python-rq",
-        "python-sanic",
-        "python-serverless",
-        "python-starlette",
-        "python-tornado",
-        "python-tryton",
-        "python-wsgi",
-        "react",
-        "react-native",
-        "react-native-tracing",
-        "ruby",
-        "ruby-rack",
-        "ruby-rails",
-    ]
-)
-SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
-    [
-        "android",
-        "android-profiling-onboarding-1-install",
-        "android-profiling-onboarding-3-configure-profiling",
-        "android-profiling-onboarding-4-upload",
-        "apple-ios",
-        "csharp",
-        "csharp-aspnetcore",
-        "dart",
-        "dotnet",
-        "flutter",
-        "groovy",
-        "java",
-        "java-android",
-        "java-appengine",
-        "java-log4j",
-        "java-log4j2",
-        "java-logging",
-        "java-logback",
-        "java-spring",
-        "java-spring-boot",
-        "perl",
-        # Remaining platforms
-        "apple",
-        "apple-ios-profiling-onboarding-1-install",
-        "apple-ios-profiling-onboarding-4-upload",
-        "apple-macos",
-        # "c", A native platform -> excluded for now
-        "capacitor",
-        "cfml",
-        "cocoa",
-        "cocoa-objc",
-        "cocoa-swift",
-        "dotnet-aspnet",
-        "dotnet-aspnetcore",
-        "dotnet-awslambda",
-        "dotnet-gcpfunctions",
-        "dotnet-google-cloud-functions",
-        "dotnet-maui",
-        "dotnet-uwp",
-        "dotnet-winforms",
-        "dotnet-wpf",
-        "dotnet-xamarin",
-        "electron",
-        "elixir",
-        "javascript-nextjs",
-        "javascript-nuxt",
-        "javascript-solidstart",
-        "kotlin",
-        # "minidump", A native platform -> excluded for now
-        # "native", A native platform -> excluded for now
-        # "native-qt", A native platform -> excluded for now
-        "nintendo-switch",
-        "objc",
-        # The null and empty platform are also excluded for now
-        # "other"
-        "powershell",
-        "rust",
-        "swift",
-        "switt",
-        "unity",
-        "unreal",
+        # Native platforms
+        "c",
+        "minidump",
+        "native",
+        "native-qt",
+        # We have no clue what's in these projects
+        "other",
+        "",
+        None,
     ]
 )
 BASE64_ENCODED_PREFIXES = [
@@ -289,7 +134,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             exception, frame_metrics
         )
         if (
-            platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
+            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
             and frame_metrics["is_frames_truncated"]
         ):
             raise TooManyOnlySystemFramesException
@@ -492,7 +337,7 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
         )
         return False
 
-    if event.platform not in SEER_ELIGIBLE_PLATFORMS_EVENTS:
+    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
         metrics.incr(
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
@@ -595,7 +440,7 @@ def project_is_seer_eligible(project: Project) -> bool:
     the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
-    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+    is_seer_eligible_platform = project.platform not in SEER_INELIGIBLE_PROJECT_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled

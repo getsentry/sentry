@@ -1818,7 +1818,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         project_same_cohort_not_eligible = self.create_project(
             organization=self.organization, id=self.project.id + thread_number
         )
-        project_same_cohort_not_eligible.platform = "not_eligible_platform"
+        project_same_cohort_not_eligible.platform = "c"  # Not currently eligible
         project_same_cohort_not_eligible.save()
         self.create_event(project_same_cohort_not_eligible.id, times_seen=5)
 
