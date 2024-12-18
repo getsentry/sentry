@@ -353,6 +353,22 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     return True
 
 
+def record_event_eligibility_metric(*, eligible: bool, blocker: str) -> None:
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": eligible, "blocker": blocker},
+    )
+
+
+def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
+    metrics.incr(
+        "grouping.similarity.did_call_seer",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"call_made": call_made, "blocker": blocker},
+    )
+
+
 def killswitch_enabled(
     project_id: int | None,
     event: GroupEvent | Event | None = None,
