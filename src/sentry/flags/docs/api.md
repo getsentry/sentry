@@ -149,7 +149,7 @@ Delete a signing secret.
 
 ### Create Generic Flag Log [POST]
 
-A flag log event must be emitted after every flag definition change which influences a flag's evaluation. Updates to a flag's internal metadata that does not change a flag's evaluation logic do not need to be emitted to Sentry's audit-log. We are only concerned with changes which could have influenced behavior.
+A flag log event must be emitted after every flag definition change which influences a flag's evaluation. Updates to a flag that do not change a flag's evaluation logic do not need to be emitted to this endpoint. We are only concerned with changes which could have influenced behavior.
 
 Sentry does not currently have a concept of disambiguating flag changes by project or environment. Everything is done at the organization level. Flag changes that are duplicated across projects, environments, or other groupings within the provider, must be de-duplicated. To support this, the posted payload sets a "change_id" field for idempotency. In the presence of duplicate ids, only one audit-log record is written in Sentry.
 
