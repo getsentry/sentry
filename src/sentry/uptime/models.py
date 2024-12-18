@@ -10,6 +10,7 @@ from django.db.models.functions import MD5, Coalesce
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
+    DefaultFieldsModel,
     DefaultFieldsModelExisting,
     FlexibleForeignKey,
     JSONField,
@@ -84,6 +85,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
+    regions = models.ManyToManyField("uptime.Region", through="uptime.UptimeSubscriptionRegion")
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -105,6 +107,38 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
                 name="uptime_uptimesubscription_unique_subscription_check",
             ),
         ]
+
+
+@region_silo_model
+class UptimeSubscriptionRegion(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
+    region = FlexibleForeignKey("uptime.Region")
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_uptimesubscriptionregion"
+
+        constraints = [
+            models.UniqueConstraint(
+                "uptime_subscription",
+                "region",
+                name="uptime_uptimesubscription_region_unique",
+            ),
+        ]
+
+
+@region_silo_model
+class Region(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    slug = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
+
+    class Meta:
+        app_label = "uptime"
+        db_table = "uptime_region"
 
 
 class ProjectUptimeSubscriptionMode(enum.IntEnum):
