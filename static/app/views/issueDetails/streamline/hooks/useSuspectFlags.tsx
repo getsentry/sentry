@@ -35,8 +35,13 @@ export default function useSuspectFlags({
   );
 
   // no flags in common between event evaluations and audit log
+  // only track this analytic if there is at least 1 flag recorded
+  // in either the audit log or the event context
   useEffect(() => {
-    if (!intersectionFlags.length) {
+    if (
+      !intersectionFlags.length &&
+      (hydratedFlagData.length || evaluatedFlagNames?.length)
+    ) {
       trackAnalytics('flags.event_and_suspect_flags_found', {
         numTotalFlags: hydratedFlagData.length,
         numEventFlags: 0,
@@ -44,7 +49,12 @@ export default function useSuspectFlags({
         organization,
       });
     }
-  }, [hydratedFlagData.length, intersectionFlags.length, organization]);
+  }, [
+    hydratedFlagData.length,
+    intersectionFlags.length,
+    organization,
+    evaluatedFlagNames?.length,
+  ]);
 
   // get all the audit log flag changes which happened prior to the first seen date
   const start = moment(firstSeen).subtract(1, 'year').format('YYYY-MM-DD HH:mm:ss');
