@@ -861,7 +861,7 @@ class Group(Model):
         Legacy special case of `self.get_recommended_event` for environments and no date range.
         Kept for compatability, but it's advised to use `self.get_recommended_event` directly.
         """
-        all_conditions = conditions if conditions else []
+        all_conditions: list[Condition] = list(conditions) if conditions else []
         if len(environments) > 0:
             all_conditions.append(
                 Condition(Column("environment"), Op.IN, [e.name for e in environments])

@@ -30,6 +30,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.exceptions import InvalidParams
 from sentry.issues.endpoints.project_event_details import (
     GroupEventDetailsResponse,
@@ -51,7 +52,7 @@ from sentry.utils import metrics
 
 def issue_search_query_to_conditions(
     query: str, group: Group, user: User | AnonymousUser, environments: Sequence[Environment]
-) -> Sequence[Condition]:
+) -> list[Condition]:
     from sentry.utils.snuba import resolve_column, resolve_conditions
 
     dataset = (
@@ -162,7 +163,6 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         Retrieves the details of an issue event.
         """
         organization = group.project.organization
-
         environments = [e for e in get_environments(request, organization)]
         environment_names = [e.name for e in environments]
 
@@ -191,6 +191,8 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         metric = "api.endpoints.group_event_details.get"
         error_response = {"detail": "Unable to apply query. Change or remove it and try again."}
 
+        event: Event | GroupEvent | None = None
+
         if event_id == "latest":
             with metrics.timer(metric, tags={"type": "latest", "query": bool(query)}):
                 try:
@@ -215,13 +217,18 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
         else:
             with metrics.timer(metric, tags={"type": "event"}):
                 event = eventstore.backend.get_event_by_id(
-                    group.project.id, event_id, group_id=group.id
+                    project_id=group.project.id, event_id=event_id, group_id=group.id
                 )
-            if event is not None and event.group:
+            if isinstance(event, Event) and event.group:
                 event = event.for_group(event.group)
 
         if event is None:
-            return Response({"detail": "Event not found"}, status=404)
+            return Response(
+                {
+                    "detail": "Event not found. The event ID may be incorrect, or it's age exceeded the retention period."
+                },
+                status=404,
+            )
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:
