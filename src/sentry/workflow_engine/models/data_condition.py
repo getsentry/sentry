@@ -1,6 +1,5 @@
 import logging
 import operator
-from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -13,11 +12,6 @@ from sentry.workflow_engine.types import DataConditionResult, DetectorPriorityLe
 
 logger = logging.getLogger(__name__)
 
-# We're losing type saftey to T here - I couldn't think of another way to support the input_data_filter.
-# If we want to just create a default handler in the regitsry like GROUP_EVENT_ATTR_COMPARISON was,
-# then we could just type that handler with Any.
-HandlerMethod = Callable[[Any, Any], DataConditionResult]
-
 
 class Condition(models.TextChoices):
     EQUAL = "eq"
@@ -26,7 +20,7 @@ class Condition(models.TextChoices):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
-    # GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
+    GROUP_EVENT_ATTR_COMPARISON = "group_event_attr_comparison"
 
 
 condition_ops = {
@@ -100,43 +94,33 @@ class DataCondition(DefaultFieldsModel):
 
         return None
 
-    def get_handler(self) -> HandlerMethod:
+    def evaluate_value(self, value: T) -> DataConditionResult:
         try:
             condition_type = Condition(self.type)
         except ValueError:
-            # If the type isn't in the condition, then it won't be in the registry either.
-            raise NoRegistrationExistsError(f"No registration exists for {self.type}")
+            logger.exception(
+                "Invalid condition type",
+                extra={"type": self.type, "id": self.id},
+            )
+            return None
 
         if condition_type in condition_ops:
-            return cast(HandlerMethod, condition_ops[condition_type])
+            """
+            If the condition is a base type, handle it directly
+            """
+            op = condition_ops[Condition(self.type)]
+            result = op(cast(Any, value), self.comparison)
+            return self.get_condition_result() if result else None
 
-        # Otherwise, check the registry for a handler.
-        conition_handler = condition_handler_registry.get(condition_type)
-        return conition_handler.evaluate_value
-
-    def evaluate_value(self, value: T) -> DataConditionResult:
-        evalute_value: HandlerMethod
-
+        # Otherwise, we need to get the handler and evaluate the value
         try:
-            evalute_value = self.get_handler()
+            handler = condition_handler_registry.get(condition_type)
         except NoRegistrationExistsError:
             logger.exception(
-                "Invalid Data Condition Evaluation",
-                extra={
-                    "id": self.id,
-                    "type": self.type,
-                    "condition": self.condition,
-                },
+                "No registration exists for condition",
+                extra={"type": self.type, "id": self.id},
             )
+            return None
 
-        filtered_value = value
-        if self.input_data_filter:
-            # casting Any to override the T value initially set - seems not great :thinking:
-            filtered_value = cast(Any, get_nested_value(value, self.input_data_filter))
-
-        result = evalute_value(filtered_value, self.comparison)
-
-        if result:
-            return self.get_condition_result()
-
-        return None
+        result = handler.evaluate_value(value, self.comparison)
+        return self.get_condition_result() if result else None
