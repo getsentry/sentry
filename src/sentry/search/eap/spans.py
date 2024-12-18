@@ -161,15 +161,15 @@ class SearchResolver:
     def _resolve_boolean_conditions(
         self, terms: event_filter.ParsedTerms
     ) -> tuple[TraceItemFilter | None, list[VirtualColumnContext | None]]:
-        if len(terms) == 1:
+        if len(terms) == 0:
+            return None, []
+        elif len(terms) == 1:
             if isinstance(terms[0], event_search.ParenExpression):
                 return self._resolve_boolean_conditions(terms[0].children)
             elif isinstance(terms[0], event_search.SearchFilter):
                 return self._resolve_terms([cast(event_search.SearchFilter, terms[0])])
             else:
                 raise NotImplementedError("Haven't handled all the search expressions yet")
-        elif len(terms) == 0:
-            return None, []
 
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
