@@ -344,10 +344,10 @@ export default function AssigneeSelectorDropdown({
         actor => actor.type === type && actor.id === assignee.id
       );
       onAssign({
-        assignee: assignee,
+        assignee,
         id: assigneeId,
-        type: type,
-        suggestedAssignee: suggestedAssignee,
+        type,
+        suggestedAssignee,
       });
     }
   };

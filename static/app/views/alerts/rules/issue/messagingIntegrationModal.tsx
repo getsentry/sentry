@@ -41,14 +41,14 @@ function MessagingIntegrationModal({
               <IntegrationContext.Provider
                 key={provider.key}
                 value={{
-                  provider: provider,
+                  provider,
                   type: 'first_party',
                   installStatus: 'Not Installed',
                   analyticsParams: {
                     already_installed: false,
                     view: analyticsView,
                   },
-                  onAddIntegration: onAddIntegration,
+                  onAddIntegration,
                   ...(modalParams && {modalParams}),
                 }}
               >
