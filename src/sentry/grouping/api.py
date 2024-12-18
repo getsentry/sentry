@@ -349,9 +349,8 @@ def get_grouping_variants_for_event(
                 "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
             }
 
-    # Otherwise we go to the various forms of fingerprint handling.  If the event carries
-    # a materialized fingerprint info from server side fingerprinting we forward it to the
-    # variants which can export additional information about them.
+    # Otherwise we go to the various forms of grouping based on fingerprints and/or event data
+    # (stacktrace, message, etc.)
     fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
     defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
@@ -359,14 +358,13 @@ def get_grouping_variants_for_event(
     if config is None:
         config = load_default_grouping_config()
     context = GroupingContext(config)
-
-    # At this point we need to calculate the default event values.  If the
-    # fingerprint is salted we will wrap it.
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
     variants: dict[str, BaseVariant] = {}
 
-    # If no defaults are referenced we produce a single completely custom
-    # fingerprint and mark all other variants as non-contributing
+    # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
+    # we need to create an addiional fingerprint variant and mark the existing variants as
+    # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
+    # versions which include the fingerprint.
     if defaults_referenced == 0:
         for variant_name, root_component in component_trees_by_variant.items():
             root_component.update(
@@ -382,13 +380,9 @@ def get_grouping_variants_for_event(
             )
         else:
             variants["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
-
-    # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
-
-    # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
