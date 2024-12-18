@@ -11,7 +11,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     create_remote_uptime_subscription,
@@ -148,10 +148,7 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
 
 class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
     def test_basic(self):
-        sub = self.create_uptime_subscription()
-        # Add regions to the subscription
-        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
-        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="eu-west-1")
+        sub = self.create_uptime_subscription(region_slugs=["us-east-1", "eu-west-1"])
 
         subscription_id = uuid4().hex
         assert uptime_subscription_to_check_config(sub, subscription_id) == {
@@ -171,9 +168,12 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
         body = "some request body"
         method = "POST"
         sub = self.create_uptime_subscription(
-            method=method, headers=headers, body=body, trace_sampling=True
+            method=method,
+            headers=headers,
+            body=body,
+            trace_sampling=True,
+            region_slugs=["us-east-1"],
         )
-        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
         sub.refresh_from_db()
 
         subscription_id = uuid4().hex
@@ -192,8 +192,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
 
     def test_header_translation(self):
         headers = {"hi": "bye"}
-        sub = self.create_uptime_subscription(headers=headers)
-        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
+        sub = self.create_uptime_subscription(headers=headers, region_slugs=["us-east-1"])
         sub.refresh_from_db()
 
         subscription_id = uuid4().hex
