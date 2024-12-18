@@ -244,7 +244,7 @@ const HeaderContainer = styled(FlexBox)`
   justify-content: space-between;
   gap: ${space(3)};
   padding: ${space(0.25)} 0 ${space(0.5)} 0;
-  margin: 0 ${space(2)} 0 ${space(2)};
+  margin: 0 ${space(2)} ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
