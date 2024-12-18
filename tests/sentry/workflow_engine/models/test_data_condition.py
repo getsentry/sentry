@@ -46,11 +46,14 @@ class EvaluateValueTest(TestCase):
         assert dc.evaluate_value(1) is None
 
     def test_bad_condition(self):
+
         dc = self.create_data_condition(
             type="invalid", comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
-        with pytest.raises(ValueError):
-            dc.evaluate_value(2)
+
+        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
+            assert dc.evaluate_value(2) is None
+            assert mock_logger.exception.call_args[0][0] == "Invalid condition type"
 
     def test_bad_comparison(self):
         dc = self.create_data_condition(
@@ -61,10 +64,8 @@ class EvaluateValueTest(TestCase):
         with pytest.raises(TypeError):
             dc.evaluate_value(2)
 
-    def test_bad_condition_result(self):
+    def test_condition_result_comparison_fails(self):
         dc = self.create_data_condition(
             type=Condition.GREATER, comparison=1.0, condition_result="wrong"
         )
-        with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
-            assert dc.evaluate_value(2) is None
-            assert mock_logger.exception.call_args[0][0] == "Invalid condition result"
+        assert dc.evaluate_value(2) is None
