@@ -248,7 +248,7 @@ export const makeFetchOrganizationTags = ({
   if (end) {
     query.end = end;
   }
-  return [`/organizations/${orgSlug}/tags/`, {query: query}];
+  return [`/organizations/${orgSlug}/tags/`, {query}];
 };
 
 export const useFetchOrganizationTags = (

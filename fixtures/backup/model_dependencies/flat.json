@@ -857,6 +857,10 @@
   "social_auth.usersocialauth": [
     "sentry.user"
   ],
+  "tempest.tempestcredentials": [
+    "sentry.project",
+    "sentry.user"
+  ],
   "uptime.projectuptimesubscription": [
     "sentry.environment",
     "sentry.project",
@@ -864,7 +868,12 @@
     "sentry.user",
     "uptime.uptimesubscription"
   ],
+  "uptime.region": [],
   "uptime.uptimesubscription": [],
+  "uptime.uptimesubscriptionregion": [
+    "uptime.region",
+    "uptime.uptimesubscription"
+  ],
   "workflow_engine.action": [
     "sentry.integration"
   ],
