@@ -17,7 +17,7 @@ SIMPLE_TASK = TaskActivation(
     taskname="examples.simple_task",
     namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
-    processing_deadline_duration=1,
+    processing_deadline_duration=2,
 )
 
 RETRY_TASK = TaskActivation(
@@ -25,7 +25,7 @@ RETRY_TASK = TaskActivation(
     taskname="examples.retry_task",
     namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
-    processing_deadline_duration=1,
+    processing_deadline_duration=2,
 )
 
 FAIL_TASK = TaskActivation(
@@ -33,7 +33,7 @@ FAIL_TASK = TaskActivation(
     taskname="examples.fail_task",
     namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
-    processing_deadline_duration=1,
+    processing_deadline_duration=2,
 )
 
 UNDEFINED_TASK = TaskActivation(
@@ -41,7 +41,7 @@ UNDEFINED_TASK = TaskActivation(
     taskname="total.rubbish",
     namespace="lolnope",
     parameters='{"args": [], "kwargs": {}}',
-    processing_deadline_duration=1,
+    processing_deadline_duration=2,
 )
 
 AT_MOST_ONCE_TASK = TaskActivation(
@@ -49,7 +49,7 @@ AT_MOST_ONCE_TASK = TaskActivation(
     taskname="examples.at_most_once",
     namespace="examples",
     parameters='{"args": [], "kwargs": {}}',
-    processing_deadline_duration=1,
+    processing_deadline_duration=2,
 )
 
 
