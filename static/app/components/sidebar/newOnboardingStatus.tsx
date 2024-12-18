@@ -20,7 +20,7 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
-import {t, tct} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
@@ -177,15 +177,13 @@ export function NewOnboardingStatus({
         {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
-            <Remaining>
+            <Remaining role="status">
               {walkthrough
-                ? tct('[totalCompletedTasks] completed tours', {
-                    totalCompletedTasks: doneTasks.length,
-                  })
-                : tct('[totalCompletedTasks] completed tasks', {
-                    totalCompletedTasks: doneTasks.length,
-                  })}
-              {pendingCompletionSeen && <PendingSeenIndicator />}
+                ? tn('%s completed tour', '%s completed tours', doneTasks.length)
+                : tn('%s completed task', '%s completed tasks', doneTasks.length)}
+              {pendingCompletionSeen && (
+                <PendingSeenIndicator data-test-id="pending-seen-indicator" />
+              )}
             </Remaining>
           </div>
         )}
