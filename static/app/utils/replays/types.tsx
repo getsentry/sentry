@@ -73,6 +73,13 @@ type MobileBreadcrumbTypes =
       type: string;
     }
   | {
+      category: 'ui.swipe';
+      data: any;
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
       category: 'device.battery';
       data: {charging: boolean; level: number};
       timestamp: number;
@@ -344,6 +351,7 @@ export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
+export type SwipeFrame = HydratedBreadcrumb<'ui.swipe'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -380,6 +388,7 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.click',
   'ui.tap',
+  'ui.swipe',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
