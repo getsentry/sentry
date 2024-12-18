@@ -49,9 +49,11 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
                   })}
                   skipWrapper
                 >
-                  <TagBarValue>{displayPercentage}</TagBarValue>
+                  <TooltipContainer>
+                    <TagBarValue>{displayPercentage}</TagBarValue>
+                    <TagBar percentage={percentage} />
+                  </TooltipContainer>
                 </Tooltip>
-                <TagBar percentage={percentage} />
               </TagValueRow>
             );
           })}
@@ -135,7 +137,7 @@ const TagBarContainer = styled('div')`
     position: absolute;
     inset: 0;
     content: '';
-    border-radius: 1000px;
+    border-radius: 3px;
     background: ${p => p.theme.border};
     border: 1px solid ${p => p.theme.translucentBorder};
     width: 100%;
@@ -144,4 +146,11 @@ const TagBarContainer = styled('div')`
 
 const TagBarValue = styled('div')`
   text-align: right;
+`;
+
+const TooltipContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 2 / -1;
+  align-items: center;
 `;
