@@ -6,8 +6,9 @@ from sentry.conf.types.kafka_definition import Topic
 @dataclasses.dataclass
 class UptimeRegionConfig:
     """
-    Defines an available region which an uptime-checker is run in.
+    Defines a region which uptime checks can be run in.
     """
+
     slug: str
     name: str
     config_topic: Topic
