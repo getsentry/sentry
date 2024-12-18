@@ -227,3 +227,5 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert second_key.public_key in configs
         assert configs[first_key.public_key] != {"test_proj": "config1"}
         assert configs[second_key.public_key] != {"test_proj": "config2"}
+        assert projectconfig_cache.backend.get(first_key.public_key) != {"test_proj": "config1"}
+        assert projectconfig_cache.backend.get(second_key.public_key) != {"test_proj": "config2"}

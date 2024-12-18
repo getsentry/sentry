@@ -100,7 +100,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
         if project is not None:
             for project_key2 in project.key_set.all():
-                project_keys.append(project_key)
+                project_keys.append(project_key2)
 
         return project_keys
 
