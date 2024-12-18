@@ -61,9 +61,6 @@ class DataCondition(DefaultFieldsModel):
     # The type of condition, this is used to initialize the condition classes
     type = models.CharField(max_length=200, choices=Condition.choices, default=Condition.EQUAL)
 
-    # Used to filter the data being passed into the data_conditions
-    input_data_filter = models.CharField(max_length=200, null=True)
-
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
         related_name="conditions",
