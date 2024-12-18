@@ -36,21 +36,6 @@ condition_ops = {
 T = TypeVar("T")
 
 
-def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
-    try:
-        value = data
-        for part in path.split("."):
-            if hasattr(value, part):
-                value = getattr(value, part)
-            elif hasattr(value, "get"):
-                value = value.get(part)
-            else:
-                return default
-        return value
-    except Exception:
-        return default
-
-
 @region_silo_model
 class DataCondition(DefaultFieldsModel):
     """
