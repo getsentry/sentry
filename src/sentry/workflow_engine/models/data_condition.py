@@ -91,9 +91,7 @@ class DataCondition(DefaultFieldsModel):
             return None
 
         if condition_type in condition_ops:
-            """
-            If the condition is a base type, handle it directly
-            """
+            # If the condition is a base type, handle it directly
             op = condition_ops[Condition(self.type)]
             result = op(cast(Any, value), self.comparison)
             return self.get_condition_result() if result else None

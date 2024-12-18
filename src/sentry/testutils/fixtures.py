@@ -47,6 +47,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -616,7 +617,7 @@ class Fixtures:
     def create_data_condition(
         self,
         comparison="10",
-        type="eq",
+        type=Condition.EQUAL,
         condition_result=None,
         condition_group=None,
         **kwargs,
