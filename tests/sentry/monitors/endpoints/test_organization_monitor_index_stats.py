@@ -213,3 +213,29 @@ class OrganizationMonitorIndexStatsTest(MonitorTestCase):
             1647849540,
             {},
         ]
+
+    def test_disallow_stats_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            **{
+                "monitor": [
+                    str(self.monitor1.guid),
+                ],
+                "since": self.since.timestamp(),
+                "until": self.until.timestamp(),
+                "resolution": "1h",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.data == {}
