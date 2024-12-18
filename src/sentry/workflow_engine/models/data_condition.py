@@ -64,13 +64,13 @@ class DataCondition(DefaultFieldsModel):
     __repr__ = sane_repr("type", "comparison_value", "condition_group")
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
-    comparison_value = models.JSONField()
+    comparison_value = models.JSONField(db_column="comparison")
 
     # The condition_result is the value that is returned if the condition is met, this must be a primitive value
     condition_result = models.JSONField()
 
     # The type of condition, this is used to initialize the condition classes
-    type = models.CharField(max_length=200, choices=Condition.choices)
+    type = models.CharField(max_length=200, choices=Condition.choices, db_column="condition")
 
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
