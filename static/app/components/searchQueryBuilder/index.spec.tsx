@@ -856,6 +856,29 @@ describe('SearchQueryBuilder', function () {
 
       expect(getLastInput()).toHaveFocus();
     });
+
+    it('focuses the correct text input after typing boolean operators', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+
+      // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+      // function which causes an act warning despite using userEvent.click.
+      // Cannot find a way to avoid this warning.
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      await userEvent.keyboard('a or b{enter}');
+      jest.restoreAllMocks();
+
+      const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
+      expect(lastInput).toHaveFocus();
+
+      await userEvent.click(getLastInput());
+
+      // Should have three tokens: a, or, b
+      await screen.findByRole('row', {name: /a/});
+      await screen.findByRole('row', {name: /or/});
+      await screen.findByRole('row', {name: /b/});
+    });
   });
 
   describe('filter key suggestions', function () {
