@@ -41,7 +41,7 @@ class TestProcessDataConditionGroup(TestCase):
         data_condition_group = self.create_data_condition_group()
         self.create_data_condition(
             condition_group=data_condition_group,
-            condition="gt",
+            type=Condition.GREATER,
             comparison=5,
             condition_result=DetectorPriorityLevel.HIGH,
         )

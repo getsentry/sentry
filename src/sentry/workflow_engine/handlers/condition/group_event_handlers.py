@@ -10,7 +10,7 @@ from sentry.workflow_engine.types import DataConditionHandler
 class EventCreatedByDetectorConditionHandler(DataConditionHandler[GroupEvent]):
     @staticmethod
     def evaluate_value(event: GroupEvent, comparison: Any) -> bool:
-        if event.occurrence is None:
+        if event.occurrence is None or event.occurrence.evidence_data is None:
             return False
 
         return event.occurrence.evidence_data.get("detector_id", None) == comparison

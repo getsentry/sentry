@@ -67,4 +67,4 @@ class EvaluateValueTest(TestCase):
         )
         with mock.patch("sentry.workflow_engine.models.data_condition.logger") as mock_logger:
             assert dc.evaluate_value(2) is None
-            assert mock_logger.error.call_args[0][0] == "Invalid condition result"
+            assert mock_logger.exception.call_args[0][0] == "Invalid condition result"

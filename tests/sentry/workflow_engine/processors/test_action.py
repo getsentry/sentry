@@ -15,7 +15,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
 
         self.group, self.event, self.group_event = self.create_group_event(
-            occurrence=self.build_occurrence_data(evidence_data={"detector_id": self.detector.id})
+            occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
 
     def test_basic__no_filter(self):
