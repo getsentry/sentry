@@ -122,3 +122,10 @@ class TestTempestCredentials(APITestCase):
             # database constraint violation
             assert response.status_code == 400
             assert response.data["detail"] == "A credential with this client ID already exists."
+
+    def test_user_email_in_response(self):
+        with Feature({"organizations:tempest-access": True}):
+            self.login_as(self.user)
+            self.create_tempest_credentials(self.project, created_by=self.user)
+            response = self.get_success_response(self.project.organization.slug, self.project.slug)
+            assert response.data[0]["createdByEmail"] == self.user.email
