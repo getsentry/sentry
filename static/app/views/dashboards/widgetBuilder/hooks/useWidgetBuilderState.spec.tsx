@@ -17,7 +17,10 @@ const mockedUsedLocation = jest.mocked(useLocation);
 const mockedUseNavigate = jest.mocked(useNavigate);
 
 describe('useWidgetBuilderState', () => {
+  let mockNavigate;
   beforeEach(() => {
+    mockNavigate = jest.fn();
+    mockedUseNavigate.mockReturnValue(mockNavigate);
     jest.useFakeTimers();
   });
 
@@ -45,9 +48,6 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('sets the new title and description in the query params', () => {
-    const mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
-
     const {result} = renderHook(() => useWidgetBuilderState(), {
       wrapper: WidgetBuilderProvider,
     });
@@ -107,9 +107,6 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the display type in the query params', () => {
-      const mockNavigate = jest.fn();
-      mockedUseNavigate.mockReturnValue(mockNavigate);
-
       const {result} = renderHook(() => useWidgetBuilderState(), {
         wrapper: WidgetBuilderProvider,
       });
@@ -145,9 +142,6 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the dataset in the query params', () => {
-      const mockNavigate = jest.fn();
-      mockedUseNavigate.mockReturnValue(mockNavigate);
-
       const {result} = renderHook(() => useWidgetBuilderState(), {
         wrapper: WidgetBuilderProvider,
       });
@@ -236,7 +230,13 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
-      expect(result.current.state.yAxis).toEqual([]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', 'span.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
       expect(result.current.state.query).toEqual(['']);
       expect(result.current.state.sort).toEqual([
         {
@@ -244,6 +244,44 @@ describe('useWidgetBuilderState', () => {
           kind: 'desc',
         },
       ]);
+    });
+
+    it('resets the yAxis when the dataset is switched from anything to issues', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRANSACTIONS,
+            yAxis: ['count()', 'count_unique(user)'],
+            displayType: DisplayType.LINE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ISSUE,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([]);
     });
   });
 

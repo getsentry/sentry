@@ -130,16 +130,18 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
 
+          let newDisplayType;
           if (action.payload === WidgetType.ISSUE) {
             // Issues only support table display type
             setDisplayType(DisplayType.TABLE);
+            newDisplayType = DisplayType.TABLE;
           }
 
           const config = getDatasetConfig(action.payload);
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (displayType === DisplayType.TABLE) {
+          if (newDisplayType === DisplayType.TABLE) {
             setYAxis([]);
           } else {
             setYAxis(
@@ -180,7 +182,6 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
-      displayType,
     ]
   );
 
