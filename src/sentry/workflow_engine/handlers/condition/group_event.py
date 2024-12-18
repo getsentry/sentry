@@ -6,8 +6,11 @@ from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler
 
 
-@condition_handler_registry.register(Condition.GROUP_EVENT_ATTR_COMPARISON)
-class GroupEventConditionHandler(DataConditionHandler[GroupEvent]):
+@condition_handler_registry.register(Condition.EVENT_CREATED_BY_DETECTOR)
+class EventCreatedByDetectorConditionHandler(DataConditionHandler[GroupEvent]):
     @staticmethod
-    def evaluate_value(data: GroupEvent, comparison: Any, data_filter: str) -> bool:
-        return data.occurrence.evidence_data["detector_id"] == comparison
+    def evaluate_value(event: GroupEvent, comparison: Any) -> bool:
+        if event.occurrence is None:
+            return False
+
+        return event.occurrence.evidence_data["detector_id"] == comparison
