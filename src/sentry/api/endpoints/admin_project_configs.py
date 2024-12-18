@@ -35,16 +35,6 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
         If the project config is currently in cache, will return the cache entry.
         If the project config is not in cache, the project config for that key will be null.
         """
-
-        # algorithm
-        # - if a correct project ID is provided, return all project configs for all project keys
-        # - if a wrong / non-existent project ID is provided, it's an error
-        # - if no project ID is provided, fall back to project keys
-        #
-        # - if a correct project key is provided, return the project config along with the other project configs
-        # - if a wrong project key is provided -> HTTP400
-        #  - if no project key is provided, use
-
         project_id = request.GET.get("projectId")
         project_key_param = request.GET.get("projectKey")
 
