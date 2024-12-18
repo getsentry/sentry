@@ -39,9 +39,10 @@ SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
         "ruby",
     ]
 )
-# An original set of platforms were backfilled allowing more than 30 system contributing frames
-# being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
-# these set of platforms but for now we will blacklist them.
+# Event platforms corresponding to project platforms which were backfilled before we started
+# blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
+# prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
+# just not going to apply the filter to events from these platforms.
 EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
     [
         "bun",
