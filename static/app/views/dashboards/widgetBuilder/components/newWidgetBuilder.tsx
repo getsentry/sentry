@@ -130,7 +130,7 @@ function WidgetBuilderV2({
                         <WidgetPreviewContainer
                           dashboardFilters={dashboardFilters}
                           dashboard={dashboard}
-                          updatedTranslate={translate}
+                          dragPosition={translate}
                           isDraggable={isPreviewDraggable}
                           isWidgetInvalid={!queryConditionsValid}
                         />
@@ -153,14 +153,14 @@ export function WidgetPreviewContainer({
   dashboardFilters,
   dashboard,
   isWidgetInvalid,
-  updatedTranslate,
+  dragPosition,
   isDraggable,
 }: {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
   isWidgetInvalid: boolean;
+  dragPosition?: WidgetDragPositioning;
   isDraggable?: boolean;
-  updatedTranslate?: WidgetDragPositioning;
 }) {
   const {state} = useWidgetBuilderContext();
   const organization = useOrganization();
@@ -177,7 +177,7 @@ export function WidgetPreviewContainer({
     // May need to add 'handle' prop if we want to drag the preview by a specific area
   });
 
-  const {translate, top, left} = updatedTranslate ?? {};
+  const {translate, top, left} = dragPosition ?? {};
 
   const draggableStyle: CSSProperties = {
     transform: isDragEnabled
