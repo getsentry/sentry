@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections import defaultdict
-from collections.abc import Generator, Mapping
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, wait
 from typing import Generic, Literal, TypeVar
 
@@ -109,11 +109,18 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
 
     @abc.abstractmethod
     def build_payload_grouping_key(self, result: T) -> str:
+        """
+        Used in parallel processing mode. This method should return a string used to
+        group related results together for serial processing.
+        """
         pass
 
     @property
     @abc.abstractmethod
     def identifier(self) -> str:
+        """
+        A unique identifier for this consumer - used to differentiate it in stats
+        """
         pass
 
     def shutdown(self) -> None:
@@ -164,9 +171,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             next_step=batch_processor,
         )
 
-    def partition_message_batch(
-        self, message: Message[ValuesBatch[KafkaPayload]]
-    ) -> Generator[list[T]]:
+    def partition_message_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> list[list[T]]:
         """
         Takes a batch of messages and partitions them based on the `build_payload_grouping_key` method.
         Returns a generator that yields each partitioned list of messages.
@@ -197,7 +202,7 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             tags={"identifier": self.identifier, "mode": self.mode},
         )
 
-        yield from batch_mapping.values()
+        return list(batch_mapping.values())
 
     def process_batch(self, message: Message[ValuesBatch[KafkaPayload]]):
         """
