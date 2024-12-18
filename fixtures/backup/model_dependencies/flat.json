@@ -868,7 +868,12 @@
     "sentry.user",
     "uptime.uptimesubscription"
   ],
+  "uptime.region": [],
   "uptime.uptimesubscription": [],
+  "uptime.uptimesubscriptionregion": [
+    "uptime.region",
+    "uptime.uptimesubscription"
+  ],
   "workflow_engine.action": [
     "sentry.integration"
   ],
