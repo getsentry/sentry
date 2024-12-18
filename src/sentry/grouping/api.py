@@ -21,6 +21,7 @@ from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
     expand_title_template,
+    get_fingerprint_type,
     hash_from_values,
     is_default_fingerprint_var,
     resolve_fingerprint_values,
@@ -353,7 +354,7 @@ def get_grouping_variants_for_event(
     # (stacktrace, message, etc.)
     raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
-    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in raw_fingerprint)
+    fingerprint_type = get_fingerprint_type(raw_fingerprint)
 
     context = GroupingContext(config or load_default_grouping_config())
     component_trees_by_variant = _get_component_trees_for_variants(event, context)
@@ -363,7 +364,7 @@ def get_grouping_variants_for_event(
     # we need to create an addiional fingerprint variant and mark the existing variants as
     # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
     # versions which include the fingerprint.
-    if defaults_referenced == 0:
+    if fingerprint_type == "custom":
         for variant_name, root_component in component_trees_by_variant.items():
             root_component.update(
                 contributes=False,
@@ -380,10 +381,10 @@ def get_grouping_variants_for_event(
             variants["custom_fingerprint"] = CustomFingerprintVariant(
                 resolved_fingerprint, fingerprint_info
             )
-    elif defaults_referenced == 1 and len(raw_fingerprint) == 1:
+    elif fingerprint_type == "default":
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = ComponentVariant(root_component, context.config)
-    else:
+    elif fingerprint_type == "hybrid":
         resolved_fingerprint = resolve_fingerprint_values(raw_fingerprint, event.data)
         for variant_name, root_component in component_trees_by_variant.items():
             variants[variant_name] = SaltedComponentVariant(
