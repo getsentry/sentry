@@ -20,7 +20,7 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   USE_NEW_DEVSERVICES: 1
   IS_DEV: 1
-  CHARTCUTERIE_CONFIG_PATH: ./chartcuterie
+  CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
 
 jobs:
   devservices-acceptance:
@@ -93,11 +93,6 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
-
-      - name: copy chartcuterie config to devservices chartcuterie directory
-        run: |
-          ls config/chartcuterie
-          cp -r config/chartcuterie devservices
 
       - name: Bring up devservices
         run: |
