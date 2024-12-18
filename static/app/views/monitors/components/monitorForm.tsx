@@ -490,17 +490,17 @@ function MonitorForm({
           {t('Configure who to notify upon issue creation and when.')}
         </ListItemSubText>
         <InputGroup>
+          {monitor?.config.alert_rule_id && (
+            <AlertLink
+              priority="muted"
+              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              withoutMarginBottom
+            >
+              {t('Customize this monitors notification configuration in Alerts')}
+            </AlertLink>
+          )}
           <Panel>
             <PanelBody>
-              {monitor?.config.alert_rule_id && (
-                <AlertLink
-                  priority="muted"
-                  to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
-                  withoutMarginBottom
-                >
-                  {t('Customize this monitors notification configuration in Alerts')}
-                </AlertLink>
-              )}
               <Observer>
                 {() => {
                   const projectSlug = form.current.getValue('project')?.toString();
