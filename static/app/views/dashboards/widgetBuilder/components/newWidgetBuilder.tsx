@@ -1,16 +1,11 @@
-import {Fragment, useEffect, useState} from 'react';
-import {
-  closestCorners,
-  DndContext,
-  type Translate,
-  useDraggable,
-  useDroppable,
-} from '@dnd-kit/core';
+import {type CSSProperties, Fragment, useEffect, useState} from 'react';
+import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -27,6 +22,16 @@ import {
   DisplayType,
   type Widget,
 } from 'sentry/views/dashboards/types';
+import {
+  DEFAULT_WIDGET_DRAG_POSITIONING,
+  DRAGGABLE_PREVIEW_HEIGHT_PX,
+  DRAGGABLE_PREVIEW_WIDTH_PX,
+  PREVIEW_HEIGHT_PX,
+  SIDEBAR_HEIGHT,
+  snapPreviewToCorners,
+  WIDGET_PREVIEW_DRAG_ID,
+  type WidgetDragPositioning,
+} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import WidgetPreview from 'sentry/views/dashboards/widgetBuilder/components/widgetPreview';
 import {
@@ -45,39 +50,6 @@ type WidgetBuilderV2Props = {
   onSave: ({index, widget}: {index: number; widget: Widget}) => void;
 };
 
-type WidgetDragPositioning = {
-  initialTranslate: Translate;
-  translate: Translate;
-  left?: number;
-  top?: number;
-};
-
-const WIDGET_PREVIEW_DRAG_ID = 'widget-preview-draggable';
-
-/**
- * Snaps the preview to the visible corners of the slideout
- * @param over - The droppable area object from the drag end event
- * @returns The new position of the preview
- */
-function snapPreviewToCorners(over: any | null): WidgetDragPositioning {
-  const selectedCorner = over?.id?.toString().split('-');
-  // TODO: make constants
-  return {
-    translate: {x: 0, y: 0},
-    initialTranslate: {x: 0, y: 0},
-    left: over?.rect
-      ? selectedCorner?.[1] === 'left'
-        ? over?.rect.left
-        : over?.rect.right - 300
-      : undefined,
-    top: over?.rect
-      ? selectedCorner?.[0] === 'top'
-        ? over?.rect.top
-        : over?.rect.bottom - 200
-      : undefined,
-  };
-}
-
 function WidgetBuilderV2({
   isOpen,
   onClose,
@@ -95,14 +67,11 @@ function WidgetBuilderV2({
 
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  const [translate, setTranslate] = useState<WidgetDragPositioning>({
-    initialTranslate: {x: 0, y: 0},
-    translate: {x: 0, y: 0},
-    // TODO: make constants
-    left: 16,
-    top: 68,
-  });
+  const [translate, setTranslate] = useState<WidgetDragPositioning>(
+    DEFAULT_WIDGET_DRAG_POSITIONING
+  );
 
+  // do we want to keep this?
   useEffect(() => {
     if (escapeKeyPressed) {
       if (isOpen) {
@@ -143,14 +112,7 @@ function WidgetBuilderV2({
                       isOpen={isOpen}
                       onClose={() => {
                         onClose();
-                        // TODO: make constants
-                        // reset the preview to the initial position
-                        setTranslate({
-                          initialTranslate: {x: 0, y: 0},
-                          translate: {x: 0, y: 0},
-                          left: 16,
-                          top: 68,
-                        });
+                        setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
                       }}
                       onSave={onSave}
                       onQueryConditionChange={setQueryConditionsValid}
@@ -205,10 +167,9 @@ export function WidgetPreviewContainer({
   const location = useLocation();
   const theme = useTheme();
 
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.small})`);
   // if small screen and draggable, enable dragging
-  const isDragEnabled =
-    window.innerWidth < parseInt(theme.breakpoints.small.replace('px', ''), 10) &&
-    isDraggable;
+  const isDragEnabled = isSmallScreen && isDraggable;
 
   const {attributes, listeners, setNodeRef, isDragging} = useDraggable({
     id: WIDGET_PREVIEW_DRAG_ID,
@@ -217,6 +178,20 @@ export function WidgetPreviewContainer({
   });
 
   const {translate, top, left} = updatedTranslate ?? {};
+
+  const draggableStyle: CSSProperties = {
+    transform: isDragEnabled
+      ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
+      : undefined,
+    top: isDragEnabled ? top ?? 0 : undefined,
+    left: isDragEnabled ? left ?? 0 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
+    cursor: isDragEnabled ? 'grab' : undefined,
+    margin: isDragEnabled ? '0' : undefined,
+    alignSelf: isDragEnabled ? 'flex-start' : undefined,
+    position: isDragEnabled ? 'fixed' : undefined,
+  };
 
   return (
     <DashboardsMEPProvider>
@@ -236,20 +211,7 @@ export function WidgetPreviewContainer({
               <DraggableWidgetContainer
                 ref={setNodeRef}
                 id={WIDGET_PREVIEW_DRAG_ID}
-                style={{
-                  // TODO: make constants
-                  transform: isDragEnabled
-                    ? `translate3d(${translate?.x ?? 0}px, ${translate?.y ?? 0}px, 0)`
-                    : undefined,
-                  top: isDragEnabled ? top ?? 0 : undefined,
-                  left: isDragEnabled ? left ?? 0 : undefined,
-                  opacity: isDragging ? 0.5 : 1,
-                  zIndex: isDragEnabled ? theme.zIndex.modal : theme.zIndex.initial,
-                  cursor: isDragEnabled ? 'grab' : undefined,
-                  margin: isDragEnabled ? '0' : undefined,
-                  alignSelf: isDragEnabled ? 'flex-start' : undefined,
-                  position: isDragEnabled ? 'fixed' : undefined,
-                }}
+                style={draggableStyle}
                 aria-label={t('Draggable Widget Preview')}
                 {...attributes}
                 {...listeners}
@@ -264,13 +226,12 @@ export function WidgetPreviewContainer({
                     damping: 50,
                   }}
                   style={{
-                    // TODO: make constants
-                    width: isDragEnabled ? '300px' : undefined,
+                    width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
                     height: isDragEnabled
-                      ? '200px'
+                      ? DRAGGABLE_PREVIEW_HEIGHT_PX
                       : state.displayType === DisplayType.TABLE
                         ? 'auto'
-                        : '400px',
+                        : PREVIEW_HEIGHT_PX,
                   }}
                 >
                   <WidgetPreview
@@ -291,27 +252,12 @@ export function WidgetPreviewContainer({
 function DroppablePreviewContainer() {
   const containers = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 
-  // TODO: make into constants and styled element
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gridTemplateRows: '1fr 1fr',
-        position: 'fixed',
-        // CHANGE THESE
-        gap: '32px',
-        margin: '16px',
-        top: '54px',
-        right: '16px',
-        bottom: '16px',
-        left: '0',
-      }}
-    >
+    <DroppableGrid>
       {containers.map(id => (
         <Droppable key={id} id={id} />
       ))}
-    </div>
+    </DroppableGrid>
   );
 }
 
@@ -388,4 +334,17 @@ const WidgetBuilderContainer = styled('div')`
   width: -webkit-fill-available; /* Chrome */
   width: -moz-available; /* Firefox */
   width: fill-available; /* others */
+`;
+
+const DroppableGrid = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  position: fixed;
+  gap: ${space(4)};
+  margin: ${space(2)};
+  top: ${SIDEBAR_HEIGHT}px;
+  right: ${space(2)};
+  bottom: ${space(2)};
+  left: 0;
 `;
