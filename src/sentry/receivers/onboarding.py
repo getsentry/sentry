@@ -69,9 +69,8 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
     else:
         user_id = None
         try:
-            default_user_id = (
-                Organization.objects.get(id=project.organization_id).get_default_owner().id
-            )
+            default_user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            default_user_id = default_user.id
         except IndexError:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
@@ -115,11 +114,11 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         )
         analytics.record(
             "second_platform.added",
-            user_id=user.id if user else None,
+            user_id=default_user_id,
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        try_mark_onboarding_complete(project.organization_id, user)
+        try_mark_onboarding_complete(project.organization_id, default_user)
 
 
 @first_event_received.connect(weak=False)
