@@ -17,8 +17,8 @@ export default function AddCredentialsModal({Body, Header, ...props}: Props) {
   const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
 
   const onSuccess = () => {
-    closeModal();
     invalidateCredentialsCache();
+    closeModal();
   };
 
   return (
