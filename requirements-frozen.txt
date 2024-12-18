@@ -20,6 +20,7 @@ cachetools==5.3.0
 celery==5.3.5
 certifi==2024.7.4
 cffi==1.17.1
+chardet==5.2.0
 charset-normalizer==3.4.0
 click==8.1.7
 click-didyoumean==0.3.0
@@ -88,7 +89,7 @@ parsimonious==0.10.0
 petname==2.6
 phabricator==0.7.0
 phonenumberslite==8.12.55
-pillow==10.4.0
+pillow==11.0.0
 progressbar2==3.41.0
 prompt-toolkit==3.0.41
 proto-plus==1.25.0
@@ -115,7 +116,7 @@ redis==3.4.1
 redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
-reportlab==4.0.7
+reportlab==4.2.5
 requests==2.32.3
 requests-file==2.1.0
 requests-oauthlib==1.2.0
