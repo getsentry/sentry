@@ -191,7 +191,7 @@ class IngestTransactionsStrategyFactory(ProcessingStrategyFactory[KafkaPayload])
                 num_processes, max_batch_size, max_batch_time, input_block_size, output_block_size
             )
 
-        self.health_checker = HealthChecker("ingest")
+        self.health_checker = HealthChecker("ingest-transactions")
         self.no_celery_mode = no_celery_mode
 
     def create_with_partitions(

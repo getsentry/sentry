@@ -1,172 +1,149 @@
-import {ClassNames} from '@emotion/react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import theme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import filterThreadInfo from './filterThreadInfo';
-import Header from './header';
 import Option from './option';
-import SelectedOption from './selectedOption';
+import {ThreadSelectorGrid, ThreadSelectorGridCell} from './styles';
+import {getMappedThreadState} from './threadStates';
 
 type Props = {
   activeThread: Thread;
   event: Event;
-  threads: Array<Thread>;
-  exception?: Required<ExceptionType>;
-  fullWidth?: boolean;
-  onChange?: (thread: Thread) => void;
+  exception: Required<ExceptionType> | undefined;
+  onChange: (thread: Thread) => void;
+  /**
+   * Expects threads to be sorted by crashed first
+   */
+  threads: Thread[];
 };
 
-const DROPDOWN_MAX_HEIGHT = 400;
+function Header({hasThreadStates}: {hasThreadStates: boolean}) {
+  return (
+    <StyledGrid hasThreadStates={hasThreadStates}>
+      <ThreadSelectorGridCell />
+      <ThreadSelectorGridCell>{t('ID')}</ThreadSelectorGridCell>
+      <ThreadSelectorGridCell>{t('Name')}</ThreadSelectorGridCell>
+      <ThreadSelectorGridCell>{t('Label')}</ThreadSelectorGridCell>
+      {hasThreadStates && <ThreadSelectorGridCell>{t('State')}</ThreadSelectorGridCell>}
+    </StyledGrid>
+  );
+}
 
-function ThreadSelector({
-  threads,
-  event,
-  exception,
-  activeThread,
-  onChange,
-  fullWidth = false,
-}: Props) {
+function getThreadLabel(
+  details: ReturnType<typeof filterThreadInfo>,
+  name: string | null | undefined
+) {
+  if (name?.length) {
+    return name;
+  }
+
+  return details?.label || `<${t('unknown')}>`;
+}
+
+function ThreadSelector({threads, event, exception, activeThread, onChange}: Props) {
   const organization = useOrganization({allowNull: true});
+
   const hasThreadStates = threads.some(thread =>
     defined(getMappedThreadState(thread.state))
   );
 
-  const getDropDownItem = (thread: Thread) => {
-    const {label, filename, crashedInfo, state} = filterThreadInfo(
-      event,
-      thread,
-      exception
-    );
-    const threadInfo = {label, filename, state};
-    return {
-      value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
-      threadInfo,
-      thread,
-      label: (
-        <Option
-          id={thread.id}
-          details={threadInfo}
-          name={thread.name}
-          crashed={thread.crashed}
-          crashedInfo={crashedInfo}
-          hasThreadStates={hasThreadStates}
-        />
-      ),
-    };
-  };
-
-  const getItems = () => {
-    const [crashed, notCrashed] = partition(threads, thread => !!thread?.crashed);
-    return [...crashed, ...notCrashed].map(getDropDownItem);
-  };
-
-  const handleChange = (thread: Thread) => {
-    if (onChange) {
-      onChange(thread);
-    }
-  };
-
-  const items = getItems();
+  const items = useMemo(() => {
+    return threads.map((thread: Thread) => {
+      const threadInfo = filterThreadInfo(event, thread, exception);
+      return {
+        value: thread.id,
+        textValue: `#${thread.id}: ${thread.name} ${threadInfo.label} ${threadInfo.filename}`,
+        label: (
+          <Option
+            thread={thread}
+            details={threadInfo}
+            crashedInfo={threadInfo.crashedInfo}
+            hasThreadStates={hasThreadStates}
+          />
+        ),
+      };
+    });
+  }, [threads, event, exception, hasThreadStates]);
 
   return (
-    <ClassNames>
-      {({css}) => (
-        <StyledDropdownAutoComplete
-          detached
-          data-test-id="thread-selector"
-          items={items}
-          onOpen={() => {
-            trackAnalytics('stack_trace.threads.thread_selector_opened', {
-              organization,
-              platform: event.platform,
-              num_threads: items.length,
-            });
-          }}
-          onSelect={item => {
-            const selectedThread: Thread = item.thread;
-
-            trackAnalytics('stack_trace.threads.thread_selected', {
-              organization,
-              platform: event.platform,
-              thread_index: items.findIndex(
-                ({thread}) => thread.id === selectedThread.id
-              ),
-              num_threads: items.length,
-              is_crashed_thread: selectedThread.crashed,
-              is_current_thread: selectedThread.current,
-              thread_state: selectedThread.state ?? '',
-              has_stacktrace: defined(selectedThread.stacktrace),
-              num_in_app_frames:
-                selectedThread.stacktrace?.frames?.filter((frame: Frame) => frame.inApp)
-                  .length ?? 0,
-            });
-            handleChange(item.thread);
-          }}
-          maxHeight={DROPDOWN_MAX_HEIGHT}
-          searchPlaceholder={t('Filter Threads')}
-          emptyMessage={t('You have no threads')}
-          noResultsMessage={t('No threads found')}
-          menuHeader={<Header hasThreadStates={hasThreadStates} />}
-          rootClassName={
-            fullWidth
-              ? css`
-                  width: 100%;
-                `
-              : undefined
-          }
-          closeOnSelect
-          emptyHidesInput
-        >
-          {({isOpen, selectedItem}) => (
-            <StyledDropdownButton isOpen={isOpen} size="xs">
-              {selectedItem ? (
-                <SelectedOption
-                  id={selectedItem.thread.id}
-                  name={selectedItem.thread.name}
-                  details={selectedItem.threadInfo}
-                />
-              ) : (
-                <SelectedOption
-                  id={activeThread.id}
-                  name={activeThread.name}
-                  details={filterThreadInfo(event, activeThread, exception)}
-                />
-              )}
-            </StyledDropdownButton>
-          )}
-        </StyledDropdownAutoComplete>
-      )}
-    </ClassNames>
+    <CompactSelect
+      data-test-id="thread-selector"
+      searchable
+      searchPlaceholder={t('Filter threads')}
+      onOpenChange={() => {
+        trackAnalytics('stack_trace.threads.thread_selector_opened', {
+          organization,
+          platform: event.platform,
+          num_threads: items.length,
+        });
+      }}
+      value={activeThread.id}
+      options={items}
+      menuWidth={450}
+      triggerProps={{size: 'xs'}}
+      triggerLabel={
+        <ThreadName>
+          {t('Thread #%s: ', activeThread.id)}
+          <ActiveThreadName>
+            {getThreadLabel(
+              filterThreadInfo(event, activeThread, exception),
+              activeThread.name
+            )}
+          </ActiveThreadName>
+        </ThreadName>
+      }
+      menuBody={<Header hasThreadStates={hasThreadStates} />}
+      onChange={selected => {
+        const threadIndex = threads.findIndex(th => th.id === selected.value);
+        const thread = threads[threadIndex];
+        if (thread) {
+          trackAnalytics('stack_trace.threads.thread_selected', {
+            organization,
+            platform: event.platform,
+            thread_index: threadIndex,
+            num_threads: items.length,
+            is_crashed_thread: thread.crashed,
+            is_current_thread: thread.current,
+            thread_state: thread.state ?? '',
+            has_stacktrace: defined(thread.stacktrace),
+            num_in_app_frames:
+              thread.stacktrace?.frames?.filter((frame: Frame) => frame.inApp).length ??
+              0,
+          });
+          onChange(thread);
+        }
+      }}
+    />
   );
 }
 
 export default ThreadSelector;
 
-const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
-  min-width: 300px;
-  @media (min-width: ${theme.breakpoints.small}) {
-    width: 500px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
-    top: calc(100% - 2px);
-  }
+const ThreadName = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
-const StyledDropdownButton = styled(DropdownButton)`
-  > *:first-child {
-    justify-content: space-between;
-    width: 100%;
-  }
-  width: 100%;
-  min-width: 150px;
+const ActiveThreadName = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  max-width: 200px;
+  ${p => p.theme.overflowEllipsis};
+`;
+
+const StyledGrid = styled(ThreadSelectorGrid)`
+  padding-left: 40px;
+  padding-right: 40px;
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeightBold};
+  border-bottom: 1px solid ${p => p.theme.border};
+  margin-bottom: 2px;
 `;

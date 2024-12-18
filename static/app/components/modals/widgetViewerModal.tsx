@@ -31,6 +31,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -54,9 +55,16 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
+import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardPermissions,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
@@ -71,6 +79,7 @@ import {
   isUsingPerformanceScore,
   performanceScoreTooltip,
 } from 'sentry/views/dashboards/utils';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
@@ -103,7 +112,9 @@ export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
+  dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
+  dashboardPermissions?: DashboardPermissions;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -193,6 +204,8 @@ function WidgetViewerModal(props: Props) {
     seriesResultsType,
     dashboardFilters,
     widgetLegendState,
+    dashboardPermissions,
+    dashboardCreator,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -251,10 +264,6 @@ function WidgetViewerModal(props: Props) {
 
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
-  // Get query selection settings from location
-  const selectedQueryIndex =
-    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
-
   // Get pagination settings from location
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const cursor = decodeScalar(location.query[WidgetViewerQueryField.CURSOR]);
@@ -268,6 +277,15 @@ function WidgetViewerModal(props: Props) {
   const sortedQueries = cloneDeep(
     sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
   );
+
+  // The table under the widget visualization can only show one query, but widgets might have multiple. Choose the query based on a URL parameter.
+  // Note that the URL parameter might be incorrect or invalid, in which case we drop down to the first query
+  let selectedQueryIndex =
+    decodeInteger(location.query[WidgetViewerQueryField.QUERY]) ?? 0;
+
+  if (defined(widget) && !defined(sortedQueries[selectedQueryIndex])) {
+    selectedQueryIndex = 0;
+  }
 
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
@@ -837,6 +855,18 @@ function WidgetViewerModal(props: Props) {
     }
   }
 
+  const currentUser = useUser();
+  const {teams: userTeams} = useUserTeams();
+  let hasEditAccess = true;
+  if (organization.features.includes('dashboards-edit-access')) {
+    hasEditAccess = checkUserHasEditAccess(
+      currentUser,
+      userTeams,
+      organization,
+      dashboardPermissions,
+      dashboardCreator
+    );
+  }
   function renderWidgetViewer() {
     return (
       <Fragment>
@@ -1053,6 +1083,11 @@ function WidgetViewerModal(props: Props) {
                                 display_type: widget.displayType,
                               });
                             }}
+                            disabled={!hasEditAccess}
+                            title={
+                              !hasEditAccess &&
+                              t('You do not have permission to edit this widget')
+                            }
                           >
                             {t('Edit Widget')}
                           </Button>
@@ -1117,6 +1152,10 @@ function OpenButton({
     case WidgetType.METRICS:
       openLabel = t('Open in Metrics');
       path = getWidgetMetricsUrl(widget, selection, organization);
+      break;
+    case WidgetType.SPANS:
+      openLabel = t('Open in Explore');
+      path = getWidgetExploreUrl(widget, selection, organization);
       break;
     case WidgetType.DISCOVER:
     default:

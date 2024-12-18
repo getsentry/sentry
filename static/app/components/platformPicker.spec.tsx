@@ -88,6 +88,7 @@ describe('PlatformPicker', function () {
       'Nest.js',
       'Next.js',
       'Node.js',
+      'Nuxt',
       'PHP',
       'Python',
       'Rails',

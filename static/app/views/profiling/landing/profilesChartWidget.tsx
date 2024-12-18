@@ -20,7 +20,6 @@ import {
 interface ProfilesChartWidgetProps {
   chartHeight: number;
   referrer: string;
-  continuousProfilingCompat?: boolean;
   header?: ReactNode;
   selection?: PageFilters;
   userQuery?: string;
@@ -31,7 +30,6 @@ const SERIES_ORDER = ['p99()', 'p95()', 'p75()', 'p50()'] as const;
 
 export function ProfilesChartWidget({
   chartHeight,
-  continuousProfilingCompat,
   header,
   referrer,
   selection,
@@ -45,7 +43,6 @@ export function ProfilesChartWidget({
     query: userQuery,
     referrer,
     yAxes: SERIES_ORDER,
-    continuousProfilingCompat,
   });
 
   const series: Series[] = useMemo(() => {
@@ -116,7 +113,9 @@ export function ProfilesChartWidget({
   return (
     <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        {header ?? <HeaderTitleLegend>{t('Profiles by Percentiles')}</HeaderTitleLegend>}
+        {header ?? (
+          <HeaderTitleLegend>{t('Transactions by Percentiles')}</HeaderTitleLegend>
+        )}
       </HeaderContainer>
       <ContentContainer>
         <ChartZoom {...selection?.datetime}>

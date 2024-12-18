@@ -25,6 +25,7 @@ export const enum SectionKey {
 
   EXCEPTION = 'exception',
   STACKTRACE = 'stacktrace',
+  THREADS = 'threads',
   SPANS = 'spans',
   EVIDENCE = 'evidence',
   MESSAGE = 'message',
@@ -42,6 +43,9 @@ export const enum SectionKey {
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
+  /**
+   * Also called images loaded
+   */
   DEBUGMETA = 'debugmeta',
   REQUEST = 'request',
 

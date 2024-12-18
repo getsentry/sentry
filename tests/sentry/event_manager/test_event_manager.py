@@ -46,9 +46,10 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import load_grouping_config
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.issues.grouptype import (
@@ -1540,6 +1541,140 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    def test_transaction_sampler_and_receive(self) -> None:
+        # make sure with the option on we don't get any errors
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "transaction_info": {
+                        "source": "url",
+                    },
+                }
+            )
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+    @override_options({"transactions.do_post_process_in_save": 1.0})
+    @patch("sentry.event_manager.record_event_processed")
+    @patch("sentry.event_manager.record_user_context_received")
+    @patch("sentry.event_manager.record_release_received")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
+    def test_transaction_sampler_and_receive_mock_called(
+        self,
+        mock_record_sample: mock.MagicMock,
+        mock_record_release: mock.MagicMock,
+        mock_record_user: mock.MagicMock,
+        mock_record_event: mock.MagicMock,
+    ) -> None:
+        manager = EventManager(
+            make_event(
+                **{
+                    "transaction": "wait",
+                    "contexts": {
+                        "trace": {
+                            "parent_span_id": "bce14471e0e9654d",
+                            "op": "foobar",
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "span_id": "bf5be759039ede9a",
+                        }
+                    },
+                    "spans": [
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "a" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "b" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span a",
+                        },
+                        {
+                            "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                            "parent_span_id": "bf5be759039ede9a",
+                            "span_id": "c" * 16,
+                            "start_timestamp": 0,
+                            "timestamp": 1,
+                            "same_process_as_parent": True,
+                            "op": "default",
+                            "description": "span b",
+                        },
+                    ],
+                    "timestamp": "2019-06-14T14:01:40Z",
+                    "start_timestamp": "2019-06-14T14:01:40Z",
+                    "type": "transaction",
+                    "transaction_info": {
+                        "source": "url",
+                    },
+                }
+            )
+        )
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        mock_record_event.assert_called_once_with(self.project, event)
+        mock_record_user.assert_called_once_with(self.project, event)
+        mock_record_release.assert_called_once_with(self.project, event)
+        assert mock_record_sample.mock_calls == [
+            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
+        ]
+
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
         manager.normalize()
@@ -1912,6 +2047,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with Sentry installations that do not have a metrics pipeline.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -1924,8 +2060,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -1949,6 +2085,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ``billing_metrics_consumer``.
         """
 
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -1961,8 +2098,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -1978,14 +2115,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
         )
 
-    def test_checksum_rehashed(self) -> None:
+    def test_invalid_checksum_gets_hashed(self) -> None:
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
+        assert len(hashes) == 1
+        assert hashes[0] == hash_from_values(checksum)
 
     def test_legacy_attributes_moved(self) -> None:
         event_params = make_event(
@@ -2012,6 +2150,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @freeze_time()
     def test_save_issueless_event(self) -> None:
+        timestamp = before_now(minutes=5).isoformat()
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2024,8 +2163,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                     }
                 },
                 spans=[],
-                timestamp=before_now(minutes=5).isoformat(),
-                start_timestamp=before_now(minutes=5).isoformat(),
+                timestamp=timestamp,
+                start_timestamp=timestamp,
                 type="transaction",
                 platform="python",
             )
@@ -2136,7 +2275,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
+        grouping_config: GroupingConfig = {
+            "id": DEFAULT_GROUPING_CONFIG,
+            "enhancements": enhancements_str,
+        }
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",

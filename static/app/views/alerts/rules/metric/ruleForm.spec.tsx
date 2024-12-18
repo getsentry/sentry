@@ -29,6 +29,7 @@ jest.mock('sentry/utils/analytics', () => ({
     })),
     endSpan: jest.fn(),
   },
+  trackAnalytics: jest.fn(),
 }));
 
 describe('Incident Rules Form', () => {
@@ -109,6 +110,10 @@ describe('Incident Rules Form', () => {
       method: 'POST',
       url: '/organizations/org-slug/events/anomalies/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
     });
   });
 
@@ -465,48 +470,6 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('creates an insights metric rule', async () => {
-      const rule = MetricRuleFixture();
-      createWrapper({
-        rule: {
-          ...rule,
-          id: undefined,
-          eventTypes: ['transaction'],
-          aggregate: 'avg(d:spans/exclusive_time@millisecond)',
-          dataset: Dataset.GENERIC_METRICS,
-        },
-      });
-
-      // Clear field
-      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
-
-      // Enter in name so we can submit
-      await userEvent.type(
-        screen.getByPlaceholderText('Enter Alert Name'),
-        'Insights Incident Rule'
-      );
-
-      // Set thresholdPeriod
-      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
-
-      await userEvent.click(screen.getByLabelText('Save Rule'));
-
-      expect(createRule).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            name: 'Insights Incident Rule',
-            projects: ['project-slug'],
-            eventTypes: ['transaction'],
-            thresholdPeriod: 10,
-            alertType: 'insights_metrics',
-            dataset: 'generic_metrics',
-          }),
-        })
-      );
-      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-    });
-
     it('creates an EAP metric rule', async () => {
       const rule = MetricRuleFixture();
       createWrapper({
@@ -594,6 +557,33 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('edits query', async () => {
+      createWrapper({
+        name: 'Query Rule',
+        projects: ['project-slug'],
+        eventTypes: ['num_errors'],
+        thresholdPeriod: 10,
+        query: 'is:unresolved',
+        rule,
+        ruleId: rule.id,
+      });
+
+      const queryInput = await screen.findByTestId('query-builder-input');
+      await userEvent.type(queryInput, 'has:http.url');
+      await userEvent.type(queryInput, '{enter}');
+
+      await userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(editRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query: 'has:http.url',
+          }),
+        })
+      );
+    }, 10000);
 
     it('switches from percent change to count', async () => {
       createWrapper({

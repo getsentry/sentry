@@ -24,6 +24,7 @@ from sentry import analytics
 from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.backup.crypto import (
+    EncryptorDecryptorPair,
     GCPKMSDecryptor,
     GCPKMSEncryptor,
     LocalFileEncryptor,
@@ -72,6 +73,7 @@ from sentry.utils.relocation import (
     TASK_TO_STEP,
     LoggingPrinter,
     OrderedTask,
+    StorageBackedCheckpointExporter,
     create_cloudbuild_yaml,
     fail_relocation,
     get_relocations_bucket_name,
@@ -302,14 +304,18 @@ def uploading_start(uuid: UUID, replying_region_name: str | None, org_slug: str 
     name="sentry.relocation.fulfill_cross_region_export_request",
     queue="relocation",
     autoretry_for=(Exception,),
-    max_retries=MAX_FAST_TASK_RETRIES,
-    retry_backoff=RETRY_BACKOFF,
+    # So the 1st retry is after ~0.5 min, 2nd after ~1 min, 3rd after ~2 min, 4th after ~4 min.
+    max_retries=4,
+    retry_backoff=30,
     retry_backoff_jitter=True,
-    # Setting `acks_late` here allows us to retry the potentially long-lived task if the k8s pod if
-    # the worker received SIGKILL/TERM/QUIT. We have a timeout check in the task itself to make sure
-    # it does not loop indefinitely.
+    # Setting `acks_late` + `reject_on_worker_lost` here allows us to retry the potentially
+    # long-lived task if the k8s pod of the worker received SIGKILL/TERM/QUIT (or we ran out of some
+    # other resource, leading to the same outcome). We have a timeout check at the very start of the
+    # task itself to make sure it does not loop indefinitely.
     acks_late=True,
-    soft_time_limit=MEDIUM_TIME_LIMIT,
+    reject_on_worker_lost=True,
+    # 10 minutes per try.
+    soft_time_limit=60 * 10,
     silo_mode=SiloMode.REGION,
 )
 def fulfill_cross_region_export_request(
@@ -372,6 +378,16 @@ def fulfill_cross_region_export_request(
         encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
         org_filter={org_slug},
         printer=LoggingPrinter(uuid),
+        checkpointer=StorageBackedCheckpointExporter(
+            crypto=EncryptorDecryptorPair(
+                encryptor=GCPKMSEncryptor.from_crypto_key_version(get_default_crypto_key_version()),
+                decryptor=GCPKMSDecryptor.from_bytes(
+                    json.dumps(get_default_crypto_key_version()).encode("utf-8")
+                ),
+            ),
+            uuid=uuid,
+            storage=relocation_storage,
+        ),
     )
     logger.info(
         "fulfill_cross_region_export_request: exported",

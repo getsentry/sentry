@@ -50,7 +50,9 @@ class ApiAuthorizationsEndpoint(Endpoint):
 
         with outbox_context(transaction.atomic(using=router.db_for_write(ApiToken)), flush=False):
             for token in ApiToken.objects.filter(
-                user_id=request.user.id, application=auth.application_id
+                user_id=request.user.id,
+                application=auth.application_id,
+                scoping_organization_id=auth.organization_id,
             ):
                 token.delete()
 

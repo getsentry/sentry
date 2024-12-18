@@ -1,11 +1,14 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {IconBusiness} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
@@ -16,6 +19,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/settings';
+import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -32,7 +36,8 @@ export type Props = {
 
 type Tab = {
   key: string;
-  label: string;
+  label: React.ReactNode;
+  to: LocationDescriptor;
 };
 
 export function DomainViewHeader({
@@ -46,7 +51,6 @@ export function DomainViewHeader({
   domainBaseUrl,
   tabs,
 }: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
   const moduleTitles = useModuleTitles();
@@ -74,30 +78,14 @@ export function DomainViewHeader({
 
   const showModuleTabs = organization.features.includes('insights-entry-points');
 
-  const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
-    if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
-      return;
-    }
-    if (!key) {
-      return;
-    }
-    if (key === OVERVIEW_PAGE_TITLE) {
-      navigate(domainBaseUrl);
-      return;
-    }
-    navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
-  };
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
-
-  const handleTabChange =
-    hideDefaultTabs && tabs ? tabs.onTabChange : defaultHandleTabChange;
 
   const tabList: Tab[] = [
     {
       key: OVERVIEW_PAGE_TITLE,
       label: OVERVIEW_PAGE_TITLE,
+      to: domainBaseUrl,
     },
   ];
 
@@ -105,7 +93,8 @@ export function DomainViewHeader({
     tabList.push(
       ...modules.map(moduleName => ({
         key: moduleName,
-        label: moduleTitles[moduleName],
+        label: <TabLabel moduleName={moduleName} />,
+        to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
       }))
     );
   }
@@ -124,11 +113,13 @@ export function DomainViewHeader({
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Tabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item key={tab.key} to={tab.to}>
+                  {tab.label}
+                </TabList.Item>
               ))}
             </TabList>
           )}
@@ -138,3 +129,25 @@ export function DomainViewHeader({
     </Fragment>
   );
 }
+
+function TabLabel({moduleName}: {moduleName: ModuleName}) {
+  const moduleTitles = useModuleTitles();
+  const organization = useOrganization();
+  const showBusinessIcon = !isModuleEnabled(moduleName, organization);
+  if (showBusinessIcon) {
+    return (
+      <TabWithIconContainer>
+        {moduleTitles[moduleName]}
+        <IconBusiness />
+      </TabWithIconContainer>
+    );
+  }
+  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+}
+
+const TabWithIconContainer = styled('div')`
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  gap: ${space(0.5)};
+`;

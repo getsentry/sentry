@@ -292,7 +292,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def create_event(self, project_id=None, event_id=None, group_id=None, data=None):
+    def create_event(self, *, project_id: int, event_id=None, group_id=None, data=None):
         """
         Returns an Event from processed data
         """

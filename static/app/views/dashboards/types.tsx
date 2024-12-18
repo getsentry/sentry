@@ -112,7 +112,8 @@ export type WidgetPreview = {
 };
 
 export type DashboardPermissions = {
-  isCreatorOnlyEditable: boolean;
+  isEditableByEveryone: boolean;
+  teamsWithEditAccess?: number[];
 };
 
 /**
@@ -125,6 +126,8 @@ export type DashboardListItem = {
   widgetPreview: WidgetPreview[];
   createdBy?: User;
   dateCreated?: string;
+  isFavorited?: boolean;
+  permissions?: DashboardPermissions;
 };
 
 export enum DashboardFilterKeys {
@@ -148,6 +151,7 @@ export type DashboardDetails = {
   createdBy?: User;
   end?: string;
   environment?: string[];
+  isFavorited?: boolean;
   period?: string;
   permissions?: DashboardPermissions;
   start?: string;

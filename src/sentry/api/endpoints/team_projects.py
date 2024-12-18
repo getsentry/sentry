@@ -13,6 +13,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
+from sentry.api.helpers.default_symbol_sources import set_default_symbol_sources
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -21,8 +22,8 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
-from sentry.models.project import PROJECT_SLUG_MAX_LENGTH, Project
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.similarity.utils import project_is_seer_eligible
 from sentry.signals import project_created
@@ -202,6 +203,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
             # Turns on some inbound filters by default for new Javascript platform projects
             if project.platform and project.platform.startswith("javascript"):
                 set_default_inbound_filters(project, team.organization)
+
+            set_default_symbol_sources(project)
 
             self.create_audit_entry(
                 request=request,

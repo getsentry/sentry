@@ -6,7 +6,9 @@ import {Observer} from 'mobx-react';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
+import RangeField from 'sentry/components/forms/fields/rangeField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -14,11 +16,12 @@ import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -62,6 +65,8 @@ function getFormDataFromRule(rule: UptimeRule) {
     body: rule.body,
     headers: rule.headers,
     intervalSeconds: rule.intervalSeconds,
+    timeoutMs: rule.timeoutMs,
+    traceSampling: rule.traceSampling,
     owner: rule.owner ? `${rule.owner.type}:${rule.owner.id}` : null,
   };
 }
@@ -191,7 +196,19 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
               required
             />
-
+            <RangeField
+              name="timeoutMs"
+              label={t('Timeout')}
+              min={1000}
+              max={30_000}
+              step={250}
+              tickValues={[1_000, 5_000, 10_000, 15_000, 20_000, 25_000, 30_000]}
+              defaultValue={5_000}
+              showTickLabels
+              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+              flexibleControlStateSize
+              required
+            />
             <TextField
               name="url"
               label={t('URL')}
@@ -227,6 +244,20 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               placeholder='{"key": "value"}'
               flexibleControlStateSize
             />
+            <BooleanField
+              name="traceSampling"
+              label={t('Allow Sampling')}
+              showHelpInTooltip={{isHoverable: true}}
+              help={tct(
+                'Defer the sampling decision to a Sentry SDK configured in your application. Disable to prevent all span sampling. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/uptime-tracing/" />
+                  ),
+                }
+              )}
+              flexibleControlStateSize
+            />
           </ConfigurationPanel>
           <Observer>
             {() => (
@@ -235,6 +266,7 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
                 method={formModel.getValue('method')}
                 headers={formModel.getValue('headers')}
                 body={formModel.getValue('body')}
+                traceSampling={formModel.getValue('traceSampling')}
               />
             )}
           </Observer>

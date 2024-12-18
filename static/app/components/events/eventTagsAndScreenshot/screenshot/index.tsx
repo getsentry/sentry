@@ -101,7 +101,7 @@ function Screenshot({
           >
             <StyledImageVisualization
               attachment={screenshotAttachment}
-              orgId={orgSlug}
+              orgSlug={orgSlug}
               projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}

@@ -356,6 +356,9 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
 
     def setUp(self):
         super().setUp()
+        self.owner = self.create_user(email="admin@test.com")
+        self.create_member(user=self.owner, organization=self.organization, role="owner")
+        self.another_organization = self.create_organization(owner=self.owner)
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris="https://example.com",
@@ -363,12 +366,25 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             scopes=["org:read", "project:read"],
         )
 
-    def test_rich_params(self):
-        self.login_as(self.user)
-
-        # Putting scope in the query string to show that this will be overridden by the scopes that are stored on the application model
+    def test_no_orgs(self):
+        # If the user has no organizations, this oauth flow should not be possible
+        user = self.create_user(email="user1@test.com")
+        self.login_as(user)
         resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org%3write&state=foo"
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
+        )
+        assert resp.status_code == 400
+        self.assertTemplateUsed("sentry/oauth-error.html")
+        assert (
+            resp.context["error"]
+            == "This authorization flow is only available for users who are members of an organization."
+        )
+
+    def test_rich_params(self):
+        self.login_as(self.owner)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
         )
 
         assert resp.status_code == 200
@@ -379,11 +395,10 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             self.path, {"op": "approve", "selected_organization_id": self.organization.id}
         )
 
-        grant = ApiGrant.objects.get(user=self.user)
+        grant = ApiGrant.objects.get(user=self.owner)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        assert grant.get_scopes() == ["org:read", "project:read"]
-        assert "org:write" not in grant.get_scopes()
+        assert grant.get_scopes() == ["org:read"]
         assert grant.organization_id == self.organization.id
 
         assert resp.status_code == 302
@@ -394,4 +409,78 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
             f"state=foo&code={grant.code}"
         )
 
-        assert not ApiToken.objects.filter(user=self.user).exists()
+        assert not ApiToken.objects.filter(user=self.owner).exists()
+
+    def test_exceed_scope(self):
+        self.login_as(self.owner)
+
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:write&state=foo"
+        )
+
+        assert resp.status_code == 302
+        assert resp["Location"] == "https://example.com?error=invalid_scope&state=foo"
+
+    def test_second_time(self):
+        self.login_as(self.owner)
+
+        # before hitting the authorize endpoint we expect that ApiAuthorization does not exist
+        before_apiauth = ApiAuthorization.objects.filter(
+            user=self.owner, application=self.application
+        )
+        assert before_apiauth.exists() is False
+
+        # The first time the app hits the endpoint for the user, it is expected that
+        # 1. User sees the view to choose an organization
+        # 2. ApiAuthorization is created with the selected organization
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+        )
+
+        grant = ApiGrant.objects.get(user=self.owner)
+        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        # There is only one ApiAuthorization for this user and app which is related to the right organization
+        api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
+        assert api_auth.organization_id == self.organization.id
+
+        # The second time the app hits the endpoint for the user, it is expected that
+        # 1. User still sees the view to choose an organization
+        # 2. ApiAuthorization is not created again if the user chooses the same organization
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.organization.id}
+        )
+        same_api_auth = ApiAuthorization.objects.get(user=self.owner, application=self.application)
+        assert api_auth.id == same_api_auth.id
+
+        # The other time the app hits the endpoint for the user, it is expected that
+        # 1. User still sees the view to choose an organization
+        # 2. New ApiAuthorization is created again if the user chooses another organization
+        resp = self.client.get(
+            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:read&state=foo"
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+        resp = self.client.post(
+            self.path, {"op": "approve", "selected_organization_id": self.another_organization.id}
+        )
+        another_api_auth = ApiAuthorization.objects.get(
+            user=self.owner,
+            application=self.application,
+            organization_id=self.another_organization.id,
+        )
+        assert api_auth.id != another_api_auth.id

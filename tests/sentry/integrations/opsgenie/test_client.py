@@ -4,8 +4,9 @@ import orjson
 import pytest
 import responses
 
-from sentry.integrations.utils.metrics import EventLifecycleOutcome
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.rule import Rule
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -98,7 +99,4 @@ class OpsgenieClientTest(APITestCase):
             "message": "Hello world",
             "source": "Sentry",
         }
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

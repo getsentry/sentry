@@ -246,9 +246,9 @@ describe('Incident Rules Create', () => {
     );
   });
 
-  it('queries insights metrics using the metricsEnhanced dataset and without the metrics layer', async () => {
+  it('does a 7 day query for confidence data on the EAP dataset', async () => {
     const {organization, project, router} = initializeOrg({
-      organization: {features: ['custom-metrics']},
+      organization: {features: ['alerts-eap']},
     });
 
     render(
@@ -257,10 +257,10 @@ describe('Incident Rules Create', () => {
         location={router.location}
         organization={organization}
         projects={[project]}
-        query="span.module:db"
+        query=""
         timeWindow={1}
-        aggregate="spm()"
-        dataset={Dataset.GENERIC_METRICS}
+        aggregate="count(span.duration)"
+        dataset={Dataset.EVENTS_ANALYTICS_PLATFORM}
         triggers={[]}
         environment={null}
         comparisonType={AlertRuleComparisonType.COUNT}
@@ -270,6 +270,7 @@ describe('Incident Rules Create', () => {
         onDataLoaded={() => {}}
         isQueryValid
         showTotalCount
+        includeConfidence
       />
     );
 
@@ -277,18 +278,13 @@ describe('Incident Rules Create', () => {
     expect(await screen.findByTestId('alert-total-events')).toBeInTheDocument();
 
     expect(eventStatsMock).toHaveBeenCalledWith(
-      expect.anything(),
+      '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: {
-          interval: '1m',
-          project: [2],
-          query: 'span.module:db',
+        query: expect.objectContaining({
+          dataset: 'spans',
           statsPeriod: '9998m',
-          yAxis: 'spm()',
-          referrer: 'api.organization-event-stats',
-          forceMetricsLayer: undefined,
-          dataset: 'metricsEnhanced',
-        },
+          yAxis: 'count(span.duration)',
+        }),
       })
     );
   });

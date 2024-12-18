@@ -287,16 +287,11 @@ const ALL_DIGESTS = [
 ] satisfies ProfilingFieldType[];
 
 function ProfileDigest({query}: TransactionProfilesContentProps) {
-  const organization = useOrganization();
-
   const profilesSummary = useProfileEvents<ProfilingFieldType>({
     fields: ALL_DIGESTS,
     query,
     sort: {key: 'last_seen()', order: 'desc'},
     referrer: 'api.profiling.profile-summary-table',
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const digestData = profilesSummary.data?.data?.[0];
@@ -419,9 +414,6 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
     referrer: 'api.profiling.profile-summary-table',
     cursor,
     limit: 10,
-    continuousProfilingCompat: organization.features.includes(
-      'continuous-profiling-compat'
-    ),
   });
 
   const handleSort = useCallback(
@@ -538,11 +530,10 @@ const TransactionProfilesContentContainer = styled('div')`
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: 'visualization digest';
-  grid-template-columns: 1fr 250px;
+  grid-template-columns: 1fr min-content;
   flex: 1;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  overflow: hidden;
 `;
 
 const ProfileVisualizationContainer = styled('div')`
@@ -554,7 +545,6 @@ const ProfileVisualizationContainer = styled('div')`
 `;
 
 const FlamegraphContainer = styled('div')`
-  overflow: hidden;
   display: flex;
 `;
 

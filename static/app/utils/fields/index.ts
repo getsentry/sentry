@@ -81,6 +81,8 @@ export enum FieldKey {
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
   OS_NAME = 'os.name',
+  OS_DISTRIBUTION_NAME = 'os.distribution_name',
+  OS_DISTRIBUTION_VERSION = 'os.distribution_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
@@ -816,16 +818,17 @@ export const ALLOWED_EXPLORE_VISUALIZE_FIELDS: SpanIndexedField[] = [
 ];
 
 export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
-  AggregationKey.COUNT,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
   AggregationKey.AVG,
+  AggregationKey.COUNT,
   AggregationKey.P50,
   AggregationKey.P75,
   AggregationKey.P90,
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
+  AggregationKey.SUM,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
 ];
 
 export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
@@ -837,11 +840,13 @@ export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = 
       {
         name: 'column',
         kind: 'column',
-        columnTypes: function ({key}): boolean {
-          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
-        },
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
         defaultValue: 'span.duration',
-        required: true,
+        required: false,
       },
     ],
   },
@@ -851,9 +856,13 @@ export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = 
       {
         name: 'column',
         kind: 'column',
-        columnTypes: function ({key}): boolean {
-          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
-        },
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.INTEGER,
+          FieldValueType.NUMBER,
+          FieldValueType.DURATION,
+          FieldValueType.DATE,
+          FieldValueType.PERCENTAGE,
+        ]),
         defaultValue: 'span.duration',
         required: true,
       },
@@ -865,11 +874,31 @@ export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = 
       {
         name: 'column',
         kind: 'column',
-        columnTypes: function ({key}): boolean {
-          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
-        },
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.INTEGER,
+          FieldValueType.NUMBER,
+          FieldValueType.DURATION,
+          FieldValueType.DATE,
+          FieldValueType.PERCENTAGE,
+        ]),
         defaultValue: 'span.duration',
         required: true,
+      },
+    ],
+  },
+  [AggregationKey.SUM]: {
+    ...AGGREGATION_FIELDS[AggregationKey.SUM],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        required: true,
+        defaultValue: 'span.duration',
       },
     ],
   },
@@ -879,9 +908,107 @@ export const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = 
       {
         name: 'column',
         kind: 'column',
-        columnTypes: function ({key}): boolean {
-          return ALLOWED_EXPLORE_VISUALIZE_FIELDS.includes(key as SpanIndexedField);
-        },
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P50]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P50],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P75]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P75],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P90]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P90],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P95]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P95],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P99]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P99],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.P100]: {
+    ...AGGREGATION_FIELDS[AggregationKey.P100],
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
         defaultValue: 'span.duration',
         required: true,
       },
@@ -1398,6 +1525,16 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.OS_DISTRIBUTION_NAME]: {
+    desc: t('Distribution name'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_DISTRIBUTION_VERSION]: {
+    desc: t('Distribution version number'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.PLATFORM]: {
     desc: t('Name of the platform'),
     kind: FieldKind.FIELD,
@@ -1712,6 +1849,8 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1780,6 +1919,8 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS: Set<FieldKey> = new
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
@@ -1842,6 +1983,8 @@ export const DISCOVER_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
+  FieldKey.OS_DISTRIBUTION_NAME,
+  FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.DEVICE_NAME,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_LOCALE,
@@ -2200,6 +2343,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
+  FieldKey.TRACE,
   FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
@@ -2263,7 +2407,8 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event'
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event',
+  kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
     case 'replay':
@@ -2286,7 +2431,28 @@ export const getFieldDefinition = (
       }
       return null;
     case 'span':
-      return SPAN_FIELD_DEFINITIONS[key] ?? null;
+      if (SPAN_FIELD_DEFINITIONS[key]) {
+        return SPAN_FIELD_DEFINITIONS[key];
+      }
+
+      // In EAP we have numeric tags that can be passed as parameters to
+      // aggregate functions. We assign value type based on kind, so that we can filter
+      // on them when suggesting function parameters.
+      if (kind === FieldKind.MEASUREMENT) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.NUMBER,
+        };
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.STRING,
+        };
+      }
+
+      return null;
     case 'event':
     default:
       return EVENT_FIELD_DEFINITIONS[key] ?? null;

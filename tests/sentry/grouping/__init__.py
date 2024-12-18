@@ -18,7 +18,7 @@ from sentry.grouping.api import (
     get_default_grouping_config_dict,
     load_grouping_config,
 )
-from sentry.grouping.component import GroupingComponent
+from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -59,7 +59,7 @@ class GroupingInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(project_id=1, data=data)
 
     def _save_event_with_pipeline(
         self,
@@ -147,7 +147,7 @@ class FingerprintInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        evt = eventstore.backend.create_event(data=data)
+        evt = eventstore.backend.create_event(project_id=1, data=data)
         return config, evt
 
 
@@ -181,7 +181,7 @@ def dump_variant(
     if lines is None:
         lines = []
 
-    def _dump_component(component: GroupingComponent, indent: int) -> None:
+    def _dump_component(component: BaseGroupingComponent, indent: int) -> None:
         if not component.hint and not component.values:
             return
         if component.contributes or include_non_contributing:
@@ -195,15 +195,16 @@ def dump_variant(
                 )
             )
             for value in component.values:
-                if isinstance(value, GroupingComponent):
+                if isinstance(value, BaseGroupingComponent):
                     _dump_component(value, indent + 1)
                 else:
                     lines.append("{}{}".format("  " * (indent + 1), to_json(value)))
 
     lines.append("{}hash: {}".format("  " * indent, to_json(variant.get_hash())))
 
+    # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's probably why
     for key, value in sorted(variant.__dict__.items()):
-        if isinstance(value, GroupingComponent):
+        if isinstance(value, BaseGroupingComponent):
             lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
         elif key in ["config", "hash"]:

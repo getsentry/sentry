@@ -50,7 +50,7 @@ const useReleaseCount = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -71,7 +71,7 @@ const useReleaseCount = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -97,7 +97,7 @@ const useReleaseCount = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isAllTimePeriodEnabled,
     }
   );
@@ -139,7 +139,7 @@ function ProjectVelocityScoreCard(props: Props) {
   } = useReleaseCount(props);
 
   const noReleaseEver =
-    [...(allTimeReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
+    [...(currentReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
       .length === 0;
 
   const cardTitle = t('Number of Releases');

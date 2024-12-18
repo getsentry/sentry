@@ -37,6 +37,7 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
     "metrics-subscription-results",
+    "eap-spans-subscription-results",
 ]
 
 
@@ -338,6 +339,7 @@ def devserver(
 
             kafka_consumers.add("monitors-clock-tick")
             kafka_consumers.add("monitors-clock-tasks")
+            kafka_consumers.add("monitors-incident-occurrences")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")
@@ -352,7 +354,19 @@ def devserver(
 
     # Create all topics if the Kafka eventstream is selected
     if kafka_consumers:
-        if "sentry_kafka" not in containers and "shared-kafka-kafka-1" not in containers:
+        use_new_devservices = os.environ.get("USE_NEW_DEVSERVICES") == "1"
+        valid_kafka_container_names = ["kafka-kafka-1", "sentry_kafka"]
+        kafka_container_name = "kafka-kafka-1" if use_new_devservices else "sentry_kafka"
+        kafka_container_warning_message = (
+            f"""
+Devserver is configured to work with the revamped devservices. Looks like the `{kafka_container_name}` container is not running.
+Please run `devservices up` to start it. If you would like to use devserver with `sentry devservices`, set `USE_NEW_DEVSERVICES=0` in your environment."""
+            if use_new_devservices
+            else f"""
+Devserver is configured to work with `sentry devservices`. Looks like the `{kafka_container_name}` container is not running.
+Please run `sentry devservices up kafka` to start it. If you would like to use devserver with the revamped devservices, set `USE_NEW_DEVSERVICES=1` in your environment."""
+        )
+        if not any(name in containers for name in valid_kafka_container_names):
             raise click.ClickException(
                 f"""
 Devserver is configured to start some kafka consumers, but Kafka
@@ -368,7 +382,7 @@ or:
 
     SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
 
-and run `sentry devservices up kafka`.
+{kafka_container_warning_message}
 
 Alternatively, run without --workers.
         """

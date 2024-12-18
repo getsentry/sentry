@@ -1,4 +1,5 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -7,74 +8,46 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
+import type {Confidence} from 'sentry/types/organization';
+import {
+  useExploreFields,
+  useExploreMode,
+  useSetExploreFields,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
+import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
+import {SpansTable} from 'sentry/views/explore/tables/spansTable';
+import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
-import {useSpanTags} from '../contexts/spanTagsContext';
-
-import {TracesTable} from './tracesTable/index';
-import {AggregatesTable} from './aggregatesTable';
-import {ColumnEditorModal} from './columnEditorModal';
-import {SpansTable} from './spansTable';
-
-enum Tab {
-  SPAN = 'span',
-  TRACE = 'trace',
+interface ExploreTablesProps {
+  confidence: Confidence;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
-function useTab(): [Tab, (tab: Tab) => void] {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const tab = useMemo(() => {
-    const rawTab = decodeScalar(location.query.table);
-    if (rawTab === 'trace') {
-      return Tab.TRACE;
-    }
-    return Tab.SPAN;
-  }, [location.query.table]);
-
-  const setTab = useCallback(
-    (newTab: Tab) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          table: newTab,
-          cursor: undefined,
-        },
-      });
-    },
-    [location, navigate]
-  );
-
-  return [tab, setTab];
-}
-
-interface ExploreTablesProps {}
-
-export function ExploreTables({}: ExploreTablesProps) {
-  const [resultMode] = useResultMode();
+export function ExploreTables(props: ExploreTablesProps) {
+  const mode = useExploreMode();
 
   return (
     <Fragment>
-      {resultMode === 'aggregate' && <ExploreAggregatesTable />}
-      {resultMode === 'samples' && <ExploreSamplesTable />}
+      {mode === Mode.AGGREGATE && <ExploreAggregatesTable {...props} />}
+      {mode === Mode.SAMPLES && <ExploreSamplesTable {...props} />}
     </Fragment>
   );
 }
 
-function ExploreAggregatesTable() {
-  return <AggregatesTable />;
+function ExploreAggregatesTable(props: ExploreTablesProps) {
+  return <AggregatesTable {...props} />;
 }
 
-function ExploreSamplesTable() {
+function ExploreSamplesTable(props: ExploreTablesProps) {
   const [tab, setTab] = useTab();
 
-  const [fields, setFields] = useSampleFields();
+  const fields = useExploreFields();
+  const setFields = useSetExploreFields();
+
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
@@ -110,8 +83,8 @@ function ExploreSamplesTable() {
           {t('Edit Table')}
         </Button>
       </SamplesTableHeader>
-      {tab === Tab.SPAN && <SpansTable />}
-      {tab === Tab.TRACE && <TracesTable />}
+      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.TRACE && <TracesTable {...props} />}
     </Fragment>
   );
 }

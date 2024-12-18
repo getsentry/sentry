@@ -47,17 +47,7 @@ type State = {
 } & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
-  quota: [
-    'quotaErrors',
-    'quotaTransactions',
-    'quotaAttachments',
-    'quotaReplays',
-    'quotaMonitorSeats',
-    'quotaProfileDuration',
-    'quotaWarnings',
-    'quotaSpendAllocations',
-    'quotaSpans',
-  ],
+  quota: QUOTA_FIELDS.map(field => field.name),
 };
 
 const getQueryParams = (notificationType: string) => {

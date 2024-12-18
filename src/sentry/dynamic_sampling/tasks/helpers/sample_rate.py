@@ -4,7 +4,6 @@ from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     generate_sliding_window_org_cache_key,
 )
-from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 
 __all__ = ["get_org_sample_rate"]
@@ -28,19 +27,12 @@ def get_org_sample_rate(
 
     has_dynamic_sampling_custom = features.has("organizations:dynamic-sampling-custom", org)
     if has_dynamic_sampling_custom:
-        try:
-            option_inst = OrganizationOption.objects.get(
-                organization=org, key="sentry:target_sample_rate"
-            )
-        except OrganizationOption.DoesNotExist:
-            option_inst = None
-
-        if option_inst is None or option_inst.value is None:
-            if default_sample_rate is not None:
-                return default_sample_rate, False
-            return TARGET_SAMPLE_RATE_DEFAULT, False
-
-        return float(option_inst.value), True
+        sample_rate = org.get_option("sentry:target_sample_rate") if org else None
+        if sample_rate is not None:
+            return float(sample_rate), True
+        if default_sample_rate is not None:
+            return default_sample_rate, False
+        return TARGET_SAMPLE_RATE_DEFAULT, False
 
     # fallback to sliding window calculation
     return _get_sliding_window_org_sample_rate(org_id, default_sample_rate)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from typing import Any
 
@@ -10,10 +12,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.serializers import GroupSerializer, serialize
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupSerializer
 from sentry.api.serializers.rest_framework.rule import RulePreviewSerializer
 from sentry.models.group import Group
-from sentry.models.groupinbox import get_inbox_details
+from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.rules.history.preview import preview
 
 
@@ -86,12 +89,19 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
         return response
 
 
+class _PreviewResponse(BaseGroupSerializerResponse):
+    inbox: InboxDetails
+    lastTriggered: int
+
+
 class PreviewSerializer(GroupSerializer):
     def serialize(
-        self, obj: dict[str, Any], attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> dict[str, Any]:
+        self, obj: Group, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+    ) -> _PreviewResponse:
         result = super().serialize(obj, attrs, user, **kwargs)
         group_id = int(result["id"])
-        result["inbox"] = kwargs["inbox_details"].get(group_id)
-        result["lastTriggered"] = kwargs["group_fires"][group_id]
-        return result
+        return {
+            **result,
+            "inbox": kwargs["inbox_details"].get(group_id),
+            "lastTriggered": kwargs["group_fires"][group_id],
+        }

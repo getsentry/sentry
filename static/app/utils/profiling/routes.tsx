@@ -227,21 +227,23 @@ export function generateProfileRouteFromProfileReference({
   framePackage: string | undefined;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  reference: Profiling.ProfileReference;
+  reference: Profiling.BaseProfileReference | Profiling.ProfileReference;
   query?: Location['query'];
 }): LocationDescriptor {
   if (typeof reference === 'string') {
     return generateProfileFlamechartRouteWithHighlightFrame({
-      orgSlug: orgSlug,
-      projectSlug: projectSlug,
+      orgSlug,
+      projectSlug,
       profileId: reference,
-      frameName: frameName,
-      framePackage: framePackage,
-      query: query,
+      frameName,
+      framePackage,
+      query,
     });
   }
 
   if (isContinuousProfileReference(reference)) {
+    const eventId = 'transaction_id' in reference ? reference.transaction_id : undefined;
+
     return generateContinuousProfileFlamechartRouteWithQuery({
       orgSlug,
       projectSlug,
@@ -254,7 +256,7 @@ export function generateProfileRouteFromProfileReference({
         ...query,
         frameName,
         framePackage,
-        eventId: reference.transaction_id,
+        eventId,
         tid: reference.thread_id as unknown as string,
       }),
     });

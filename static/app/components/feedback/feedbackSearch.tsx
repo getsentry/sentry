@@ -132,9 +132,9 @@ export default function FeedbackSearch() {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: start,
-      end: end,
-      statsPeriod: statsPeriod,
+      start,
+      end,
+      statsPeriod,
     },
     {}
   );
@@ -164,9 +164,9 @@ export default function FeedbackSearch() {
       }
 
       const endpointParams = {
-        start: start,
-        end: end,
-        statsPeriod: statsPeriod,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({
@@ -177,7 +177,10 @@ export default function FeedbackSearch() {
         projectIds: projectIds?.map(String),
         endpointParams,
       }).then(
-        tagValues => (tagValues as TagValue[]).map(({value}) => value),
+        tagValues =>
+          (tagValues as TagValue[])
+            .filter(tagValue => tagValue.name !== '')
+            .map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }

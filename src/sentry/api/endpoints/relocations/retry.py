@@ -111,7 +111,10 @@ class RelocationRetryEndpoint(Endpoint):
                 owner_id=relocation.owner_id,
                 want_org_slugs=relocation.want_org_slugs,
                 step=Relocation.Step.UPLOADING.value,
-                scheduled_pause_at_step=get_autopause_value(),
+                scheduled_pause_at_step=get_autopause_value(
+                    Relocation.Provenance(relocation.provenance)
+                ),
+                provenance=relocation.provenance,
             )
 
             relocation_retry_link_promo_code.send_robust(

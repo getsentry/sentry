@@ -7,6 +7,7 @@ import AutofixInsightCards, {
   useUpdateInsightCard,
 } from 'sentry/components/events/autofix/autofixInsightCards';
 import AutofixMessageBox from 'sentry/components/events/autofix/autofixMessageBox';
+import {AutofixOutputStream} from 'sentry/components/events/autofix/autofixOutputStream';
 import {
   AutofixRootCause,
   useSelectCause,
@@ -34,6 +35,7 @@ interface StepProps {
   hasStepBelow: boolean;
   repos: AutofixRepository[];
   runId: string;
+  shouldHighlightRethink: boolean;
   step: AutofixStep;
 }
 
@@ -67,6 +69,7 @@ export function Step({
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
+  shouldHighlightRethink,
 }: StepProps) {
   return (
     <StepCard>
@@ -74,6 +77,13 @@ export function Step({
         <AnimatePresence initial={false}>
           <AnimationWrapper key="content" {...animationProps}>
             <Fragment>
+              {hasErroredStepBefore && hasStepAbove && (
+                <StepMessage>
+                  Autofix encountered an error.
+                  <br />
+                  Restarting step from scratch...
+                </StepMessage>
+              )}
               {step.type === AutofixStepType.DEFAULT && (
                 <AutofixInsightCards
                   insights={step.insights}
@@ -83,6 +93,7 @@ export function Step({
                   stepIndex={step.index}
                   groupId={groupId}
                   runId={runId}
+                  shouldHighlightRethink={shouldHighlightRethink}
                 />
               )}
               {step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && (
@@ -97,13 +108,6 @@ export function Step({
               )}
               {step.type === AutofixStepType.CHANGES && (
                 <AutofixChanges step={step} groupId={groupId} runId={runId} />
-              )}
-              {hasErroredStepBefore && hasStepBelow && (
-                <StepMessage>
-                  Autofix encountered an error.
-                  <br />
-                  Restarting step from scratch...
-                </StepMessage>
               )}
             </Fragment>
           </AnimationWrapper>
@@ -188,7 +192,9 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       return count;
     }, 0);
 
-    const hasNewSteps = currentStepsLength > prevStepsLengthRef.current;
+    const hasNewSteps =
+      currentStepsLength > prevStepsLengthRef.current &&
+      steps[currentStepsLength - 1].type !== AutofixStepType.DEFAULT;
     const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
 
     if (hasNewSteps || hasNewInsights) {
@@ -242,21 +248,42 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             (previousStep?.type !== AutofixStepType.DEFAULT ||
               previousStep?.insights.length === 0) &&
             step.type !== AutofixStepType.DEFAULT;
+          const stepBelowProcessingAndEmpty =
+            nextStep?.type === AutofixStepType.DEFAULT &&
+            nextStep?.status === 'PROCESSING' &&
+            nextStep?.insights?.length === 0;
+
+          const isNextStepLastStep = index === steps.length - 2;
+          const shouldHighlightRethink =
+            (nextStep?.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+              isNextStepLastStep) ||
+            (nextStep?.type === AutofixStepType.CHANGES &&
+              nextStep.changes.length > 0 &&
+              !nextStep.changes.every(change => change.pull_request));
+
           return (
             <div ref={el => (stepsRef.current[index] = el)} key={step.id}>
               {twoNonDefaultStepsInARow && <br />}
               <Step
                 step={step}
-                hasStepBelow={index + 1 < steps.length && !twoInsightStepsInARow}
-                hasStepAbove={index > 0}
+                hasStepBelow={
+                  index + 1 < steps.length &&
+                  !twoInsightStepsInARow &&
+                  !stepBelowProcessingAndEmpty
+                }
+                hasStepAbove
                 groupId={groupId}
                 runId={runId}
                 repos={repos}
                 hasErroredStepBefore={previousStepErrored}
+                shouldHighlightRethink={shouldHighlightRethink}
               />
             </div>
           );
         })}
+        {lastStep.output_stream && (
+          <AutofixOutputStream stream={lastStep.output_stream} />
+        )}
       </StepsContainer>
 
       <AutofixMessageBox

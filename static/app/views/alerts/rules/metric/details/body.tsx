@@ -22,6 +22,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
@@ -31,7 +32,6 @@ import {
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import {isInsightsMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isInsightsMetricAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Anomaly, Incident} from 'sentry/views/alerts/types';
@@ -102,7 +102,11 @@ export default function MetricDetailsBody({
 
     const {aggregate, dataset, query} = rule;
 
-    if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
+    if (
+      isCrashFreeAlert(dataset) ||
+      isCustomMetricAlert(aggregate) ||
+      dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+    ) {
       return query.trim().split(' ');
     }
 
@@ -178,7 +182,7 @@ export default function MetricDetailsBody({
 
   return (
     <Fragment>
-      {isCustomMetricAlert(rule.aggregate) && !isInsightsMetricAlert(rule.aggregate) && (
+      {isCustomMetricAlert(rule.aggregate) && (
         <StyledLayoutBody>
           <MetricsBetaEndAlert style={{marginBottom: 0}} organization={organization} />
         </StyledLayoutBody>
@@ -217,7 +221,11 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+              triggerLabel={
+                timePeriod.custom
+                  ? timePeriod.label
+                  : relativeOptions[timePeriod.period ?? '']
+              }
             />
             {selectedIncident && (
               <Tooltip
@@ -235,6 +243,17 @@ export default function MetricDetailsBody({
               </Tooltip>
             )}
           </StyledSubHeader>
+
+          {selectedIncident?.alertRule.detectionType ===
+            AlertRuleComparisonType.DYNAMIC && (
+            <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
+              key={selectedIncident.id}
+              id={selectedIncident.id}
+              organization={organization}
+              selectedIncident={selectedIncident}
+            />
+          )}
 
           <ErrorMigrationWarning project={project} rule={rule} />
 

@@ -4,8 +4,8 @@ import importlib
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
-from enum import Enum
-from typing import TYPE_CHECKING, Any
+from enum import Enum, StrEnum
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import sentry_sdk
 from django.apps import apps
@@ -22,7 +22,8 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.users.models.user import User
-    from sentry.workflow_engine.models.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
 
 import logging
 
@@ -125,11 +126,24 @@ class NoiseConfig:
         return int(self.expiry_time.total_seconds())
 
 
+class NotificationContextField(StrEnum):
+    EVENTS = "Events"
+    USERS_AFFECTED = "Users Affected"
+    STATE = "State"
+    FIRST_SEEN = "First Seen"
+    APPROX_START_TIME = "Approx. Start Time"
+
+
 @dataclass(frozen=True)
 class NotificationConfig:
     text_code_formatted: bool = True  # TODO(cathy): user feedback wants it formatted as text
     context: list[str] = field(
-        default_factory=lambda: ["Events", "Users Affected", "State", "First Seen"]
+        default_factory=lambda: [
+            NotificationContextField.EVENTS,
+            NotificationContextField.USERS_AFFECTED,
+            NotificationContextField.STATE,
+            NotificationContextField.FIRST_SEEN,
+        ]
     )  # see SUPPORTED_CONTEXT_DATA for all possible values, order matters!
     actions: list[str] = field(default_factory=lambda: ["archive", "resolve", "assign"])
     extra_action: dict[str, str] = field(
@@ -159,6 +173,11 @@ class GroupType:
     creation_quota: Quota = Quota(3600, 60, 5)  # default 5 per hour, sliding window of 60 seconds
     notification_config: NotificationConfig = NotificationConfig()
     detector_handler: type[DetectorHandler] | None = None
+    detector_validator: type[BaseGroupTypeDetectorValidator] | None = None
+    # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
+    # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
+    enable_status_change_workflow_notifications: bool = True
+    detector_config_schema: ClassVar[dict[str, Any]] = {}
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -396,7 +415,7 @@ class PerformanceDurationRegressionGroupType(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -409,7 +428,7 @@ class PerformanceP95EndpointRegressionGroupType(GroupType):
     enable_escalation_detection = False
     default_priority = PriorityLevel.MEDIUM
     released = True
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 # experimental
@@ -509,7 +528,7 @@ class ProfileFunctionRegressionExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
     enable_auto_resolve = False
     default_priority = PriorityLevel.LOW
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -521,7 +540,7 @@ class ProfileFunctionRegressionType(GroupType):
     enable_auto_resolve = False
     released = True
     default_priority = PriorityLevel.MEDIUM
-    notification_config = NotificationConfig(context=["Approx. Start Time"])
+    notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
 
 
 @dataclass(frozen=True)
@@ -609,6 +628,18 @@ class UptimeDomainCheckFailure(GroupType):
     default_priority = PriorityLevel.HIGH
     enable_auto_resolve = False
     enable_escalation_detection = False
+
+
+@dataclass(frozen=True)
+class MetricIssuePOC(GroupType):
+    type_id = 8002
+    slug = "metric_issue_poc"
+    description = "Metric Issue POC"
+    category = GroupCategory.METRIC_ALERT.value
+    default_priority = PriorityLevel.HIGH
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
 
 
 def should_create_group(

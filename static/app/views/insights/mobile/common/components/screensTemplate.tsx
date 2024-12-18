@@ -2,10 +2,7 @@ import {Fragment, type ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
@@ -14,12 +11,11 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 type ScreensTemplateProps = {
@@ -41,7 +37,6 @@ export default function ScreensTemplate({
 }: ScreensTemplateProps) {
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const {isInDomainView} = useDomainViewFilters();
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -52,68 +47,45 @@ export default function ScreensTemplate({
     });
   }, [location]);
 
-  const crumbs = useModuleBreadcrumbs(moduleName);
-
   return (
     <Layout.Page>
       <PageAlertProvider>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs crumbs={crumbs} />
-              <Layout.Title>
-                {title}
-                <PageHeadingQuestionTooltip
-                  docsUrl={moduleDocLink}
-                  title={moduleDescription}
-                />
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                {isProjectCrossPlatform && <PlatformSelector />}
-                <FeedbackWidgetButton />
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-        )}
-
-        {isInDomainView && (
-          <MobileHeader
-            headerTitle={
-              <Fragment>
-                {title}
-                <PageHeadingQuestionTooltip
-                  docsUrl={moduleDocLink}
-                  title={moduleDescription}
-                />
-              </Fragment>
-            }
-            module={ModuleName.APP_START}
-            headerActions={isProjectCrossPlatform && <PlatformSelector />}
-          />
-        )}
-
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={moduleName}
-                onProjectChange={handleProjectChange}
-                extraFilters={
-                  <Fragment>
-                    <ReleaseComparisonSelector />
-                    {additionalSelectors}
-                  </Fragment>
-                }
+        <MobileHeader
+          headerTitle={
+            <Fragment>
+              {title}
+              <PageHeadingQuestionTooltip
+                docsUrl={moduleDocLink}
+                title={moduleDescription}
               />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+            </Fragment>
+          }
+          module={ModuleName.APP_START}
+          headerActions={isProjectCrossPlatform && <PlatformSelector />}
+        />
+
+        <ModuleBodyUpsellHook moduleName={moduleName}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={moduleName}
+                  onProjectChange={handleProjectChange}
+                  extraFilters={
+                    <Fragment>
+                      <ReleaseComparisonSelector />
+                      {additionalSelectors}
+                    </Fragment>
+                  }
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );

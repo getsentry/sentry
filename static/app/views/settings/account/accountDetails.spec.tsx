@@ -1,6 +1,6 @@
 import {UserDetailsFixture} from 'sentry-fixture/userDetails';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import AccountDetails from 'sentry/views/settings/account/accountDetails';
 
@@ -51,6 +51,32 @@ describe('AccountDetails', () => {
       render(<AccountDetails />);
 
       expect(await screen.findByRole('textbox', {name: 'Username'})).toBeDisabled();
+    });
+  });
+
+  describe('Theme', () => {
+    it('toggles between light and dark and removes the theme class from body', async () => {
+      const mockUserUpdate = MockApiClient.addMockResponse({
+        url: '/users/me/',
+        method: 'PUT',
+        body: UserDetailsFixture(),
+      });
+      render(<AccountDetails />);
+
+      expect(await screen.findByLabelText('Theme')).toBeInTheDocument();
+      // Emulate the page being loaded with a light theme
+      document.body.classList.add('theme-light');
+
+      await userEvent.click(screen.getByText('Light'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
+
+      await waitFor(() => {
+        expect(mockUserUpdate).toHaveBeenCalledWith(
+          '/users/me/',
+          expect.objectContaining({data: {options: {theme: 'dark'}}})
+        );
+      });
+      expect(document.body).not.toHaveClass('theme-light');
     });
   });
 });

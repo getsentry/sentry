@@ -98,7 +98,7 @@ class ReleaseModelManager(BaseManager["Release"]):
     def annotate_prerelease_column(self):
         return self.get_queryset().annotate_prerelease_column()
 
-    def filter_to_semver(self):
+    def filter_to_semver(self) -> ReleaseQuerySet:
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver_build(
@@ -197,8 +197,6 @@ class Release(Model):
         ),
     )
 
-    # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
     version = models.CharField(max_length=DB_VERSION_LENGTH)
     # ref might be the branch name being released
     ref = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)

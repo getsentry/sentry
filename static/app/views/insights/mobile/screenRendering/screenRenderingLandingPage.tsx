@@ -7,13 +7,13 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenRenderingContent} from 'sentry/views/insights/mobile/screenRendering/screenRenderingContent';
 import {MODULE_TITLE} from 'sentry/views/insights/mobile/screenRendering/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function ScreenRenderingModule() {
@@ -28,22 +28,24 @@ export function ScreenRenderingModule() {
           headerActions={isProjectCrossPlatform && <PlatformSelector />}
         />
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Container>
-              <ModulePageFilterBar
-                moduleName={ModuleName.SCREEN_LOAD}
-                extraFilters={<ReleaseComparisonSelector />}
-              />
-            </Container>
-            <PageAlert />
-            <ErrorBoundary mini>
-              <ModulesOnboarding moduleName={ModuleName.SCREEN_RENDERING}>
-                <ScreenRenderingContent />
-              </ModulesOnboarding>
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
+        <ModuleBodyUpsellHook moduleName={ModuleName.SCREEN_RENDERING}>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              <Container>
+                <ModulePageFilterBar
+                  moduleName={ModuleName.SCREEN_LOAD}
+                  extraFilters={<ReleaseComparisonSelector />}
+                />
+              </Container>
+              <PageAlert />
+              <ErrorBoundary mini>
+                <ModulesOnboarding moduleName={ModuleName.SCREEN_RENDERING}>
+                  <ScreenRenderingContent />
+                </ModulesOnboarding>
+              </ErrorBoundary>
+            </Layout.Main>
+          </Layout.Body>
+        </ModuleBodyUpsellHook>
       </PageAlertProvider>
     </Layout.Page>
   );
@@ -53,8 +55,7 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="screen_load"
-      features={MODULE_FEATURE_MAP[ModuleName.SCREEN_RENDERING]}
-      analyticEventName="insight.page_loads.screen_load"
+      analyticEventName="insight.page_loads.screen_rendering"
     >
       <ScreenRenderingModule />
     </ModulePageProviders>

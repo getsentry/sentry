@@ -103,7 +103,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
-        {displayType === DisplayType.TABLE ? (
+        {displayType === DisplayType.TABLE || widgetType === WidgetType.SPANS ? (
           <SelectControl
             name="sortBy"
             aria-label={t('Sort by')}

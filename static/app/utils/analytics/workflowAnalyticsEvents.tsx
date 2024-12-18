@@ -145,8 +145,6 @@ export type TeamInsightsEventParameters = {
   };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
-    created_integration_notification: boolean;
-    has_onboarding_feature_flag: boolean;
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;
@@ -163,6 +161,15 @@ export type TeamInsightsEventParameters = {
   'release_detail.pagination': {direction: string};
   'releases_list.click_add_release_health': {
     project_id: number;
+  };
+  trace_timeline_clicked: {
+    area: string;
+    event_id: string;
+    group_id: string;
+  };
+  trace_timeline_more_events_clicked: {
+    area: string;
+    num_hidden: number;
   };
 };
 
@@ -228,4 +235,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
   'release_detail.pagination': 'Release Detail: Pagination',
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
+  trace_timeline_clicked: 'Trace Timeline Clicked',
+  trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
 };

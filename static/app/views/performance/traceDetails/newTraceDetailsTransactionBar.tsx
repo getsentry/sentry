@@ -1,4 +1,4 @@
-import {createRef, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -56,7 +56,6 @@ import {
   getDurationDisplay,
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconZoom} from 'sentry/icons/iconZoom';
@@ -134,8 +133,8 @@ function NewTraceDetailsTransactionBar(props: Props) {
     isHighlighted || highlightEmbeddedSpan
   );
   const [isIntersecting, setIntersecting] = useState(false);
-  const transactionRowDOMRef = createRef<HTMLDivElement>();
-  const transactionTitleRef = createRef<HTMLDivElement>();
+  const transactionRowDOMRef = useRef<HTMLDivElement>(null);
+  const transactionTitleRef = useRef<HTMLDivElement>(null);
   let spanContentRef: HTMLDivElement | null = null;
   const navigate = useNavigate();
 
@@ -495,52 +494,44 @@ function NewTraceDetailsTransactionBar(props: Props) {
                     input={profiles?.type === 'resolved' ? profiles.data : null}
                     traceID={profileId || ''}
                   >
-                    <TransactionProfileIdProvider
-                      projectId={embeddedChildren.projectID}
-                      timestamp={embeddedChildren.dateReceived}
-                      transactionId={embeddedChildren.id}
-                    >
-                      <SpanContext.Provider>
-                        <SpanContext.Consumer>
-                          {spanContextProps => (
-                            <Observer>
-                              {() => (
-                                <NewTraceDetailsSpanTree
-                                  measurements={props.measurements}
-                                  quickTrace={results}
-                                  location={props.location}
-                                  onRowClick={props.onRowClick}
-                                  traceInfo={traceInfo}
-                                  traceViewHeaderRef={traceViewRef}
-                                  traceViewRef={traceViewRef}
-                                  parentContinuingDepths={props.continuingDepths}
-                                  traceHasMultipleRoots={props.continuingDepths.some(
-                                    c => c.depth === 0 && c.isOrphanDepth
-                                  )}
-                                  parentIsOrphan={props.isOrphan}
-                                  parentIsLast={isLast}
-                                  parentGeneration={transaction.generation ?? 0}
-                                  organization={organization}
-                                  waterfallModel={waterfallModel}
-                                  filterSpans={waterfallModel.filterSpans}
-                                  spans={waterfallModel
-                                    .getWaterfall({
-                                      viewStart: 0,
-                                      viewEnd: 1,
-                                    })
-                                    .slice(1)}
-                                  focusedSpanIds={waterfallModel.focusedSpanIds}
-                                  spanContextProps={spanContextProps}
-                                  operationNameFilters={
-                                    waterfallModel.operationNameFilters
-                                  }
-                                />
-                              )}
-                            </Observer>
-                          )}
-                        </SpanContext.Consumer>
-                      </SpanContext.Provider>
-                    </TransactionProfileIdProvider>
+                    <SpanContext.Provider>
+                      <SpanContext.Consumer>
+                        {spanContextProps => (
+                          <Observer>
+                            {() => (
+                              <NewTraceDetailsSpanTree
+                                measurements={props.measurements}
+                                quickTrace={results}
+                                location={props.location}
+                                onRowClick={props.onRowClick}
+                                traceInfo={traceInfo}
+                                traceViewHeaderRef={traceViewRef}
+                                traceViewRef={traceViewRef}
+                                parentContinuingDepths={props.continuingDepths}
+                                traceHasMultipleRoots={props.continuingDepths.some(
+                                  c => c.depth === 0 && c.isOrphanDepth
+                                )}
+                                parentIsOrphan={props.isOrphan}
+                                parentIsLast={isLast}
+                                parentGeneration={transaction.generation ?? 0}
+                                organization={organization}
+                                waterfallModel={waterfallModel}
+                                filterSpans={waterfallModel.filterSpans}
+                                spans={waterfallModel
+                                  .getWaterfall({
+                                    viewStart: 0,
+                                    viewEnd: 1,
+                                  })
+                                  .slice(1)}
+                                focusedSpanIds={waterfallModel.focusedSpanIds}
+                                spanContextProps={spanContextProps}
+                                operationNameFilters={waterfallModel.operationNameFilters}
+                              />
+                            )}
+                          </Observer>
+                        )}
+                      </SpanContext.Consumer>
+                    </SpanContext.Provider>
                   </ProfileGroupProvider>
                 )}
               </ProfileContext.Consumer>

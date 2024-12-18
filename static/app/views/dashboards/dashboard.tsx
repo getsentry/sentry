@@ -95,6 +95,8 @@ type Props = {
   handleChangeSplitDataset?: (widget: Widget, index: number) => void;
   isPreview?: boolean;
   newWidget?: Widget;
+  onAddWidget?: (dataset?: DataSet) => void;
+  onEditWidget?: (widget: Widget) => void;
   onSetNewWidget?: () => void;
   paramDashboardId?: string;
   paramTemplateId?: string;
@@ -222,18 +224,38 @@ class Dashboard extends Component<Props, State> {
   }
 
   handleStartAdd = (dataset?: DataSet) => {
-    const {organization, router, location, paramDashboardId, handleAddMetricWidget} =
-      this.props;
+    const {
+      organization,
+      router,
+      location,
+      paramDashboardId,
+      handleAddMetricWidget,
+      onAddWidget,
+    } = this.props;
 
     if (dataset === DataSet.METRICS) {
       handleAddMetricWidget?.({...this.addWidgetLayout, ...METRIC_WIDGET_MIN_SIZE});
       return;
     }
 
-    if (paramDashboardId) {
+    if (!organization.features.includes('dashboards-widget-builder-redesign')) {
+      if (paramDashboardId) {
+        router.push(
+          normalizeUrl({
+            pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+            query: {
+              ...location.query,
+              source: DashboardWidgetSource.DASHBOARDS,
+              dataset,
+            },
+          })
+        );
+        return;
+      }
+
       router.push(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
+          pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
           query: {
             ...location.query,
             source: DashboardWidgetSource.DASHBOARDS,
@@ -241,20 +263,11 @@ class Dashboard extends Component<Props, State> {
           },
         })
       );
+
       return;
     }
 
-    router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/dashboards/new/widget/new/`,
-        query: {
-          ...location.query,
-          source: DashboardWidgetSource.DASHBOARDS,
-          dataset,
-        },
-      })
-    );
-
+    onAddWidget?.();
     return;
   };
 
@@ -361,7 +374,7 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleEditWidget = (index: number) => () => {
-    const {organization, router, location, paramDashboardId} = this.props;
+    const {organization, router, location, paramDashboardId, onEditWidget} = this.props;
     const widget = this.props.dashboard.widgets[index];
 
     trackAnalytics('dashboards_views.widget.edit', {
@@ -370,6 +383,11 @@ class Dashboard extends Component<Props, State> {
     });
 
     if (widget.widgetType === WidgetType.METRICS) {
+      return;
+    }
+
+    if (organization.features.includes('dashboards-widget-builder-redesign')) {
+      onEditWidget?.(widget);
       return;
     }
 
@@ -434,6 +452,8 @@ class Dashboard extends Component<Props, State> {
       <div key={key} data-grid={widget.layout}>
         <SortableWidget
           {...widgetProps}
+          dashboardPermissions={dashboard.permissions}
+          dashboardCreator={dashboard.createdBy}
           isMobile={isMobile}
           windowWidth={windowWidth}
           index={String(index)}

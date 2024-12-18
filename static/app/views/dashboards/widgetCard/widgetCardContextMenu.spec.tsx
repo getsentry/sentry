@@ -87,4 +87,26 @@ describe('WidgetCardContextMenu', () => {
     const $button = screen.getByRole('menuitemradio', {name: 'Duplicate Widget'});
     expect($button).toHaveAttribute('aria-disabled', 'true');
   });
+
+  it('renders the Open in Explore button for span widgets', async function () {
+    render(
+      <MEPSettingProvider>
+        <DashboardsMEPProvider>
+          <WidgetCardContextMenu
+            location={LocationFixture()}
+            organization={OrganizationFixture({})}
+            router={RouterFixture()}
+            selection={PageFiltersFixture()}
+            widget={WidgetFixture({widgetType: WidgetType.SPANS})}
+            widgetLimitReached={false}
+            showContextMenu
+          />
+        </DashboardsMEPProvider>
+      </MEPSettingProvider>
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+
+    expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+  });
 });

@@ -2,14 +2,14 @@ import type {GuidesContent} from 'sentry/components/assistant/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 
 export default function getGuidesContent(
   organization: Organization | null
 ): GuidesContent {
-  if (ConfigStore.get('demoMode')) {
+  if (isDemoModeEnabled()) {
     return getDemoModeGuides();
   }
   return [
@@ -41,6 +41,7 @@ export default function getGuidesContent(
           ),
         },
         {
+          // TODO(streamline-ui): Remove from guides on GA, tag sidebar is gone
           title: t('Pinpoint hotspots'),
           target: 'issue_sidebar_tags',
           description: t(
@@ -324,7 +325,7 @@ function getDemoModeGuides(): GuidesContent {
         },
         {
           title: t('Find your broken code'),
-          target: 'stack_trace',
+          target: 'stacktrace',
           description: t(
             `View the stack trace to see the exact sequence of function calls leading to the error in question.`
           ),
@@ -358,7 +359,7 @@ function getDemoModeGuides(): GuidesContent {
       requiredTargets: ['release_version'],
       steps: [
         {
-          title: t('Release-specfic trends'),
+          title: t('Release-specific trends'),
           target: 'release_version',
           description: t(
             `Select the latest release to review new and regressed issues, and business critical metrics like crash rate, and user adoption.`

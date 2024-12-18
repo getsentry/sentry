@@ -269,7 +269,7 @@ class VerifyInstallation(PipelineView):
                     request, BitbucketIntegrationProvider.key
                 )
             except AtlassianConnectValidationError as e:
-                lifecycle.record_failure({"failure_reason": str(e)})
+                lifecycle.record_failure(str(e))
                 return pipeline.error("Unable to verify installation.")
 
             pipeline.bind_state("external_id", integration.external_id)

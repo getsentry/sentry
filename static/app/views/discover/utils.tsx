@@ -48,7 +48,6 @@ import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import {
   DashboardWidgetSource,
@@ -58,7 +57,7 @@ import {
 } from '../dashboards/types';
 import {transactionSummaryRouteWithQuery} from '../performance/transactionSummary/utils';
 
-import {displayModeToDisplayType, getSavedQueryDataset} from './savedQuery/utils';
+import {displayModeToDisplayType} from './savedQuery/utils';
 import type {FieldValue, TableColumn} from './table/types';
 import {FieldValueKind} from './table/types';
 import {getAllViews, getTransactionViews, getWebVitalsViews} from './data';
@@ -592,13 +591,17 @@ export function generateFieldOptions({
   if (Array.isArray(spanOperationBreakdownKeys)) {
     spanOperationBreakdownKeys.sort();
     spanOperationBreakdownKeys.forEach(breakdownField => {
-      fieldOptions[`span_op_breakdown:${breakdownField}`] = {
-        label: breakdownField,
-        value: {
-          kind: FieldValueKind.BREAKDOWN,
-          meta: {name: breakdownField, dataType: 'duration'},
-        },
-      };
+      if (!fieldKeys.includes(breakdownField)) {
+        // These span op breakdowns are sometimes included in the fieldKeys
+        // so check before we add them, or else we surface duplicates
+        fieldOptions[`span_op_breakdown:${breakdownField}`] = {
+          label: breakdownField,
+          value: {
+            kind: FieldValueKind.BREAKDOWN,
+            meta: {name: breakdownField, dataType: 'duration'},
+          },
+        };
+      }
     });
   }
 
@@ -688,11 +691,13 @@ export function handleAddQueryToDashboard({
   organization,
   router,
   yAxis,
+  widgetType,
 }: {
   eventView: EventView;
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  widgetType: WidgetType | undefined;
   query?: NewQuery;
   yAxis?: string | string[];
 }) {
@@ -703,14 +708,13 @@ export function handleAddQueryToDashboard({
     yAxis,
   });
 
-  const dataset = getSavedQueryDataset(organization, location, query);
-
   const {query: widgetAsQueryParams} = constructAddQueryToDashboardLink({
     eventView,
     query,
     organization,
     yAxis,
     location,
+    widgetType,
   });
   openAddToDashboardModal({
     organization,
@@ -738,9 +742,7 @@ export function handleAddQueryToDashboard({
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
           : undefined,
-      widgetType: hasDatasetSelector(organization)
-        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
-        : undefined,
+      widgetType,
     },
     router,
     widgetAsQueryParams,
@@ -792,11 +794,13 @@ export function constructAddQueryToDashboardLink({
   organization,
   yAxis,
   location,
+  widgetType,
 }: {
   eventView: EventView;
   organization: Organization;
   location?: Location;
   query?: NewQuery;
+  widgetType?: WidgetType;
   yAxis?: string | string[];
 }) {
   const displayType = displayModeToDisplayType(eventView.display as DisplayModes);
@@ -806,7 +810,6 @@ export function constructAddQueryToDashboardLink({
     displayType,
     yAxis,
   });
-  const dataset = getSavedQueryDataset(organization, location, query);
 
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
@@ -823,9 +826,8 @@ export function constructAddQueryToDashboardLink({
       defaultTableColumns: defaultTableFields,
       defaultTitle,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
-      dataset: hasDatasetSelector(organization)
-        ? SAVED_QUERY_DATASET_TO_WIDGET_TYPE[dataset]
-        : undefined,
+      dataset: widgetType,
+      field: eventView.getFields(),
       limit:
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N

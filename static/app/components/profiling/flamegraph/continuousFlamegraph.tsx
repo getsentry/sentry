@@ -1591,6 +1591,7 @@ export function ContinuousFlamegraph(): ReactElement {
               filter={null}
             />
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}

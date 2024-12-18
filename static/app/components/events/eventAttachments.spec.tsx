@@ -27,7 +27,7 @@ describe('EventAttachments', function () {
 
   const props = {
     group: undefined,
-    project: project,
+    project,
     event,
   };
 
@@ -55,7 +55,7 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/1/attachments/?types=event.minidump&types=event.applecrashreport'
+      '/organizations/org-slug/issues/1/attachments/?attachmentFilter=onlyCrash'
     );
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(

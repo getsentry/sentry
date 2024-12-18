@@ -15,6 +15,7 @@ import {
 import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
+  assertTransactionNode,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -990,6 +991,38 @@ describe('TraceTree', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
       const node = TraceTree.Find(tree.root, n => (n as any) === 'does not exist');
       expect(node).toBeNull();
+    });
+  });
+
+  describe('FindByID', () => {
+    it('finds transaction by event_id', () => {
+      const traceWithError = makeTrace({
+        transactions: [
+          makeTransaction({transaction: 'first', event_id: 'first-event-id'}),
+        ],
+      });
+      const tree = TraceTree.FromTrace(traceWithError, traceMetadata);
+      const node = TraceTree.FindByID(tree.root, 'first-event-id');
+
+      assertTransactionNode(node);
+      expect(node.value.transaction).toBe('first');
+    });
+
+    it('matches by error event_id', () => {
+      const traceWithError = makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'first',
+            event_id: 'txn-event-id',
+            errors: [makeTraceError({event_id: 'error-event-id'})],
+          }),
+        ],
+      });
+      const tree = TraceTree.FromTrace(traceWithError, traceMetadata);
+      const node = TraceTree.FindByID(tree.root, 'error-event-id');
+
+      assertTransactionNode(node);
+      expect(node.value.transaction).toBe('first');
     });
   });
 

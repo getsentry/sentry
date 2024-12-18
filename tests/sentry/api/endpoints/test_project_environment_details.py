@@ -68,9 +68,21 @@ class ProjectEnvironmentsTest(APITestCase):
                 "environment": "production",
             },
         )
+        assert (
+            EnvironmentProject.objects.get(project=project, environment=environment).is_hidden
+            is None
+        )
+
         response = self.client.put(url, {"isHidden": True}, format="json")
         assert response.status_code == 200, response.content
+        assert (
+            EnvironmentProject.objects.get(project=project, environment=environment).is_hidden
+            is True
+        )
 
+        # empty request body doesn't change anything
+        response = self.client.put(url, {}, format="json")
+        assert response.status_code == 200, response.content
         assert (
             EnvironmentProject.objects.get(project=project, environment=environment).is_hidden
             is True

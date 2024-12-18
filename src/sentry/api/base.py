@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote as urlquote
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -298,7 +297,7 @@ class Endpoint(APIView):
 
         super().permission_denied(request, message, code)
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -321,7 +320,7 @@ class Endpoint(APIView):
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
             # and caught below.
-            response = super().handle_exception(exc)
+            response = self.handle_exception(exc)
         except Exception as err:
             import sys
             import traceback
@@ -341,29 +340,6 @@ class Endpoint(APIView):
 
     def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
-
-    def load_json_body(self, request: Request):
-        """
-        Attempts to load the request body when it's JSON.
-
-        The end result is ``request.json_body`` having a value. When it can't
-        load the body as JSON, for any reason, ``request.json_body`` is None.
-
-        The request flow is unaffected and no exceptions are ever raised.
-        """
-
-        request.json_body = None
-
-        if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
-            return
-
-        if not len(request.body):
-            return
-
-        try:
-            request.json_body = orjson.loads(request.body)
-        except orjson.JSONDecodeError:
-            return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
@@ -398,7 +374,10 @@ class Endpoint(APIView):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
-            self.load_json_body(request)
+            # XXX: without this seemingly useless access to `.body` we are
+            # unable to access `request.body` later on due to `rest_framework`
+            # loading the request body via `request.read()`
+            request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
@@ -456,7 +435,7 @@ class Endpoint(APIView):
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(request, exc)
+            response = self.handle_exception_with_details(request, exc)
 
         if origin:
             self.add_cors_headers(request, response)

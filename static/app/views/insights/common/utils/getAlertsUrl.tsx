@@ -12,25 +12,30 @@ export function getAlertsUrl({
   orgSlug,
   pageFilters,
   name,
+  interval,
+  dataset = Dataset.GENERIC_METRICS,
 }: {
   aggregate: string;
   orgSlug: string;
   pageFilters: PageFilters;
   project: Project;
+  dataset?: Dataset;
+  interval?: string;
   name?: string;
   query?: string;
 }) {
   const statsPeriod = getStatsPeriod(pageFilters);
   const environment = pageFilters.environments;
   const queryParams = {
-    aggregate: aggregate,
-    dataset: Dataset.GENERIC_METRICS,
+    aggregate,
+    dataset,
     project: project.slug,
     eventTypes: 'transaction',
     query,
     statsPeriod,
     environment,
     name,
+    interval,
   };
   return normalizeUrl(
     `/organizations/${orgSlug}/alerts/new/metric/?${qs.stringify(queryParams)}`
@@ -46,6 +51,8 @@ function getStatsPeriod(pageFilters: PageFilters) {
     case '7d':
     case '14d':
       return period;
+    case '1h':
+      return '24h'; // Explore allows 1h, but alerts only allows 24h minimum
     default:
       return '7d';
   }

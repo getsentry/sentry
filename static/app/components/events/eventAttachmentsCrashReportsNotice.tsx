@@ -2,7 +2,7 @@ import {Alert} from 'sentry/components/alert';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {crashReportTypes} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
 type Props = {
   groupId: string;
@@ -15,7 +15,7 @@ function EventAttachmentsCrashReportsNotice({orgSlug, projectSlug, groupId}: Pro
   const settingsUrl = `/settings/${orgSlug}/projects/${projectSlug}/security-and-privacy/`;
   const attachmentsUrl = {
     pathname: `/organizations/${orgSlug}/issues/${groupId}/attachments/`,
-    query: {...location.query, types: crashReportTypes},
+    query: {...location.query, attachmentFilter: EventAttachmentFilter.CRASH_REPORTS},
   };
 
   return (

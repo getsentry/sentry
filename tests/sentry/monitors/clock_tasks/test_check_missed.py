@@ -150,7 +150,9 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         # the upcoming checkin. Testing like this to validate any kind of
         # strange timezone related issues.
         for hour in range(24):
-            dispatch_check_missing(ts - timedelta(days=1) + timedelta(hours=hour + 1))
+            dispatch_check_missing(
+                ts - timedelta(days=1) + timedelta(hours=hour + 1),
+            )
 
         assert mock_produce_task.call_count == 0
 

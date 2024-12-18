@@ -103,7 +103,7 @@ export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>) {
     getSpanAggregateMeasurements(node);
 
   return (
-    !allZeroSizes ||
+    allZeroSizes ||
     unknownKeys.length > 0 ||
     timingKeys.length > 0 ||
     aggregateMeasurements.length > 0 ||
@@ -148,7 +148,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   }
   Object.entries(sizeKeys).forEach(([key, value]) => {
     items.push({
-      key: key,
+      key,
       subject: key,
       value: (
         <Fragment>
@@ -161,7 +161,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
     if (!isHiddenDataKey(key)) {
       items.push({
-        key: key,
+        key,
         subject: key,
         value: value as string | number,
       });
@@ -169,7 +169,7 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
   });
   unknownKeys.forEach(key => {
     items.push({
-      key: key,
+      key,
       subject: key,
       value: span[key],
     });

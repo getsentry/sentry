@@ -24,17 +24,17 @@ function useRouter(): InjectedRouter<any, any> {
     return legacyRouterContext.router;
   }
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const navigate = useNavigate();
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const location = useLocation();
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const params = useParams();
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const routes = useRoutes();
 
   // XXX(epurkhiser): We emulate the react-router 3 `router` interface here
-  // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const router = useMemo(
     () =>
       ({

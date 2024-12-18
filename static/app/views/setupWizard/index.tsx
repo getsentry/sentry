@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -72,12 +73,12 @@ function useOrganizationProjects({
   );
 
   return useQuery<Project[], RequestError>({
-    queryKey: [`/organizations/${organization?.slug}/projects/`, {query: query}],
+    queryKey: [`/organizations/${organization?.slug}/projects/`, {query}],
     queryFn: () => {
       return api.requestPromise(`/organizations/${organization?.slug}/projects/`, {
         host: orgRegion?.url,
         query: {
-          query: query,
+          query,
         },
       });
     },
@@ -93,12 +94,35 @@ type Props = {
   organizations?: (Organization & {region: string})[];
 };
 
+function SetupWizardContent({hash, organizations, enableProjectSelection}: Props) {
+  return enableProjectSelection ? (
+    <ProjectSelection hash={hash} organizations={organizations} />
+  ) : (
+    <WaitingForWizardToConnect hash={hash} organizations={organizations} />
+  );
+}
+
 function SetupWizard({
   hash = false,
   organizations,
   enableProjectSelection = false,
 }: Props) {
   const analyticsParams = useAnalyticsParams(organizations);
+
+  const [router] = useState(() =>
+    createBrowserRouter([
+      {
+        path: '*',
+        element: (
+          <SetupWizardContent
+            hash={hash}
+            organizations={organizations}
+            enableProjectSelection={enableProjectSelection}
+          />
+        ),
+      },
+    ])
+  );
 
   useEffect(() => {
     trackAnalytics('setup_wizard.viewed', analyticsParams);
@@ -107,11 +131,7 @@ function SetupWizard({
   return (
     <ThemeAndStyleProvider>
       <QueryClientProvider client={queryClient}>
-        {enableProjectSelection ? (
-          <ProjectSelection hash={hash} organizations={organizations} />
-        ) : (
-          <WaitingForWizardToConnect hash={hash} organizations={organizations} />
-        )}
+        <RouterProvider router={router} />
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );

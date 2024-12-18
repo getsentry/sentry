@@ -200,7 +200,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: RpcUser, data):
+    def store_issue_last_defaults(self, project: Project, user: RpcUser | User, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by

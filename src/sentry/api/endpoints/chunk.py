@@ -122,6 +122,10 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````
+
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
+
         :pparam file file: The filename should be sha1 hash of the content.
                             Also not you can add up to MAX_CHUNKS_PER_REQUEST files
                             in this request.
@@ -134,9 +138,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger.info("chunkupload.start")
 
         files = []
-        if request.data:
-            files = request.data.getlist("file")
-            files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+        if request.FILES:
+            files = request.FILES.getlist("file")
+            files += [GzipChunk(chunk) for chunk in request.FILES.getlist("file_gzip")]
 
         if len(files) == 0:
             # No files uploaded is ok
