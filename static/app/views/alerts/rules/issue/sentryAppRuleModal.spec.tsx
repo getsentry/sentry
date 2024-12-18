@@ -233,10 +233,74 @@ describe('SentryAppRuleModal', function () {
       const complexityInput = screen.getByLabelText('What is the estimated complexity?', {
         selector: 'input#complexity',
       });
+
+      expect(screen.queryByText('Low')).not.toBeInTheDocument();
       await userEvent.click(complexityInput);
       expect(screen.getByText('Low')).toBeInTheDocument();
       expect(screen.getByText('Medium')).toBeInTheDocument();
       expect(screen.getByText('High')).toBeInTheDocument();
+    });
+
+    it('should populate skip_load_on fields with the default value', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'text',
+            label: 'Task Name',
+            name: 'title',
+            defaultValue: 'pog',
+            default: 'issue.title',
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            depends_on: ['title'],
+            skip_load_on_open: true,
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+      const defaultValues = {
+        settings: [
+          {
+            name: 'extra',
+            value: 'saved details from last edit',
+          },
+          {
+            name: 'assignee',
+            value: 'edna-mode',
+            label: 'Edna Mode',
+          },
+          {
+            name: 'complexity',
+            value: 'low',
+          },
+        ],
+      };
+
+      createWrapper({config: schema, resetValues: defaultValues});
+
+      // Wait for component to mount and state to update
+      await waitFor(() => expect(mockApi).toHaveBeenCalled());
+      expect(screen.getByText('Low')).toBeInTheDocument();
+      expect(screen.queryByText('Medium')).not.toBeInTheDocument();
+      expect(screen.queryByText('High')).not.toBeInTheDocument();
     });
   });
 });
