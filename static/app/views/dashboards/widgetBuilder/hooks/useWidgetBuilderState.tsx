@@ -12,6 +12,7 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -128,6 +129,27 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
+
+          if (action.payload === WidgetType.ISSUE) {
+            // Issues only support table display type
+            setDisplayType(DisplayType.TABLE);
+          }
+
+          const config = getDatasetConfig(action.payload);
+          setFields(
+            config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+          );
+          if (displayType === DisplayType.TABLE) {
+            setYAxis([]);
+          } else {
+            setYAxis(
+              config.defaultWidgetQuery.aggregates?.map(aggregate =>
+                explodeField({field: aggregate})
+              )
+            );
+          }
+          setQuery([config.defaultWidgetQuery.conditions]);
+          setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           break;
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
@@ -158,6 +180,7 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      displayType,
     ]
   );
 
