@@ -1,7 +1,6 @@
 import logging
 import operator
 from collections.abc import Callable
-from enum import StrEnum
 from typing import Any, TypeVar, cast
 
 from django.db import models
@@ -19,8 +18,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-# TODO should this be in types?
-class Condition(StrEnum):
+class Condition(models.TextChoices):
     EQUAL = "eq"
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
@@ -51,8 +49,8 @@ class DataCondition(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("type", "condition", "condition_group")
 
-    # The condition is the logic condition that needs to be met, gt, lt, eq, etc.
-    condition = models.CharField(max_length=200)
+    # TODO finish removing this field, it was too confusing
+    condition = models.CharField(max_length=200, null=True)
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison = models.JSONField()
@@ -61,7 +59,10 @@ class DataCondition(DefaultFieldsModel):
     condition_result = models.JSONField()
 
     # The type of condition, this is used to initialize the condition classes
-    type = models.CharField(max_length=200)
+    type = models.CharField(max_length=200, choices=Condition.choices, default=Condition.EQUAL)
+
+    # Used to filter the data being passed into the data_conditions
+    input_data_filter = models.CharField(max_length=200, null=True)
 
     condition_group = models.ForeignKey(
         "workflow_engine.DataConditionGroup",
