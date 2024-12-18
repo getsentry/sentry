@@ -41,17 +41,17 @@ export const PREVIEW_HEIGHT_PX = `${PREVIEW_HEIGHT}px`;
 export function snapPreviewToCorners(over: any | null): WidgetDragPositioning {
   const selectedCorner = over?.id?.toString().split('-');
   return {
-    translate: {x: 0, y: 0},
-    initialTranslate: {x: 0, y: 0},
+    translate: DEFAULT_TRANSLATE_COORDINATES,
+    initialTranslate: DEFAULT_TRANSLATE_COORDINATES,
     left: over?.rect
       ? selectedCorner?.[1] === 'left'
         ? over?.rect.left
-        : over?.rect.right - 300
+        : over?.rect.right - DRAGGABLE_PREVIEW_WIDTH
       : undefined,
     top: over?.rect
       ? selectedCorner?.[0] === 'top'
         ? over?.rect.top
-        : over?.rect.bottom - 200
+        : over?.rect.bottom - DRAGGABLE_PREVIEW_HEIGHT
       : undefined,
   };
 }
