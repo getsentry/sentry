@@ -113,6 +113,7 @@ class IntegrationPipeline(Pipeline):
                     "provider_key": self.provider.key,
                 },
             )
+            return self.error("User has no 'org:integrations' scope.")
 
         try:
             data = self.provider.build_integration(self.state.data)

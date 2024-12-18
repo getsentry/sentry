@@ -478,7 +478,8 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
 
         # attempt to finish pipeline with no 'org:integrations' scope
-        self.pipeline.finish_pipeline()
+        resp = self.pipeline.finish_pipeline()
+        assert "User has no &#x27;org:integrations&#x27; scope." in resp.content.decode()
 
         extra = {
             "error_message": "User has no 'org:integrations' scope.",
