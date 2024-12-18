@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
@@ -138,7 +139,7 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     border-radius: 3px;
-    background: ${p => p.theme.border};
+    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
     border: 1px solid ${p => p.theme.translucentBorder};
     width: 100%;
   }
