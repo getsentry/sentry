@@ -1,4 +1,4 @@
-import {createRef, Fragment, memo, useEffect, useState} from 'react';
+import {Fragment, memo, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -273,8 +273,8 @@ function NewTraceView({
     };
   }
 
-  const traceViewRef = createRef<HTMLDivElement>();
-  const virtualScrollbarContainerRef = createRef<HTMLDivElement>();
+  const traceViewRef = useRef<HTMLDivElement>(null);
+  const virtualScrollbarContainerRef = useRef<HTMLDivElement>(null);
 
   if (!hasTraceData(traces, orphanErrors)) {
     return (

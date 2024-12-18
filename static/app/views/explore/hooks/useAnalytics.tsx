@@ -19,6 +19,7 @@ export function useAnalytics({
   columns,
   userQuery,
   confidence,
+  title,
 }: {
   columns: string[];
   confidence: Confidence;
@@ -30,6 +31,7 @@ export function useAnalytics({
   userQuery: string;
   visualizes: Visualize[];
   resultMissingRoot?: number;
+  title?: string;
 }) {
   useEffect(() => {
     if (resultStatus === 'pending') {
@@ -51,6 +53,7 @@ export function useAnalytics({
       user_queries_count: search.tokens.length,
       visualizes,
       visualizes_count: visualizes.length,
+      title,
     };
 
     trackAnalytics('trace.explorer.metadata', params);
@@ -65,5 +68,6 @@ export function useAnalytics({
     userQuery,
     confidence,
     dataset,
+    title,
   ]);
 }

@@ -28,6 +28,7 @@ from sentry.users.web.accounts_form import (
 )
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
+from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger("sentry.accounts")
@@ -272,6 +273,8 @@ def recover_confirm(
                     ip_address=request.META["REMOTE_ADDR"],
                     send_email=True,
                 )
+
+                reset_2fa_rate_limits(user.id)
 
             return login_redirect(request)
     else:

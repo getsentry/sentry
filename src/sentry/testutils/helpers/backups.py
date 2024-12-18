@@ -668,7 +668,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
