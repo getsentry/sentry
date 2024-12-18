@@ -175,7 +175,7 @@ def process_event(
         consumer_type == ConsumerType.Transactions or data.get("type") == "transaction"
     ) and options.get("transactions.stale_dlq_enabled"):
         # check timestamp
-        timestamp = message.get("timestamp") if message.get("timestamp") else start_time
+        timestamp = data.get("timestamp") if data.get("timestamp") else start_time
 
         if timestamp and datetime.datetime.now() - timestamp > options.get(
             "transactions.stale_dlq_threshold_ms"
