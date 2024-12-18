@@ -176,8 +176,8 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
-    @patch("sentry.grouping.ingest.seer.metrics")
-    def test_obeys_empty_stacktrace_string_check(self, mock_metrics: Mock) -> None:
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    def test_obeys_empty_stacktrace_string_check(self, mock_record_did_call_seer: Mock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         new_event = Event(
             project_id=self.project.id,
@@ -190,14 +190,8 @@ class ShouldCallSeerTest(TestCase):
         )
 
         assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=sample_rate,
-            tags={
-                "call_made": False,
-                "blocker": "empty-stacktrace-string",
-            },
+        mock_record_did_call_seer.assert_any_call(
+            call_made=False, blocker="empty-stacktrace-string"
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -340,8 +334,11 @@ class GetSeerSimilarIssuesTest(TestCase):
                 },
             )
 
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames(
+        self, mock_metrics: Mock, mock_record_did_call_seer: MagicMock
+    ) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -386,17 +383,10 @@ class GetSeerSimilarIssuesTest(TestCase):
             sample_rate=sample_rate,
             tags={"platform": "java", "referrer": "ingest"},
         )
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={
-                "call_made": False,
-                "blocker": "over-threshold-frames",
-            },
-        )
+        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
 
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames_allowed_platform(self, mock_metrics: Mock) -> None:
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
+    def test_too_many_frames_allowed_platform(self, mock_record_did_call_seer: MagicMock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -436,15 +426,8 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
 
         assert (
-            call(
-                "grouping.similarity.did_call_seer",
-                sample_rate=1.0,
-                tags={
-                    "call_made": False,
-                    "blocker": "over-threshold-frames",
-                },
-            )
-            not in mock_metrics.incr.call_args_list
+            call(call_made=False, blocker="over-threshold-frames")
+            not in mock_record_did_call_seer.call_args_list
         )
 
 
@@ -505,10 +488,14 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             }
         )
 
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
     def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash(
-        self, mock_metrics: MagicMock, mock_get_similar_issues: MagicMock
+        self,
+        mock_metrics: MagicMock,
+        mock_get_similar_issues: MagicMock,
+        mock_record_did_call_seer: MagicMock,
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -556,14 +543,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             sample_rate=sample_rate,
             tags={"platform": "java", "referrer": "ingest"},
         )
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={
-                "call_made": False,
-                "blocker": "over-threshold-frames",
-            },
-        )
+        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
 
         mock_get_similar_issues.assert_not_called()
 

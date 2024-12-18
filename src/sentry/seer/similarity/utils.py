@@ -291,7 +291,6 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
-    key = "grouping.similarity.did_call_seer"
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
     try:
         stacktrace_string = get_stacktrace_string(data, platform)
@@ -303,11 +302,7 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-frames"},
-            )
+            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -330,26 +325,14 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
     """
     # TODO: Determine if we want to filter out non-sourcemapped events
     if not event_content_has_stacktrace(event):
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "no-stacktrace"},
-        )
+        record_event_eligibility_metric(eligible=False, blocker="no-stacktrace")
         return False
 
     if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
-        )
+        record_event_eligibility_metric(eligible=False, blocker="unsupported-platform")
         return False
 
-    metrics.incr(
-        "grouping.similarity.event_content_seer_eligible",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"eligible": True, "blocker": "none"},
-    )
+    record_event_eligibility_metric(eligible=True, blocker="none")
     return True
 
 
@@ -384,11 +367,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_global_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
@@ -396,11 +376,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+
         return True
 
     if killswitch_matches_context(
@@ -410,11 +387,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+
         return True
 
     return False
