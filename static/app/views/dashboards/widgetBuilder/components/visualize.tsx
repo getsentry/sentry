@@ -193,10 +193,13 @@ function Visualize() {
                 ) : null,
             }));
 
-          const aggregateOptions = aggregates.map(option => ({
+          let aggregateOptions = aggregates.map(option => ({
             value: option.value.meta.name,
             label: option.value.meta.name,
           }));
+          aggregateOptions = isChartWidget
+            ? aggregateOptions
+            : [NONE_AGGREGATE, ...aggregateOptions];
 
           let matchingAggregate;
           if (
@@ -276,11 +279,8 @@ function Visualize() {
                         }
                       />
                       <AggregateCompactSelect
-                        options={
-                          isChartWidget
-                            ? aggregateOptions
-                            : [NONE_AGGREGATE, ...aggregateOptions]
-                        }
+                        disabled={aggregateOptions.length <= 1}
+                        options={aggregateOptions}
                         value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
                         onChange={aggregateSelection => {
                           const isNone = aggregateSelection.value === NONE;

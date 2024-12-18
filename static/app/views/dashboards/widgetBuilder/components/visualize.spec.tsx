@@ -503,6 +503,30 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
   });
 
+  it('disables the aggregate selection when there is only one aggregate option', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              field: ['issue.id'],
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeDisabled();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
