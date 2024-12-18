@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
 from sentry.grouping.component import (
     AppGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -134,11 +135,17 @@ class ComponentVariant(BaseVariant):
 
     def __init__(
         self,
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
     ):
         self.component = component
         self.config = strategy_config
+        self.contributing_component = contributing_component
 
     @property
     def description(self) -> str:
@@ -227,6 +234,7 @@ class SaltedComponentVariant(ComponentVariant):
         return cls(
             fingerprint=fingerprint,
             component=component_variant.component,
+            contributing_component=component_variant.contributing_component,
             strategy_config=component_variant.config,
             fingerprint_info=fingerprint_info,
         )
@@ -234,11 +242,16 @@ class SaltedComponentVariant(ComponentVariant):
     def __init__(
         self,
         fingerprint: list[str],
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, strategy_config)
+        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
         self.info = fingerprint_info
 

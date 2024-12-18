@@ -409,3 +409,17 @@ class SystemGroupingComponent(
     ]
 ):
     id: str = "system"
+
+
+ContributingComponent = (
+    ChainedExceptionGroupingComponent
+    | ExceptionGroupingComponent
+    | StacktraceGroupingComponent
+    | ThreadsGroupingComponent
+    | CSPGroupingComponent
+    | ExpectCTGroupingComponent
+    | ExpectStapleGroupingComponent
+    | HPKPGroupingComponent
+    | MessageGroupingComponent
+    | TemplateGroupingComponent
+)
