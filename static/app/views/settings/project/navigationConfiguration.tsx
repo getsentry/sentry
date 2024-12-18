@@ -129,7 +129,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/playstation/`,
-          title: t('Playstation'),
+          title: t('PlayStation'),
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
         },
       ],

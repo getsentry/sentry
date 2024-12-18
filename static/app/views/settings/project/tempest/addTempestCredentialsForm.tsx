@@ -35,8 +35,22 @@ export default function AddTempestCredentialsForm({
         data-test-id="add-tempest-credentials-form"
         {...formProps}
       >
-        <TextField name="clientId" label={t('Client ID')} required />
-        <TextField name="clientSecret" label={t('Client Secret')} required />
+        <TextField
+          name="clientId"
+          label={t('Client ID')}
+          required
+          stacked
+          flexibleControlStateSize
+          inline={false}
+        />
+        <TextField
+          name="clientSecret"
+          label={t('Client Secret')}
+          required
+          stacked
+          flexibleControlStateSize
+          inline={false}
+        />
       </Form>
     </Fragment>
   );
