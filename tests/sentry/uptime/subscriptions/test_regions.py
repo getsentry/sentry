@@ -17,19 +17,19 @@ class TestBase(TestCase):
             UptimeRegionConfig(
                 slug="us",
                 name="United States",
-                config_topic=Topic("uptime-config-us"),
+                config_topic=Topic("uptime-results"),
                 enabled=True,
             ),
             UptimeRegionConfig(
                 slug="eu",
                 name="Europe",
-                config_topic=Topic("uptime-config-eu"),
+                config_topic=Topic("uptime-configs"),
                 enabled=False,
             ),
             UptimeRegionConfig(
                 slug="ap",
                 name="Asia Pacific",
-                config_topic=Topic("uptime-config-ap"),
+                config_topic=Topic("monitors-clock-tasks"),
                 enabled=True,
             ),
         ]
