@@ -256,7 +256,6 @@ const InsightCard = styled('div')`
   display: flex;
   flex-direction: column;
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.background};
   width: 100%;
   min-height: 0;
 `;
