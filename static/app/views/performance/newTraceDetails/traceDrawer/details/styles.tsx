@@ -73,7 +73,7 @@ const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${p => (p.hasNewTraceUi ? `${space(1)} ${space(2)}` : space(1))};
+  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
 
   ${DataSection} {
     padding: 0;
@@ -231,10 +231,16 @@ const LegacyHeaderContainer = styled(FlexBox)`
 `;
 
 const HeaderContainer = styled(FlexBox)`
+  z-index: 1;
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
+  position: sticky;
+  top: 0;
   margin-bottom: ${space(1.5)};
+  padding: ${space(0.25)} 0 ${space(0.5)} 0;
+  background-color: ${p => p.theme.background};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {

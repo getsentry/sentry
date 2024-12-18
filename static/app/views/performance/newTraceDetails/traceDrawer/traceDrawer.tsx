@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
-import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
+import {IconChevron, IconCircleFill, IconClose, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -18,6 +18,7 @@ import {
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import type {Color} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -490,6 +491,7 @@ interface TraceDrawerTabProps {
 function TraceDrawerTab(props: TraceDrawerTabProps) {
   const organization = useOrganization();
   const node = props.tab.node;
+  const hasNewTraceUi = useHasTraceNewUi();
 
   if (typeof node === 'string') {
     const root = props.trace.root.children[0];
@@ -531,7 +533,14 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
-      <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
+      {hasNewTraceUi ? (
+        <StyledIconCircleFilled
+          size="xs"
+          color={makeTraceNodeBarColor(props.theme, node) as Color}
+        />
+      ) : (
+        <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
+      )}
       <TabButton>{getTraceTabTitle(node)}</TabButton>
       <TabPinButton
         pinned={props.pinned}
@@ -605,6 +614,37 @@ function TraceLayoutMinimizeButton(props: {
   onClick: () => void;
   trace_state: TraceReducerState;
 }) {
+  const hasNewTraceUi = useHasTraceNewUi();
+
+  if (!hasNewTraceUi) {
+    return <LegacyTraceLayoutMinimizeButton {...props} />;
+  }
+
+  return (
+    <CloseButton
+      priority="link"
+      size="xs"
+      borderless
+      aria-label={t('Close Drawer')}
+      icon={<IconClose size="xs" />}
+      onClick={props.onClick}
+    >
+      {t('Close')}
+    </CloseButton>
+  );
+}
+
+const CloseButton = styled(Button)`
+  color: ${p => p.theme.subText};
+  &:hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+function LegacyTraceLayoutMinimizeButton(props: {
+  onClick: () => void;
+  trace_state: TraceReducerState;
+}) {
   return (
     <TabIconButton
       size="xs"
@@ -633,6 +673,10 @@ function TraceLayoutMinimizeButton(props: {
     />
   );
 }
+
+const StyledIconCircleFilled = styled(IconCircleFill)`
+  margin-right: ${space(0.25)};
+`;
 
 const ResizeableHandle = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
@@ -710,9 +754,12 @@ const TabsContainer = styled('ul')`
   gap: ${space(0.5)};
   padding-left: 0;
   margin-bottom: 0;
+  margin-left: ${space(0.5)};
 `;
 
 const TabActions = styled('ul')`
+  display: flex;
+  align-items: center;
   list-style-type: none;
   padding-left: 0;
   margin-bottom: 0;
@@ -730,10 +777,7 @@ const TabSeparator = styled('span')`
   height: 16px;
   width: 1px;
   background-color: ${p => p.theme.border};
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
+  transform: translateY(3px);
 `;
 
 const TabLayoutControlItem = styled('li')`
@@ -812,7 +856,6 @@ const TabButton = styled('button')`
 const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer right'}>`
   position: relative;
   overflow: auto;
-  padding: ${space(1)};
   flex: 1;
 
   td {
@@ -828,10 +871,6 @@ const TabIconButton = styled(Button)<{active: boolean}>`
   opacity: ${p => (p.active ? 0.7 : 0.5)};
   height: 24px;
   max-height: 24px;
-
-  &:not(:last-child) {
-    margin-right: ${space(1)};
-  }
 
   &:hover {
     border: none;
