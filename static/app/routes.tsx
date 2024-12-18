@@ -563,6 +563,11 @@ function buildRoutes() {
         />
       </Route>
       <Route
+        path="playstation/"
+        name={t('Playstation')}
+        component={make(() => import('sentry/views/settings/project/tempest'))}
+      />
+      <Route
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
