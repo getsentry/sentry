@@ -110,13 +110,12 @@ function ToolbarSuggestedQueriesInner({dismiss}: ToolbarSuggestedQueriesInnerPro
         <SuggestedQueriesContainer>
           {suggestedQueries.map(suggestedQuery => {
             return (
-              <StyledTag
+              <div
                 key={suggestedQuery.title}
-                type="info"
                 onClick={() => setExploreSuggestedQuery(suggestedQuery)}
               >
-                {suggestedQuery.title}
-              </StyledTag>
+                <StyledTag type="info">{suggestedQuery.title}</StyledTag>
+              </div>
             );
           })}
         </SuggestedQueriesContainer>
@@ -325,7 +324,7 @@ const SuggestedQueriesContainer = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;
 
 const StyledTag = styled(Tag)`
