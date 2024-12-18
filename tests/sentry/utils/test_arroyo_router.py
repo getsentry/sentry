@@ -16,35 +16,32 @@ def test_message_buffer() -> None:
     buffer: MessageBuffer[int] = MessageBuffer(["route_a", "route_b"])
 
     # Add two messages to each route
-    buffer.add(messages[0], "route_a")
-    buffer.add(messages[1], "route_b")
-    buffer.add(messages[2], "route_a")
-    buffer.add(messages[3], "route_b")
+    buffer.start(messages[0], "route_a")
+    buffer.start(messages[1], "route_b")
+    buffer.start(messages[2], "route_a")
+    buffer.start(messages[3], "route_b")
 
     # All messages are in-flight, poll returns nothing
     assert buffer.poll() is None
-    assert len(buffer) == 4
+    assert len(buffer) == 0
 
     # The first message was completed, now it can be polled
-    buffer.remove(messages[0], "route_a")
+    buffer.submit(messages[0], "route_a")
+    assert len(buffer) == 1
     msg = buffer.poll()
     assert msg is not None
-    assert isinstance(msg.value, BrokerValue)
+    assert len(buffer) == 0
     assert msg.value.offset == 0
     assert buffer.poll() is None
-    assert len(buffer) == 3
 
-    # Still waiting for route_b
-    buffer.remove(messages[2], "route_a")
-    assert buffer.poll() is None
+    # Second message is done
+    buffer.submit(messages[2], "route_a")
+    assert buffer.poll() is not None
 
-    # All done, now we can poll the last 3 messages
-    buffer.remove(messages[3], "route_b")
-    assert buffer.poll() is not None
-    assert buffer.poll() is not None
+    # Third message was filtered, but the last message is done
+    buffer.submit(messages[3], "route_b")
     assert buffer.poll() is not None
     assert buffer.poll() is None
-    assert len(buffer) == 0
 
 
 def test_router() -> None:

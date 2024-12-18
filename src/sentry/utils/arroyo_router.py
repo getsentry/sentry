@@ -3,7 +3,8 @@ from __future__ import annotations
 import time
 from collections import deque
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from typing import Deque, Generic, TypeVar
+from dataclasses import dataclass
+from typing import Any, Deque, Generic, TypeVar
 
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies.abstract import ProcessingStrategy
@@ -96,6 +97,12 @@ class Router(
         self.next_step.terminate()
 
 
+@dataclass
+class PartitionOffsets:
+    last_started: int
+    last_finished: int | None
+
+
 class MessageBuffer(Generic[TResult]):
     """
     Keeps track of the in-flight offsets for all routes, and buffers messages for
@@ -104,41 +111,51 @@ class MessageBuffer(Generic[TResult]):
     """
 
     def __init__(self, routes: Sequence[str]) -> None:
-        # Maintains the last committable offsets for each route and partition
-        self.committable_offsets: Mapping[str, MutableMapping[Partition, int]] = {
-            r: {} for r in routes
-        }
-
-        # the low watermarks?
-        self.committable_offsets: Mapping[str, MutableMapping[Partition, int]] = {
+        # Keeps track of the in-flight offset ranges in each route
+        self.committable_offsets: Mapping[str, MutableMapping[Partition, PartitionOffsets]] = {
             r: {} for r in routes
         }
 
         # Keeps track of all completed messages together with the route on which it was sent
         self.messages: Deque[tuple[str, Message[TResult]]] = deque()
 
-    def add(self, message: Message[TResult], routing_key: str) -> None:
+    def start(self, message: Message[Any], routing_key: str) -> None:
+        for partition, committable_offset in message.committable.items():
+            if self.committable_offsets[routing_key].get(partition):
+                self.committable_offsets[routing_key][partition].last_started = committable_offset
+            else:
+                self.committable_offsets[routing_key][partition] = PartitionOffsets(
+                    committable_offset, None
+                )
+
+    def submit(self, message: Message[TResult], routing_key: str) -> None:
         self.messages.append((routing_key, message))
 
         for partition, committable_offset in message.committable.items():
-            if self.committable_offsets[routing_key].get(partition):
-                if committable_offset > self.committable_offsets[routing_key][partition]:
-                    self.committable_offsets[routing_key][partition] = committable_offset
-            else:
-                self.committable_offsets[routing_key][partition] = committable_offset
+            self.committable_offsets[routing_key][partition].last_finished = committable_offset
 
     def poll(self) -> Message[TResult] | None:
         if not self.messages:
             return None
 
-        (route, message) = self.messages[0]
+        (message_route, message) = self.messages[0]
 
-        # Ensure the message isn't returned if it's not completed yet
-        for partition, committable_offset in message.committable.items():
-            partition_offset = self.committable_offsets[route].get(partition)
+        # Ensure the message isn't returned if its offsets are above those finished on all routes
+        for route, route_offsets in self.committable_offsets.items():
+            if message_route == route:
+                continue
 
-            if partition_offset is None or committable_offset > partition_offset:
-                return None
+            for partition, committable_offset in message.committable.items():
+                if route_offsets.get(partition):
+                    partition_offsets = route_offsets[partition]
+                    if partition_offsets.last_finished is None:
+                        return None
+                    else:
+                        offset_range = range(
+                            partition_offsets.last_started, partition_offsets.last_finished
+                        )
+                        if committable_offset in offset_range:
+                            return None
 
         self.messages.popleft()
         return message
