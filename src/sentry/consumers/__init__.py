@@ -135,6 +135,37 @@ def ingest_monitors_options() -> list[click.Option]:
     return options
 
 
+def uptime_options() -> list[click.Option]:
+    """Return a list of uptime-results options."""
+    options = [
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "parallel"]),
+            default="serial",
+            help="The mode to process results in. Parallel uses multithreading.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of results to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=1,
+            help="Maximum time spent batching results to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
+        ),
+    ]
+    return options
+
+
 def ingest_events_options() -> list[click.Option]:
     """
     Options for the "events"-like consumers: `events`, `attachments`, `transactions`.
@@ -263,6 +294,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "uptime-results": {
         "topic": Topic.UPTIME_RESULTS,
         "strategy_factory": "sentry.uptime.consumers.results_consumer.UptimeResultsStrategyFactory",
+        "click_options": uptime_options(),
     },
     "billing-metrics-consumer": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
