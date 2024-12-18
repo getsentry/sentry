@@ -96,6 +96,8 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,
         "request_headers": headers,
         "trace_sampling": subscription.trace_sampling,
+        "active_regions": [r.slug for r in subscription.regions.all()],
+        "region_schedule_mode": "round_robin",
     }
     if subscription.body is not None:
         config["request_body"] = subscription.body

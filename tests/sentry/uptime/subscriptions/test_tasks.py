@@ -11,7 +11,7 @@ from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
-from sentry.uptime.models import UptimeSubscription
+from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
     create_remote_uptime_subscription,
@@ -147,8 +147,12 @@ class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
 
 
 class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
-    def test(self):
+    def test_basic(self):
         sub = self.create_uptime_subscription()
+        # Add regions to the subscription
+        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
+        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="eu-west-1")
+
         subscription_id = uuid4().hex
         assert uptime_subscription_to_check_config(sub, subscription_id) == {
             "subscription_id": subscription_id,
@@ -158,6 +162,8 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_method": "GET",
             "request_headers": [],
             "trace_sampling": False,
+            "active_regions": ["us-east-1", "eu-west-1"],
+            "region_schedule_mode": "round_robin",
         }
 
     def test_request_fields(self):
@@ -167,7 +173,9 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
         sub = self.create_uptime_subscription(
             method=method, headers=headers, body=body, trace_sampling=True
         )
+        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
         sub.refresh_from_db()
+
         subscription_id = uuid4().hex
         assert uptime_subscription_to_check_config(sub, subscription_id) == {
             "subscription_id": subscription_id,
@@ -178,12 +186,16 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_headers": headers,
             "request_body": body,
             "trace_sampling": True,
+            "active_regions": ["us-east-1"],
+            "region_schedule_mode": "round_robin",
         }
 
     def test_header_translation(self):
         headers = {"hi": "bye"}
         sub = self.create_uptime_subscription(headers=headers)
+        UptimeSubscriptionRegion.objects.create(subscription=sub, slug="us-east-1")
         sub.refresh_from_db()
+
         subscription_id = uuid4().hex
         assert uptime_subscription_to_check_config(sub, subscription_id) == {
             "subscription_id": subscription_id,
@@ -193,6 +205,23 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
             "request_method": "GET",
             "request_headers": [["hi", "bye"]],
             "trace_sampling": False,
+            "active_regions": ["us-east-1"],
+            "region_schedule_mode": "round_robin",
+        }
+
+    def test_no_regions(self):
+        sub = self.create_uptime_subscription()
+        subscription_id = uuid4().hex
+        assert uptime_subscription_to_check_config(sub, subscription_id) == {
+            "subscription_id": subscription_id,
+            "url": sub.url,
+            "interval_seconds": sub.interval_seconds,
+            "timeout_ms": sub.timeout_ms,
+            "request_method": "GET",
+            "request_headers": [],
+            "trace_sampling": False,
+            "active_regions": [],
+            "region_schedule_mode": "round_robin",
         }
 
 
