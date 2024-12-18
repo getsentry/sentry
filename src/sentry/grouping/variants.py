@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
 from sentry.grouping.component import (
     AppGroupingComponent,
@@ -216,6 +216,20 @@ class SaltedComponentVariant(ComponentVariant):
     """A salted version of a component."""
 
     type = "salted_component"
+
+    @classmethod
+    def from_component_variant(
+        cls,
+        component_variant: ComponentVariant,
+        fingerprint: list[str],
+        fingerprint_info: FingerprintInfo,
+    ) -> Self:
+        return cls(
+            fingerprint=fingerprint,
+            component=component_variant.component,
+            strategy_config=component_variant.config,
+            fingerprint_info=fingerprint_info,
+        )
 
     def __init__(
         self,
