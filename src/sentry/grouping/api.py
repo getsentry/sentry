@@ -12,6 +12,7 @@ from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -437,3 +438,27 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def get_contributing_variant_and_component(
+    variants: dict[str, BaseVariant]
+) -> tuple[BaseVariant, ContributingComponent | None]:
+    if len(variants) == 1:
+        contributing_variant = list(variants.values())[0]
+    else:
+        contributing_variant = (
+            variants["app"]
+            # TODO: We won't need this 'if' once we stop returning both app and system contributing
+            # variants
+            if "app" in variants and variants["app"].contributes
+            # Other than in the broken app/system case, there should only ever be a single
+            # contributing variant
+            else [variant for variant in variants.values() if variant.contributes][0]
+        )
+    contributing_component = (
+        contributing_variant.contributing_component
+        if hasattr(contributing_variant, "contributing_component")
+        else None
+    )
+
+    return (contributing_variant, contributing_component)
