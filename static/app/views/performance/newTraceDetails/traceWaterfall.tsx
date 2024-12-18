@@ -321,9 +321,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
+        // The new ui has the trace info and web vitals in the bottom drawer and
+        // we don't treat the trace node as a clickable node
+        if (isTraceNode(node) && hasTraceNewUi) {
+          return;
+        }
+
         if (queryStringAnimationTimeoutRef.current) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
+
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = TraceTree.PathToNode(node);
@@ -363,7 +370,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [traceDispatch, hasTraceNewUi]
   );
 
   const onRowClick = useCallback(
