@@ -115,10 +115,10 @@ class DataCondition(DefaultFieldsModel):
         return conition_handler.evaluate_value
 
     def evaluate_value(self, value: T) -> DataConditionResult:
-        handler: HandlerMethod
+        evalute_value: HandlerMethod
 
         try:
-            handler = self.get_handler()
+            evalute_value = self.get_handler()
         except NoRegistrationExistsError:
             logger.exception(
                 "Invalid Data Condition Evaluation",
@@ -134,7 +134,7 @@ class DataCondition(DefaultFieldsModel):
             # casting Any to override the T value initially set - seems not great :thinking:
             filtered_value = cast(Any, get_nested_value(value, self.input_data_filter))
 
-        result = handler(filtered_value, self.comparison)
+        result = evalute_value(filtered_value, self.comparison)
 
         if result:
             return self.get_condition_result()
