@@ -212,9 +212,7 @@ class GenericProvider:
         seen = set()
         result: list[FlagAuditLogRow] = []
         for item in serializer.validated_data["data"]:
-            if item["change_id"] in seen:
-                continue
-            else:
+            if item["change_id"] not in seen:
                 seen.add(item["change_id"])
                 result.append(
                     {
