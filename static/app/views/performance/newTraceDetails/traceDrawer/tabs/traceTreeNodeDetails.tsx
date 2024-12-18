@@ -16,6 +16,7 @@ import {ErrorNodeDetails} from '../details/error';
 import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
 import {SpanNodeDetails} from '../details/span/index';
 import {TransactionNodeDetails} from '../details/transaction/index';
+import {TraceIntroductionView} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/traceIntroductionView';
 
 export interface TraceTreeNodeDetailsProps<T> {
   manager: VirtualizedViewManager;
@@ -27,6 +28,8 @@ export interface TraceTreeNodeDetailsProps<T> {
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
+  return <TraceIntroductionView />;
+
   if (isTransactionNode(props.node)) {
     return <TransactionNodeDetails {...props} />;
   }
