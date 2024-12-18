@@ -296,8 +296,8 @@ def _get_component_trees_for_variants(
         for variant_name, component in current_strategy_components_by_variant.items():
             all_strategies_components_by_variant.setdefault(variant_name, []).append(component)
 
-            if winning_strategy is None:
-                if component.contributes:
+            if component.contributes:
+                if winning_strategy is None:
                     winning_strategy = strategy.name
                     variant_descriptor = "/".join(
                         sorted(
@@ -314,8 +314,8 @@ def _get_component_trees_for_variants(
                         ),
                         "" if strategy.name.endswith("s") else "s",
                     )
-            elif component.contributes and winning_strategy != strategy.name:
-                component.update(contributes=False, hint=precedence_hint)
+                elif strategy.name != winning_strategy:
+                    component.update(contributes=False, hint=precedence_hint)
 
     component_trees_by_variant = {}
     for variant_name, components in all_strategies_components_by_variant.items():
