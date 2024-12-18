@@ -126,7 +126,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 sentry-arroyo==2.19.7
-sentry-kafka-schemas==0.1.122
+sentry-kafka-schemas==0.1.123
 sentry-ophio==1.0.0
 sentry-protos==0.1.39
 sentry-redis-tools==0.1.7
