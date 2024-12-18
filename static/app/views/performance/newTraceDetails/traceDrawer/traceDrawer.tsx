@@ -754,7 +754,6 @@ const TabsContainer = styled('ul')`
   gap: ${space(0.5)};
   padding-left: 0;
   margin-bottom: 0;
-  margin-left: ${space(0.5)};
 `;
 
 const TabActions = styled('ul')`
@@ -766,7 +765,7 @@ const TabActions = styled('ul')`
   flex: none;
 
   button {
-    padding: 0 ${space(0.5)};
+    padding: 0 ${space(0.25)};
   }
 `;
 
