@@ -419,7 +419,7 @@ def cron(**options: Any) -> None:
 @click.option(
     "--stale-threshold-sec",
     type=click.IntRange(min=300),
-    help="Routes stale messages to stale topic if provided.",
+    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
 )
 @click.option(
     "--log-level",
