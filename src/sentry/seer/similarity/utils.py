@@ -15,28 +15,17 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
+# Events' `platform` values are tested against this list before events are sent to Seer. Checking
+# this separately from backfill status allows us to backfill projects which have events from
+# multiple platforms, some supported and some not, and not worry about events from the unsupported
+# platforms getting sent to Seer during ingest.
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(
     [
-        "android",
-        "as3",
-        # "c", A native platform -> excluded for now
-        "cfml",
-        "cocoa",
-        "csharp",
-        "elixir",
-        "go",
-        "groovy",
-        "haskell",
-        "java",
-        "javascript",
-        # "native", A native platform -> excluded for now
-        "node",
-        "objc",
-        # "other", Since we can't be sure of what this is, we'll exclude it for now
-        "perl",
-        "php",
-        "python",
-        "ruby",
+        # Native platforms
+        "c",
+        "native",
+        # We don't know what's in the event
+        "other",
     ]
 )
 # Event platforms corresponding to project platforms which were backfilled before we started
@@ -398,7 +387,7 @@ def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
         )
         return False
 
-    if event.platform not in SEER_ELIGIBLE_PLATFORMS_EVENTS:
+    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
         metrics.incr(
             "grouping.similarity.event_content_seer_eligible",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
