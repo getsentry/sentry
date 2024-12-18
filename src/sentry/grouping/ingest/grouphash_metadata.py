@@ -140,21 +140,20 @@ def get_hash_basis_and_metadata(
     # them to whatever specific subtypes of `BaseVariant` and `GroupingComponent` (respectively)
     # each of the helper calls below requires. Casting once, to a type retrieved from a look-up,
     # doesn't work, but maybe there's a better way?
-    contributing_variant: Any = (
-        variants["app"]
-        # TODO: We won't need this 'if' once we stop returning both app and system contributing
-        # variants
-        if "app" in variants and variants["app"].contributes
-        else (
-            variants["hashed_checksum"]
-            # TODO: We won't need this 'if' once we stop returning both hashed and non-hashed
-            # checksum contributing variants
-            if "hashed_checksum" in variants
-            # Other than in the broken app/system and hashed/raw checksum cases, there should only
-            # ever be a single contributing variant
+    contributing_variant: Any
+    if len(variants) == 1:
+        contributing_variant = list(variants.values())[0]
+    else:
+        contributing_variant = (
+            variants["app"]
+            # TODO: We won't need this 'if' once we stop returning both app and system contributing
+            # variants
+            if "app" in variants and variants["app"].contributes
+            # Other than in the broken app/system case, there should only ever be a single contributing
+            # variant
             else [variant for variant in variants.values() if variant.contributes][0]
         )
-    )
+
     contributing_component: Any = (
         # There should only ever be a single contributing component here at the top level
         [value for value in contributing_variant.component.values if value.contributes][0]
