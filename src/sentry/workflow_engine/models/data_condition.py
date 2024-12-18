@@ -49,7 +49,7 @@ class DataCondition(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("type", "condition", "condition_group")
 
-    # TODO finish removing this field, it was too confusing
+    # TODO finish removing this field, it was too confusing - changing to null first to allow us to decouple the code
     condition = models.CharField(max_length=200, null=True)
 
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
@@ -105,10 +105,14 @@ class DataCondition(DefaultFieldsModel):
             condition_handler = self.get_condition_handler()
         except NoRegistrationExistsError:
             # If it's not a custom handler, use the default operators
-            condition = Condition(self.condition)
-            op = condition_ops.get(condition, None)
+            if self.condition:
+                condition = Condition(self.condition)
+                op = condition_ops.get(condition, None)
 
         if condition_handler is not None:
+            if not self.condition:
+                self.condition = ""
+
             result = condition_handler.evaluate_value(value, self.comparison, self.condition)
         elif op is not None:
             result = op(cast(Any, value), self.comparison)
