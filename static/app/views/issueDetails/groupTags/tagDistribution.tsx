@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
@@ -49,9 +50,11 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
                   })}
                   skipWrapper
                 >
-                  <TagBarValue>{displayPercentage}</TagBarValue>
+                  <TooltipContainer>
+                    <TagBarValue>{displayPercentage}</TagBarValue>
+                    <TagBar percentage={percentage} />
+                  </TooltipContainer>
                 </Tooltip>
-                <TagBar percentage={percentage} />
               </TagValueRow>
             );
           })}
@@ -135,8 +138,8 @@ const TagBarContainer = styled('div')`
     position: absolute;
     inset: 0;
     content: '';
-    border-radius: 1000px;
-    background: ${p => p.theme.border};
+    border-radius: 3px;
+    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
     border: 1px solid ${p => p.theme.translucentBorder};
     width: 100%;
   }
@@ -144,4 +147,11 @@ const TagBarContainer = styled('div')`
 
 const TagBarValue = styled('div')`
   text-align: right;
+`;
+
+const TooltipContainer = styled('div')`
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-column: 2 / -1;
+  align-items: center;
 `;
