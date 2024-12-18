@@ -12,11 +12,10 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.relay import projectconfig_cache
-from sentry.relay.config import get_project_config
+from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 
-# NOTE: This endpoint should be in getsentry
 @region_silo_endpoint
 class AdminRelayProjectConfigsEndpoint(Endpoint):
     owner = ApiOwner.OWNERS_INGEST
@@ -27,66 +26,100 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def get(self, request: Request) -> Response:
+        """The GET endpoint retrieves the project configs for a specific project_id
+        or a set of project keys.
+        If a projectId is provided, the configs for all project keys are returned.
+        If a projectKey is provided, the config for that specific project key is returned.
+        Both a projectId and a projectKey may be provided in the same request.
+
+        If the project config is currently in cache, will return the cache entry.
+        If the project config is not in cache, the project config for that key will be null.
+        """
+
+        # algorithm
+        # - if a correct project ID is provided, return all project configs for all project keys
+        # - if a wrong / non-existent project ID is provided, it's an error
+        # - if no project ID is provided, fall back to project keys
+        #
+        # - if a correct project key is provided, return the project config along with the other project configs
+        # - if a wrong project key is provided -> HTTP400
+        #  - if no project key is provided, use
+
         project_id = request.GET.get("projectId")
-
-        project_keys = []
-        if project_id is not None:
-            try:
-                project = Project.objects.get_from_cache(id=project_id)
-                for project_key in project.key_set.all():
-                    project_keys.append(project_key)
-
-            except Exception:
-                raise Http404
-
         project_key_param = request.GET.get("projectKey")
-        if project_key_param is not None:
-            project_keys.append(project_key_param)
 
-        configs = {}
-        configs = self._get_project_config_sync(project, project_keys)
-        # TODO: if we don't think we'll add anything to the endpoint
-        # we may as well return just the configs
-        return Response({"configs": configs}, status=200)
-
-    def post(self, request: Request) -> Response:
-        """Regenerate the project config"""
-        project_id = request.data.get("projectId")
-
-        if not project_id:
-            return Response({"error": "Missing project id"}, status=400)
-
-        project_keys = []
-        try:
-            project = Project.objects.get_from_cache(id=project_id)
-            for project_key in project.key_set.all():
-                project_keys.append(project_key)
-
-        except Exception:
-            raise Http404
-
-        try:
-            schedule_invalidate_project_config(
-                project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
+        if not project_id and not project_key_param:
+            return Response(
+                {"error": "Please supply either the projectId or projectKey parameter."}, status=400
             )
 
+        try:
+            if project_id:
+                project = Project.objects.get_from_cache(id=project_id)
+            else:
+                project = None
+            if project_key_param:
+                project_key = ProjectKey.objects.get(public_key=project_key_param)
+            else:
+                project_key = None
         except Exception:
             raise Http404
 
-        configs = self._get_project_config_sync(project, project_keys)
-        return Response({"configs": configs}, status=200)
+        project_keys = self._get_project_keys(project, project_key)
 
-    def _get_project_config_sync(self, project: Project, project_keys: list[ProjectKey]):
-        configs: MutableMapping[str, MutableMapping[str, Any]] = {}
-
+        configs: MutableMapping[str, ProjectConfig | None] = {}
         for project_key in project_keys:
             cached_config = projectconfig_cache.backend.get(project_key.public_key)
             if cached_config is not None:
                 configs[project_key.public_key] = cached_config
             else:
-                configs[project_key.public_key] = get_project_config(
-                    project, project_keys=[project_key]
-                ).to_dict()
+                configs[project_key.public_key] = None
 
+        return Response({"configs": configs}, status=200)
+
+    def post(self, request: Request) -> Response:
+        """The POST endpoint recalculates the project configs for a specific projectId.
+        The project config for all projectKeys of the provided projectId is recalculated
+        in a sync manner and stored in the cache subsequently.
+        """
+        project_id = request.data.get("projectId")
+
+        if not project_id:
+            return Response({"error": "Missing projectId parameter"}, status=400)
+
+        try:
+            project = Project.objects.get_from_cache(id=project_id)
+            project_keys = self._get_project_keys(project)
+            schedule_invalidate_project_config(
+                project_id=project_id, trigger="_admin_trigger_invalidate_project_config"
+            )
+        except Exception:
+            raise Http404
+
+        configs = self._get_project_config_sync(project, project_keys)
         projectconfig_cache.backend.set_many(configs)
+        return Response({"configs": configs}, status=200)
+
+    def _get_project_keys(
+        self, project: Project | None = None, project_key: ProjectKey | None = None
+    ) -> list[ProjectKey]:
+        project_keys = []
+
+        if project_key is not None:
+            project_keys.append(project_key)
+
+        if project is not None:
+            for project_key2 in project.key_set.all():
+                project_keys.append(project_key)
+
+        return project_keys
+
+    def _get_project_config_sync(self, project: Project, project_keys: list[ProjectKey]):
+        configs: MutableMapping[str, MutableMapping[str, Any]] = {}
+
+        for project_key in project_keys:
+            configs[project_key.public_key] = get_project_config(
+                project, project_keys=[project_key]
+            ).to_dict()
+
         return configs
