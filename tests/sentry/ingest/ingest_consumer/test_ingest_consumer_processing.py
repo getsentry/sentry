@@ -13,6 +13,7 @@ import pytest
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.dlq import InvalidMessage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 
@@ -31,6 +32,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
 from sentry.usage_accountant import accountant
@@ -620,3 +622,44 @@ def test_collect_span_metrics(default_project):
             assert mock_metrics.incr.call_count == 0
             collect_span_metrics(default_project, {"spans": [1, 2, 3]})
             assert mock_metrics.incr.call_count == 1
+
+
+@django_db_all
+@override_options(
+    {"transactions.stale_dlq_enabled": True, "transactions.stale_dlq_threshold_ms": 300}
+)
+def test_transactions_stale_dlq(default_project):
+    project_id = default_project.id
+    now = datetime.datetime.now() - datetime.timedelta(minutes=5)
+    event = {
+        "type": "transaction",
+        "timestamp": now.isoformat(),
+        "start_timestamp": now.isoformat(),
+        "spans": [],
+        "contexts": {
+            "trace": {
+                "parent_span_id": "8988cec7cc0779c1",
+                "type": "trace",
+                "op": "foobar",
+                "trace_id": "a7d67cf796774551a95be6543cacd459",
+                "span_id": "babaae0d4b7512d9",
+                "status": "ok",
+            }
+        },
+    }
+    payload = get_normalized_event(event, default_project)
+    event_id = payload["event_id"]
+    start_time = time.time() - 1000
+
+    with pytest.raises(InvalidMessage):
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": "stale payload",
+                "start_time": start_time,
+                "event_id": event_id,
+                "project_id": project_id,
+                "remote_addr": "127.0.0.1",
+            },
+            project=default_project,
+        )
