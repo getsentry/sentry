@@ -49,6 +49,27 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert response.status_code == 200, response.content
             assert FlagAuditLogModel.objects.count() == 1
 
+    def test_generic_missing_signature(self):
+        request_data = {
+            "data": [
+                {
+                    "action": "created",
+                    "change_id": 9734362632,
+                    "created_at": "2024-12-12T00:00:00+00:00",
+                    "created_by": {"id": "username", "type": "name"},
+                    "flag": "hello",
+                }
+            ],
+            "meta": {"version": 1},
+        }
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "generic")),
+                request_data,
+            )
+            assert response.status_code == 401, response.content
+
     def test_launchdarkly_post_create(self):
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
