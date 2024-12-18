@@ -46,10 +46,9 @@ export function ReleaseSelector({
   sortBy,
 }: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
-  const location = useLocation();
   const {data, isLoading} = useReleases({searchTerm, sortBy});
-
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const location = useLocation();
 
   const options: (SelectOption<string> & {count?: number})[] = [];
   if (defined(selectorValue)) {
