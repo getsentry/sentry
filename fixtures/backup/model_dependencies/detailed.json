@@ -6313,6 +6313,22 @@
       ]
     ]
   },
+  "uptime.region": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "uptime.region",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "uptime_region",
+    "uniques": [
+      [
+        "slug"
+      ]
+    ]
+  },
   "uptime.uptimesubscription": {
     "dangling": false,
     "foreign_keys": {},
@@ -6328,6 +6344,31 @@
       [
         "subscription_id"
       ]
+    ]
+  },
+  "uptime.uptimesubscriptionregion": {
+    "dangling": false,
+    "foreign_keys": {
+      "region": {
+        "kind": "FlexibleForeignKey",
+        "model": "uptime.region",
+        "nullable": false
+      },
+      "uptime_subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "uptime.uptimesubscription",
+        "nullable": false
+      }
+    },
+    "model": "uptime.uptimesubscriptionregion",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "uptime_uptimesubscriptionregion",
+    "uniques": [
+      []
     ]
   },
   "workflow_engine.action": {
