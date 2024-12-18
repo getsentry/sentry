@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
 from sentry.tempest.models import TempestCredentials
+from sentry.users.services.user.service import user_service
 
 
 @register(TempestCredentials)
@@ -10,6 +11,7 @@ class TempestCredentialsSerializer(Serializer):
         return "*" * len(client_secret)
 
     def serialize(self, obj, attrs, user, **kwargs):
+        user = attrs.get(obj.created_by_id)
         return {
             "id": obj.id,
             "clientId": obj.client_id,
@@ -18,9 +20,23 @@ class TempestCredentialsSerializer(Serializer):
             "messageType": obj.message_type,
             "latestFetchedItemId": obj.latest_fetched_item_id,
             "createdById": obj.created_by_id,
+            "createdByEmail": user.email if user else None,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }
+
+    def get_attrs(
+        self,
+        item_list: serializers.Sequence[serializers.Any],
+        user: serializers.Any,
+        **kwargs: serializers.Any,
+    ) -> serializers.MutableMapping[serializers.Any, serializers.Any]:
+        attrs = {}
+        user_ids = {item.created_by_id for item in item_list}
+        users = user_service.get_many_by_id(user_ids)
+        for user in users:
+            attrs[user.id] = user
+        return attrs
 
 
 class DRFTempestCredentialsSerializer(serializers.ModelSerializer):
