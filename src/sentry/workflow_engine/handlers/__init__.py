@@ -6,4 +6,4 @@ __all__ = [
 ]
 
 from .action import NotificationActionHandler
-from .group_event import EventCreatedByDetectorConditionHandler, EventSeenCountConditionHandler
+from .condition import EventCreatedByDetectorConditionHandler, EventSeenCountConditionHandler

@@ -13,7 +13,7 @@ class EventCreatedByDetectorConditionHandler(DataConditionHandler[GroupEvent]):
         if event.occurrence is None:
             return False
 
-        return event.occurrence.evidence_data["detector_id"] == comparison
+        return event.occurrence.evidence_data.get("detector_id", None) == comparison
 
 
 @condition_handler_registry.register(Condition.EVENT_SEEN_COUNT)

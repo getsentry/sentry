@@ -3,4 +3,7 @@ __all__ = [
     "EventSeenCountConditionHandler",
 ]
 
-from .group_event import EventCreatedByDetectorConditionHandler, EventSeenCountConditionHandler
+from .group_event_handlers import (
+    EventCreatedByDetectorConditionHandler,
+    EventSeenCountConditionHandler,
+)
