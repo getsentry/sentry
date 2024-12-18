@@ -27,7 +27,9 @@ x-sentry-service-config:
         repo_link: https://github.com/getsentry/sentry-shared-redis.git
   modes:
     default: [snuba, postgres, relay]
-    migrations: [postgres, redis]
+    # make apply-migrations now require kafka (we'll just up snuba as well) since
+    # we want to ensure kafka topics are created
+    migrations: [postgres, redis, snuba]
 
 services:
   postgres:

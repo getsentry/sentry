@@ -104,8 +104,8 @@ create-db() {
 
 apply-migrations() {
     create-db
-    echo "--> Applying migrations"
-    sentry upgrade --noinput
+    echo "--> Applying migrations and creating kafka topics"
+    sentry upgrade --noinput --create-kafka-topics
 }
 
 create-superuser() {

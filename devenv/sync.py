@@ -289,6 +289,7 @@ Then, use it to run sync this one time.
                 "up",
                 "redis",
                 "postgres",
+                "kafka",
             ),
             pathprepend=f"{reporoot}/.devenv/bin",
             exit=True,
