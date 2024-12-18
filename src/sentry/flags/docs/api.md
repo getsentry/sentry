@@ -155,15 +155,15 @@ Sentry does not currently have a concept of disambiguating flag changes by proje
 
 **Data Attributes**
 
-| Column          | Type   | Description                                                             |
-| --------------- | ------ | ----------------------------------------------------------------------- |
-| action          | string | Enum of `created`, `updated`, or `deleted`.                             |
-| change_id       | number | A unique 64-bit idempotency token representing a discrete change event. |
-| created_at      | string | String formatted UTC date time: YYYY-MM-DDTHH:MM:SS.                    |
-| created_by      | object | Created-by object.                                                      |
-| created_by.id   | string | User identifier which made the change.                                  |
-| created_by.type | string | Enum of `email`, `id`, or `name`.                                       |
-| flag            | string | The name of the flag changed.                                           |
+| Column          | Type   | Description                                                       |
+| --------------- | ------ | ----------------------------------------------------------------- |
+| action          | string | Enum of `created`, `updated`, or `deleted`.                       |
+| change_id       | number | A unique 64-bit idempotency token representing a change grouping. |
+| created_at      | string | String formatted UTC date time: YYYY-MM-DDTHH:MM:SS.              |
+| created_by      | object | Created-by object.                                                |
+| created_by.id   | string | User identifier which made the change.                            |
+| created_by.type | string | Enum of `email`, `id`, or `name`.                                 |
+| flag            | string | The name of the flag changed.                                     |
 
 **Meta Attributes**
 
