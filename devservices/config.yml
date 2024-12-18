@@ -27,6 +27,10 @@ x-sentry-service-config:
         repo_link: https://github.com/getsentry/sentry-shared-redis.git
     chartcuterie:
       description: Chartcuterie is a service that generates charts
+      remote:
+        repo_name: chartcuterie
+        branch: master
+        repo_link: https://github.com/getsentry/chartcuterie.git
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
@@ -64,30 +68,6 @@ services:
     labels:
       - orchestrator=devservices
     restart: unless-stopped
-  chartcuterie:
-    image: 'us-central1-docker.pkg.dev/sentryio/chartcuterie/image:latest'
-    environment:
-      CHARTCUTERIE_CONFIG: /etc/chartcuterie/config.js
-      CHARTCUTERIE_CONFIG_POLLING: true
-    volumes:
-      - $CHARTCUTERIE_CONFIG_PATH:/etc/chartcuterie
-    ports:
-      - 127.0.0.1:7901:9090
-    networks:
-      - devservices
-    extra_hosts:
-      host.docker.internal: host-gateway
-    labels:
-      - 'orchestrator=devservices'
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'docker exec sentry_chartcuterie python3 -c "import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:9090/api/chartcuterie/healthcheck/live\", timeout=5)"',
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
 
 networks:
   devservices:
