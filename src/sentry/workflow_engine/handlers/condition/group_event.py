@@ -17,7 +17,7 @@ class EventCreatedByDetectorConditionHandler(DataConditionHandler[GroupEvent]):
 
 
 @condition_handler_registry.register(Condition.EVENT_SEEN_COUNT)
-class FirstEventOccurrenceConditionHandler(DataConditionHandler[GroupEvent]):
+class EventSeenCountConditionHandler(DataConditionHandler[GroupEvent]):
     @staticmethod
     def evaluate_value(event: GroupEvent, comparison: Any) -> bool:
         return event.group.times_seen == comparison
