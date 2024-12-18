@@ -1,10 +1,11 @@
 ---
-created: '2020-08-25T09:17:16.087810Z'
+created: '2024-12-17T22:46:57.082092+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  contributing component: exception
   component:
     app*
       exception*
@@ -115,6 +116,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (exception of app/system takes precedence)
       message (exception of app/system takes precedence)
@@ -122,6 +124,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2024-11-20T21:26:45.367713+00:00'
+created: '2024-12-17T22:50:27.585766+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -25,6 +25,7 @@ metrics with tags: {
 contributing variants:
   system*
     hash: "2552498cfe69a6ddf1dcdde5440ce9c3"
+    contributing component: exception
     component:
       system*
         exception*

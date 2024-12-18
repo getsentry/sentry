@@ -1,8 +1,11 @@
 ---
+created: '2024-12-17T22:46:37.991714+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app
 --------------------------------------------------------------------------
@@ -11,5 +14,6 @@ fallback:
 --------------------------------------------------------------------------
 system:
   hash: null
+  contributing component: null
   component:
     system

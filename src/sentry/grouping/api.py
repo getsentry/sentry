@@ -12,6 +12,7 @@ from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -285,6 +286,7 @@ def _get_variants_from_strategies(
     winning_strategy: str | None = None
     precedence_hint: str | None = None
     all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
+    winning_strategy_components_by_variant = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
     # one which produces a result. (See `src/sentry/grouping/strategies/configurations.py` for the
@@ -297,9 +299,16 @@ def _get_variants_from_strategies(
             all_strategies_components_by_variant.setdefault(variant_name, []).append(component)
 
             if component.contributes:
-                # If we haven't yet found a winner.. now we have! Keep track of which strategy won
-                # so we can add hints to the others indicating what took precedence
                 if winning_strategy is None:
+                    # If we haven't yet found a winner.. now we have!
+                    #
+                    # The value of `current_strategy_components_by_variant` will change with each
+                    # strategy, so grab a separate reference to the winning ones so we don't lose
+                    # track of them
+                    #
+                    # Also, create a hint we can add to components from other strategies indicating
+                    # that this one took precedence
+                    winning_strategy_components_by_variant = current_strategy_components_by_variant
                     winning_strategy = strategy.name
                     variant_descriptor = "/".join(
                         sorted(
@@ -338,8 +347,16 @@ def _get_variants_from_strategies(
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
 
+        winning_strategy_component = winning_strategy_components_by_variant.get(variant_name)
+        contributing_component = (
+            winning_strategy_component
+            if winning_strategy_component and winning_strategy_component.contributes
+            else None
+        )
+
         variants[variant_name] = ComponentVariant(
             component=root_component,
+            contributing_component=contributing_component,
             strategy_config=context.config,
         )
 
@@ -421,3 +438,27 @@ def get_grouping_variants_for_event(
         final_variants["fallback"] = FallbackVariant()
 
     return final_variants
+
+
+def get_contributing_variant_and_component(
+    variants: dict[str, BaseVariant]
+) -> tuple[BaseVariant, ContributingComponent | None]:
+    if len(variants) == 1:
+        contributing_variant = list(variants.values())[0]
+    else:
+        contributing_variant = (
+            variants["app"]
+            # TODO: We won't need this 'if' once we stop returning both app and system contributing
+            # variants
+            if "app" in variants and variants["app"].contributes
+            # Other than in the broken app/system case, there should only ever be a single
+            # contributing variant
+            else [variant for variant in variants.values() if variant.contributes][0]
+        )
+    contributing_component = (
+        contributing_variant.contributing_component
+        if hasattr(contributing_variant, "contributing_component")
+        else None
+    )
+
+    return (contributing_variant, contributing_component)
