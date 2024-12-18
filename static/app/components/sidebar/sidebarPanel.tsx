@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {slideInLeft} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
@@ -110,7 +111,7 @@ function SidebarPanel({
       {title ? (
         <SidebarPanelHeader>
           <Title>{title}</Title>
-          <PanelClose onClick={hidePanel} />
+          <PanelClose onClick={hidePanel} aria-label={t('Close Panel')} />
         </SidebarPanelHeader>
       ) : null}
       <SidebarPanelBody hasHeader={!!title}>{children}</SidebarPanelBody>
