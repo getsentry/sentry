@@ -1,80 +1,26 @@
-# Thread safe flag tracking wrapper.
-from contextvars import ContextVar
+import logging
 
-flag_manager = ContextVar("flag_manager")  # type: ignore[var-annotated]
+import sentry_sdk
+from sentry_sdk.integrations import Integration
 
-
-def initialize_flag_manager(capacity: int = 100) -> None:
-    flag_manager.set(FlagManager(capacity=capacity))
+logger = logging.getLogger()
 
 
-# NOTE: If not properly initialized this function is a no-op.
-def process_flag_result(flag: str, result: bool) -> None:
-    try:
-        _flag_manager = flag_manager.get()
-        _flag_manager.insert(f"feature.{flag}", result)
-    except LookupError:
-        return None
+class FlagPoleIntegration(Integration):
+    identifier = "flag_pole"
+
+    @staticmethod
+    def setup_once():
+        scope = sentry_sdk.get_current_scope()
+        scope.add_error_processor(flag_error_processor)
 
 
-# NOTE: If not properly initialized this function is a no-op.
-def get_flags_serialized():
-    try:
-        _flag_manager = flag_manager.get()
-        return _flag_manager.serialize()
-    except LookupError:
-        return []
+def flag_error_processor(event, exc_info):
+    scope = sentry_sdk.get_current_scope()
+    event["contexts"]["flags"] = {"values": scope.flags.get()}
+    return event
 
 
-# Flag tracking implementation.
-import itertools
-from typing import TypedDict
-
-
-class SerializedFlag(TypedDict):
-    flag: str
-    result: bool
-
-
-class Flag:
-    __slots__ = ("flag", "result")
-
-    def __init__(self, flag: str, result: bool) -> None:
-        self.flag = flag
-        self.result = result
-
-    @property
-    def asdict(self) -> SerializedFlag:
-        return {"flag": self.flag, "result": self.result}
-
-
-class FlagManager:
-    # NOTE: Implemented using a ciruclar buffer instead an LRU for ease
-    # of implementation.
-
-    def __init__(self, capacity: int) -> None:
-        assert capacity > 0
-        self.buffer: list[Flag] = []
-        self.capacity = capacity
-        self.ip = 0
-
-    @property
-    def index(self):
-        return self.ip % self.capacity
-
-    def insert(self, flag: str, result: bool) -> None:
-        flag_ = Flag(flag, result)
-
-        if self.ip >= self.capacity:
-            self.buffer[self.index] = flag_
-        else:
-            self.buffer.append(flag_)
-
-        self.ip += 1
-
-    def serialize(self) -> list[SerializedFlag]:
-        if self.ip >= self.capacity:
-            iterator = itertools.chain(range(self.index, self.capacity), range(0, self.index))
-            return [self.buffer[i].asdict for i in iterator]
-        else:
-            return [flag.asdict for flag in self.buffer]
+def flag_pole_hook(flag: str, result: bool):
+    flags = sentry_sdk.get_current_scope().flags
+    flags.set(flag, result)

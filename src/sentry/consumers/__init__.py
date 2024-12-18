@@ -301,6 +301,12 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "metrics"},
     },
+    "eap-spans-subscription-results": {
+        "topic": Topic.EAP_SPANS_SUBSCRIPTIONS_RESULTS,
+        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
+        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "static_args": {"dataset": "events_analytics_platform"},
+    },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
         "strategy_factory": "sentry.ingest.consumer.factory.IngestStrategyFactory",
@@ -415,15 +421,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
-
-
-def print_deprecation_warning(name, group_id):
-    import click
-
-    click.echo(
-        f"WARNING: Deprecated command, use sentry run consumer {name} "
-        f"--consumer-group {group_id} ..."
-    )
 
 
 def get_stream_processor(

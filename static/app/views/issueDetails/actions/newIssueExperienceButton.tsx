@@ -30,7 +30,7 @@ export function NewIssueExperienceButton() {
     mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
-      organization: organization,
+      organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
 
@@ -98,19 +98,6 @@ export function NewIssueExperienceButton() {
           key: 'switch-to-old-ui',
           label: t('Switch to the old issue experience'),
           onAction: handleToggle,
-        },
-        {
-          key: 'learn-more',
-          label: t('Learn more about the new UI'),
-          onAction: () => {
-            trackAnalytics('issue_details.streamline_ui_learn_more', {
-              organization,
-            });
-            window.open(
-              'https://sentry.zendesk.com/hc/en-us/articles/30882241712795',
-              '_blank'
-            );
-          },
         },
         {
           key: 'give-feedback',

@@ -12,43 +12,14 @@ const baseRules = {
   /**
    * Variables
    */
-  // https://eslint.org/docs/rules/no-shadow
-  'no-shadow': ['error'],
-
   // https://eslint.org/docs/rules/no-shadow-restricted-names
   'no-shadow-restricted-names': ['error'],
-
-  // https://eslint.org/docs/rules/no-undef
-  'no-undef': ['error'],
-
-  // https://eslint.org/docs/rules/no-unused-vars
-  'no-unused-vars': [
-    'error',
-    {
-      vars: 'all',
-      args: 'none',
-
-      // Ignore vars that start with an underscore
-      // e.g. if you want to omit a property using object spread:
-      //
-      //   const {name: _name, ...props} = this.props;
-      //
-      varsIgnorePattern: '^_',
-      argsIgnorePattern: '^_',
-    },
-  ],
-
-  // https://eslint.org/docs/rules/no-use-before-define
-  'no-use-before-define': ['error', {functions: false}],
 
   /**
    * Possible errors
    */
   // https://eslint.org/docs/rules/no-cond-assign
   'no-cond-assign': ['error', 'always'],
-
-  // https://eslint.org/docs/rules/no-console
-  'no-console': ['warn'],
 
   // https://eslint.org/docs/rules/no-alert
   'no-alert': ['error'],
@@ -181,20 +152,8 @@ const baseRules = {
   // https://eslint.org/docs/rules/radix
   radix: ['error'],
 
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'computed-property-spacing': ['error', 'never'],
-
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'array-bracket-spacing': ['error', 'never'],
-
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'object-curly-spacing': ['error', 'never'],
-
   // https://eslint.org/docs/rules/object-shorthand
   'object-shorthand': ['error', 'properties'],
-
-  // https://eslint.org/docs/rules/space-infix-ops.html
-  'space-infix-ops': ['error'],
 
   // https://eslint.org/docs/rules/vars-on-top
   'vars-on-top': ['off'],
@@ -272,14 +231,6 @@ const reactReactRules = {
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md
   'react/no-deprecated': ['error'],
 
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
-  'react/no-is-mounted': ['warn'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md
-  // Recommended to use callback refs instead
-  // TODO: Upgrade sentry to use callback refs
-  'react/no-find-dom-node': ['warn'],
-
   // Prevent usage of the return value of React.render
   // deprecation: https://facebook.github.io/react/docs/react-dom.html#render
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md
@@ -310,10 +261,6 @@ const reactReactRules = {
 
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
   'react/no-typos': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-string-refs.md
-  // This is now considered legacy, callback refs preferred
-  'react/no-string-refs': ['warn'],
 
   // Prevent invalid characters from appearing in markup
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
@@ -347,10 +294,6 @@ const reactReactRules = {
   //
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
   'react/sort-comp': ['warn'],
-
-  // Disabled because of prettier
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
-  'react/jsx-wrap-multilines': ['off'],
 
   // Consistent <Component booleanProp /> (never add ={true})
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
@@ -413,16 +356,6 @@ const reactImportRules = {
     {
       js: 'never',
       jsx: 'never',
-    },
-  ],
-
-  // Enforce a convention in module import order
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/order.md
-  'import/order': [
-    'error',
-    {
-      groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
-      'newlines-between': 'always',
     },
   ],
 
@@ -499,7 +432,6 @@ const reactImportRules = {
 };
 
 const reactJestRules = {
-  'jest/no-large-snapshots': ['warn', {maxSize: 2000}],
   'jest/no-disabled-tests': 'error',
 };
 
@@ -510,7 +442,10 @@ const reactRules = {
   /**
    * React hooks
    */
-  'react-hooks/exhaustive-deps': 'error',
+  'react-hooks/exhaustive-deps': [
+    'error',
+    {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+  ],
   // Biome not yet enforcing all parts of this rule https://github.com/biomejs/biome/issues/1984
   'react-hooks/rules-of-hooks': 'error',
 
@@ -540,22 +475,6 @@ const reactRules = {
     'asc',
     {caseSensitive: true, natural: false, requiredFirst: true},
   ],
-
-  // Disallow importing `import React from 'react'`. This is not needed since
-  // React 17. We prefer the named imports for potential tree-shaking gains
-  // in the future.
-  'no-restricted-imports': [
-    'error',
-    {
-      paths: [
-        {
-          name: 'react',
-          importNames: ['default'],
-          message: 'Prefer named React imports (React types DO NOT need imported!)',
-        },
-      ],
-    },
-  ],
 };
 
 const appRules = {
@@ -572,6 +491,7 @@ const appRules = {
   // no-undef is redundant with typescript as tsc will complain
   // A downside is that we won't get eslint errors about it, but your editors should
   // support tsc errors so....
+  // https://eslint.org/docs/rules/no-undef
   'no-undef': 'off',
 
   // Let formatter handle this
@@ -579,12 +499,14 @@ const appRules = {
 
   /**
    * Need to use typescript version of these rules
+   * https://eslint.org/docs/rules/no-shadow
    */
   'no-shadow': 'off',
   '@typescript-eslint/no-shadow': 'error',
 
   // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
   // fix them all, so we'll have to incrementally update.
+  // https://eslint.org/docs/rules/no-unused-vars
   'no-unused-vars': 'off',
   '@typescript-eslint/no-unused-vars': [
     'error',
@@ -606,6 +528,7 @@ const appRules = {
     },
   ],
 
+  // https://eslint.org/docs/rules/no-use-before-define
   'no-use-before-define': 'off',
   // This seems to have been turned on while previously it had been off
   '@typescript-eslint/no-use-before-define': ['off'],
@@ -618,12 +541,13 @@ const appRules = {
   'no-restricted-imports': [
     'error',
     {
-      paths: [
+      patterns: [
         {
-          name: 'enzyme',
-          message:
-            'Please import from `sentry-test/enzyme` instead. See: https://github.com/getsentry/frontend-handbook#undefined-theme-properties-in-tests for more information',
+          group: ['sentry/components/devtoolbar/*'],
+          message: 'Do not depend on toolbar internals',
         },
+      ],
+      paths: [
         {
           name: '@testing-library/react',
           message:
@@ -649,7 +573,6 @@ const appRules = {
           message:
             "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
         },
-
         {
           name: 'lodash',
           message:
@@ -659,11 +582,6 @@ const appRules = {
           name: 'lodash/get',
           message:
             'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-        },
-        {
-          name: 'react-bootstrap',
-          message:
-            'Avoid usage of any react-bootstrap components as it will soon be removed',
         },
         {
           name: 'sentry/utils/theme',
@@ -682,6 +600,14 @@ const appRules = {
           importNames: ['withSentryRouter'],
           message:
             "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+        },
+        {
+          name: 'qs',
+          message: 'Please use query-string instead of qs',
+        },
+        {
+          name: 'moment',
+          message: 'Please import moment-timezone instead of moment',
         },
       ],
     },
@@ -787,6 +713,7 @@ const appRules = {
 };
 
 const strictRules = {
+  // https://eslint.org/docs/rules/no-console
   'no-console': ['error'],
 
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
@@ -813,6 +740,7 @@ const extendsList = [
 if (detectDeprecations) {
   extendsList.push('plugin:deprecation/recommended');
 }
+extendsList.push('prettier'); // From package: `eslint-config-prettier`. Keep this last in the list
 
 module.exports = {
   root: true,
@@ -890,98 +818,6 @@ module.exports = {
     ...reactRules,
     ...appRules,
     ...strictRules,
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': [
-      'error',
-      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
-    ],
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['sentry/components/devtoolbar/*'],
-            message: 'Do not depend on toolbar internals',
-          },
-        ],
-        paths: [
-          {
-            name: '@testing-library/react',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@testing-library/react-hooks',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@testing-library/user-event',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@sentry/browser',
-            message:
-              'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
-          },
-          {
-            name: 'marked',
-            message:
-              "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
-          },
-          {
-            name: 'lodash',
-            message:
-              "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
-          },
-          {
-            name: 'lodash/get',
-            message:
-              'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-          },
-          {
-            name: 'sentry/utils/theme',
-            importNames: ['lightColors', 'darkColors'],
-            message:
-              "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-          },
-          {
-            name: 'react-router',
-            importNames: ['withRouter'],
-            message:
-              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-          },
-          {
-            name: 'sentry/utils/withSentryRouter',
-            importNames: ['withSentryRouter'],
-            message:
-              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-          },
-          {
-            name: 'qs',
-            message: 'Please use query-string instead of qs',
-          },
-          {
-            name: 'moment',
-            message: 'Please import moment-timezone instead of moment',
-          },
-        ],
-      },
-    ],
-
-    // TODO(@anonrig): Remove this from eslint-sentry-config
-    'space-infix-ops': 'off',
-    'object-shorthand': 'off',
-    'object-curly-spacing': 'off',
-    'import/no-amd': 'off',
-    'no-danger-with-children': 'off',
-    'no-fallthrough': 'off',
-    'no-obj-calls': 'off',
-    'array-bracket-spacing': 'off',
-    'computed-property-spacing': 'off',
-    'react/no-danger-with-children': 'off',
-    'jest/no-disabled-tests': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -994,6 +830,7 @@ module.exports = {
           'error',
           {
             paths: [
+              ...appRules['no-restricted-imports'][1].paths,
               {
                 name: 'sentry/utils/queryClient',
                 message:
@@ -1012,18 +849,6 @@ module.exports = {
         ...reactRules,
         ...appRules,
         ...strictRules,
-        // TODO(@anonrig): Remove this from eslint-sentry-config
-        'space-infix-ops': 'off',
-        'object-shorthand': 'off',
-        'object-curly-spacing': 'off',
-        'import/no-amd': 'off',
-        'no-danger-with-children': 'off',
-        'no-fallthrough': 'off',
-        'no-obj-calls': 'off',
-        'array-bracket-spacing': 'off',
-        'computed-property-spacing': 'off',
-        'react/no-danger-with-children': 'off',
-        'jest/no-disabled-tests': 'off',
       },
     },
     {

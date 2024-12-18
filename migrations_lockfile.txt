@@ -15,10 +15,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0796_rm_excluded_projects_triggers
+sentry: 0802_remove_grouping_auto_update_option
 
 social_auth: 0002_default_auto_field
 
-uptime: 0018_add_trace_sampling_field_to_uptime
+tempest: 0001_create_tempest_credentials_model
 
-workflow_engine: 0014_model_additions_for_milestones
+uptime: 0019_uptime_region
+
+workflow_engine: 0016_refactor_action_model

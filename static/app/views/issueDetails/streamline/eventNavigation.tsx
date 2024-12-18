@@ -143,7 +143,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({
-    groupId: group.id,
+    group,
     activeAttachmentsTab: 'all',
     options: {placeholderData: keepPreviousData},
   });
@@ -474,6 +474,7 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
   align-items: center;
   justify-content: space-between;
   gap: ${space(3)};
+  font-variant-numeric: tabular-nums;
   font-weight: ${p =>
     p.isCurrentTab ? p.theme.fontWeightBold : p.theme.fontWeightNormal};
 `;

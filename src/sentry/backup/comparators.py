@@ -802,6 +802,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.alertrule": [
                 DateUpdatedComparator("date_modified"),
             ],
+            "sentry.dashboardfavoriteuser": [
+                DateUpdatedComparator("date_added", "date_updated"),
+            ],
             "sentry.groupsearchview": [DateUpdatedComparator("date_updated")],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
             "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
@@ -890,6 +893,18 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.workflow": [DateUpdatedComparator("date_updated", "date_added")],
             "workflow_engine.workflowdataconditiongroup": [
                 DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruledetector": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruleworkflow": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "workflow_engine.alertruletriggerdatacondition": [
+                DateUpdatedComparator("date_updated", "date_added")
+            ],
+            "tempest.tempestcredentials": [
+                DateUpdatedComparator("date_updated", "date_added"),
             ],
         },
     )

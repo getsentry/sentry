@@ -9,6 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -33,7 +34,7 @@ describe('StreamlinedActivitySection', function () {
         id: 'note-1',
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
-        user: user,
+        user,
         project,
       },
     ],
@@ -128,6 +129,55 @@ describe('StreamlinedActivitySection', function () {
     expect(deleteMock).toHaveBeenCalledTimes(1);
 
     expect(screen.queryByText('Test Note')).not.toBeInTheDocument();
+  });
+
+  it('renders note and allows for edit', async function () {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
+    const editGroup = GroupFixture({
+      id: '1123',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          data: {text: 'Group Test'},
+          dateCreated: '2020-01-01T00:00:00',
+          user,
+          project,
+        },
+      ],
+      project,
+    });
+    const editMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1123/comments/note-1/',
+      method: 'PUT',
+      body: {
+        id: 'note-1',
+        data: {text: 'Group Test Updated'},
+      },
+    });
+
+    render(<StreamlinedActivitySection group={editGroup} />);
+    expect(await screen.findByText('Group Test')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(editMock).not.toHaveBeenCalled();
+
+    expect(await screen.findByText('Group Test')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Edit comment'}), ' Updated');
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+
+    expect(editMock).toHaveBeenCalledTimes(1);
+    expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
   });
 
   it('renders note but does not allow for deletion if written by someone else', async function () {

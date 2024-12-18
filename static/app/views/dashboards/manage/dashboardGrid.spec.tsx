@@ -244,9 +244,16 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -271,14 +278,108 @@ describe('Dashboards - DashboardGrid', function () {
         rowCount={3}
       />
     );
+    renderGlobalModal();
 
     await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
+
+    expect(postMock).not.toHaveBeenCalled();
+
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
+    );
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
       // Should not update, and not throw error
       expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+  });
+
+  it('renders favorite and unfavorite buttons on cards', function () {
+    dashboards = [
+      DashboardListItemFixture({
+        id: '1',
+        title: 'Dashboard 1',
+        createdBy: UserFixture({id: '1'}),
+        isFavorited: true,
+      }),
+      DashboardListItemFixture({
+        id: '2',
+        title: 'Dashboard 2',
+        createdBy: UserFixture({id: '1'}),
+        isFavorited: false,
+      }),
+    ];
+    render(
+      <DashboardGrid
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={router.location}
+        columnCount={3}
+        rowCount={3}
+      />,
+      {
+        router,
+        organization: {
+          features: ['dashboards-favourite', ...organization.features],
+        },
+      }
+    );
+
+    expect(screen.queryAllByLabelText('Dashboards Favorite')).toHaveLength(2);
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+  });
+
+  it('makes PUT requests when favoriting', async function () {
+    const putMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/favorite/',
+      method: 'PUT',
+      body: {isFavorited: false},
+    });
+
+    dashboards = [
+      DashboardListItemFixture({
+        id: '1',
+        title: 'Dashboard 1',
+        createdBy: UserFixture({id: '1'}),
+        isFavorited: true,
+      }),
+      DashboardListItemFixture({
+        id: '2',
+        title: 'Dashboard 2',
+        createdBy: UserFixture({id: '1'}),
+        isFavorited: false,
+      }),
+    ];
+
+    render(
+      <DashboardGrid
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={router.location}
+        columnCount={3}
+        rowCount={3}
+      />,
+      {
+        router,
+        organization: {
+          features: ['dashboards-favourite', ...organization.features],
+        },
+      }
+    );
+
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    const favoriteButton = screen.queryAllByLabelText('Favorite')[0];
+    await userEvent.click(favoriteButton);
+
+    await waitFor(() => {
+      expect(putMock).toHaveBeenCalled();
+    });
+
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(0);
   });
 });

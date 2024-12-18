@@ -7,6 +7,7 @@ import {
   createDashboard,
   deleteDashboard,
   fetchDashboard,
+  updateDashboardFavorite,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -73,6 +74,7 @@ function DashboardGrid({
         trackAnalytics('dashboards_manage.delete', {
           organization,
           dashboard_id: parseInt(dashboard.id, 10),
+          view_type: 'grid',
         });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
@@ -91,6 +93,7 @@ function DashboardGrid({
       trackAnalytics('dashboards_manage.duplicate', {
         organization,
         dashboard_id: parseInt(dashboard.id, 10),
+        view_type: 'grid',
       });
       onDashboardsChange();
       addSuccessMessage(t('Dashboard duplicated'));
@@ -99,12 +102,27 @@ function DashboardGrid({
     }
   }
 
+  async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
+    try {
+      await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+      onDashboardsChange();
+    } catch (error) {
+      throw error;
+    }
+  }
+
   function renderDropdownMenu(dashboard: DashboardListItem) {
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
         label: t('Duplicate'),
-        onAction: () => handleDuplicate(dashboard),
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to duplicate this dashboard?'),
+            priority: 'primary',
+            onConfirm: () => handleDuplicate(dashboard),
+          });
+        },
       },
       {
         key: 'dashboard-delete',
@@ -181,6 +199,8 @@ function DashboardGrid({
           createdBy={dashboard.createdBy}
           renderWidgets={() => renderGridPreview(dashboard)}
           renderContextMenu={() => renderDropdownMenu(dashboard)}
+          isFavorited={dashboard.isFavorited}
+          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
         />
       );
     });

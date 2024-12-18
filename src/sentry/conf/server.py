@@ -323,7 +323,6 @@ USE_TZ = True
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE: tuple[str, ...] = (
     "csp.middleware.CSPMiddleware",
-    "sentry.middleware.flag.FlagMiddleware",
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -406,6 +405,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.flags",
     "sentry.monitors",
     "sentry.uptime",
+    "sentry.tempest",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -835,9 +835,6 @@ CELERY_IMPORTS = (
     "sentry.integrations.vsts.tasks.kickoff_subscription_check",
     "sentry.integrations.tasks",
 )
-
-# tmp(michal): Default configuration for post_process* queues split
-SENTRY_POST_PROCESS_QUEUE_SPLIT_ROUTER: dict[str, Callable[[], str]] = {}
 
 # Enable split queue routing
 CELERY_ROUTES = ("sentry.queue.routers.SplitQueueTaskRouter",)
@@ -1333,7 +1330,10 @@ BGTASKS = {
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
 # accessible to the worker.
-TASKWORKER_IMPORTS: tuple[str, ...] = ()
+TASKWORKER_IMPORTS: tuple[str, ...] = (
+    # Used for tests
+    "sentry.taskworker.tasks.examples",
+)
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
 TASKWORKER_ROUTES: dict[str, str] = {}
 
@@ -1462,7 +1462,18 @@ if os.environ.get("OPENAPIGENERATE", False):
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_postprocessing_hook"],
         "PREPROCESSING_HOOKS": ["sentry.apidocs.hooks.custom_preprocessing_hook"],
-        "SERVERS": [{"url": "https://us.sentry.io"}, {"url": "https://de.sentry.io"}],
+        "SERVERS": [
+            {
+                "url": "https://{region}.sentry.io",
+                "variables": {
+                    "region": {
+                        "default": "us",
+                        "description": "The data-storage-location for an organization",
+                        "enum": ["us", "de"],
+                    },
+                },
+            },
+        ],
         "SORT_OPERATION_PARAMETERS": custom_parameter_sort,
         "TAGS": OPENAPI_TAGS,
         "TITLE": "API Reference",
@@ -1547,31 +1558,31 @@ SENTRY_FRONTEND_TRACE_PROPAGATION_TARGETS: list[str] | None = None
 # ----
 
 # sample rate for transactions initiated from the frontend
-SENTRY_FRONTEND_APM_SAMPLING = 0
+SENTRY_FRONTEND_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for transactions in the backend
-SENTRY_BACKEND_APM_SAMPLING = 0
+SENTRY_BACKEND_APM_SAMPLING = 1 if DEBUG else 0
 
 # Sample rate for symbolicate_event task transactions
-SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 0
+SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING = 1 if DEBUG else 0
 
 # Sample rate for the process_event task transactions
-SENTRY_PROCESS_EVENT_APM_SAMPLING = 0
+SENTRY_PROCESS_EVENT_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for relay's cache invalidation task
-SENTRY_RELAY_TASK_APM_SAMPLING = 0
+SENTRY_RELAY_TASK_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for ingest consumer processing functions
-SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
+SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for suspect commits task
-SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 0
+SENTRY_SUSPECT_COMMITS_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for post_process_group task
-SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
+SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 1 if DEBUG else 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
-SENTRY_REPROCESSING_APM_SAMPLING = 0
+SENTRY_REPROCESSING_APM_SAMPLING = 1 if DEBUG else 0
 
 # ----
 # end APM config
@@ -2233,6 +2244,9 @@ SENTRY_USE_GROUP_ATTRIBUTES = True
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
+# This flag activates the taskbroker in devservices
+SENTRY_USE_TASKBROKER = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2413,6 +2427,21 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "platform": "linux/amd64",
         }
     ),
+    "taskbroker": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/taskbroker:latest",
+            "ports": {"50051/tcp": 50051},
+            "environment": {
+                "TASKBROKER_KAFKA_CLUSTER": (
+                    "kafka-kafka-1"
+                    if os.environ.get("USE_NEW_DEVSERVICES") == "1"
+                    else "sentry_kafka"
+                ),
+            },
+            "only_if": settings.SENTRY_USE_TASKBROKER,
+            "platform": "linux/amd64",
+        }
+    ),
     "bigtable": lambda settings, options: (
         {
             "image": "ghcr.io/getsentry/cbtemulator:d28ad6b63e461e8c05084b8c83f1c06627068c04",
@@ -2494,7 +2523,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.11.1"
+SELF_HOSTED_STABLE_VERSION = "24.12.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2546,7 +2575,7 @@ if SENTRY_DEV_DSN:
 # traces_sample_rate. So that means the true sample rate will be approximately
 # traces_sample_rate * profiles_sample_rate
 # (subject to things like the traces_sampler)
-SENTRY_PROFILES_SAMPLE_RATE = 0
+SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
 
 # We want to test a few schedulers possible in the profiler. Some are platform
 # specific, and each have their own pros/cons. See the sdk for more details.
@@ -2883,6 +2912,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
+    "eap-spans-subscription-results": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
     "ingest-feedback-events-dlq": "default",
@@ -2940,6 +2970,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "remote_subscriptions",
     "uptime",
     "workflow_engine",
+    "tempest",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

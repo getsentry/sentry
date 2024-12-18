@@ -15,6 +15,7 @@ import type {
   AutofixRepository,
   BreadcrumbContext,
 } from 'sentry/components/events/autofix/types';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbIcon,
@@ -38,7 +39,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {singleLineRenderer} from 'sentry/utils/marked';
-import {useMutation} from 'sentry/utils/queryClient';
+import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
@@ -52,8 +53,8 @@ function AutofixBreadcrumbSnippet({breadcrumb}: AutofixBreadcrumbSnippetProps) {
   const rawCrumb = {
     message: breadcrumb.body,
     category: breadcrumb.category,
-    type: type,
-    level: level,
+    type,
+    level,
   };
 
   return (
@@ -85,13 +86,15 @@ export function ExpandableInsightContext({
   title,
   icon,
   rounded,
+  expandByDefault = false,
 }: {
   children: React.ReactNode;
   title: string;
+  expandByDefault?: boolean;
   icon?: React.ReactNode;
   rounded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(expandByDefault);
 
   const toggleExpand = () => {
     setExpanded(oldState => !oldState);
@@ -120,10 +123,24 @@ export function ExpandableInsightContext({
 }
 
 const animationProps: AnimationProps = {
-  exit: {opacity: 0},
-  initial: {opacity: 0, y: 20},
-  animate: {opacity: 1, y: 0},
-  transition: testableTransition({duration: 0.3}),
+  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
+  initial: {opacity: 0, height: 0, scale: 0.8},
+  animate: {opacity: 1, height: 'auto', scale: 1},
+  transition: testableTransition({
+    duration: 1.0,
+    height: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    scale: {
+      type: 'spring',
+      bounce: 0.2,
+    },
+    y: {
+      type: 'tween',
+      ease: 'easeOut',
+    },
+  }),
 };
 
 interface AutofixInsightCardProps {
@@ -345,15 +362,7 @@ function AutofixInsightCards({
           )
         )
       ) : stepIndex === 0 && !hasStepBelow ? (
-        <NoInsightsYet>
-          <p>Autofix will share its discoveries here.</p>
-          <p>
-            Autofix is like an AI rubber ducky to help you debug your code.
-            <br />
-            Collaborate with it and share your own knowledge and opinions for the best
-            results.
-          </p>
-        </NoInsightsYet>
+        <NoInsightsYet />
       ) : hasStepBelow ? (
         <EmptyResultsContainer>
           <ChainLink
@@ -372,6 +381,7 @@ function AutofixInsightCards({
 
 export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (params: {
@@ -393,6 +403,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
       });
     },
     onSuccess: _ => {
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
       addSuccessMessage(t('Thanks, rethinking this...'));
     },
     onError: () => {
@@ -578,17 +589,14 @@ const UserMessageContainer = styled('div')`
 const UserMessage = styled('div')`
   margin-left: ${space(2)};
   flex-shrink: 100;
+  word-break: break-word;
 `;
 
 const NoInsightsYet = styled('div')`
   display: flex;
   justify-content: center;
   flex-direction: column;
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
-  text-align: center;
   color: ${p => p.theme.subText};
-  padding-top: ${space(4)};
 `;
 
 const EmptyResultsContainer = styled('div')`
@@ -605,6 +613,18 @@ const InsightContainer = styled(motion.div)`
   box-shadow: ${p => p.theme.dropShadowMedium};
   margin-left: ${space(2)};
   margin-right: ${space(2)};
+  animation: fadeFromActive 1.2s ease-out;
+
+  @keyframes fadeFromActive {
+    from {
+      background-color: ${p => p.theme.active};
+      border-color: ${p => p.theme.active};
+    }
+    to {
+      background-color: ${p => p.theme.background};
+      border-color: ${p => p.theme.innerBorder};
+    }
+  }
 `;
 
 const ArrowContainer = styled('div')`
@@ -727,6 +747,7 @@ const MiniHeader = styled('p')`
   padding-right: ${space(2)};
   padding-left: ${space(2)};
   width: 95%;
+  word-break: break-word;
 `;
 
 const ExpandableContext = styled('div')<{isRounded?: boolean}>`
@@ -782,7 +803,22 @@ const StyledStructuredEventData = styled(StructuredEventData)`
   border-top-right-radius: 0;
 `;
 
-const AnimationWrapper = styled(motion.div)``;
+const AnimationWrapper = styled(motion.div)`
+  transform-origin: top center;
+
+  &.new-insight {
+    animation: textFadeFromActive 1.2s ease-out;
+  }
+
+  @keyframes textFadeFromActive {
+    from {
+      color: ${p => p.theme.white};
+    }
+    to {
+      color: inherit;
+    }
+  }
+`;
 
 const StyledIconChevron = styled(IconChevron)`
   width: 5%;

@@ -30,7 +30,10 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -643,16 +646,7 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 export const featureFlagOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'Install our JavaScript browser SDK using either [code:yarn] or [code:npm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
+  install: () => [],
   configure: ({featureFlagOptions = {integration: ''}, dsn}) => [
     {
       type: StepType.CONFIGURE,
@@ -668,7 +662,6 @@ export const featureFlagOnboarding: OnboardingConfig = {
         {
           language: 'JavaScript',
           code: `
-import * as Sentry from '@sentry/browser';
 ${FLAG_OPTIONS[featureFlagOptions.integration].importStatement}
 
 // Register with Sentry
@@ -693,6 +686,7 @@ ${FLAG_OPTIONS[featureFlagOptions.integration].sdkInit}
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
+  feedbackOnboardingJsLoader,
   replayOnboarding,
   replayOnboardingJsLoader,
   performanceOnboarding,

@@ -294,10 +294,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @project.setter
     def project(self, project: Project) -> None:
-        if project is None:
-            self.project_id = None
-        else:
-            self.project_id = project.id
+        self.project_id = project.id
         self._project_cache = project
 
     @cached_property
@@ -571,6 +568,11 @@ class Event(BaseEvent):
         state.pop("_group_cache", None)
         state.pop("_groups_cache", None)
         return state
+
+    def __repr__(self):
+        return "<sentry.eventstore.models.Event at 0x{:x}: event_id={}>".format(
+            id(self), self.event_id
+        )
 
     @property
     def data(self) -> NodeData:

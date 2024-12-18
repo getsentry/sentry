@@ -73,7 +73,7 @@ export function TransactionHighlights(props: HighlightProps) {
         })}
       >
         <StyledIconGraph type="area" size="xs" />
-        {t('View transaction summary')}
+        {t('View Summary')}
       </Link>
     </BodyContentWrapper>
   );
@@ -107,5 +107,6 @@ const BodyContentWrapper = styled('div')`
 `;
 
 const TextWrapper = styled('span')`
+  font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.theme.overflowEllipsis};
 `;

@@ -1,5 +1,5 @@
 ---
-created: '2024-11-25T23:04:25.041092+00:00'
+created: '2024-12-07T00:26:32.322405+00:00'
 creator: sentry
 source: tests/sentry/backup/test_sanitize.py
 ---
@@ -659,6 +659,11 @@ source: tests/sentry/backup/test_sanitize.py
 - model_name: sentry.dashboardpermissions
   ordinal: 1
   sanitized_fields: []
+- model_name: sentry.dashboardfavoriteuser
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: sentry.customdynamicsamplingruleproject
   ordinal: 1
   sanitized_fields: []
@@ -729,6 +734,16 @@ source: tests/sentry/backup/test_sanitize.py
   - date_added
   - date_updated
 - model_name: workflow_engine.detectorworkflow
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.alertruleworkflow
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
+- model_name: workflow_engine.alertruledetector
   ordinal: 1
   sanitized_fields:
   - date_added
@@ -813,6 +828,11 @@ source: tests/sentry/backup/test_sanitize.py
   ordinal: 1
   sanitized_fields:
   - date_added
+- model_name: workflow_engine.alertruletriggerdatacondition
+  ordinal: 1
+  sanitized_fields:
+  - date_added
+  - date_updated
 - model_name: sentry.servicehook
   ordinal: 1
   sanitized_fields:
@@ -863,10 +883,6 @@ source: tests/sentry/backup/test_sanitize.py
   sanitized_fields:
   - date_added
   - date_modified
-- model_name: sentry.incidentsubscription
-  ordinal: 1
-  sanitized_fields:
-  - date_added
 - model_name: sentry.incidentsnapshot
   ordinal: 1
   sanitized_fields:

@@ -18,6 +18,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
     killswitch_enabled,
@@ -26,7 +27,6 @@ from sentry.users.models.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-MAX_FRAME_COUNT = 50
 
 
 class FormattedSimilarIssuesEmbeddingsData(TypedDict):
@@ -74,7 +74,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         if killswitch_enabled(group.project.id):
             return Response([])
 
@@ -82,9 +82,16 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         stacktrace_string = ""
         if latest_event and event_content_has_stacktrace(latest_event):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
+            try:
+                stacktrace_string = get_stacktrace_string(
+                    grouping_info, platform=latest_event.platform
+                )
+            except TooManyOnlySystemFramesException:
+                pass
+            except Exception:
+                logger.exception("Unexpected exception in stacktrace string formatting")
 
-        if stacktrace_string == "" or not latest_event:
+        if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {

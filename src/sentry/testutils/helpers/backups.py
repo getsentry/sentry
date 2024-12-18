@@ -48,7 +48,6 @@ from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
-    IncidentSubscription,
     IncidentTrigger,
     PendingIncidentSnapshot,
     TimeSeriesSnapshot,
@@ -65,7 +64,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardTombstone
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -102,6 +101,7 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
@@ -113,7 +113,13 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleDetector,
+    AlertRuleTriggerDataCondition,
+    AlertRuleWorkflow,
+    DataConditionGroup,
+)
 
 __all__ = [
     "export_to_file",
@@ -552,7 +558,6 @@ class ExhaustiveFixtures(Fixtures):
             unique_users=1,
             total_events=1,
         )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
@@ -569,6 +574,10 @@ class ExhaustiveFixtures(Fixtures):
             title=f"Dashboard 1 for {slug}",
             created_by_id=owner_id,
             organization=org,
+        )
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner.id,
         )
         permissions = DashboardPermissions.objects.create(
             is_editable_by_everyone=True, dashboard=dashboard
@@ -659,14 +668,14 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.Notification, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
         )
 
         # TODO @saponifi3d: Update comparison to be DetectorState.Critical
-        self.create_data_condition(
+        data_condition = self.create_data_condition(
             condition="eq",
             comparison="critical",
             type="WorkflowCondition",
@@ -687,7 +696,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO @saponifi3d: Create or define trigger workflow action type
-        trigger_workflows_action = self.create_action(type=Action.Type.TriggerWorkflow, data="")
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
@@ -699,6 +708,21 @@ class ExhaustiveFixtures(Fixtures):
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
+
+        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleTriggerDataCondition.objects.create(
+            alert_rule_trigger=trigger, data_condition=data_condition
+        )
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
+        )
 
         return org
 

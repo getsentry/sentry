@@ -259,7 +259,6 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     });
 
     // Use shader program
-    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
 
     // Check if we should draw border - order matters here
