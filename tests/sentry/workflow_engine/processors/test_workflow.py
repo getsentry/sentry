@@ -62,7 +62,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             self.workflow_triggers,
         ) = self.create_detector_and_workflow()
 
-        occurrence = self.build_occurrence_data(evidence_data={"detector_id": self.detector.id})
+        occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
@@ -81,8 +81,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EVENT_CREATED_BY_DETECTOR,
             comparison=self.detector.id,
             condition_result=75,
         )
@@ -96,8 +95,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
 
         self.create_data_condition(
             condition_group=self.workflow.when_condition_group,
-            type=Condition.GROUP_EVENT_ATTR_COMPARISON,
-            condition="occurrence.evidence_data.detector_id",
+            type=Condition.EVENT_CREATED_BY_DETECTOR,
             comparison=self.detector.id + 1,
         )
 
