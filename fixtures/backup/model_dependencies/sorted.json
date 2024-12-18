@@ -117,6 +117,7 @@
   "workflow_engine.detector",
   "workflow_engine.datasourcedetector",
   "uptime.projectuptimesubscription",
+  "tempest.tempestcredentials",
   "sentry.userreport",
   "sentry.useroption",
   "sentry.useremail",

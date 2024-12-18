@@ -15,7 +15,6 @@ from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
-from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
@@ -680,16 +679,6 @@ def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
                 time.sleep(delay * (2**attempt))
             else:
                 raise
-
-
-# TODO: delete this and its tests
-def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
-    data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
-    if data is None:
-        raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
-    event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-    event.data = data
-    return event
 
 
 def delete_seer_grouping_records(

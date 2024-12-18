@@ -229,7 +229,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         group = self.create_group(project=project)
         url = f"/api/0/issues/{group.id}/"
-        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}", format="json")
+        response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
         result = response.data["permalink"]
         assert "http://" in result
         assert f"{group.organization.slug}/issues/{group.id}" in result

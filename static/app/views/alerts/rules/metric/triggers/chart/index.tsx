@@ -156,7 +156,10 @@ const EAP_AVAILABLE_TIME_PERIODS = {
   [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
 };
 
-const TIME_WINDOW_TO_SESSION_INTERVAL = {
+export const TIME_WINDOW_TO_INTERVAL = {
+  [TimeWindow.FIVE_MINUTES]: '5m',
+  [TimeWindow.TEN_MINUTES]: '10m',
+  [TimeWindow.FIFTEEN_MINUTES]: '15m',
   [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
@@ -573,13 +576,13 @@ class TriggersChart extends PureComponent<Props, State> {
 
     if (isSessionAggregate(aggregate)) {
       const baseProps: ComponentProps<typeof SessionsRequest> = {
-        api: api,
-        organization: organization,
+        api,
+        organization,
         project: projects.map(({id}) => Number(id)),
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
-        query: query,
-        interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
+        query,
+        interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],
         children: noop,

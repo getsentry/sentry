@@ -101,6 +101,7 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
@@ -667,7 +668,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
@@ -712,6 +713,15 @@ class ExhaustiveFixtures(Fixtures):
         AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
         AlertRuleTriggerDataCondition.objects.create(
             alert_rule_trigger=trigger, data_condition=data_condition
+        )
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
         )
 
         return org
