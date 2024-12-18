@@ -39,11 +39,9 @@ class MultipleDestinationDlqProducer(KafkaDlqProducer):
         value: BrokerValue[KafkaPayload],
         reason: str | None = None,
     ) -> Future[BrokerValue[KafkaPayload]]:
-        try:
-            reject_reason = RejectReason(reason)
-            producer = self.producers.get(reject_reason)
-        except ValueError:
-            producer = None
+
+        reject_reason = RejectReason(reason) if reason else RejectReason.INVALID
+        producer = self.producers.get(reject_reason)
 
         if producer:
             return producer.produce(value)
