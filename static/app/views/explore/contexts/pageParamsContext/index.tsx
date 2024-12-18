@@ -1,5 +1,6 @@
 import type React from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
+import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -166,21 +167,29 @@ export function useExploreVisualizes(): Visualize[] {
   return pageParams.visualizes;
 }
 
+export function newExploreTarget(
+  location: Location,
+  pageParams: WritablePageParams
+): Location {
+  const target = {...location, query: {...location.query}};
+  updateLocationWithDataset(target, pageParams.dataset);
+  updateLocationWithFields(target, pageParams.fields);
+  updateLocationWithGroupBys(target, pageParams.groupBys);
+  updateLocationWithMode(target, pageParams.mode);
+  updateLocationWithQuery(target, pageParams.query);
+  updateLocationWithSortBys(target, pageParams.sortBys);
+  updateLocationWithVisualizes(target, pageParams.visualizes);
+  updateLocationWithTitle(target, pageParams.title);
+  return target;
+}
+
 export function useSetExplorePageParams() {
   const location = useLocation();
   const navigate = useNavigate();
 
   return useCallback(
     (pageParams: WritablePageParams) => {
-      const target = {...location, query: {...location.query}};
-      updateLocationWithDataset(target, pageParams.dataset);
-      updateLocationWithFields(target, pageParams.fields);
-      updateLocationWithGroupBys(target, pageParams.groupBys);
-      updateLocationWithMode(target, pageParams.mode);
-      updateLocationWithQuery(target, pageParams.query);
-      updateLocationWithSortBys(target, pageParams.sortBys);
-      updateLocationWithVisualizes(target, pageParams.visualizes);
-      updateLocationWithTitle(target, pageParams.title);
+      const target = newExploreTarget(location, pageParams);
       navigate(target);
     },
     [location, navigate]
@@ -271,24 +280,6 @@ export function useSetExploreVisualizes() {
   return useCallback(
     (visualizes: Omit<Visualize, 'label'>[]) => {
       setPageParams({visualizes});
-    },
-    [setPageParams]
-  );
-}
-
-export function useSetExploreSuggestedQuery() {
-  const setPageParams = useSetExplorePageParams();
-  return useCallback(
-    (query: SuggestedQuery) => {
-      setPageParams({
-        fields: query.fields,
-        groupBys: query.groupBys,
-        mode: query.mode,
-        query: query.query,
-        sortBys: query.sortBys,
-        visualizes: query.visualizes,
-        title: query.title,
-      });
     },
     [setPageParams]
   );
