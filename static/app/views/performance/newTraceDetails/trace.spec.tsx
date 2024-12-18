@@ -369,7 +369,7 @@ async function nestedTransactionsTestSetup() {
 
   mockTraceResponse({
     body: {
-      transactions: transactions,
+      transactions,
       orphan_errors: [],
     },
   });
@@ -410,7 +410,7 @@ async function searchTestSetup() {
   }
   mockTraceResponse({
     body: {
-      transactions: transactions,
+      transactions,
       orphan_errors: [],
     },
   });
@@ -469,7 +469,7 @@ async function simpleTestSetup() {
   }
   mockTraceResponse({
     body: {
-      transactions: transactions,
+      transactions,
       orphan_errors: [],
     },
   });

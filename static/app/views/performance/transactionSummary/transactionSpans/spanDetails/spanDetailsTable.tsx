@@ -169,7 +169,7 @@ function renderBodyCellWithMeta(
         location,
         organization,
         spanId: worstSpan.id,
-        transactionName: transactionName,
+        transactionName,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       });
 
