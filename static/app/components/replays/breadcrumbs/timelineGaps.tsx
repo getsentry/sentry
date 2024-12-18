@@ -48,7 +48,7 @@ export default function TimelineGaps({durationMs, startTimestampMs, videoEvents}
       gaps: gaps.length,
       max_gap: Math.max(...gaps.map(obj => parseFloat(obj.width))),
       replay_duration: durationMs,
-      organization: organization,
+      organization,
     });
   }, [durationMs, organization, gaps]);
 

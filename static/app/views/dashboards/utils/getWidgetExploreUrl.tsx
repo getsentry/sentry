@@ -1,6 +1,3 @@
-import pick from 'lodash/pick';
-import * as qs from 'query-string';
-
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
@@ -8,6 +5,7 @@ import {
   getAggregateAlias,
   isAggregateFieldOrEquation,
 } from 'sentry/utils/discover/fields';
+import {decodeBoolean, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {
   eventViewFromWidget,
@@ -15,6 +13,7 @@ import {
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getWidgetExploreUrl(
@@ -39,18 +38,19 @@ export function getWidgetExploreUrl(
 
   // Visualization specific transforms
   let exploreMode: Mode | undefined = undefined;
+  let chartType: ChartType = ChartType.LINE;
   switch (widget.displayType) {
     case DisplayType.BAR:
       exploreMode = Mode.AGGREGATE;
-      locationQueryParams.chartType = ChartType.BAR.toString();
+      chartType = ChartType.BAR;
       break;
     case DisplayType.LINE:
       exploreMode = Mode.AGGREGATE;
-      locationQueryParams.chartType = ChartType.LINE.toString();
+      chartType = ChartType.LINE;
       break;
     case DisplayType.AREA:
       exploreMode = Mode.AGGREGATE;
-      locationQueryParams.chartType = ChartType.AREA.toString();
+      chartType = ChartType.AREA;
       break;
     case DisplayType.TABLE:
     case DisplayType.BIG_NUMBER:
@@ -79,31 +79,40 @@ export function getWidgetExploreUrl(
   });
   locationQueryParams.field = fields;
 
+  const datetime = {
+    end: decodeScalar(locationQueryParams.end) ?? null,
+    period: decodeScalar(locationQueryParams.statsPeriod) ?? null,
+    start: decodeScalar(locationQueryParams.start) ?? null,
+    utc: decodeBoolean(locationQueryParams.utc) ?? null,
+  };
+
   const queryParams = {
     // Page filters should propagate
-    ...pick(locationQueryParams, [
-      'start',
-      'end',
-      'statsPeriod',
-      'project',
-      'environment',
-    ]),
-
+    selection: {
+      ...selection,
+      datetime,
+    },
+    orgSlug: organization.slug,
     mode: exploreMode,
-    visualize: JSON.stringify(pick(locationQueryParams, ['yAxes', 'chartType'])),
+    visualize: [
+      {
+        chartType,
+        yAxes: locationQueryParams.yAxes,
+      },
+    ],
     groupBy: fields?.filter(field => !isAggregateFieldOrEquation(field)),
-    field: locationQueryParams.field,
-    query: locationQueryParams.query,
+    field: decodeList(locationQueryParams.field),
+    query: decodeScalar(locationQueryParams.query),
     sort:
       defined(fields) && defined(locationQueryParams.sort)
         ? _getSort(fields, locationQueryParams.sort as string)
         : undefined,
     interval:
-      locationQueryParams.interval ??
+      decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget.displayType, selection.datetime),
   };
 
-  return `/traces/?${qs.stringify(queryParams)}`;
+  return getExploreUrl(queryParams);
 }
 
 function _getSort(fields: string[], sort: string) {
