@@ -145,7 +145,6 @@ aggregate_param        = quoted_aggregate_param / raw_aggregate_param
 raw_aggregate_param    = ~r"[^()\t\n, \"]+"
 quoted_aggregate_param = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 search_key             = explicit_number_tag_key / key / quoted_key
-search_type            = "number" / "string"
 text_key               = explicit_tag_key / explicit_string_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
@@ -1070,9 +1069,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_explicit_number_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name},number]")
-
-    def visit_search_type(self, node, children):
-        return node.text
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
