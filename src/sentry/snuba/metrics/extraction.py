@@ -313,8 +313,6 @@ _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
 ]
 
-Variables = dict[str, Any]
-
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
