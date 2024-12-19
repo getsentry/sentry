@@ -15,6 +15,10 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
+  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
   return (
     <div>
       <TagHeader>
@@ -39,9 +43,8 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {hasOther && (
           <TagValueRow>
             <TagValue>{t('Other')}</TagValue>
-            <TagBar
-              percentage={percent(tag.totalValues - totalVisible, tag.totalValues)}
-            />
+            <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+            <TagBar percentage={otherPercentage} />
           </TagValueRow>
         )}
       </TagValueContent>
