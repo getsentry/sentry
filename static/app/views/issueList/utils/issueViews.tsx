@@ -229,8 +229,6 @@ function duplicateView(
 
 function deleteView(state: IssueViewsState, tabListState: TabListState<any>) {
   const newViews = state.views.filter(tab => tab.key !== tabListState?.selectedKey);
-  // TODO(msun): wtf
-  // tabListState?.setSelectedKey(newViews[0].key);
   return {...state, views: newViews};
 }
 
