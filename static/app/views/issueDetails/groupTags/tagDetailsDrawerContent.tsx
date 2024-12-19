@@ -22,6 +22,7 @@ import {percent} from 'sentry/utils';
 import {parseCursor} from 'sentry/utils/cursor';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -164,6 +165,9 @@ function TagDetailsRow({
 }) {
   const organization = useOrganization();
   const [isHovered, setIsHovered] = useState(false);
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: tagValue.value,
+  });
   const key = tagValue.key ?? tag.key;
   const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
   const eventView = useIssueDetailsEventView({group, queryProps: query});
@@ -218,11 +222,16 @@ function TagDetailsRow({
           },
           {
             key: 'view-issues',
-            label: t('View issues with this tag value'),
+            label: t('Search issues with this tag value'),
             to: {
               pathname: `/organizations/${organization.slug}/issues/`,
               query,
             },
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy tag value to clipboard'),
+            onAction: handleCopy,
           },
         ]}
       />
