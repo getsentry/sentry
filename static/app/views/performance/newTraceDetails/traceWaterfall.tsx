@@ -97,6 +97,11 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Vitals'),
 };
 
+const HELP_TAB: TraceReducerState['tabs']['tabs'][0] = {
+  node: 'help',
+  label: t('Help'),
+};
+
 export interface TraceWaterfallProps {
   meta: TraceMetaQueryResults;
   organization: Organization;
@@ -204,8 +209,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    // New trace UI has the trace info and web vitalsin the bottom drawer
+    // New trace UI has the trace info and web vitals in the bottom drawer
     const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
+
+    newTabs.push(HELP_TAB);
 
     if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
