@@ -201,7 +201,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
 
 def _has_empty_stacktrace_string(event: Event, variants: dict[str, BaseVariant]) -> bool:
     stacktrace_string = get_stacktrace_string_with_metrics(
-        get_grouping_info_from_variants(variants), event.platform
+        get_grouping_info_from_variants(variants)
     )
     if not stacktrace_string:
         if stacktrace_string == "":
@@ -228,9 +228,7 @@ def get_seer_similar_issues(
 
     stacktrace_string = event.data.get(
         "stacktrace_string",
-        get_stacktrace_string_with_metrics(
-            get_grouping_info_from_variants(variants), event.platform
-        ),
+        get_stacktrace_string_with_metrics(get_grouping_info_from_variants(variants)),
     )
 
     if not stacktrace_string:
