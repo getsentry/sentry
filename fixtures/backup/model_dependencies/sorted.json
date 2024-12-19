@@ -48,7 +48,6 @@
   "sentry.userrole",
   "sentry.userroleuser",
   "social_auth.usersocialauth",
-  "uptime.region",
   "uptime.uptimesubscription",
   "uptime.uptimesubscriptionregion",
   "workflow_engine.action",

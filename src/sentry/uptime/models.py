@@ -85,7 +85,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
-    regions = models.ManyToManyField("uptime.Region", through="uptime.UptimeSubscriptionRegion")
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -113,8 +112,8 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
-    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
-    region = FlexibleForeignKey("uptime.Region")
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
+    region_slug = models.CharField(max_length=255, db_index=True, db_default="")
 
     class Meta:
         app_label = "uptime"
@@ -123,22 +122,10 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
         constraints = [
             models.UniqueConstraint(
                 "uptime_subscription",
-                "region",
-                name="uptime_uptimesubscription_region_unique",
+                "region_slug",
+                name="uptime_uptimesubscription_region_slug_unique",
             ),
         ]
-
-
-@region_silo_model
-class Region(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    slug = models.CharField(max_length=255, unique=True)
-    name = models.CharField(max_length=255)
-
-    class Meta:
-        app_label = "uptime"
-        db_table = "uptime_region"
 
 
 class ProjectUptimeSubscriptionMode(enum.IntEnum):
