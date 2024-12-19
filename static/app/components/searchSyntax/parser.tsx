@@ -129,7 +129,11 @@ export const interchangeableFilterOperators = {
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
 };
 
-const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
+const textKeys = [
+  Token.KEY_SIMPLE,
+  Token.KEY_EXPLICIT_TAG,
+  Token.KEY_EXPLICIT_STRING_TAG,
+] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -805,7 +809,13 @@ export class TokenConverter {
     }
 
     const keyName = getKeyName(
-      key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
+      key as TokenResult<
+        | Token.KEY_SIMPLE
+        | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_STRING_TAG
+      >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
@@ -866,7 +876,10 @@ export class TokenConverter {
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
     // Explicit tag keys will always be treated as text filters
-    if (key.type === Token.KEY_EXPLICIT_TAG) {
+    if (
+      key.type === Token.KEY_EXPLICIT_TAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_TAG
+    ) {
       return this.checkInvalidTextValue(value);
     }
 
