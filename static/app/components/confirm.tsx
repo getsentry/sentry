@@ -315,6 +315,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
             ) : (
               <Button
                 onClick={this.handleClose}
+                autoFocus
                 aria-label={typeof cancelText === 'string' ? cancelText : t('Cancel')}
               >
                 {cancelText ?? t('Cancel')}
@@ -331,7 +332,6 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
                 disabled={this.state.disableConfirmButton}
                 priority={priority}
                 onClick={this.handleConfirm}
-                autoFocus
                 aria-label={typeof confirmText === 'string' ? confirmText : t('Confirm')}
               >
                 {confirmText ?? t('Confirm')}
