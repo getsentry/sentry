@@ -11,6 +11,8 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import audit_log, quotas
 from sentry.api.api_owners import ApiOwner
@@ -63,10 +65,6 @@ def map_value_to_constant(constant, value):
     if not hasattr(constant, value):
         raise ValueError(value)
     return getattr(constant, value)
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 def flip_sort_direction(sort_field: str) -> str:
