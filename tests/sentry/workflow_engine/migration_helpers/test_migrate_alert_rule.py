@@ -2,7 +2,8 @@ from unittest import mock
 
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.integrations.models.integration import Integration, OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
