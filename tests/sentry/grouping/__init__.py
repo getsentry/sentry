@@ -214,7 +214,7 @@ def dump_variant(
     # Note that this prints `__dict__`, not `as_dict()`, so if something seems missing, that's
     # probably why
     for key, value in sorted(variant.__dict__.items()):
-        if key in ["config", "hash", "contributing_component"]:
+        if key in ["config", "hash", "contributing_component", "variant_name"]:
             # We do not want to dump the config, and we've already dumped the hash and the
             # contributing component
             continue
