@@ -7,6 +7,7 @@ import pytest
 
 from sentry import eventstore
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
+from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     apply_server_fingerprinting,
     get_default_grouping_config_dict,
@@ -527,7 +528,7 @@ class BuiltInFingerprintingTest(TestCase):
             "tags": {"transaction": "/"},
         }
 
-    def _get_event_for_trace(self, stacktrace):
+    def _get_event_for_trace(self, stacktrace: dict[str, Any]) -> Event:
         mgr = EventManager(data=stacktrace, grouping_config=GROUPING_CONFIG)
         mgr.normalize()
         data = mgr.get_data()
@@ -538,7 +539,7 @@ class BuiltInFingerprintingTest(TestCase):
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        return eventstore.backend.create_event(data=data)
+        return eventstore.backend.create_event(project_id=1, data=data)
 
     def test_built_in_chunkload_rules(self):
         """
@@ -610,8 +611,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_same_transactions(self):
         """
-        With the flag enabled, hydration errors with the same transaction should be grouped and
-        the built-in rules for hydration errors should be applied.
+        Hydration errors with the same transaction should be grouped and the built-in rules for
+        hydration errors should be applied.
         """
 
         event_message1 = self.store_event(data=self.hydration_error_trace, project_id=self.project)
@@ -650,8 +651,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_different_transactions(self):
         """
-        With the flag enabled, hydration errors with different transactions should not be grouped and
-        the built-in rules for hydration errors should be applied.
+        Hydration errors with different transactions should not be grouped and the built-in rules
+        for hydration errors should be applied.
         """
 
         event_transaction_slash = self.store_event(
@@ -698,8 +699,8 @@ class BuiltInFingerprintingTest(TestCase):
 
     def test_built_in_hydration_rules_no_transactions(self):
         """
-        With the flag enabled, for hydration errors with no transactions
-        the built-in HydrationError rules should NOT be applied.
+        For hydration errors with no transactions the built-in HydrationError rules should NOT be
+        applied.
         """
 
         data_transaction_no_tx = self.hydration_error_trace
@@ -734,7 +735,7 @@ class BuiltInFingerprintingTest(TestCase):
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        event = eventstore.backend.create_event(data=data)
+        event = eventstore.backend.create_event(project_id=1, data=data)
 
         assert event.data.data["_fingerprint_info"]["matched_rule"] == {
             "attributes": {},

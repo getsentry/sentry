@@ -17,7 +17,10 @@ const mockedUsedLocation = jest.mocked(useLocation);
 const mockedUseNavigate = jest.mocked(useNavigate);
 
 describe('useWidgetBuilderState', () => {
+  let mockNavigate;
   beforeEach(() => {
+    mockNavigate = jest.fn();
+    mockedUseNavigate.mockReturnValue(mockNavigate);
     jest.useFakeTimers();
   });
 
@@ -45,9 +48,6 @@ describe('useWidgetBuilderState', () => {
   });
 
   it('sets the new title and description in the query params', () => {
-    const mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
-
     const {result} = renderHook(() => useWidgetBuilderState(), {
       wrapper: WidgetBuilderProvider,
     });
@@ -107,9 +107,6 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the display type in the query params', () => {
-      const mockNavigate = jest.fn();
-      mockedUseNavigate.mockReturnValue(mockNavigate);
-
       const {result} = renderHook(() => useWidgetBuilderState(), {
         wrapper: WidgetBuilderProvider,
       });
@@ -129,6 +126,198 @@ describe('useWidgetBuilderState', () => {
         })
       );
     });
+
+    it('persists the values when going from timeseries to timeseries', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.AREA);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('concatenates the values when going from timeseries to table', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('separates the values when going from table to timeseries', () => {
+      // remember, this takes up to 3 yAxes
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: ['event.type', 'potato'],
+            yAxis: [
+              'count()',
+              'count_unique(user)',
+              'count_unique(potato)',
+              'count_unique(thisIsRemoved)',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'potato', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'thisIsRemoved', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'potato', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
   });
 
   describe('dataset', () => {
@@ -145,9 +334,6 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('sets the dataset in the query params', () => {
-      const mockNavigate = jest.fn();
-      mockedUseNavigate.mockReturnValue(mockNavigate);
-
       const {result} = renderHook(() => useWidgetBuilderState(), {
         wrapper: WidgetBuilderProvider,
       });
@@ -176,6 +362,118 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.dataset).toBe(WidgetType.ERRORS);
+    });
+
+    it('resets the display type to table when the dataset is switched to issues', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ISSUE,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+    });
+
+    it('resets the fields, yAxis, query, and sort when the dataset is switched', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            title: 'This title should persist',
+            description: 'This description should persist',
+            dataset: WidgetType.TRANSACTIONS,
+            field: ['event.type', 'potato', 'count()'],
+            yAxis: ['count()', 'count_unique(user)'],
+            query: ['event.type = "test"'],
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.SPANS,
+        });
+      });
+
+      expect(result.current.state.title).toBe('This title should persist');
+      expect(result.current.state.description).toBe('This description should persist');
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', 'span.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', 'span.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.query).toEqual(['']);
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'count(span.duration)',
+          kind: 'desc',
+        },
+      ]);
+    });
+
+    it('resets the yAxis when the dataset is switched from anything to issues', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            dataset: WidgetType.TRANSACTIONS,
+            yAxis: ['count()', 'count_unique(user)'],
+            displayType: DisplayType.LINE,
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.ISSUE,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([]);
     });
   });
 

@@ -449,7 +449,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         )
 
         dashboard_B.favorited_by = [self.user.id]
-        dashboard_D.favorited_by = [self.user.id]
+        dashboard_D.favorited_by = [self.user.id, user_1.id]
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]
 
@@ -499,7 +499,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             organization=self.organization,
         )
 
-        dashboard_B.favorited_by = [self.user.id]
+        dashboard_B.favorited_by = [self.user.id, user_1.id]
         dashboard_D.favorited_by = [self.user.id]
         dashboard_E.favorited_by = [self.user.id]
         dashboard_C.favorited_by = [user_1.id]

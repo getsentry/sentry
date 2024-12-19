@@ -38,6 +38,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
+      'trace context height': 150,
     },
     layoutOptions: [],
   },
@@ -131,7 +132,13 @@ function IssuesTraceOverlay({event}: {event: Event}) {
 
   return (
     <IssuesTraceOverlayContainer>
-      <LinkButton size="sm" icon={<IconOpen />} to={traceTarget}>
+      <LinkButton
+        size="sm"
+        icon={<IconOpen />}
+        to={traceTarget}
+        analyticsEventName="Issue Details: View Full Trace"
+        analyticsEventKey="issue_details.view_full_trace"
+      >
         {t('View Full Trace')}
       </LinkButton>
     </IssuesTraceOverlayContainer>

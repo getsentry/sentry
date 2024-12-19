@@ -185,10 +185,6 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
     return None
 
 
-def is_sample_event(job):
-    return get_tag(job["data"], "sample_event") == "yes"
-
-
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
     """
     Returns a metadata dictionary with "sdk" field populated, including a normalized name
@@ -350,7 +346,7 @@ class EventManager:
             grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_dict_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent

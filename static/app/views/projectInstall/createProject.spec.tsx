@@ -382,9 +382,7 @@ describe('CreateProject', function () {
   });
 
   describe('Issue Alerts Options', function () {
-    const organization = OrganizationFixture({
-      features: ['messaging-integration-onboarding-project-creation'],
-    });
+    const organization = OrganizationFixture();
     beforeEach(() => {
       TeamStore.loadUserTeams([teamWithAccess]);
 

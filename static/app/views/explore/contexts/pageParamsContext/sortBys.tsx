@@ -2,6 +2,7 @@ import type {Location} from 'history';
 
 import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 
 import {Mode} from './mode';
@@ -86,4 +87,10 @@ export function updateLocationWithSortBys(
   } else if (sortBys === null) {
     delete location.query.sort;
   }
+}
+
+export function formatSort(sort: Sort): string {
+  // The event view still expects the alias in the sort
+  const direction = sort.kind === 'desc' ? '-' : '';
+  return `${direction}${getAggregateAlias(sort.field)}`;
 }

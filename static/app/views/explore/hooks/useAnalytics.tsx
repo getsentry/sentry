@@ -6,8 +6,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-
-import type {Visualize} from './useVisualizes';
+import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
 export function useAnalytics({
   dataset,
@@ -20,6 +19,7 @@ export function useAnalytics({
   columns,
   userQuery,
   confidence,
+  title,
 }: {
   columns: string[];
   confidence: Confidence;
@@ -31,6 +31,7 @@ export function useAnalytics({
   userQuery: string;
   visualizes: Visualize[];
   resultMissingRoot?: number;
+  title?: string;
 }) {
   useEffect(() => {
     if (resultStatus === 'pending') {
@@ -52,6 +53,7 @@ export function useAnalytics({
       user_queries_count: search.tokens.length,
       visualizes,
       visualizes_count: visualizes.length,
+      title,
     };
 
     trackAnalytics('trace.explorer.metadata', params);
@@ -66,5 +68,6 @@ export function useAnalytics({
     userQuery,
     confidence,
     dataset,
+    title,
   ]);
 }

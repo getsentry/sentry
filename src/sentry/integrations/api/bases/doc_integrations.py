@@ -68,7 +68,7 @@ class DocIntegrationsBaseEndpoint(Endpoint):
     permission_classes = (DocIntegrationsAndStaffPermission,)
 
     def generate_incoming_metadata(self, request: Request) -> Any:
-        return {k: v for k, v in request.json_body.items() if k in METADATA_PROPERTIES}
+        return {k: v for k, v in request.data.items() if k in METADATA_PROPERTIES}
 
 
 class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):

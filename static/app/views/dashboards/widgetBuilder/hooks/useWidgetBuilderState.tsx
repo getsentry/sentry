@@ -1,9 +1,11 @@
 import {useCallback, useMemo} from 'react';
+import partition from 'lodash/partition';
 
 import {
   type Column,
   explodeField,
   generateFieldAsString,
+  isAggregateFieldOrEquation,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -12,7 +14,9 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -21,6 +25,7 @@ export type WidgetBuilderStateQueryParams = {
   description?: string;
   displayType?: DisplayType;
   field?: (string | undefined)[];
+  limit?: number;
   query?: string[];
   sort?: string[];
   title?: string;
@@ -120,13 +125,50 @@ function useWidgetBuilderState(): {
           setDescription(action.payload);
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
+          setDisplayType(action.payload);
           if (action.payload === DisplayType.BIG_NUMBER) {
             setSort([]);
           }
-          setDisplayType(action.payload);
+          const [aggregates, columns] = partition(fields, field => {
+            const fieldString = generateFieldAsString(field);
+            return isAggregateFieldOrEquation(fieldString);
+          });
+          if (action.payload === DisplayType.TABLE) {
+            setYAxis([]);
+            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
+          } else {
+            setFields(columns);
+            setYAxis([
+              ...aggregates.slice(0, MAX_NUM_Y_AXES),
+              ...(yAxis?.slice(0, MAX_NUM_Y_AXES) ?? []),
+            ]);
+          }
           break;
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
+
+          let newDisplayType;
+          if (action.payload === WidgetType.ISSUE) {
+            // Issues only support table display type
+            setDisplayType(DisplayType.TABLE);
+            newDisplayType = DisplayType.TABLE;
+          }
+
+          const config = getDatasetConfig(action.payload);
+          setFields(
+            config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+          );
+          if (newDisplayType === DisplayType.TABLE) {
+            setYAxis([]);
+          } else {
+            setYAxis(
+              config.defaultWidgetQuery.aggregates?.map(aggregate =>
+                explodeField({field: aggregate})
+              )
+            );
+          }
+          setQuery([config.defaultWidgetQuery.conditions]);
+          setSort(decodeSorts(config.defaultWidgetQuery.orderby));
           break;
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
@@ -157,6 +199,8 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      fields,
+      yAxis,
     ]
   );
 

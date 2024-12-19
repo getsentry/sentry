@@ -46,7 +46,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   fieldAliases: [],
   aggregates: ['count(span.duration)'],
   conditions: '',
-  orderby: '',
+  orderby: '-count(span.duration)',
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
@@ -78,7 +78,7 @@ export const SpansConfig: DatasetConfig<
   filterYAxisAggregateParams: () => filterAggregateParams,
   filterYAxisOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions: getTableSortOptions,
+  getTableSortOptions,
   getGroupByFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [

@@ -160,7 +160,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         <StyledHeaderActions>
           <FeedbackWidgetButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
-            {t('View Transaction Summary')}
+            {t('View Summary')}
           </LinkButton>
         </StyledHeaderActions>
       )}

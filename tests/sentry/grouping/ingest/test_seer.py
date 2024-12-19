@@ -16,7 +16,6 @@ from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
@@ -220,8 +219,9 @@ class GetSeerSimilarIssuesTest(TestCase):
         assert self.existing_event.get_primary_hash() == "04e89719410791836f0a0bbf03bf0d2e"
         # In real life just filtering on group id wouldn't be enough to guarantee us a single,
         # specific GroupHash record, but since the database resets before each test, here it's okay
+        assert self.existing_event.group_id is not None
         self.existing_event_grouphash = GroupHash.objects.filter(
-            group_id=NonNone(self.existing_event.group_id)
+            group_id=self.existing_event.group_id
         ).first()
         self.new_event = Event(
             project_id=self.project.id,
@@ -277,9 +277,10 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
 
     def test_returns_metadata_and_grouphash_if_sufficiently_close_group_found(self) -> None:
+        assert self.existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(self.existing_event.get_primary_hash()),
-            parent_group_id=NonNone(self.existing_event.group_id),
+            parent_hash=self.existing_event.get_primary_hash(),
+            parent_group_id=self.existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -341,7 +342,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames(self, mock_metrics: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -391,12 +392,12 @@ class GetSeerSimilarIssuesTest(TestCase):
             sample_rate=1.0,
             tags={
                 "call_made": False,
-                "blocker": "over-threshold-only-system-frames",
+                "blocker": "over-threshold-frames",
             },
         )
 
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames_invalid_platform(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames_allowed_platform(self, mock_metrics: Mock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -441,7 +442,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 sample_rate=1.0,
                 tags={
                     "call_made": False,
-                    "blocker": "over-threshold-only-system-frames",
+                    "blocker": "over-threshold-frames",
                 },
             )
             not in mock_metrics.incr.call_args_list
@@ -561,7 +562,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             sample_rate=1.0,
             tags={
                 "call_made": False,
-                "blocker": "over-threshold-only-system-frames",
+                "blocker": "over-threshold-frames",
             },
         )
 

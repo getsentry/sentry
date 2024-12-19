@@ -111,6 +111,12 @@ export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | n
   return `${token.type}:${tokenTypeIndex}`;
 }
 
+export function parseTokenKey(key: string) {
+  const [tokenType, indexStr] = key.split(':');
+  const index = parseInt(indexStr, 10);
+  return {tokenType, index};
+}
+
 const isSimpleTextToken = (
   token: ParseResultToken
 ): token is TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES> => {
@@ -121,7 +127,7 @@ const isSimpleTextToken = (
  * Collapse adjacent FREE_TEXT and SPACES tokens into a single token.
  * This is useful for rendering the minimum number of inputs in the UI.
  */
-function collapseTextTokens(tokens: ParseResult | null) {
+export function collapseTextTokens(tokens: ParseResult | null) {
   if (!tokens) {
     return null;
   }

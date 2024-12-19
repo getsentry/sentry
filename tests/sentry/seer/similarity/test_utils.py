@@ -6,12 +6,11 @@ from uuid import uuid1
 
 import pytest
 
-from sentry import options
 from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
-    SEER_ELIGIBLE_PLATFORMS,
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
@@ -562,7 +561,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
@@ -614,7 +613,7 @@ class GetStacktraceStringTest(TestCase):
                 ),
             ),
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
         # The stacktrace string should be:
         #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
@@ -668,7 +667,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_chained_exception)
+            stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
 
             assert (
                 stacktrace_str.count("outer line")
@@ -688,7 +687,7 @@ class GetStacktraceStringTest(TestCase):
             )
             for i in range(1, MAX_FRAME_COUNT + 2)
         ]
-        stacktrace_str = get_stacktrace_string(data_chained_exception)
+        stacktrace_str = get_stacktrace_string(data_chained_exception, platform="javascript")
         for i in range(2, MAX_FRAME_COUNT + 2):
             assert f"exception {i} message!" in stacktrace_str
         assert "exception 1 message!" not in stacktrace_str
@@ -784,7 +783,7 @@ class GetStacktraceStringTest(TestCase):
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
             20, True, 41
         )
-        stacktrace_str = get_stacktrace_string(data_frames, "java")
+        stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
         num_frames = 0
         for i in range(1, 11):
@@ -812,7 +811,7 @@ class GetStacktraceStringTest(TestCase):
                     ),
                 ),
             ]
-            stacktrace_str = get_stacktrace_string(data_frames)
+            stacktrace_str = get_stacktrace_string(data_frames, platform="javascript")
 
             assert stacktrace_str.count("context line") == expected_frame_count
 
@@ -873,11 +872,7 @@ class GetStacktraceStringTest(TestCase):
         exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1][
             "values"
         ] = []
-        get_stacktrace_string(exception)
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_called_with(
-            "seer.grouping.no_header_one_frame_no_filename", sample_rate=sample_rate
-        )
+        assert get_stacktrace_string(exception) == ""
 
 
 class EventContentIsSeerEligibleTest(TestCase):
@@ -939,8 +934,8 @@ class EventContentIsSeerEligibleTest(TestCase):
             data=bad_event_data,
         )
 
-        assert good_event_data["platform"] in SEER_ELIGIBLE_PLATFORMS
-        assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
+        assert good_event_data["platform"] not in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert bad_event_data["platform"] in SEER_INELIGIBLE_EVENT_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
 

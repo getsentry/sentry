@@ -24,11 +24,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  useExploreDataset,
+  useExploreQuery,
+  useExploreTitle,
+  useExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {type TraceResult, useTraces} from 'sentry/views/explore/hooks/useTraces';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -55,9 +58,10 @@ interface TracesTableProps {
 }
 
 export function TracesTable({confidence, setError}: TracesTableProps) {
-  const [dataset] = useDataset();
-  const [query] = useUserQuery();
-  const [visualizes] = useVisualizes();
+  const title = useExploreTitle();
+  const dataset = useExploreDataset();
+  const query = useExploreQuery();
+  const visualizes = useExploreVisualizes();
   const organization = useOrganization();
 
   const location = useLocation();
@@ -93,6 +97,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
     ],
     userQuery: query,
     confidence,
+    title,
   });
 
   const {data, isPending, isError, getResponseHeader} = result;
