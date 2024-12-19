@@ -37,7 +37,6 @@ const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
-
 sentry_sdk.init(
     dsn="${params.dsn.public}",${
       params.isPerformanceSelected
@@ -56,33 +55,34 @@ sentry_sdk.init(
     profiles_sample_rate=1.0,`
         : ''
     }
-)${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
+)`;
+const getProfilingVerifySnippet = () => `
+import time
 
 def slow_function():
-    import time
     time.sleep(0.1)
-    return "done"
+    return
 
 def fast_function():
-    import time
     time.sleep(0.05)
-    return "done"
+    return
 
 # Manually call start_profiler and stop_profiler
-# to profile the code in between
+# to profile the code in between. Calls to
+# stop_profiler are optional - if you don't stop
+# the profiler, it will keep profiling your
+# application until the process exits or
+# stop_profiler is called.
+
 sentry_sdk.profiler.start_profiler()
 for i in range(0, 10):
     slow_function()
     fast_function()
-#
-# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
-# your application until the process exits or stop_profiler is called.
-sentry_sdk.profiler.stop_profiler()`
-    : ''
-}`;
+sentry_sdk.profiler.stop_profiler()`;
+
+const hasContinuousProfiling = (params: DocsParams) =>
+  params.isProfilingSelected &&
+  params.profilingOptions?.defaultProfilingMode === 'continuous';
 
 const onboarding: OnboardingConfig = {
   install: (params: Params) => [
@@ -126,7 +126,7 @@ const onboarding: OnboardingConfig = {
         ),
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       description: t(
@@ -138,7 +138,10 @@ const onboarding: OnboardingConfig = {
           description: t(
             'Raise an unhandled Python exception by inserting a divide by zero expression into your application:'
           ),
-          code: 'division_by_zero = 1 / 0',
+          code: `${hasContinuousProfiling(params) ? `# Verify profiling functionality ${getProfilingVerifySnippet()}` : ''}
+
+# Verify errors
+division_by_zero = 1 / 0 `,
         },
       ],
     },
@@ -274,14 +277,69 @@ sentry_sdk.init(
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: tct('Install our Python SDK using [code:pip]:', {
+        code: <code />,
+      }),
+      configurations: [
+        {
+          description:
+            params.docsLocation === DocsPageLocation.PROFILING_PAGE
+              ? tct(
+                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  {
+                    code: <code />,
+                  }
+                )
+              : undefined,
+          language: 'bash',
+          code: getInstallSnippet(),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: t(
+        "Import and initialize the Sentry SDK early in your application's setup:"
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getSdkSetupSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling works by running the profiler around functions of different duration.'
+      ),
+      configurations: [
+        {
+          language: 'python',
+          code: getProfilingVerifySnippet(),
+        },
+      ],
+    },
+  ],
+};
+
 const docs: Docs = {
-  onboarding,
-  performanceOnboarding,
+  onboarding: onboarding,
+  performanceOnboarding: performanceOnboarding,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
   crashReportOnboarding: crashReportOnboardingPython,
-  featureFlagOnboarding,
+  featureFlagOnboarding: featureFlagOnboarding,
+  profilingOnboarding: profilingOnboarding,
 };
 
 export default docs;
