@@ -1,4 +1,3 @@
-
 import logging
 import operator
 from typing import Any, TypeVar, cast
