@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useMemo} from 'react';
+import {useContext, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -42,13 +42,6 @@ type CustomViewsIssueListHeaderProps = {
 type CustomViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   router: InjectedRouter;
-  // views: UpdateGroupSearchViewPayload[];
-};
-
-type CustomViewsQueryParams = {
-  query?: string;
-  sort?: IssueSortOptions;
-  viewId?: string;
 };
 
 function CustomViewsIssueListHeader({
@@ -191,22 +184,6 @@ function CustomViewsIssueListHeaderTabsContent({
     queryParams,
   ]);
 
-  const updateQueryParams = useCallback(
-    (newQueryParams: CustomViewsQueryParams, replace: boolean = false) => {
-      navigate(
-        normalizeUrl({
-          ...location,
-          query: {
-            ...queryParamsWithPageFilters,
-            ...newQueryParams,
-          },
-        }),
-        {replace: replace}
-      );
-    },
-    [navigate, location, queryParamsWithPageFilters]
-  );
-
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
@@ -316,7 +293,6 @@ function CustomViewsIssueListHeaderTabsContent({
     queryParamsWithPageFilters,
     draggableTabs,
     organization,
-    updateQueryParams,
     dispatch,
   ]);
 
