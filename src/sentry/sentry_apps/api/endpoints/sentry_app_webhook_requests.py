@@ -16,11 +16,12 @@ from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
 )
 from sentry.sentry_apps.api.utils.webhook_requests import (
     BufferedRequest,
+    DatetimeOrganizationFilterArgs,
     get_buffer_requests_from_control,
     get_buffer_requests_from_regions,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.services.app_request import RpcSentryAppRequest, SentryAppRequestFilterArgs
+from sentry.sentry_apps.services.app_request import SentryAppRequestFilterArgs
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS
 
 
@@ -61,22 +62,6 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
     }
     permission_classes = (SentryAppStatsPermission,)
 
-    def _filter_by_date(self, request: RpcSentryAppRequest, start: datetime, end: datetime) -> bool:
-        date_str = request.date
-        if not date_str:
-            return False
-        timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(
-            microsecond=0, tzinfo=timezone.utc
-        )
-        return start <= timestamp <= end
-
-    def _filter_by_organization(
-        self, request: RpcSentryAppRequest, organization: OrganizationMapping | None
-    ) -> bool:
-        if not organization:
-            return True
-        return request.organization_id == organization.organization_id
-
     def get(self, request: Request, sentry_app: SentryApp) -> Response:
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests
@@ -107,30 +92,32 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         control_filter: SentryAppRequestFilterArgs = {}
         region_filter: SentryAppRequestFilterArgs = {}
         control_filter["errors_only"] = region_filter["errors_only"] = errors_only
-
-        def filter_and_append_requests(unfiltered_requests: list[RpcSentryAppRequest]) -> None:
-            for i, req in enumerate(unfiltered_requests):
-                if self._filter_by_date(req, start_time, end_time) and self._filter_by_organization(
-                    req, organization
-                ):
-                    requests.append(BufferedRequest(id=i, data=req))
+        datetime_org_filter: DatetimeOrganizationFilterArgs = {
+            "start_time": start_time,
+            "end_time": end_time,
+            "organization": organization,
+        }
 
         # If event type is installation.created or installation.deleted, we only need to fetch requests from the control buffer
         if event_type == "installation.created" or event_type == "installation.deleted":
             control_filter["event"] = event_type
-            filter_and_append_requests(get_buffer_requests_from_control(sentry_app, control_filter))
+            requests.extend(
+                get_buffer_requests_from_control(sentry_app, control_filter, datetime_org_filter)
+            )
         # If event type has been specified, we only need to fetch requests from region buffers
         elif event_type:
             region_filter["event"] = event_type
-            filter_and_append_requests(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter)
+            requests.extend(
+                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
             )
         else:
             control_filter["event"] = [
                 "installation.created",
                 "installation.deleted",
             ]
-            filter_and_append_requests(get_buffer_requests_from_control(sentry_app, control_filter))
+            requests.extend(
+                get_buffer_requests_from_control(sentry_app, control_filter, datetime_org_filter)
+            )
             region_filter["event"] = list(
                 set(EXTENDED_VALID_EVENTS)
                 - {
@@ -138,8 +125,8 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
                     "installation.deleted",
                 }
             )
-            filter_and_append_requests(
-                get_buffer_requests_from_regions(sentry_app.id, region_filter)
+            requests.extend(
+                get_buffer_requests_from_regions(sentry_app.id, region_filter, datetime_org_filter)
             )
 
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)
