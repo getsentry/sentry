@@ -104,14 +104,8 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
                     message.value.partition, message.value.offset, reason=RejectReason.STALE.value
                 )
 
+        # If we get a valid message for a partition later, don't emit a filtered message for it
         if self.offsets_to_forward:
-            # Ensure we commit frequently even if all messages are invalid
-            if time.time() > self.last_forwarded_offsets + 1:
-                filtered_message = Message(Value(FILTERED_PAYLOAD, self.offsets_to_forward))
-                self.next_step.submit(filtered_message)
-                self.offsets_to_forward = {}
-
-            # We got a valid message for that partition later, don't emit a filtered message for it
             for partition in message.committable:
                 self.offsets_to_forward.pop(partition)
 
