@@ -411,16 +411,6 @@ class OAuthAuthorizeOrgScopedTest(TestCase):
 
         assert not ApiToken.objects.filter(user=self.owner).exists()
 
-    def test_exceed_scope(self):
-        self.login_as(self.owner)
-
-        resp = self.client.get(
-            f"{self.path}?response_type=code&client_id={self.application.client_id}&scope=org:write&state=foo"
-        )
-
-        assert resp.status_code == 302
-        assert resp["Location"] == "https://example.com?error=invalid_scope&state=foo"
-
     def test_second_time(self):
         self.login_as(self.owner)
 

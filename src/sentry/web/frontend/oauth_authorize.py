@@ -132,20 +132,6 @@ class OAuthAuthorizeView(AuthLoginView):
             scopes = scopes.split(" ")
         else:
             scopes = []
-        if application.requires_org_level_access:
-            # Applications that require org level access have a maximum scope limit set
-            # in admin that should not pass
-            max_scopes = application.scopes
-            for scope in scopes:
-                if scope not in max_scopes:
-                    return self.error(
-                        request=request,
-                        client_id=client_id,
-                        response_type=response_type,
-                        redirect_uri=redirect_uri,
-                        name="invalid_scope",
-                        state=state,
-                    )
 
         for scope in scopes:
             if scope not in settings.SENTRY_SCOPES:
