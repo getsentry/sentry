@@ -22,6 +22,7 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
     killswitch_enabled,
     record_did_call_seer_metric,
 )
@@ -48,6 +49,7 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
 
     if (
         _has_customized_fingerprint(event, variants)
+        or _has_too_many_contributing_frames(event, variants)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
@@ -94,6 +96,14 @@ def _event_content_is_seer_eligible(event: Event) -> bool:
         tags={"eligible": True, "blocker": "none"},
     )
     return True
+
+
+def _has_too_many_contributing_frames(event: Event, variants: dict[str, BaseVariant]) -> bool:
+    if has_too_many_contributing_frames(event, variants, ReferrerOptions.INGEST):
+        record_did_call_seer_metric(call_made=False, blocker="excess-frames")
+        return True
+
+    return False
 
 
 def _project_has_similarity_grouping_enabled(project: Project) -> bool:
