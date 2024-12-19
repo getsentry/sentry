@@ -825,7 +825,7 @@ def _filtered_threads(
         stacktrace, event=event, **meta
     ).items():
         thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
-            values=[stacktrace_component]
+            values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
         )
 
     return thread_components_by_variant
