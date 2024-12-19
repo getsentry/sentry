@@ -377,6 +377,16 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
   },
+  [DataCategoryExact.UPTIME]: {
+    name: DataCategoryExact.UPTIME,
+    apiName: 'uptime',
+    plural: 'uptime',
+    displayName: 'uptime monitor',
+    titleName: t('Uptime Monitors'),
+    productName: t('Uptime Monitoring'),
+    uid: 21,
+    isBilledCategory: true,
+  },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 
 // Special Search characters
