@@ -5,7 +5,14 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
-import {IconChevron, IconCircleFill, IconClose, IconInfo, IconPanel, IconPin} from 'sentry/icons';
+import {
+  IconChevron,
+  IconCircleFill,
+  IconClose,
+  IconInfo,
+  IconPanel,
+  IconPin,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
