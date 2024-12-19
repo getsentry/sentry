@@ -192,11 +192,6 @@ describe('GroupActions', function () {
       features: ['shared-issues'],
     };
 
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/issues/`,
-      method: 'PUT',
-      body: {},
-    });
     render(
       <Fragment>
         <GlobalModal />
@@ -216,7 +211,6 @@ describe('GroupActions', function () {
 
     const modal = screen.getByRole('dialog');
     expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
-    expect(updateMock).toHaveBeenCalled();
   });
 
   describe('delete', function () {

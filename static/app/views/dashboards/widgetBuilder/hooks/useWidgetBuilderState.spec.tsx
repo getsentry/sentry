@@ -2,13 +2,16 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
+  serializeFields,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
@@ -125,6 +128,198 @@ describe('useWidgetBuilderState', () => {
           query: expect.objectContaining({displayType: DisplayType.AREA}),
         })
       );
+    });
+
+    it('persists the values when going from timeseries to timeseries', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.AREA);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('concatenates the values when going from timeseries to table', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['event.type'],
+            yAxis: ['count()', 'count_unique(user)'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('separates the values when going from table to timeseries', () => {
+      // remember, this takes up to 3 yAxes
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: ['event.type', 'potato'],
+            yAxis: [
+              'count()',
+              'count_unique(user)',
+              'count_unique(potato)',
+              'count_unique(thisIsRemoved)',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.TABLE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'potato', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'thisIsRemoved', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.displayType).toBe(DisplayType.LINE);
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {field: 'potato', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'user', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+        {
+          function: ['count_unique', 'potato', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
     });
   });
 
@@ -303,6 +498,44 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
           function: ['count', '', undefined, undefined],
         },
+      ]);
+    });
+
+    it('decodes both JSON formatted fields and non-JSON formatted fields', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: [
+              '{"field": "event.type", "alias": "test"}',
+              'p90(transaction.duration)',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: 'test', kind: 'field'},
+        {
+          function: ['p90', 'transaction.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('encodes fields to JSON when they have aliases', () => {
+      const fields = [
+        {field: 'event.type', alias: 'test', kind: FieldValueKind.FIELD},
+        {field: 'event.type', alias: undefined, kind: FieldValueKind.FIELD},
+      ] as Column[];
+      const encodedFields = serializeFields(fields);
+      expect(encodedFields).toEqual([
+        '{"field":"event.type","alias":"test"}',
+        'event.type',
       ]);
     });
   });
