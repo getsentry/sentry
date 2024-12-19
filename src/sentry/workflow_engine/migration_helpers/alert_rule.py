@@ -3,8 +3,14 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.models import QuerySubscription
+from sentry.snuba.subscriptions import bulk_delete_snuba_subscriptions
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.models import AlertRuleDetector, DataSource, Detector
+from sentry.workflow_engine.models import (
+    AlertRuleDetector,
+    DataConditionGroup,
+    DataSource,
+    Detector,
+)
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
@@ -26,6 +32,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
         )
     except DataSource.DoesNotExist:
         return None
+    bulk_delete_snuba_subscriptions([QuerySubscription])
     return data_source
 
 
@@ -40,20 +47,19 @@ def dual_delete_migrated_alert_rule(
         return
 
     detector: Detector = alert_rule_detector.detector
-    data_condition_group = detector.workflow_condition_group
+    data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
 
     data_source = get_data_source(alert_rule=alert_rule)
     if data_source is None:
         # TODO: log failure
         return
 
-    # also deletes alert_rule_workflow
-    RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-    RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+    # deleting the alert_rule also deletes alert_rule_workflow (in main delete logic)
     # also deletes alert_rule_detector, detector_workflow, detector_state
     RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
     # also deletes workflow_data_condition_group
-    RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+    if data_condition_group:
+        RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
+    RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
 
-    # What is the equivalent of SNAPSHOT in the new world?
     return
