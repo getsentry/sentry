@@ -12,6 +12,7 @@ from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
+from snuba_sdk import Granularity
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
@@ -997,7 +998,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    boost_low_volume_projects_of_org_with_query.delay(organization.id)
+                    # use 1 day as the default interval for project sampling rate rebalancing
+                    query_interval = None
+                    if changed_data.get("samplingMode") == DynamicSamplingMode.PROJECT.value:
+                        query_interval = timedelta(days=1)
+                        granularity = Granularity(3600)  # TODO: what does granularity mean here?
+                    else:
+                        granularity = None
+                        query_interval = None
+
+                    boost_low_volume_projects_of_org_with_query.delay(
+                        organization.id,
+                        query_interval=query_interval,
+                        granularity=granularity,
+                    )
 
             if was_pending_deletion:
                 self.create_audit_entry(

@@ -165,6 +165,8 @@ def partition_by_measure(
 def boost_low_volume_projects_of_org_with_query(
     context: TaskContext,
     org_id: OrganizationId,
+    granularity: Granularity | None = None,
+    query_interval: timedelta | None = None,
 ) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
@@ -186,7 +188,11 @@ def boost_low_volume_projects_of_org_with_query(
         measure = SamplingMeasure.SPANS
 
     projects_with_tx_count_and_rates = fetch_projects_with_total_root_transaction_count_and_rates(
-        context, org_ids=[org_id], measure=measure
+        context,
+        org_ids=[org_id],
+        measure=measure,
+        granularity=granularity,
+        query_interval=query_interval,
     )[org_id]
     adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
 
