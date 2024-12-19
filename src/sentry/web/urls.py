@@ -322,6 +322,11 @@ urlpatterns += [
                     name="sentry-account-confirm-email",
                 ),
                 re_path(
+                    r"^confirm-signed-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
+                    accounts.confirm_signed_email,
+                    name="sentry-account-confirm-signed-email",
+                ),
+                re_path(
                     r"^user-confirm/(?P<key>[^\/]+)/$",
                     AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
