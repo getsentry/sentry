@@ -1,14 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -92,23 +90,12 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              {organization.features.includes('search-query-builder-performance') ? (
-                <TransactionSearchQueryBuilder
-                  projects={projectIds}
-                  initialQuery={rawQuery}
-                  onSearch={handleSearch}
-                  searchSource="transaction_profiles"
-                />
-              ) : (
-                <SearchBar
-                  searchSource="transaction_profiles"
-                  organization={organization}
-                  projectIds={projectIds}
-                  query={rawQuery}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
-              )}
+              <TransactionSearchQueryBuilder
+                projects={projectIds}
+                initialQuery={rawQuery}
+                onSearch={handleSearch}
+                searchSource="transaction_profiles"
+              />
             </FilterActions>
             <TransactionProfilesContent query={query} transaction={transaction} />
           </StyledMain>
