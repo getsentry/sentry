@@ -93,9 +93,9 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
 
 
 @pytest.mark.parametrize(
-    ("topic_name", "consumer_type"),
+    "topic_name",
     [
-        (TopicNames.INGEST_TRANSACTIONS.value, ConsumerType.Transactions),
+        TopicNames.INGEST_TRANSACTIONS.value,
     ],
 )
 @django_db_all
