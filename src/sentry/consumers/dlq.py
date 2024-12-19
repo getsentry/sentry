@@ -104,15 +104,29 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
                     message.value.partition, message.value.offset, reason=RejectReason.STALE.value
                 )
 
-        if self.offsets_to_forward and time.time() > self.last_forwarded_offsets + 1:
-            filtered_message = Message(Value(FILTERED_PAYLOAD, self.offsets_to_forward))
-            self.offsets_to_forward = {}
-            self.next_step.submit(filtered_message)
+        if self.offsets_to_forward:
+            # Ensure we commit frequently even if all messages are invalid
+            if time.time() > self.last_forwarded_offsets + 1:
+                filtered_message = Message(Value(FILTERED_PAYLOAD, self.offsets_to_forward))
+                self.offsets_to_forward = {}
+                self.next_step.submit(filtered_message)
+
+            # We got a valid message for that partition later, don't emit a filtered message for it
+            for partition in message.committable:
+                self.offsets_to_forward.pop(partition)
 
         self.next_step.submit(message)
 
     def poll(self) -> None:
         self.next_step.poll()
+
+        # Ensure we commit frequently even if all messages are invalid
+        if self.offsets_to_forward:
+            if time.time() > self.last_forwarded_offsets + 1:
+                filtered_message = Message(Value(FILTERED_PAYLOAD, self.offsets_to_forward))
+                self.next_step.submit(filtered_message)
+                self.offsets_to_forward = {}
+                self.last_forwarded_offsets = time.time()
 
     def join(self, timeout: float | None = None) -> None:
         self.next_step.join(timeout)
