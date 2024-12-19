@@ -980,7 +980,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
-        expect(rows[7].textContent?.includes('Missing instrumentation')).toBe(true);
+        expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
       });
     });
 
@@ -1094,25 +1094,26 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await findAllByText(virtualizedContainer, /Missing instrumentation/i);
+        await findAllByText(virtualizedContainer, /No Instrumentation/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-
-        // Toggle missing instrumentation off
         await userEvent.click(preferencesDropdownTrigger);
 
-        expect(await screen.findByText('Missing Instrumentation')).toBeInTheDocument();
+        expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
 
-        // Toggle missing instrumentation off
-        await userEvent.click(await screen.findByText('Missing Instrumentation'));
+        // Toggle autogrouping off
+        const autogroupingOption = await screen.findByTestId('no-instrumentation');
+        await userEvent.click(autogroupingOption);
 
-        await waitFor(() => {
-          expect(screen.queryByText('Missing instrumentation')).not.toBeInTheDocument();
+        await waitFor(async () => {
+          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
         });
 
-        // Toggle missing instrumentation on
-        await userEvent.click(await screen.findByText('Missing Instrumentation'));
-        expect(await screen.findAllByText('Missing instrumentation')).toHaveLength(1);
+        // Toggle autogrouping back on
+        await userEvent.click(autogroupingOption);
+        await waitFor(async () => {
+          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
+        });
       });
     });
   });
