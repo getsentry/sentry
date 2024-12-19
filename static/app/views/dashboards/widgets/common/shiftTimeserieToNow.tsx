@@ -1,4 +1,4 @@
-import type {TimeseriesData} from '../common/types';
+import type {TimeseriesData} from './types';
 
 export function shiftTimeserieToNow(timeserie: TimeseriesData): TimeseriesData {
   const currentTimestamp = new Date().getTime();
