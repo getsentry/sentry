@@ -70,7 +70,6 @@ describe('OrganizationFeatureFlagsNewSecret', function () {
     });
     await userEvent.click(providerDropdown);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Custom'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
     expect(indicators.addErrorMessage).toHaveBeenCalledWith(
