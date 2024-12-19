@@ -26,6 +26,12 @@ from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
 
+# If querying for a provider, we also check for equivalent providers
+EQUIVALENT_PROVIDERS = {
+    "fly": ["fly", "fly-non-partner"],
+    "fly-non-partner": ["fly", "fly-non-partner"],
+}
+
 
 class DatabaseBackedAuthService(AuthService):
     def get_organization_api_keys(self, *, organization_id: int) -> list[RpcApiKey]:
@@ -49,9 +55,16 @@ class DatabaseBackedAuthService(AuthService):
         sender: str | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
-            auth_provider_query = AuthProvider.objects.filter(
-                organization_id=organization_id, provider=provider_key, config=provider_config
-            )
+            if provider_key in EQUIVALENT_PROVIDERS:
+                auth_provider_query = AuthProvider.objects.filter(
+                    organization_id=organization_id,
+                    provider__in=EQUIVALENT_PROVIDERS[provider_key],
+                    config=provider_config,
+                )
+            else:
+                auth_provider_query = AuthProvider.objects.filter(
+                    organization_id=organization_id, provider=provider_key, config=provider_config
+                )
             if not auth_provider_query.exists():
                 auth_provider = AuthProvider.objects.create(
                     organization_id=organization_id, provider=provider_key, config=provider_config
@@ -79,7 +92,15 @@ class DatabaseBackedAuthService(AuthService):
         self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
-            auth_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+            if provider in EQUIVALENT_PROVIDERS:
+                auth_provider = AuthProvider.objects.filter(
+                    provider__in=EQUIVALENT_PROVIDERS[provider],
+                    config=config,
+                ).first()
+            else:
+                auth_provider = AuthProvider.objects.filter(
+                    provider=provider, config=config
+                ).first()
             if auth_provider is None:
                 return
             # Add Auth identity for partner's SSO if it doesn't exist
