@@ -232,6 +232,9 @@ export function WidgetPreviewContainer({
                       : state.displayType === DisplayType.TABLE
                         ? 'auto'
                         : PREVIEW_HEIGHT_PX,
+                    outline: isDragEnabled
+                      ? `${space(1)} solid ${theme.border}`
+                      : undefined,
                   }}
                 >
                   <WidgetPreview
@@ -290,7 +293,7 @@ const Backdrop = styled('div')`
 const SampleWidgetCard = styled(motion.div)`
   width: 100%;
   min-width: 100%;
-  border: 2px dashed ${p => p.theme.border};
+  border: 1px dashed ${p => p.theme.gray300};
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => p.theme.background};
   z-index: ${p => p.theme.zIndex.initial};

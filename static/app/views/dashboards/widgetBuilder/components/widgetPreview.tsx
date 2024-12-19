@@ -51,6 +51,7 @@ function WidgetPreview({
   return (
     <WidgetCard
       disableFullscreen
+      borderless
       isWidgetInvalid={isWidgetInvalid}
       shouldResize={state.displayType !== DisplayType.TABLE}
       organization={organization}
