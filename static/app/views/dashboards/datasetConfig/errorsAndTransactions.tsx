@@ -89,12 +89,18 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count()',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', '', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 export type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
