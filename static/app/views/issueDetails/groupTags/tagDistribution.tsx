@@ -15,6 +15,10 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
+  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
   return (
     <div>
       <TagHeader>
@@ -24,6 +28,7 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {tag.topValues.map((tagValue, tagValueIdx) => {
           const percentage = percent(tagValue.count, tag.totalValues);
           const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
@@ -39,9 +44,8 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {hasOther && (
           <TagValueRow>
             <TagValue>{t('Other')}</TagValue>
-            <TagBar
-              percentage={percent(tag.totalValues - totalVisible, tag.totalValues)}
-            />
+            <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+            <TagBar percentage={otherPercentage} />
           </TagValueRow>
         )}
       </TagValueContent>
