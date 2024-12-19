@@ -8,6 +8,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
@@ -17,7 +18,7 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, organization, short_id) -> Response:
+    def get(self, request: Request, organization: Organization, short_id: str) -> Response:
         """
         Resolve a Short ID
         ``````````````````
