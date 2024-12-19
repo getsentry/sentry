@@ -25,6 +25,12 @@ x-sentry-service-config:
         repo_name: sentry-shared-redis
         branch: main
         repo_link: https://github.com/getsentry/sentry-shared-redis.git
+    chartcuterie:
+      description: Chartcuterie is a service that generates charts
+      remote:
+        repo_name: chartcuterie
+        branch: master
+        repo_link: https://github.com/getsentry/chartcuterie.git
     taskbroker:
       description: Service used to process asynchronous tasks
       remote:
@@ -35,6 +41,7 @@ x-sentry-service-config:
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
+    acceptance-ci: [postgres, snuba, chartcuterie]
     taskbroker: [snuba, postgres, relay, taskbroker]
 
 services:

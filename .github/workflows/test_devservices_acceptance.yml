@@ -1,10 +1,10 @@
 # Also note that this name *MUST* match the filename because GHA
 # only provides the workflow name (https://docs.github.com/en/free-pro-team@latest/actions/reference/environment-variables#default-environment-variables)
 # and GH APIs only support querying by workflow *FILENAME* (https://developer.github.com/v3/actions/workflows/#get-a-workflow)
-name: test-docker-compose-acceptance
+name: test-devservices-acceptance
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 * * * *'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -16,10 +16,13 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
+  USE_NEW_DEVSERVICES: 1
+  IS_DEV: 1
+  CHARTCUTERIE_CONFIG_PATH: ${{ github.workspace }}/config/chartcuterie
 
 jobs:
-  docker-compose-acceptance:
-    name: docker-compose-acceptance
+  devservices-acceptance:
+    name: devservices-acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -89,15 +92,9 @@ jobs:
         uses: ./.github/actions/test-setup-sentry-devservices
         id: setup
 
-      - name: copy chartcuterie config to devservices chartcuterie directory
-        run: |
-          ls config/chartcuterie
-          cp -r config/chartcuterie devservices
-
       - name: Bring up devservices
         run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse chartcuterie
+          devservices up --mode acceptance-ci
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: make run-acceptance
@@ -127,14 +124,13 @@ jobs:
       - name: Inspect failure
         if: failure()
         run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+          devservices logs
 
-  docker-compose-acceptance-required-checks:
+  devservices-acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
-    name: Docker Compose Acceptance
-    needs: [docker-compose-acceptance]
+    name: Devservices Acceptance
+    needs: [devservices-acceptance]
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
