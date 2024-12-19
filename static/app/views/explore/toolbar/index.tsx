@@ -14,6 +14,7 @@ import {ToolbarDataset} from 'sentry/views/explore/toolbar/toolbarDataset';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
 import {ToolbarMode} from 'sentry/views/explore/toolbar/toolbarMode';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
+import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 type Extras = 'dataset toggle';
@@ -48,6 +49,7 @@ export function ExploreToolbar({extras}: ExploreToolbarProps) {
         sorts={sortBys}
         setSorts={setSortBys}
       />
+      <ToolbarSuggestedQueries />
     </div>
   );
 }

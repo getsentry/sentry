@@ -84,7 +84,7 @@ export function useIssuesTraceTree({
     if (trace.data && meta.data) {
       const newTree = IssuesTraceTree.FromTrace(trace.data, {
         meta: meta.data,
-        replay: replay,
+        replay,
       });
 
       setTree(newTree);

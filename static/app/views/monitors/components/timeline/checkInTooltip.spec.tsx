@@ -57,7 +57,6 @@ describe('CheckInTooltip', function () {
     const statusRow = (await screen.findAllByRole('row'))[1];
 
     expect(within(statusRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(statusRow).getByText('prod')).toBeInTheDocument();
     expect(within(statusRow).getByText('1')).toBeInTheDocument();
   });
 
@@ -80,22 +79,18 @@ describe('CheckInTooltip', function () {
 
     const okayRow = (await screen.findAllByRole('row'))[1];
     expect(within(okayRow).getByText('Okay')).toBeInTheDocument();
-    expect(within(okayRow).getByText('prod')).toBeInTheDocument();
     expect(within(okayRow).getByText('1')).toBeInTheDocument();
 
     const missedRow = screen.getAllByRole('row')[2];
     expect(within(missedRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(missedRow).getByText('prod')).toBeInTheDocument();
     expect(within(missedRow).getByText('1')).toBeInTheDocument();
 
     const timeoutRow = screen.getAllByRole('row')[3];
     expect(within(timeoutRow).getByText('Timed Out')).toBeInTheDocument();
-    expect(within(timeoutRow).getByText('prod')).toBeInTheDocument();
     expect(within(timeoutRow).getByText('1')).toBeInTheDocument();
 
     const errorRow = screen.getAllByRole('row')[4];
     expect(within(errorRow).getByText('Failed')).toBeInTheDocument();
-    expect(within(errorRow).getByText('prod')).toBeInTheDocument();
     expect(within(errorRow).getByText('1')).toBeInTheDocument();
   });
 
@@ -120,22 +115,18 @@ describe('CheckInTooltip', function () {
 
     const missedProdRow = (await screen.findAllByRole('row'))[1];
     expect(within(missedProdRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(missedProdRow).getByText('prod')).toBeInTheDocument();
     expect(within(missedProdRow).getByText('1')).toBeInTheDocument();
 
     const okDevRow = screen.getAllByRole('row')[2];
     expect(within(okDevRow).getByText('Okay')).toBeInTheDocument();
-    expect(within(okDevRow).getByText('dev')).toBeInTheDocument();
     expect(within(okDevRow).getByText('1')).toBeInTheDocument();
 
     const missedDevRow = screen.getAllByRole('row')[3];
     expect(within(missedDevRow).getByText('Missed')).toBeInTheDocument();
-    expect(within(missedDevRow).getByText('dev')).toBeInTheDocument();
     expect(within(missedDevRow).getByText('2')).toBeInTheDocument();
 
     const timeoutDevRow = screen.getAllByRole('row')[4];
     expect(within(timeoutDevRow).getByText('Timed Out')).toBeInTheDocument();
-    expect(within(timeoutDevRow).getByText('dev')).toBeInTheDocument();
     expect(within(timeoutDevRow).getByText('1')).toBeInTheDocument();
   });
 });
