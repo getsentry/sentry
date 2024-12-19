@@ -2,7 +2,6 @@ import time
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-import pytest
 from snuba_sdk import DeleteQuery, Request
 
 from sentry.snuba.dataset import Dataset, StorageKey
@@ -11,11 +10,10 @@ from sentry.utils import snuba
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    @pytest.mark.xfail
     def test_basic(self) -> None:
         # insert a new issue
         now = datetime.now()
-        id = uuid4()
+        occurrence_id = uuid4()
         issue = (
             2,
             "insert",
@@ -57,23 +55,22 @@ class SnubaTest(TestCase, SnubaTestCase):
             app_id="my_app",
             query=DeleteQuery(
                 StorageKey.SearchIssues.value,
-                {"project_id": [self.project.id], "occurrence_id": [str(id)]},
+                {"project_id": [self.project.id], "occurrence_id": [str(occurrence_id)]},
             ),
             tenant_ids={"referrer": "testing.test", "organization_id": 1},
         )
-        snuba.raw_snql_query(req)
+        snuba.raw_snql_query(req, use_cache=False)
+        time.sleep(4)
 
-        # make sure its gone
-        time.sleep(5)  # test will currently fail without the sleep (maybe it take time to delete?)
-        assert (
-            snuba.query(
-                dataset=Dataset.IssuePlatform,
-                start=now - timedelta(days=1),
-                end=now + timedelta(days=1),
-                groupby=["project_id"],
-                filter_keys={"project_id": [self.project.id]},
-                referrer="testing.test",
-                tenant_ids={"referrer": "testing.test", "organization_id": 1},
-            )
-            == {}
+        # check that it's gone
+        response = snuba.query(
+            dataset=Dataset.IssuePlatform,
+            start=now - timedelta(days=1),
+            end=now + timedelta(days=1),
+            groupby=["project_id"],
+            filter_keys={"project_id": [self.project.id]},
+            referrer="testing.test",
+            tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            use_cache=False,
         )
+        assert response == {}
