@@ -1009,6 +1009,7 @@ def delete_alert_rule(
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
+    # TODO: check the equivalent in the new world
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
@@ -1050,6 +1051,7 @@ def delete_alert_rule(
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
 
+        # TODO: update the corresponding field here
         alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
