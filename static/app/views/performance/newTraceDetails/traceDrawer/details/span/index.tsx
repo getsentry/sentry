@@ -253,51 +253,53 @@ export function SpanNodeDetails({
   const profileId = node.event?.contexts?.profile?.profile_id ?? null;
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasNewTraceUi}>
+    <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
         node={node}
         organization={organization}
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {node.event?.projectSlug ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={node.event?.projectSlug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <Alerts node={node} />
-                {issues.length > 0 ? (
-                  <IssueList organization={organization} issues={issues} node={node} />
-                ) : null}
-                <SpanDescription
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                />
-                <SpanSections
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                  onParentClick={onParentClick}
-                />
-                {organization.features.includes('profiling') ? (
-                  <ProfileDetails event={node.event!} span={node.value} />
-                ) : null}
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : null}
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+        {node.event?.projectSlug ? (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={node.event?.projectSlug}
+            profileId={profileId || ''}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <Alerts node={node} />
+                  {issues.length > 0 ? (
+                    <IssueList organization={organization} issues={issues} node={node} />
+                  ) : null}
+                  <SpanDescription
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                  />
+                  <SpanSections
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                    onParentClick={onParentClick}
+                  />
+                  {organization.features.includes('profiling') ? (
+                    <ProfileDetails event={node.event!} span={node.value} />
+                  ) : null}
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        ) : null}
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
