@@ -556,7 +556,9 @@ describe('Performance > TransactionSummary', function () {
       ).toBeInTheDocument();
 
       // It shows a searchbar
-      expect(screen.getByLabelText('Search events')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
+      ).toBeInTheDocument();
 
       // It shows a table
       expect(screen.getByTestId('transactions-table')).toBeInTheDocument();
@@ -820,13 +822,17 @@ describe('Performance > TransactionSummary', function () {
       );
 
       // Fill out the search box, and submit it.
-      await userEvent.type(
-        screen.getByLabelText('Search events'),
-        'user.email:uhoh*{enter}'
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
+      await userEvent.paste('user.email:uhoh*');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      });
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
@@ -1309,6 +1315,9 @@ describe('Performance > TransactionSummary', function () {
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
 
+      // Small screen size will hide trailing items that we assert for existence below
+      Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
+
       render(
         <TestComponent
           organization={organization}
@@ -1342,7 +1351,9 @@ describe('Performance > TransactionSummary', function () {
       // Renders Failure Rate widget
       expect(screen.getByRole('heading', {name: 'Failure Rate'})).toBeInTheDocument();
       expect(screen.getByTestId('failure-rate-summary-value')).toHaveTextContent('100%');
-      expect(screen.getByTestId('search-metrics-fallback-warning')).toBeInTheDocument();
+      expect(
+        await screen.findByTestId('search-metrics-fallback-warning')
+      ).toBeInTheDocument();
     });
   });
 });
