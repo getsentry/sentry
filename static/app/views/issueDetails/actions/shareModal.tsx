@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -79,18 +79,6 @@ function ShareIssueModal({
     },
     [api, setLoading, onToggle, isShared, organization.slug, projectSlug, groupId]
   );
-
-  /**
-   * Share as soon as modal is opened
-   */
-  useEffect(() => {
-    if (isShared) {
-      return;
-    }
-
-    handleShare(null, true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- we only want to run this on open
-  }, []);
 
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
 

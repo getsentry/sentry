@@ -13,3 +13,6 @@ class QuerySubscriptionUpdate(TypedDict):
 class AlertRuleActivationConditionType(Enum):
     RELEASE_CREATION = 0
     DEPLOY_CREATION = 1
+
+
+DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"

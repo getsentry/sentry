@@ -113,7 +113,6 @@ from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -137,7 +136,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -883,24 +881,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("has_reappeared", True)
         kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
-
-    def get_condition_activity(self, **kwargs) -> ConditionActivity:
-        kwargs.setdefault("group_id", self.event.group.id)
-        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
-        kwargs.setdefault("timestamp", self.event.datetime)
-        return ConditionActivity(**kwargs)
-
-    def passes_activity(
-        self,
-        rule: RuleBase,
-        condition_activity: ConditionActivity | None = None,
-        event_map: dict[str, Any] | None = None,
-    ):
-        if condition_activity is None:
-            condition_activity = self.get_condition_activity()
-        if event_map is None:
-            event_map = {}
-        return rule.passes_activity(condition_activity, event_map)
 
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:

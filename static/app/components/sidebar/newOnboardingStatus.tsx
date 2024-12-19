@@ -5,17 +5,22 @@ import styled from '@emotion/styled';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {DeprecatedNewOnboardingSidebar} from 'sentry/components/onboardingWizard/deprecatedNewSidebar';
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {
+  findCompleteTasks,
+  hasQuickStartUpdatesFeatureGA,
+  taskIsDone,
+} from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
-import {t, tct} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
@@ -115,7 +120,7 @@ export function NewOnboardingStatus({
     }
 
     trackAnalytics('quick_start.completed', {
-      organization: organization,
+      organization,
       referrer: 'onboarding_sidebar',
       new_experience: true,
     });
@@ -172,28 +177,35 @@ export function NewOnboardingStatus({
         {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
-            <Remaining>
+            <Remaining role="status">
               {walkthrough
-                ? tct('[totalCompletedTasks] completed tours', {
-                    totalCompletedTasks: doneTasks.length,
-                  })
-                : tct('[totalCompletedTasks] completed tasks', {
-                    totalCompletedTasks: doneTasks.length,
-                  })}
-              {pendingCompletionSeen && <PendingSeenIndicator />}
+                ? tn('%s completed tour', '%s completed tours', doneTasks.length)
+                : tn('%s completed task', '%s completed tasks', doneTasks.length)}
+              {pendingCompletionSeen && (
+                <PendingSeenIndicator data-test-id="pending-seen-indicator" />
+              )}
             </Remaining>
           </div>
         )}
       </Container>
-      {isActive && (
-        <NewOnboardingSidebar
-          orientation={orientation}
-          collapsed={collapsed}
-          onClose={hidePanel}
-          gettingStartedTasks={gettingStartedTasks}
-          beyondBasicsTasks={beyondBasicsTasks}
-        />
-      )}
+      {isActive &&
+        (hasQuickStartUpdatesFeatureGA(organization) ? (
+          <NewOnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+            gettingStartedTasks={gettingStartedTasks}
+            beyondBasicsTasks={beyondBasicsTasks}
+          />
+        ) : (
+          <DeprecatedNewOnboardingSidebar
+            orientation={orientation}
+            collapsed={collapsed}
+            onClose={hidePanel}
+            gettingStartedTasks={gettingStartedTasks}
+            beyondBasicsTasks={beyondBasicsTasks}
+          />
+        ))}
     </Fragment>
   );
 }

@@ -204,7 +204,7 @@ function CustomViewsIssueListHeaderTabsContent({
           id: TEMPORARY_TAB_KEY,
           key: TEMPORARY_TAB_KEY,
           label: t('Unsaved'),
-          query: query,
+          query,
           querySort: sort ?? IssueSortOptions.DATE,
           isCommitted: true,
         }
@@ -341,7 +341,7 @@ function CustomViewsIssueListHeaderTabsContent({
           id: TEMPORARY_TAB_KEY,
           key: TEMPORARY_TAB_KEY,
           label: t('Unsaved'),
-          query: query,
+          query,
           querySort: sort ?? IssueSortOptions.DATE,
           isCommitted: true,
         });
