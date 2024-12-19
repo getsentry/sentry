@@ -8,6 +8,8 @@ const excludedModuleNames = [
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
   ModuleName.MOBILE_SCREENS,
+  ModuleName.CRONS,
+  ModuleName.UPTIME,
 ] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
