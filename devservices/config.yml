@@ -25,9 +25,17 @@ x-sentry-service-config:
         repo_name: sentry-shared-redis
         branch: main
         repo_link: https://github.com/getsentry/sentry-shared-redis.git
+    taskbroker:
+      description: Service used to process asynchronous tasks
+      remote:
+        repo_name: taskbroker
+        branch: main
+        repo_link: https://github.com/getsentry/taskbroker.git
+        mode: containerized
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
+    taskbroker: [snuba, postgres, relay, taskbroker]
 
 services:
   postgres:
