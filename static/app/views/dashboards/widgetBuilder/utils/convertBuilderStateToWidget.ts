@@ -18,6 +18,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
   const queries = defined(state.query) && state.query.length > 0 ? state.query : [''];
 
   const fields = state.fields?.map(generateFieldAsString);
+  const fieldAliases = state.fields?.map(field => field.alias ?? '');
   const aggregates =
     (state.yAxis?.length ?? 0) > 0
       ? state.yAxis?.map(generateFieldAsString)
@@ -47,6 +48,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
       columns: columns ?? [],
       conditions: query,
       orderby: sort,
+      fieldAliases: fieldAliases ?? [],
     };
   });
 

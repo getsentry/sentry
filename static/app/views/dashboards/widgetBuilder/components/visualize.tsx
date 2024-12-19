@@ -425,13 +425,23 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras>
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  placeholder={t('Add Alias')}
-                  onChange={() => {}}
-                />
+              <FieldExtras isChartWidget={isChartWidget}>
+                {!isChartWidget && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    placeholder={t('Add Alias')}
+                    value={field.alias}
+                    onChange={e => {
+                      const newFields = cloneDeep(fields);
+                      newFields[index].alias = e.target.value;
+                      dispatch({
+                        type: updateAction,
+                        payload: newFields,
+                      });
+                    }}
+                  />
+                )}
                 <StyledDeleteButton
                   borderless
                   icon={<IconDelete />}
@@ -628,11 +638,11 @@ const FieldRow = styled('div')`
 
 const StyledDeleteButton = styled(Button)``;
 
-const FieldExtras = styled('div')`
+const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: 1;
+  flex: ${p => (p.isChartWidget ? '0' : '1')};
 `;
 
 const AddButton = styled(Button)`

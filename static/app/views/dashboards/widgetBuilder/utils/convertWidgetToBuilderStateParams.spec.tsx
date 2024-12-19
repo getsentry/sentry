@@ -8,4 +8,24 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(widget);
     expect(params.yAxis).toEqual([]);
   });
+
+  it('stringifies the fields when converting a table to builder params', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      queries: [
+        {
+          aggregates: [],
+          columns: [],
+          conditions: '',
+          name: '',
+          orderby: '',
+
+          fields: ['geo.country'],
+          fieldAliases: ['test'],
+        },
+      ],
+    };
+    const params = convertWidgetToBuilderStateParams(widget);
+    expect(params.field).toEqual(['{"field":"geo.country","alias":"test"}']);
+  });
 });
