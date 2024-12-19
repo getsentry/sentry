@@ -9,6 +9,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
@@ -90,6 +91,10 @@ describe('Discover > Homepage', () => {
       url: '/organizations/org-slug/measurements-meta/',
       method: 'GET',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
     });
   });
 
@@ -180,9 +185,11 @@ describe('Discover > Homepage', () => {
 
     await userEvent.click(await screen.findByText('Columns'));
 
-    await userEvent.click(screen.getByTestId('label'));
-    await userEvent.click(screen.getByText('event.type'));
-    await userEvent.click(screen.getByText('Apply'));
+    const modal = await screen.findByRole('dialog');
+
+    await userEvent.click(within(modal).getByTestId('label'));
+    await userEvent.click(within(modal).getByText('event.type'));
+    await userEvent.click(within(modal).getByText('Apply'));
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
