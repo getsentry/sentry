@@ -29,7 +29,7 @@ export function useGroupEvent({groupId, eventId, environments}: UseGroupEventOpt
     groupId,
     eventId: eventIdUrl,
     environments,
-    recommendedEventQuery: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
+    query: isLatestOrRecommendedEvent ? recommendedEventQuery : undefined,
   });
 
   const eventQuery = useApiQuery<Event>(queryKey, {

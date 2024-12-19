@@ -193,8 +193,12 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
+  start,
+  end,
 }: {
+  end: string | undefined;
   query: string | undefined;
+  start: string | undefined;
   environments?: string[];
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
@@ -209,6 +213,14 @@ export function getGroupEventDetailsQueryData({
     params.environment = environments;
   }
 
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
   return params;
 }
 
@@ -217,20 +229,26 @@ export function getGroupEventQueryKey({
   groupId,
   eventId,
   environments,
-  recommendedEventQuery,
+  query,
+  start,
+  end,
 }: {
   environments: string[];
   eventId: string;
   groupId: string;
   orgSlug: string;
-  recommendedEventQuery?: string;
+  end?: string;
+  query?: string;
+  start?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: recommendedEventQuery,
+        query,
+        start,
+        end,
       }),
     },
   ];
