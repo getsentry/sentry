@@ -68,6 +68,8 @@ BASE64_ENCODED_PREFIXES = [
 class ReferrerOptions(StrEnum):
     INGEST = "ingest"
     BACKFILL = "backfill"
+    DELETION = "deletion"
+    SIMILAR_ISSUES_TAB = "similar_issues_tab"
 
 
 class TooManyOnlySystemFramesException(Exception):
@@ -329,29 +331,33 @@ def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
 
 def killswitch_enabled(
     project_id: int | None,
+    referrer: ReferrerOptions,
     event: GroupEvent | Event | None = None,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
-
+    is_ingest = referrer == ReferrerOptions.INGEST
+    logger_prefix = f"grouping.similarity.{referrer.value}"
     logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
 
     if options.get("seer.global-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            f"{logger_prefix}.seer_global_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
 
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
 
         return True
 
@@ -359,10 +365,11 @@ def killswitch_enabled(
         "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
     ):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_project_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
 
         return True
 

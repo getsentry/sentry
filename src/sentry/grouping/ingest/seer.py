@@ -48,7 +48,7 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
 
     if (
         _has_customized_fingerprint(event, variants)
-        or killswitch_enabled(project.id, event)
+        or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
