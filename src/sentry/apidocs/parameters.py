@@ -219,11 +219,18 @@ class ReleaseParams:
         description="The version identifier of the release",
     )
     PROJECT_ID = OpenApiParameter(
-        name="project_id",
+        name="project",
+        location="query",
+        required=False,
+        type=int,
+        description="The project ID to filter by.",
+    )
+    ENVIRONMENT = OpenApiParameter(
+        name="environment",
         location="query",
         required=False,
         type=str,
-        description="The project ID to filter by.",
+        description="The name of the environment to filter by.",
     )
     HEALTH = OpenApiParameter(
         name="health",

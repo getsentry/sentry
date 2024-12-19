@@ -240,7 +240,7 @@ class OrganizationReleasesEndpoint(
 ):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     SESSION_SORTS = frozenset(
         [
@@ -266,15 +266,16 @@ class OrganizationReleasesEndpoint(
         operation_id="List an Organization's Releases",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            ReleaseParams.VERSION,
+            GlobalParams.STATS_PERIOD,
             ReleaseParams.PROJECT_ID,
-            ReleaseParams.HEALTH,
-            ReleaseParams.ADOPTION_STAGES,
+            ReleaseParams.ENVIRONMENT,
             ReleaseParams.SUMMARY_STATS_PERIOD,
             ReleaseParams.HEALTH_STATS_PERIOD,
-            ReleaseParams.SORT,
-            ReleaseParams.STATUS_FILTER,
             VisibilityParams.QUERY,
+            ReleaseParams.STATUS_FILTER,
+            ReleaseParams.SORT,
+            ReleaseParams.HEALTH,
+            ReleaseParams.ADOPTION_STAGES,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -459,6 +460,11 @@ class OrganizationReleasesEndpoint(
     @extend_schema(
         operation_id="Create a New Release for an Organization",
         request=ReleaseSerializerWithProjects,
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            ReleaseParams.VERSION,
+            ReleaseParams.PROJECT_ID,
+        ],
         responses={
             200: ReleaseSerializerResponse,
             400: RESPONSE_BAD_REQUEST,
