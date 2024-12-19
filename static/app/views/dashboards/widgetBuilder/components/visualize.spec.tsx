@@ -548,7 +548,10 @@ describe('Visualize', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Column Selection'})
-    ).toHaveTextContent('p90(transaction.duration)');
+    ).toHaveTextContent('transaction.duration');
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('p90');
     expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
   });
 

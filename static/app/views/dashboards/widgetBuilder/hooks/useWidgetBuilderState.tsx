@@ -237,12 +237,12 @@ function deserializeDataset(value: string): WidgetType {
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(field => {
+  return fields.map(stringifiedField => {
     try {
-      const {fieldString, alias} = JSON.parse(field);
-      return explodeField({field: fieldString, alias});
+      const {field, alias} = JSON.parse(stringifiedField);
+      return explodeField({field, alias});
     } catch (error) {
-      return explodeField({field, alias: undefined});
+      return explodeField({field: stringifiedField, alias: undefined});
     }
   });
 }
@@ -255,7 +255,7 @@ export function serializeFields(fields: Column[]): string[] {
   return fields.map(field => {
     if (field.alias) {
       return JSON.stringify({
-        fieldString: generateFieldAsString(field),
+        field: generateFieldAsString(field),
         alias: field.alias,
       });
     }
