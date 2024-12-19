@@ -260,7 +260,7 @@ def _get_stacktrace_hashing_metadata(
     ),
 ) -> StacktraceHashingMetadata:
     return {
-        "stacktrace_type": "in_app" if "in-app" in contributing_variant.description else "system",
+        "stacktrace_type": "in_app" if contributing_variant.variant_name == "app" else "system",
         "stacktrace_location": (
             "exception"
             if "exception" in contributing_variant.description
