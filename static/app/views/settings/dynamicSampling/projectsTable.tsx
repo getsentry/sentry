@@ -16,6 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {PercentInput} from 'sentry/views/settings/dynamicSampling/percentInput';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import type {ProjectionSamplePeriod} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface ProjectItem {
   count: number;
@@ -29,6 +30,7 @@ interface ProjectItem {
 
 interface Props extends Omit<React.ComponentProps<typeof StyledPanelTable>, 'headers'> {
   items: ProjectItem[];
+  period: ProjectionSamplePeriod;
   rateHeader: React.ReactNode;
   canEdit?: boolean;
   inactiveItems?: ProjectItem[];
@@ -45,6 +47,7 @@ export function ProjectsTable({
   canEdit,
   rateHeader,
   onChange,
+  period,
   ...props
 }: Props) {
   const hasAccess = useHasDynamicSamplingWriteAccess();
@@ -64,12 +67,12 @@ export function ProjectsTable({
       {...props}
       isEmpty={!items.length && !inactiveItems.length}
       headers={[
-        t('Project'),
+        t('Originating Project'),
         <SortableHeader type="button" key="spans" onClick={handleTableSort}>
           {t('Accepted Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        t('Stored Spans'),
+        period === '24h' ? t('Stored Spans per day') : t('Stored Spans per month'),
         rateHeader,
       ]}
     >

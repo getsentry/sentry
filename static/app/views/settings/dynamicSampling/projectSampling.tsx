@@ -150,6 +150,7 @@ export function ProjectSampling() {
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (
           <ProjectsEditTable
+            period={period}
             editMode={editMode}
             onEditModeChange={setEditMode}
             isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
