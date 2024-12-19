@@ -749,7 +749,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
             mock_seer_request.reset_mock()
 
-    def test_too_many_system_frames(self):
+    def test_too_many_frames(self):
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
