@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -164,13 +163,9 @@ function TagDetailsRow({
   tagValue: TagValue;
 }) {
   const organization = useOrganization();
-  const [isHovered, setIsHovered] = useState(false);
-  const {onClick: handleCopy} = useCopyToClipboard({
-    text: tagValue.value,
-  });
+
   const key = tagValue.key ?? tag.key;
   const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
-  const eventView = useIssueDetailsEventView({group, queryProps: query});
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
@@ -179,7 +174,7 @@ function TagDetailsRow({
   const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
 
   return (
-    <Row onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+    <Row>
       <TagDetailsValue
         valueLocation={allEventsLocation}
         tagKey={key}
@@ -193,48 +188,7 @@ function TagDetailsRow({
       ) : (
         '--'
       )}
-      <DropdownMenu
-        size="xs"
-        trigger={triggerProps => (
-          <ActionButton
-            {...triggerProps}
-            isHidden={!isHovered}
-            size="xs"
-            icon={<IconEllipsis />}
-            aria-label={t('Tag Value Actions Menu')}
-          />
-        )}
-        items={[
-          {
-            key: 'open-in-discover',
-            label: t('Open in Discover'),
-            to: eventView.getResultsViewUrlTarget(
-              organization.slug,
-              false,
-              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-            ),
-            hidden: !group || !organization.features.includes('discover-basic'),
-          },
-          {
-            key: 'view-events',
-            label: t('View other events with this tag value'),
-            to: allEventsLocation,
-          },
-          {
-            key: 'view-issues',
-            label: t('Search issues with this tag value'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query,
-            },
-          },
-          {
-            key: 'copy-value',
-            label: t('Copy tag value to clipboard'),
-            onAction: handleCopy,
-          },
-        ]}
-      />
+      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
     </Row>
   );
 }
@@ -277,6 +231,72 @@ function TagDetailsValue({
         />
       )}
     </Value>
+  );
+}
+
+function TagValueActionsMenu({
+  group,
+  tag,
+  tagValue,
+}: {
+  group: Group;
+  tag: Tag;
+  tagValue: TagValue;
+}) {
+  const organization = useOrganization();
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: tagValue.value,
+  });
+  const key = tagValue.key ?? tag.key;
+  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const eventView = useIssueDetailsEventView({group, queryProps: query});
+  const [isVisible, setIsVisible] = useState(false);
+
+  return (
+    <DropdownMenu
+      size="xs"
+      className={isVisible ? '' : 'invisible'}
+      onOpenChange={isOpen => setIsVisible(isOpen)}
+      triggerProps={{
+        'aria-label': t('Tag Value Actions Menu'),
+        icon: <IconEllipsis />,
+        showChevron: false,
+        size: 'xs',
+      }}
+      items={[
+        {
+          key: 'open-in-discover',
+          label: t('Open in Discover'),
+          to: eventView.getResultsViewUrlTarget(
+            organization.slug,
+            false,
+            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+          ),
+          hidden: !group || !organization.features.includes('discover-basic'),
+        },
+        {
+          key: 'view-events',
+          label: t('View other events with this tag value'),
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query,
+          },
+        },
+        {
+          key: 'view-issues',
+          label: t('Search issues with this tag value'),
+          to: {
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query,
+          },
+        },
+        {
+          key: 'copy-value',
+          label: t('Copy tag value to clipboard'),
+          onAction: handleCopy,
+        },
+      ]}
+    />
   );
 }
 
@@ -330,6 +350,16 @@ const Row = styled(Body)`
   align-items: center;
   border-radius: 4px;
   padding: ${space(0.25)} ${space(1)};
+
+  .invisible {
+    visibility: hidden;
+  }
+  &:hover,
+  &:active {
+    .invisible {
+      visibility: visible;
+    }
+  }
 `;
 
 const Value = styled('div')`
@@ -358,17 +388,6 @@ const OverflowTimeSince = styled(TimeSince)`
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-`;
-
-// We need to do the hiding here so that focus styles from the `Button` component take precedent
-const ActionButton = styled(Button)<{isHidden: boolean}>`
-  ${p =>
-    p.isHidden &&
-    css`
-      border-color: transparent;
-      color: transparent;
-      background: transparent;
-    `}
 `;
 
 const ExternalLinkbutton = styled(Button)`
