@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -183,23 +184,50 @@ export function ReleaseComparisonSelector() {
   const navigate = useNavigate();
   const {selection} = usePageFilters();
 
-  const sort = decodeScalar(location.query.sortReleasesBy) as ReleasesSortByOption;
-  const sortReleasesBy = getSortRealesesBy(sort, selection.environments);
+  const [localStoragedReleaseBy, setLocalStoragedReleaseBy] =
+    useLocalStorageState<ReleasesSortByOption>(
+      'insightsReleasesSortBy',
+      ReleasesSortOption.DATE
+    );
+
+  const urlStoragedReleaseBy = decodeScalar(
+    location.query.sortReleasesBy
+  ) as ReleasesSortByOption;
 
   useEffect(() => {
-    if (sort !== sortReleasesBy) {
+    if (urlStoragedReleaseBy === localStoragedReleaseBy) {
+      return;
+    }
+
+    // this is useful in case the user shares the url with another user
+    // and the user has a different sort by in their local storage
+    if (!urlStoragedReleaseBy) {
       navigate(
         {
           ...location,
           query: {
             ...location.query,
-            sortReleasesBy,
+            sortReleasesBy: localStoragedReleaseBy,
           },
         },
         {replace: true}
       );
+      return;
     }
-  }, [location, sortReleasesBy, navigate, sort]);
+
+    setLocalStoragedReleaseBy(urlStoragedReleaseBy);
+  }, [
+    urlStoragedReleaseBy,
+    localStoragedReleaseBy,
+    setLocalStoragedReleaseBy,
+    location,
+    navigate,
+  ]);
+
+  const sortReleasesBy = getSortRealesesBy(
+    localStoragedReleaseBy,
+    selection.environments
+  );
 
   return (
     <StyledPageSelector condensed>
