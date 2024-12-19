@@ -80,13 +80,13 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
 
     def validate_type(self, value: str) -> Condition:
         try:
-            condition = Condition(value)
+            type = Condition(value)
         except ValueError:
-            condition = None
+            type = None
 
-        if condition not in self.supported_conditions:
-            raise serializers.ValidationError(f"Unsupported condition {value}")
-        return condition
+        if type not in self.supported_conditions:
+            raise serializers.ValidationError(f"Unsupported type {value}")
+        return type
 
     def validate_result(self, value: str) -> DetectorPriorityLevel:
         try:
