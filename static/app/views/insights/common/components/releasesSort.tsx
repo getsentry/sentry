@@ -9,8 +9,6 @@ export const SORT_BY_OPTIONS = {
   [ReleasesSortOption.USERS_24_HOURS]: {label: t('Active Users')},
   [ReleasesSortOption.ADOPTION]: {label: t('Adoption')},
   [ReleasesSortOption.BUILD]: {label: t('Build Number')},
-  [ReleasesSortOption.CRASH_FREE_SESSIONS]: {label: t('Crash Free Sessions')},
-  [ReleasesSortOption.CRASH_FREE_USERS]: {label: t('Crash Free Users')},
   [ReleasesSortOption.DATE]: {label: t('Date Created')},
   ['number_events']: {label: t('Number of Events')},
   [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
