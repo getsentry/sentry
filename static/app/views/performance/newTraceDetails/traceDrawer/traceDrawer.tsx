@@ -626,7 +626,7 @@ function TraceLayoutMinimizeButton(props: {
       size="xs"
       borderless
       aria-label={t('Close Drawer')}
-      icon={<IconClose size="xs" />}
+      icon={<StyledIconClose />}
       onClick={props.onClick}
     >
       {t('Close')}
@@ -634,7 +634,13 @@ function TraceLayoutMinimizeButton(props: {
   );
 }
 
+const StyledIconClose = styled(IconClose)`
+  width: 10px;
+  height: 10px;
+`;
+
 const CloseButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.textColor};
@@ -741,7 +747,7 @@ const TabsHeightContainer = styled('div')<{
 const TabsLayout = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  padding-left: ${space(0.25)};
+  padding-left: ${space(1)};
   padding-right: ${space(0.5)};
 `;
 
