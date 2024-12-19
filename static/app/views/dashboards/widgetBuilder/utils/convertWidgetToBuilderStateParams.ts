@@ -8,7 +8,7 @@ import type {WidgetBuilderStateQueryParams} from 'sentry/views/dashboards/widget
 export function convertWidgetToBuilderStateParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
-  const yAxis = widget.queries.flatMap(q => q.aggregates);
+  let yAxis = widget.queries.flatMap(q => q.aggregates);
   const query = widget.queries.flatMap(q => q.conditions);
   const sort = widget.queries.flatMap(q => q.orderby);
 
@@ -18,6 +18,7 @@ export function convertWidgetToBuilderStateParams(
     widget.displayType === DisplayType.BIG_NUMBER
   ) {
     field = widget.queries.flatMap(q => q.fields ?? []);
+    yAxis = [];
   } else {
     field = widget.queries.flatMap(q => q.columns);
   }

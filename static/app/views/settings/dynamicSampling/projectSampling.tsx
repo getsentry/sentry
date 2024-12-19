@@ -58,7 +58,7 @@ export function ProjectSampling() {
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
 
   const formState = useFormState({
-    initialValues: initialValues,
+    initialValues,
     enableReInitialize: true,
   });
 
@@ -150,6 +150,7 @@ export function ProjectSampling() {
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (
           <ProjectsEditTable
+            period={period}
             editMode={editMode}
             onEditModeChange={setEditMode}
             isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}

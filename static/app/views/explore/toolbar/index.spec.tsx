@@ -9,6 +9,7 @@ import {
   useExploreFields,
   useExploreGroupBys,
   useExploreMode,
+  useExplorePageParams,
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -401,5 +402,53 @@ describe('ExploreToolbar', function () {
     expect(within(section).getByRole('button', {name: 'span.op'})).toBeInTheDocument();
     expect(within(section).getByRole('button', {name: 'Asc'})).toBeInTheDocument();
     expect(sortBys).toEqual([{field: 'span.op', kind: 'asc'}]);
+  });
+
+  it('takes you to suggested query', async function () {
+    let pageParams;
+    function Component() {
+      pageParams = useExplorePageParams();
+      return <ExploreToolbar />;
+    }
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-suggested-queries');
+
+    await userEvent.click(within(section).getByText('Slowest Ops'));
+    expect(pageParams).toEqual(
+      expect.objectContaining({
+        fields: [
+          'id',
+          'project',
+          'span.op',
+          'span.description',
+          'span.duration',
+          'timestamp',
+        ],
+        groupBys: ['span.op'],
+        mode: Mode.AGGREGATE,
+        query: '',
+        sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
+        visualizes: [
+          {
+            chartType: ChartType.LINE,
+            label: 'A',
+            yAxes: ['avg(span.duration)'],
+          },
+          {
+            chartType: ChartType.LINE,
+            label: 'B',
+            yAxes: ['p50(span.duration)'],
+          },
+        ],
+      })
+    );
   });
 });

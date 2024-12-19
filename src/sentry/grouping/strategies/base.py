@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Generic, Protocol, TypeVar, overload
+from typing import Any, Generic, Protocol, Self, TypeVar, overload
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
@@ -106,7 +106,7 @@ class GroupingContext:
                 return d[key]
         raise KeyError(key)
 
-    def __enter__(self) -> "GroupingContext":
+    def __enter__(self) -> Self:
         self.push()
         return self
 
@@ -144,7 +144,7 @@ class GroupingContext:
 
     def get_single_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> BaseGroupingComponent:
+    ) -> FrameGroupingComponent | ExceptionGroupingComponent | StacktraceGroupingComponent:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -220,7 +220,7 @@ class Strategy(Generic[ConcreteInterface]):
 
     def get_grouping_component(
         self, event: Event, context: GroupingContext, variant: str | None = None
-    ) -> None | BaseGroupingComponent | ReturnedVariants:
+    ) -> None | BaseGroupingComponent[Any] | ReturnedVariants:
         """Given a specific variant this calculates the grouping component."""
         args = []
         iface = event.interfaces.get(self.interface_name)

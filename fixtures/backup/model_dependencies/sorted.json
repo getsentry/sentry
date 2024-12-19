@@ -49,6 +49,7 @@
   "sentry.userroleuser",
   "social_auth.usersocialauth",
   "uptime.uptimesubscription",
+  "uptime.uptimesubscriptionregion",
   "workflow_engine.action",
   "workflow_engine.dataconditiongroup",
   "workflow_engine.dataconditiongroupaction",
