@@ -520,6 +520,35 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
       });
 
+      it('switches to keys menu when recent searches no longer exist', async function () {
+        const {rerender} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Recent should be selected
+        expect(screen.getByRole('button', {name: 'Recent'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+
+        // Rerender without recent searches
+        rerender(<SearchQueryBuilder {...defaultProps} />);
+
+        // Recent should not exist anymore
+        expect(screen.queryByRole('button', {name: 'Recent'})).not.toBeInTheDocument();
+        // All should be selected
+        expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+
       it('when selecting a recent search, should reset query and call onSearch', async function () {
         const mockOnSearch = jest.fn();
         const mockCreateRecentSearch = MockApiClient.addMockResponse({
