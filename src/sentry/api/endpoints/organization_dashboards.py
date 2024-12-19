@@ -168,7 +168,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             user_name_dict = {
                 user.id: user.name
                 for user in user_service.get_many_by_id(
-                    ids=dashboards.values_list("created_by_id", flat=True)
+                    ids=list(dashboards.values_list("created_by_id", flat=True))
                 )
             }
 
