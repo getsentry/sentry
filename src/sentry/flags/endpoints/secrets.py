@@ -39,7 +39,7 @@ class FlagWebhookSigningSecretSerializer(Serializer):
 
 
 class FlagWebhookSigningSecretValidator(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=[("launchdarkly", "launchdarkly")], required=True)
+    provider = serializers.ChoiceField(choices=["launchdarkly", "generic"], required=True)
     secret = serializers.CharField(required=True, max_length=32, min_length=32)
 
 
