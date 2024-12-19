@@ -35,7 +35,6 @@ import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -443,13 +442,6 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
-      {detail.event._metrics_summary ? (
-        <CustomMetricsEventData
-          projectId={detail.event.projectID}
-          metricsSummary={detail.event._metrics_summary}
-          startTimestamp={detail.event.startTimestamp}
-        />
-      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
       {project && (
         <EventAttachments event={detail.event} project={project} group={undefined} />
