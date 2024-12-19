@@ -309,6 +309,7 @@ class OrganizationReleaseDetailsEndpoint(
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
             ReleaseParams.PROJECT_ID,
+            ReleaseParams.ENVIRONMENT,
             ReleaseParams.HEALTH,
             ReleaseParams.ADOPTION_STAGES,
             ReleaseParams.SUMMARY_STATS_PERIOD,
