@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
-import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
+import {IconChevron, IconInfo, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -508,6 +508,9 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
+        )}
+        {props.tab.node === 'help' && (
+          <IconInfo size="xs" style={{marginRight: space(0.25)}} />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
       </Tab>
