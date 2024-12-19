@@ -230,7 +230,7 @@ class DetectorValidatorTest(TestCase):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 1
         condition = conditions[0]
-        assert condition.condition == "gte"
+        assert condition.type == "gte"
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
@@ -342,7 +342,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 1
         condition = conditions[0]
-        assert condition.condition == "gt"
+        assert condition.type == "gt"
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
