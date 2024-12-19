@@ -7,6 +7,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
@@ -24,10 +25,26 @@ from sentry.workflow_engine.models import (
     Workflow,
     WorkflowDataConditionGroup,
 )
-from sentry.workflow_engine.models.data_condition import Condition, ConditionType
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+
+def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
+    if alert_rule_trigger_action.sentry_app_id:
+        return Action.Type.SENTRY_APP
+
+    elif alert_rule_trigger_action.integration_id:
+        integration = integration_service.get_integration(
+            integration_id=alert_rule_trigger_action.integration_id
+        )
+        for type in Action.Type.choices:
+            if type[0] == integration.provider:
+                return type[1]
+        return None
+    else:
+        return Action.Type.EMAIL
 
 
 def migrate_metric_action(
@@ -44,6 +61,14 @@ def migrate_metric_action(
         )
         return None
 
+    action_type = get_action_type(alert_rule_trigger_action)
+    if not action_type:
+        logger.warning(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
+        )
+        return None
+
     data = {
         "type": alert_rule_trigger_action.type,
         "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
@@ -51,12 +76,13 @@ def migrate_metric_action(
     }
     action = Action.objects.create(
         required=False,
-        type=Action.Type.NOTIFICATION,  # TODO: this is going to change to be the delivery method
+        type=action_type,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
         target_display=alert_rule_trigger_action.target_display,
         target_identifier=alert_rule_trigger_action.target_identifier,
         target_type=alert_rule_trigger_action.target_type,
+        legacy_notification_type=Action.LegacyNotificationType.METRIC_ALERT,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
@@ -109,10 +135,9 @@ def migrate_metric_data_condition(
         return None
 
     data_condition = DataCondition.objects.create(
-        condition=threshold_to_condition.get(threshold_type, AlertRuleThresholdType.ABOVE.value),
         comparison=alert_rule_trigger.alert_threshold,
         condition_result=condition_result,
-        type=ConditionType.METRIC_CONDITION,
+        type=threshold_to_condition.get(threshold_type, AlertRuleThresholdType.ABOVE.value),
         condition_group=data_condition_group,
     )
     alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
