@@ -45,9 +45,6 @@ class DataCondition(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
     __repr__ = sane_repr("type", "condition", "condition_group")
 
-    # TODO finish removing this field, it was too confusing - changing to null first to allow us to decouple the code
-    condition = models.CharField(max_length=200, null=True)
-
     # The comparison is the value that the condition is compared to for the evaluation, this must be a primitive value
     comparison = models.JSONField()
 
