@@ -19,7 +19,14 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import get_default_metric_alert_repository
+from sentry.integrations.repository import (
+    get_default_generic_repository,
+    get_default_metric_alert_repository,
+)
+from sentry.integrations.repository.generic import (
+    GenericNotificationMessageRepository,
+    NewGenericNotificationMessage,
+)
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
@@ -83,7 +90,6 @@ def send_incident_alert_notification(
         interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
         spec=SlackMessagingSpec(),
     ).capture() as lifecycle:
-        repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
         parent_notification_message = None
         # Only grab the parent notification message for thread use if the feature is on
         # Otherwise, leave it empty, and it will not create a thread
@@ -92,21 +98,47 @@ def send_incident_alert_notification(
             key="sentry:metric_alerts_thread_flag",
             default=METRIC_ALERTS_THREAD_DEFAULT,
         ):
-            try:
-                parent_notification_message = repository.get_parent_notification_message(
-                    alert_rule_id=incident.alert_rule_id,
-                    incident_id=incident.id,
-                    trigger_action_id=action.id,
+            if features.has(
+                "organizations:generic-notification-message-repository",
+                organization,
+            ):
+                repository: GenericNotificationMessageRepository = get_default_generic_repository()
+                try:
+                    parent_notification_message = repository.get_parent_notification_message(
+                        group_id=incident.group_id,
+                        rule_action_uuid=action.id,
+                    )
+                except Exception as e:
+                    lifecycle.record_halt(e)
+                    # if there's an error trying to grab a parent notification, don't let that error block this flow
+                    pass
+            else:
+                repository: MetricAlertNotificationMessageRepository = (
+                    get_default_metric_alert_repository()
                 )
-            except Exception as e:
-                lifecycle.record_halt(e)
-                # if there's an error trying to grab a parent notification, don't let that error block this flow
-                pass
+                try:
+                    parent_notification_message = repository.get_parent_notification_message(
+                        alert_rule_id=incident.alert_rule_id,
+                        incident_id=incident.id,
+                        trigger_action_id=action.id,
+                    )
+                except Exception as e:
+                    lifecycle.record_halt(e)
+                    # if there's an error trying to grab a parent notification, don't let that error block this flow
+                    pass
 
-    new_notification_message_object = NewMetricAlertNotificationMessage(
-        incident_id=incident.id,
-        trigger_action_id=action.id,
-    )
+    if features.has(
+        "organizations:generic-notification-message-repository",
+        organization,
+    ):
+        new_notification_message_object = NewGenericNotificationMessage(
+            composite_key=f"{incident.alert_rule_id}:{incident.id}:{action.id}",
+        )
+    else:
+        new_notification_message_object = NewMetricAlertNotificationMessage(
+            incident_id=incident.id,
+            trigger_action_id=action.id,
+        )
 
     reply_broadcast = False
     thread_ts = None
@@ -183,6 +215,7 @@ def send_incident_alert_notification(
 
     # Save the notification message we just sent with the response id or error we received
     try:
+        # The repository was already chosed correctly when getting the parent notification message
         repository.create_notification_message(data=new_notification_message_object)
     except Exception:
         # If we had an unexpected error with saving a record to our datastore,

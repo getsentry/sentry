@@ -137,6 +137,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:failure-rate-metric-alert-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GenAI features such as Autofix and Issue Summary
     manager.add("organizations:gen-ai-features", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable generic notification message repository
+    manager.add("organizations:generic-notification-message-repository", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable disabling gitlab integrations when broken is detected
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow creating `GroupHashMetadata` records

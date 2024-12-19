@@ -48,6 +48,10 @@ class NotificationMessage(Model):
     # Reference to another notification if we choose to modify the original message or reply to it (like start a thread)
     parent_notification_message = FlexibleForeignKey("self", null=True)
 
+    # Composite key for flexible thread lookups
+    composite_key = CharField(null=True, db_index=True)
+    group_id = IntegerField(null=True, db_index=True)
+
     # Related information regarding Alert Rules (Metric Alerts)
     incident = FlexibleForeignKey("sentry.Incident", null=True)
     trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction", null=True)
@@ -61,20 +65,35 @@ class NotificationMessage(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_notificationmessage"
-        # A notification message should exist for either issue or metric alert, but never both
+        # A notification message should exist for either issue alert, metric alert, or generic notification message
+        # but should be singular for each
         constraints = [
             CheckConstraint(
                 condition=(
                     (
                         Q(incident__isnull=False, trigger_action__isnull=False)
                         & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
+                        & Q(composite_key__isnull=True)
+                        & Q(group_id__isnull=True)
                     )
                     | (
                         Q(incident__isnull=True, trigger_action__isnull=True)
                         & Q(rule_fire_history__isnull=False, rule_action_uuid__isnull=False)
+                        & Q(composite_key__isnull=True)
+                        & Q(group_id__isnull=True)
+                    )
+                    | (
+                        Q(composite_key__isnull=False)
+                        & Q(incident__isnull=True, trigger_action__isnull=True)
+                        & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
+                    )
+                    | (
+                        Q(group_id__isnull=False)
+                        & Q(incident__isnull=True, trigger_action__isnull=True)
+                        & Q(rule_fire_history__isnull=True, rule_action_uuid__isnull=True)
                     )
                 ),
-                name="notification_for_issue_xor_metric_alert",
+                name="notification_for_issue_xor_metric_alert_xor_generic_xor_group",
             ),
             UniqueConstraint(
                 fields=("incident", "trigger_action"),
