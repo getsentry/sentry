@@ -31,7 +31,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation');
+    return t('No Instrumentation');
   }
 
   if (isTraceErrorNode(node)) {
