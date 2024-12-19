@@ -96,6 +96,13 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
+      const parentTransaction = TraceTree.ParentTransaction(node);
+      if (parentTransaction) {
+        preserveNodes.add(parentTransaction);
+      }
+    }
+
+    for (const node of preserveLeafNodes) {
       const index = this.list.indexOf(node);
       if (index === -1) {
         continue;

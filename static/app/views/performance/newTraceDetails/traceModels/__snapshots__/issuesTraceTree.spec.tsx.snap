@@ -3,6 +3,8 @@
 exports[`IssuesTraceTree FromSpans collapses spans 1`] = `
 "
 collapsed
+    transaction 2 - transaction.op
+      collapsed
       db - SELECT
       cache - GET
       http - GET /

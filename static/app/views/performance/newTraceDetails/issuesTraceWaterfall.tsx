@@ -194,9 +194,14 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
     if (node) {
       const preserveNodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+
       let start = index;
       while (--start > 0) {
-        if (isTraceErrorNode(props.tree.list[start])) {
+        if (
+          isTraceErrorNode(props.tree.list[start]) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
         }
@@ -204,7 +209,11 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
       start = index;
       while (++start < props.tree.list.length) {
-        if (isTraceErrorNode(props.tree.list[start])) {
+        if (
+          isTraceErrorNode(props.tree.list[start]) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
           preserveNodes.push(props.tree.list[start]!);
           break;
         }
