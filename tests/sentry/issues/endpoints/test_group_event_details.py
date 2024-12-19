@@ -377,7 +377,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         issue_title = "king of england"
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
-            title=issue_title,
+            issue_title=issue_title,
             event_data={"level": "info"},
         )
 
