@@ -75,6 +75,16 @@ describe('TagDetailsDrawerContent', () => {
     expect(screen.getByText('17%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
+
+    // Displays dropdown menu
+    await userEvent.hover(screen.getByText('David Cramer'));
+    expect(
+      screen.getByRole('button', {name: 'Tag Value Actions Menu'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Tag Value Actions Menu'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Copy tag value to clipboard'})
+    ).toBeInTheDocument();
   });
 
   it('can page through tag values', async () => {
