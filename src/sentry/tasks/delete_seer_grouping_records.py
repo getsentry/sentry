@@ -8,7 +8,7 @@ from sentry.seer.similarity.grouping_records import (
     delete_grouping_records_by_hash,
     delete_project_grouping_records,
 )
-from sentry.seer.similarity.utils import killswitch_enabled
+from sentry.seer.similarity.utils import ReferrerOptions, killswitch_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
@@ -34,7 +34,7 @@ def delete_seer_grouping_records_by_hash(
     Task to delete seer grouping records by hash list.
     Calls the seer delete by hash endpoint with batches of hashes of size `BATCH_SIZE`.
     """
-    if killswitch_enabled(project_id) or options.get(
+    if killswitch_enabled(project_id, ReferrerOptions.DELETION) or options.get(
         "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
     ):
         return
@@ -57,7 +57,7 @@ def call_delete_seer_grouping_records_by_hash(
     if (
         project
         and project.get_option("sentry:similarity_backfill_completed")
-        and not killswitch_enabled(project.id)
+        and not killswitch_enabled(project.id, ReferrerOptions.DELETION)
         and not options.get("seer.similarity-embeddings-delete-by-hash-killswitch.enabled")
     ):
         # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
@@ -86,7 +86,7 @@ def call_seer_delete_project_grouping_records(
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    if killswitch_enabled(project_id) or options.get(
+    if killswitch_enabled(project_id, ReferrerOptions.DELETION) or options.get(
         "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
     ):
         return
