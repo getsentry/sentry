@@ -41,9 +41,9 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_group_id_from_hash(self, hash: str, project_id: int) -> int:
-        group_hash = GroupHash.objects.get(project_id=project_id, hash=hash)
-        return group_hash.group_id
+    def get_group_id_from_hashes(self, hashes: list[str], project_id: int) -> Mapping[str, int]:
+        group_hashes = GroupHash.objects.filter(project_id=project_id, hash__in=hashes)
+        return {group_hash.hash: group_hash.group_id for group_hash in group_hashes}
 
     def get_formatted_results(
         self,
@@ -56,11 +56,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         changing the cosine distances into cosine similarities.
         """
         group_data = {}
+        parent_hashes = [
+            similar_issue_data.parent_hash for similar_issue_data in similar_issues_data
+        ]
+        parent_hashes_group_ids = self.get_group_id_from_hashes(parent_hashes, group.project_id)
         for similar_issue_data in similar_issues_data:
-            if (
-                self.get_group_id_from_hash(similar_issue_data.parent_hash, group.project.id)
-                != group.id
-            ):
+            if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
                     "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                     "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
