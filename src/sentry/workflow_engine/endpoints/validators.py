@@ -160,10 +160,9 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
             )
             for condition in validated_data["data_conditions"]:
                 DataCondition.objects.create(
-                    condition=condition["condition"],
                     comparison=condition["comparison"],
                     condition_result=condition["result"],
-                    type=condition["type"],
+                    type=condition["condition"],
                     condition_group=condition_group,
                 )
             detector = Detector.objects.create(

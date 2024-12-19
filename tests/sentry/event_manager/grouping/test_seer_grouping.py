@@ -11,7 +11,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.mocking import capture_results
-from sentry.utils.types import NonNone
 
 
 class SeerEventManagerGroupingTest(TestCase):
@@ -42,9 +41,10 @@ class SeerEventManagerGroupingTest(TestCase):
 
     def test_obeys_seer_similarity_flags(self):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
+        assert existing_event.group_id
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -67,7 +67,7 @@ class SeerEventManagerGroupingTest(TestCase):
                 return_value=[seer_result_data],
             ),
             patch(
-                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=True,
             ),
         ):
@@ -103,9 +103,7 @@ class SeerEventManagerGroupingTest(TestCase):
             # In real life just filtering on group id wouldn't be enough to guarantee us a
             # single, specific GroupHash record, but since the database resets before each test,
             # here it's okay
-            expected_grouphash = GroupHash.objects.filter(
-                group_id=NonNone(existing_event.group_id)
-            ).first()
+            expected_grouphash = GroupHash.objects.filter(group_id=existing_event.group_id).first()
 
             # We checked whether to make the call, and then made it
             assert should_call_seer_spy.call_count == 1
@@ -183,9 +181,10 @@ class SeerEventManagerGroupingTest(TestCase):
             )
 
         # Event which is sent and does find a match
+        assert existing_event.group_id is not None
         seer_result_data = SeerSimilarIssueData(
             parent_hash=existing_event.get_primary_hash(),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
@@ -256,9 +255,10 @@ class SeerEventManagerGroupingTest(TestCase):
     def test_assigns_event_to_neighbor_group_if_found(self, _):
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
 
+        assert existing_event.group_id is not None
         seer_result_data = SeerSimilarIssueData(
-            parent_hash=NonNone(existing_event.get_primary_hash()),
-            parent_group_id=NonNone(existing_event.group_id),
+            parent_hash=existing_event.get_primary_hash(),
+            parent_group_id=existing_event.group_id,
             stacktrace_distance=0.01,
             should_group=True,
         )
