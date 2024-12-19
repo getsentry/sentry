@@ -16,7 +16,6 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
@@ -71,14 +70,9 @@ export function createSection(
     key: section.value,
     value: section.value,
     label: section.label,
-    options: section.children
-      .map(key => {
-        if (!keys[key]) {
-          return null;
-        }
-        return createItem(keys[key], getFieldDefinition(key), section);
-      })
-      .filter(defined),
+    options: section.children.map(key =>
+      createItem(keys[key], getFieldDefinition(key), section)
+    ),
     type: 'section',
   };
 }

@@ -9,7 +9,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
@@ -92,10 +91,6 @@ describe('Discover > Homepage', () => {
       method: 'GET',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      body: [],
-    });
   });
 
   it('renders the Discover banner', async () => {
@@ -134,7 +129,7 @@ describe('Discover > Homepage', () => {
     // Only the environment field
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('Previous Period');
-    screen.getByRole('row', {name: 'event.type:error'});
+    screen.getByText('event.type:error');
     expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
   });
 
@@ -185,11 +180,9 @@ describe('Discover > Homepage', () => {
 
     await userEvent.click(await screen.findByText('Columns'));
 
-    const modal = await screen.findByRole('dialog');
-
-    await userEvent.click(within(modal).getByTestId('label'));
-    await userEvent.click(within(modal).getByText('event.type'));
-    await userEvent.click(within(modal).getByText('Apply'));
+    await userEvent.click(screen.getByTestId('label'));
+    await userEvent.click(screen.getByText('event.type'));
+    await userEvent.click(screen.getByText('Apply'));
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -586,7 +579,7 @@ describe('Discover > Homepage', () => {
     await screen.findByText('environment');
 
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
-    screen.getByRole('row', {name: 'event.type:error'});
+    screen.getByText('event.type:error');
     expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
       'aria-selected',
       'true'
