@@ -42,7 +42,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     }
 
     def get_group_id_from_hash(self, hash: str, project_id: int) -> int:
-        group_hash = GroupHash.objects.filter(project_id=project_id, hash=hash)
+        group_hash = GroupHash.objects.get(project_id=project_id, hash=hash)
         return group_hash.group_id
 
     def get_formatted_results(
