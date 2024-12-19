@@ -12,7 +12,6 @@ from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
     ReferrerOptions,
-    TooManyOnlySystemFramesException,
     _is_snipped_context_line,
     filter_null_from_string,
     get_stacktrace_string,
@@ -716,54 +715,6 @@ class GetStacktraceStringTest(TestCase):
         data = {"default": "something"}
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
-
-    def test_stacktrace_length_filter_single_exception(self):
-        data_system = copy.deepcopy(self.BASE_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        data_system["system"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
-
-        with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system, platform="java")
-
-    def test_stacktrace_length_filter_single_exception_invalid_platform(self):
-        data_system = copy.deepcopy(self.BASE_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        data_system["system"]["component"]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT + 1, True)
-
-        stacktrace_string = get_stacktrace_string(data_system, "python")
-        assert stacktrace_string is not None and stacktrace_string != ""
-
-    def test_stacktrace_length_filter_chained_exception(self):
-        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        # Split MAX_FRAME_COUNT across the two exceptions
-        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-
-        with pytest.raises(TooManyOnlySystemFramesException):
-            get_stacktrace_string(data_system, platform="java")
-
-    def test_stacktrace_length_filter_chained_exception_invalid_platform(self):
-        data_system = copy.deepcopy(self.CHAINED_APP_DATA)
-        data_system["system"] = data_system.pop("app")
-        # Split MAX_FRAME_COUNT across the two exceptions
-        data_system["system"]["component"]["values"][0]["values"][0]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-        data_system["system"]["component"]["values"][0]["values"][1]["values"][0][
-            "values"
-        ] += self.create_frames(MAX_FRAME_COUNT // 2, True)
-
-        stacktrace_string = get_stacktrace_string(data_system, "python")
-        assert stacktrace_string is not None and stacktrace_string != ""
 
     def test_stacktrace_truncation_uses_in_app_contributing_frames(self):
         """
