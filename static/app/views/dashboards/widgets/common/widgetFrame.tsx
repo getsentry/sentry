@@ -20,6 +20,7 @@ export interface WidgetFrameProps extends StateProps {
   actionsDisabled?: boolean;
   actionsMessage?: string;
   badgeProps?: BadgeProps | BadgeProps[];
+  borderless?: boolean;
   children?: React.ReactNode;
   description?: React.ReactElement | string;
   onFullScreenViewClick?: () => void;
@@ -45,7 +46,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       : props.actions) ?? [];
 
   return (
-    <Frame aria-label="Widget panel">
+    <Frame aria-label="Widget panel" borderless={props.borderless}>
       <Header>
         {props.warnings && props.warnings.length > 0 && (
           <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
@@ -186,7 +187,7 @@ function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActions
   );
 }
 
-const Frame = styled('div')`
+const Frame = styled('div')<{borderless?: boolean}>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -197,8 +198,7 @@ const Frame = styled('div')`
   min-width: ${MIN_WIDTH}px;
 
   border-radius: ${p => p.theme.panelBorderRadius};
-  border: ${p => p.theme.border};
-  border: 1px ${p => 'solid ' + p.theme.border};
+  ${p => !p.borderless && `border: 1px solid ${p.theme.border};`}
 
   background: ${p => p.theme.background};
 
