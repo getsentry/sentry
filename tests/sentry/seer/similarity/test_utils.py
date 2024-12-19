@@ -15,7 +15,6 @@ from sentry.seer.similarity.utils import (
     _is_snipped_context_line,
     filter_null_from_string,
     get_stacktrace_string,
-    get_stacktrace_string_with_metrics,
     has_too_many_contributing_frames,
 )
 from sentry.testutils.cases import TestCase
@@ -796,7 +795,7 @@ class GetStacktraceStringTest(TestCase):
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
-        stacktrace_string = get_stacktrace_string_with_metrics(exception)
+        stacktrace_string = get_stacktrace_string(exception)
         assert (
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
