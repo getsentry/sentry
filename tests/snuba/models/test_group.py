@@ -246,7 +246,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_recommended(self.group, conditions=conditions) is None
+        assert self.group.get_recommended_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -278,7 +278,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_latest(self.group, conditions=conditions) is None
+        assert self.group.get_latest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -308,7 +308,7 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_oldest(self.group, conditions=conditions) is None
+        assert self.group.get_oldest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -381,7 +381,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
             event_data=event_data_c, fingerprint=group_fingerprint
         )
 
-        self.group = Group.objects.get()
+        self.group: Group = Group.objects.get()
         assert isinstance(self.group, Group)
 
     def test_recommended_event(self):
@@ -394,7 +394,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_recommended(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_recommended(self.group, conditions=conditions) is None
+        assert self.group.get_recommended_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -426,7 +426,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_latest(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_latest(self.group, conditions=conditions) is None
+        assert self.group.get_latest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -456,7 +456,7 @@ class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTe
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.event_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_oldest(self.group, conditions=conditions) is None
+        assert self.group.get_oldest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -537,7 +537,6 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
 
     def test_recommended_event(self):
         # No filter
-
         self.assert_occurrences_identical(_get_recommended(self.group).occurrence, self.issue_occ_b)
 
         # Filter by environment
@@ -552,7 +551,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
             == self.issue_occ_b.event_id
         )
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_recommended(self.group, conditions=conditions) is None
+        assert self.group.get_recommended_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -590,7 +589,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_latest(self.group, conditions=conditions).event_id == self.issue_occ_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_latest(self.group, conditions=conditions) is None
+        assert self.group.get_latest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
@@ -620,7 +619,7 @@ class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin
         conditions = [Condition(Column("environment"), Op.IN, ["production"])]
         assert _get_oldest(self.group, conditions=conditions).event_id == self.issue_occ_b.event_id
         conditions = [Condition(Column("environment"), Op.IN, ["development"])]
-        assert _get_oldest(self.group, conditions=conditions) is None
+        assert self.group.get_oldest_event(conditions=conditions) is None
 
         # Filter by query
         conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
