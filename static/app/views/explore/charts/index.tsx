@@ -355,19 +355,29 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
                     ? t('* Extrapolated from \u2026')
                     : resultConfidence === 'low'
-                      ? tct('* Extrapolated from [insufficientSamples]', {
-                          insufficientSamples: (
-                            <Tooltip
-                              title={t(
-                                'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
-                              )}
-                            >
-                              <InsufficientSamples>
-                                {t('insufficient samples')}
-                              </InsufficientSamples>
-                            </Tooltip>
-                          ),
-                        })
+                      ? tct(
+                          '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
+                          {
+                            sampleCount: (
+                              <Count
+                                value={
+                                  extrapolationMetaResults.data?.[0]?.['count_sample()']
+                                }
+                              />
+                            ),
+                            insufficientSamples: (
+                              <Tooltip
+                                title={t(
+                                  'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
+                                )}
+                              >
+                                <InsufficientSamples>
+                                  {t('insufficient for accuracy')}
+                                </InsufficientSamples>
+                              </Tooltip>
+                            ),
+                          }
+                        )
                       : tct('* Extrapolated from [sampleCount] samples', {
                           sampleCount: (
                             <Count
