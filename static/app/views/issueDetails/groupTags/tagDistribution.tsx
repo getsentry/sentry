@@ -28,7 +28,6 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {tag.topValues.map((tagValue, tagValueIdx) => {
           const percentage = percent(tagValue.count, tag.totalValues);
           const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
-
           return (
             <TagValueRow key={tagValueIdx}>
               <Tooltip delay={300} title={tagValue.name} skipWrapper>
