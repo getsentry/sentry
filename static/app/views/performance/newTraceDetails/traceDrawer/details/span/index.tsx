@@ -9,10 +9,6 @@ import {
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  CustomMetricsEventData,
-  eventHasCustomMetrics,
-} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -150,10 +146,7 @@ function SpanSections({
   }
 
   const hasSpanSpecificData =
-    hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
-    hasSpanTags(node.value) ||
-    eventHasCustomMetrics(organization, node.value._metrics_summary);
+    hasSpanHTTPInfo(node.value) || hasSpanKeys(node) || hasSpanTags(node.value);
 
   return (
     <Fragment>
@@ -169,13 +162,6 @@ function SpanSections({
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
-            {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-              <CustomMetricsEventData
-                projectId={project?.id || ''}
-                metricsSummary={node.value._metrics_summary}
-                startTimestamp={node.value.start_timestamp}
-              />
-            ) : null}
           </TraceDrawerComponents.SectionCardGroup>
         </InterimSection>
       ) : null}
@@ -215,13 +201,6 @@ function LegacySpanSections({
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
       {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
       {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
-      {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-        <CustomMetricsEventData
-          projectId={project?.id || ''}
-          metricsSummary={node.value._metrics_summary}
-          startTimestamp={node.value.start_timestamp}
-        />
-      ) : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }
