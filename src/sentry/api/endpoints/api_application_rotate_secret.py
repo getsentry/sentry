@@ -5,14 +5,14 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.base import control_silo_endpoint
+from sentry.api.endpoints.api_application_details import ApiApplicationEndpoint
 from sentry.api.serializers import serialize
-from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus, generate_token
+from sentry.models.apiapplication import ApiApplication, generate_token
 
 
 @control_silo_endpoint
-class ApiApplicationRotateSecretEndpoint(Endpoint):
+class ApiApplicationRotateSecretEndpoint(ApiApplicationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -20,13 +20,7 @@ class ApiApplicationRotateSecretEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request: Request, app_id) -> Response:
-        try:
-            api_application = ApiApplication.objects.get(
-                owner_id=request.user.id, client_id=app_id, status=ApiApplicationStatus.active
-            )
-        except ApiApplication.DoesNotExist:
-            raise ResourceDoesNotExist
+    def post(self, request: Request, application: ApiApplication) -> Response:
         new_token = generate_token()
-        api_application.update(client_secret=new_token)
+        application.update(client_secret=new_token)
         return Response(serialize({"clientSecret": new_token}))
