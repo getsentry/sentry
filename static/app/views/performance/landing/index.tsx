@@ -92,7 +92,7 @@ export function PerformanceLanding(props: Props) {
     handleTrendsClick,
     onboardingProject,
   } = props;
-  const {setPageInfo, pageAlert} = usePageAlert();
+  const {setPageWarning, pageAlert} = usePageAlert();
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
   const {slug} = organization;
 
@@ -118,7 +118,9 @@ export function PerformanceLanding(props: Props) {
         </Link>
         {t(', and ')}
         <Link to={`${getPerformanceBaseUrl(slug, 'ai')}/`}>{AI_SIDEBAR_LABEL}</Link>
-        {t(' performance pages. They can all be found in the Insights tab.')}
+        {t(
+          ' performance pages. They can all be found in the Insights tab. The Performance landing page will be retired February 2025.'
+        )}
       </Fragment>
     );
   }, [slug]);
@@ -134,9 +136,9 @@ export function PerformanceLanding(props: Props) {
 
   useEffect(() => {
     if (performanceMovingAlert && pageAlert?.message !== performanceMovingAlert) {
-      setPageInfo(performanceMovingAlert);
+      setPageWarning(performanceMovingAlert);
     }
-  }, [pageAlert?.message, performanceMovingAlert, setPageInfo]);
+  }, [pageAlert?.message, performanceMovingAlert, setPageWarning]);
 
   useEffect(() => {
     if (hasMounted.current) {
