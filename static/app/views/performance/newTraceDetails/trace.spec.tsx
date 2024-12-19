@@ -1103,9 +1103,7 @@ describe('trace view', () => {
         // Toggle no instrumentation off
         await userEvent.click(preferencesDropdownTrigger);
 
-        const noInstrumentationOption = await screen.findByTestId(
-          'missing-instrumentation'
-        );
+        const noInstrumentationOption = await screen.findByTestId('no-instrumentation');
 
         // Toggle no instrumentation off
         await userEvent.click(noInstrumentationOption!);
