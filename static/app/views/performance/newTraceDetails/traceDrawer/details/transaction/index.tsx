@@ -12,10 +12,6 @@ import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {
-  CustomMetricsEventData,
-  eventHasCustomMetrics,
-} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -310,13 +306,6 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
           {hasMeasurements(event) ? (
             <Measurements event={event} location={location} organization={organization} />
           ) : null}
-          {eventHasCustomMetrics(organization, event._metrics_summary) ? (
-            <CustomMetricsEventData
-              metricsSummary={event._metrics_summary}
-              startTimestamp={event.startTimestamp}
-              projectId={event.projectID}
-            />
-          ) : null}
           {event.contexts.trace?.data ? (
             <TraceDrawerComponents.TraceDataSection event={event} />
           ) : null}
@@ -353,13 +342,6 @@ function LegacyTransactionSpecificSections({
         ) : null}
         {cacheMetrics.length > 0 ? <CacheMetrics cacheMetrics={cacheMetrics} /> : null}
         {hasSDKContext(event) ? <Sdk event={event} /> : null}
-        {eventHasCustomMetrics(organization, event._metrics_summary) ? (
-          <CustomMetricsEventData
-            metricsSummary={event._metrics_summary}
-            startTimestamp={event.startTimestamp}
-            projectId={event.projectID}
-          />
-        ) : null}
         {event.contexts.trace?.data ? (
           <TraceDrawerComponents.TraceDataSection event={event} />
         ) : null}
