@@ -86,10 +86,10 @@ export function location6ToLocation3<Q extends Query = DefaultQuery>(
   const {pathname, search, hash, state, key} = location;
 
   return {
-    pathname: pathname,
-    search: search,
+    pathname,
+    search,
     query: qs.parse(search) as Q,
-    hash: hash,
+    hash,
     state,
     key,
 

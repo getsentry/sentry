@@ -12,6 +12,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.team import Team
 from sentry.users.models.user import User
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -153,7 +154,7 @@ class QuerySubscription(Model):
         return (subscription.pk, ImportKind.Inserted)
 
 
-@data_source_type_registry.register("snuba_query_subscription")
+@data_source_type_registry.register(DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 class QuerySubscriptionDataSourceHandler(DataSourceTypeHandler[QuerySubscription]):
     @staticmethod
     def bulk_get_query_object(

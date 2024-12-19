@@ -9,10 +9,6 @@ import {
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  CustomMetricsEventData,
-  eventHasCustomMetrics,
-} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -150,10 +146,7 @@ function SpanSections({
   }
 
   const hasSpanSpecificData =
-    hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
-    hasSpanTags(node.value) ||
-    eventHasCustomMetrics(organization, node.value._metrics_summary);
+    hasSpanHTTPInfo(node.value) || hasSpanKeys(node) || hasSpanTags(node.value);
 
   return (
     <Fragment>
@@ -169,13 +162,6 @@ function SpanSections({
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
-            {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-              <CustomMetricsEventData
-                projectId={project?.id || ''}
-                metricsSummary={node.value._metrics_summary}
-                startTimestamp={node.value.start_timestamp}
-              />
-            ) : null}
           </TraceDrawerComponents.SectionCardGroup>
         </InterimSection>
       ) : null}
@@ -215,13 +201,6 @@ function LegacySpanSections({
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
       {hasSpanTags(node.value) ? <Tags span={node.value} /> : null}
       {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
-      {eventHasCustomMetrics(organization, node.value._metrics_summary) ? (
-        <CustomMetricsEventData
-          projectId={project?.id || ''}
-          metricsSummary={node.value._metrics_summary}
-          startTimestamp={node.value.start_timestamp}
-        />
-      ) : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }
@@ -274,51 +253,53 @@ export function SpanNodeDetails({
   const profileId = node.event?.contexts?.profile?.profile_id ?? null;
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasNewTraceUi}>
+    <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
         node={node}
         organization={organization}
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {node.event?.projectSlug ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={node.event?.projectSlug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <Alerts node={node} />
-                {issues.length > 0 ? (
-                  <IssueList organization={organization} issues={issues} node={node} />
-                ) : null}
-                <SpanDescription
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                />
-                <SpanSections
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                  onParentClick={onParentClick}
-                />
-                {organization.features.includes('profiling') ? (
-                  <ProfileDetails event={node.event!} span={node.value} />
-                ) : null}
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : null}
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+        {node.event?.projectSlug ? (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={node.event?.projectSlug}
+            profileId={profileId || ''}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <Alerts node={node} />
+                  {issues.length > 0 ? (
+                    <IssueList organization={organization} issues={issues} node={node} />
+                  ) : null}
+                  <SpanDescription
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                  />
+                  <SpanSections
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                    onParentClick={onParentClick}
+                  />
+                  {organization.features.includes('profiling') ? (
+                    <ProfileDetails event={node.event!} span={node.value} />
+                  ) : null}
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        ) : null}
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
