@@ -19,7 +19,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {percent} from 'sentry/utils';
-import {parseCursor} from 'sentry/utils/cursor';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,15 +68,8 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
 
-  const currentCursor = parseCursor(location.query?.tagDrawerCursor);
-  const start = currentCursor?.offset ?? 0;
-  const pageCount = tagValues?.length ?? 0;
-
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-  const paginationCaption = tct('Showing [start]-[end] of [count]', {
-    start: start.toLocaleString(),
-    end: (start + pageCount).toLocaleString(),
+  const paginationCaption = tct('[count] results', {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
