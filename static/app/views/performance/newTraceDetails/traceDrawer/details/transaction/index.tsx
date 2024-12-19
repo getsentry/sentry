@@ -355,5 +355,4 @@ function LegacyTransactionSpecificSections({
 
 const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;
