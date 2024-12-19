@@ -41,8 +41,6 @@ export interface IssueView {
   unsavedChanges?: [string, IssueSortOptions];
 }
 
-// export interface IssueViewsProps<T> extends TabsProps<T> {}
-
 type ReorderTabsAction = {
   newKeyOrder: string[];
   type: 'REORDER_TABS';
