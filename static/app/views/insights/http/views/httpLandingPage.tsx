@@ -26,6 +26,7 @@ import SubregionSelector from 'sentry/views/insights/common/views/spans/selector
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
+import {OpenInExploreButton} from 'sentry/views/insights/http/components/openInDiscoverButton';
 import {
   DomainsTable,
   isAValidSort,
@@ -172,6 +173,9 @@ export function HTTPLandingPage() {
   const headerProps = {
     headerTitle,
     module: ModuleName.HTTP,
+    headerActions: (
+      <OpenInExploreButton query={MutableSearch.fromQueryObject(tableFilters)} />
+    ),
   };
 
   return (
