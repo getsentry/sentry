@@ -613,6 +613,9 @@ def get_stream_processor(
             None,
         )
 
+    else:
+        dlq_policy = None
+
     return StreamProcessor(
         consumer=consumer,
         topic=ArroyoTopic(topic),
