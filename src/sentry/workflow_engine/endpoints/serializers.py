@@ -58,7 +58,7 @@ class DataConditionSerializer(Serializer):
     def serialize(self, obj: DataCondition, *args, **kwargs) -> dict[str, Any]:
         return {
             "id": str(obj.id),
-            "condition": obj.condition,
+            "condition": obj.type,
             "comparison": obj.comparison,
             "result": obj.condition_result,
         }

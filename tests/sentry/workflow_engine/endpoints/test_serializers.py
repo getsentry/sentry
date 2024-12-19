@@ -8,6 +8,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -40,7 +41,7 @@ class TestDetectorSerializer(TestCase):
         )
         condition = DataCondition.objects.create(
             condition_group=condition_group,
-            condition="gt",
+            type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
@@ -107,7 +108,7 @@ class TestDetectorSerializer(TestCase):
                 "conditions": [
                     {
                         "id": str(condition.id),
-                        "condition": "gt",
+                        "condition": Condition.GREATER,
                         "comparison": 100,
                         "result": DetectorPriorityLevel.HIGH,
                     }
@@ -198,7 +199,7 @@ class TestDataConditionGroupSerializer(TestCase):
         )
         condition = DataCondition.objects.create(
             condition_group=condition_group,
-            condition="gt",
+            type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
