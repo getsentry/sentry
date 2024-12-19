@@ -1,9 +1,11 @@
 import {useCallback, useMemo} from 'react';
+import partition from 'lodash/partition';
 
 import {
   type Column,
   explodeField,
   generateFieldAsString,
+  isAggregateFieldOrEquation,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -14,6 +16,7 @@ import {
 } from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {MAX_NUM_Y_AXES} from 'sentry/views/dashboards/widgetBuilder/buildSteps/yAxisStep/yAxisSelector';
 import {useQueryParamState} from 'sentry/views/dashboards/widgetBuilder/hooks/useQueryParamState';
 import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
 
@@ -122,10 +125,24 @@ function useWidgetBuilderState(): {
           setDescription(action.payload);
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
+          setDisplayType(action.payload);
           if (action.payload === DisplayType.BIG_NUMBER) {
             setSort([]);
           }
-          setDisplayType(action.payload);
+          const [aggregates, columns] = partition(fields, field => {
+            const fieldString = generateFieldAsString(field);
+            return isAggregateFieldOrEquation(fieldString);
+          });
+          if (action.payload === DisplayType.TABLE) {
+            setYAxis([]);
+            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
+          } else {
+            setFields(columns);
+            setYAxis([
+              ...aggregates.slice(0, MAX_NUM_Y_AXES),
+              ...(yAxis?.slice(0, MAX_NUM_Y_AXES) ?? []),
+            ]);
+          }
           break;
         case BuilderStateAction.SET_DATASET:
           setDataset(action.payload);
@@ -182,6 +199,8 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      fields,
+      yAxis,
     ]
   );
 
