@@ -36,7 +36,7 @@ describe('convertBuilderStateToWidget', function () {
       queries: [
         {
           fields: ['geo.country', 'count()', 'count_unique(user)'],
-          fieldAliases: [],
+          fieldAliases: ['', '', ''],
           aggregates: ['count()'],
           columns: ['geo.country'],
           conditions: '',

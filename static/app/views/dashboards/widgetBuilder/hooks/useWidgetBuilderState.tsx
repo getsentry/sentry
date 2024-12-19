@@ -237,15 +237,30 @@ function deserializeDataset(value: string): WidgetType {
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(field => explodeField({field}));
+  return fields.map(field => {
+    try {
+      const {fieldString, alias} = JSON.parse(field);
+      return explodeField({field: fieldString, alias});
+    } catch (error) {
+      return explodeField({field, alias: undefined});
+    }
+  });
 }
 
 /**
  * Takes fields in the field and function format and coverts
  * them into a list of strings compatible with query params
  */
-function serializeFields(fields: Column[]): string[] {
-  return fields.map(generateFieldAsString);
+export function serializeFields(fields: Column[]): string[] {
+  return fields.map(field => {
+    if (field.alias) {
+      return JSON.stringify({
+        fieldString: generateFieldAsString(field),
+        alias: field.alias,
+      });
+    }
+    return generateFieldAsString(field);
+  });
 }
 
 function serializeSorts(sorts: Sort[]): string[] {

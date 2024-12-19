@@ -527,6 +527,31 @@ describe('Visualize', () => {
     ).toBeDisabled();
   });
 
+  it('does not show the legend alias input for chart widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p90(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('p90(transaction.duration)');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
