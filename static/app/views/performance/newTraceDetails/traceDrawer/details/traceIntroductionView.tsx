@@ -58,6 +58,12 @@ export function TraceIntroductionView() {
           <ImageWrapper src={image} alt={t('Sentry cant fix this')} />
         </LinksWithImage>
 
+        <p>
+          <strong>{t('Ways to utilize Tracing:')}</strong>
+        </p>
+
+        <SecondaryLinkSection />
+
         <ShortcutSection>
           <ShortcutsLayout>
             <div>
@@ -80,6 +86,61 @@ export function TraceIntroductionView() {
         </ShortcutSection>
       </ContentWrapper>
     </MainContainer>
+  );
+}
+
+function SecondaryLinkSection() {
+  return (
+    <StyledList>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/observability-and-tracing-how-to-improve-your-debugging-workflow/"
+        >
+          {t('Debug faster, improve performance, and fix Core Web Vitals issues')}
+        </ExternalLink>
+      </li>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/how-to-identify-fetch-waterfalls-in-react/"
+        >
+          {t('Fixing Fetch waterfalls / common slowdowns in React')}
+        </ExternalLink>
+      </li>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/how-i-cut-22-3-seconds-off-an-api-call-using-trace-view/"
+        >
+          {t('Trimming 22 seconds off a GenAI operation')}
+        </ExternalLink>
+      </li>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/how-i-reduced-an-api-call-from-greater-than-5-seconds-to-under-100ms/"
+        >
+          {t('Optimizing API calls from 5s to <100ms with Distributed Tracing ')}
+        </ExternalLink>
+      </li>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/fix-your-actual-slow-loading-assets-with-resource-monitoring/"
+        >
+          {t('Finding & fixing slow-loading assets')}
+        </ExternalLink>
+      </li>
+      <li>
+        <ExternalLink
+          openInNewTab
+          href="https://blog.sentry.io/your-bad-lcp-score-might-be-a-backend-issue/"
+        >
+          {t('Fixing bad LCP scores')}
+        </ExternalLink>
+      </li>
+    </StyledList>
   );
 }
 
