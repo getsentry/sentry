@@ -365,7 +365,7 @@ def get_events_from_nodestore(
             if not has_too_many_contributing_frames(event, variants, ReferrerOptions.BACKFILL):
                 grouping_info = get_grouping_info_from_variants(variants)
                 stacktrace_string = get_stacktrace_string_with_metrics(
-                    grouping_info, event.platform, ReferrerOptions.BACKFILL
+                    grouping_info, event.platform
                 )
 
             if not stacktrace_string:

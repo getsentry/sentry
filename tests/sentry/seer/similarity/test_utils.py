@@ -796,9 +796,7 @@ class GetStacktraceStringTest(TestCase):
         exception = copy.deepcopy(self.BASE_APP_DATA)
         # delete filename from the exception
         del exception["app"]["component"]["values"][0]["values"][0]["values"][0]["values"][1]
-        stacktrace_string = get_stacktrace_string_with_metrics(
-            exception, "python", ReferrerOptions.INGEST
-        )
+        stacktrace_string = get_stacktrace_string_with_metrics(exception, "python")
         assert (
             stacktrace_string
             == 'ZeroDivisionError: division by zero\n  File "__main__", function divide_by_zero\n    divide = 1/0'
