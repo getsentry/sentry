@@ -62,6 +62,9 @@ export default function SubregionSelector({size}: Props) {
     <CompactSelect
       size={size}
       searchable
+      triggerProps={{
+        prefix: <Fragment>{t('Geo region')}</Fragment>,
+      }}
       multiple
       loading={isPending}
       clearable
