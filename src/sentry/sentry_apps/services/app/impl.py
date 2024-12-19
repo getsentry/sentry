@@ -24,7 +24,6 @@ from sentry.sentry_apps.models.sentry_app_installation import (
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.app import (
     AppService,
-    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppComponentContext,
@@ -33,10 +32,16 @@ from sentry.sentry_apps.services.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app,
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
+)
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppErrorType,
+    SentryAppIntegratorError,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -253,10 +258,19 @@ class DatabaseBackedAppService(AppService):
     ) -> RpcAlertRuleActionResult:
         try:
             install = SentryAppInstallation.objects.get(uuid=install_uuid)
-        except SentryAppInstallation.DoesNotExist:
-            return RpcAlertRuleActionResult(success=False, message="Installation does not exist")
-        result = AlertRuleActionCreator(install=install, fields=fields).run()
-        return RpcAlertRuleActionResult(success=result["success"], message=result["message"])
+            result = AlertRuleActionCreator(install=install, fields=fields).run()
+        except (SentryAppError, SentryAppIntegratorError) as e:
+            return RpcAlertRuleActionResult(success=False, error_type=e.error_type, message=str(e))
+        except Exception as e:
+            return RpcAlertRuleActionResult(
+                success=False,
+                error_type=SentryAppErrorType.SENTRY,
+                message=str(e),
+            )
+
+        return RpcAlertRuleActionResult(
+            success=result["success"], error_type=None, message=result["message"]
+        )
 
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         try:
