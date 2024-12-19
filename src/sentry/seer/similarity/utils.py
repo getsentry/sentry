@@ -291,7 +291,6 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
-    key = "grouping.similarity.did_call_seer"
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
     try:
         stacktrace_string = get_stacktrace_string(data, platform)
@@ -303,11 +302,7 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-frames"},
-            )
+            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -376,11 +371,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_global_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
@@ -388,11 +380,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+
         return True
 
     if killswitch_matches_context(
@@ -402,11 +391,8 @@ def killswitch_enabled(
             "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-killswitch"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+
         return True
 
     return False
