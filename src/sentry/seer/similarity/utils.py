@@ -319,35 +319,6 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
-    """
-    Determine if an event's contents makes it fit for using with Seer's similar issues model.
-    """
-    # TODO: Determine if we want to filter out non-sourcemapped events
-    if not event_content_has_stacktrace(event):
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "no-stacktrace"},
-        )
-        return False
-
-    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
-        )
-        return False
-
-    metrics.incr(
-        "grouping.similarity.event_content_seer_eligible",
-        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"eligible": True, "blocker": "none"},
-    )
-    return True
-
-
 def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
     metrics.incr(
         "grouping.similarity.did_call_seer",

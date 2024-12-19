@@ -1,18 +1,21 @@
 from dataclasses import asdict
 from time import time
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, call, patch
+from uuid import uuid1
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import (
+    _event_content_is_seer_eligible,
     get_seer_similar_issues,
     maybe_check_seer_for_matching_grouphash,
     should_call_seer_for_grouping,
 )
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT, SEER_INELIGIBLE_EVENT_PLATFORMS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -64,7 +67,7 @@ class ShouldCallSeerTest(TestCase):
 
         for content_eligibility, expected_result in [(True, True), (False, False)]:
             with patch(
-                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
                 assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
@@ -604,3 +607,68 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                 "use_reranking": True,
             }
         )
+
+
+class EventContentIsSeerEligibleTest(TestCase):
+    def get_eligible_event_data(self) -> dict[str, Any]:
+        return {
+            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+
+    def test_no_stacktrace(self) -> None:
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        del bad_event_data["exception"]
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert _event_content_is_seer_eligible(good_event) is True
+        assert _event_content_is_seer_eligible(bad_event) is False
+
+    def test_platform_filter(self) -> None:
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        bad_event_data["platform"] = "other"
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert good_event_data["platform"] not in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert bad_event_data["platform"] in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert _event_content_is_seer_eligible(good_event) is True
+        assert _event_content_is_seer_eligible(bad_event) is False

@@ -17,8 +17,9 @@ from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
-    event_content_is_seer_eligible,
+    event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string_with_metrics,
     killswitch_enabled,
@@ -40,7 +41,7 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
     project = event.project
 
     # Check both of these before returning based on either so we can gather metrics on their results
-    content_is_eligible = event_content_is_seer_eligible(event)
+    content_is_eligible = _event_content_is_seer_eligible(event)
     seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
     if not (content_is_eligible and seer_enabled_for_project):
         return False
@@ -64,6 +65,34 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
     ):
         return False
 
+    return True
+
+
+def _event_content_is_seer_eligible(event: Event) -> bool:
+    """
+    Determine if an event's contents makes it fit for using with Seer's similar issues model.
+    """
+    if not event_content_has_stacktrace(event):
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "no-stacktrace"},
+        )
+        return False
+
+    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "unsupported-platform"},
+        )
+        return False
+
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": True, "blocker": "none"},
+    )
     return True
 
 
