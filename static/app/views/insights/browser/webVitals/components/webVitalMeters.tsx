@@ -332,11 +332,11 @@ export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
       <NoValue />
     );
 
-  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`];
+  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`]?.shortDescription;
 
   return (
     <VitalPillContainer>
-      <Tooltip title={tooltipText?.shortDescription}>
+      <Tooltip title={tooltipText}>
         <VitalPillName status={status}>
           {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
         </VitalPillName>

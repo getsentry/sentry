@@ -17,7 +17,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import type {AxisOption} from '../data';
 import {getTermHelp, PerformanceTerm} from '../data';
-import type {Rectangle} from '../transactionSummary/transactionVitals/types';
 import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';
@@ -35,6 +34,16 @@ export enum LandingDisplayField {
   BACKEND = 'backend',
   MOBILE = 'mobile',
 }
+
+type Point = {
+  x: number;
+  y: number;
+};
+
+type Rectangle = {
+  point1: Point;
+  point2: Point;
+};
 
 // TODO Abdullah Khan: Remove code for Web Vitals tab in performance landing
 // page when new starfish web vitals module is mature.
