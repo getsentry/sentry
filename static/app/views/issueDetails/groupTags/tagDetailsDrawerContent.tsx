@@ -18,7 +18,7 @@ import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Tag, TagValue} from 'sentry/types/group';
-import {parseCursor} from 'sentry/utils/cursor';
+import {percent} from 'sentry/utils';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -68,15 +68,8 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   const isError = tagValuesIsError || tagIsError;
   const isPending = tagValuesIsPending || tagIsPending;
 
-  const currentCursor = parseCursor(location.query?.tagDrawerCursor);
-  const start = currentCursor?.offset ?? 0;
-  const pageCount = tagValues?.length ?? 0;
-
   const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-  const paginationCaption = tct('Showing [start]-[end] of [count]', {
-    start: start.toLocaleString(),
-    end: (start + pageCount).toLocaleString(),
+  const paginationCaption = tct('[count] results', {
     count: (tag?.uniqueValues ?? 0).toLocaleString(),
   });
 
@@ -120,7 +113,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               {sort === 'count' && sortArrow}
               {t('Count')}
             </ColumnSort>
-            <ColumnTitle>{t('Percentage')}</ColumnTitle>
+            <ColumnTitle>{t('Share')}</ColumnTitle>
           </Header>
           <Body>
             {tagValues.map((tv, i) => (
@@ -170,6 +163,8 @@ function TagDetailsRow({
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
   };
+  const percentage = percent(tagValue.count ?? 0, tag.totalValues ?? 0);
+  const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
 
   return (
     <Row onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
@@ -179,13 +174,10 @@ function TagDetailsRow({
         tagValue={tagValue}
       />
       <OverflowTimeSince date={tagValue.lastSeen} />
-      <div>{tagValue.count.toLocaleString()}</div>
+      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
+      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
       {tag.totalValues ? (
-        <TagBar
-          style={{height: space(2)}}
-          count={tagValue.count}
-          total={tag.totalValues}
-        />
+        <TagBar style={{height: space(1.5)}} percentage={percentage} />
       ) : (
         '--'
       )}
@@ -273,7 +265,7 @@ function TagDetailsValue({
 
 const Table = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, auto) 1fr auto;
+  grid-template-columns: repeat(4, auto) 1fr auto;
   column-gap: ${space(2)};
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
@@ -329,6 +321,10 @@ const Value = styled('div')`
   align-items: center;
 `;
 
+const RightAlignedValue = styled('div')`
+  text-align: right;
+`;
+
 const ValueLink = styled(Link)`
   color: ${p => p.theme.textColor};
   text-decoration: underline;
@@ -352,7 +348,7 @@ const ActionButton = styled(Button)<{isHidden: boolean}>`
   ${p =>
     p.isHidden &&
     css`
-      border: 0;
+      border-color: transparent;
       color: transparent;
       background: transparent;
     `}

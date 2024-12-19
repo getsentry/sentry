@@ -31,10 +31,18 @@ x-sentry-service-config:
         repo_name: chartcuterie
         branch: master
         repo_link: https://github.com/getsentry/chartcuterie.git
+    taskbroker:
+      description: Service used to process asynchronous tasks
+      remote:
+        repo_name: taskbroker
+        branch: main
+        repo_link: https://github.com/getsentry/taskbroker.git
+        mode: containerized
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
+    taskbroker: [snuba, postgres, relay, taskbroker]
 
 services:
   postgres:

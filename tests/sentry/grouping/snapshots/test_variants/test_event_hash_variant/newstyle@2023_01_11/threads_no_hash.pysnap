@@ -1,10 +1,11 @@
 ---
-created: '2023-01-11T11:41:30.068094Z'
+created: '2024-12-17T22:47:19.169758+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app
       threads (ignored because does not contain exactly one crashing, one current or just one thread, instead contains 2 threads)

@@ -27,6 +27,7 @@ from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -46,6 +47,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -279,6 +281,9 @@ class Fixtures:
 
     def store_event(self, *args, **kwargs) -> Event:
         return Factories.store_event(*args, **kwargs)
+
+    def create_tempest_credentials(self, project: Project, *args, **kwargs) -> TempestCredentials:
+        return Factories.create_tempest_credentials(project, *args, **kwargs)
 
     def create_group(self, project=None, *args, **kwargs):
         if project is None:
@@ -611,9 +616,8 @@ class Fixtures:
 
     def create_data_condition(
         self,
-        condition="eq",
         comparison="10",
-        type="",
+        type=Condition.EQUAL,
         condition_result=None,
         condition_group=None,
         **kwargs,
@@ -624,7 +628,6 @@ class Fixtures:
             condition_group = self.create_data_condition_group()
 
         return Factories.create_data_condition(
-            condition=condition,
             comparison=comparison,
             type=type,
             condition_result=condition_result,
