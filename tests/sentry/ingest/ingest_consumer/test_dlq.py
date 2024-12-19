@@ -116,18 +116,21 @@ def test_dlq_stale_messages(factories, topic_name, consumer_type) -> None:
     )
 
     partition = Partition(Topic(topic_name), 0)
-    offset = 5
+    offset = 10
+    inner_factory_mock = Mock()
+    inner_strategy_mock = Mock()
+    inner_factory_mock.create_with_partitions = Mock(return_value=inner_strategy_mock)
     factory = DlqStaleMessagesStrategyFactoryWrapper(
         stale_threshold_sec=300,
-        inner=Mock(),
+        inner=inner_factory_mock,
     )
     strategy = factory.create_with_partitions(Mock(), Mock())
 
-    for time_diff in range(10, 1, -1):
+    for time_diff in range(10, 0, -1):
         message = make_message(
             empty_event_payload,
             partition,
-            offset,
+            offset - time_diff,
             timestamp=datetime.now(timezone.utc) - timedelta(minutes=time_diff),
         )
         if time_diff < 5:
@@ -137,4 +140,6 @@ def test_dlq_stale_messages(factories, topic_name, consumer_type) -> None:
                 strategy.submit(message)
 
             assert exc_info.value.partition == partition
-            assert exc_info.value.offset == offset
+            assert exc_info.value.offset == offset - time_diff
+
+    assert inner_strategy_mock.submit.call_count == 4
