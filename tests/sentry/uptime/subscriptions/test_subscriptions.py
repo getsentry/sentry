@@ -563,8 +563,7 @@ class IsUrlMonitoredForProjectTest(UptimeTestCase):
     def test_not_monitored(self):
         assert not is_url_auto_monitored_for_project(self.project, "https://sentry.io")
         subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(),
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            mode=ProjectUptimeSubscriptionMode.MANUAL
         )
         assert not is_url_auto_monitored_for_project(
             self.project, subscription.uptime_subscription.url
@@ -572,15 +571,13 @@ class IsUrlMonitoredForProjectTest(UptimeTestCase):
 
     def test_monitored(self):
         subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(),
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         assert is_url_auto_monitored_for_project(self.project, subscription.uptime_subscription.url)
 
     def test_monitored_other_project(self):
         other_project = self.create_project()
         subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(),
             project=self.project,
             mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         )
@@ -596,18 +593,13 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
 
     def test(self):
         subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(),
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         assert get_auto_monitored_subscriptions_for_project(self.project) == [subscription]
         other_subscription = self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(url="https://santry.io"),
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
         )
-        self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(url="https://sintry.io"),
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
-        )
+        self.create_project_uptime_subscription(mode=ProjectUptimeSubscriptionMode.MANUAL)
         assert set(get_auto_monitored_subscriptions_for_project(self.project)) == {
             subscription,
             other_subscription,
@@ -616,7 +608,6 @@ class GetAutoMonitoredSubscriptionsForProjectTest(UptimeTestCase):
     def test_other_project(self):
         other_project = self.create_project()
         self.create_project_uptime_subscription(
-            uptime_subscription=self.create_uptime_subscription(),
-            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
         )
         assert get_auto_monitored_subscriptions_for_project(other_project) == []
