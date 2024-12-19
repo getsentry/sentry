@@ -341,7 +341,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
                     <Button
                       borderless
                       size="zero"
-                      aria-label={t('Close')}
+                      aria-label={t('Skip Task')}
                       title={t('Skip Task')}
                       icon={<IconClose color="gray300" isCircled />}
                       onClick={event => {
@@ -431,10 +431,17 @@ function TaskGroup({
     <TaskGroupWrapper>
       <TaskGroupHeader
         title={<strong>{title}</strong>}
-        description={tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
-          totalCompletedTasks: completedTasks.length,
-          totalTasks: tasks.length,
-        })}
+        description={
+          tasks.length > 1
+            ? tct('[totalCompletedTasks] out of [totalTasks] tasks completed', {
+                totalCompletedTasks: completedTasks.length,
+                totalTasks: tasks.length,
+              })
+            : tct('[totalCompletedTasks] out of [totalTasks] task completed', {
+                totalCompletedTasks: completedTasks.length,
+                totalTasks: tasks.length,
+              })
+        }
         hasProgress={completedTasks.length > 0}
         onClick={toggleable ? () => setIsExpanded(!isExpanded) : undefined}
         icon={

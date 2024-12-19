@@ -116,7 +116,7 @@ def test_unknown_hash_basis(
     with patch.object(
         event,
         "get_grouping_variants",
-        return_value={"dogs": ComponentVariant(component, StrategyConfiguration())},
+        return_value={"dogs": ComponentVariant(component, None, StrategyConfiguration())},
     ):
         # Overrride the input filename since there isn't a real input which will generate the mock
         # variants above, but we still want the snapshot.
