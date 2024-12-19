@@ -1,5 +1,4 @@
 import type {Organization} from 'sentry/types/organization';
-import {TraceIntroductionView} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/traceIntroductionView';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
@@ -28,8 +27,6 @@ export interface TraceTreeNodeDetailsProps<T> {
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
-  return <TraceIntroductionView />;
-
   if (isTransactionNode(props.node)) {
     return <TransactionNodeDetails {...props} />;
   }

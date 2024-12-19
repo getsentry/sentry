@@ -20,6 +20,7 @@ import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceIntroductionView} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/traceIntroductionView';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {traceAnalytics} from '../traceAnalytics';
@@ -443,6 +444,8 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     tree={props.trace}
                     onScrollToNode={props.onScrollToNode}
                   />
+                ) : traceState.tabs.current_tab.node === 'help' ? (
+                  <TraceIntroductionView />
                 ) : (
                   <TraceTreeNodeDetails
                     replay={props.replay}
