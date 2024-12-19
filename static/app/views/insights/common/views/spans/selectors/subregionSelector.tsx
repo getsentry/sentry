@@ -63,7 +63,7 @@ export default function SubregionSelector({size}: Props) {
       size={size}
       searchable
       triggerProps={{
-        prefix: <Fragment>{t('Geo region')}</Fragment>,
+        prefix: t('Geo region'),
       }}
       multiple
       loading={isPending}
