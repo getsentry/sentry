@@ -468,18 +468,11 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [
-                ...(fields ?? []),
-                // TODO: Define a default aggregate/field for the datasets?
-                {
-                  function: ['count', '', undefined, undefined],
-                  kind: FieldValueKind.FUNCTION,
-                },
-              ],
+              payload: [...(fields ?? []), datasetConfig.defaultField],
             })
           }
         >
-          {t('+ Add Series')}
+          {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
         {datasetConfig.enableEquations && (
           <AddButton
