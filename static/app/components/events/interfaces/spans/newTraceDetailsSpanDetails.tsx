@@ -12,7 +12,6 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
@@ -580,13 +579,6 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
               })}
             </tbody>
           </table>
-          {span._metrics_summary ? (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          ) : null}
         </SpanDetails>
       </Fragment>
     );
