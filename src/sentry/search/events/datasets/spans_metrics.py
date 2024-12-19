@@ -83,7 +83,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         """
         Return the type of the metric, defaults to super implementation
         """
-        super_result_type_fn = super().reflective_result_type(index)
 
         def result_type_fn(
             function_arguments: list[fields.FunctionArg], parameter_values: dict[str, Any]
@@ -97,7 +96,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     return parsed_mri.unit
 
             # if the mri is not found, then we fallback to the super implementation
-            return super_result_type_fn(function_arguments, parameter_values)
+            return super(SpansMetricsDatasetConfig, self).reflective_result_type(index)(
+                function_arguments, parameter_values
+            )
 
         return result_type_fn
 
