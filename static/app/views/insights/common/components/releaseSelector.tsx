@@ -175,6 +175,8 @@ function getSortRealesesBy(
     return sort;
   }
 
+  // We could give a visual feedback to the user, saying that the sort by is invalid but
+  // since this UI will be refactored, maybe we just don't do anything now
   return ReleasesSortOption.DATE;
 }
 
