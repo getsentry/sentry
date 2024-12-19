@@ -99,7 +99,7 @@ def test_dlq_invalid_messages(factories, topic_name, consumer_type) -> None:
     ],
 )
 @django_db_all
-def test_dlq_stale_messages(factories, topic_name, consumer_type) -> None:
+def test_dlq_stale_messages(factories, topic_name) -> None:
     # Tests messages that have gotten stale (default longer than 5 minutes)
 
     organization = factories.create_organization()
