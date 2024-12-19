@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Callable, Generator, Sequence
 from logging import Logger, getLogger
 from typing import Any
 
 import orjson
 from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -15,8 +16,15 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import get_default_issue_alert_repository
+from sentry.integrations.repository import (
+    get_default_generic_repository,
+    get_default_issue_alert_repository,
+)
 from sentry.integrations.repository.base import NotificationMessageValidationError
+from sentry.integrations.repository.generic import (
+    GenericNotificationMessageRepository,
+    NewGenericNotificationMessage,
+)
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
     NewIssueAlertNotificationMessage,
@@ -39,6 +47,7 @@ from sentry.integrations.slack.utils.errors import (
     unpack_slack_api_error,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
@@ -58,6 +67,11 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     integration_key = "workspace"
     label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
+    # Mapping from group_type to composite key builder method
+    GROUP_TYPE_TO_COMPOSITE_KEY_BUILDER: dict[int, Callable[[int, int, str], str]] = {
+        ErrorGroupType.type_id: lambda rule_id, group_id, rule_action_uuid: f"{rule_id}:{group_id}:{rule_action_uuid}"
+    }
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
@@ -74,9 +88,16 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "placeholder": "e.g. @jane, @on-call-team",
         }
 
-        self._repository: IssueAlertNotificationMessageRepository = (
-            get_default_issue_alert_repository()
-        )
+        if features.has(
+            "organizations:generic-notification-message-repository", self.project.organization
+        ):
+            self._repository: GenericNotificationMessageRepository = (
+                get_default_generic_repository()
+            )
+        else:
+            self._repository: IssueAlertNotificationMessageRepository = (
+                get_default_issue_alert_repository()
+            )
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
@@ -127,10 +148,24 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     },
                 )
 
-            new_notification_message_object = NewIssueAlertNotificationMessage(
-                rule_fire_history_id=self.rule_fire_history.id if self.rule_fire_history else None,
-                rule_action_uuid=rule_action_uuid,
-            )
+            if features.has(
+                "organizations:generic-notification-message-repository", self.project.organization
+            ):
+                composite_key = self.GROUP_TYPE_TO_COMPOSITE_KEY_BUILDER[event.group.type](
+                    rule_id, event.group.id, rule_action_uuid
+                )
+
+                new_notification_message_object = NewGenericNotificationMessage(
+                    composite_key=composite_key,
+                    group_id=event.group.id,
+                )
+            else:
+                new_notification_message_object = NewIssueAlertNotificationMessage(
+                    rule_fire_history_id=(
+                        self.rule_fire_history.id if self.rule_fire_history else None
+                    ),
+                    rule_action_uuid=rule_action_uuid,
+                )
 
             def get_thread_ts(lifecycle: EventLifecycle) -> str | None:
                 """Find the thread in which to post this notification as a reply.
@@ -151,11 +186,23 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     return None
 
                 try:
-                    parent_notification_message = self._repository.get_parent_notification_message(
-                        rule_id=rule_id,
-                        group_id=event.group.id,
-                        rule_action_uuid=rule_action_uuid,
-                    )
+                    if features.has(
+                        "organizations:generic-notification-message-repository",
+                        self.project.organization,
+                    ):
+                        parent_notification_message = (
+                            self._repository.get_parent_notification_message(
+                                composite_key=composite_key,
+                            )
+                        )
+                    else:
+                        parent_notification_message = (
+                            self._repository.get_parent_notification_message(
+                                rule_id=rule_id,
+                                group_id=event.group.id,
+                                rule_action_uuid=rule_action_uuid,
+                            )
+                        )
                 except Exception as e:
                     lifecycle.record_halt(e)
 
@@ -253,7 +300,28 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         str(ts) if ts is not None else None
                     )
 
-            if rule_action_uuid and rule_id:
+            if (
+                rule_action_uuid
+                and rule_id
+                and features.has(
+                    "organizations:generic-notification-message-repository",
+                    self.project.organization,
+                )
+            ):
+                try:
+                    self._repository.create_notification_message(
+                        data=new_notification_message_object
+                    )
+                except NotificationMessageValidationError as err:
+                    extra = (
+                        new_notification_message_object.__dict__
+                        if new_notification_message_object
+                        else None
+                    )
+                    _default_logger.info(
+                        "Validation error for new notification message", exc_info=err, extra=extra
+                    )
+            else:
                 try:
                     self._repository.create_notification_message(
                         data=new_notification_message_object
