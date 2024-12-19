@@ -5,9 +5,7 @@ import type {LocationDescriptor} from 'history';
 import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -148,18 +146,15 @@ function IssuesTraceOverlay({event}: {event: Event}) {
   );
 
   return (
-    <IssuesTraceOverlayContainer>
-      <LinkButton
-        size="sm"
-        icon={<IconOpen />}
-        href={getHrefFromTraceTarget(traceTarget)}
-        external
-        analyticsEventName="Issue Details: View Full Trace"
-        analyticsEventKey="issue_details.view_full_trace"
-      >
-        {t('View Full Trace')}
-      </LinkButton>
-    </IssuesTraceOverlayContainer>
+    <StyledLinkButton
+      href={getHrefFromTraceTarget(traceTarget)}
+      priority="link"
+      external
+      analyticsEventName="Issue Details: View Full Trace"
+      analyticsEventKey="issue_details.view_full_trace"
+    >
+      &nbsp;
+    </StyledLinkButton>
   );
 }
 
@@ -201,16 +196,12 @@ const IssuesTraceContainer = styled('div')`
   position: relative;
 `;
 
-const IssuesTraceOverlayContainer = styled('div')`
+const StyledLinkButton = styled(LinkButton)`
   position: absolute;
-  inset: 0;
-  z-index: 10;
-
-  a {
-    position: absolute;
-    top: ${space(1)};
-    right: ${space(1)};
-  }
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
 `;
 
 interface EventTraceViewProps extends Omit<EventTraceViewInnerProps, 'traceId'> {
