@@ -1,7 +1,6 @@
 import logging
-import time
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 
 import sentry_sdk
@@ -34,7 +33,6 @@ from sentry.dynamic_sampling.rules.utils import (
 from sentry.dynamic_sampling.tasks.common import (
     GetActiveOrgs,
     TimedIterator,
-    TimeoutException,
     are_equal_with_epsilon,
     sample_rate_to_float,
 )
@@ -76,6 +74,11 @@ from sentry.utils.snuba import raw_snql_query
 # as a temporary solution to dogfood our own product without exploding the cardinality of the project_id tag.
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 logger = logging.getLogger(__name__)
+
+ProjectWithTxCountAndRates = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+OrganizationProjectWithTxCountAndRates = tuple[
+    OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount
+]
 
 
 @instrumented_task(
@@ -165,9 +168,7 @@ def partition_by_measure(
 def boost_low_volume_projects_of_org_with_query(
     context: TaskContext,
     org_id: OrganizationId,
-    granularity: Granularity | None = None,
-    query_interval: timedelta | None = None,
-) -> None:
+) -> list[RebalancedItem] | None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
     organization ID. Transaction counts and rates are fetched within this task.
@@ -191,10 +192,11 @@ def boost_low_volume_projects_of_org_with_query(
         context,
         org_ids=[org_id],
         measure=measure,
-        granularity=granularity,
-        query_interval=query_interval,
     )[org_id]
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
+    rebalanced_projects = calculate_sample_rates_of_projects(
+        org_id, projects_with_tx_count_and_rates
+    )
+    store_rebalanced_projects(org_id, rebalanced_projects)
 
 
 @instrumented_task(
@@ -209,9 +211,7 @@ def boost_low_volume_projects_of_org_with_query(
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
-    projects_with_tx_count_and_rates: Sequence[
-        tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
-    ],
+    projects_with_tx_count_and_rates: Sequence[ProjectWithTxCountAndRates],
 ) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
@@ -221,16 +221,18 @@ def boost_low_volume_projects_of_org(
         "boost_low_volume_projects_of_org",
         extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
     )
-    adjust_sample_rates_of_projects(org_id, projects_with_tx_count_and_rates)
+    rebalanced_projects = calculate_sample_rates_of_projects(
+        org_id, projects_with_tx_count_and_rates
+    )
+    store_rebalanced_projects(org_id, rebalanced_projects)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
     context: TaskContext,
     org_ids: list[int],
     measure: SamplingMeasure,
-    granularity: Granularity | None = None,
     query_interval: timedelta | None = None,
-) -> Mapping[OrganizationId, Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]]]:
+) -> Mapping[OrganizationId, Sequence[ProjectWithTxCountAndRates]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
@@ -240,92 +242,17 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     with timer:
         context.incr_function_state(func_name, num_iterations=1)
 
-        if query_interval is None:
-            query_interval = timedelta(hours=1)
-            granularity = Granularity(3600)
-
         aggregated_projects = defaultdict(list)
-        offset = 0
-        org_ids = list(org_ids)
-        transaction_string_id = indexer.resolve_shared_org("decision")
-        transaction_tag = f"tags_raw[{transaction_string_id}]"
-        if measure == SamplingMeasure.SPANS:
-            metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
-        elif measure == SamplingMeasure.TRANSACTIONS:
-            metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
-        else:
-            raise ValueError(f"Unsupported measure: {measure}")
-
-        where = [
-            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-            Condition(Column("metric_id"), Op.EQ, metric_id),
-            Condition(Column("org_id"), Op.IN, org_ids),
-        ]
-
-        keep_count = Function(
-            "sumIf",
-            [
-                Column("value"),
-                Function("equals", [Column(transaction_tag), "keep"]),
-            ],
-            alias="keep_count",
-        )
-        drop_count = Function(
-            "sumIf",
-            [
-                Column("value"),
-                Function("equals", [Column(transaction_tag), "drop"]),
-            ],
-            alias="drop_count",
-        )
-
-        while time.monotonic() < context.expiration_time:
-            query = (
-                Query(
-                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                    select=[
-                        Function("sum", [Column("value")], "root_count_value"),
-                        Column("org_id"),
-                        Column("project_id"),
-                        keep_count,
-                        drop_count,
-                    ],
-                    groupby=[Column("org_id"), Column("project_id")],
-                    where=where,
-                    granularity=granularity,
-                    orderby=[
-                        OrderBy(Column("org_id"), Direction.ASC),
-                        OrderBy(Column("project_id"), Direction.ASC),
-                    ],
-                )
-                .set_limitby(
-                    LimitBy(
-                        columns=[Column("org_id"), Column("project_id")],
-                        count=MAX_TRANSACTIONS_PER_PROJECT,
-                    )
-                )
-                .set_limit(CHUNK_SIZE + 1)
-                .set_offset(offset)
-            )
-            request = Request(
-                dataset=Dataset.PerformanceMetrics.value,
-                app_id="dynamic_sampling",
-                query=query,
-                tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
-            )
-            data = raw_snql_query(
-                request,
-                referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-            )["data"]
-            count = len(data)
-            more_results = count > CHUNK_SIZE
-            offset += CHUNK_SIZE
-
-            if more_results:
-                data = data[:-1]
-
-            for row in data:
+        for chunk in TimedIterator(
+            context,
+            query_projects_with_total_root_transaction_count_and_rates(
+                org_ids,
+                measure,
+                query_interval,
+            ),
+            func_name,
+        ):
+            for row in chunk:
                 aggregated_projects[row["org_id"]].append(
                     (
                         row["project_id"],
@@ -334,29 +261,139 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                         row["drop_count"],
                     )
                 )
-                context.incr_function_state(function_id=func_name, num_projects=1)
 
             context.incr_function_state(
                 function_id=func_name,
                 num_db_calls=1,
-                num_rows_total=count,
+                num_rows_total=len(chunk),
+                num_projects=len(chunk),
+            )
+            context.set_function_state(
+                func_name,
                 num_orgs=len(aggregated_projects),
             )
-
-            if not more_results:
-                break
-        else:
-            raise TimeoutException(context)
 
         return aggregated_projects
 
 
-def adjust_sample_rates_of_projects(
-    org_id: int,
-    projects_with_tx_count: Sequence[tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]],
-) -> None:
+def query_projects_with_total_root_transaction_count_and_rates(
+    org_ids: list[int],
+    measure: SamplingMeasure,
+    query_interval: timedelta | None = None,
+) -> Iterator[Sequence[OrganizationProjectWithTxCountAndRates]]:
+    """Queries the total root transaction count and how many transactions were kept and dropped
+    for each project in a given interval (defaults to the last hour).
+
+    Yields chunks of result rows, to allow timeouts to be handled in the caller.
     """
-    Adjusts the sample rates of projects belonging to a specific org.
+    if query_interval is None:
+        query_interval = timedelta(hours=1)
+
+    if query_interval > timedelta(days=1):
+        granularity = Granularity(24 * 3600)
+    else:
+        granularity = Granularity(3600)
+
+    org_ids = list(org_ids)
+    transaction_string_id = indexer.resolve_shared_org("decision")
+    transaction_tag = f"tags_raw[{transaction_string_id}]"
+    if measure == SamplingMeasure.SPANS:
+        metric_id = indexer.resolve_shared_org(str(SpanMRI.COUNT_PER_ROOT_PROJECT.value))
+    elif measure == SamplingMeasure.TRANSACTIONS:
+        metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+    else:
+        raise ValueError(f"Unsupported measure: {measure}")
+
+    where = [
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+        Condition(Column("org_id"), Op.IN, org_ids),
+    ]
+
+    keep_count = Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function("equals", [Column(transaction_tag), "keep"]),
+        ],
+        alias="keep_count",
+    )
+    drop_count = Function(
+        "sumIf",
+        [
+            Column("value"),
+            Function("equals", [Column(transaction_tag), "drop"]),
+        ],
+        alias="drop_count",
+    )
+
+    query = (
+        Query(
+            match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+            select=[
+                Function("sum", [Column("value")], "root_count_value"),
+                Column("org_id"),
+                Column("project_id"),
+                keep_count,
+                drop_count,
+            ],
+            groupby=[Column("org_id"), Column("project_id")],
+            where=where,
+            granularity=granularity,
+            orderby=[
+                OrderBy(Column("org_id"), Direction.ASC),
+                OrderBy(Column("project_id"), Direction.ASC),
+            ],
+        ).set_limitby(
+            LimitBy(
+                columns=[Column("org_id"), Column("project_id")],
+                count=MAX_TRANSACTIONS_PER_PROJECT,
+            )
+        )
+        # we are fetching one more than the chunk size to determine if there are more results
+        .set_limit(CHUNK_SIZE + 1)
+    )
+
+    offset = 0
+    more_results: bool = True
+    while more_results:
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value,
+            app_id="dynamic_sampling",
+            query=query.set_offset(offset),
+            tenant_ids={"use_case_id": UseCaseID.TRANSACTIONS.value, "cross_org_query": 1},
+        )
+        data = raw_snql_query(
+            request,
+            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
+        )["data"]
+
+        more_results = len(data) > CHUNK_SIZE
+        offset += CHUNK_SIZE
+
+        # re-adjust, for the extra row we fetched
+        if more_results:
+            data = data[:-1]
+
+        yield [
+            (
+                row["org_id"],
+                row["project_id"],
+                row["root_count_value"],
+                row["keep_count"],
+                row["drop_count"],
+            )
+            for row in data
+        ]
+
+
+def calculate_sample_rates_of_projects(
+    org_id: int,
+    projects_with_tx_count: Sequence[ProjectWithTxCountAndRates],
+) -> list[RebalancedItem] | None:
+    """
+    Calculates the sample rates of projects belonging to a specific org.
     """
     try:
         # We need the organization object for the feature flag.
@@ -436,9 +473,15 @@ def adjust_sample_rates_of_projects(
         )
 
     model = model_factory(ModelType.PROJECTS_REBALANCING)
-    rebalanced_projects = guarded_run(
+    rebalanced_projects: list[RebalancedItem] = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
+
+    return rebalanced_projects
+
+
+def store_rebalanced_projects(org_id: str, rebalanced_projects: list[RebalancedItem]) -> None:
+    """Stores the rebalanced projects in the cache and invalidates the project configs."""
     # In case the result of the model is None, it means that an error occurred, thus we want to early return.
     if rebalanced_projects is None:
         return

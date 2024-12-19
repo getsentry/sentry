@@ -12,10 +12,9 @@ from django.utils import timezone as django_timezone
 from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
-from snuba_sdk import Granularity
 
 from bitfield.types import BitHandler
-from sentry import audit_log, roles
+from sentry import audit_log, features, options, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -71,11 +70,10 @@ from sentry.datascrubbing import validate_pii_config_update, validate_pii_select
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
+    calculate_sample_rates_of_projects,
+    query_projects_with_total_root_transaction_count_and_rates,
 )
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import (
     has_custom_dynamic_sampling,
     is_organization_mode_sampling,
@@ -998,19 +996,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if is_org_mode and (
                     "samplingMode" in changed_data or "targetSampleRate" in changed_data
                 ):
-                    # use 1 day as the default interval for project sampling rate rebalancing
-                    query_interval = None
-                    if changed_data.get("samplingMode") == DynamicSamplingMode.PROJECT.value:
-                        query_interval = timedelta(days=1)
-                        granularity = Granularity(3600)  # TODO: what does granularity mean here?
-                    else:
-                        granularity = None
-                        query_interval = None
-
                     boost_low_volume_projects_of_org_with_query.delay(
                         organization.id,
-                        query_interval=query_interval,
-                        granularity=granularity,
                     )
 
             if was_pending_deletion:
@@ -1042,15 +1029,33 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def _compute_project_target_sample_rates(self, organization):
-        for project in organization.project_set.all():
-            current_rate, _ = get_boost_low_volume_projects_sample_rate(
-                org_id=organization.id,
-                project_id=project.id,
-                error_sample_rate_fallback=None,
+    def _compute_project_target_sample_rates(self, organization: Organization):
+        # TODO: this will take a long time for organizations with a lot of projects
+        #       so we need to refactor this into an async task we can run and observe
+        org_id = organization.id
+        measure = SamplingMeasure.TRANSACTIONS
+        if options.get("dynamic-sampling.check_span_feature_flag") and features.has(
+            "organizations:dynamic-sampling-spans", organization
+        ):
+            measure = SamplingMeasure.SPANS
+
+        projects_with_tx_count_and_rates = []
+        for chunk in query_projects_with_total_root_transaction_count_and_rates(
+            [org_id], measure, query_interval=timedelta(days=30)
+        ):
+            for row in chunk:
+                projects_with_tx_count_and_rates.append(row[1:])
+
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+
+        for rebalanced_item in rebalanced_projects:
+            ProjectOption.objects.create_or_update(
+                project_id=rebalanced_item.id,
+                key="sentry:target_sample_rate",
+                values={"value": round(rebalanced_item.new_sample_rate, 4)},
             )
-            if current_rate:
-                project.update_option("sentry:target_sample_rate", round(current_rate, 4))
 
     def handle_delete(self, request: Request, organization: Organization):
         """
