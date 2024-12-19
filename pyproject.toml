@@ -383,6 +383,8 @@ module = [
     "sentry.issues.endpoints.group_activities",
     "sentry.issues.endpoints.group_event_details",
     "sentry.issues.endpoints.group_events",
+    "sentry.issues.endpoints.group_notes",
+    "sentry.issues.endpoints.group_notes_details",
     "sentry.issues.endpoints.group_participants",
     "sentry.issues.endpoints.group_similar_issues_embeddings",
     "sentry.issues.endpoints.group_tombstone",
