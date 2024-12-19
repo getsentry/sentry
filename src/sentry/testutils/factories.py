@@ -160,6 +160,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
@@ -2044,6 +2045,14 @@ class Factories:
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
+        )
+
+    @staticmethod
+    def create_uptime_subscription_region(
+        subscription: UptimeSubscription, region_slug: str
+    ) -> UptimeSubscriptionRegion:
+        return UptimeSubscriptionRegion.objects.create(
+            uptime_subscription=subscription, region_slug=region_slug
         )
 
     @staticmethod
