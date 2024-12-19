@@ -41,10 +41,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_group_id_from_hashes(self, hashes: list[str], project_id: int) -> Mapping[str, int]:
-        group_hashes = GroupHash.objects.filter(project_id=project_id, hash__in=hashes)
-        return {group_hash.hash: group_hash.group_id for group_hash in group_hashes}
-
     def get_formatted_results(
         self,
         similar_issues_data: Sequence[SeerSimilarIssueData],
@@ -59,7 +55,10 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         parent_hashes = [
             similar_issue_data.parent_hash for similar_issue_data in similar_issues_data
         ]
-        parent_hashes_group_ids = self.get_group_id_from_hashes(parent_hashes, group.project_id)
+        group_hashes = GroupHash.objects.filter(project_id=group.project_id, hash__in=parent_hashes)
+        parent_hashes_group_ids = {
+            group_hash.hash: group_hash.group_id for group_hash in group_hashes
+        }
         for similar_issue_data in similar_issues_data:
             if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
