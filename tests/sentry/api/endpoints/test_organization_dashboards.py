@@ -173,7 +173,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
 
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
-        assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
+        assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
 
     def test_get_sortby_mydashboards_and_recently_viewed(self):
         user_1 = self.create_user(username="user_1")
@@ -513,12 +513,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert values == [
                 # favorites
                 "Dashboard D",  # self.user's favorite
-                "Dashboard B",  # user_1's dashboard
                 "Dashboard E",  # user_1's dashboard
+                "Dashboard B",  # user_1's dashboard
                 # other dashboards
-                "Dashboard 1",  # self.user's dashboard
-                "Dashboard 2",  # self.user's dashboard
                 "Dashboard A",  # self.user's dashboard
+                "Dashboard 2",  # self.user's dashboard
+                "Dashboard 1",  # self.user's dashboard
                 "Dashboard C",  # user_1's dashbaord
             ]
 
