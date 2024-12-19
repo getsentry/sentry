@@ -50,9 +50,14 @@ def filter_requests(
 ) -> list[BufferedRequest]:
     requests: list[BufferedRequest] = []
     for i, req in enumerate(unfiltered_requests):
-        if _filter_by_date(
-            req, filter.get("start_time"), filter.get("end_time")
-        ) and _filter_by_organization(req, organization=filter.get("organization")):
+        start_time = filter.get("start_time")
+        end_time = filter.get("end_time")
+        if (
+            start_time
+            and end_time
+            and _filter_by_date(req, start_time, end_time)
+            and _filter_by_organization(req, organization=filter.get("organization"))
+        ):
             requests.append(BufferedRequest(id=i, data=req))
     return requests
 
