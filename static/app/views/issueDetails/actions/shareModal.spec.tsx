@@ -24,7 +24,7 @@ describe('shareModal', () => {
     jest.clearAllMocks();
   });
 
-  it('should share on open', async () => {
+  it('should share', async () => {
     const group = GroupFixture();
     GroupStore.add([group]);
 
@@ -48,6 +48,7 @@ describe('shareModal', () => {
     );
 
     expect(screen.getByText('Share Issue')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Share'));
     expect(await screen.findByRole('button', {name: 'Copy Link'})).toBeInTheDocument();
     expect(issuesApi).toHaveBeenCalledTimes(1);
     expect(onToggle).toHaveBeenCalledTimes(1);
