@@ -1,6 +1,7 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 describe('convertBuilderStateToWidget', function () {
   it('returns the widget with the provided widget queries state', function () {
@@ -36,7 +37,7 @@ describe('convertBuilderStateToWidget', function () {
       queries: [
         {
           fields: ['geo.country', 'count()', 'count_unique(user)'],
-          fieldAliases: [],
+          fieldAliases: ['', '', ''],
           aggregates: ['count()'],
           columns: ['geo.country'],
           conditions: '',
@@ -69,5 +70,19 @@ describe('convertBuilderStateToWidget', function () {
 
     expect(widget.queries[0].orderby).toEqual('-count()');
     expect(widget.queries[1].orderby).toEqual('-count()');
+  });
+
+  it('adds aliases to the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      fields: [
+        {field: 'geo.country', alias: 'test', kind: FieldValueKind.FIELD},
+        {field: 'geo.country', alias: undefined, kind: FieldValueKind.FIELD},
+        {field: 'geo.country', alias: 'another one', kind: FieldValueKind.FIELD},
+      ],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0].fieldAliases).toEqual(['test', '', 'another one']);
   });
 });

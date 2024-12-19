@@ -1,5 +1,24 @@
-import {DisplayType, type Widget, WidgetType} from 'sentry/views/dashboards/types';
-import type {WidgetBuilderStateQueryParams} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {explodeField} from 'sentry/utils/discover/fields';
+import {
+  DisplayType,
+  type Widget,
+  type WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {
+  serializeFields,
+  type WidgetBuilderStateQueryParams,
+} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+
+function stringifyFields(
+  query: WidgetQuery,
+  fieldKey: 'fields' | 'columns' | 'aggregates'
+) {
+  const fields = query[fieldKey]?.map((field, index) =>
+    explodeField({field, alias: query.fieldAliases?.[index]})
+  );
+  return fields ? serializeFields(fields) : [];
+}
 
 /**
  * Converts a widget to a set of query params that can be used to
@@ -17,10 +36,12 @@ export function convertWidgetToBuilderStateParams(
     widget.displayType === DisplayType.TABLE ||
     widget.displayType === DisplayType.BIG_NUMBER
   ) {
-    field = widget.queries.flatMap(q => q.fields ?? []);
+    field = widget.queries.flatMap(widgetQuery => stringifyFields(widgetQuery, 'fields'));
     yAxis = [];
   } else {
-    field = widget.queries.flatMap(q => q.columns);
+    field = widget.queries.flatMap(widgetQuery =>
+      stringifyFields(widgetQuery, 'columns')
+    );
   }
 
   return {

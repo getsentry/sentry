@@ -2,13 +2,16 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Column} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import useWidgetBuilderState, {
   BuilderStateAction,
+  serializeFields,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useNavigate');
@@ -495,6 +498,44 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
           function: ['count', '', undefined, undefined],
         },
+      ]);
+    });
+
+    it('decodes both JSON formatted fields and non-JSON formatted fields', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: [
+              '{"field": "event.type", "alias": "test"}',
+              'p90(transaction.duration)',
+            ],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: 'test', kind: 'field'},
+        {
+          function: ['p90', 'transaction.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('encodes fields to JSON when they have aliases', () => {
+      const fields = [
+        {field: 'event.type', alias: 'test', kind: FieldValueKind.FIELD},
+        {field: 'event.type', alias: undefined, kind: FieldValueKind.FIELD},
+      ] as Column[];
+      const encodedFields = serializeFields(fields);
+      expect(encodedFields).toEqual([
+        '{"field":"event.type","alias":"test"}',
+        'event.type',
       ]);
     });
   });
