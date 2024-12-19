@@ -190,11 +190,38 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       nodes?.find(n => isSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n));
 
+    const index = node ? props.tree.list.indexOf(node) : -1;
+
     if (node) {
-      props.tree.collapseList([node]);
+      const preserveNodes: TraceTreeNode<TraceTree.NodeValue>[] = [node];
+
+      let start = index;
+      while (--start > 0) {
+        if (
+          isTraceErrorNode(props.tree.list[start]) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
+          preserveNodes.push(props.tree.list[start]!);
+          break;
+        }
+      }
+
+      start = index;
+      while (++start < props.tree.list.length) {
+        if (
+          isTraceErrorNode(props.tree.list[start]) ||
+          node.errors.size > 0 ||
+          node.performance_issues.size > 0
+        ) {
+          preserveNodes.push(props.tree.list[start]!);
+          break;
+        }
+      }
+
+      props.tree.collapseList(preserveNodes);
     }
 
-    const index = node ? props.tree.list.indexOf(node) : -1;
     if (index === -1 || !node) {
       const hasScrollComponent = !!props.event.eventID;
       if (hasScrollComponent) {
