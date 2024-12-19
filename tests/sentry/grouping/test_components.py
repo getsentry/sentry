@@ -8,6 +8,7 @@ from sentry.grouping.component import (
     ExceptionGroupingComponent,
     FunctionGroupingComponent,
     StacktraceGroupingComponent,
+    ThreadsGroupingComponent,
 )
 from sentry.testutils.cases import TestCase
 
@@ -184,6 +185,36 @@ class ComponentTest(TestCase):
                 in_app_contributing_frames=8,
             )
             assert exception_component.frame_counts == stacktrace_component.frame_counts
+
+    def test_threads_component_uses_stacktrace_frame_counts(self):
+        self.event.data["threads"] = self.event.data.pop("exception")
+        self.event.data["threads"]["values"][0]["stacktrace"] = {
+            "frames": (
+                [self.non_contributing_system_frame] * 20
+                + [self.contributing_system_frame] * 12
+                + [self.non_contributing_in_app_frame] * 20
+                + [self.contributing_in_app_frame] * 13
+            )
+        }
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        for variant_name in ["app", "system"]:
+            threads_component = variants[variant_name].component.values[0]
+            assert isinstance(threads_component, ThreadsGroupingComponent)
+            stacktrace_component = find_given_child_component(
+                threads_component, StacktraceGroupingComponent
+            )
+            assert stacktrace_component
+
+            assert stacktrace_component.frame_counts == Counter(
+                system_non_contributing_frames=20,
+                system_contributing_frames=12,
+                in_app_non_contributing_frames=20,
+                in_app_contributing_frames=13,
+            )
+            assert threads_component.frame_counts == stacktrace_component.frame_counts
 
     def test_chained_exception_component_sums_stacktrace_frame_counts(self):
         self.event.data["exception"]["values"] = [
