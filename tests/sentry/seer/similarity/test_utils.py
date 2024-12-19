@@ -536,7 +536,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected_stacktrace_str
 
-    def test_chained_too_many_frames(self):
+    def test_chained_stacktrace_truncation(self):
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -582,7 +582,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected
 
-    def test_chained_too_many_frames_all_minified_js(self):
+    def test_chained_stacktrace_truncation_all_minified_js(self):
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
             self.create_exception(
@@ -634,7 +634,7 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected
 
-    def test_chained_too_many_frames_minified_js_frame_limit(self):
+    def test_chained_stacktrace_truncation_minified_js_frame_limit_is_lower(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
@@ -676,7 +676,7 @@ class GetStacktraceStringTest(TestCase):
                 == expected_frame_count
             )
 
-    def test_chained_too_many_exceptions(self):
+    def test_chained_exception_limit(self):
         """Test that we restrict number of chained exceptions to MAX_FRAME_COUNT."""
         data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
         data_chained_exception["app"]["component"]["values"][0]["values"] = [
@@ -717,7 +717,7 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_too_many_system_frames_single_exception(self):
+    def test_stacktrace_length_filter_single_exception(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
@@ -727,7 +727,7 @@ class GetStacktraceStringTest(TestCase):
         with pytest.raises(TooManyOnlySystemFramesException):
             get_stacktrace_string(data_system, platform="java")
 
-    def test_too_many_system_frames_single_exception_invalid_platform(self):
+    def test_stacktrace_length_filter_single_exception_invalid_platform(self):
         data_system = copy.deepcopy(self.BASE_APP_DATA)
         data_system["system"] = data_system.pop("app")
         data_system["system"]["component"]["values"][0]["values"][0][
@@ -737,7 +737,7 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
-    def test_too_many_system_frames_chained_exception(self):
+    def test_stacktrace_length_filter_chained_exception(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
         data_system["system"] = data_system.pop("app")
         # Split MAX_FRAME_COUNT across the two exceptions
@@ -751,7 +751,7 @@ class GetStacktraceStringTest(TestCase):
         with pytest.raises(TooManyOnlySystemFramesException):
             get_stacktrace_string(data_system, platform="java")
 
-    def test_too_many_system_frames_chained_exception_invalid_platform(self):
+    def test_stacktrace_length_filter_chained_exception_invalid_platform(self):
         data_system = copy.deepcopy(self.CHAINED_APP_DATA)
         data_system["system"] = data_system.pop("app")
         # Split MAX_FRAME_COUNT across the two exceptions
@@ -765,7 +765,7 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_string = get_stacktrace_string(data_system, "python")
         assert stacktrace_string is not None and stacktrace_string != ""
 
-    def test_too_many_in_app_contributing_frames(self):
+    def test_stacktrace_truncation_uses_in_app_contributing_frames(self):
         """
         Check that when there are over MAX_FRAME_COUNT contributing frames, the last MAX_FRAME_COUNT
         is included.
@@ -798,7 +798,7 @@ class GetStacktraceStringTest(TestCase):
             assert ("test = " + str(i) + "!") in stacktrace_str
         assert num_frames == MAX_FRAME_COUNT
 
-    def test_too_many_frames_minified_js_frame_limit(self):
+    def test_stacktrace_truncation_minified_js_frame_limit_is_lower(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 30 frames."""
         for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_frames = copy.deepcopy(self.BASE_APP_DATA)
