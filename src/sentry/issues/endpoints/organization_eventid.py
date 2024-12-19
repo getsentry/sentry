@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -28,7 +29,7 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
         }
     }
 
-    def get(self, request: Request, organization, event_id) -> Response:
+    def get(self, request: Request, organization: Organization, event_id: str) -> Response:
         """
         Resolve an Event ID
         ``````````````````
