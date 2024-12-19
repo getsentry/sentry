@@ -261,7 +261,16 @@ class ReleaseParams:
         required=False,
         type=str,
         description="The field used to sort results by. By default, this is `date`.",
-        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+        enum=[
+            "date",
+            "sessions",
+            "users",
+            "crash_free_users",
+            "crash_free_sessions",
+            "build",
+            "semver",
+            "adoption",
+        ],
     )
     STATUS_FILTER = OpenApiParameter(
         name="status",
@@ -270,6 +279,13 @@ class ReleaseParams:
         type=str,
         description="Release statuses that you can filter by.",
         enum=["open", "archived"],
+    )
+    FLATTERN = OpenApiParameter(
+        name="flatten",
+        location="query",
+        required=False,
+        type=bool,
+        description="Whether or not to flatten the response. This should be `true` (`1`) when sorting by crash statistics.",
     )
 
 
