@@ -19,9 +19,6 @@ class OperationsConfiguration:
     def __init__(self):
         self.hidden_operations = set()
 
-    def hide_operation(self, operation: str) -> None:
-        self.hidden_operations.add(operation)
-
     def hide_operations(self, operations: list[str]) -> None:
         self.hidden_operations.update(operations)
 
