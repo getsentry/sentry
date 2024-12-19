@@ -139,6 +139,7 @@ const _SlideOverPanel = styled(motion.div, {
               position: relative;
 
               width: ${PANEL_WIDTH};
+              min-width: 500px;
               height: 100%;
 
               top: 0;
