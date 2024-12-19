@@ -10,6 +10,7 @@ export type InviteMembersContextValue = {
   complete: boolean;
   inviteStatus: InviteStatus;
   invites: NormalizedInvite[];
+  isOverMemberLimit: boolean;
   pendingInvites: InviteRow;
   reset: () => void;
   sendInvites: () => void;
@@ -26,6 +27,7 @@ export const defaultInviteProps: InviteMembersContextValue = {
   complete: false,
   inviteStatus: {},
   invites: [],
+  isOverMemberLimit: false,
   pendingInvites: {
     emails: new Set<string>(),
     role: '',
