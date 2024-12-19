@@ -853,7 +853,14 @@ CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION: Mapping[str, SplitQueueTaskRoute] = {
             "total": 3,
             "in_use": 3,
         },
-    }
+    },
+    "sentry.profiles.task.process_profile": {
+        "default_queue": "profiles.process",
+        "queues_config": {
+            "total": 3,
+            "in_use": 3,
+        },
+    },
 }
 CELERY_SPLIT_TASK_QUEUES_REGION = make_split_task_queues(CELERY_SPLIT_QUEUE_TASK_ROUTES_REGION)
 
