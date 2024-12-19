@@ -321,9 +321,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
+        // The new ui has the trace info and web vitals in the bottom drawer and
+        // we don't treat the trace node as a clickable node
+        if (isTraceNode(node) && hasTraceNewUi) {
+          return;
+        }
+
         if (queryStringAnimationTimeoutRef.current) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
+
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = TraceTree.PathToNode(node);
@@ -363,7 +370,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [traceDispatch, hasTraceNewUi]
   );
 
   const onRowClick = useCallback(
@@ -372,6 +379,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      // The new ui has the trace info and web vitals in the bottom drawer and
+      // we don't treat the trace node as a clickable node
+      if (isTraceNode(node) && hasTraceNewUi) {
+        traceDispatch({
+          type: 'set roving index',
+          action_source: 'click',
+          index,
+          node,
+        });
+        return;
+      }
+
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
@@ -404,7 +423,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch, organization, projects]
+    [setRowAsFocused, traceDispatch, organization, projects, hasTraceNewUi]
   );
 
   const scrollRowIntoView = useCallback(
