@@ -301,9 +301,16 @@ const SampleWidgetCard = styled(motion.div)`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 30vw;
-    min-width: 400px;
+    min-width: 300px;
     z-index: ${p => p.theme.zIndex.modal};
     cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.large}) and (min-width: ${p =>
+      p.theme.breakpoints.medium}) {
+    width: 25vw;
+    min-width: 100px;
+    max-width: 300px;
   }
 `;
 
