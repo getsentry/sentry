@@ -181,25 +181,7 @@ export function TransactionNodeDetails({
   const project = projects.find(proj => proj.slug === event?.projectSlug);
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasNewTraceUi}>
-      {!node.canFetch ? (
-        <StyledAlert type="info" showIcon>
-          {tct(
-            'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
-            {
-              customInstrumentationLink: (
-                <ExternalLink
-                  onClick={() => {
-                    traceAnalytics.trackMissingSpansDocLinkClicked(organization);
-                  }}
-                  href={getCustomInstrumentationLink(project)}
-                />
-              ),
-            }
-          )}
-        </StyledAlert>
-      ) : null}
-
+    <TraceDrawerComponents.DetailContainer>
       <TransactionNodeDetailHeader
         node={node}
         organization={organization}
@@ -207,61 +189,80 @@ export function TransactionNodeDetails({
         event={event}
         onTabScrollToNode={onTabScrollToNode}
       />
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+        {!node.canFetch ? (
+          <StyledAlert type="info" showIcon>
+            {tct(
+              'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+              {
+                customInstrumentationLink: (
+                  <ExternalLink
+                    onClick={() => {
+                      traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                    }}
+                    href={getCustomInstrumentationLink(project)}
+                  />
+                ),
+              }
+            )}
+          </StyledAlert>
+        ) : null}
 
-      <IssueList node={node} organization={organization} issues={issues} />
+        <IssueList node={node} organization={organization} issues={issues} />
 
-      {hasNewTraceUi ? (
-        <TransactionHighlights
+        {hasNewTraceUi ? (
+          <TransactionHighlights
+            event={event}
+            node={node}
+            project={project}
+            organization={organization}
+          />
+        ) : null}
+
+        <TransactionSpecificSections
           event={event}
           node={node}
-          project={project}
+          onParentClick={onParentClick}
           organization={organization}
+          cacheMetrics={cacheMetrics}
         />
-      ) : null}
 
-      <TransactionSpecificSections
-        event={event}
-        node={node}
-        onParentClick={onParentClick}
-        organization={organization}
-        cacheMetrics={cacheMetrics}
-      />
+        {event.projectSlug ? (
+          <Entries
+            definedEvent={event}
+            projectSlug={event.projectSlug}
+            group={undefined}
+            organization={organization}
+          />
+        ) : null}
 
-      {event.projectSlug ? (
-        <Entries
-          definedEvent={event}
-          projectSlug={event.projectSlug}
-          group={undefined}
-          organization={organization}
-        />
-      ) : null}
-
-      <TraceDrawerComponents.EventTags
-        projectSlug={node.value.project_slug}
-        event={event}
-      />
-
-      <EventContexts event={event} />
-
-      {project ? <EventEvidence event={event} project={project} /> : null}
-
-      {replay ? null : <ReplayPreview event={event} organization={organization} />}
-
-      <BreadCrumbs event={event} organization={organization} />
-
-      {project ? (
-        <EventAttachments event={event} project={project} group={undefined} />
-      ) : null}
-
-      {project ? <EventViewHierarchy event={event} project={project} /> : null}
-
-      {event.projectSlug ? (
-        <EventRRWebIntegration
+        <TraceDrawerComponents.EventTags
+          projectSlug={node.value.project_slug}
           event={event}
-          orgId={organization.slug}
-          projectSlug={event.projectSlug}
         />
-      ) : null}
+
+        <EventContexts event={event} />
+
+        {project ? <EventEvidence event={event} project={project} /> : null}
+
+        {replay ? null : <ReplayPreview event={event} organization={organization} />}
+
+        <BreadCrumbs event={event} organization={organization} />
+
+        {project ? (
+          <EventAttachments event={event} project={project} group={undefined} />
+        ) : null}
+
+        {project ? <EventViewHierarchy event={event} project={project} /> : null}
+
+        {event.projectSlug ? (
+          <EventRRWebIntegration
+            event={event}
+            orgId={organization.slug}
+            projectSlug={event.projectSlug}
+          />
+        ) : null}
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }
@@ -353,5 +354,6 @@ function LegacyTransactionSpecificSections({
 }
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(2)};
+  margin-top: ${space(2)};
+  margin-bottom: 0;
 `;

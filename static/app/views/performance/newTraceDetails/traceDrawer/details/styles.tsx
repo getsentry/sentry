@@ -69,15 +69,23 @@ import type {TraceTreeNode} from '../../traceModels/traceTreeNode';
 import {useTraceState, useTraceStateDispatch} from '../../traceState/traceStateProvider';
 import {useHasTraceNewUi} from '../../useHasTraceNewUi';
 
-const DetailContainer = styled('div')<{hasNewTraceUi?: boolean}>`
+const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
-  padding: ${p => (p.hasNewTraceUi ? `${space(1)} ${space(2)}` : space(1))};
+  padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
+  height: 100%;
+  overflow: auto;
 
   ${DataSection} {
     padding: 0;
   }
+`;
+
+const DetailContainer = styled('div')`
+  height: 100%;
+  overflow: hidden;
+  padding-bottom: ${space(1)};
 `;
 
 const FlexBox = styled('div')`
@@ -210,6 +218,7 @@ const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
 `;
 
 const LegacyHeaderContainer = styled(FlexBox)`
+  margin: ${space(1)};
   justify-content: space-between;
   gap: ${space(3)};
   container-type: inline-size;
@@ -234,7 +243,9 @@ const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
   justify-content: space-between;
   gap: ${space(3)};
-  margin-bottom: ${space(1.5)};
+  padding: ${space(0.25)} 0 ${space(0.5)} 0;
+  margin: 0 ${space(2)} ${space(1)} ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const DURATION_COMPARISON_STATUS_COLORS: {
@@ -570,7 +581,6 @@ const HighlightsWrapper = styled('div')`
   align-items: stretch;
   gap: ${space(1)};
   width: 100%;
-  overflow: hidden;
   margin: ${space(1)} 0;
 `;
 
@@ -1167,6 +1177,7 @@ export const CardContentSubject = styled('div')`
 
 const TraceDrawerComponents = {
   DetailContainer,
+  BodyContainer,
   FlexBox,
   Title: TitleWithTestId,
   Type,
