@@ -669,7 +669,7 @@ async function completeTestSetup() {
             start_timestamp: start + 0.7,
             timestamp: start + 0.8,
           }),
-          // Missing instrumentation gap
+          // No instrumentation gap
           makeSpan({
             op: 'queue',
             description: 'process',
