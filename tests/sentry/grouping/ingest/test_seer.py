@@ -1,18 +1,21 @@
 from dataclasses import asdict
 from time import time
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, call, patch
+from uuid import uuid1
 
 from sentry import options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.ingest.seer import (
+    _event_content_is_seer_eligible,
     get_seer_similar_issues,
     maybe_check_seer_for_matching_grouphash,
     should_call_seer_for_grouping,
 )
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
-from sentry.seer.similarity.utils import MAX_FRAME_COUNT
+from sentry.seer.similarity.utils import MAX_FRAME_COUNT, SEER_INELIGIBLE_EVENT_PLATFORMS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
@@ -64,7 +67,7 @@ class ShouldCallSeerTest(TestCase):
 
         for content_eligibility, expected_result in [(True, True), (False, False)]:
             with patch(
-                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
                 assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
@@ -175,8 +178,8 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
-    @patch("sentry.grouping.ingest.seer.metrics")
-    def test_obeys_empty_stacktrace_string_check(self, mock_metrics: Mock) -> None:
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    def test_obeys_empty_stacktrace_string_check(self, mock_record_did_call_seer: Mock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
         new_event = Event(
             project_id=self.project.id,
@@ -189,14 +192,8 @@ class ShouldCallSeerTest(TestCase):
         )
 
         assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=sample_rate,
-            tags={
-                "call_made": False,
-                "blocker": "empty-stacktrace-string",
-            },
+        mock_record_did_call_seer.assert_any_call(
+            call_made=False, blocker="empty-stacktrace-string"
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -341,8 +338,11 @@ class GetSeerSimilarIssuesTest(TestCase):
                 },
             )
 
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames(self, mock_metrics: Mock) -> None:
+    def test_too_many_frames(
+        self, mock_metrics: Mock, mock_record_did_call_seer: MagicMock
+    ) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -387,17 +387,10 @@ class GetSeerSimilarIssuesTest(TestCase):
             sample_rate=sample_rate,
             tags={"platform": "java", "referrer": "ingest"},
         )
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={
-                "call_made": False,
-                "blocker": "over-threshold-frames",
-            },
-        )
+        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
 
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames_allowed_platform(self, mock_metrics: Mock) -> None:
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
+    def test_too_many_frames_allowed_platform(self, mock_record_did_call_seer: MagicMock) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -437,15 +430,8 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
 
         assert (
-            call(
-                "grouping.similarity.did_call_seer",
-                sample_rate=1.0,
-                tags={
-                    "call_made": False,
-                    "blocker": "over-threshold-frames",
-                },
-            )
-            not in mock_metrics.incr.call_args_list
+            call(call_made=False, blocker="over-threshold-frames")
+            not in mock_record_did_call_seer.call_args_list
         )
 
 
@@ -506,10 +492,14 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             }
         )
 
+    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
     def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash(
-        self, mock_metrics: MagicMock, mock_get_similar_issues: MagicMock
+        self,
+        mock_metrics: MagicMock,
+        mock_get_similar_issues: MagicMock,
+        mock_record_did_call_seer: MagicMock,
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -557,14 +547,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             sample_rate=sample_rate,
             tags={"platform": "java", "referrer": "ingest"},
         )
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={
-                "call_made": False,
-                "blocker": "over-threshold-frames",
-            },
-        )
+        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
 
         mock_get_similar_issues.assert_not_called()
 
@@ -624,3 +607,68 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                 "use_reranking": True,
             }
         )
+
+
+class EventContentIsSeerEligibleTest(TestCase):
+    def get_eligible_event_data(self) -> dict[str, Any]:
+        return {
+            "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+            "exception": {
+                "values": [
+                    {
+                        "type": "FailedToFetchError",
+                        "value": "Charlie didn't bring the ball back",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "play_fetch",
+                                    "filename": "dogpark.py",
+                                    "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+            "platform": "python",
+        }
+
+    def test_no_stacktrace(self) -> None:
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        del bad_event_data["exception"]
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert _event_content_is_seer_eligible(good_event) is True
+        assert _event_content_is_seer_eligible(bad_event) is False
+
+    def test_platform_filter(self) -> None:
+        good_event_data = self.get_eligible_event_data()
+        good_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=good_event_data,
+        )
+
+        bad_event_data = self.get_eligible_event_data()
+        bad_event_data["platform"] = "other"
+        bad_event = Event(
+            project_id=self.project.id,
+            event_id=uuid1().hex,
+            data=bad_event_data,
+        )
+
+        assert good_event_data["platform"] not in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert bad_event_data["platform"] in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert _event_content_is_seer_eligible(good_event) is True
+        assert _event_content_is_seer_eligible(bad_event) is False

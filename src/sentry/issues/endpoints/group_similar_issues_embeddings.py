@@ -18,6 +18,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    ReferrerOptions,
     TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
@@ -75,7 +76,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         return [(serialized_groups[group_id], group_data[group_id]) for group_id in group_data]
 
     def get(self, request: Request, group: Group) -> Response:
-        if killswitch_enabled(group.project.id):
+        if killswitch_enabled(group.project.id, ReferrerOptions.SIMILAR_ISSUES_TAB):
             return Response([])
 
         latest_event = group.get_latest_event()

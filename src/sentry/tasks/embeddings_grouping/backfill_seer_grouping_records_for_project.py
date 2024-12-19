@@ -9,7 +9,11 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
-from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
+from sentry.seer.similarity.utils import (
+    ReferrerOptions,
+    killswitch_enabled,
+    project_is_seer_eligible,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
@@ -80,7 +84,7 @@ def backfill_seer_grouping_records_for_project(
     assert current_project_id is not None
 
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
-        current_project_id
+        current_project_id, ReferrerOptions.BACKFILL
     ):
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
