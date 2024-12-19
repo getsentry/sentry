@@ -8,7 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):
-    def test_only_return_latest_event(self):
+    def test_only_return_latest_event(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -44,7 +44,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["latestEvent"]["eventID"] == new_event_id
 
-    def test_return_multiple_hashes(self):
+    def test_return_multiple_hashes(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -86,7 +86,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
         primary_hashes = [hash["id"] for hash in response.data]
         assert primary_hashes == [event2.get_primary_hash(), event1.get_primary_hash()]
 
-    def test_unmerge(self):
+    def test_unmerge(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group(
@@ -116,7 +116,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
 
-    def test_unmerge_put_member(self):
+    def test_unmerge_put_member(self) -> None:
         member_user = self.create_user(is_superuser=False)
         member = self.create_member(organization=self.organization, user=member_user, role="member")
         self.login_as(user=member)
@@ -148,7 +148,7 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
 
-    def test_unmerge_conflict(self):
+    def test_unmerge_conflict(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group(platform="javascript")

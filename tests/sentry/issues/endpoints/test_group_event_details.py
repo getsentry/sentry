@@ -10,7 +10,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -55,7 +55,7 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
-    def test_get_simple_latest(self):
+    def test_get_simple_latest(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json")
 
@@ -64,7 +64,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_get_simple_oldest(self):
+    def test_get_simple_oldest(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json")
 
@@ -73,7 +73,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == str(self.event_b.event_id)
 
-    def test_get_simple_event_id(self):
+    def test_get_simple_event_id(self) -> None:
         url = f"/api/0/issues/{self.event_b.group.id}/events/{self.event_b.event_id}/"
         response = self.client.get(url, format="json")
 
@@ -82,7 +82,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] == str(self.event_a.event_id)
         assert response.data["nextEventID"] == str(self.event_c.event_id)
 
-    def test_get_with_environment_latest(self):
+    def test_get_with_environment_latest(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
@@ -91,7 +91,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    def test_get_with_environment_oldest(self):
+    def test_get_with_environment_oldest(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/oldest/"
         response = self.client.get(url, format="json", data={"environment": ["production"]})
 
@@ -100,7 +100,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    def test_collapse_stacktrace_only(self):
+    def test_collapse_stacktrace_only(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response = self.client.get(url, format="json", data={"collapse": ["stacktraceOnly"]})
 
@@ -109,7 +109,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         assert "previousEventID" not in response.data
         assert "nextEventID" not in response.data
 
-    def test_collapse_full_release(self):
+    def test_collapse_full_release(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
         response_no_collapse = self.client.get(
             url, format="json", data={"environment": ["production"]}
@@ -138,7 +138,7 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):
-    def test_get_simple_helpful(self):
+    def test_get_simple_helpful(self) -> None:
         self.event_d = self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -165,7 +165,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == self.event_c.event_id
         assert response.data["nextEventID"] is None
 
-    def test_get_helpful_event_id(self):
+    def test_get_helpful_event_id(self) -> None:
         """
         When everything else is equal, the event_id should be used to break ties.
         """
@@ -201,7 +201,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == self.event_d.event_id
         assert response.data["nextEventID"] is None
 
-    def test_get_helpful_replay_id_order(self):
+    def test_get_helpful_replay_id_order(self) -> None:
         replay_id_1 = uuid.uuid4().hex
         replay_id_2 = uuid.uuid4().hex
         replay_id_1 = "b" + replay_id_1[1:]
@@ -249,7 +249,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_d.event_id)
         assert response.data["nextEventID"] == str(self.event_f.event_id)
 
-    def test_with_empty_query(self):
+    def test_with_empty_query(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": ""}, format="json")
 
@@ -258,7 +258,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_issue_filter_query_ignored(self):
+    def test_issue_filter_query_ignored(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "is:unresolved"}, format="json")
 
@@ -267,7 +267,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_event_release_query(self):
+    def test_event_release_query(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": f"release:{self.release_version}"}, format="json")
 
@@ -276,7 +276,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_event_release_semver_query(self):
+    def test_event_release_semver_query(self) -> None:
         event_g = self.store_event(
             data={
                 "event_id": "1" * 32,
@@ -300,7 +300,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    def test_has_environment(self):
+    def test_has_environment(self) -> None:
         url = f"/api/0/issues/{self.event_a.group.id}/events/recommended/"
         response = self.client.get(url, {"query": "has:environment"}, format="json")
 
@@ -309,7 +309,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
 
-    def test_skipped_snuba_fields_ignored(self):
+    def test_skipped_snuba_fields_ignored(self) -> None:
         event_e = self.store_event(
             data={
                 "event_id": "e" * 32,
@@ -352,7 +352,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] == str(event_f.event_id)
 
-    def test_query_title(self):
+    def test_query_title(self) -> None:
         title = "four score and seven years ago"
         event_e = self.store_event(
             data={
@@ -373,7 +373,7 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
-    def test_query_issue_platform_title(self):
+    def test_query_issue_platform_title(self) -> None:
         issue_title = "king of england"
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,

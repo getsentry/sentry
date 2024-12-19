@@ -5,7 +5,7 @@ from sentry.types.activity import ActivityType
 
 
 class GroupActivitiesEndpointTest(APITestCase):
-    def test_endpoint_with_no_group_activities(self):
+    def test_endpoint_with_no_group_activities(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         self.login_as(user=self.user)
@@ -19,7 +19,7 @@ class GroupActivitiesEndpointTest(APITestCase):
         assert "activity" in response.data
         assert len(response.data["activity"]) == 1
 
-    def test_endpoint_with_group_activities(self):
+    def test_endpoint_with_group_activities(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         for i in range(0, 4):
