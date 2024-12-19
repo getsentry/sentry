@@ -479,10 +479,13 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # attempt to finish pipeline with no 'org:integrations' scope
         resp = self.pipeline.finish_pipeline()
-        assert "User has no &#x27;org:integrations&#x27; scope." in resp.content.decode()
+        assert (
+            "You must be an organization owner, manager or admin to install this integration."
+            in resp.content.decode()
+        )
 
         extra = {
-            "error_message": "User has no 'org:integrations' scope.",
+            "error_message": "You must be an organization owner, manager or admin to install this integration.",
             "organization_id": self.organization.id,
             "user_id": member_user.id,
             "provider_key": "example",
