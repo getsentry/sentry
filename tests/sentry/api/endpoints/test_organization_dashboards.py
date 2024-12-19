@@ -220,8 +220,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         ]
 
     def test_get_sortby_mydashboards_with_owner_name(self):
-        self.user.name = "Zack"
-
         user_1 = self.create_user(username="user_1", name="Cat")
         self.create_member(organization=self.organization, user=user_1)
 
