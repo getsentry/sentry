@@ -17,11 +17,13 @@ from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import (
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
-    event_content_is_seer_eligible,
+    event_content_has_stacktrace,
     filter_null_from_string,
     get_stacktrace_string_with_metrics,
     killswitch_enabled,
+    record_did_call_seer_metric,
 )
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker
@@ -39,14 +41,14 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
     project = event.project
 
     # Check both of these before returning based on either so we can gather metrics on their results
-    content_is_eligible = event_content_is_seer_eligible(event)
+    content_is_eligible = _event_content_is_seer_eligible(event)
     seer_enabled_for_project = _project_has_similarity_grouping_enabled(project)
     if not (content_is_eligible and seer_enabled_for_project):
         return False
 
     if (
         _has_customized_fingerprint(event, variants)
-        or killswitch_enabled(project.id, event)
+        or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
         # because it calculates the stacktrace string, which we only want to spend the time to do if we already
@@ -63,6 +65,34 @@ def should_call_seer_for_grouping(event: Event, variants: Mapping[str, BaseVaria
     ):
         return False
 
+    return True
+
+
+def _event_content_is_seer_eligible(event: Event) -> bool:
+    """
+    Determine if an event's contents makes it fit for using with Seer's similar issues model.
+    """
+    if not event_content_has_stacktrace(event):
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "no-stacktrace"},
+        )
+        return False
+
+    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
+        metrics.incr(
+            "grouping.similarity.event_content_seer_eligible",
+            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            tags={"eligible": False, "blocker": "unsupported-platform"},
+        )
+        return False
+
+    metrics.incr(
+        "grouping.similarity.event_content_seer_eligible",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"eligible": True, "blocker": "none"},
+    )
     return True
 
 
@@ -96,22 +126,14 @@ def _has_customized_fingerprint(event: Event, variants: Mapping[str, BaseVariant
 
         # Hybrid fingerprinting ({{ default }} + some other value(s))
         else:
-            metrics.incr(
-                "grouping.similarity.did_call_seer",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={"call_made": False, "blocker": "hybrid-fingerprint"},
-            )
+            record_did_call_seer_metric(call_made=False, blocker="hybrid-fingerprint")
             return True
 
     # Fully customized fingerprint (from either us or the user)
     fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
 
     if fingerprint_variant:
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": fingerprint_variant.type},
-        )
+        record_did_call_seer_metric(call_made=False, blocker=fingerprint_variant.type)
         return True
 
     return False
@@ -133,12 +155,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     if ratelimiter.backend.is_limited("seer:similarity:global-limit", **global_ratelimit):
         logger_extra["limit_per_sec"] = global_limit_per_sec
         logger.warning("should_call_seer_for_grouping.global_ratelimit_hit", extra=logger_extra)
-
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-rate-limit"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="global-rate-limit")
 
         return True
 
@@ -147,12 +164,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
     ):
         logger_extra["limit_per_sec"] = project_limit_per_sec
         logger.warning("should_call_seer_for_grouping.project_ratelimit_hit", extra=logger_extra)
-
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-rate-limit"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="project-rate-limit")
 
         return True
 
@@ -173,11 +185,7 @@ def _circuit_breaker_broken(event: Event, project: Project) -> bool:
                 **breaker_config,
             },
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "circuit-breaker"},
-        )
+        record_did_call_seer_metric(call_made=False, blocker="circuit-breaker")
 
     return circuit_broken
 
@@ -188,14 +196,7 @@ def _has_empty_stacktrace_string(event: Event, variants: Mapping[str, BaseVarian
     )
     if not stacktrace_string:
         if stacktrace_string == "":
-            metrics.incr(
-                "grouping.similarity.did_call_seer",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                tags={
-                    "call_made": False,
-                    "blocker": "empty-stacktrace-string",
-                },
-            )
+            record_did_call_seer_metric(call_made=False, blocker="empty-stacktrace-string")
         return True
     # Store the stacktrace string in the event so we only calculate it once. We need to pop it
     # later so it isn't stored in the database.
@@ -286,11 +287,7 @@ def maybe_check_seer_for_matching_grouphash(
     seer_matched_grouphash = None
 
     if should_call_seer_for_grouping(event, variants):
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": True, "blocker": "none"},
-        )
+        record_did_call_seer_metric(call_made=True, blocker="none")
 
         try:
             # If no matching group is found in Seer, we'll still get back result
