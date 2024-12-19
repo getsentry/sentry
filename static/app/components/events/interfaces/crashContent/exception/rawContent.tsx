@@ -1,19 +1,15 @@
 import {Component, Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
-import ClippedBox from 'sentry/components/clippedBox';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {
+  getAppleCrashReportEndpoint,
+  getContent,
+} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import type {Event, ExceptionType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-
-import rawStacktraceContent from '../stackTrace/rawContent';
 
 type Props = {
   api: Client;
@@ -57,77 +53,8 @@ class RawContent extends Component<Props, State> {
     );
   }
 
-  getAppleCrashReportEndpoint(organization: Organization) {
-    const {type, projectSlug, eventId} = this.props;
-
-    const minified = type === 'minified';
-    return `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
-  }
-
-  getContent(isNative: boolean, exc: any) {
-    const {type} = this.props;
-
-    const output = {
-      downloadButton: null,
-      content: exc.stacktrace
-        ? rawStacktraceContent(
-            type === 'original' ? exc.stacktrace : exc.rawStacktrace,
-            this.props.platform,
-            exc
-          )
-        : null,
-    };
-
-    if (!isNative) {
-      return output;
-    }
-
-    const {loading, error, crashReport} = this.state;
-
-    if (loading) {
-      return {
-        ...output,
-        content: <LoadingIndicator />,
-      };
-    }
-
-    if (error) {
-      return {
-        ...output,
-        content: <LoadingError />,
-      };
-    }
-
-    if (!loading && !!crashReport) {
-      const {api, organization} = this.props;
-      let downloadButton: React.ReactElement | null = null;
-
-      if (organization) {
-        const appleCrashReportEndpoint = this.getAppleCrashReportEndpoint(organization);
-
-        downloadButton = (
-          <DownloadBtnWrapper>
-            <LinkButton
-              size="xs"
-              href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
-            >
-              {t('Download')}
-            </LinkButton>
-          </DownloadBtnWrapper>
-        );
-      }
-
-      return {
-        downloadButton,
-        content: <ClippedBox clipHeight={250}>{crashReport}</ClippedBox>,
-      };
-    }
-
-    return output;
-  }
-
   async fetchAppleCrashReport() {
-    const {api, organization} = this.props;
+    const {api, organization, type, projectSlug, eventId} = this.props;
 
     // Shared issues do not have access to organization
     if (!organization) {
@@ -142,7 +69,7 @@ class RawContent extends Component<Props, State> {
 
     try {
       const data = await api.requestPromise(
-        this.getAppleCrashReportEndpoint(organization),
+        getAppleCrashReportEndpoint(organization, type, projectSlug, eventId),
         {headers: {Accept: '*/*; charset=utf-8'}}
       );
       this.setState({
@@ -156,7 +83,8 @@ class RawContent extends Component<Props, State> {
   }
 
   render() {
-    const {values} = this.props;
+    const {values, projectSlug, eventId, api, platform, organization, type} = this.props;
+    const {loading, error, crashReport} = this.state;
     const isNative = this.isNative();
 
     if (!values) {
@@ -166,7 +94,20 @@ class RawContent extends Component<Props, State> {
     return (
       <Fragment>
         {values.map((exc, excIdx) => {
-          const {downloadButton, content} = this.getContent(isNative, exc);
+          const {downloadButton, content} = getContent(
+            isNative,
+            exc,
+            type,
+            projectSlug,
+            eventId,
+            api,
+            platform,
+            loading,
+            error,
+            crashReport,
+            organization
+          );
+
           if (!downloadButton && !content) {
             return null;
           }
@@ -182,9 +123,3 @@ class RawContent extends Component<Props, State> {
 }
 
 export default withApi(withOrganization(RawContent));
-
-const DownloadBtnWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-`;

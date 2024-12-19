@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {getContent} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionType} from 'sentry/types/event';
@@ -9,6 +10,8 @@ import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {StackType, StackView} from 'sentry/types/stacktrace';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
@@ -35,6 +38,12 @@ export function Exception({
 }: Props) {
   const eventHasThreads = !!event.entries.some(entry => entry.type === EntryType.THREADS);
   const hasStreamlinedUI = useHasStreamlinedUI();
+  const api = useApi();
+  const organization = useOrganization();
+  const isNative =
+    event.platform === 'cocoa' ||
+    event.platform === 'native' ||
+    event.platform === 'nintendo-switch';
 
   // in case there are threads in the event data, we don't render the
   // exception block.  Instead the exception is contained within the
@@ -50,6 +59,28 @@ export function Exception({
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
 
   const stackTraceNotFound = !(data.values ?? []).length;
+
+  const copyableStackTrace =
+    data.values && !isNative
+      ? data.values
+          .map((exc, _excIdx) => {
+            const {content} = getContent(
+              false,
+              exc,
+              'original',
+              projectSlug,
+              event.id,
+              api,
+              event.platform,
+              false,
+              false,
+              '',
+              organization
+            );
+            return content;
+          })
+          .join('\n\n')
+      : undefined;
 
   return (
     <TraceEventDataSection
@@ -91,6 +122,7 @@ export function Exception({
         !!data.values?.some(value => (value.stacktrace?.frames ?? []).length > 1)
       }
       stackTraceNotFound={stackTraceNotFound}
+      copyableStackTrace={copyableStackTrace}
     >
       {({recentFirst, display, fullStackTrace}) => {
         return stackTraceNotFound ? (

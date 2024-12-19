@@ -1,12 +1,12 @@
 import {createContext, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconEllipsis, IconSort} from 'sentry/icons';
+import {IconCopy, IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -14,6 +14,7 @@ import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -55,6 +56,7 @@ type Props = {
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
+  copyableStackTrace?: string;
   isNestedSection?: boolean;
 };
 
@@ -79,6 +81,7 @@ export function TraceEventDataSection({
   hasAbsoluteAddresses,
   hasAppOnlyFrames,
   isNestedSection = false,
+  copyableStackTrace,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -357,6 +360,11 @@ export function TraceEventDataSection({
 
   const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
 
+  const {onClick: copyRawStackTrace} = useCopyToClipboard({
+    successMessage: t('Copied raw stack trace to clipboard'),
+    text: copyableStackTrace ?? '',
+  });
+
   return (
     <SectionComponent
       type={type}
@@ -432,6 +440,16 @@ export function TraceEventDataSection({
               value={state.display}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
               options={[{label: t('Display'), options: getDisplayOptions()}]}
+              shouldCloseOnBlur
+              menuFooter={
+                copyableStackTrace && (
+                  <SectionedOverlayFooter>
+                    <Button size="xs" icon={<IconCopy />} onClick={copyRawStackTrace}>
+                      {t('Copy raw stack trace')}
+                    </Button>
+                  </SectionedOverlayFooter>
+                )
+              }
             />
           </ButtonBar>
         )
@@ -463,6 +481,12 @@ function InlineThreadSection({
     </Wrapper>
   );
 }
+
+const SectionedOverlayFooter = styled('div')`
+  grid-area: footer;
+  display: flex;
+  align-items: center;
+`;
 
 const Wrapper = styled('div')``;
 

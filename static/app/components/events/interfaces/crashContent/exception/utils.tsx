@@ -3,9 +3,18 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import type {Client} from 'sentry/api';
+import {LinkButton} from 'sentry/components/button';
+import ClippedBox from 'sentry/components/clippedBox';
+import rawContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconOpen} from 'sentry/icons';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconOpen} from 'sentry/icons/iconOpen';
+import {t} from 'sentry/locale';
 import type {Frame} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
@@ -32,6 +41,90 @@ export function isFrameFilenamePathlike(frame: Frame): boolean {
 interface RenderLinksInTextProps {
   exceptionText: string;
 }
+
+export const getAppleCrashReportEndpoint = (
+  organization: Organization,
+  type: 'original' | 'minified',
+  projectSlug: string,
+  eventId: string
+) => {
+  const minified = type === 'minified';
+  return `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
+};
+
+export const getContent = (
+  isNative: boolean,
+  exc: any,
+  type: 'original' | 'minified',
+  projectSlug: string,
+  eventId: string,
+  api: Client,
+  platform?: PlatformKey,
+  loading?: boolean,
+  error?: boolean,
+  crashReport?: string,
+  organization?: Organization
+) => {
+  const output = {
+    downloadButton: null,
+    content: exc.stacktrace
+      ? rawContent(
+          type === 'original' ? exc.stacktrace : exc.rawStacktrace,
+          platform,
+          exc
+        )
+      : null,
+  };
+
+  if (!isNative) {
+    return output;
+  }
+
+  if (loading) {
+    return {
+      ...output,
+      content: <LoadingIndicator />,
+    };
+  }
+
+  if (error) {
+    return {
+      ...output,
+      content: <LoadingError />,
+    };
+  }
+
+  if (!loading && !!crashReport) {
+    let downloadButton: React.ReactElement | null = null;
+
+    if (organization) {
+      const appleCrashReportEndpoint = getAppleCrashReportEndpoint(
+        organization,
+        type,
+        projectSlug,
+        eventId
+      );
+
+      downloadButton = (
+        <DownloadBtnWrapper>
+          <LinkButton
+            size="xs"
+            href={`${api.baseUrl}${appleCrashReportEndpoint}&download=1`}
+          >
+            {t('Download')}
+          </LinkButton>
+        </DownloadBtnWrapper>
+      );
+    }
+
+    return {
+      downloadButton,
+      content: <ClippedBox clipHeight={250}>{crashReport}</ClippedBox>,
+    };
+  }
+
+  return output;
+};
 
 export const renderLinksInText = ({
   exceptionText,
@@ -107,4 +200,10 @@ const IconPlacement = styled(IconOpen)`
   display: inline-block;
   margin-left: 5px;
   vertical-align: center;
+`;
+
+const DownloadBtnWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `;
