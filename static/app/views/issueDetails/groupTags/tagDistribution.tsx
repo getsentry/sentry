@@ -181,8 +181,9 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     border-radius: 3px;
-    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
-    border: 1px solid ${p => p.theme.translucentBorder};
+    background: ${p =>
+      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()}, ${Color(p.theme.gray300).alpha(0.7).toString()})`};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.translucentInnerBorder};
     width: 100%;
   }
 `;
