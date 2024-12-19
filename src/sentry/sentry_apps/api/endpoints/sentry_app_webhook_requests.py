@@ -56,7 +56,7 @@ class IncomingRequestSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }

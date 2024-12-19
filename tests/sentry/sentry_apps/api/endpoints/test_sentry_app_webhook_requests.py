@@ -12,7 +12,7 @@ pytestmark = [requires_snuba]
 
 
 @control_silo_test(regions=create_test_regions("us"))
-class SentryAppRequestsV2GetTest(APITestCase):
+class SentryAppWebhookRequestsGetTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
         self.user = self.create_user(email="user@example.com")
@@ -167,7 +167,7 @@ class SentryAppRequestsV2GetTest(APITestCase):
             url=self.published_app.webhook_url,
         )
         buffer.add_request(
-            response_code=200,
+            response_code=400,
             org_id=self.org.id,
             event="installation.created",
             url=self.published_app.webhook_url,
@@ -181,10 +181,14 @@ class SentryAppRequestsV2GetTest(APITestCase):
         response2 = self.client.get(f"{url}?eventType=issue.assigned", format="json")
         assert response2.status_code == 200
         assert len(response2.data) == 1
+        assert response2.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert response2.data[0]["responseCode"] == 200
 
         response3 = self.client.get(f"{url}?eventType=installation.created", format="json")
         assert response3.status_code == 200
         assert len(response3.data) == 1
+        assert response3.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert response3.data[0]["responseCode"] == 400
 
     def test_invalid_event_type(self):
         self.login_as(user=self.user)
@@ -214,6 +218,8 @@ class SentryAppRequestsV2GetTest(APITestCase):
         errors_only_response = self.client.get(f"{url}?errorsOnly=true", format="json")
         assert errors_only_response.status_code == 200
         assert len(errors_only_response.data) == 1
+        assert errors_only_response.data[0]["sentryAppSlug"] == self.published_app.slug
+        assert errors_only_response.data[0]["responseCode"] == 500
 
         response = self.client.get(url, format="json")
         assert response.status_code == 200
