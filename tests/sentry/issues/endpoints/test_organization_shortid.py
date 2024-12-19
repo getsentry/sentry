@@ -7,7 +7,7 @@ pytestmark = [requires_snuba]
 
 
 class ShortIdLookupEndpointTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization(owner=self.user)
         project = self.create_project(organization=org)
         group = self.create_group(project=project, short_id=project.next_short_id())

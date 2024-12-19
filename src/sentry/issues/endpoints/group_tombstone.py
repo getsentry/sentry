@@ -8,6 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 
 
 @region_silo_endpoint
@@ -17,7 +18,7 @@ class GroupTombstoneEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project's GroupTombstones
         ````````````````````````````````````
