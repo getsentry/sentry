@@ -1,4 +1,4 @@
-import {Fragment, PureComponent} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -51,18 +51,29 @@ type Props = {
   titles?: string[];
 };
 
-class TransactionsTable extends PureComponent<Props> {
-  getTitles() {
-    const {eventView, titles} = this.props;
+function TransactionsTable(props: Props) {
+  const {
+    eventView,
+    titles,
+    tableData,
+    columnOrder,
+    organization,
+    location,
+    generateLink,
+    handleCellAction,
+    useAggregateAlias,
+    isLoading,
+    referrer,
+  } = props;
+
+  const getTitles = () => {
     return titles ?? eventView.getFields();
-  }
+  };
 
-  renderHeader() {
-    const {tableData, columnOrder} = this.props;
-
+  const renderHeader = () => {
     const tableMeta = tableData?.meta;
     const generateSortLink = () => undefined;
-    const tableTitles = this.getTitles();
+    const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
@@ -111,32 +122,22 @@ class TransactionsTable extends PureComponent<Props> {
     });
 
     return headers;
-  }
+  };
 
-  renderRow(
+  const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    columnOrder: TableColumn<React.ReactText>[],
+    colOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
-  ): React.ReactNode[] {
-    const {
-      eventView,
-      organization,
-      location,
-      generateLink,
-      handleCellAction,
-      titles,
-      useAggregateAlias,
-      referrer,
-    } = this.props;
+  ): React.ReactNode[] => {
     const fields = eventView.getFields();
 
     if (titles?.length) {
       // Slice to match length of given titles
-      columnOrder = columnOrder.slice(0, titles.length);
+      colOrder = colOrder.slice(0, titles.length);
     }
 
-    const resultsRow = columnOrder.map((column, index) => {
+    const resultsRow = colOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
@@ -199,10 +200,9 @@ class TransactionsTable extends PureComponent<Props> {
     });
 
     return resultsRow;
-  }
+  };
 
-  renderResults() {
-    const {isLoading, tableData, columnOrder} = this.props;
+  const renderResults = () => {
     let cells: React.ReactNode[] = [];
 
     if (isLoading) {
@@ -217,39 +217,35 @@ class TransactionsTable extends PureComponent<Props> {
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(this.renderRow(row, i, columnOrder, tableData.meta));
+      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta));
     });
     return cells;
-  }
+  };
 
-  render() {
-    const {isLoading, tableData} = this.props;
+  const hasResults = tableData?.meta && tableData.data?.length > 0;
 
-    const hasResults = tableData?.meta && tableData.data?.length > 0;
+  // Custom set the height so we don't have layout shift when results are loaded.
+  const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
-    // Custom set the height so we don't have layout shift when results are loaded.
-    const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
-
-    return (
-      <VisuallyCompleteWithData
-        id="TransactionsTable"
-        hasData={hasResults}
+  return (
+    <VisuallyCompleteWithData
+      id="TransactionsTable"
+      hasData={hasResults}
+      isLoading={isLoading}
+    >
+      <PanelTable
+        data-test-id="transactions-table"
+        isEmpty={!hasResults}
+        emptyMessage={t('No transactions found')}
+        headers={renderHeader()}
         isLoading={isLoading}
+        disablePadding
+        loader={loader}
       >
-        <PanelTable
-          data-test-id="transactions-table"
-          isEmpty={!hasResults}
-          emptyMessage={t('No transactions found')}
-          headers={this.renderHeader()}
-          isLoading={isLoading}
-          disablePadding
-          loader={loader}
-        >
-          {this.renderResults()}
-        </PanelTable>
-      </VisuallyCompleteWithData>
-    );
-  }
+        {renderResults()}
+      </PanelTable>
+    </VisuallyCompleteWithData>
+  );
 }
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
