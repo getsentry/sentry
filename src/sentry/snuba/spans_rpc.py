@@ -47,8 +47,9 @@ def run_table_query(
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query = resolver.resolve_query(query_string)
-    columns, contexts = resolver.resolve_columns(selected_columns)
+    query, query_contexts = resolver.resolve_query(query_string)
+    columns, column_contexts = resolver.resolve_columns(selected_columns)
+    contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
     # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
     orderby_aliases = {
@@ -155,7 +156,7 @@ def get_timeseries_query(
 ) -> TimeSeriesRequest:
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query = resolver.resolve_query(query_string)
+    query, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:
@@ -178,6 +179,8 @@ def get_timeseries_query(
             if isinstance(groupby.proto_definition, AttributeKey)
         ],
         granularity_secs=granularity_secs,
+        # TODO: need to add this once the RPC supports it
+        # virtual_column_contexts=[context for context in resolver.clean_contexts(query_contexts) if context is not None],
     )
 
 
@@ -285,7 +288,7 @@ def build_top_event_conditions(
                 ]
             else:
                 value = event[key]
-            resolved_term = resolver.resolve_term(
+            resolved_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
@@ -294,7 +297,7 @@ def build_top_event_conditions(
             )
             if resolved_term is not None:
                 row_conditions.append(resolved_term)
-            other_term = resolver.resolve_term(
+            other_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
