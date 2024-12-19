@@ -79,7 +79,7 @@ export function useGroupTags(
  * Primarily used for tag facets
  */
 export function useGroupTagsReadable(
-  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'limit' | 'readable'>,
+  parameters: Omit<FetchIssueTagsParameters, 'orgSlug' | 'readable'>,
   options: GroupTagUseQueryOptions = {}
 ) {
   return useGroupTags(
