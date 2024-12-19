@@ -154,13 +154,13 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.uptime import models as uptime_models
 from sentry.uptime.models import (
     IntervalSecondsLiteral,
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
@@ -2042,18 +2042,11 @@ class Factories:
         )
 
     @staticmethod
-    def create_uptime_region(
-        slug: str,
-        name: str,
-    ):
-        return uptime_models.Region.objects.get_or_create(slug=slug, name=name)[0]
-
-    @staticmethod
     def create_uptime_subscription_region(
-        subscription: UptimeSubscription, region: uptime_models.Region
-    ):
-        return uptime_models.UptimeSubscriptionRegion.objects.create(
-            uptime_subscription=subscription, region=region
+        subscription: UptimeSubscription, region_slug: str
+    ) -> UptimeSubscriptionRegion:
+        return UptimeSubscriptionRegion.objects.create(
+            uptime_subscription=subscription, region_slug=region_slug
         )
 
     @staticmethod

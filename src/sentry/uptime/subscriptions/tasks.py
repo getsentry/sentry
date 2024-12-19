@@ -5,7 +5,10 @@ from datetime import timedelta
 from uuid import uuid4
 
 from django.utils import timezone
-from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import (
+    _CHECKCONFIGREGIONSCHEDULEMODE_ROUND_ROBIN,
+    CheckConfig,
+)
 
 from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
@@ -96,8 +99,8 @@ def uptime_subscription_to_check_config(
         "request_method": subscription.method,
         "request_headers": headers,
         "trace_sampling": subscription.trace_sampling,
-        "active_regions": [r.slug for r in subscription.regions.all()],
-        "region_schedule_mode": "round_robin",
+        "active_regions": [r.region_slug for r in subscription.regions.all()],
+        "region_schedule_mode": _CHECKCONFIGREGIONSCHEDULEMODE_ROUND_ROBIN,
     }
     if subscription.body is not None:
         config["request_body"] = subscription.body

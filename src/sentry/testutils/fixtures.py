@@ -714,8 +714,7 @@ class Fixtures:
             trace_sampling=trace_sampling,
         )
         for region_slug in region_slugs:
-            region = Factories.create_uptime_region(region_slug, region_slug)
-            Factories.create_uptime_subscription_region(subscription, region)
+            Factories.create_uptime_subscription_region(subscription, region_slug)
 
         return subscription
 
