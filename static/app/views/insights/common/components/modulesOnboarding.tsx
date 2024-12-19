@@ -488,7 +488,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     valuePropDescription: null,
     valuePropPoints: [],
   },
-  // XXX(epurkhiser): Updtime does not use the insights onboarding component.
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
   uptime: {
     description: null,
     heading: null,
