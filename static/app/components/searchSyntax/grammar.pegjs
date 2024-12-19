@@ -234,6 +234,16 @@ explicit_tag_key
       return tc.tokenKeyExplicitTag(prefix, key);
     }
 
+explicit_string_tag_key
+  = prefix:"tags" open_bracket key:search_key spaces comma spaces 'string' closed_bracket {
+      return tc.tokenKeyExplicitStringTag(prefix, key)
+    }
+
+explicit_number_tag_key
+  = prefix:"tags" open_bracket key:search_key spaces comma spaces 'number' closed_bracket {
+      return tc.tokenKeyExplicitNumberTag(prefix, key)
+    }
+
 aggregate_key
   = name:key open_paren s1:spaces args:function_args? s2:spaces closed_paren {
       return tc.tokenKeyAggregate(name, args, s1, s2);
@@ -259,10 +269,10 @@ quoted_aggregate_param
     }
 
 search_key
-  = key / quoted_key
+  = explicit_number_tag_key / key / quoted_key
 
 text_key
-  = explicit_tag_key / search_key
+  = explicit_tag_key / explicit_string_tag_key / search_key
 
 // Filter values
 
