@@ -303,6 +303,20 @@ def up(
     """
     from sentry.runner import configure
 
+    click.secho(
+        """
+WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
+To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
+https://github.com/getsentry/devservices?tab=readme-ov-file#commands
+
+Instead of running `sentry devservices up`, consider using `devservices up`.
+For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
+Thanks for helping the Dev Infra team improve this experience!
+
+    """,
+        fg="yellow",
+    )
+
     configure()
 
     containers = _prepare_containers(
@@ -519,6 +533,20 @@ def down(project: str, service: list[str]) -> None:
     The default is everything, however you may pass positional arguments to specify
     an explicit list of services to bring down.
     """
+
+    click.secho(
+        """
+WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
+To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
+https://github.com/getsentry/devservices?tab=readme-ov-file#commands
+
+Instead of running `sentry devservices down`, consider using `devservices down`.
+For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
+Thanks for helping the Dev Infra team improve this experience!
+
+    """,
+        fg="yellow",
+    )
 
     def _down(container: docker.models.containers.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")
