@@ -944,6 +944,7 @@ CELERY_QUEUES_REGION = [
         "dynamicsampling",
         routing_key="dynamicsampling",
     ),
+    Queue("tempest", routing_key="tempest"),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("incidents", routing_key="incidents"),
