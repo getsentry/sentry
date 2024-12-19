@@ -14,6 +14,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
+from sentry.search.events.constants import SPAN_MODULE_CATEGORY_VALUES
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import DEVICE_CLASS
 from sentry.utils.validators import is_event_id, is_span_id
@@ -247,6 +248,11 @@ SPAN_COLUMN_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedColumn(
+            public_alias="span.status_code",
+            internal_name="sentry.status_code",
+            search_type="string",
+        ),
+        ResolvedColumn(
             public_alias="trace",
             internal_name="sentry.trace_id",
             search_type="string",
@@ -321,7 +327,6 @@ SPAN_COLUMN_DEFINITIONS = {
         simple_sentry_field("release"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),
-        simple_sentry_field("span.status_code"),
         simple_sentry_field("span_id"),
         simple_sentry_field("trace.status"),
         simple_sentry_field("transaction.method"),
@@ -430,11 +435,21 @@ def device_class_context_constructor(params: SnubaParams) -> VirtualColumnContex
     )
 
 
+def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
+    value_map = {key: key for key in SPAN_MODULE_CATEGORY_VALUES}
+    return VirtualColumnContext(
+        from_column_name="sentry.category",
+        to_column_name="span.module",
+        value_map=value_map,
+    )
+
+
 VIRTUAL_CONTEXTS = {
     "project": project_context_constructor("project"),
     "project.slug": project_context_constructor("project.slug"),
     "project.name": project_context_constructor("project.name"),
     "device.class": device_class_context_constructor,
+    "span.module": module_context_constructor,
 }
 
 

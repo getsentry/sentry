@@ -31,7 +31,11 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
 
   if (props.isLoading) {
     return (
-      <WidgetFrame title={props.title} description={props.description}>
+      <WidgetFrame
+        title={props.title}
+        description={props.description}
+        borderless={props.borderless}
+      >
         <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
       </WidgetFrame>
     );
@@ -62,6 +66,7 @@ export function BigNumberWidget(props: BigNumberWidgetProps) {
       warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
+      borderless={props.borderless}
     >
       {defined(value) && (
         <BigNumberResizeWrapper>

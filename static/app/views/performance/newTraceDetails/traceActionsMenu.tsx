@@ -47,7 +47,7 @@ function TraceActionsMenu({
           label: t('Open Events in Discover'),
           onAction: () => {
             trackAnalytics('performance_views.trace_view.open_in_discover', {
-              organization: organization,
+              organization,
             });
             const target = traceEventView.getResultsViewUrlTarget(
               organization.slug,

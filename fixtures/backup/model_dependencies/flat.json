@@ -869,6 +869,9 @@
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": [],
+  "uptime.uptimesubscriptionregion": [
+    "uptime.uptimesubscription"
+  ],
   "workflow_engine.action": [
     "sentry.integration"
   ],

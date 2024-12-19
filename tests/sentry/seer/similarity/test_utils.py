@@ -10,7 +10,7 @@ from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
-    SEER_ELIGIBLE_PLATFORMS,
+    SEER_INELIGIBLE_EVENT_PLATFORMS,
     ReferrerOptions,
     TooManyOnlySystemFramesException,
     _is_snipped_context_line,
@@ -934,8 +934,8 @@ class EventContentIsSeerEligibleTest(TestCase):
             data=bad_event_data,
         )
 
-        assert good_event_data["platform"] in SEER_ELIGIBLE_PLATFORMS
-        assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
+        assert good_event_data["platform"] not in SEER_INELIGIBLE_EVENT_PLATFORMS
+        assert bad_event_data["platform"] in SEER_INELIGIBLE_EVENT_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
 
