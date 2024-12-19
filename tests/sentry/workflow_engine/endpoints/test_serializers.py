@@ -199,7 +199,7 @@ class TestDataConditionGroupSerializer(TestCase):
         )
         condition = DataCondition.objects.create(
             condition_group=condition_group,
-            type="gt",
+            type=Condition.GREATER,
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
