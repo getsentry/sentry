@@ -29,13 +29,15 @@ from sentry.incidents.logic import (
     get_slack_actions_with_async_lookups,
 )
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
-from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.utils.alert_rule_action import (
+    create_sentry_app_alert_rule_component_for_incidents,
+)
 from sentry.users.services.user.service import user_service
 
 
@@ -82,7 +84,12 @@ def update_alert_rule(request: Request, organization, alert_rule):
         partial=True,
     )
     if serializer.is_valid():
-        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+        raised_error = create_sentry_app_alert_rule_component_for_incidents(
+            serializer.validated_data
+        )
+        if raised_error:
+            return raised_error
+
         if get_slack_actions_with_async_lookups(organization, request.user, data):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
