@@ -219,6 +219,44 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard 3",
         ]
 
+    def test_get_sortby_mydashboards_with_owner_name(self):
+        self.user.name = "Zack"
+
+        user_1 = self.create_user(username="user_1", name="Cat")
+        self.create_member(organization=self.organization, user=user_1)
+
+        user_2 = self.create_user(username="user_2", name="Pineapple")
+        self.create_member(organization=self.organization, user=user_2)
+
+        user_3 = self.create_user(username="user_3", name="Banana")
+        self.create_member(organization=self.organization, user=user_3)
+
+        user_4 = self.create_user(username="user_4", name="Aapple")
+        self.create_member(organization=self.organization, user=user_4)
+
+        Dashboard.objects.create(title="A", created_by_id=user_1.id, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="C", created_by_id=user_3.id, organization=self.organization)
+        Dashboard.objects.create(title="D", created_by_id=user_4.id, organization=self.organization)
+        Dashboard.objects.create(title="E", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="F", created_by_id=user_1.id, organization=self.organization)
+
+        self.login_as(user_1)
+        response = self.client.get(self.url, data={"sort": "mydashboards"})
+        assert response.status_code == 200, response.content
+
+        values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+        assert values == [
+            "Cat",
+            "Cat",
+            "admin@localhost",  # name is empty
+            "admin@localhost",
+            "Aapple",
+            "Banana",
+            "Pineapple",
+            "Pineapple",
+        ]
+
     def test_get_only_favorites_no_sort(self):
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -460,12 +498,12 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             assert values == [
                 # favorites
                 "Dashboard D",  # self.user's favorite
-                "Dashboard E",  # user_1's dashboard
                 "Dashboard B",  # user_1's dashboard
+                "Dashboard E",  # user_1's dashboard
                 # other dashboards
-                "Dashboard A",  # self.user's dashboard
-                "Dashboard 2",  # self.user's dashboard
                 "Dashboard 1",  # self.user's dashboard
+                "Dashboard 2",  # self.user's dashboard
+                "Dashboard A",  # self.user's dashboard
                 "Dashboard C",  # user_1's dashbaord
             ]
 
