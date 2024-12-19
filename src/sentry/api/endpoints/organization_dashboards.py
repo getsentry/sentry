@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Exists, IntegerField, OuterRef, When
+from django.db.models import Case, Exists, IntegerField, OuterRef, Value, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,8 +28,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.db.models.fields.text import CharField
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.organization import Organization
+from sentry.users.services.user.service import user_service
 
 MAX_RETRIES = 2
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -163,14 +165,43 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
-            order_by = [
-                Case(
-                    When(created_by_id=request.user.id, then=-1),
-                    default="created_by_id",
-                    output_field=IntegerField(),
-                ),
-                "-date_added",
-            ]
+            if features.has(
+                "organizations:dashboards-table-view", organization, actor=request.user
+            ):
+                user_name_dict = {
+                    user.id: user.name
+                    for user in user_service.get_many_by_id(
+                        ids=list(dashboards.values_list("created_by_id", flat=True))
+                    )
+                }
+                dashboards = dashboards.annotate(
+                    user_name=Case(
+                        *[
+                            When(created_by_id=user_id, then=Value(user_name))
+                            for user_id, user_name in user_name_dict.items()
+                        ],
+                        default=Value(""),
+                        output_field=CharField(),
+                    )
+                )
+                order_by = [
+                    Case(
+                        When(created_by_id=request.user.id, then=-1),
+                        default=1,
+                        output_field=IntegerField(),
+                    ),
+                    "-user_name" if desc else "user_name",
+                    "-date_added",
+                ]
+            else:
+                order_by = [
+                    Case(
+                        When(created_by_id=request.user.id, then=-1),
+                        default="created_by_id",
+                        output_field=IntegerField(),
+                    ),
+                    "-date_added",
+                ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
             order_by = [
