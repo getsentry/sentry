@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.eventstore.models import Event
+from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     MAX_FRAME_COUNT,
@@ -14,6 +17,7 @@ from sentry.seer.similarity.utils import (
     filter_null_from_string,
     get_stacktrace_string,
     get_stacktrace_string_with_metrics,
+    has_too_many_contributing_frames,
 )
 from sentry.testutils.cases import TestCase
 
@@ -875,3 +879,214 @@ class SeerUtilsTest(TestCase):
     def test_filter_null_from_string(self):
         string_with_null = 'String with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
         assert filter_null_from_string(string_with_null) == 'String with null , "" is null'
+
+
+class HasTooManyFramesTest(TestCase):
+    def setUp(self):
+        # The `in_app` and `contributes` values of these frames will be determined by the project
+        # stacktrace rules we'll add below
+        self.contributing_system_frame = {
+            "function": "handleRequest",
+            "filename": "/node_modules/express/router.js",
+            "context_line": "return handler(request);",
+        }
+        self.non_contributing_system_frame = {
+            "function": "runApp",
+            "filename": "/node_modules/express/app.js",
+            "context_line": "return server.serve(port);",
+        }
+        self.contributing_in_app_frame = {
+            "function": "playFetch",
+            "filename": "/dogApp/dogpark.js",
+            "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back');",
+        }
+        self.non_contributing_in_app_frame = {
+            "function": "recordMetrics",
+            "filename": "/dogApp/metrics.js",
+            "context_line": "return withMetrics(handler, metricName, tags);",
+        }
+        self.exception_value = {
+            "type": "FailedToFetchError",
+            "value": "Charlie didn't bring the ball back",
+        }
+        self.event = Event(
+            event_id="12312012041520130908201311212012",
+            project_id=self.project.id,
+            data={
+                "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+                "exception": {"values": [self.exception_value]},
+            },
+        )
+        self.project.update_option(
+            "sentry:grouping_enhancements",
+            "\n".join(
+                [
+                    "stack.function:runApp -app -group",
+                    "stack.function:handleRequest -app +group",
+                    "stack.function:recordMetrics +app -group",
+                    "stack.function:playFetch +app +group",
+                ]
+            ),
+        )
+
+    def test_single_exception_simple(self):
+        for stacktrace_length, expected_result in [
+            (MAX_FRAME_COUNT - 1, False),
+            (MAX_FRAME_COUNT + 1, True),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * stacktrace_length
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_single_exception_bypassed_platform(self):
+        # Regardless of the number of frames, we never flag it as being too long
+        for stacktrace_length, expected_result in [
+            (MAX_FRAME_COUNT - 1, False),
+            (MAX_FRAME_COUNT + 1, False),
+        ]:
+            self.event.data["platform"] = "python"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * stacktrace_length
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_chained_exception_simple(self):
+        for total_frames, expected_result in [
+            (MAX_FRAME_COUNT - 2, False),
+            (MAX_FRAME_COUNT + 2, True),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"] = [
+                {**self.exception_value},
+                {**self.exception_value},
+            ]
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+            self.event.data["exception"]["values"][1]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_chained_exception_bypassed_platform(self):
+        # Regardless of the number of frames, we never flag it as being too long
+        for total_frames, expected_result in [
+            (MAX_FRAME_COUNT - 2, False),
+            (MAX_FRAME_COUNT + 2, False),
+        ]:
+            self.event.data["platform"] = "python"
+            self.event.data["exception"]["values"] = [
+                {**self.exception_value},
+                {**self.exception_value},
+            ]
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+            self.event.data["exception"]["values"][1]["stacktrace"] = {
+                "frames": [self.contributing_in_app_frame] * (total_frames // 2)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is expected_result
+            )
+
+    def test_ignores_non_contributing_frames(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": (
+                # Taken together, there are too many frames
+                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)
+                + [self.non_contributing_in_app_frame] * 2
+            )
+        }
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because only contributing frames are counted
+        )
+
+    def test_prefers_app_frames(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": (
+                [self.contributing_in_app_frame] * (MAX_FRAME_COUNT - 1)  # Under the limit
+                + [self.contributing_system_frame] * (MAX_FRAME_COUNT + 1)  # Over the limit
+            )
+        }
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because only in-app frames are counted
+        )
+
+    @pytest.mark.skip(reason="wonky behavior with -app +group rules")
+    def test_uses_app_or_system_variants(self):
+        for frame, expected_variant_name in [
+            (self.contributing_in_app_frame, "app"),
+            (self.contributing_system_frame, "system"),
+        ]:
+            self.event.data["platform"] = "java"
+            self.event.data["exception"]["values"][0]["stacktrace"] = {
+                "frames": [frame] * (MAX_FRAME_COUNT + 1)
+            }
+
+            # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+            variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+
+            contributing_variant, _ = get_contributing_variant_and_component(variants)
+            assert contributing_variant.variant_name == expected_variant_name
+
+            assert (
+                has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+                is True
+            )
+
+    def test_ignores_events_not_grouped_on_stacktrace(self):
+        self.event.data["platform"] = "java"
+        self.event.data["exception"]["values"][0]["stacktrace"] = {
+            "frames": ([self.contributing_system_frame] * (MAX_FRAME_COUNT + 1))  # Over the limit
+        }
+        self.event.data["fingerprint"] = ["dogs_are_great"]
+
+        # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
+        variants = self.event.get_grouping_variants(normalize_stacktraces=True)
+        contributing_variant, _ = get_contributing_variant_and_component(variants)
+        assert isinstance(contributing_variant, CustomFingerprintVariant)
+
+        assert (
+            has_too_many_contributing_frames(self.event, variants, ReferrerOptions.INGEST)
+            is False  # Not flagged as too many because it's grouped by fingerprint
+        )
