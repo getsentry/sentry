@@ -489,7 +489,11 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
           props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
         }
         onClick={() => {
-          if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
+          if (
+            props.tab.node !== 'vitals' &&
+            props.tab.node !== 'profiles' &&
+            props.tab.node !== 'help'
+          ) {
             traceAnalytics.trackTabView(node, organization);
             props.onTabScrollToNode(root);
           }
@@ -499,7 +503,8 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         {/* A trace is technically an entry in the list, so it has a color */}
         {props.tab.node === 'trace' ||
         props.tab.node === 'vitals' ||
-        props.tab.node === 'profiles' ? null : (
+        props.tab.node === 'profiles' ||
+        props.tab.node === 'help' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
