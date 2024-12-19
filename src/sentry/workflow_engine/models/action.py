@@ -32,7 +32,11 @@ class Action(DefaultFieldsModel):
     class Type(models.TextChoices):
         EMAIL = "email"
         SLACK = "slack"
+        MSTEAMS = "msteams"
         PAGERDUTY = "pagerduty"
+        OPSGENIE = "opsgenie"
+        DISCORD = "discord"
+        SENTRY_APP = "sentry_app"
         WEBHOOK = "webhook"
 
     class LegacyNotificationType(models.TextChoices):
