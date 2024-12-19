@@ -169,3 +169,8 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_FEATURES,
   [ModuleName.OTHER]: [],
 };
+
+/**
+ * Modules that will not display tabs when the feature is not enabled
+ */
+export const MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED: ModuleName[] = [];

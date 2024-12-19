@@ -1,7 +1,10 @@
 import type {Organization} from 'sentry/types/organization';
 import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import {MODULE_FEATURE_MAP} from 'sentry/views/insights/settings';
+import {
+  MODULE_FEATURE_MAP,
+  MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED,
+} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export const isModuleEnabled = (module: ModuleName, organization: Organization) => {
@@ -11,6 +14,10 @@ export const isModuleEnabled = (module: ModuleName, organization: Organization) 
   }
   return moduleFeatures.every(feature => organization.features.includes(feature));
 };
+
+export const isModuleHidden = (module: ModuleName, organization: Organization) =>
+  MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED.includes(module) &&
+  !isModuleEnabled(module, organization);
 
 export const getModuleView = (module: ModuleName): DomainView => {
   if (DOMAIN_VIEW_MODULES.backend.includes(module)) {
