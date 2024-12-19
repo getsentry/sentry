@@ -174,7 +174,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                         ids=list(dashboards.values_list("created_by_id", flat=True))
                     )
                 }
-
                 dashboards = dashboards.annotate(
                     user_name=Case(
                         *[
@@ -185,7 +184,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                         output_field=CharField(),
                     )
                 )
-
                 order_by = [
                     Case(
                         When(created_by_id=request.user.id, then=-1),
