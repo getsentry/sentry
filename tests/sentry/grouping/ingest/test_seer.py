@@ -178,6 +178,16 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
+    def test_obeys_excessive_frame_check(self) -> None:
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
+        for frame_check_result, expected_result in [(True, False), (False, True)]:
+            with patch(
+                "sentry.grouping.ingest.seer._has_too_many_contributing_frames",
+                return_value=frame_check_result,
+            ):
+                assert should_call_seer_for_grouping(self.event, self.variants) is expected_result
+
     @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
     def test_obeys_empty_stacktrace_string_check(self, mock_record_did_call_seer: Mock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
@@ -492,10 +502,10 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
             }
         )
 
-    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
+    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash(
+    def test_too_many_frames_maybe_check_seer_for_matching_group_hash(
         self,
         mock_metrics: MagicMock,
         mock_get_similar_issues: MagicMock,
@@ -543,16 +553,21 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
         mock_metrics.incr.assert_any_call(
-            "grouping.similarity.over_threshold_only_system_frames",
+            "grouping.similarity.frame_count_filter",
             sample_rate=sample_rate,
-            tags={"platform": "java", "referrer": "ingest"},
+            tags={
+                "platform": "java",
+                "referrer": "ingest",
+                "stacktrace_type": "system",
+                "outcome": "block",
+            },
         )
-        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
+        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="excess-frames")
 
         mock_get_similar_issues.assert_not_called()
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
-    def test_too_many_only_system_frames_maybe_check_seer_for_matching_group_hash_invalid_platform(
+    def test_too_many_frames_maybe_check_seer_for_matching_group_hash_bypassed_platform(
         self, mock_get_similarity_data: MagicMock
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
