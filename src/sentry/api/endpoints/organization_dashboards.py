@@ -190,6 +190,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                     output_field=IntegerField(),
                 ),
                 "-user_name" if desc else "user_name",
+                "-date_added",
             ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
