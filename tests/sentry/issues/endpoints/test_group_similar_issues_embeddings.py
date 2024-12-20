@@ -686,15 +686,15 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             mock_seer_request.reset_mock()
 
     def test_too_many_system_frames(self) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         error_data = {
             "exception": {
                 "values": [
                     {
-                        "type": type,
-                        "value": value,
+                        "type": error_type,
+                        "value": error_value,
                         "stacktrace": {
                             "frames": [
                                 {
@@ -719,15 +719,15 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     def test_no_filename_or_module(self) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         error_data = {
             "exception": {
                 "values": [
                     {
-                        "type": type,
-                        "value": value,
+                        "type": error_type,
+                        "value": error_value,
                         "stacktrace": {
                             "frames": [
                                 {
