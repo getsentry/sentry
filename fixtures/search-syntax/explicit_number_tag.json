@@ -1,0 +1,43 @@
+[
+  {
+    "query": "tags[foo,number]:456 release:1.2.1 tags[project_id,number]:123",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitNumberTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "foo", "quoted": false}
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": "456", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitNumberTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "project_id", "quoted": false}
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": "123", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
