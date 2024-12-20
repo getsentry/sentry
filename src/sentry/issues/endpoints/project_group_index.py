@@ -21,6 +21,7 @@ from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -50,7 +51,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
     }
 
     @track_slo_response("workflow")
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Issues
         ```````````````````````
@@ -208,7 +209,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         return response
 
     @track_slo_response("workflow")
-    def put(self, request: Request, project) -> Response:
+    def put(self, request: Request, project: Project) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -278,7 +279,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint, EnvironmentMixin):
         )
 
     @track_slo_response("workflow")
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````

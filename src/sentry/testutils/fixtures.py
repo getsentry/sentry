@@ -677,7 +677,7 @@ class Fixtures:
         type: str = "test",
         subscription_id: str | None = None,
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
-        url="http://sentry.io/",
+        url: str | None = None,
         host_provider_id="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
@@ -688,13 +688,16 @@ class Fixtures:
         body=None,
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
+        region_slugs: list[str] | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
         if headers is None:
             headers = []
+        if region_slugs is None:
+            region_slugs = []
 
-        return Factories.create_uptime_subscription(
+        subscription = Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
             status=status,
@@ -710,6 +713,10 @@ class Fixtures:
             body=body,
             trace_sampling=trace_sampling,
         )
+        for region_slug in region_slugs:
+            Factories.create_uptime_subscription_region(subscription, region_slug)
+
+        return subscription
 
     def create_project_uptime_subscription(
         self,
@@ -717,7 +724,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-        name="Test Name",
+        name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
     ) -> ProjectUptimeSubscription:
