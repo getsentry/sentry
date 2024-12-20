@@ -994,14 +994,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                 ),
                 SnQLFunction(
-                    "weighted_performance_score",
-                    required_args=[
-                        NumericColumn("column"),
-                    ],
-                    snql_aggregate=self._resolve_weighted_web_vital_score_function,
-                    default_result_type="number",
-                ),
-                SnQLFunction(
                     "opportunity_score",
                     required_args=[
                         NumericColumn("column"),
@@ -1710,58 +1702,6 @@ class DiscoverDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_weighted_web_vital_score_function(
-        self,
-        args: Mapping[str, Column],
-        alias: str,
-    ) -> SelectType:
-        column = args["column"]
-        if column.key not in [
-            "score.lcp",
-            "score.fcp",
-            "score.fid",
-            "score.cls",
-            "score.ttfb",
-        ]:
-            raise InvalidSearchQuery(
-                "weighted_performance_score only supports performance score measurements"
-            )
-        total_score_column = self.builder.column("measurements.score.total")
-        return Function(
-            "greatest",
-            [
-                Function(
-                    "least",
-                    [
-                        Function(
-                            "divide",
-                            [
-                                Function(
-                                    "sum",
-                                    [column],
-                                ),
-                                Function(
-                                    "countIf",
-                                    [
-                                        Function(
-                                            "greaterOrEquals",
-                                            [
-                                                total_score_column,
-                                                0,
-                                            ],
-                                        )
-                                    ],
-                                ),
-                            ],
-                        ),
-                        1.0,
-                    ],
-                ),
-                0.0,
-            ],
-            alias,
-        )
-
     def _resolve_web_vital_opportunity_score_function(
         self,
         args: Mapping[str, Column],
@@ -1777,7 +1717,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "score.total",
         ]:
             raise InvalidSearchQuery(
-                "weighted_performance_score only supports performance score measurements"
+                "opportunity_score only supports performance score measurements"
             )
 
         weight_column = (
