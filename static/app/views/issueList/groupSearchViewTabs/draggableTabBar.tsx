@@ -54,7 +54,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
         includeInputs: true,
         callback: () => {
           if (tabs.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
-            dispatch({type: 'SAVE_CHANGES'});
+            dispatch({type: 'SAVE_CHANGES', syncViews: true});
             addSuccessMessage(t('Changes saved to view'));
           }
         },
@@ -71,7 +71,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
     if (!duplicatedTab) {
       return;
     }
-    dispatch({type: 'DUPLICATE_VIEW', newViewId});
+    dispatch({type: 'DUPLICATE_VIEW', newViewId, syncViews: true});
     navigate({
       ...location,
       query: {
@@ -175,7 +175,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
   };
 
   const handleDeleteView = (tab: IssueView) => {
-    dispatch({type: 'DELETE_VIEW'});
+    dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
     tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0].key);
@@ -188,7 +188,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
   const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
-        onSaveTempView: () => dispatch({type: 'SAVE_TEMP_VIEW'}),
+        onSaveTempView: () => dispatch({type: 'SAVE_TEMP_VIEW', syncViews: true}),
         onDiscardTempView: () => dispatch({type: 'DISCARD_TEMP_VIEW'}),
       });
     }
@@ -197,7 +197,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
         onRename: () => setEditingTabKey(tab.key),
         onDuplicate: handleDuplicateView,
         onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
-        onSave: () => dispatch({type: 'SAVE_CHANGES'}),
+        onSave: () => dispatch({type: 'SAVE_CHANGES', syncViews: true}),
         onDiscard: handleDiscardChanges,
       });
     }
@@ -246,7 +246,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
               onChange={newLabel =>
-                dispatch({type: 'RENAME_TAB', newLabel: newLabel.trim()})
+                dispatch({type: 'RENAME_TAB', newLabel: newLabel.trim(), syncViews: true})
               }
               isSelected={
                 (tabListState && tabListState?.selectedKey === tab.key) ||

@@ -41,71 +41,75 @@ export interface IssueView {
   unsavedChanges?: [string, IssueSortOptions];
 }
 
+type BaseIssueViewsAction = {
+  /** If true, the new views state created by the action will be synced to the backend */
+  syncViews?: boolean;
+};
+
 type ReorderTabsAction = {
   newKeyOrder: string[];
   type: 'REORDER_TABS';
-};
+} & BaseIssueViewsAction;
 
 type SaveChangesAction = {
   type: 'SAVE_CHANGES';
-};
+} & BaseIssueViewsAction;
 
 type DiscardChangesAction = {
   type: 'DISCARD_CHANGES';
-};
+} & BaseIssueViewsAction;
 
 type RenameTabAction = {
   newLabel: string;
   type: 'RENAME_TAB';
-};
+} & BaseIssueViewsAction;
 
 type DuplicateViewAction = {
   newViewId: string;
   type: 'DUPLICATE_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type DeleteViewAction = {
   type: 'DELETE_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type CreateNewViewAction = {
   tempId: string;
   type: 'CREATE_NEW_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type SetTempViewAction = {
   query: string;
   sort: IssueSortOptions;
   type: 'SET_TEMP_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type DiscardTempViewAction = {
   type: 'DISCARD_TEMP_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type SaveTempViewAction = {
   type: 'SAVE_TEMP_VIEW';
-};
+} & BaseIssueViewsAction;
 
 type UpdateUnsavedChangesAction = {
   type: 'UPDATE_UNSAVED_CHANGES';
   unsavedChanges: [string, IssueSortOptions] | undefined;
   isCommitted?: boolean;
-  syncViews?: boolean;
-};
+} & BaseIssueViewsAction;
 
 type UpdateViewIdsAction = {
   newViews: UpdateGroupSearchViewPayload[];
   type: 'UPDATE_VIEW_IDS';
-};
+} & BaseIssueViewsAction;
 
 type SetViewsAction = {
   type: 'SET_VIEWS';
   views: IssueView[];
-  syncViews?: boolean;
-};
+} & BaseIssueViewsAction;
 
 type SyncViewsToBackendAction = {
+  /** Syncs the current views state to the backend. Does not make any changes to the views state. */
   type: 'SYNC_VIEWS_TO_BACKEND';
 };
 
@@ -426,32 +430,19 @@ export function IssueViewsStateProvider({
       if (!tabListState) {
         return state;
       }
-      // eslint-disable-next-line no-console
-      console.log('executing dispatch', state, action);
-      let newState;
       switch (action.type) {
         case 'REORDER_TABS':
-          newState = reorderTabs(state, action);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return reorderTabs(state, action);
         case 'SAVE_CHANGES':
-          newState = saveChanges(state, tabListState);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return saveChanges(state, tabListState);
         case 'DISCARD_CHANGES':
           return discardChanges(state, tabListState);
         case 'RENAME_TAB':
-          newState = renameView(state, action, tabListState);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return renameView(state, action, tabListState);
         case 'DUPLICATE_VIEW':
-          newState = duplicateView(state, action, tabListState);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return duplicateView(state, action, tabListState);
         case 'DELETE_VIEW':
-          newState = deleteView(state, tabListState);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return deleteView(state, tabListState);
         case 'CREATE_NEW_VIEW':
           return createNewView(state, action);
         case 'SET_TEMP_VIEW':
@@ -459,23 +450,13 @@ export function IssueViewsStateProvider({
         case 'DISCARD_TEMP_VIEW':
           return discardTempView(state, tabListState);
         case 'SAVE_TEMP_VIEW':
-          newState = saveTempView(state, tabListState);
-          debounceUpdateViews(newState.views);
-          return newState;
+          return saveTempView(state, tabListState);
         case 'UPDATE_UNSAVED_CHANGES':
-          newState = updateUnsavedChanges(state, action, tabListState);
-          if (action.syncViews) {
-            debounceUpdateViews(newState.views);
-          }
-          return newState;
+          return updateUnsavedChanges(state, action, tabListState);
         case 'UPDATE_VIEW_IDS':
           return updateViewIds(state, action);
         case 'SET_VIEWS':
-          newState = setViews(state, action);
-          if (action.syncViews) {
-            debounceUpdateViews(newState.views);
-          }
-          return newState;
+          return setViews(state, action);
         case 'SYNC_VIEWS_TO_BACKEND':
           debounceUpdateViews(state.views);
           return state;
@@ -508,13 +489,21 @@ export function IssueViewsStateProvider({
     tempView: initialTempView,
   });
 
+  const dispatchWrapper = (action: IssueViewsActions) => {
+    const newState = reducer(state, action);
+    dispatch(action);
+    if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
+      debounceUpdateViews(newState.views);
+    }
+  };
+
   return (
     <IssueViewsContext.Provider
       value={{
         rootProps: {orientation: 'horizontal'},
         tabListState,
         setTabListState,
-        dispatch,
+        dispatch: dispatchWrapper,
         state,
       }}
     >
