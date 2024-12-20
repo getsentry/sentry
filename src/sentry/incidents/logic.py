@@ -102,7 +102,8 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
-from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+
+# from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -1054,10 +1055,10 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-            if features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-            ):
-                dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
+            # if features.has(
+            #     "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+            # ):
+            #     dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
         alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
