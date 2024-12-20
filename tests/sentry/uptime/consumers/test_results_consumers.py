@@ -379,7 +379,7 @@ class ProcessResultTest(ProducerTestMixin):
             metrics.incr.assert_has_calls(
                 [call("uptime.result_processor.subscription_not_found", sample_rate=1.0)]
             )
-            self.assert_producer_calls(subscription_id)
+            self.assert_producer_calls((subscription_id, kafka_definition.Topic.UPTIME_CONFIGS))
 
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
