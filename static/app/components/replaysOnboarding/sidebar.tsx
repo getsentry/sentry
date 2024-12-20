@@ -325,8 +325,15 @@ function OnboardingContent({
     );
   }
 
-  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs || !projectKeyId) {
+  // No platform, docs import failed, no DSN, ingestion is turned off, or the platform doesn't have onboarding yet
+  if (
+    !currentPlatform ||
+    !docs ||
+    !dsn ||
+    !hasDocs ||
+    !projectKeyId ||
+    organization.features.includes('session-replay-video-disabled')
+  ) {
     return (
       <Fragment>
         <div>
@@ -346,25 +353,6 @@ function OnboardingContent({
         </div>
       </Fragment>
     );
-  }
-
-  // if the org cannot ingest mobile replay events, don't show the onboarding
-  // TODO: remove once we GA mobile replay
-  if (organization.features.includes('session-replay-video-disabled')) {
-    // if (['android', 'react-native'].includes(currentPlatform.language)) {
-    //   return (
-    //     <MobileBetaBanner
-    //       link={`https://docs.sentry.io/platforms/${currentPlatform.language}/session-replay/`}
-    //     />
-    //   );
-    // }
-    // if (currentPlatform.language === 'apple') {
-    //   return (
-    //     <MobileBetaBanner
-    //       link={`https://docs.sentry.io/platforms/apple/guides/ios/session-replay/`}
-    //     />
-    //   );
-    // }
   }
 
   return (
