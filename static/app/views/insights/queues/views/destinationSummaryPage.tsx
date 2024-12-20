@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,6 +28,8 @@ import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 function DestinationSummaryPage() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
@@ -40,6 +42,17 @@ function DestinationSummaryPage() {
     referrer: Referrer.QUEUES_SUMMARY,
   });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
+
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: MessageSpanSamplesPanel,
+    moduleName: ModuleName.QUEUE,
+  });
+
+  useEffect(() => {
+    if (query.transaction) {
+      openSamplesDrawer();
+    }
+  });
 
   return (
     <Fragment>
@@ -139,7 +152,6 @@ function DestinationSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-      <MessageSpanSamplesPanel />
     </Fragment>
   );
 }
