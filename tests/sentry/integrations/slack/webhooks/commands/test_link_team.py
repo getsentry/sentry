@@ -208,7 +208,7 @@ class SlackCommandsUnlinkTeamTest(SlackCommandsLinkTeamTestBase):
         )
         assert TEAM_NOT_LINKED_MESSAGE in get_response_text(data)
 
-        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
