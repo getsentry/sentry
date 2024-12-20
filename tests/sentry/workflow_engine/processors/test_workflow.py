@@ -50,7 +50,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_regressed_event(self):
         dcg = self.create_data_condition_group()
         self.create_data_condition(
-            type=Condition.REGRESSED_EVENT,
+            type=Condition.REGRESSION_EVENT,
             comparison=True,
             condition_result=True,
             condition_group=dcg,
