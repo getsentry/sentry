@@ -33,7 +33,7 @@ from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import Feature, parse_link_header, with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
@@ -79,14 +79,14 @@ class GroupListTest(APITestCase, SnubaTestCase):
         event1 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-1"],
-                "timestamp": iso_format(self.min_ago - timedelta(seconds=2)),
+                "timestamp": (self.min_ago - timedelta(seconds=2)).isoformat(),
             },
             project_id=self.project.id,
         )
         event2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-2"],
-                "timestamp": iso_format(self.min_ago - timedelta(seconds=1)),
+                "timestamp": (self.min_ago - timedelta(seconds=1)).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -136,7 +136,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -144,7 +144,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "staging",
             },
             project_id=self.project.id,
@@ -177,7 +177,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -194,7 +194,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_environment(name="test", project=project)
 
         event = self.store_event(
-            data={"environment": "test", "timestamp": iso_format(self.min_ago)},
+            data={"environment": "test", "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -213,7 +213,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event = self.store_event(
-            data={"event_id": "c" * 32, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -271,11 +271,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release.add_project(project)
         release.add_project(project2)
         group = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         ).group
         self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
         url = "{}?query={}".format(self.path, 'first-release:"%s"' % release.version)
@@ -347,7 +347,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_filter_not_unresolved(self):
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.RESOLVED, substatus=None)
@@ -358,7 +358,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_single_group_by_hash(self):
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
 
@@ -371,12 +371,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_multiple_groups_by_hashes(self):
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
 
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -1136,7 +1136,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": str(i)},
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
+                    "timestamp": (self.min_ago + timedelta(seconds=i)).isoformat(),
                 },
                 project_id=self.project.id,
             )

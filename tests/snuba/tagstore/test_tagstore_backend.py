@@ -25,7 +25,7 @@ from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.eventuser import EventUser
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -72,7 +72,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -92,7 +92,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -112,7 +112,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-2"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"browser": "chrome", "sentry:user": "id:user1"},
                 "user": {"id": "user1"},
             },
@@ -126,7 +126,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env2,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"foo": "bar"},
             },
             project_id=self.proj1.id,
@@ -147,8 +147,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
             }
@@ -157,8 +157,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "b" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
             }
@@ -675,7 +675,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "message": "message 1",
                 "platform": "python",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -776,7 +776,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": None,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(one_day_ago),
+                "timestamp": one_day_ago.isoformat(),
                 "tags": {
                     "sentry:release": 100,
                 },
@@ -799,7 +799,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": None,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(two_days_ago),
+                "timestamp": two_days_ago.isoformat(),
                 "tags": {
                     "sentry:release": 100,
                 },
@@ -1148,7 +1148,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": self.proj1env1.name,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -1199,8 +1199,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
                 "environment": env.name,
@@ -1256,7 +1256,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": "test",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=5)),
+                "timestamp": (self.now - timedelta(seconds=5)).isoformat(),
                 "tags": {
                     "foo": "quux",
                 },
@@ -1274,7 +1274,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": "test",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now),
+                "timestamp": self.now.isoformat(),
                 "tags": {
                     "foo": "quux",
                 },

@@ -3,7 +3,7 @@ import uuid
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header, with_feature
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -221,7 +221,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         self.login_as(user=self.user)
         response = self.get_response(
-            query=f"timestamp:>{before_now(seconds=3)} timestamp:<{iso_format(before_now(seconds=1))}",
+            query=f"timestamp:>{before_now(seconds=3)} timestamp:<{before_now(seconds=1).isoformat()}",
             groups=[group_a.id, group_c.id],
         )
 

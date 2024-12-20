@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime
@@ -85,7 +85,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "fingerprint": [["group-1"], ["group-2"]][
                         (r // 600) % 2
                     ],  # Switch every 10 mins
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
@@ -142,7 +142,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",

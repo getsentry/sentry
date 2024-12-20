@@ -30,7 +30,7 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
@@ -69,7 +69,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "info",
                 "tags": {"logger": "javascript"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -81,7 +81,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "error",
                 "tags": {"logger": "python"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -93,7 +93,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "debug",
                 "tags": {"logger": "java"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -142,7 +142,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "python",
                         "message": "Hello from Python",
-                        "timestamp": iso_format(now - timedelta(hours=1)),
+                        "timestamp": (now - timedelta(hours=1)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -153,7 +153,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "java",
                         "message": "Hello from Java",
-                        "timestamp": iso_format(now - timedelta(hours=2)),
+                        "timestamp": (now - timedelta(hours=2)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -205,7 +205,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     "user": next(user_values),
                     "tags": tags,
                     "fingerprint": [fingerprint],
-                    "timestamp": iso_format(now + timedelta(seconds=i)),
+                    "timestamp": (now + timedelta(seconds=i)).isoformat(),
                     "environment": environment,
                     "release": release,
                 },
