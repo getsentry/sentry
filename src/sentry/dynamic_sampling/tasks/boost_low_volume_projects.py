@@ -171,7 +171,7 @@ def partition_by_measure(
 def boost_low_volume_projects_of_org_with_query(
     context: TaskContext,
     org_id: OrganizationId,
-) -> list[RebalancedItem] | None:
+) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
     organization ID. Transaction counts and rates are fetched within this task.
@@ -199,7 +199,8 @@ def boost_low_volume_projects_of_org_with_query(
     rebalanced_projects = calculate_sample_rates_of_projects(
         org_id, projects_with_tx_count_and_rates
     )
-    store_rebalanced_projects(org_id, rebalanced_projects)
+    if rebalanced_projects is not None:
+        store_rebalanced_projects(org_id, rebalanced_projects)
 
 
 @instrumented_task(
@@ -227,7 +228,8 @@ def boost_low_volume_projects_of_org(
     rebalanced_projects = calculate_sample_rates_of_projects(
         org_id, projects_with_tx_count_and_rates
     )
-    store_rebalanced_projects(org_id, rebalanced_projects)
+    if rebalanced_projects is not None:
+        store_rebalanced_projects(org_id, rebalanced_projects)
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -396,7 +398,7 @@ def calculate_sample_rates_of_projects(
 
     # If the org doesn't have dynamic sampling, we want to early return to avoid unnecessary work.
     if not has_dynamic_sampling(organization):
-        return
+        return None
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
     # issues.
@@ -430,14 +432,14 @@ def calculate_sample_rates_of_projects(
         sentry_sdk.capture_message(
             "Sample rate of org not found when trying to adjust the sample rates of its projects"
         )
-        return
+        return None
 
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
     # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
     if not any(projects_with_counts.values()):
-        return
+        return None
 
     # Since we don't mind about strong consistency, we query a replica of the main database with the possibility of
     # having out of date information. This is a trade-off we accept, since we work under the assumption that eventually
@@ -464,26 +466,22 @@ def calculate_sample_rates_of_projects(
         )
 
     model = model_factory(ModelType.PROJECTS_REBALANCING)
-    rebalanced_projects: list[RebalancedItem] = guarded_run(
+    rebalanced_projects: list[RebalancedItem] | None = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
 
     return rebalanced_projects
 
 
-def store_rebalanced_projects(org_id: str, rebalanced_projects: list[RebalancedItem]) -> None:
+def store_rebalanced_projects(org_id: int, rebalanced_projects: list[RebalancedItem]) -> None:
     """Stores the rebalanced projects in the cache and invalidates the project configs."""
-    # In case the result of the model is None, it means that an error occurred, thus we want to early return.
-    if rebalanced_projects is None:
-        return
-
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:
         for rebalanced_project in rebalanced_projects:
             cache_key = generate_boost_low_volume_projects_cache_key(org_id=org_id)
             # We want to get the old sample rate, which will be None in case it was not set.
             old_sample_rate = sample_rate_to_float(
-                redis_client.hget(cache_key, rebalanced_project.id)
+                redis_client.hget(cache_key, str(rebalanced_project.id))
             )
 
             if rebalanced_project.id in PROJECTS_WITH_METRICS:
@@ -497,7 +495,7 @@ def store_rebalanced_projects(org_id: str, rebalanced_projects: list[RebalancedI
             # We want to store the new sample rate as a string.
             pipeline.hset(
                 cache_key,
-                rebalanced_project.id,
+                str(rebalanced_project.id),
                 rebalanced_project.new_sample_rate,  # redis stores is as string
             )
             pipeline.pexpire(cache_key, DEFAULT_REDIS_CACHE_KEY_TTL)
