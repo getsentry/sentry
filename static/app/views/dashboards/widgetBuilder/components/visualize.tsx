@@ -193,10 +193,13 @@ function Visualize() {
                 ) : null,
             }));
 
-          const aggregateOptions = aggregates.map(option => ({
+          let aggregateOptions = aggregates.map(option => ({
             value: option.value.meta.name,
             label: option.value.meta.name,
           }));
+          aggregateOptions = isChartWidget
+            ? aggregateOptions
+            : [NONE_AGGREGATE, ...aggregateOptions];
 
           let matchingAggregate;
           if (
@@ -276,11 +279,8 @@ function Visualize() {
                         }
                       />
                       <AggregateCompactSelect
-                        options={
-                          isChartWidget
-                            ? aggregateOptions
-                            : [NONE_AGGREGATE, ...aggregateOptions]
-                        }
+                        disabled={aggregateOptions.length <= 1}
+                        options={aggregateOptions}
                         value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
                         onChange={aggregateSelection => {
                           const isNone = aggregateSelection.value === NONE;
@@ -425,13 +425,23 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras>
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  placeholder={t('Add Alias')}
-                  onChange={() => {}}
-                />
+              <FieldExtras isChartWidget={isChartWidget}>
+                {!isChartWidget && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    placeholder={t('Add Alias')}
+                    value={field.alias}
+                    onChange={e => {
+                      const newFields = cloneDeep(fields);
+                      newFields[index].alias = e.target.value;
+                      dispatch({
+                        type: updateAction,
+                        payload: newFields,
+                      });
+                    }}
+                  />
+                )}
                 <StyledDeleteButton
                   borderless
                   icon={<IconDelete />}
@@ -458,18 +468,11 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [
-                ...(fields ?? []),
-                // TODO: Define a default aggregate/field for the datasets?
-                {
-                  function: ['count', '', undefined, undefined],
-                  kind: FieldValueKind.FUNCTION,
-                },
-              ],
+              payload: [...(fields ?? []), datasetConfig.defaultField],
             })
           }
         >
-          {t('+ Add Series')}
+          {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
         {datasetConfig.enableEquations && (
           <AddButton
@@ -628,11 +631,11 @@ const FieldRow = styled('div')`
 
 const StyledDeleteButton = styled(Button)``;
 
-const FieldExtras = styled('div')`
+const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: 1;
+  flex: ${p => (p.isChartWidget ? '0' : '1')};
 `;
 
 const AddButton = styled(Button)`

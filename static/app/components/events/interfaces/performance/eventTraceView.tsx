@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
@@ -10,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -113,6 +115,21 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   );
 }
 
+function getHrefFromTraceTarget(traceTarget: LocationDescriptor) {
+  if (typeof traceTarget === 'string') {
+    return traceTarget;
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const key in traceTarget.query) {
+    if (defined(traceTarget.query[key])) {
+      searchParams.append(key, traceTarget.query[key]);
+    }
+  }
+
+  return `${traceTarget.pathname}?${searchParams.toString()}`;
+}
+
 function IssuesTraceOverlay({event}: {event: Event}) {
   const location = useLocation();
   const organization = useOrganization();
@@ -135,7 +152,8 @@ function IssuesTraceOverlay({event}: {event: Event}) {
       <LinkButton
         size="sm"
         icon={<IconOpen />}
-        to={traceTarget}
+        href={getHrefFromTraceTarget(traceTarget)}
+        external
         analyticsEventName="Issue Details: View Full Trace"
         analyticsEventKey="issue_details.view_full_trace"
       >
