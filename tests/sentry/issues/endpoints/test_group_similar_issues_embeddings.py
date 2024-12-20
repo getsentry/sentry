@@ -43,7 +43,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 
 
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
@@ -81,82 +81,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             data={"message": "Dogs are great!"}, project_id=self.project
         )
 
-    def create_exception(
-        self, exception_type_str="Exception", exception_value="it broke", frames=None
-    ):
-        frames = frames or []
-        return {
-            "id": "exception",
-            "name": "exception",
-            "contributes": True,
-            "hint": None,
-            "values": [
-                {
-                    "id": "stacktrace",
-                    "name": "stack-trace",
-                    "contributes": True,
-                    "hint": None,
-                    "values": frames,
-                },
-                {
-                    "id": "type",
-                    "name": None,
-                    "contributes": True,
-                    "hint": None,
-                    "values": [exception_type_str],
-                },
-                {
-                    "id": "value",
-                    "name": None,
-                    "contributes": False,
-                    "hint": None,
-                    "values": [exception_value],
-                },
-            ],
-        }
-
-    def create_frames(
-        self,
-        num_frames,
-        contributes=True,
-        start_index=1,
-        context_line_factory=lambda i: f"test = {i}!",
-    ):
-        frames = []
-        for i in range(start_index, start_index + num_frames):
-            frames.append(
-                {
-                    "id": "frame",
-                    "name": None,
-                    "contributes": contributes,
-                    "hint": None,
-                    "values": [
-                        {
-                            "id": "filename",
-                            "name": None,
-                            "contributes": contributes,
-                            "hint": None,
-                            "values": ["hello.py"],
-                        },
-                        {
-                            "id": "function",
-                            "name": None,
-                            "contributes": contributes,
-                            "hint": None,
-                            "values": ["hello_there"],
-                        },
-                        {
-                            "id": "context-line",
-                            "name": None,
-                            "contributes": contributes,
-                            "hint": None,
-                            "values": [context_line_factory(i)],
-                        },
-                    ],
-                }
-            )
-        return frames
-
     def get_expected_response(
         self,
         group_ids: Sequence[int],
@@ -179,7 +103,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             )
         return response
 
-    def test_get_formatted_results(self):
+    def test_get_formatted_results(self) -> None:
         event_from_second_similar_group = save_new_event(
             {"message": "Adopt don't shop"}, self.project
         )
@@ -215,7 +139,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple(self, mock_logger, mock_seer_request, mock_metrics_incr):
+    def test_simple(
+        self,
+        mock_logger: mock.MagicMock,
+        mock_seer_request: mock.MagicMock,
+        mock_metrics_incr: mock.MagicMock,
+    ) -> None:
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -271,7 +200,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_simple_threads(self, mock_seer_request):
+    def test_simple_threads(self, mock_seer_request: mock.MagicMock) -> None:
         event = self.store_event(data=EVENT_WITH_THREADS_STACKTRACE, project_id=self.project)
         data = {
             "parent_hash": self.similar_event.get_primary_hash(),
@@ -293,7 +222,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_multiple(self, mock_seer_request, mock_record):
+    def test_multiple(self, mock_seer_request: mock.MagicMock, mock_record: mock.MagicMock) -> None:
         over_threshold_group_event = save_new_event({"message": "Maisey is silly"}, self.project)
         under_threshold_group_event = save_new_event({"message": "Charlie is goofy"}, self.project)
 
@@ -347,7 +276,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_parent_hash_in_group_hashes(self, mock_seer_request):
+    def test_parent_hash_in_group_hashes(self, mock_seer_request: mock.MagicMock) -> None:
         """
         Test that the request group's hashes are filtered out of the returned similar parent hashes
         """
@@ -377,7 +306,12 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics_incr):
+    def test_incomplete_return_data(
+        self,
+        mock_seer_request: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics_incr: mock.MagicMock,
+    ) -> None:
         # Two suggested groups, one with valid data, one missing parent hash. We should log the
         # second and return the first.
         seer_return_value: Any = {
@@ -438,11 +372,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_nonexistent_grouphash(
         self,
-        mock_seer_similarity_request,
-        mock_logger,
-        mock_metrics_incr,
-        mock_seer_deletion_request,
-    ):
+        mock_seer_similarity_request: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics_incr: mock.MagicMock,
+        mock_seer_deletion_request: mock.MagicMock,
+    ) -> None:
         """
         The seer API can return grouphashes that do not exist if their groups have been deleted/merged.
         Test info about these groups is not returned.
@@ -499,11 +433,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_grouphash_with_no_group(
         self,
-        mock_seer_similarity_request,
-        mock_logger,
-        mock_metrics_incr,
-        mock_seer_deletion_request,
-    ):
+        mock_seer_similarity_request: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_metrics_incr: mock.MagicMock,
+        mock_seer_deletion_request: mock.MagicMock,
+    ) -> None:
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
@@ -549,7 +483,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_empty_seer_return(self, mock_seer_request, mock_record):
+    def test_empty_seer_return(
+        self, mock_seer_request: mock.MagicMock, mock_record: mock.MagicMock
+    ) -> None:
         mock_seer_request.return_value = HTTPResponse([], status=200)
         response = self.client.get(self.path)
         assert response.data == []
@@ -564,7 +500,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
-    def test_no_contributing_exception(self):
+    def test_no_contributing_exception(self) -> None:
         data_no_contributing_exception = {
             "fingerprint": ["message"],
             "message": "Message",
@@ -604,7 +540,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
-    def test_no_exception(self):
+    def test_no_exception(self) -> None:
         event_no_exception = self.store_event(data={}, project_id=self.project)
         group_no_exception = event_no_exception.group
         assert group_no_exception
@@ -616,7 +552,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     @mock.patch("sentry.models.group.Group.get_latest_event")
-    def test_no_latest_event(self, mock_get_latest_event):
+    def test_no_latest_event(self, mock_get_latest_event: mock.MagicMock) -> None:
         mock_get_latest_event.return_value = None
 
         response = self.client.get(
@@ -627,7 +563,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
-    def test_no_stacktrace_string(self, mock_get_stacktrace_string):
+    def test_no_stacktrace_string(self, mock_get_stacktrace_string: mock.MagicMock) -> None:
         mock_get_stacktrace_string.return_value = ""
 
         response = self.client.get(
@@ -638,7 +574,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         assert response.data == []
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_no_optional_params(self, mock_seer_request):
+    def test_no_optional_params(self, mock_seer_request: mock.MagicMock) -> None:
         """
         Test that optional parameters, k, threshold, and read_only can not be included.
         """
@@ -739,7 +675,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_obeys_useReranking_query_param(self, mock_seer_request):
+    def test_obeys_useReranking_query_param(self, mock_seer_request: mock.MagicMock) -> None:
         for incoming_value, outgoing_value in [("true", True), ("false", False)]:
             self.client.get(self.path, data={"useReranking": incoming_value})
 
@@ -749,7 +685,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
             mock_seer_request.reset_mock()
 
-    def test_too_many_system_frames(self):
+    def test_too_many_system_frames(self) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
@@ -782,7 +718,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
         assert response.data == []
 
-    def test_no_filename_or_module(self):
+    def test_no_filename_or_module(self) -> None:
         type = "FailedToFetchError"
         value = "Charlie didn't bring the ball back"
         context_line = f"raise {type}('{value}')"
