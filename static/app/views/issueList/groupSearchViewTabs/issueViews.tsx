@@ -11,6 +11,7 @@ import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -128,6 +129,18 @@ export type IssueViewsActions =
   | UpdateViewIdsAction
   | SetViewsAction
   | SyncViewsToBackendAction;
+
+const ACTION_ANALYTICS_MAP: Partial<Record<IssueViewsActions['type'], string>> = {
+  REORDER_TABS: 'issue_views.reordered_views',
+  SAVE_CHANGES: 'issue_views.saved_changes',
+  DISCARD_CHANGES: 'issue_views.discarded_changes',
+  RENAME_TAB: 'issue_views.renamed_view',
+  DUPLICATE_VIEW: 'issue_views.duplicated_view',
+  DELETE_VIEW: 'issue_views.deleted_view',
+  SAVE_TEMP_VIEW: 'issue_views.temp_view_saved',
+  DISCARD_TEMP_VIEW: 'issue_views.temp_view_discarded',
+  CREATE_NEW_VIEW: 'issue_views.add_view.clicked',
+};
 
 export interface IssueViewsState {
   views: IssueView[];
@@ -494,8 +507,16 @@ export function IssueViewsStateProvider({
   const dispatchWrapper = (action: IssueViewsActions) => {
     const newState = reducer(state, action);
     dispatch(action);
+
     if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
       debounceUpdateViews(newState.views);
+    }
+
+    const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
+    if (actionAnalyticsKey) {
+      trackAnalytics(actionAnalyticsKey, {
+        organization,
+      });
     }
   };
 
