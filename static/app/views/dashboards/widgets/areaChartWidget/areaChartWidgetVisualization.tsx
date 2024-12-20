@@ -9,6 +9,7 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
+import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -24,24 +25,19 @@ import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
 import type {Meta, Release, TimeseriesData} from '../common/types';
 
-import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
-
-export interface LineChartWidgetVisualizationProps {
+export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
-  dataCompletenessDelay?: number;
   meta?: Meta;
   releases?: Release[];
 }
 
-export function LineChartWidgetVisualization(props: LineChartWidgetVisualizationProps) {
+export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualizationProps) {
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
   const {meta} = props;
-
-  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
 
   const theme = useTheme();
   const organization = useOrganization();
@@ -65,28 +61,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
-
-  let completeSeries: TimeseriesData[] = props.timeseries;
-  const incompleteSeries: TimeseriesData[] = [];
-
-  if (dataCompletenessDelay > 0) {
-    completeSeries = [];
-
-    props.timeseries.forEach(timeserie => {
-      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
-        timeserie,
-        dataCompletenessDelay
-      );
-
-      if (completeSerie && completeSerie.data.length > 0) {
-        completeSeries.push(completeSerie);
-      }
-
-      if (incompleteSerie && incompleteSerie.data.length > 0) {
-        incompleteSeries.push(incompleteSerie);
-      }
-    });
-  }
 
   // TODO: There's a TypeScript indexing error here. This _could_ in theory be
   // `undefined`. We need to guard against this in the parent component, and
@@ -161,28 +135,19 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       }}
       autoHeightResize
       series={[
-        ...completeSeries.map(timeserie => {
-          return LineSeries({
+        ...props.timeseries.map(timeserie => {
+          return AreaSeries({
             name: timeserie.field,
             color: timeserie.color,
+            stack: 'area',
             animation: false,
-            data: timeserie.data.map(datum => {
-              return [datum.timestamp, datum.value];
-            }),
-          });
-        }),
-        ...incompleteSeries.map(timeserie => {
-          return LineSeries({
-            name: timeserie.field,
-            color: timeserie.color,
-            animation: false,
-            data: timeserie.data.map(datum => {
-              return [datum.timestamp, datum.value];
-            }),
-            lineStyle: {
-              type: 'dotted',
+            areaStyle: {
+              color: timeserie.color,
+              opacity: 1.0,
             },
-            silent: true,
+            data: timeserie.data.map(datum => {
+              return [datum.timestamp, datum.value];
+            }),
           });
         }),
         releaseSeries &&
