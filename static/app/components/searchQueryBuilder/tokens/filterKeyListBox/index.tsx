@@ -178,6 +178,28 @@ function useHighlightFirstOptionOnSectionChange({
   ]);
 }
 
+// If the selected section no longer exists, switch to the first valid section
+function useSwitchToValidSection({
+  sections,
+  selectedSection,
+  setSelectedSection,
+}: {
+  sections: Section[];
+  selectedSection: Key | null;
+  setSelectedSection: (section: string) => void;
+}) {
+  useEffect(() => {
+    if (!selectedSection || !sections.length) {
+      return;
+    }
+
+    const section = sections.find(s => s.value === selectedSection);
+    if (!section) {
+      setSelectedSection(sections[0].value);
+    }
+  }, [sections, selectedSection, setSelectedSection]);
+}
+
 function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   recentFilters,
   selectedSection,
@@ -286,6 +308,8 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     sections,
     isOpen,
   });
+
+  useSwitchToValidSection({sections, selectedSection, setSelectedSection});
 
   const fullWidth = !query;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
