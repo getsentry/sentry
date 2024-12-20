@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest.mock import Mock
 
 import msgpack
@@ -12,15 +13,13 @@ from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def make_message(
-    payload: bytes, partition: Partition, offset: int, timestamp: datetime | None = None
-) -> Message:
+def make_message(payload: bytes, partition: Partition, offset: int, timestamp: datetime) -> Message:
     return Message(
         BrokerValue(
             KafkaPayload(None, payload, []),
             partition,
             offset,
-            timestamp if timestamp else datetime.now(),
+            timestamp,
         )
     )
 
@@ -63,11 +62,11 @@ def test_dlq_stale_messages_timestamps(factories, stale_threshold_sec) -> None:
             "should_raise": True,
         },
         {
-            "timestamp": (datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec + 60)),
+            "timestamp": datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec + 60),
             "should_raise": True,
         },
         {
-            "timestamp": (datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec - 60)),
+            "timestamp": datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec - 60),
             "should_raise": False,
         },
     ]
@@ -77,7 +76,7 @@ def test_dlq_stale_messages_timestamps(factories, stale_threshold_sec) -> None:
             empty_event_payload,
             partition,
             offset + idx,
-            timestamp=case["timestamp"],
+            timestamp=cast(datetime, case["timestamp"]),
         )
 
         if case["should_raise"]:
