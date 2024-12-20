@@ -1,7 +1,6 @@
-from sentry.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler
+from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
 
 # TODO - Enable once the PR to allow for multiple of the same funcs is merged
@@ -10,7 +9,7 @@ from sentry.workflow_engine.types import ActionHandler
 class NotificationActionHandler(ActionHandler):
     @staticmethod
     def execute(
-        evt: GroupEvent,
+        job: WorkflowJob,
         action: Action,
         detector: Detector,
     ) -> None:
