@@ -19,15 +19,7 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # this separately from backfill status allows us to backfill projects which have events from
 # multiple platforms, some supported and some not, and not worry about events from the unsupported
 # platforms getting sent to Seer during ingest.
-SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(
-    [
-        # Native platforms
-        "c",
-        "native",
-        # We don't know what's in the event
-        "other",
-    ]
-)
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
 # Event platforms corresponding to project platforms which were backfilled before we started
 # blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
 # prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
@@ -46,11 +38,6 @@ EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
 # platforms shouldn't have Seer enabled.
 SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        # Native platforms
-        "c",
-        "minidump",
-        "native",
-        "native-qt",
         # We have no clue what's in these projects
         "other",
         "",
