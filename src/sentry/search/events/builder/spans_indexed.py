@@ -71,6 +71,13 @@ class SpansEAPQueryBuilder(BaseQueryBuilder):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+    def get_field_type(self, field: str) -> str | None:
+        tag_match = constants.TYPED_TAG_KEY_RE.search(field)
+        field_type = tag_match.group("type") if tag_match else None
+        if field_type == "number":
+            return "number"
+        return super().get_field_type(field)
+
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         # try the typed regex first
         if len(raw_field) > constants.MAX_TAG_KEY_LENGTH:
