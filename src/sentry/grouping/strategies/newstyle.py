@@ -152,7 +152,6 @@ def get_filename_component(
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
-            filename = new_filename
 
     return filename_component
 
