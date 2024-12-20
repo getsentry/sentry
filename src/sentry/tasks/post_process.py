@@ -1004,6 +1004,10 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     from sentry.workflow_engine.processors.workflow import process_workflows
 
     # PostProcessJob event is optional, WorkflowJob event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowJob", extra={"job": job})
+        return
+
     try:
         workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
     except Exception:
