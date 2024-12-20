@@ -503,5 +503,58 @@ describe('SentryAppRuleModal', function () {
       expect(screen.queryByText('High')).toBeInTheDocument();
       expect(screen.queryByText('YAY')).toBeInTheDocument();
     });
+    it('does not make external req for non skip on load fields that dont depend on another field', async function () {
+      const mockApi = MockApiClient.addMockResponse({
+        url: `/sentry-app-installations/${sentryAppInstallation.uuid}/external-requests/`,
+        body: {
+          defaultValue: 'high',
+          choices: [
+            ['low', 'Low'],
+            ['medium', 'Medium'],
+            ['high', 'High'],
+          ],
+        },
+      });
+
+      const schema: SchemaFormConfig = {
+        uri: '/api/sentry/issue-link/create/',
+        required_fields: [
+          {
+            type: 'select',
+            label: 'Task Name',
+            name: 'title',
+            uri: '/api/sentry/options/create/',
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
+          },
+        ],
+        optional_fields: [
+          {
+            type: 'select',
+            label: 'What is the estimated complexity?',
+            name: 'complexity',
+            depends_on: [],
+            uri: '/api/sentry/options/complexity-options/',
+            choices: [],
+          },
+        ],
+      };
+      const defaultValues = {
+        settings: [
+          {
+            name: 'title',
+            value: 'yay',
+          },
+        ],
+      };
+
+      createWrapper({config: schema, resetValues: defaultValues});
+
+      // Because this is a skip_load_on_open: false field that means we have already made the api call to get options on the page load
+      await waitFor(() => expect(mockApi).not.toHaveBeenCalled());
+      expect(screen.queryByText('YAY')).toBeInTheDocument();
+    });
   });
 });
