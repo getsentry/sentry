@@ -39,8 +39,10 @@ export function useReleases({
           per_page: 50,
           environment: environments,
           query: searchTerm,
-          sort: activeSort === 'number_events' ? 'date' : activeSort,
-          flatten: activeSort === 'date' || activeSort === 'number_events' ? 0 : 1,
+          sort: activeSort,
+          // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
+          // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
+          flatten: activeSort === 'date' ? 0 : 1,
         },
       },
     ],

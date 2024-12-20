@@ -10,7 +10,6 @@ export const SORT_BY_OPTIONS = {
   [ReleasesSortOption.ADOPTION]: {label: t('Adoption')},
   [ReleasesSortOption.BUILD]: {label: t('Build Number')},
   [ReleasesSortOption.DATE]: {label: t('Date Created')},
-  ['number_events']: {label: t('Number of Events')},
   [ReleasesSortOption.SEMVER]: {label: t('Semantic Version')},
   [ReleasesSortOption.SESSIONS]: {label: t('Total Sessions')},
 };

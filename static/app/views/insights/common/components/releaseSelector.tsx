@@ -93,11 +93,6 @@ export function ReleaseSelector({
     ? formatVersionAndCenterTruncate(selectorValue, 16)
     : selectorValue;
 
-  const sortedOptions =
-    sortBy === 'number_events'
-      ? options.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
-      : options;
-
   return (
     <StyledCompactSelect
       triggerProps={{
@@ -116,7 +111,7 @@ export function ReleaseSelector({
           label: tct('Sorted by [sortBy]', {
             sortBy: SORT_BY_OPTIONS[sortBy].label,
           }),
-          options: sortedOptions,
+          options,
         },
       ]}
       onSearch={debounce(val => {
@@ -160,7 +155,7 @@ function LabelDetails(props: LabelDetailsProps) {
   );
 }
 
-function getSortRealesesBy(
+function getReleasesSortBy(
   sort: ReleasesSortByOption,
   environments: string[]
 ): ReleasesSortByOption {
@@ -169,9 +164,7 @@ function getSortRealesesBy(
     return ReleasesSortOption.DATE;
   }
 
-  const sortExists = Object.keys(SORT_BY_OPTIONS).includes(sort ?? '');
-
-  if (sortExists) {
+  if (sort in SORT_BY_OPTIONS) {
     return sort;
   }
 
@@ -226,7 +219,7 @@ export function ReleaseComparisonSelector() {
     navigate,
   ]);
 
-  const sortReleasesBy = getSortRealesesBy(
+  const sortReleasesBy = getReleasesSortBy(
     localStoragedReleaseBy,
     selection.environments
   );
