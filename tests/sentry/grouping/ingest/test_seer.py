@@ -203,7 +203,7 @@ class ShouldCallSeerTest(TestCase):
 
         assert should_call_seer_for_grouping(new_event, new_event.get_grouping_variants()) is False
         mock_record_did_call_seer.assert_any_call(
-            call_made=False, blocker="empty-stacktrace-string"
+            new_event, call_made=False, blocker="empty-stacktrace-string"
         )
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
@@ -466,7 +466,9 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                 "outcome": "block",
             },
         )
-        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="excess-frames")
+        mock_record_did_call_seer.assert_any_call(
+            new_event, call_made=False, blocker="excess-frames"
+        )
 
         mock_get_similar_issues.assert_not_called()
 

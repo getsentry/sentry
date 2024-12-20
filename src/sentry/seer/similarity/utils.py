@@ -275,11 +275,11 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
+def record_did_call_seer_metric(event: Event, *, call_made: bool, blocker: str) -> None:
     metrics.incr(
         "grouping.similarity.did_call_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"call_made": call_made, "blocker": blocker},
+        tags={"call_made": call_made, "blocker": blocker, "platform": event.platform},
     )
 
 
@@ -344,7 +344,7 @@ def has_too_many_contributing_frames(
 def killswitch_enabled(
     project_id: int | None,
     referrer: ReferrerOptions,
-    event: GroupEvent | Event | None = None,
+    event: Event | None = None,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
@@ -358,8 +358,9 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_global_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+        # When it's ingest, `event` will always be defined - the second check is purely for mypy
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="global-killswitch")
 
         return True
 
@@ -368,8 +369,8 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_similarity_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="similarity-killswitch")
 
         return True
 
@@ -380,8 +381,8 @@ def killswitch_enabled(
             f"{logger_prefix}.seer_similarity_project_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        if is_ingest:
-            record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+        if is_ingest and event:
+            record_did_call_seer_metric(event, call_made=False, blocker="project-killswitch")
 
         return True
 
