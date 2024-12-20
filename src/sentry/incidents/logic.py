@@ -102,6 +102,7 @@ from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
+from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
 
 if TYPE_CHECKING:
     from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -1022,9 +1023,13 @@ def delete_alert_rule(
                 data=alert_rule.get_audit_log_data(),
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
-
-        subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
-        bulk_delete_snuba_subscriptions(subscriptions)
+        if not features.has(
+            "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+        ):
+            # NOTE: we will delete the subscription within the dual delete helpers
+            # if the organization is flagged into dual write
+            subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
+            bulk_delete_snuba_subscriptions(subscriptions)
 
         schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
 
@@ -1049,7 +1054,10 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+            ):
+                dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
         alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
