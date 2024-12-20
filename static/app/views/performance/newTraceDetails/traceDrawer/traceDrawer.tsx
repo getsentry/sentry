@@ -642,6 +642,8 @@ const StyledIconClose = styled(IconClose)`
 const CloseButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  height: 100%;
+  border-bottom: 2px solid transparent;
   &:hover {
     color: ${p => p.theme.textColor};
   }
@@ -791,6 +793,7 @@ const TabLayoutControlItem = styled('li')`
   position: relative;
   z-index: 10;
   background-color: ${p => p.theme.background};
+  height: 100%;
 `;
 
 const Tab = styled('li')`
