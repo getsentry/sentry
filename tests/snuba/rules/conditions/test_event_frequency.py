@@ -26,7 +26,7 @@ from sentry.testutils.cases import (
     RuleTestCase,
     SnubaTestCase,
 )
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -72,7 +72,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "a" * 32,
                 "environment": self.environment.name,
-                "timestamp": iso_format(before_now(seconds=30)),
+                "timestamp": before_now(seconds=30).isoformat(),
                 "fingerprint": ["group-1"],
                 "user": {"id": uuid4().hex},
             },
@@ -82,7 +82,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "b" * 32,
                 "environment": self.environment.name,
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": {"id": uuid4().hex},
             },
@@ -93,7 +93,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
             data={
                 "event_id": "c" * 32,
                 "environment": self.environment2.name,
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-3"],
                 "user": {"id": uuid4().hex},
             },
@@ -248,7 +248,7 @@ class EventFrequencyPercentConditionQueryTest(
 
 class ErrorEventMixin(SnubaTestCase):
     def add_event(self, data, project_id, timestamp):
-        data["timestamp"] = iso_format(timestamp)
+        data["timestamp"] = timestamp.isoformat()
         # Store an error event
         event = self.store_event(
             data=data,

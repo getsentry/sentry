@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -321,7 +321,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.event_id = "c" * 32
         self.fingerprint = ["group_2"]
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).replace(microsecond=0).isoformat()
         self.event = self.store_event(
             data={
                 "event_id": self.event_id,
@@ -343,7 +343,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
     def assert_event(self, data):
         assert data["event_id"] == self.event_id
         assert data["user"]["email"] == self.user.email
-        assert data["datetime"][:19] == self.min_ago
+        assert data["datetime"] == self.min_ago
         assert data["fingerprint"] == self.fingerprint
 
     def test_simple(self):

@@ -31,7 +31,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -1068,7 +1068,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 data={
                     "event_id": "c" * 32,
                     "message": "this is bad.",
-                    "timestamp": iso_format(timezone.now()),
+                    "timestamp": timezone.now().isoformat(),
                     "type": "error",
                 },
                 project_id=project.id,
@@ -1328,7 +1328,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 data={
                     "event_id": "c" * 32,
                     "message": "this is bad.",
-                    "timestamp": iso_format(timezone.now()),
+                    "timestamp": timezone.now().isoformat(),
                     "type": "error",
                     "release": "my-first-release",
                 },
