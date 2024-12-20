@@ -624,6 +624,11 @@ urlpatterns += [
                     name="sentry-customer-domain-audit-log-settings",
                 ),
                 re_path(
+                    r"^rate-limits/",
+                    react_page_view,
+                    name="sentry-customer-domain-rate-limits-settings",
+                ),
+                re_path(
                     r"^relay/",
                     react_page_view,
                     name="sentry-customer-domain-relay-settings",
@@ -637,6 +642,16 @@ urlpatterns += [
                     r"^integrations/",
                     react_page_view,
                     name="sentry-customer-domain-integrations-settings",
+                ),
+                re_path(
+                    r"^dynamic-sampling/",
+                    react_page_view,
+                    name="sentry-customer-domain-dynamic-sampling-settings",
+                ),
+                re_path(
+                    r"^feature-flags/",
+                    react_page_view,
+                    name="sentry-customer-domain-feature-flags-settings",
                 ),
                 re_path(
                     r"^developer-settings/",
@@ -677,11 +692,6 @@ urlpatterns += [
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
-                ),
-                re_path(
-                    r"^dynamic-sampling/",
-                    react_page_view,
-                    name="sentry-customer-domain-dynamic-sampling-settings",
                 ),
                 re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
