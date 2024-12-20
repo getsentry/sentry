@@ -12,11 +12,8 @@ import {
 } from 'sentry/components/draggableTabs/draggableTabList';
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {TabsContext} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,98 +21,21 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
+import {
+  type IssueView,
+  IssueViewsContext,
+} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
-export interface Tab {
-  id: string;
-  /**
-   * False for tabs that were added view the "Add View" button, but
-   * have not been edited in any way. Only tabs with isCommitted=true
-   * will be saved to the backend.
-   */
-  isCommitted: boolean;
-  key: string;
-  label: string;
-  query: string;
-  querySort: IssueSortOptions;
-  content?: React.ReactNode;
-  unsavedChanges?: [string, IssueSortOptions];
-}
-
 export interface DraggableTabBarProps {
   initialTabKey: string;
-  orgSlug: string;
   router: InjectedRouter;
-  setTabs: (tabs: Tab[]) => void;
-  setTempTab: (tab: Tab | undefined) => void;
-  tabs: Tab[];
-  /**
-   * Callback function to be called when user clicks the `Add View` button.
-   */
-  onAddView?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when user clicks the `Delete` button.
-   * Note: The `Delete` button only appears for persistent views
-   */
-  onDelete?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when user clicks on the `Discard Changes` button.
-   * Note: The `Discard Changes` button only appears for persistent views when `isChanged=true`
-   */
-  onDiscard?: () => void;
-  /**
-   * Callback function to be called when user clicks on the `Discard` button for temporary views.
-   * Note: The `Discard` button only appears for temporary views
-   */
-  onDiscardTempView?: () => void;
-  /**
-   * Callback function to be called when user clicks the 'Duplicate' button.
-   * Note: The `Duplicate` button only appears for persistent views
-   */
-  onDuplicate?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when the user reorders the tabs. Returns the
-   * new order of the tabs along with their props.
-   */
-  onReorder?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when user clicks the 'Save' button.
-   * Note: The `Save` button only appears for persistent views when `isChanged=true`
-   */
-  onSave?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when user clicks the 'Save View' button for temporary views.
-   */
-  onSaveTempView?: (newTabs: Tab[]) => void;
-  /**
-   * Callback function to be called when user renames a tab.
-   * Note: The `Rename` button only appears for persistent views
-   */
-  onTabRenamed?: (newTabs: Tab[], newLabel: string) => void;
-  tempTab?: Tab;
 }
 
 export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
-export function DraggableTabBar({
-  initialTabKey,
-  tabs,
-  setTabs,
-  tempTab,
-  setTempTab,
-  orgSlug,
-  router,
-  onReorder,
-  onAddView,
-  onDelete,
-  onDiscard,
-  onDuplicate,
-  onTabRenamed,
-  onSave,
-  onDiscardTempView,
-  onSaveTempView,
-}: DraggableTabBarProps) {
+export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
   // TODO: Extract this to a separate component encompassing Tab.Item in the future
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
@@ -126,42 +46,9 @@ export function DraggableTabBar({
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {viewId} = queryParams;
 
-  const {tabListState} = useContext(TabsContext);
   const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
-
-  const handleOnReorder = (newOrder: Node<DraggableTabListItemProps>[]) => {
-    const newTabs: Tab[] = newOrder
-      .map(node => {
-        const foundTab = tabs.find(tab => tab.key === node.key);
-        return foundTab?.key === node.key ? foundTab : null;
-      })
-      .filter(defined);
-    setTabs(newTabs);
-    trackAnalytics('issue_views.reordered_views', {
-      organization,
-    });
-  };
-
-  const handleOnSaveChanges = useCallback(() => {
-    const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
-    if (originalTab) {
-      const newTabs: Tab[] = tabs.map(tab => {
-        return tab.key === tabListState?.selectedKey && tab.unsavedChanges
-          ? {
-              ...tab,
-              query: tab.unsavedChanges[0],
-              querySort: tab.unsavedChanges[1],
-              unsavedChanges: undefined,
-            }
-          : tab;
-      });
-      setTabs(newTabs);
-      onSave?.(newTabs);
-      trackAnalytics('issue_views.saved_changes', {
-        organization,
-      });
-    }
-  }, [onSave, organization, setTabs, tabListState?.selectedKey, tabs]);
+  const {tabListState, state, dispatch} = useContext(IssueViewsContext);
+  const {views: tabs, tempView: tempTab} = state;
 
   useHotkeys(
     [
@@ -170,173 +57,48 @@ export function DraggableTabBar({
         includeInputs: true,
         callback: () => {
           if (tabs.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
-            handleOnSaveChanges();
+            dispatch({type: 'SAVE_CHANGES', syncViews: true});
             addSuccessMessage(t('Changes saved to view'));
           }
         },
       },
     ],
-    [handleOnSaveChanges, tabListState?.selectedKey, tabs]
+    [dispatch, tabListState?.selectedKey, tabs]
   );
 
-  const handleOnDiscardChanges = () => {
-    const originalTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
+  const handleDuplicateView = () => {
+    const newViewId = generateTempViewId();
+    const duplicatedTab = state.views.find(
+      view => view.key === tabListState?.selectedKey
+    );
+    if (!duplicatedTab) {
+      return;
+    }
+    dispatch({type: 'DUPLICATE_VIEW', newViewId, syncViews: true});
+    navigate({
+      ...location,
+      query: {
+        ...queryParams,
+        query: duplicatedTab.query,
+        sort: duplicatedTab.querySort,
+        viewId: newViewId,
+      },
+    });
+  };
+
+  const handleDiscardChanges = () => {
+    dispatch({type: 'DISCARD_CHANGES'});
+    const originalTab = state.views.find(view => view.key === tabListState?.selectedKey);
     if (originalTab) {
-      setTabs(
-        tabs.map(tab => {
-          return tab.key === tabListState?.selectedKey
-            ? {...tab, unsavedChanges: undefined}
-            : tab;
-        })
-      );
+      // TODO(msun): Move navigate logic to IssueViewsContext
       navigate({
         ...location,
         query: {
           ...queryParams,
           query: originalTab.query,
           sort: originalTab.querySort,
-          ...(originalTab.id ? {viewId: originalTab.id} : {}),
+          viewId: originalTab.id,
         },
-      });
-      onDiscard?.();
-      trackAnalytics('issue_views.discarded_changes', {
-        organization,
-      });
-    }
-  };
-
-  const handleOnTabRenamed = (newLabel: string, tabKey: string) => {
-    const renamedTab = tabs.find(tb => tb.key === tabKey);
-    if (renamedTab && newLabel !== renamedTab.label) {
-      const newTabs = tabs.map(tab =>
-        tab.key === renamedTab.key ? {...tab, label: newLabel, isCommitted: true} : tab
-      );
-      setTabs(newTabs);
-      onTabRenamed?.(newTabs, newLabel);
-      trackAnalytics('issue_views.renamed_view', {
-        organization,
-      });
-    }
-  };
-
-  const handleOnDuplicate = () => {
-    const idx = tabs.findIndex(tb => tb.key === tabListState?.selectedKey);
-    if (idx !== -1) {
-      const tempId = generateTempViewId();
-      const duplicatedTab = tabs[idx];
-      const newTabs: Tab[] = [
-        ...tabs.slice(0, idx + 1),
-        {
-          ...duplicatedTab,
-          id: tempId,
-          key: tempId,
-          label: `${duplicatedTab.label} (Copy)`,
-          isCommitted: true,
-        },
-        ...tabs.slice(idx + 1),
-      ];
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: duplicatedTab.query,
-          sort: duplicatedTab.querySort,
-          viewId: tempId,
-        },
-      });
-      setTabs(newTabs);
-      tabListState?.setSelectedKey(tempId);
-      onDuplicate?.(newTabs);
-      trackAnalytics('issue_views.duplicated_view', {
-        organization,
-      });
-    }
-  };
-
-  const handleOnDelete = () => {
-    if (tabs.length > 1) {
-      const newTabs = tabs.filter(tb => tb.key !== tabListState?.selectedKey);
-      setTabs(newTabs);
-      tabListState?.setSelectedKey(newTabs[0].key);
-      onDelete?.(newTabs);
-      trackAnalytics('issue_views.deleted_view', {
-        organization,
-      });
-    }
-  };
-
-  const handleOnSaveTempView = () => {
-    if (tempTab) {
-      const tempId = generateTempViewId();
-      const newTab: Tab = {
-        id: tempId,
-        key: tempId,
-        label: 'New View',
-        query: tempTab.query,
-        querySort: tempTab.querySort,
-        isCommitted: true,
-      };
-      const newTabs = [...tabs, newTab];
-      navigate(
-        {
-          ...location,
-          query: {
-            ...queryParams,
-            query: tempTab.query,
-            querySort: tempTab.querySort,
-            viewId: tempId,
-          },
-        },
-        {replace: true}
-      );
-      setTabs(newTabs);
-      setTempTab(undefined);
-      tabListState?.setSelectedKey(tempId);
-      onSaveTempView?.(newTabs);
-      trackAnalytics('issue_views.temp_view_saved', {
-        organization,
-      });
-    }
-  };
-
-  const handleOnDiscardTempView = () => {
-    tabListState?.setSelectedKey(tabs[0].key);
-    setTempTab(undefined);
-    onDiscardTempView?.();
-    trackAnalytics('issue_views.temp_view_discarded', {
-      organization,
-    });
-  };
-
-  const handleCreateNewView = () => {
-    // Triggers the add view flow page
-    setNewViewActive(true);
-    const tempId = generateTempViewId();
-    const currentTab = tabs.find(tab => tab.key === tabListState?.selectedKey);
-    if (currentTab) {
-      const newTabs: Tab[] = [
-        ...tabs,
-        {
-          id: tempId,
-          key: tempId,
-          label: 'New View',
-          query: '',
-          querySort: IssueSortOptions.DATE,
-          isCommitted: false,
-        },
-      ];
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: '',
-          viewId: tempId,
-        },
-      });
-      setTabs(newTabs);
-      tabListState?.setSelectedKey(tempId);
-      trackAnalytics('issue_views.add_view.clicked', {
-        organization,
       });
     }
   };
@@ -350,9 +112,9 @@ export function DraggableTabBar({
       }
       setNewViewActive(false);
       const {label, query, saveQueryToView} = newViews[0];
-      const remainingNewViews: Tab[] = newViews.slice(1)?.map(view => {
+      const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
         const newId = generateTempViewId();
-        const viewToTab: Tab = {
+        const viewToTab: IssueView = {
           id: newId,
           key: newId,
           label: view.label,
@@ -365,7 +127,7 @@ export function DraggableTabBar({
         };
         return viewToTab;
       });
-      let updatedTabs: Tab[] = tabs.map(tab => {
+      let updatedTabs: IssueView[] = tabs.map(tab => {
         if (tab.key === viewId) {
           return {
             ...tab,
@@ -383,7 +145,7 @@ export function DraggableTabBar({
         updatedTabs = [...updatedTabs, ...remainingNewViews];
       }
 
-      setTabs(updatedTabs);
+      dispatch({type: 'SET_VIEWS', views: updatedTabs, syncViews: true});
       navigate(
         {
           ...location,
@@ -395,37 +157,57 @@ export function DraggableTabBar({
         },
         {replace: true}
       );
-      onAddView?.(updatedTabs);
     },
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location, navigate, onAddView, setNewViewActive, setTabs, tabs, viewId]
+    [location, navigate, setNewViewActive, tabs, viewId]
   );
+
+  const handleCreateNewView = () => {
+    const tempId = generateTempViewId();
+    dispatch({type: 'CREATE_NEW_VIEW', tempId});
+    tabListState?.setSelectedKey(tempId);
+    navigate({
+      ...location,
+      query: {
+        ...queryParams,
+        query: '',
+        viewId: tempId,
+      },
+    });
+  };
+
+  const handleDeleteView = (tab: IssueView) => {
+    dispatch({type: 'DELETE_VIEW', syncViews: true});
+    // Including this logic in the dispatch call breaks the tests for some reason
+    // so we're doing it here instead
+    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0].key);
+  };
 
   useEffect(() => {
     setOnNewViewsSaved(handleNewViewsSaved);
   }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
-  const makeMenuOptions = (tab: Tab): MenuItemProps[] => {
+  const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
       return makeTempViewMenuOptions({
-        onSaveTempView: handleOnSaveTempView,
-        onDiscardTempView: handleOnDiscardTempView,
+        onSaveTempView: () => dispatch({type: 'SAVE_TEMP_VIEW', syncViews: true}),
+        onDiscardTempView: () => dispatch({type: 'DISCARD_TEMP_VIEW'}),
       });
     }
     if (tab.unsavedChanges) {
       return makeUnsavedChangesMenuOptions({
         onRename: () => setEditingTabKey(tab.key),
-        onDuplicate: handleOnDuplicate,
-        onDelete: tabs.length > 1 ? handleOnDelete : undefined,
-        onSave: handleOnSaveChanges,
-        onDiscard: handleOnDiscardChanges,
+        onDuplicate: handleDuplicateView,
+        onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
+        onSave: () => dispatch({type: 'SAVE_CHANGES', syncViews: true}),
+        onDiscard: handleDiscardChanges,
       });
     }
     return makeDefaultMenuOptions({
       onRename: () => setEditingTabKey(tab.key),
-      onDuplicate: handleOnDuplicate,
-      onDelete: tabs.length > 1 ? handleOnDelete : undefined,
+      onDuplicate: handleDuplicateView,
+      onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
     });
   };
 
@@ -433,8 +215,13 @@ export function DraggableTabBar({
 
   return (
     <DraggableTabList
-      onReorder={handleOnReorder}
-      onReorderComplete={() => onReorder?.(tabs)}
+      onReorder={(newOrder: Node<DraggableTabListItemProps>[]) =>
+        dispatch({
+          type: 'REORDER_TABS',
+          newKeyOrder: newOrder.map(node => node.key.toString()),
+        })
+      }
+      onReorderComplete={() => dispatch({type: 'SYNC_VIEWS_TO_BACKEND'})}
       defaultSelectedKey={initialTabKey}
       onAddView={handleCreateNewView}
       orientation="horizontal"
@@ -452,7 +239,7 @@ export function DraggableTabBar({
               sort: tab.unsavedChanges?.[1] ?? tab.querySort,
               viewId: tab.id !== TEMPORARY_TAB_KEY ? tab.id : undefined,
             },
-            pathname: `/organizations/${orgSlug}/issues/`,
+            pathname: `/organizations/${organization.slug}/issues/`,
           })}
           disabled={tab.key === editingTabKey}
         >
@@ -461,7 +248,9 @@ export function DraggableTabBar({
               label={tab.label}
               isEditing={editingTabKey === tab.key}
               setIsEditing={isEditing => setEditingTabKey(isEditing ? tab.key : null)}
-              onChange={newLabel => handleOnTabRenamed(newLabel.trim(), tab.key)}
+              onChange={newLabel =>
+                dispatch({type: 'RENAME_TAB', newLabel: newLabel.trim(), syncViews: true})
+              }
               isSelected={
                 (tabListState && tabListState?.selectedKey === tab.key) ||
                 (!tabListState && tab.key === initialTabKey)
@@ -516,12 +305,15 @@ const makeDefaultMenuOptions = ({
     },
   ];
   if (onDelete) {
-    menuOptions.push({
-      key: 'delete-tab',
-      label: t('Delete'),
-      priority: 'danger',
-      onAction: onDelete,
-    });
+    return [
+      ...menuOptions,
+      {
+        key: 'delete-tab',
+        label: t('Delete'),
+        priority: 'danger',
+        onAction: onDelete,
+      },
+    ];
   }
   return menuOptions;
 };
