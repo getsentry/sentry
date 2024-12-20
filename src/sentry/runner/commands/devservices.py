@@ -310,7 +310,7 @@ WARNING: We're transitioning from `sentry devservices` to the new and improved `
 To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
 https://github.com/getsentry/devservices?tab=readme-ov-file#commands
 
-Instead of running `sentry devservices down`, consider using `devservices down`.
+Instead of running `sentry devservices up`, consider using `devservices up`.
 For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
 Thanks for helping the Dev Infra team improve this experience!
 
