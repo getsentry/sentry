@@ -179,16 +179,18 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
             OnboardingTask.INVITE_MEMBER,
             OnboardingTask.SECOND_PLATFORM,
             OnboardingTask.RELEASE_TRACKING,
-            # TODO(Telemetry Experience): This task is shown conditionally
-            # according to the platform.
-            # Check if we can do the same here and mark onboarding as
-            # complete if platform does not support sourcemaps
-            OnboardingTask.SOURCEMAPS,
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.SESSION_REPLAY,
             OnboardingTask.REAL_TIME_NOTIFICATIONS,
             OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        ]
+    )
+
+    NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS = frozenset(
+        [
+            *NEW_REQUIRED_ONBOARDING_TASKS,
+            OnboardingTask.SOURCEMAPS,
         ]
     )
 
