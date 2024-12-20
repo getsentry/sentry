@@ -415,7 +415,10 @@ describe('SentryAppRuleModal', function () {
             label: 'Task Name',
             name: 'title',
             uri: '/api/sentry/options/create/',
-            choices: [],
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
           },
         ],
         optional_fields: [
@@ -443,7 +446,7 @@ describe('SentryAppRuleModal', function () {
       // because we have a default value in title, we should immeadiatly fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
       expect(screen.queryByText('High')).toBeInTheDocument();
-      expect(screen.queryByText('yay')).toBeInTheDocument();
+      expect(screen.queryByText('YAY')).toBeInTheDocument();
     });
     it('should populate dependent fields with skip_load_on_open if the parent field is loaded with default value', async function () {
       const mockApi = MockApiClient.addMockResponse({
@@ -466,7 +469,10 @@ describe('SentryAppRuleModal', function () {
             label: 'Task Name',
             name: 'title',
             uri: '/api/sentry/options/create/',
-            choices: [],
+            choices: [
+              ['yay', 'YAY'],
+              ['pog', 'POG'],
+            ],
           },
         ],
         optional_fields: [
@@ -495,7 +501,7 @@ describe('SentryAppRuleModal', function () {
       // because we have a default value in title, we should immeadiatly fetch for complexity
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
       expect(screen.queryByText('High')).toBeInTheDocument();
-      expect(screen.queryByText('yay')).toBeInTheDocument();
+      expect(screen.queryByText('YAY')).toBeInTheDocument();
     });
   });
 });
