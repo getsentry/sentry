@@ -70,7 +70,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             },
             "data_conditions": [
                 {
-                    "condition": "gt",
+                    "type": Condition.GREATER,
                     "comparison": 100,
                     "result": DetectorPriorityLevel.HIGH,
                 }

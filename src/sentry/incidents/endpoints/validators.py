@@ -89,7 +89,6 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 
     supported_conditions = frozenset((Condition.GREATER, Condition.LESS))
     supported_results = frozenset((DetectorPriorityLevel.HIGH, DetectorPriorityLevel.MEDIUM))
-    type = "metric_alert"
 
 
 class MetricAlertsDetectorValidator(BaseGroupTypeDetectorValidator):
