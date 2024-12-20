@@ -1,4 +1,4 @@
-from sentry.models.group import GroupEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.migration_helpers.rule_action import (
@@ -32,9 +32,9 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         # Get the keys we need to ignore
         exclude_keys = [
-            ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action.type),
-            ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action.type),
-            ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action.type),
+            ACTION_TYPE_2_INTEGRATION_ID_KEY.get(Action.Type(action.type)),
+            ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(Action.Type(action.type)),
+            ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(Action.Type(action.type)),
             *EXCLUDED_ACTION_DATA_KEYS,
         ]
 
@@ -53,28 +53,34 @@ class TestNotificationActionMigrationUtils(TestCase):
         """
         Asserts that the action attributes are equivalent to the compare_dict.
         """
-        # action_type
+        # assert action_type matches the id mapping
         id = compare_dict.get("id")
+        assert id is not None
         assert action.type == RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER.get(id)
 
-        # target_type
+        # assert target_type matches the target_type
         assert action.target_type == target_type
 
         if target_type == ActionTarget.SPECIFIC:
-            # integration_id
-            assert action.integration_id == compare_dict.get(
-                ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action.type)
-            )
 
-            # target_identifier
-            assert action.target_identifier == compare_dict.get(
-                ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action.type)
-            )
+            # assert integration_id matches the integration_id key value from the compare_dict
+            integration_id_key = ACTION_TYPE_2_INTEGRATION_ID_KEY.get(Action.Type(action.type))
+            assert integration_id_key is not None
+            assert action.integration_id == compare_dict.get(integration_id_key)
 
-            # target_display
-            assert action.target_display == compare_dict.get(
-                ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action.type)
+            # assert target_identifier matches the target_identifier key value from the compare_dict
+            # if the target_identifier key exists
+            target_identifier_key = ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(
+                Action.Type(action.type)
             )
+            if target_identifier_key is not None:
+                assert action.target_identifier == compare_dict.get(target_identifier_key)
+
+            # assert target_display matches the target_display key value from the compare_dict
+            # if the target_display key exists
+            target_display_key = ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(Action.Type(action.type))
+            if target_display_key is not None:
+                assert action.target_display == compare_dict.get(target_display_key)
 
     def assert_action(
         self,

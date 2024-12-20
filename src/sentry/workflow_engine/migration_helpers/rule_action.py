@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -11,6 +12,8 @@ from sentry.workflow_engine.typings.notification_action import (
     RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
     SlackDataBlob,
 )
+
+_logger = logging.getLogger(__name__)
 
 
 def build_slack_data_blob(action: dict[str, Any]) -> SlackDataBlob:
@@ -66,6 +69,15 @@ def build_notification_actions_from_rule_data_actions(
     for action in actions:
         # Use Rule.integration.provider to get the action type
         action_type = RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER.get(action["id"])
+        if action_type is None:
+            _logger.warning(
+                "Action type not found for action",
+                extra={
+                    "action_id": action["id"],
+                    "action_uuid": action["uuid"],
+                },
+            )
+            continue
 
         # For all integrations, the target type is specific
         # For email, the target type is user
@@ -74,15 +86,32 @@ def build_notification_actions_from_rule_data_actions(
         target_type = ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY.get(action_type)
 
         if target_type == ActionTarget.SPECIFIC:
-            integration_id = action.get(ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action_type))
+
+            # Get the integration_id
+            integration_id_key = ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action_type)
+            if integration_id_key is None:
+                # we should always have an integration id key if target type is specific
+                # TODO(iamrajjoshi): Should we fail loudly here?
+                _logger.warning(
+                    "Integration ID key not found for action type",
+                    extra={
+                        "action_type": action_type,
+                        "action_id": action["id"],
+                        "action_uuid": action["uuid"],
+                    },
+                )
+                continue
+            integration_id = action.get(integration_id_key)
 
             # Get the target_identifier if it exists
-            if action_type in ACTION_TYPE_2_TARGET_IDENTIFIER_KEY:
-                target_identifier = action.get(ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action_type))
+            target_identifier_key = ACTION_TYPE_2_TARGET_IDENTIFIER_KEY.get(action_type)
+            if target_identifier_key is not None:
+                target_identifier = action.get(target_identifier_key)
 
             # Get the target_display if it exists
-            if action_type in ACTION_TYPE_2_TARGET_DISPLAY_KEY:
-                target_display = action.get(ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action_type))
+            target_display_key = ACTION_TYPE_2_TARGET_DISPLAY_KEY.get(action_type)
+            if target_display_key is not None:
+                target_display = action.get(target_display_key)
 
         notification_action = Action(
             type=action_type,
