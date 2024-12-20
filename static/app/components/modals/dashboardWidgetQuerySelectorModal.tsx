@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,9 +31,10 @@ type Props = ModalRenderProps &
     selection: PageFilters;
   };
 
-class DashboardWidgetQuerySelectorModal extends Component<Props> {
-  renderQueries() {
-    const {organization, widget, selection, isMetricsData} = this.props;
+function DashboardWidgetQuerySelectorModal(props: Props) {
+  const {organization, widget, selection, isMetricsData, Body, Header} = props;
+
+  const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
       const discoverLocation = getWidgetDiscoverUrl(
         {
@@ -72,26 +73,23 @@ class DashboardWidgetQuerySelectorModal extends Component<Props> {
       );
     });
     return querySearchBars;
-  }
+  };
 
-  render() {
-    const {Body, Header, widget} = this.props;
-    return (
-      <Fragment>
-        <Header closeButton>
-          <h4>{widget.title}</h4>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
-            )}
-          </p>
-          {this.renderQueries()}
-        </Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{widget.title}</h4>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
+          )}
+        </p>
+        {renderQueries()}
+      </Body>
+    </Fragment>
+  );
 }
 
 const StyledInput = styled(Input)`
