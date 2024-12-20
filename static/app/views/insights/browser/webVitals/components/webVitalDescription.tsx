@@ -23,7 +23,7 @@ import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
-import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
+import {vitalSupportedBrowsers} from 'sentry/views/insights/browser/webVitals/utils/vitalsSupportedBrowsers';
 
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 

@@ -4,10 +4,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {
+  VitalState,
+  vitalStateIcons,
+  webVitalMeh,
+  webVitalPoor,
+} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalUtils';
 
-import {VitalState, vitalStateIcons, webVitalMeh, webVitalPoor} from './utils';
-
-type Percent = {
+export type Percent = {
   percent: number;
   vitalState: VitalState;
 };

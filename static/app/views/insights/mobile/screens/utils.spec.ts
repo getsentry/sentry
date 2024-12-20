@@ -1,10 +1,10 @@
+import {VitalState} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalUtils';
 import {
   getColdAppStartPerformance,
   getWarmAppStartPerformance,
   type MetricValue,
   PerformanceScore,
 } from 'sentry/views/insights/mobile/screens/utils';
-import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

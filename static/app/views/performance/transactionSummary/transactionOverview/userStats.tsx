@@ -17,13 +17,13 @@ import {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {vitalsRouteWithQuery} from 'sentry/views/insights/browser/webVitals/components/legacy/vitalChart';
+import VitalInfo from 'sentry/views/insights/browser/webVitals/components/legacy/vitalInfo';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-import {vitalsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import VitalInfo from 'sentry/views/performance/vitalDetail/vitalInfo';
 
 type Props = {
   error: QueryError | null;
