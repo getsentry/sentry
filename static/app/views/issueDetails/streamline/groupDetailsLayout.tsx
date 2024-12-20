@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,6 +9,10 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  EventDetailsContext,
+  useEventDetailsReducer,
+} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
@@ -30,6 +33,7 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
+  const {eventDetails, dispatch} = useEventDetailsReducer();
   const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
@@ -37,7 +41,7 @@ export function GroupDetailsLayout({
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
-    <Fragment>
+    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
       <StreamlinedGroupHeader
         group={group}
         event={event ?? null}
@@ -64,7 +68,7 @@ export function GroupDetailsLayout({
           <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
-    </Fragment>
+    </EventDetailsContext.Provider>
   );
 }
 

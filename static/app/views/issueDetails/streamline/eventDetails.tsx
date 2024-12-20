@@ -13,11 +13,7 @@ import {
   EventDetailsContent,
   type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {
-  EventDetailsContext,
-  useEventDetails,
-  useEventDetailsReducer,
-} from 'sentry/views/issueDetails/streamline/context';
+import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
@@ -27,8 +23,6 @@ export function EventDetails({
   project,
   eventError,
 }: EventDetailsContentProps) {
-  const {eventDetails, dispatch} = useEventDetailsReducer();
-
   if (!event) {
     return (
       <GroupContent role="main">
@@ -40,16 +34,14 @@ export function EventDetails({
   }
 
   return (
-    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <PageErrorBoundary mini message={t('There was an error loading the event content')}>
-        <GroupContent role="main">
-          <StickyEventNav event={event} group={group} />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
-      </PageErrorBoundary>
-    </EventDetailsContext.Provider>
+    <PageErrorBoundary mini message={t('There was an error loading the event content')}>
+      <GroupContent role="main">
+        <StickyEventNav event={event} group={group} />
+        <ContentPadding>
+          <EventDetailsContent group={group} event={event} project={project} />
+        </ContentPadding>
+      </GroupContent>
+    </PageErrorBoundary>
   );
 }
 
