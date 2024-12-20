@@ -7,6 +7,7 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.expressions import Value
 from django.db.models.functions import MD5, Coalesce
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -226,3 +227,7 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+class UptimeRegionScheduleMode(enum.StrEnum):
+    ROUND_ROBIN = REGIONSCHEDULEMODE_ROUND_ROBIN

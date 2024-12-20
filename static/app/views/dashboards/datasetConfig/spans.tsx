@@ -13,6 +13,7 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
@@ -49,6 +50,11 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count(span.duration)',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', 'span.duration', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
+};
+
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
   acc[aggregate] = {
     isSortable: true,
@@ -72,6 +78,7 @@ export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: SpansSearchBar,

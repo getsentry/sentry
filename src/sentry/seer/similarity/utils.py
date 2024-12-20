@@ -19,15 +19,7 @@ FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 # this separately from backfill status allows us to backfill projects which have events from
 # multiple platforms, some supported and some not, and not worry about events from the unsupported
 # platforms getting sent to Seer during ingest.
-SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(
-    [
-        # Native platforms
-        "c",
-        "native",
-        # We don't know what's in the event
-        "other",
-    ]
-)
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
 # Event platforms corresponding to project platforms which were backfilled before we started
 # blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
 # prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
@@ -46,11 +38,6 @@ EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
 # platforms shouldn't have Seer enabled.
 SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        # Native platforms
-        "c",
-        "minidump",
-        "native",
-        "native-qt",
         # We have no clue what's in these projects
         "other",
         "",
@@ -68,6 +55,8 @@ BASE64_ENCODED_PREFIXES = [
 class ReferrerOptions(StrEnum):
     INGEST = "ingest"
     BACKFILL = "backfill"
+    DELETION = "deletion"
+    SIMILAR_ISSUES_TAB = "similar_issues_tab"
 
 
 class TooManyOnlySystemFramesException(Exception):
@@ -291,7 +280,6 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
-    key = "grouping.similarity.did_call_seer"
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
     try:
         stacktrace_string = get_stacktrace_string(data, platform)
@@ -303,11 +291,7 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-frames"},
-            )
+            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -324,81 +308,56 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
-    """
-    Determine if an event's contents makes it fit for using with Seer's similar issues model.
-    """
-    # TODO: Determine if we want to filter out non-sourcemapped events
-    if not event_content_has_stacktrace(event):
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "no-stacktrace"},
-        )
-        return False
-
-    if event.platform in SEER_INELIGIBLE_EVENT_PLATFORMS:
-        metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
-        )
-        return False
-
+def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
     metrics.incr(
-        "grouping.similarity.event_content_seer_eligible",
+        "grouping.similarity.did_call_seer",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"eligible": True, "blocker": "none"},
+        tags={"call_made": call_made, "blocker": blocker},
     )
-    return True
 
 
 def killswitch_enabled(
     project_id: int | None,
+    referrer: ReferrerOptions,
     event: GroupEvent | Event | None = None,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
-
+    is_ingest = referrer == ReferrerOptions.INGEST
+    logger_prefix = f"grouping.similarity.{referrer.value}"
     logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
 
     if options.get("seer.global-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            f"{logger_prefix}.seer_global_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+
         return True
 
     if killswitch_matches_context(
         "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
     ):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_project_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+
         return True
 
     return False
