@@ -102,7 +102,7 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
             if message.value.timestamp.tzinfo is None:
                 message_timestamp = message.value.timestamp.replace(tzinfo=timezone.utc)
             else:
-                message_timestamp = message.value.timestamp.astimezone(timezone.utc)
+                message_timestamp = message.value.timestamp
 
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
