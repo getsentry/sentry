@@ -1,5 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
+from typing import cast
 from unittest.mock import Mock
 
 import msgpack
@@ -12,23 +13,20 @@ from sentry.consumers.dlq import DlqStaleMessagesStrategyFactoryWrapper
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
-def make_message(
-    payload: bytes, partition: Partition, offset: int, timestamp: datetime | None = None
-) -> Message:
+def make_message(payload: bytes, partition: Partition, offset: int, timestamp: datetime) -> Message:
     return Message(
         BrokerValue(
             KafkaPayload(None, payload, []),
             partition,
             offset,
-            timestamp if timestamp else datetime.now(),
+            timestamp,
         )
     )
 
 
 @pytest.mark.parametrize("stale_threshold_sec", [300])
 @django_db_all
-def test_dlq_stale_messages(factories, stale_threshold_sec) -> None:
-    # Tests messages that have gotten stale (default longer than 5 minutes)
+def test_dlq_stale_messages_timestamps(factories, stale_threshold_sec) -> None:
 
     organization = factories.create_organization()
     project = factories.create_project(organization=organization)
@@ -54,20 +52,41 @@ def test_dlq_stale_messages(factories, stale_threshold_sec) -> None:
     )
     strategy = factory.create_with_partitions(Mock(), Mock())
 
-    for time_diff in range(10, 0, -1):
+    test_cases = [
+        {
+            "timestamp": datetime.now() - timedelta(seconds=stale_threshold_sec - 60),
+            "should_raise": False,
+        },
+        {
+            "timestamp": datetime.now() - timedelta(seconds=stale_threshold_sec + 60),
+            "should_raise": True,
+        },
+        {
+            "timestamp": datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec + 60),
+            "should_raise": True,
+        },
+        {
+            "timestamp": datetime.now(timezone.utc) - timedelta(seconds=stale_threshold_sec - 60),
+            "should_raise": False,
+        },
+    ]
+
+    for idx, case in enumerate(test_cases):
         message = make_message(
             empty_event_payload,
             partition,
-            offset - time_diff,
-            timestamp=datetime.now(timezone.utc) - timedelta(minutes=time_diff),
+            offset + idx,
+            timestamp=cast(datetime, case["timestamp"]),
         )
-        if time_diff < 5:
-            strategy.submit(message)
-        else:
+
+        if case["should_raise"]:
             with pytest.raises(InvalidMessage) as exc_info:
                 strategy.submit(message)
 
             assert exc_info.value.partition == partition
-            assert exc_info.value.offset == offset - time_diff
+            assert exc_info.value.offset == offset + idx
+        else:
+            strategy.submit(message)
 
-    assert inner_strategy_mock.submit.call_count == 4
+    valid_messages = sum(1 for case in test_cases if not case["should_raise"])
+    assert inner_strategy_mock.submit.call_count == valid_messages
