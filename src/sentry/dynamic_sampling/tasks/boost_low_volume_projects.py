@@ -11,6 +11,7 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
+    Limit,
     LimitBy,
     Op,
     OrderBy,
@@ -35,6 +36,7 @@ from sentry.dynamic_sampling.tasks.common import (
     TimedIterator,
     are_equal_with_epsilon,
     sample_rate_to_float,
+    to_context_iterator,
 )
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
@@ -243,10 +245,12 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     with timer:
         context.incr_function_state(func_name, num_iterations=1)
 
-        project_count_query_iter = query_project_counts_by_org(
-            org_ids,
-            measure,
-            query_interval,
+        project_count_query_iter = to_context_iterator(
+            query_project_counts_by_org(
+                org_ids,
+                measure,
+                query_interval,
+            )
         )
         aggregated_projects = defaultdict(list)
         for chunk in TimedIterator(context, project_count_query_iter, func_name):
@@ -266,10 +270,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
                 num_rows_total=len(chunk),
                 num_projects=len(chunk),
             )
-            context.set_function_state(
-                func_name,
-                num_orgs=len(aggregated_projects),
-            )
+            context.get_function_state(func_name).num_orgs = len(aggregated_projects)
 
         return aggregated_projects
 
@@ -342,7 +343,7 @@ def query_project_counts_by_org(
             count=MAX_TRANSACTIONS_PER_PROJECT,
         ),
         # we are fetching one more than the chunk size to determine if there are more results
-        limit=CHUNK_SIZE + 1,
+        limit=Limit(CHUNK_SIZE + 1),
     )
 
     offset = 0
