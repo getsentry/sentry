@@ -1,9 +1,10 @@
 name: test-devservices-backend
 
 on:
-  schedule:
-    - cron: '0 * * * *'
-
+  # schedule:
+  #   - cron: '0 * * * *'
+  push:
+    pull_request:
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
@@ -71,6 +72,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
+        id: setup
         uses: ./.github/actions/test-setup-sentry-devservices
 
       - name: Bring up devservices
