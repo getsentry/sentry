@@ -5,7 +5,7 @@ from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
-@condition_handler_registry.register(Condition.REGRESSED_EVENT)
+@condition_handler_registry.register(Condition.REGRESSION_EVENT)
 class RegressedEventConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
