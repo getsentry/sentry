@@ -68,7 +68,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -85,7 +84,6 @@ export interface EventDetailsContentProps {
   group: Group;
   project: Project;
   event?: Event;
-  eventError?: RequestError;
 }
 
 export function EventDetailsContent({
@@ -462,19 +460,11 @@ export default function GroupEventDetailsContent({
   group,
   event,
   project,
-  eventError,
 }: EventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   if (hasStreamlinedUI) {
-    return (
-      <EventDetails
-        event={event}
-        group={group}
-        project={project}
-        eventError={eventError}
-      />
-    );
+    return <EventDetails event={event} group={group} project={project} />;
   }
 
   if (!event) {

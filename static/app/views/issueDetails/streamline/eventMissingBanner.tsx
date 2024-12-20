@@ -6,13 +6,12 @@ import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
-export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
+export function EventMissingBanner() {
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
   const {groupId, eventId = defaultEventId} = useParams<{
@@ -59,7 +58,6 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
               <EventIdText>({eventId})</EventIdText>
             ) : null}
           </MainText>
-          <ResponseText eventError={eventError} />
           <SubText style={{marginTop: space(1)}}>
             {t('If this is unexpected, here are some things to try:')}
             <ul style={{margin: 0}}>
@@ -71,20 +69,6 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
         </Flex>
       </CompassContainer>
     </Flex>
-  );
-}
-
-function ResponseText({eventError}: {eventError?: RequestError}) {
-  const errorStatus = eventError?.status;
-  const errorDetails = eventError?.responseJSON?.detail;
-  if (!errorDetails) {
-    return null;
-  }
-  return (
-    <SubText>
-      {errorStatus ? <strong>{errorStatus}: </strong> : null}
-      {typeof errorDetails === 'string' ? errorDetails : null}
-    </SubText>
   );
 }
 

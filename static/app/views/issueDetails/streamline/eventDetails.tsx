@@ -17,17 +17,12 @@ import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
-export function EventDetails({
-  group,
-  event,
-  project,
-  eventError,
-}: EventDetailsContentProps) {
+export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {
     return (
       <GroupContent role="main">
         <BannerPadding>
-          <EventMissingBanner eventError={eventError} />
+          <EventMissingBanner />
         </BannerPadding>
       </GroupContent>
     );

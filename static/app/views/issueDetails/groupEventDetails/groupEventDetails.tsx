@@ -54,7 +54,6 @@ function GroupEventDetails() {
     isPending: isLoadingEvent,
     isError: isEventError,
     refetch: refetchEvent,
-    error: eventError,
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
@@ -180,12 +179,7 @@ function GroupEventDetails() {
     }
 
     return (
-      <GroupEventDetailsContent
-        group={group}
-        event={eventWithMeta}
-        project={project}
-        eventError={eventError ? eventError : undefined}
-      />
+      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
     );
   };
 
