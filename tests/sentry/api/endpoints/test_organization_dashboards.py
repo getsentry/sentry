@@ -240,37 +240,39 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         Dashboard.objects.create(title="F", created_by_id=user_1.id, organization=self.organization)
 
         self.login_as(user_1)
-        response = self.client.get(self.url, data={"sort": "mydashboards"})
-        assert response.status_code == 200, response.content
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
 
-        values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
-        assert values == [
-            "Cat",
-            "Cat",
-            "admin@localhost",  # name is empty
-            "admin@localhost",
-            "Aapple",
-            "Banana",
-            "Pineapple",
-            "Pineapple",
-        ]
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+                "Aapple",
+                "Banana",
+                "Pineapple",
+                "Pineapple",
+            ]
 
         # descending
         self.login_as(user_1)
-        response = self.client.get(self.url, data={"sort": "-mydashboards"})
-        assert response.status_code == 200, response.content
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "-mydashboards"})
+            assert response.status_code == 200, response.content
 
-        values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
-        assert values == [
-            "Cat",
-            "Cat",
-            "Pineapple",
-            "Pineapple",
-            "Banana",
-            "Aapple",
-            "admin@localhost",  # name is empty
-            "admin@localhost",
-        ]
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "Pineapple",
+                "Pineapple",
+                "Banana",
+                "Aapple",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+            ]
 
     def test_get_only_favorites_no_sort(self):
         user_1 = self.create_user(username="user_1")
