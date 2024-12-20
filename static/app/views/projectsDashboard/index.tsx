@@ -206,7 +206,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
               selectedTeams={selectedTeams}
               handleChangeFilter={handleChangeFilter}
               hideUnassigned
-              hideOtherTeams
+              hideOtherTeams={!showNonMemberProjects}
             />
             <StyledSearchBar
               defaultQuery=""
