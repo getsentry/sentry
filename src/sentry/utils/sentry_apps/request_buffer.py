@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, TypedDict, overload
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -38,6 +38,14 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 )
 
 
+class SentryAppRequest(TypedDict):
+    date: str
+    response_code: int
+    webhook_url: str
+    organization_id: int
+    event_type: str
+
+
 class SentryAppWebhookRequestsBuffer:
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
@@ -58,7 +66,7 @@ class SentryAppWebhookRequestsBuffer:
         else:
             return f"sentry-app-webhook-request:{{{sentry_app_id}}}:{event}"
 
-    def _convert_redis_request(self, redis_request: str, event: str) -> dict[str, Any]:
+    def _convert_redis_request(self, redis_request: str, event: str) -> SentryAppRequest:
         """
         Convert the request string stored in Redis to a python dict
         Add the event type to the dict so that the request can be identified correctly
@@ -102,7 +110,7 @@ class SentryAppWebhookRequestsBuffer:
 
     def _get_requests(
         self, event: str | list[str] | None = None, error: bool = False
-    ) -> list[dict[str, Any]]:
+    ) -> list[SentryAppRequest]:
         if isinstance(event, str):
             return [
                 self._convert_redis_request(request, event)
@@ -113,7 +121,7 @@ class SentryAppWebhookRequestsBuffer:
             event_types = event or EXTENDED_VALID_EVENTS
             pipe = self.client.pipeline()
 
-            all_requests = []
+            all_requests: list[SentryAppRequest] = []
             for evt in event_types:
                 self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
 
@@ -130,7 +138,7 @@ class SentryAppWebhookRequestsBuffer:
 
     def get_requests(
         self, event: str | list[str] | None = None, errors_only: bool = False
-    ) -> list[dict[str, Any]]:
+    ) -> list[SentryAppRequest]:
         return self._get_requests(event=event, error=errors_only)
 
     def add_request(

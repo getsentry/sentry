@@ -5,11 +5,13 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
     SentryAppWebhookRequestSerializer,
@@ -70,6 +72,12 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         :qparam string start: Optionally specify a date to begin at. Format must be YYYY-MM-DD HH:MM:SS
         :qparam string end: Optionally specify a date to end at. Format must be YYYY-MM-DD HH:MM:SS
         """
+        organization = organization_service.get(id=sentry_app.owner_id)
+        if organization is None or not features.has(
+            "organizations:sentry-app-webhook-requests", organization
+        ):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         serializer = IncomingRequestSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
