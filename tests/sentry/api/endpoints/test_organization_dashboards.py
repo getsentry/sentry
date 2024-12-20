@@ -173,7 +173,14 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
 
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
-        assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
+        assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
+
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
+            assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
 
     def test_get_sortby_mydashboards_and_recently_viewed(self):
         user_1 = self.create_user(username="user_1")
