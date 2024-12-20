@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
 
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import GroupEvent
+    from sentry.eventstream.base import GroupState
     from sentry.workflow_engine.models import Action, Detector
 
 T = TypeVar("T")
@@ -28,9 +29,21 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
+class EventJob(TypedDict):
+    event: GroupEvent
+
+
+class WorkflowJob(EventJob, total=False):
+    group_state: GroupState
+    is_reprocessed: bool
+    has_reappeared: bool
+    has_alert: bool
+    has_escalated: bool
+
+
 class ActionHandler:
     @staticmethod
-    def execute(group_event: GroupEvent, action: Action, detector: Detector) -> None:
+    def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 
