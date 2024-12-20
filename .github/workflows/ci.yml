@@ -9,7 +9,6 @@ on:
 jobs:
   report:
     runs-on: ubuntu-22.04
-    environment: tach-demo
     steps:
       - uses: actions/checkout@v4
 
