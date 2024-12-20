@@ -11,7 +11,7 @@ import {
   useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-export const KNOWN_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
+export const RESERVED_EVENT_IDS = new Set(['recommended', 'latest', 'oldest']);
 interface UseGroupEventOptions {
   environments: string[];
   eventId: string | undefined;
@@ -30,14 +30,13 @@ export function useGroupEvent({
   const eventQuery = useEventQuery({groupId});
   const eventId = eventIdProp ?? defaultIssueEvent;
 
-  const isSpecificEvent = KNOWN_EVENT_IDS.has(eventId);
+  const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
   const isLatestOrRecommendedEvent = eventId === 'latest' || eventId === 'recommended';
 
   const query =
     isLatestOrRecommendedEvent && typeof location.query.query === 'string'
       ? location.query.query
       : undefined;
-  const streamlineQuery = isSpecificEvent ? eventQuery : undefined;
 
   const {selection: pageFilters} = usePageFilters();
   const periodQuery = hasStreamlinedUI ? getPeriod(pageFilters.datetime) : {};
@@ -47,7 +46,7 @@ export function useGroupEvent({
     groupId,
     eventId,
     environments,
-    query: hasStreamlinedUI ? streamlineQuery : query,
+    query: hasStreamlinedUI ? eventQuery : query,
     ...periodQuery,
   });
 
@@ -55,7 +54,7 @@ export function useGroupEvent({
   // Oldest/specific events will never change
   const staleTime = isLatestOrRecommendedEvent ? 30000 : Infinity;
   // Streamlined: Only specific events will never change, so cache indefinitely
-  const streamlineStaleTime = isSpecificEvent ? Infinity : 30000;
+  const streamlineStaleTime = isReservedEventId ? Infinity : 30000;
 
   return useApiQuery<Event>(queryKey, {
     staleTime: hasStreamlinedUI ? streamlineStaleTime : staleTime,

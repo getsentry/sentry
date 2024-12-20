@@ -9,13 +9,18 @@ import {space} from 'sentry/styles/space';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {KNOWN_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
+import {RESERVED_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
+import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
 export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
   const organization = useOrganization();
-  const {groupId, eventId} = useParams<{eventId: string; groupId: string}>();
+  const defaultEventId = useDefaultIssueEvent();
+  const {groupId, eventId = defaultEventId} = useParams<{
+    eventId: string;
+    groupId: string;
+  }>();
   const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
-  const isSpecificEvent = !KNOWN_EVENT_IDS.has(eventId);
+  const isReservedEventId = RESERVED_EVENT_IDS.has(eventId);
 
   const specificEventTips = [
     t(
@@ -30,7 +35,7 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
       }
     ),
   ];
-  const knownEventTips = [
+  const reservedEventTips = [
     t(
       'Change up your filters. Try more environments, a wider date range, or a different query'
     ),
@@ -39,7 +44,7 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
     }),
   ];
 
-  const tips = isSpecificEvent ? specificEventTips : knownEventTips;
+  const tips = isReservedEventId ? reservedEventTips : specificEventTips;
 
   return (
     <Flex align="center" justify="center">
@@ -48,9 +53,11 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
         <Flex justify="center" column gap={space(1)}>
           <MainText>
             {tct("We couldn't track down [prep] event", {
-              prep: isSpecificEvent ? 'that' : 'an',
+              prep: isReservedEventId ? 'an' : 'that',
             })}
-            {isSpecificEvent ? <EventIdText>({eventId})</EventIdText> : null}
+            {!isReservedEventId && eventId ? (
+              <EventIdText>({eventId})</EventIdText>
+            ) : null}
           </MainText>
           <ResponseText eventError={eventError} />
           <SubText style={{marginTop: space(1)}}>
