@@ -2,8 +2,6 @@ from django.conf import settings
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 
-region_lookup = None
-
 
 def get_active_region_configs() -> list[UptimeRegionConfig]:
     return [v for v in settings.UPTIME_REGIONS if v.enabled]
