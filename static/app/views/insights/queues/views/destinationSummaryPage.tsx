@@ -44,7 +44,7 @@ function DestinationSummaryPage() {
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
 
   const {openSamplesDrawer} = useSamplesDrawer({
-    Component: MessageSpanSamplesPanel,
+    Component: <MessageSpanSamplesPanel />,
     moduleName: ModuleName.QUEUE,
   });
 

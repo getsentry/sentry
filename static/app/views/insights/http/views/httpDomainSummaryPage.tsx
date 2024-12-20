@@ -89,7 +89,7 @@ export function HTTPDomainSummaryPage() {
   });
 
   const {openSamplesDrawer} = useSamplesDrawer({
-    Component: HTTPSamplesPanel,
+    Component: <HTTPSamplesPanel />,
     moduleName: ModuleName.HTTP,
   });
 

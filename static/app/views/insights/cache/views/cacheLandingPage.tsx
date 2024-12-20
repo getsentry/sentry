@@ -81,7 +81,7 @@ export function CacheLandingPage() {
   });
 
   const {openSamplesDrawer} = useSamplesDrawer({
-    Component: CacheSamplePanel,
+    Component: <CacheSamplePanel />,
     moduleName: ModuleName.CACHE,
   });
 

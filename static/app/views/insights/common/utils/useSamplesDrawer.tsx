@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ModuleName} from '../../types';
 
 interface UseSamplesDrawerProps {
-  Component: React.FunctionComponent;
+  Component: React.ReactNode;
   moduleName: ModuleName;
 }
 
@@ -36,7 +36,7 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
       source: moduleName,
     });
 
-    openDrawer(() => <Component />, {
+    openDrawer(() => Component, {
       ariaLabel: t('Samples'),
       onClose,
       transitionProps: {stiffness: 1000},
