@@ -61,6 +61,7 @@ from sentry.api.endpoints.relocations.retry import RelocationRetryEndpoint
 from sentry.api.endpoints.relocations.unpause import RelocationUnpauseEndpoint
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
+from sentry.api.endpoints.shared_widget_details import SharedWidgetDetailsEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
@@ -1299,6 +1300,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/favorite/$",
         OrganizationDashboardFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-favorite",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/shared/widget/(?P<share_id>[^\/]+)/(?P<widget_id>[^\/]+)$",
+        SharedWidgetDetailsEndpoint.as_view(),
+        name="sentry-api-0-shared-widget-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",

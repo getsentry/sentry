@@ -814,6 +814,11 @@ urlpatterns += [
         react_page_view,
         name="dashboards",
     ),
+    re_path(
+        r"^shared/dashboard/(?P<share_id>[\w_-]+)/$",
+        GenericReactPageView.as_view(auth_required=False),
+        name="shared-dashboard",
+    ),
     # Discover
     re_path(
         r"^discover/",

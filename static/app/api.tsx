@@ -115,6 +115,7 @@ export function isSimilarOrigin(target: string, origin: string): boolean {
 
 // TODO: Need better way of identifying anonymous pages that don't trigger redirect
 const ALLOWED_ANON_PAGES = [
+  // check this
   /^\/accept\//,
   /^\/share\//,
   /^\/auth\/login\//,
