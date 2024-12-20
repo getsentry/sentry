@@ -100,11 +100,20 @@ class TestSentryAppAuthorizations(APITestCase):
         )
 
     def test_invalid_grant(self):
-        self.get_error_response(code="123", status_code=403)
+        self.get_error_response(
+            code=self.install.api_grant.code,
+            grant_type="lol",
+            client_id=self.sentry_app.application.client_id,
+            client_secret=self.sentry_app.application.client_secret,
+            status_code=403,
+        )
+
+    def test_missing_fields(self):
+        self.get_error_response(code="123", status_code=400)
 
     def test_expired_grant(self):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
-        response = self.get_error_response(status_code=403)
+        response = self.get_error_response(status_code=400)
         assert response.data["error"] == "Grant has already expired"
 
     def test_request_with_exchanged_access_token(self):

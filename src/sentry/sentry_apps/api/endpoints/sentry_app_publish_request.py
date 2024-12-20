@@ -12,6 +12,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.sentry_apps.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar, SentryAppAvatarTypes
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import email
@@ -29,6 +30,7 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
         elements = (sentry_app.schema or {}).get("elements", [])
         return any(element.get("type") in COMPONENT_TYPES for element in elements)
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, sentry_app) -> Response:
         # check status of app to make sure it is unpublished
         if sentry_app.is_published:

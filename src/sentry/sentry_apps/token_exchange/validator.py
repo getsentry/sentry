@@ -6,6 +6,7 @@ from sentry.coreapi import APIUnauthorized
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.users.models.user import User
 
 
@@ -27,16 +28,20 @@ class Validator:
 
     def _validate_is_sentry_app_making_request(self) -> None:
         if not self.user.is_sentry_app:
-            raise APIUnauthorized("User is not a Sentry App")
+            raise SentryAppIntegratorError(APIUnauthorized("User is not a Sentry App"))
 
     def _validate_app_is_owned_by_user(self) -> None:
         if self.sentry_app.proxy_user != self.user:
-            raise APIUnauthorized("Sentry App does not belong to given user")
+            raise SentryAppIntegratorError(
+                APIUnauthorized("Sentry App does not belong to given user")
+            )
 
     def _validate_installation(self) -> None:
         if self.install.sentry_app.id != self.sentry_app.id:
-            raise APIUnauthorized(
-                f"Sentry App Installation is not for Sentry App: {self.sentry_app.slug}"
+            raise SentryAppIntegratorError(
+                APIUnauthorized(
+                    f"Sentry App Installation is not for Sentry App: {self.sentry_app.slug}"
+                )
             )
 
     @cached_property
@@ -51,4 +56,4 @@ class Validator:
         try:
             return ApiApplication.objects.get(client_id=self.client_id)
         except ApiApplication.DoesNotExist:
-            raise APIUnauthorized("Application does not exist")
+            raise SentryAppIntegratorError(APIUnauthorized("Application does not exist"))

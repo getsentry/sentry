@@ -11,6 +11,7 @@ from sentry.integrations.api.serializers.models.integration_feature import (
 )
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 
 
 @control_silo_endpoint
@@ -20,6 +21,7 @@ class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         features = IntegrationFeature.objects.filter(
             target_id=sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value

@@ -17,6 +17,7 @@ from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_REST
 from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -31,6 +32,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         if not sentry_app.is_internal:
             return Response([])
@@ -50,6 +52,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         return Response(token_list)
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, sentry_app) -> Response:
         if not sentry_app.is_internal:
             return Response(

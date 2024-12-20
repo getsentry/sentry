@@ -11,6 +11,7 @@ from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENT_RESOURCES,
 )
+from sentry.sentry_apps.utils.errors import SentryAppError
 
 
 class ApiScopesField(serializers.Field):
@@ -51,7 +52,7 @@ class SchemaField(serializers.Field):
         try:
             validate_ui_element_schema(data)
         except SchemaValidationError as e:
-            raise ValidationError(e.message)
+            raise SentryAppError(ValidationError(e.message))
 
         return data
 
@@ -115,13 +116,13 @@ class SentryAppParser(Serializer):
     def validate_name(self, value):
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
-            raise ValidationError("Cannot exceed %d characters" % max_length)
+            raise SentryAppError(ValidationError("Cannot exceed %d characters" % max_length))
         return value
 
     def validate_allowedOrigins(self, value):
         for allowed_origin in value:
             if "*" in allowed_origin:
-                raise ValidationError("'*' not allowed in origin")
+                raise SentryAppError(ValidationError("'*' not allowed in origin"))
         return value
 
     def validate_scopes(self, value):
@@ -151,8 +152,12 @@ class SentryAppParser(Serializer):
             for resource in attrs.get("events", []):
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
                 if needed_scope not in attrs["scopes"]:
-                    raise ValidationError(
-                        {"events": f"{resource} webhooks require the {needed_scope} permission."}
+                    raise SentryAppError(
+                        ValidationError(
+                            {
+                                "events": f"{resource} webhooks require the {needed_scope} permission."
+                            }
+                        )
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)
@@ -161,19 +166,27 @@ class SentryAppParser(Serializer):
             if get_current_value("isInternal"):
                 # for internal apps, make sure there aren't any events if webhookUrl is null
                 if get_current_value("events"):
-                    raise ValidationError(
-                        {"webhookUrl": "webhookUrl required if webhook events are enabled"}
+                    raise SentryAppError(
+                        ValidationError(
+                            {"webhookUrl": "webhookUrl required if webhook events are enabled"}
+                        )
                     )
                 # also check that we don't have the alert rule enabled
                 if get_current_value("isAlertable"):
-                    raise ValidationError(
-                        {"webhookUrl": "webhookUrl required if alert rule action is enabled"}
+                    raise SentryAppError(
+                        ValidationError(
+                            {"webhookUrl": "webhookUrl required if alert rule action is enabled"}
+                        )
                     )
             else:
-                raise ValidationError({"webhookUrl": "webhookUrl required for public integrations"})
+                raise SentryAppError(
+                    ValidationError({"webhookUrl": "webhookUrl required for public integrations"})
+                )
 
         # validate author for public integrations
         if not get_current_value("isInternal") and not get_current_value("author"):
-            raise ValidationError({"author": "author required for public integrations"})
+            raise SentryAppError(
+                ValidationError({"author": "author required for public integrations"})
+            )
 
         return attrs

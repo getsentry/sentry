@@ -16,6 +16,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppStatsPermission,
 )
 from sentry.sentry_apps.api.serializers.request import RequestSerializer
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 
 INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
@@ -52,6 +53,7 @@ class SentryAppRequestsEndpoint(RegionSentryAppBaseEndpoint):
     }
     permission_classes = (SentryAppStatsPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests

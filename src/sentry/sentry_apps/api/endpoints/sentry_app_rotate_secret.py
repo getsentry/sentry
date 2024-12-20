@@ -16,6 +16,7 @@ from sentry.models.apiapplication import generate_token
 from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ class SentryAppRotateSecretEndpoint(SentryAppBaseEndpoint):
     owner = ApiOwner.ENTERPRISE
     permission_classes = (SentryAppRotateSecretPermission,)
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, sentry_app: SentryApp) -> Response:
         if sentry_app.application is None:
             return Response({"detail": "Corresponding application was not found."}, status=404)

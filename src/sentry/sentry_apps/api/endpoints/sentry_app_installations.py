@@ -20,6 +20,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_installation import (
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import catch_and_handle_sentry_app_errors
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -36,6 +37,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization_id=organization.id)
 
@@ -49,6 +51,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             ),
         )
 
+    @catch_and_handle_sentry_app_errors
     def post(self, request: Request, organization) -> Response:
         serializer = SentryAppInstallationsSerializer(data=request.data)
 

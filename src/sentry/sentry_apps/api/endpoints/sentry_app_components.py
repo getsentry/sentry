@@ -21,6 +21,11 @@ from sentry.sentry_apps.api.serializers.sentry_app_component import SentryAppCom
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    catch_and_handle_sentry_app_errors,
+)
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -33,6 +38,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @catch_and_handle_sentry_app_errors
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
             request=request,
@@ -51,6 +57,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @catch_and_handle_sentry_app_errors
     @add_integration_platform_metric_tag
     def get(
         self,
@@ -80,7 +87,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                     with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
-                        except APIError:
+                        except (APIError, SentryAppIntegratorError, SentryAppError):
                             errors.append(str(component.uuid))
 
                         components.append(component)
