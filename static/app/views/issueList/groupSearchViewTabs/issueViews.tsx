@@ -461,13 +461,12 @@ export function IssueViewsStateProvider({
         case 'SET_VIEWS':
           return setViews(state, action);
         case 'SYNC_VIEWS_TO_BACKEND':
-          debounceUpdateViews(state.views);
           return state;
         default:
           return state;
       }
     },
-    [tabListState, debounceUpdateViews]
+    [tabListState]
   );
 
   const sortOption =
