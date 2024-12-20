@@ -263,9 +263,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
                 "Pineapple",
             ]
 
-        # descending
-        self.login_as(user_1)
-        with self.feature("organizations:dashboards-table-view"):
+            # descending
             response = self.client.get(self.url, data={"sort": "-mydashboards"})
             assert response.status_code == 200, response.content
 
