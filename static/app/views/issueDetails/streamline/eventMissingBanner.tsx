@@ -24,7 +24,9 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
     tct(
       'Switch over to a [link:recommended] event instead, it should have more useful data.',
       {
-        link: <Link to={`${baseUrl}/recommended/`} />,
+        link: (
+          <Link to={`${baseUrl}/recommended/`} aria-label={t('View recommended event')} />
+        ),
       }
     ),
   ];
@@ -33,7 +35,7 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
       'Change up your filters. Try more environments, a wider date range, or a different query'
     ),
     tct('If nothing stands out, try [link:clearing your filters] all together', {
-      link: <Link to={`${baseUrl}/${eventId}/`} />,
+      link: <Link to={`${baseUrl}/${eventId}/`} aria-label={t('Clear event filters')} />,
     }),
   ];
 
@@ -52,7 +54,7 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
           </MainText>
           <ResponseText eventError={eventError} />
           <SubText style={{marginTop: space(1)}}>
-            {t('If this is unexpected, here are some things you can try:')}
+            {t('If this is unexpected, here are some things to try:')}
             <ul style={{margin: 0}}>
               {tips.map((tip, i) => (
                 <li key={i}>{tip}</li>
