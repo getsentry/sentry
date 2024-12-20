@@ -240,19 +240,19 @@ class GetSeerSimilarIssuesTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="12312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -275,7 +275,7 @@ class GetSeerSimilarIssuesTest(TestCase):
                 "event_id": new_event.event_id,
                 "hash": new_event.get_primary_hash(),
                 "project_id": self.project.id,
-                "stacktrace": f'{type}: {value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
+                "stacktrace": f'{error_type}: {error_value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
@@ -353,19 +353,19 @@ class GetSeerSimilarIssuesTest(TestCase):
     def test_too_many_frames(
         self, mock_metrics: Mock, mock_record_did_call_seer: MagicMock
     ) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="22312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -401,19 +401,19 @@ class GetSeerSimilarIssuesTest(TestCase):
 
     @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
     def test_too_many_frames_allowed_platform(self, mock_record_did_call_seer: MagicMock) -> None:
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="22312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -453,19 +453,19 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="12312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -494,7 +494,7 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
                 "event_id": new_event.event_id,
                 "hash": new_event.get_primary_hash(),
                 "project_id": self.project.id,
-                "stacktrace": f'{type}: {value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
+                "stacktrace": f'{error_type}: {error_value}\n  File "dogpark.py", function play_fetch\n    {context_line}',
                 "exception_type": "FailedToFetchError",
                 "k": 1,
                 "referrer": "ingest",
@@ -513,19 +513,19 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="22312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
@@ -572,19 +572,19 @@ class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
     ) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
-        type = "FailedToFetchError"
-        value = "Charlie didn't bring the ball back"
-        context_line = f"raise {type}('{value}')"
+        error_type = "FailedToFetchError"
+        error_value = "Charlie didn't bring the ball back"
+        context_line = f"raise {error_type}('{error_value}')"
         new_event = Event(
             project_id=self.project.id,
             event_id="22312012112120120908201304152013",
             data={
-                "title": f"{type}('{value}')",
+                "title": f"{error_type}('{error_value}')",
                 "exception": {
                     "values": [
                         {
-                            "type": type,
-                            "value": value,
+                            "type": error_type,
+                            "value": error_value,
                             "stacktrace": {
                                 "frames": [
                                     {
