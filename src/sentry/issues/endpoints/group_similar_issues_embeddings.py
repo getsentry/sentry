@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.grouping_info import get_grouping_info
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -22,6 +22,7 @@ from sentry.seer.similarity.utils import (
     TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
+    has_too_many_contributing_frames,
     killswitch_enabled,
 )
 from sentry.users.models.user import User
@@ -83,16 +84,22 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         latest_event = group.get_latest_event()
         stacktrace_string = ""
+
         if latest_event and event_content_has_stacktrace(latest_event):
-            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
-            try:
-                stacktrace_string = get_stacktrace_string(
-                    grouping_info, platform=latest_event.platform
-                )
-            except TooManyOnlySystemFramesException:
-                pass
-            except Exception:
-                logger.exception("Unexpected exception in stacktrace string formatting")
+            variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
+
+            if not has_too_many_contributing_frames(
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
+            ):
+                grouping_info = get_grouping_info_from_variants(variants)
+                try:
+                    stacktrace_string = get_stacktrace_string(
+                        grouping_info, platform=latest_event.platform
+                    )
+                except TooManyOnlySystemFramesException:
+                    pass
+                except Exception:
+                    logger.exception("Unexpected exception in stacktrace string formatting")
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
