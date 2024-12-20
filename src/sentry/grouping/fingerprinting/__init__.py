@@ -591,7 +591,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         in_header = True
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
