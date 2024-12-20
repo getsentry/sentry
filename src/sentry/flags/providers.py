@@ -246,8 +246,8 @@ class GenericProvider:
 SUPPORTED_UNLEASH_ACTIONS = {
     "feature-created",
     "feature-archived",
-    "feature-deleted",
     "feature-revived",
+    "feature-updated",
     "feature-strategy-update",
     "feature-strategy-add",
     "feature-strategy-remove",
@@ -342,7 +342,7 @@ class UnleashProvider:
 def _handle_unleash_actions(action: str) -> int:
     if action == "feature-created":
         return ACTION_MAP["created"]
-    if action == "feature-archived" or action == "feature-deleted":
+    if action == "feature-archived":
         return ACTION_MAP["deleted"]
     else:
         return ACTION_MAP["updated"]
