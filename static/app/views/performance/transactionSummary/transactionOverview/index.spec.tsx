@@ -94,6 +94,9 @@ describe('Performance > TransactionSummary', function () {
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
+    // Small screen size will hide search bar trailing items like warning icon
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
+
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -528,6 +531,10 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
+
+    // Cleanup clientWidth mock
+    // @ts-expect-error
+    delete HTMLElement.prototype.clientWidth;
   });
 
   describe('with events', function () {
@@ -1314,9 +1321,6 @@ describe('Performance > TransactionSummary', function () {
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
-
-      // Small screen size will hide trailing items that we assert for existence below
-      Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
       render(
         <TestComponent
