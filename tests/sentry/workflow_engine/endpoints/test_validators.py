@@ -54,15 +54,15 @@ class TestNumericComparisonConditionValidator(TestCase):
 
     def test_validate_condition_valid(self):
         validator = self.validator_class()
-        assert validator.validate_condition("gt") == Condition.GREATER
+        assert validator.validate_type("gt") == Condition.GREATER
 
     def test_validate_condition_invalid(self):
         validator = self.validator_class()
         with pytest.raises(
             ValidationError,
-            match="[ErrorDetail(string='Unsupported condition invalid_condition', code='invalid')]",
+            match="[ErrorDetail(string='Unsupported type invalid_condition', code='invalid')]",
         ):
-            validator.validate_condition("invalid_condition")
+            validator.validate_type("invalid_condition")
 
     def test_validate_result_valid(self):
         validator = self.validator_class()
@@ -135,29 +135,32 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
 class MetricAlertComparisonConditionValidatorTest(TestCase):
     def test(self):
         validator = MetricAlertComparisonConditionValidator(
-            data={"condition": "gt", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
+            data={
+                "type": Condition.GREATER,
+                "comparison": 100,
+                "result": DetectorPriorityLevel.HIGH,
+            }
         )
         assert validator.is_valid()
         assert validator.validated_data == {
             "comparison": 100.0,
-            "condition": Condition.GREATER,
             "result": DetectorPriorityLevel.HIGH,
-            "type": "metric_alert",
+            "type": Condition.GREATER,
         }
 
     def test_invalid_condition(self):
         validator = MetricAlertComparisonConditionValidator(
-            data={"condition": "invalid", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
+            data={"type": "invalid", "comparison": 100, "result": DetectorPriorityLevel.HIGH}
         )
         assert not validator.is_valid()
-        assert validator.errors.get("condition") == [
-            ErrorDetail(string="Unsupported condition invalid", code="invalid")
+        assert validator.errors.get("type") == [
+            ErrorDetail(string="Unsupported type invalid", code="invalid")
         ]
 
     def test_invalid_comparison(self):
         validator = MetricAlertComparisonConditionValidator(
             data={
-                "condition": "gt",
+                "type": Condition.GREATER,
                 "comparison": "not_a_number",
                 "result": DetectorPriorityLevel.HIGH,
             }
@@ -169,7 +172,7 @@ class MetricAlertComparisonConditionValidatorTest(TestCase):
 
     def test_invalid_result(self):
         validator = MetricAlertComparisonConditionValidator(
-            data={"condition": "gt", "comparison": 100, "result": 25}
+            data={"type": Condition.GREATER, "comparison": 100, "result": 25}
         )
         assert not validator.is_valid()
         assert validator.errors.get("result") == [
@@ -195,7 +198,7 @@ class DetectorValidatorTest(TestCase):
             },
             "data_conditions": [
                 {
-                    "condition": "gte",
+                    "type": Condition.GREATER_OR_EQUAL,
                     "comparison": 100,
                     "result": DetectorPriorityLevel.HIGH,
                 }
@@ -287,7 +290,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             },
             "data_conditions": [
                 {
-                    "condition": "gt",
+                    "type": Condition.GREATER,
                     "comparison": 100,
                     "result": DetectorPriorityLevel.HIGH,
                 }
@@ -342,7 +345,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 1
         condition = conditions[0]
-        assert condition.type == "gt"
+        assert condition.type == Condition.GREATER
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
@@ -367,9 +370,21 @@ class TestMetricAlertsDetectorValidator(TestCase):
         data = {
             **self.valid_data,
             "data_conditions": [
-                {"condition": "gt", "comparison": 100, "result": DetectorPriorityLevel.HIGH},
-                {"condition": "gt", "comparison": 200, "result": DetectorPriorityLevel.HIGH},
-                {"condition": "gt", "comparison": 300, "result": DetectorPriorityLevel.HIGH},
+                {
+                    "type": Condition.GREATER,
+                    "comparison": 100,
+                    "result": DetectorPriorityLevel.HIGH,
+                },
+                {
+                    "type": Condition.GREATER,
+                    "comparison": 200,
+                    "result": DetectorPriorityLevel.HIGH,
+                },
+                {
+                    "type": Condition.GREATER,
+                    "comparison": 300,
+                    "result": DetectorPriorityLevel.HIGH,
+                },
             ],
         }
         validator = MetricAlertsDetectorValidator(data=data, context=self.context)
@@ -433,7 +448,6 @@ class TestBaseDataSourceValidator(TestCase):
 class MockDataConditionValidator(NumericComparisonConditionValidator):
     supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
     supported_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
-    type = "test"
 
 
 class MockDetectorValidator(BaseGroupTypeDetectorValidator):
