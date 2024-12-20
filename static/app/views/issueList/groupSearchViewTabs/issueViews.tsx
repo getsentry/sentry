@@ -515,7 +515,7 @@ export function IssueViewsStateProvider({
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
     if (actionAnalyticsKey) {
       trackAnalytics(actionAnalyticsKey, {
-        organization: organization.slug,
+        organization,
       });
     }
   };
