@@ -42,14 +42,19 @@ export function ReleasesSort({environments, sortBy, onChange}: Props) {
           onChange(selection.value);
         }}
         options={Object.entries(SORT_BY_OPTIONS).map(([name, filter]) => {
-          const disabled =
-            name === ReleasesSortOption.ADOPTION && environments.length !== 1;
+          if (name !== ReleasesSortOption.ADOPTION) {
+            return {
+              label: filter.label,
+              value: name,
+            };
+          }
 
+          const isNotSingleEnvironment = environments.length !== 1;
           return {
             label: filter.label,
             value: name,
-            disabled,
-            tooltip: disabled
+            disabled: isNotSingleEnvironment,
+            tooltip: isNotSingleEnvironment
               ? t('Select one environment to use this sort option.')
               : undefined,
           };
