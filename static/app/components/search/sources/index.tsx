@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {Result} from './types';
@@ -23,11 +21,11 @@ type SourceResult = {
   results: Result[];
 };
 
-class SearchSources extends Component<Props> {
-  // `allSources` will be an array of all result objects from each source
-  renderResults(allSources: SourceResult[]) {
-    const {children} = this.props;
+function SearchSources(props: Props) {
+  const {children, sources} = props;
 
+  // `allSources` will be an array of all result objects from each source
+  const renderResults = (allSources: SourceResult[]) => {
     // loading means if any result has `isLoading` OR any result is null
     const isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
 
@@ -43,33 +41,27 @@ class SearchSources extends Component<Props> {
       results: foundResults,
       hasAnyResults,
     });
-  }
+  };
 
-  renderSources(sources: Props['sources'], results: SourceResult[], idx: number) {
+  const renderSources = (results: SourceResult[], idx: number) => {
     if (idx >= sources.length) {
-      return this.renderResults(results);
+      return renderResults(results);
     }
     const Source = sources[idx];
     return (
-      <Source {...this.props}>
+      <Source {...props}>
         {(args: SourceResult) => {
           // Mutate the array instead of pushing because we don't know how often
           // this child function will be called and pushing will cause duplicate
           // results to be pushed for all calls down the chain.
           results[idx] = args;
-          return this.renderSources(sources, results, idx + 1);
+          return renderSources(results, idx + 1);
         }}
       </Source>
     );
-  }
+  };
 
-  render() {
-    return this.renderSources(
-      this.props.sources,
-      new Array(this.props.sources.length),
-      0
-    );
-  }
+  return renderSources(new Array(sources.length), 0);
 }
 
 export default SearchSources;
