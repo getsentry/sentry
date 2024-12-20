@@ -60,7 +60,7 @@ class TestNumericComparisonConditionValidator(TestCase):
         validator = self.validator_class()
         with pytest.raises(
             ValidationError,
-            match="[ErrorDetail(string='Unsupported condition invalid_condition', code='invalid')]",
+            match="[ErrorDetail(string='Unsupported type invalid_condition', code='invalid')]",
         ):
             validator.validate_type("invalid_condition")
 
@@ -154,7 +154,7 @@ class MetricAlertComparisonConditionValidatorTest(TestCase):
         )
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
-            ErrorDetail(string="Unsupported condition invalid", code="invalid")
+            ErrorDetail(string="Unsupported type invalid", code="invalid")
         ]
 
     def test_invalid_comparison(self):
