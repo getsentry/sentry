@@ -27,7 +27,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils import metrics
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger("sentry.integration.slack.bot-commands")
 
 from .base import SlackDMEndpoint
 
@@ -86,9 +86,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        logger_params = {
-            "slack_request": slack_request,
-        }
+        logger_params = {}
 
         identity_user = slack_request.get_identity_user()
         if not identity_user:
@@ -113,7 +111,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
                 has_valid_role = True
 
         if not has_valid_role:
-            _logger.info("insufficient-role", extra=logger_params)
+            _logger.error("insufficient-role", extra=logger_params)
             metrics.incr(
                 self._METRICS_FAILURE_KEY + ".link_team.insufficient_role", sample_rate=1.0
             )
