@@ -193,6 +193,19 @@ export function WidgetPreviewContainer({
     position: isDragEnabled ? 'fixed' : undefined,
   };
 
+  const getPreviewHeight = () => {
+    if (isDragEnabled) {
+      return DRAGGABLE_PREVIEW_HEIGHT_PX;
+    }
+    if (state.displayType === DisplayType.TABLE) {
+      return 'auto';
+    }
+    if (state.displayType === DisplayType.BIG_NUMBER && !isSmallScreen) {
+      return '20vw';
+    }
+    return PREVIEW_HEIGHT_PX;
+  };
+
   return (
     <DashboardsMEPProvider>
       <MetricsCardinalityProvider organization={organization} location={location}>
@@ -227,11 +240,7 @@ export function WidgetPreviewContainer({
                   }}
                   style={{
                     width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
-                    height: isDragEnabled
-                      ? DRAGGABLE_PREVIEW_HEIGHT_PX
-                      : state.displayType === DisplayType.TABLE
-                        ? 'auto'
-                        : PREVIEW_HEIGHT_PX,
+                    height: getPreviewHeight(),
                     outline: isDragEnabled
                       ? `${space(1)} solid ${theme.border}`
                       : undefined,
