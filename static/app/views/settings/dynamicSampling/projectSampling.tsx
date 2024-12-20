@@ -231,7 +231,6 @@ function ScrollIntoViewButton({
             transition={{
               ease: [0, 0.71, 0.2, 1.4],
             }}
-            data-visible={isVisible}
           >
             <IconArrow direction="down" size="sm" />
           </FloatingButton>
@@ -252,13 +251,9 @@ const FloatingButton = styled(motion.button)`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: 36px;
   height: 36px;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
-
-  &[data-visible='true'] {
-    display: flex;
-  }
 `;
 
 const FormActions = styled('div')`
