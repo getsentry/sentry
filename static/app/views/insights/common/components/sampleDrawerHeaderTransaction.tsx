@@ -32,7 +32,7 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
         tooltip={project.slug}
       />
 
-      <Link
+      <TruncatedLink
         to={{
           pathname: getTransactionSummaryBaseUrl(organization.slug, view),
           search: qs.stringify({
@@ -44,12 +44,17 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
         {transaction && transactionMethod && !transaction.startsWith(transactionMethod)
           ? `${transactionMethod} ${transaction}`
           : transaction}
-      </Link>
+      </TruncatedLink>
     </Bar>
   );
 }
 
 const Bar = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(1)};
+`;
+
+const TruncatedLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis}
 `;
