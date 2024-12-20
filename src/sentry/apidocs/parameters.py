@@ -418,6 +418,13 @@ class UptimeParams:
         type=int,
         description="The ID of the uptime alert rule you'd like to query.",
     )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the uptime alert, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
 
 
 class EventParams:
