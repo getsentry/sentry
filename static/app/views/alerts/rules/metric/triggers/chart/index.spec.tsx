@@ -282,7 +282,7 @@ describe('Incident Rules Create', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'spans',
-          statsPeriod: '7d',
+          statsPeriod: '9998m',
           yAxis: 'count(span.duration)',
         }),
       })

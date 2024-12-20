@@ -151,7 +151,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel: channel,
+            channel,
           };
 
           break;
@@ -167,7 +167,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel: channel,
+            channel,
           };
           break;
         default:

@@ -5,6 +5,8 @@ from typing import Any, TypedDict, TypeVar
 
 from sentry import options
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.grouping.api import get_contributing_variant_and_component
+from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -15,201 +17,33 @@ logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 30
 MAX_EXCEPTION_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS_EVENTS = frozenset(
+# Events' `platform` values are tested against this list before events are sent to Seer. Checking
+# this separately from backfill status allows us to backfill projects which have events from
+# multiple platforms, some supported and some not, and not worry about events from the unsupported
+# platforms getting sent to Seer during ingest.
+SEER_INELIGIBLE_EVENT_PLATFORMS = frozenset(["other"])  # We don't know what's in the event
+# Event platforms corresponding to project platforms which were backfilled before we started
+# blocking events with more than `MAX_FRAME_COUNT` frames from being sent to Seer (which we do to
+# prevent possible over-grouping). Ultimately we want a more unified solution, but for now, we're
+# just not going to apply the filter to events from these platforms.
+EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
     [
-        "android",
-        "as3",
-        # "c", A native platform -> excluded for now
-        "cfml",
-        "cocoa",
-        "csharp",
-        "elixir",
         "go",
-        "groovy",
-        "haskell",
-        "java",
         "javascript",
-        # "native", A native platform -> excluded for now
         "node",
-        "objc",
-        # "other", Since we can't be sure of what this is, we'll exclude it for now
-        "perl",
         "php",
         "python",
         "ruby",
     ]
 )
-# An original set of platforms were backfilled allowing more than 30 system contributing frames
-# being set to seer. Unfortunately, this can cause over grouping. We will need to reduce
-# these set of platforms but for now we will blacklist them.
-SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS = frozenset(
+# Existing projects with these platforms shouldn't be backfilled and new projects with these
+# platforms shouldn't have Seer enabled.
+SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
     [
-        "bun",
-        "cordova",
-        "deno",
-        "django",
-        "go",
-        "go-echo",
-        "go-fasthttp",
-        "go-fiber",
-        "go-gin",
-        "go-http",
-        "go-iris",
-        "go-martini",
-        "go-negroni",
-        "ionic",
-        "javascript",
-        "javascript-angular",
-        "javascript-angularjs",
-        "javascript-astro",
-        "javascript-backbone",
-        "javascript-browser",
-        "javascript-electron",
-        "javascript-ember",
-        "javascript-gatsby",
-        "javascript-nextjs",
-        "javascript-performance-onboarding-1-install",
-        "javascript-performance-onboarding-2-configure",
-        "javascript-performance-onboarding-3-verify",
-        "javascript-react",
-        "javascript-react-performance-onboarding-1-install",
-        "javascript-react-performance-onboarding-2-configure",
-        "javascript-react-performance-onboarding-3-verify",
-        "javascript-react-with-error-monitoring",
-        "javascript-react-with-error-monitoring-performance-and-replay",
-        "javascript-remix",
-        "javascript-replay-onboarding-1-install",
-        "javascript-replay-onboarding-2-configure",
-        "javascript-solid",
-        "javascript-svelte",
-        "javascript-sveltekit",
-        "javascript-vue",
-        "javascript-vue-with-error-monitoring",
-        "node",
-        "node-awslambda",
-        "node-azurefunctions",
-        "node-connect",
-        "node-express",
-        "node-fastify",
-        "node-gcpfunctions",
-        "node-hapi",
-        "node-koa",
-        "node-nestjs",
-        "node-nodeawslambda",
-        "node-nodegcpfunctions",
-        "node-profiling-onboarding-0-alert",
-        "node-profiling-onboarding-1-install",
-        "node-profiling-onboarding-2-configure-performance",
-        "node-profiling-onboarding-3-configure-profiling",
-        "node-serverlesscloud",
-        "PHP",
-        "php",
-        "php-laravel",
-        "php-monolog",
-        "php-symfony",
-        "php-symfony2",
-        "python",
-        "python-aiohttp",
-        "python-asgi",
-        "python-awslambda",
-        "python-azurefunctions",
-        "python-bottle",
-        "python-celery",
-        "python-chalice",
-        "python-django",
-        "python-falcon",
-        "python-fastapi",
-        "python-flask",
-        "python-gcpfunctions",
-        "python-profiling-onboarding-0-alert",
-        "python-profiling-onboarding-1-install",
-        "python-profiling-onboarding-3-configure-profiling",
-        "python-pylons",
-        "python-pymongo",
-        "python-pyramid",
-        "python-pythonawslambda",
-        "python-pythonazurefunctions",
-        "python-pythongcpfunctions",
-        "python-pythonserverless",
-        "python-quart",
-        "python-rq",
-        "python-sanic",
-        "python-serverless",
-        "python-starlette",
-        "python-tornado",
-        "python-tryton",
-        "python-wsgi",
-        "react",
-        "react-native",
-        "react-native-tracing",
-        "ruby",
-        "ruby-rack",
-        "ruby-rails",
-    ]
-)
-SEER_ELIGIBLE_PLATFORMS = SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS | frozenset(
-    [
-        "android",
-        "android-profiling-onboarding-1-install",
-        "android-profiling-onboarding-3-configure-profiling",
-        "android-profiling-onboarding-4-upload",
-        "apple-ios",
-        "csharp",
-        "csharp-aspnetcore",
-        "dart",
-        "dotnet",
-        "flutter",
-        "groovy",
-        "java",
-        "java-android",
-        "java-appengine",
-        "java-log4j",
-        "java-log4j2",
-        "java-logging",
-        "java-logback",
-        "java-spring",
-        "java-spring-boot",
-        "perl",
-        # Remaining platforms
-        "apple",
-        "apple-ios-profiling-onboarding-1-install",
-        "apple-ios-profiling-onboarding-4-upload",
-        "apple-macos",
-        # "c", A native platform -> excluded for now
-        "capacitor",
-        "cfml",
-        "cocoa",
-        "cocoa-objc",
-        "cocoa-swift",
-        "dotnet-aspnet",
-        "dotnet-aspnetcore",
-        "dotnet-awslambda",
-        "dotnet-gcpfunctions",
-        "dotnet-google-cloud-functions",
-        "dotnet-maui",
-        "dotnet-uwp",
-        "dotnet-winforms",
-        "dotnet-wpf",
-        "dotnet-xamarin",
-        "electron",
-        "elixir",
-        "javascript-nextjs",
-        "javascript-nuxt",
-        "javascript-solidstart",
-        "kotlin",
-        # "minidump", A native platform -> excluded for now
-        # "native", A native platform -> excluded for now
-        # "native-qt", A native platform -> excluded for now
-        "nintendo-switch",
-        "objc",
-        # The null and empty platform are also excluded for now
-        # "other"
-        "powershell",
-        "rust",
-        "swift",
-        "switt",
-        "unity",
-        "unreal",
+        # We have no clue what's in these projects
+        "other",
+        "",
+        None,
     ]
 )
 BASE64_ENCODED_PREFIXES = [
@@ -223,6 +57,8 @@ BASE64_ENCODED_PREFIXES = [
 class ReferrerOptions(StrEnum):
     INGEST = "ingest"
     BACKFILL = "backfill"
+    DELETION = "deletion"
+    SIMILAR_ISSUES_TAB = "similar_issues_tab"
 
 
 class TooManyOnlySystemFramesException(Exception):
@@ -289,7 +125,7 @@ def get_stacktrace_string(data: dict[str, Any], platform: str | None = None) -> 
             exception, frame_metrics
         )
         if (
-            platform not in SYSTEM_FRAME_CHECK_BLACKLIST_PLATFORMS
+            platform not in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK
             and frame_metrics["is_frames_truncated"]
         ):
             raise TooManyOnlySystemFramesException
@@ -446,7 +282,6 @@ def get_stacktrace_string_with_metrics(
     data: dict[str, Any], platform: str | None, referrer: ReferrerOptions
 ) -> str | None:
     stacktrace_string = None
-    key = "grouping.similarity.did_call_seer"
     sample_rate = options.get("seer.similarity.metrics_sample_rate")
     try:
         stacktrace_string = get_stacktrace_string(data, platform)
@@ -458,11 +293,7 @@ def get_stacktrace_string_with_metrics(
             tags={"platform": platform, "referrer": referrer},
         )
         if referrer == ReferrerOptions.INGEST:
-            metrics.incr(
-                key,
-                sample_rate=sample_rate,
-                tags={"call_made": False, "blocker": "over-threshold-frames"},
-            )
+            record_did_call_seer_metric(call_made=False, blocker="over-threshold-frames")
     except Exception:
         logger.exception("Unexpected exception in stacktrace string formatting")
 
@@ -479,81 +310,114 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     return exception_stacktrace or threads_stacktrace or only_stacktrace
 
 
-def event_content_is_seer_eligible(event: GroupEvent | Event) -> bool:
-    """
-    Determine if an event's contents makes it fit for using with Seer's similar issues model.
-    """
-    # TODO: Determine if we want to filter out non-sourcemapped events
-    if not event_content_has_stacktrace(event):
+def record_did_call_seer_metric(*, call_made: bool, blocker: str) -> None:
+    metrics.incr(
+        "grouping.similarity.did_call_seer",
+        sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+        tags={"call_made": call_made, "blocker": blocker},
+    )
+
+
+def has_too_many_contributing_frames(
+    event: Event | GroupEvent,
+    variants: dict[str, BaseVariant],
+    referrer: ReferrerOptions,
+) -> bool:
+    platform = event.platform
+    shared_tags = {"referrer": referrer.value, "platform": platform}
+
+    contributing_variant, contributing_component = get_contributing_variant_and_component(variants)
+
+    # Ideally we're calling this function after we already know the event both has a stacktrace and
+    # is using it for grouping (in which case none of the below conditions should apply), but still
+    # worth checking that we have enough information to answer the question just in case
+    if (
+        # Fingerprint, checksum, fallback variants
+        not isinstance(contributing_variant, ComponentVariant)
+        # Security violations, log-message-based grouping
+        or contributing_variant.variant_name == "default"
+        # Any ComponentVariant will have this, but this reassures mypy
+        or not contributing_component
+        # Exception-message-based grouping
+        or not hasattr(contributing_component, "frame_counts")
+    ):
+        # We don't bother to collect a metric on this outcome, because we shouldn't have called the
+        # function in the first place
+        return False
+
+    # Certain platforms were backfilled before we added this filter, so to keep new events matching
+    # with the existing data, we turn off the filter for them (instead their stacktraces will be
+    # truncated)
+    if platform in EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK:
         metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
+            "grouping.similarity.frame_count_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "no-stacktrace"},
+            tags={**shared_tags, "outcome": "bypass"},
         )
         return False
 
-    if event.platform not in SEER_ELIGIBLE_PLATFORMS_EVENTS:
+    stacktrace_type = "in_app" if contributing_variant.variant_name == "app" else "system"
+    key = f"{stacktrace_type}_contributing_frames"
+    shared_tags["stacktrace_type"] = stacktrace_type
+
+    if contributing_component.frame_counts[key] > MAX_FRAME_COUNT:
         metrics.incr(
-            "grouping.similarity.event_content_seer_eligible",
+            "grouping.similarity.frame_count_filter",
             sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"eligible": False, "blocker": "unsupported-platform"},
+            tags={**shared_tags, "outcome": "block"},
         )
-        return False
+        return True
 
     metrics.incr(
-        "grouping.similarity.event_content_seer_eligible",
+        "grouping.similarity.frame_count_filter",
         sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-        tags={"eligible": True, "blocker": "none"},
+        tags={**shared_tags, "outcome": "pass"},
     )
-    return True
+    return False
 
 
 def killswitch_enabled(
     project_id: int | None,
+    referrer: ReferrerOptions,
     event: GroupEvent | Event | None = None,
 ) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
-
+    is_ingest = referrer == ReferrerOptions.INGEST
+    logger_prefix = f"grouping.similarity.{referrer.value}"
     logger_extra = {"event_id": event.event_id if event else None, "project_id": project_id}
 
     if options.get("seer.global-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
+            f"{logger_prefix}.seer_global_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="global-killswitch")
+
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="similarity-killswitch")
+
         return True
 
     if killswitch_matches_context(
         "seer.similarity.grouping_killswitch_projects", {"project_id": project_id}
     ):
         logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_project_killswitch_enabled",
+            f"{logger_prefix}.seer_similarity_project_killswitch_enabled",  # noqa
             extra=logger_extra,
         )
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            tags={"call_made": False, "blocker": "project-killswitch"},
-        )
+        if is_ingest:
+            record_did_call_seer_metric(call_made=False, blocker="project-killswitch")
+
         return True
 
     return False
@@ -595,7 +459,7 @@ def project_is_seer_eligible(project: Project) -> bool:
     the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
-    is_seer_eligible_platform = project.platform in SEER_ELIGIBLE_PLATFORMS
+    is_seer_eligible_platform = project.platform not in SEER_INELIGIBLE_PROJECT_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
