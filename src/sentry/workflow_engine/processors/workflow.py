@@ -2,16 +2,16 @@ import logging
 
 import sentry_sdk
 
-from sentry.tasks.post_process import PostProcessJob
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector, Workflow
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
 from sentry.workflow_engine.processors.detector import get_detector_by_event
+from sentry.workflow_engine.types import WorkflowJob
 
 logger = logging.getLogger(__name__)
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: PostProcessJob) -> set[Workflow]:
+def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
@@ -21,7 +21,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: PostProcessJob) ->
     return triggered_workflows
 
 
-def process_workflows(job: PostProcessJob) -> set[Workflow]:
+def process_workflows(job: WorkflowJob) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,

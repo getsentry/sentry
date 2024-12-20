@@ -2,10 +2,10 @@ from unittest import mock
 
 from sentry.eventstream.base import GroupState
 from sentry.issues.grouptype import ErrorGroupType
-from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import evaluate_workflow_triggers, process_workflows
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -27,7 +27,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = PostProcessJob(
+        self.job = WorkflowJob(
             {
                 "event": self.group_event,
                 "group_state": GroupState(
@@ -62,14 +62,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
-        self.job = PostProcessJob({"event": self.group_event})
+        self.job = WorkflowJob({"event": self.group_event})
 
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.workflow}
 
     def test_no_detector(self):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
-        self.job = PostProcessJob({"event": self.group_event})
+        self.job = WorkflowJob({"event": self.group_event})
 
         with mock.patch("sentry.workflow_engine.processors.workflow.logger") as mock_logger:
             with mock.patch("sentry.workflow_engine.processors.workflow.metrics") as mock_metrics:
@@ -97,7 +97,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = PostProcessJob({"event": self.group_event})
+        self.job = WorkflowJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)

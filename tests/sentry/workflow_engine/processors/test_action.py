@@ -1,6 +1,6 @@
-from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.action import evaluate_workflow_action_filters
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -18,7 +18,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence_data(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = PostProcessJob({"event": self.group_event})
+        self.job = WorkflowJob({"event": self.group_event})
 
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflow_action_filters({self.workflow}, self.job)

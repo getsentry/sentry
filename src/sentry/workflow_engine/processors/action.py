@@ -1,11 +1,11 @@
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from sentry.workflow_engine.processors.data_condition_group import evaluate_condition_group
+from sentry.workflow_engine.types import WorkflowJob
 
 
 def evaluate_workflow_action_filters(
-    workflows: set[Workflow], job: PostProcessJob
+    workflows: set[Workflow], job: WorkflowJob
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 

@@ -1,9 +1,8 @@
 from typing import Any
 
-from sentry.tasks.post_process import PostProcessJob
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
@@ -22,8 +21,8 @@ def get_nested_value(data: Any, path: str, default: Any = None) -> Any | None:
 
 
 @condition_handler_registry.register(Condition.GROUP_EVENT_ATTR_COMPARISON)
-class GroupEventConditionHandler(DataConditionHandler[PostProcessJob]):
+class GroupEventConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
-    def evaluate_value(data: PostProcessJob, comparison: Any, data_filter: str) -> bool:
+    def evaluate_value(data: WorkflowJob, comparison: Any, data_filter: str) -> bool:
         event_value = get_nested_value(data, data_filter)
         return event_value == comparison
