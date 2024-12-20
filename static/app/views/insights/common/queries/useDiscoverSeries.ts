@@ -6,7 +6,9 @@ import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+import {useEapOptions} from 'sentry/views/insights/common/views/spans/selectors/eapSelector';
 import type {
+  EAPSpanProperty,
   MetricsProperty,
   SpanFunctions,
   SpanIndexedField,
@@ -41,6 +43,13 @@ export const useMetricsSeries = <Fields extends MetricsProperty[]>(
   return useDiscoverSeries<Fields>(options, DiscoverDatasets.METRICS, referrer);
 };
 
+export const useEapSeries = <Fields extends EAPSpanProperty[]>(
+  options: UseMetricsSeriesOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscoverSeries<Fields>(options, DiscoverDatasets.SPANS_EAP, referrer);
+};
+
 /**
  * TODO: Remove string type, added to fix types for 'count()'
  */
@@ -63,6 +72,7 @@ const useDiscoverSeries = <T extends string[]>(
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
+  const {useRpc} = useEapOptions();
   const {search = undefined, yAxis = [], interval = undefined} = options;
 
   const pageFilters = usePageFilters();
@@ -86,6 +96,7 @@ const useDiscoverSeries = <T extends string[]>(
     referrer,
     enabled: options.enabled,
     overriddenRoute: options.overriddenRoute,
+    useRpc: useRpc,
   });
 
   const parsedData = keyBy(
