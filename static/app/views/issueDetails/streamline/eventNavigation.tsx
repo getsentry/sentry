@@ -62,10 +62,9 @@ const TabName = {
 interface IssueEventNavigationProps {
   event: Event | undefined;
   group: Group;
-  query: string | undefined;
 }
 
-export function IssueEventNavigation({event, group, query}: IssueEventNavigationProps) {
+export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
   const theme = useTheme();
   const organization = useOrganization();
   const {baseUrl, currentTab} = useGroupDetailsRoute();
@@ -156,9 +155,6 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
   const selectedOption = useMemo(() => {
-    if (query?.trim()) {
-      return EventNavOptions.CUSTOM;
-    }
     switch (params.eventId) {
       case EventNavOptions.RECOMMENDED:
       case EventNavOptions.LATEST:
@@ -169,7 +165,7 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
       default:
         return EventNavOptions.CUSTOM;
     }
-  }, [query, params.eventId, defaultIssueEvent]);
+  }, [params.eventId, defaultIssueEvent]);
 
   const onTabChange = (tabKey: typeof selectedOption) => {
     trackAnalytics('issue_details.event_navigation_selected', {
