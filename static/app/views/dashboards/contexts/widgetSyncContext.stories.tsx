@@ -35,14 +35,6 @@ export default storyBook('WidgetSyncContext', story => {
               <LineChartWidget
                 title="span.duration"
                 timeseries={[sampleDurationTimeSeries]}
-                meta={{
-                  fields: {
-                    'span.duration': 'duration',
-                  },
-                  units: {
-                    'span.duration': 'millisecond',
-                  },
-                }}
               />
             </MediumWidget>
             {visible && (
@@ -50,14 +42,6 @@ export default storyBook('WidgetSyncContext', story => {
                 <LineChartWidget
                   title="span.duration"
                   timeseries={[sampleThroughputTimeSeries]}
-                  meta={{
-                    fields: {
-                      'spm()': 'rate',
-                    },
-                    units: {
-                      'spm()': '1/minute',
-                    },
-                  }}
                 />
               </MediumWidget>
             )}
