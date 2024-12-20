@@ -220,7 +220,7 @@ function ScrollIntoViewButton({
     <Fragment>
       {React.cloneElement(children, {ref: setTargetElement})}
       {isVisible && (
-        <Tooltip title={t('Scroll down')} skipWrapper>
+        <Tooltip title={t('Scroll down to apply changes')} skipWrapper>
           <FloatingButton
             type="button"
             onClick={() => {
@@ -247,7 +247,8 @@ const FloatingButton = styled(motion.button)`
   right: ${space(1)};
   border-radius: 50%;
   border: 1px solid ${p => p.theme.border};
-  background-color: ${p => p.theme.background};
+  background-color: ${p => p.theme.purple400};
+  color: ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: 36px;
   height: 36px;
