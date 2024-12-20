@@ -36,7 +36,7 @@ from sentry.testutils.cases import (
     SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
@@ -56,7 +56,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -3041,9 +3041,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["any(user.display)"] for r in data}
         assert result == {"cathy@example.com"}
         result = {r["any(timestamp.to_day)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
         result = {r["any(timestamp.to_hour)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
 
     def test_field_aliases_in_conflicting_functions(self):
         self.store_event(
@@ -3334,7 +3338,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert self.ten_mins_ago_iso[:-5] in data[0]["last_seen()"]
+        assert self.ten_mins_ago_iso == data[0]["last_seen()"]
         assert data[0]["latest_event()"] == event.event_id
 
         query = {
