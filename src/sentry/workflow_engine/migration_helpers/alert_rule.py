@@ -2,23 +2,150 @@ import logging
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
-from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
+    Action,
     AlertRuleDetector,
+    AlertRuleTriggerDataCondition,
     AlertRuleWorkflow,
+    DataCondition,
     DataConditionGroup,
+    DataConditionGroupAction,
     DataSource,
     Detector,
     DetectorState,
     DetectorWorkflow,
     Workflow,
 )
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
+
+
+def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
+    if alert_rule_trigger_action.sentry_app_id:
+        return Action.Type.SENTRY_APP
+
+    elif alert_rule_trigger_action.integration_id:
+        integration = integration_service.get_integration(
+            integration_id=alert_rule_trigger_action.integration_id
+        )
+        if not integration:
+            return None
+        for type in Action.Type.choices:
+            if type[0] == integration.provider:
+                return type[1]
+        return None
+    else:
+        return Action.Type.EMAIL
+
+
+def migrate_metric_action(
+    alert_rule_trigger_action: AlertRuleTriggerAction,
+) -> tuple[Action, DataConditionGroupAction] | None:
+    try:
+        alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.get(
+            alert_rule_trigger=alert_rule_trigger_action.alert_rule_trigger
+        )
+    except AlertRuleTriggerDataCondition.DoesNotExist:
+        logger.exception(
+            "AlertRuleTriggerDataCondition does not exist",
+            extra={"alert_rule_trigger_id": alert_rule_trigger_action.alert_rule_trigger.id},
+        )
+        return None
+
+    action_type = get_action_type(alert_rule_trigger_action)
+    if not action_type:
+        logger.warning(
+            "Could not find a matching Action.Type for the trigger action",
+            extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
+        )
+        return None
+
+    data = {
+        "type": alert_rule_trigger_action.type,
+        "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
+        "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
+    }
+    action = Action.objects.create(
+        required=False,
+        type=action_type,
+        data=data,
+        integration_id=alert_rule_trigger_action.integration_id,
+        target_display=alert_rule_trigger_action.target_display,
+        target_identifier=alert_rule_trigger_action.target_identifier,
+        target_type=alert_rule_trigger_action.target_type,
+        legacy_notification_type=Action.LegacyNotificationType.METRIC_ALERT,
+    )
+    data_condition_group_action = DataConditionGroupAction.objects.create(
+        condition_group_id=alert_rule_trigger_data_condition.data_condition.condition_group.id,
+        action_id=action.id,
+    )
+    return action, data_condition_group_action
+
+
+def migrate_metric_data_condition(
+    alert_rule_trigger: AlertRuleTrigger,
+) -> tuple[DataCondition, AlertRuleTriggerDataCondition] | None:
+    try:
+        alert_rule_detector = AlertRuleDetector.objects.get(
+            alert_rule=alert_rule_trigger.alert_rule
+        )
+    except AlertRuleDetector.DoesNotExist:
+        logger.exception(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
+        )
+        return None
+
+    threshold_to_condition = {
+        AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
+        AlertRuleThresholdType.BELOW.value: Condition.LESS,
+        # TODO add ABOVE_AND_BELOW for anomaly detection
+    }
+
+    data_condition_group = alert_rule_detector.detector.workflow_condition_group
+    if not data_condition_group:
+        logger.warning(
+            "Could not find data_condition_group",
+            extra={"detector_id": alert_rule_detector.id},
+        )
+        return None
+
+    condition_result = (
+        DetectorPriorityLevel.MEDIUM
+        if alert_rule_trigger.label == "warning"
+        else DetectorPriorityLevel.HIGH
+    )
+    threshold_type = alert_rule_trigger.alert_rule.threshold_type
+    # XXX: we read the threshold type off of the alert_rule and NOT the alert_rule_trigger
+    # alert_rule_trigger.threshold_type is a deprecated feature we are not moving over
+    if threshold_type is None:
+        logger.warning(
+            "No threshold type",
+            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
+        )
+        return None
+
+    data_condition = DataCondition.objects.create(
+        comparison=alert_rule_trigger.alert_threshold,
+        condition_result=condition_result,
+        type=threshold_to_condition.get(threshold_type, AlertRuleThresholdType.ABOVE.value),
+        condition_group=data_condition_group,
+    )
+    alert_rule_trigger_data_condition = AlertRuleTriggerDataCondition.objects.create(
+        alert_rule_trigger=alert_rule_trigger, data_condition=data_condition
+    )
+    return data_condition, alert_rule_trigger_data_condition
 
 
 def create_metric_alert_lookup_tables(
