@@ -6,7 +6,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.REGRESSION_EVENT)
-class RegressedEventConditionHandler(DataConditionHandler[WorkflowJob]):
+class RegressionEventConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         state = job.get("group_state", None)
