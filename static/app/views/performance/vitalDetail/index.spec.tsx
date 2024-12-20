@@ -2,7 +2,13 @@ import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -224,7 +230,9 @@ describe('Performance > VitalDetail', function () {
     });
 
     // It shows a search bar
-    expect(await screen.findByLabelText('Search events')).toBeInTheDocument();
+    expect(
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
+    ).toBeInTheDocument();
 
     // It shows the vital card
     expect(
@@ -249,12 +257,17 @@ describe('Performance > VitalDetail', function () {
     });
 
     // Fill out the search box, and submit it.
-    await userEvent.click(await screen.findByLabelText('Search events'));
+    await userEvent.click(
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
+    );
     await userEvent.paste('user.email:uhoh*');
     await userEvent.keyboard('{enter}');
 
     // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+    });
+
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
