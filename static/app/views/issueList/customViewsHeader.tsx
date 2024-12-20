@@ -21,12 +21,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {DraggableTabBar} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
-import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {
   type IssueView,
   IssueViews,
   IssueViewsContext,
-} from 'sentry/views/issueList/utils/issueViews';
+} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';

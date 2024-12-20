@@ -328,7 +328,7 @@ function setViews(state: IssueViewsState, action: SetViewsAction) {
   return {...state, views: action.views};
 }
 
-interface IssueViewsStateProviderProps {
+interface IssueViewsStateProviderProps extends Omit<TabsProps<any>, 'children'> {
   children: React.ReactNode;
   initialViews: IssueView[];
   // TODO(msun): Replace router with useLocation() / useUrlParams() / useSearchParams() in the future
@@ -339,11 +339,14 @@ export function IssueViewsStateProvider({
   children,
   initialViews,
   router,
+  ...props
 }: IssueViewsStateProviderProps) {
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const [tabListState, setTabListState] = useState<TabListState<any>>();
+  const {className: _className, ...restProps} = props;
+
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
   const {query, sort, viewId, project, environment} = queryParams;
 
@@ -500,7 +503,7 @@ export function IssueViewsStateProvider({
   return (
     <IssueViewsContext.Provider
       value={{
-        rootProps: {orientation: 'horizontal'},
+        rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
         setTabListState,
         dispatch: dispatchWrapper,

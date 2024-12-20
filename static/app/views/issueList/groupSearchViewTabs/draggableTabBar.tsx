@@ -21,8 +21,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
+import {
+  type IssueView,
+  IssueViewsContext,
+} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {type IssueView, IssueViewsContext} from 'sentry/views/issueList/utils/issueViews';
 import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
 export interface DraggableTabBarProps {
