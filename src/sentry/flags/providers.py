@@ -81,7 +81,7 @@ def get_provider(
         case "generic":
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
         case "unleash":
-            return GenericProvider(organization_id, signature=headers.get("X-Unleash-Signature"))
+            return UnleashProvider(organization_id, signature=headers.get("X-Unleash-Signature"))
         case _:
             return None
 
