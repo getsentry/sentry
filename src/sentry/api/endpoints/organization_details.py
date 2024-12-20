@@ -1050,12 +1050,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             org_id, projects_with_tx_count_and_rates
         )
 
-        for rebalanced_item in rebalanced_projects:
-            ProjectOption.objects.create_or_update(
-                project_id=rebalanced_item.id,
-                key="sentry:target_sample_rate",
-                values={"value": round(rebalanced_item.new_sample_rate, 4)},
-            )
+        if rebalanced_projects is not None:
+            for rebalanced_item in rebalanced_projects:
+                ProjectOption.objects.create_or_update(
+                    project_id=rebalanced_item.id,
+                    key="sentry:target_sample_rate",
+                    values={"value": round(rebalanced_item.new_sample_rate, 4)},
+                )
 
     def handle_delete(self, request: Request, organization: Organization):
         """
