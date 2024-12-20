@@ -10,10 +10,12 @@ from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
+from sentry.models.project import Project
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
+from sentry.utils.platform_categories import SOURCE_MAPS
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboardingTask]):
@@ -47,7 +49,16 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
 
         organization = Organization.objects.get_from_cache(id=organization_id)
         if features.has("organizations:quick-start-updates", organization, actor=user):
-            required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
+            # We get the first project, because it is the one that will mark the task of creating the first project as completed
+            first_project = Project.objects.filter(organization=organization).first()
+
+            # If the first project exists and can have source maps, we make source maps required to complete the quick start
+            if first_project and first_project.platform in SOURCE_MAPS:
+                required_tasks = (
+                    OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS_WITH_SOURCE_MAPS
+                )
+            else:
+                required_tasks = OrganizationOnboardingTask.NEW_REQUIRED_ONBOARDING_TASKS
         else:
             required_tasks = OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS
 
