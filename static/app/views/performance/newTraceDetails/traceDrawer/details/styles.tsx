@@ -74,7 +74,7 @@ const BodyContainer = styled('div')<{hasNewTraceUi?: boolean}>`
   flex-direction: column;
   gap: ${p => (p.hasNewTraceUi ? 0 : space(2))};
   padding: ${p => (p.hasNewTraceUi ? `${space(0.5)} ${space(2)}` : space(1))};
-  height: 100%;
+  height: calc(100% - 52px);
   overflow: auto;
 
   ${DataSection} {
