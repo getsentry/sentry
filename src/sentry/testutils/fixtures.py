@@ -29,7 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -104,7 +104,7 @@ class Fixtures:
             data={
                 "event_id": "a" * 32,
                 "message": "\u3053\u3093\u306b\u3061\u306f",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -129,7 +129,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
+                "expires_at": (timezone.now() + timedelta(days=14)).isoformat(),
             },
         )
         integration.add_organization(self.organization, self.user)
