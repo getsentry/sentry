@@ -1757,6 +1757,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.CRONS]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/crons/views/overview'))}
+        />
+      </Route>
     </Fragment>
   );
 
