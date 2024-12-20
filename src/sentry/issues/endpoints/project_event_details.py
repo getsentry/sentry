@@ -13,6 +13,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
 from sentry.api.serializers.models.event import IssueEventSerializerResponse
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.models.project import Project
 
 
 class GroupEventDetailsResponse(IssueEventSerializerResponse):
@@ -73,7 +74,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve an Event for a Project
         ```````````````````````````````
@@ -121,7 +122,7 @@ class EventJsonEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if not event:
@@ -143,6 +144,10 @@ class EventJsonEndpoint(ProjectEndpoint):
                             continue
                         if "user.ip" in span["sentry_tags"]:
                             del span["sentry_tags"]["user.ip"]
+                        if "user" in span["sentry_tags"] and span["sentry_tags"]["user"].startswith(
+                            "ip:"
+                        ):
+                            span["sentry_tags"]["user"] = "ip:[ip]"
         except Exception as e:
             sentry_sdk.capture_exception(e)
 

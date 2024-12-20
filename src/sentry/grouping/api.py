@@ -8,9 +8,11 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 import sentry_sdk
 
 from sentry import options
+from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -20,6 +22,7 @@ from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, 
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.grouping.utils import (
     expand_title_template,
+    get_fingerprint_type,
     hash_from_values,
     is_default_fingerprint_var,
     resolve_fingerprint_values,
@@ -83,7 +86,7 @@ class GroupingConfigLoader:
             "enhancements": self._get_enhancements(project),
         }
 
-    def _get_enhancements(self, project) -> str:
+    def _get_enhancements(self, project: Project) -> str:
         project_enhancements = project.get_option("sentry:grouping_enhancements")
 
         config_id = self._get_config_id(project)
@@ -112,14 +115,14 @@ class GroupingConfigLoader:
         cache.set(cache_key, enhancements)
         return enhancements
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project) -> str:
         raise NotImplementedError
 
 
 class ProjectGroupingConfigLoader(GroupingConfigLoader):
     option_name: str  # Set in subclasses
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, project: Project) -> str:
         return project.get_option(
             self.option_name,
             validate=lambda x: x in CONFIGURATIONS,
@@ -145,12 +148,12 @@ class BackgroundGroupingConfigLoader(GroupingConfigLoader):
 
     cache_prefix = "background-grouping-enhancements:"
 
-    def _get_config_id(self, project):
+    def _get_config_id(self, _project: Project) -> str:
         return options.get("store.background-grouping-config-id")
 
 
 @sentry_sdk.tracing.trace
-def get_grouping_config_dict_for_project(project) -> GroupingConfig:
+def get_grouping_config_dict_for_project(project: Project) -> GroupingConfig:
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -162,12 +165,12 @@ def get_grouping_config_dict_for_project(project) -> GroupingConfig:
     return loader.get_config_dict(project)
 
 
-def get_grouping_config_dict_for_event_data(data, project) -> GroupingConfig:
+def get_grouping_config_dict_for_event_data(data: NodeData, project: Project) -> GroupingConfig:
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
 
 
-def get_default_enhancements(config_id=None) -> str:
+def get_default_enhancements(config_id: str | None = None) -> str:
     base: str | None = DEFAULT_GROUPING_ENHANCEMENTS_BASE
     if config_id is not None:
         base = CONFIGURATIONS[config_id].enhancements_base
@@ -191,7 +194,7 @@ def get_projects_default_fingerprinting_bases(
     return bases
 
 
-def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
+def get_default_grouping_config_dict(config_id: str | None = None) -> GroupingConfig:
     """Returns the default grouping config."""
     if config_id is None:
         from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
@@ -200,17 +203,16 @@ def get_default_grouping_config_dict(config_id=None) -> GroupingConfig:
     return {"id": config_id, "enhancements": get_default_enhancements(config_id)}
 
 
-def load_grouping_config(config_dict=None) -> StrategyConfiguration:
+def load_grouping_config(config_dict: GroupingConfig | None = None) -> StrategyConfiguration:
     """Loads the given grouping config."""
     if config_dict is None:
         config_dict = get_default_grouping_config_dict()
     elif "id" not in config_dict:
         raise ValueError("Malformed configuration dictionary")
-    config_dict = dict(config_dict)
-    config_id = config_dict.pop("id")
+    config_id = config_dict["id"]
     if config_id not in CONFIGURATIONS:
         raise GroupingConfigNotFound(config_id)
-    return CONFIGURATIONS[config_id](**config_dict)
+    return CONFIGURATIONS[config_id](enhancements=config_dict["enhancements"])
 
 
 def load_default_grouping_config() -> StrategyConfiguration:
@@ -278,12 +280,13 @@ def apply_server_fingerprinting(
         event["_fingerprint_info"] = fingerprint_info
 
 
-def _get_component_trees_for_variants(
+def _get_variants_from_strategies(
     event: Event, context: GroupingContext
-) -> dict[str, AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent]:
+) -> dict[str, ComponentVariant]:
     winning_strategy: str | None = None
     precedence_hint: str | None = None
-    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent]] = {}
+    all_strategies_components_by_variant: dict[str, list[BaseGroupingComponent[Any]]] = {}
+    winning_strategy_components_by_variant = {}
 
     # `iter_strategies` presents strategies in priority order, which allows us to go with the first
     # one which produces a result. (See `src/sentry/grouping/strategies/configurations.py` for the
@@ -295,8 +298,17 @@ def _get_component_trees_for_variants(
         for variant_name, component in current_strategy_components_by_variant.items():
             all_strategies_components_by_variant.setdefault(variant_name, []).append(component)
 
-            if winning_strategy is None:
-                if component.contributes:
+            if component.contributes:
+                if winning_strategy is None:
+                    # If we haven't yet found a winner.. now we have!
+                    #
+                    # The value of `current_strategy_components_by_variant` will change with each
+                    # strategy, so grab a separate reference to the winning ones so we don't lose
+                    # track of them
+                    #
+                    # Also, create a hint we can add to components from other strategies indicating
+                    # that this one took precedence
+                    winning_strategy_components_by_variant = current_strategy_components_by_variant
                     winning_strategy = strategy.name
                     variant_descriptor = "/".join(
                         sorted(
@@ -313,10 +325,13 @@ def _get_component_trees_for_variants(
                         ),
                         "" if strategy.name.endswith("s") else "s",
                     )
-            elif component.contributes and winning_strategy != strategy.name:
-                component.update(contributes=False, hint=precedence_hint)
+                # On the other hand, if another strategy before this one was already the winner, we
+                # don't want any of this strategy's components to contribute to grouping
+                elif strategy.name != winning_strategy:
+                    component.update(contributes=False, hint=precedence_hint)
 
-    component_trees_by_variant = {}
+    variants = {}
+
     for variant_name, components in all_strategies_components_by_variant.items():
         component_class_by_variant = {
             "app": AppGroupingComponent,
@@ -324,11 +339,28 @@ def _get_component_trees_for_variants(
             "system": SystemGroupingComponent,
         }
         root_component = component_class_by_variant[variant_name](values=components)
+
+        # The root component will pull its `contributes` value from the components it wraps - if
+        # none of them contributes, it will also be marked as non-contributing. But those components
+        # might not have the same reasons for not contributing (`hint` values), so it can't pull
+        # that them - it's gotta be set here.
         if not root_component.contributes and precedence_hint:
             root_component.update(hint=precedence_hint)
-        component_trees_by_variant[variant_name] = root_component
 
-    return component_trees_by_variant
+        winning_strategy_component = winning_strategy_components_by_variant.get(variant_name)
+        contributing_component = (
+            winning_strategy_component
+            if winning_strategy_component and winning_strategy_component.contributes
+            else None
+        )
+
+        variants[variant_name] = ComponentVariant(
+            component=root_component,
+            contributing_component=contributing_component,
+            strategy_config=context.config,
+        )
+
+    return variants
 
 
 # This is called by the Event model in get_grouping_variants()
@@ -340,79 +372,93 @@ def get_grouping_variants_for_event(
     #
     # TODO: Is there a reason we don't treat a checksum like a custom fingerprint, and run the other
     # strategies but mark them as non-contributing, with explanations why?
-    #
-    # TODO: In the case where we have to hash the checksum to get a value in the right format, we
-    # store the raw value as well (provided it's not so long that it will overflow the DB field).
-    # Even when we do this, though, we don't set the raw value as non-cotributing, and we don't add
-    # an "ignored because xyz" hint on the variant, which we should.
     checksum = event.data.get("checksum")
     if checksum:
         if HASH_RE.match(checksum):
             return {"checksum": ChecksumVariant(checksum)}
+        else:
+            return {
+                "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
+            }
 
-        variants: dict[str, BaseVariant] = {
-            "hashed_checksum": HashedChecksumVariant(hash_from_values(checksum), checksum),
-        }
-
-        # The legacy code path also supported arbitrary values here but
-        # it will blow up if it results in more than 32 bytes of data
-        # as this cannot be inserted into the database.  (See GroupHash.hash)
-        if len(checksum) <= 32:
-            variants["checksum"] = ChecksumVariant(checksum)
-
-        return variants
-
-    # Otherwise we go to the various forms of fingerprint handling.  If the event carries
-    # a materialized fingerprint info from server side fingerprinting we forward it to the
-    # variants which can export additional information about them.
-    fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
+    # Otherwise we go to the various forms of grouping based on fingerprints and/or event data
+    # (stacktrace, message, etc.)
+    raw_fingerprint = event.data.get("fingerprint") or ["{{ default }}"]
     fingerprint_info = event.data.get("_fingerprint_info", {})
-    defaults_referenced = sum(1 if is_default_fingerprint_var(d) else 0 for d in fingerprint)
+    fingerprint_type = get_fingerprint_type(raw_fingerprint)
+    resolved_fingerprint = (
+        raw_fingerprint
+        if fingerprint_type == "default"
+        else resolve_fingerprint_values(raw_fingerprint, event.data)
+    )
 
-    if config is None:
-        config = load_default_grouping_config()
-    context = GroupingContext(config)
+    # Run all of the event-data-based grouping strategies. Any which apply will create grouping
+    # components, which will then be grouped into variants by variant type (system, app, default).
+    context = GroupingContext(config or load_default_grouping_config())
+    strategy_component_variants: dict[str, ComponentVariant] = _get_variants_from_strategies(
+        event, context
+    )
 
-    # At this point we need to calculate the default event values.  If the
-    # fingerprint is salted we will wrap it.
-    component_trees_by_variant = _get_component_trees_for_variants(event, context)
+    # Create a separate container for these for now to preserve the typing of
+    # `strategy_component_variants`
+    additional_variants: dict[str, BaseVariant] = {}
 
-    # If no defaults are referenced we produce a single completely custom
-    # fingerprint and mark all other variants as non-contributing
-    if defaults_referenced == 0:
-        variants = {}
-        for variant_name, root_component in component_trees_by_variant.items():
-            root_component.update(
-                contributes=False,
-                hint="custom fingerprint takes precedence",
-            )
-            variants[variant_name] = ComponentVariant(root_component, context.config)
+    # If the fingerprint is the default fingerprint, we can use the variants as is. If it's custom,
+    # we need to create an addiional fingerprint variant and mark the existing variants as
+    # non-contributing. And if it's hybrid, we'll replace the existing variants with "salted"
+    # versions which include the fingerprint.
+    if fingerprint_type == "custom":
+        for variant in strategy_component_variants.values():
+            variant.component.update(contributes=False, hint="custom fingerprint takes precedence")
 
-        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
         if fingerprint_info.get("matched_rule", {}).get("is_builtin") is True:
-            variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
-                fingerprint, fingerprint_info
+            additional_variants["built_in_fingerprint"] = BuiltInFingerprintVariant(
+                resolved_fingerprint, fingerprint_info
             )
         else:
-            variants["custom_fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
-
-    # If only the default is referenced, we can use the variants as is
-    elif defaults_referenced == 1 and len(fingerprint) == 1:
-        variants = {}
-        for variant_name, root_component in component_trees_by_variant.items():
-            variants[variant_name] = ComponentVariant(root_component, context.config)
-
-    # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
-    else:
-        variants = {}
-        fingerprint = resolve_fingerprint_values(fingerprint, event.data)
-        for variant_name, root_component in component_trees_by_variant.items():
-            variants[variant_name] = SaltedComponentVariant(
-                fingerprint, root_component, context.config, fingerprint_info
+            additional_variants["custom_fingerprint"] = CustomFingerprintVariant(
+                resolved_fingerprint, fingerprint_info
+            )
+    elif fingerprint_type == "hybrid":
+        for variant_name, variant in strategy_component_variants.items():
+            # Since we're reusing the variant names, when all of the variants are combined, these
+            # salted versions will replace the unsalted versions
+            additional_variants[variant_name] = SaltedComponentVariant.from_component_variant(
+                variant, resolved_fingerprint, fingerprint_info
             )
 
-    # Ensure we have a fallback hash if nothing else works out
-    if not any(x.contributes for x in variants.values()):
-        variants["fallback"] = FallbackVariant()
+    final_variants = {
+        **strategy_component_variants,
+        # Add these in second, so the salted versions of any variants replace the unsalted versions
+        **additional_variants,
+    }
 
-    return variants
+    # Ensure we have a fallback hash if nothing else works out
+    if not any(x.contributes for x in final_variants.values()):
+        final_variants["fallback"] = FallbackVariant()
+
+    return final_variants
+
+
+def get_contributing_variant_and_component(
+    variants: dict[str, BaseVariant]
+) -> tuple[BaseVariant, ContributingComponent | None]:
+    if len(variants) == 1:
+        contributing_variant = list(variants.values())[0]
+    else:
+        contributing_variant = (
+            variants["app"]
+            # TODO: We won't need this 'if' once we stop returning both app and system contributing
+            # variants
+            if "app" in variants and variants["app"].contributes
+            # Other than in the broken app/system case, there should only ever be a single
+            # contributing variant
+            else [variant for variant in variants.values() if variant.contributes][0]
+        )
+    contributing_component = (
+        contributing_variant.contributing_component
+        if hasattr(contributing_variant, "contributing_component")
+        else None
+    )
+
+    return (contributing_variant, contributing_component)

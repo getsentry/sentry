@@ -6,6 +6,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {IconGraph, IconNumber, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -29,6 +30,7 @@ const displayTypes = {
 
 function WidgetBuilderTypeSelector() {
   const {state, dispatch} = useWidgetBuilderContext();
+  const config = getDatasetConfig(state.dataset);
 
   return (
     <Fragment>
@@ -43,12 +45,17 @@ function WidgetBuilderTypeSelector() {
           leadingItems: typeIcons[value],
           label: displayTypes[value],
           value,
+          disabled: !config.supportedDisplayTypes.includes(value as DisplayType),
         }))}
         clearable={false}
         onChange={newValue => {
+          if (newValue?.value === state.displayType) {
+            return;
+          }
+
           dispatch({
             type: BuilderStateAction.SET_DISPLAY_TYPE,
-            payload: newValue.value,
+            payload: newValue?.value,
           });
           if (
             (newValue.value === DisplayType.TABLE ||

@@ -13,6 +13,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -50,7 +51,10 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AlertRuleActivationConditionType,
+)
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -3040,6 +3044,23 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
 
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
+    def test_process_data_packets_called(self, mock_process_data_packets):
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        data_source = self.create_data_source(query_id=self.sub.id)
+        data_source.detectors.set([detector])
+        self.send_update(rule, 10)
+        assert mock_process_data_packets.call_count == 1
+        assert (
+            mock_process_data_packets.call_args_list[0][0][1]
+            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
+        assert data_packet_list[0].query_id == self.sub.id
+        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -3418,7 +3439,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_active_incident(rule)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_alert_for_sessions_with_no_sessions_data(self, helper_metrics):
         """
         Test that ensures we skip the Crash Rate Alert processing if we have no sessions data
@@ -3441,8 +3462,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ]
         )
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_alert_when_session_count_is_lower_than_minimum_threshold(
         self, helper_metrics
     ):
@@ -3470,7 +3491,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             ]
         )
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_alert_when_session_count_is_higher_than_minimum_threshold(self):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
@@ -3489,7 +3510,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_actions_fired_for_incident(incident, [action_critical], None)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         rule.update(threshold_period=2)
@@ -3528,8 +3549,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
         self, helper_metrics
     ):
@@ -3571,7 +3592,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_resolve_is_reset_when_no_sessions_data(self, helper_metrics):
         rule = self.crash_rate_alert_rule
         trigger = self.crash_rate_alert_critical_trigger
@@ -3630,8 +3651,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    @patch("sentry.workflow_engine.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_resolve_is_reset_when_count_is_lower_than_min_threshold(
         self, helper_metrics
     ):
@@ -3690,7 +3711,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
 
-    @patch("sentry.workflow_engine.process_update_helpers.metrics")
+    @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
