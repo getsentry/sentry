@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -207,9 +206,19 @@ const IssuesTraceOverlayContainer = styled('div')`
   z-index: 10;
 
   a {
+    display: none;
     position: absolute;
-    top: ${space(1)};
-    right: ${space(1)};
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &:hover {
+    background-color: rgba(128, 128, 128, 0.4);
+
+    a {
+      display: block;
+    }
   }
 `;
 
