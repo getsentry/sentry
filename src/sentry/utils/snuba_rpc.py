@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from functools import partial
 from typing import Protocol, TypeVar
 
@@ -40,6 +41,12 @@ SNUBA_INFO = (
 _query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 
+@dataclass(frozen=True)
+class MultiRpcResponse:
+    table_response: list[TraceItemTableResponse]
+    timeseries_response: list[TimeSeriesResponse]
+
+
 def log_snuba_info(content):
     if SNUBA_INFO_FILE:
         with open(SNUBA_INFO_FILE, "a") as file:
@@ -65,17 +72,17 @@ class SnubaRPCRequest(Protocol):
 
 
 def table_rpc(requests: list[TraceItemTableRequest]) -> list[TraceItemTableResponse]:
-    return make_rpc_requests(table_requests=requests)[0]
+    return _make_rpc_requests(table_requests=requests).table_response
 
 
 def timeseries_rpc(requests: list[TimeSeriesRequest]) -> list[TimeSeriesResponse]:
-    return make_rpc_requests(timeseries_requests=requests)[1]
+    return _make_rpc_requests(timeseries_requests=requests).timeseries_response
 
 
-def make_rpc_requests(
+def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
-) -> tuple[list[TraceItemTableResponse], list[TimeSeriesResponse]]:
+) -> MultiRpcResponse:
     """Given lists of requests batch and run them together"""
     # Throw the two lists together, _make_rpc_requests will just run them all
     table_requests = [] if table_requests is None else table_requests
@@ -86,15 +93,35 @@ def make_rpc_requests(
         "EndpointTraceItemTable" if isinstance(req, TraceItemTableRequest) else "EndpointTimeSeries"
         for req in requests
     ]
-    resp = _make_rpc_requests(
-        endpoint_names, "v1", [req.meta.referrer for req in requests], requests
-    )
 
-    # Split the results back up, _make_rpc_requests will return them back in order so we can use the type in the
+    referrers = [req.meta.referrer for req in requests]
+    assert (
+        len(referrers) == len(requests) == len(endpoint_names)
+    ), "Length of Referrers must match length of requests for making requests"
+
+    # Sets the thread parameters once so we're not doing it in the map repeatedly
+    partial_request = partial(
+        _make_rpc_request,
+        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
+        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
+    )
+    response = [
+        result
+        for result in _query_thread_pool.map(
+            partial_request,
+            endpoint_names,
+            # Currently assuming everything is v1
+            ["v1"] * len(referrers),
+            referrers,
+            requests,
+        )
+    ]
+
+    # Split the results back up, the thread pool will return them back in order so we can use the type in the
     # requests list to determine which request goes where
     timeseries_results = []
     table_results = []
-    for request, item in zip(requests, resp):
+    for request, item in zip(requests, response):
         if isinstance(request, TraceItemTableRequest):
             table_response = TraceItemTableResponse()
             table_response.ParseFromString(item.data)
@@ -103,7 +130,7 @@ def make_rpc_requests(
             timeseries_response = TimeSeriesResponse()
             timeseries_response.ParseFromString(item.data)
             timeseries_results.append(timeseries_response)
-    return table_results, timeseries_results
+    return MultiRpcResponse(table_results, timeseries_results)
 
 
 def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
@@ -162,38 +189,6 @@ def rpc(
     resp = resp_type()
     resp.ParseFromString(http_resp.data)
     return resp
-
-
-def _make_rpc_requests(
-    endpoint_names: list[str],
-    class_version: str,
-    referrers: list[str | None],
-    requests: (
-        list[TraceItemTableRequest | TimeSeriesRequest]
-        | list[TraceItemTableRequest]
-        | list[TimeSeriesRequest]
-    ),
-) -> list[BaseHTTPResponse]:
-    assert (
-        len(referrers) == len(requests) == len(endpoint_names)
-    ), "Length of Referrers must match length of requests for making requests"
-
-    # Sets the thread parameters once so we're not doing it in the map repeatedly
-    partial_request = partial(
-        _make_rpc_request,
-        thread_isolation_scope=sentry_sdk.Scope.get_isolation_scope(),
-        thread_current_scope=sentry_sdk.Scope.get_current_scope(),
-    )
-    return [
-        result
-        for result in _query_thread_pool.map(
-            partial_request,
-            endpoint_names,
-            [class_version] * len(referrers),
-            referrers,
-            requests,
-        )
-    ]
 
 
 def _make_rpc_request(
