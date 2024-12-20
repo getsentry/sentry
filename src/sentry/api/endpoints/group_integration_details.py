@@ -268,7 +268,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation = integration.get_installation(organization_id=organization_id)
 
         with ProjectManagementEvent(
-            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE, integration=integration
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
+            integration=integration,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {
