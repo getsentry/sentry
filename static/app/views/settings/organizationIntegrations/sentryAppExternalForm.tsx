@@ -137,7 +137,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // first find every field where we don't load the values on open
     const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
-      field => field.skip_load_on_open || field.depends_on
+      field =>
+        field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
     );
 
     fieldsToLoad.forEach(field => {
