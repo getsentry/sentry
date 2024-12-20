@@ -292,125 +292,123 @@ export function IssueEventNavigation({event, group, query}: IssueEventNavigation
         />
         <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
       </LargeDropdownButtonWrapper>
-      {event ? (
-        <NavigationWrapper>
-          {currentTab === Tab.DETAILS && (
-            <Fragment>
-              <Navigation>
-                <Tooltip title={t('Previous Event')} skipWrapper>
-                  <LinkButton
-                    aria-label={t('Previous Event')}
-                    borderless
-                    size="xs"
-                    icon={<IconChevron direction="left" />}
-                    disabled={!defined(event.previousEventID)}
-                    analyticsEventKey="issue_details.previous_event_clicked"
-                    analyticsEventName="Issue Details: Previous Event Clicked"
-                    to={{
-                      pathname: `${baseEventsPath}${event.previousEventID}/`,
-                      query: {...location.query, referrer: 'previous-event'},
-                    }}
-                    css={grayText}
-                    onMouseEnter={handleHoverPagination(
-                      'previous',
-                      defined(event.previousEventID)
-                    )}
-                    onClick={() => {
-                      // Assume they will continue to paginate
-                      setShouldPreload({next: true, previous: true});
-                    }}
-                  />
-                </Tooltip>
-                <Tooltip title={t('Next Event')} skipWrapper>
-                  <LinkButton
-                    aria-label={t('Next Event')}
-                    borderless
-                    size="xs"
-                    icon={<IconChevron direction="right" />}
-                    disabled={!defined(event.nextEventID)}
-                    analyticsEventKey="issue_details.next_event_clicked"
-                    analyticsEventName="Issue Details: Next Event Clicked"
-                    to={{
-                      pathname: `${baseEventsPath}${event.nextEventID}/`,
-                      query: {...location.query, referrer: 'next-event'},
-                    }}
-                    css={grayText}
-                    onMouseEnter={handleHoverPagination(
-                      'next',
-                      defined(event.nextEventID)
-                    )}
-                    onClick={() => {
-                      // Assume they will continue to paginate
-                      setShouldPreload({next: true, previous: true});
-                    }}
-                  />
-                </Tooltip>
-              </Navigation>
-              <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
-                <TabList hideBorder variant="floating">
-                  {EventNavOrder.map(label => {
-                    const eventPath =
-                      label === selectedOption
-                        ? undefined
-                        : {
-                            pathname: normalizeUrl(baseEventsPath + label + '/'),
-                            query: {...location.query, referrer: `${label}-event`},
-                          };
-                    return (
-                      <TabList.Item
-                        to={eventPath}
-                        key={label}
-                        hidden={label === EventNavOptions.CUSTOM}
-                        textValue={EventNavLabels[label]}
-                      >
-                        {EventNavLabels[label]}
-                      </TabList.Item>
-                    );
-                  })}
-                </TabList>
-              </Tabs>
-            </Fragment>
-          )}
-          {currentTab === Tab.DETAILS && (
+      <NavigationWrapper>
+        {currentTab === Tab.DETAILS && (
+          <Fragment>
+            <Navigation>
+              <Tooltip title={t('Previous Event')} skipWrapper>
+                <LinkButton
+                  aria-label={t('Previous Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="left" />}
+                  disabled={!defined(event?.previousEventID)}
+                  analyticsEventKey="issue_details.previous_event_clicked"
+                  analyticsEventName="Issue Details: Previous Event Clicked"
+                  to={{
+                    pathname: `${baseEventsPath}${event?.previousEventID}/`,
+                    query: {...location.query, referrer: 'previous-event'},
+                  }}
+                  css={grayText}
+                  onMouseEnter={handleHoverPagination(
+                    'previous',
+                    defined(event?.previousEventID)
+                  )}
+                  onClick={() => {
+                    // Assume they will continue to paginate
+                    setShouldPreload({next: true, previous: true});
+                  }}
+                />
+              </Tooltip>
+              <Tooltip title={t('Next Event')} skipWrapper>
+                <LinkButton
+                  aria-label={t('Next Event')}
+                  borderless
+                  size="xs"
+                  icon={<IconChevron direction="right" />}
+                  disabled={!defined(event?.nextEventID)}
+                  analyticsEventKey="issue_details.next_event_clicked"
+                  analyticsEventName="Issue Details: Next Event Clicked"
+                  to={{
+                    pathname: `${baseEventsPath}${event?.nextEventID}/`,
+                    query: {...location.query, referrer: 'next-event'},
+                  }}
+                  css={grayText}
+                  onMouseEnter={handleHoverPagination(
+                    'next',
+                    defined(event?.nextEventID)
+                  )}
+                  onClick={() => {
+                    // Assume they will continue to paginate
+                    setShouldPreload({next: true, previous: true});
+                  }}
+                />
+              </Tooltip>
+            </Navigation>
+            <Tabs value={selectedOption} disableOverflow onChange={onTabChange}>
+              <TabList hideBorder variant="floating">
+                {EventNavOrder.map(label => {
+                  const eventPath =
+                    label === selectedOption
+                      ? undefined
+                      : {
+                          pathname: normalizeUrl(baseEventsPath + label + '/'),
+                          query: {...location.query, referrer: `${label}-event`},
+                        };
+                  return (
+                    <TabList.Item
+                      to={eventPath}
+                      key={label}
+                      hidden={label === EventNavOptions.CUSTOM}
+                      textValue={EventNavLabels[label]}
+                    >
+                      {EventNavLabels[label]}
+                    </TabList.Item>
+                  );
+                })}
+              </TabList>
+            </Tabs>
+          </Fragment>
+        )}
+        {currentTab === Tab.DETAILS && (
+          <LinkButton
+            to={{
+              pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+              query: location.query,
+            }}
+            size="xs"
+            analyticsEventKey="issue_details.all_events_clicked"
+            analyticsEventName="Issue Details: All Events Clicked"
+          >
+            {t('All Events')}
+          </LinkButton>
+        )}
+
+        {currentTab === Tab.EVENTS && (
+          <ButtonBar gap={1}>
+            <LinkButton
+              to={discoverUrl}
+              aria-label={t('Open in Discover')}
+              size="xs"
+              icon={<IconTelescope />}
+              analyticsEventKey="issue_details.discover_clicked"
+              analyticsEventName="Issue Details: Discover Clicked"
+            >
+              {t('Discover')}
+            </LinkButton>
             <LinkButton
               to={{
-                pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
-                query: location.query,
+                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                query: {...location.query, cursor: undefined},
               }}
+              aria-label={t('Return to event details')}
               size="xs"
-              analyticsEventKey="issue_details.all_events_clicked"
-              analyticsEventName="Issue Details: All Events Clicked"
             >
-              {t('All Events')}
+              {t('Close')}
             </LinkButton>
-          )}
-
-          {currentTab === Tab.EVENTS && (
-            <ButtonBar gap={1}>
-              <LinkButton
-                to={discoverUrl}
-                aria-label={t('Open in Discover')}
-                size="xs"
-                icon={<IconTelescope />}
-                analyticsEventKey="issue_details.discover_clicked"
-                analyticsEventName="Issue Details: Discover Clicked"
-              >
-                {t('Discover')}
-              </LinkButton>
-              <LinkButton
-                to={{
-                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
-                  query: {...location.query, cursor: undefined},
-                }}
-                aria-label={t('Return to event details')}
-                size="xs"
-              >
-                {t('Close')}
-              </LinkButton>
-            </ButtonBar>
-          )}
-        </NavigationWrapper>
-      ) : null}
+          </ButtonBar>
+        )}
+      </NavigationWrapper>
     </EventNavigationWrapper>
   );
 }

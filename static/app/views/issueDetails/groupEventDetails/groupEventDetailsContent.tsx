@@ -68,6 +68,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -84,13 +85,14 @@ export interface EventDetailsContentProps {
   group: Group;
   project: Project;
   event?: Event;
+  eventError?: RequestError;
 }
 
 export function EventDetailsContent({
   group,
   event,
   project,
-}: Required<EventDetailsContentProps>) {
+}: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -460,8 +462,20 @@ export default function GroupEventDetailsContent({
   group,
   event,
   project,
+  eventError,
 }: EventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
+
+  if (hasStreamlinedUI) {
+    return (
+      <EventDetails
+        event={event}
+        group={group}
+        project={project}
+        eventError={eventError}
+      />
+    );
+  }
 
   if (!event) {
     return (
@@ -471,11 +485,7 @@ export default function GroupEventDetailsContent({
     );
   }
 
-  return hasStreamlinedUI ? (
-    <EventDetails event={event} group={group} project={project} />
-  ) : (
-    <EventDetailsContent group={group} event={event} project={project} />
-  );
+  return <EventDetailsContent group={group} event={event} project={project} />;
 }
 
 /**

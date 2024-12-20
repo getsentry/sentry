@@ -54,6 +54,7 @@ function GroupEventDetails() {
     isPending: isLoadingEvent,
     isError: isEventError,
     refetch: refetchEvent,
+    error: eventError,
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
@@ -162,13 +163,11 @@ function GroupEventDetails() {
 
   const renderContent = () => {
     if (isLoadingEvent) {
-      if (hasStreamlinedUI) {
-        return <GroupEventDetailsLoading />;
-      }
-      return <LoadingIndicator />;
+      return hasStreamlinedUI ? <GroupEventDetailsLoading /> : <LoadingIndicator />;
     }
 
-    if (isEventError) {
+    // The streamlined UI uses a different error interface
+    if (isEventError && !hasStreamlinedUI) {
       return (
         <GroupEventDetailsLoadingError
           environments={environments}
@@ -181,7 +180,12 @@ function GroupEventDetails() {
     }
 
     return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
+      <GroupEventDetailsContent
+        group={group}
+        event={eventWithMeta}
+        project={project}
+        eventError={eventError ? eventError : undefined}
+      />
     );
   };
 

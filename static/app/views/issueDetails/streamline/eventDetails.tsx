@@ -18,14 +18,26 @@ import {
   useEventDetails,
   useEventDetailsReducer,
 } from 'sentry/views/issueDetails/streamline/context';
+import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
 export function EventDetails({
   group,
   event,
   project,
-}: Required<EventDetailsContentProps>) {
+  eventError,
+}: EventDetailsContentProps) {
   const {eventDetails, dispatch} = useEventDetailsReducer();
+
+  if (!event) {
+    return (
+      <GroupContent role="main">
+        <BannerPadding>
+          <EventMissingBanner eventError={eventError} />
+        </BannerPadding>
+      </GroupContent>
+    );
+  }
 
   return (
     <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
@@ -95,6 +107,10 @@ const GroupContent = styled('div')`
 
 const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
+`;
+
+const BannerPadding = styled('div')`
+  padding: ${space(3)} ${space(4)};
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`

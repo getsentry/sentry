@@ -196,10 +196,10 @@ export function getGroupEventDetailsQueryData({
   start,
   end,
 }: {
-  end: string | undefined;
   query: string | undefined;
-  start: string | undefined;
+  end?: string;
   environments?: string[];
+  start?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
