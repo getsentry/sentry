@@ -29,7 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription
 from sentry.tempest.models import TempestCredentials
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 
 # XXX(dcramer): this is a compatibility layer to transition to pytest-based fixtures
@@ -104,7 +104,7 @@ class Fixtures:
             data={
                 "event_id": "a" * 32,
                 "message": "\u3053\u3093\u306b\u3061\u306f",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -129,7 +129,7 @@ class Fixtures:
             external_id="github:1",
             metadata={
                 "access_token": "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
-                "expires_at": iso_format(timezone.now() + timedelta(days=14)),
+                "expires_at": (timezone.now() + timedelta(days=14)).isoformat(),
             },
         )
         integration.add_organization(self.organization, self.user)
@@ -677,7 +677,7 @@ class Fixtures:
         type: str = "test",
         subscription_id: str | None = None,
         status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
-        url="http://sentry.io/",
+        url: str | None = None,
         host_provider_id="TEST",
         url_domain="sentry",
         url_domain_suffix="io",
@@ -688,13 +688,16 @@ class Fixtures:
         body=None,
         date_updated: None | datetime = None,
         trace_sampling: bool = False,
+        region_slugs: list[str] | None = None,
     ) -> UptimeSubscription:
         if date_updated is None:
             date_updated = timezone.now()
         if headers is None:
             headers = []
+        if region_slugs is None:
+            region_slugs = []
 
-        return Factories.create_uptime_subscription(
+        subscription = Factories.create_uptime_subscription(
             type=type,
             subscription_id=subscription_id,
             status=status,
@@ -710,6 +713,10 @@ class Fixtures:
             body=body,
             trace_sampling=trace_sampling,
         )
+        for region_slug in region_slugs:
+            Factories.create_uptime_subscription_region(subscription, region_slug)
+
+        return subscription
 
     def create_project_uptime_subscription(
         self,
@@ -717,7 +724,7 @@ class Fixtures:
         env: Environment | None = None,
         uptime_subscription: UptimeSubscription | None = None,
         mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-        name="Test Name",
+        name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
     ) -> ProjectUptimeSubscription:

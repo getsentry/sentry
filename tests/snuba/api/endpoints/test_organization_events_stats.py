@@ -20,7 +20,7 @@ from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -51,7 +51,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "a" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=1)),
+                "timestamp": (self.day_ago + timedelta(minutes=1)).isoformat(),
                 "fingerprint": ["group1"],
                 "tags": {"sentry:user": self.user.email},
             },
@@ -61,7 +61,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "b" * 32,
                 "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=1)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -71,7 +71,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "c" * 32,
                 "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
                 "fingerprint": ["group2"],
                 "tags": {"sentry:user": self.user2.email},
             },
@@ -244,7 +244,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "d" * 32,
                 "message": "something",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                 "tags": {"sentry:user": self.user2.email},
                 "fingerprint": ["group2"],
             },
@@ -713,7 +713,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data = prototype.copy()
             data["event_id"] = fixture[0]
             data["timestamp"] = fixture[1].isoformat()
-            data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
+            data["start_timestamp"] = (fixture[1] - timedelta(seconds=1)).isoformat()
             self.store_event(data=data, project_id=self.project.id)
 
         for dataset in ["discover", "transactions"]:
@@ -894,7 +894,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data={
                 "event_id": "d" * 32,
                 "message": "not good",
-                "timestamp": iso_format(self.day_ago - timedelta(minutes=10)),
+                "timestamp": (self.day_ago - timedelta(minutes=10)).isoformat(),
                 "fingerprint": ["group3"],
             },
             project_id=self.project.id,
@@ -1013,8 +1013,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         ]
 
     def test_without_zerofill(self):
-        start = iso_format(self.day_ago)
-        end = iso_format(self.day_ago + timedelta(hours=2))
+        start = self.day_ago.isoformat()
+        end = (self.day_ago + timedelta(hours=2)).isoformat()
         response = self.do_request(
             data={
                 "start": start,
@@ -1039,19 +1039,19 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_comparison_error_dataset(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, minutes=1)).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+                "timestamp": (self.day_ago + timedelta(days=-1, minutes=2)).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1, minutes=1)).isoformat(),
             },
             project_id=self.project2.id,
         )
@@ -1075,19 +1075,19 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
     def test_comparison(self):
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, minutes=1)).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, minutes=2)),
+                "timestamp": (self.day_ago + timedelta(days=-1, minutes=2)).isoformat(),
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=1)),
+                "timestamp": (self.day_ago + timedelta(days=-1, hours=1, minutes=1)).isoformat(),
             },
             project_id=self.project2.id,
         )
@@ -1176,7 +1176,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         for _ in range(7):
             self.store_event(
                 data={
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "tags": {"count": "9001"},
                 },
                 project_id=self.project2.id,
@@ -1211,7 +1211,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                 "user": {"email": self.user.email},
                 "tags": {"group_id": "testing"},
                 "fingerprint": ["group1"],
@@ -1258,14 +1258,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         self.project2 = self.create_project()
         self.user2 = self.create_user()
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
+        transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
+        transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=4)).isoformat()
         transaction_data["tags"] = {"shared-tag": "yup"}
         self.event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group1"],
@@ -1276,7 +1276,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "voof",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup"},
@@ -1287,7 +1287,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1298,7 +1298,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "oh no",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1311,7 +1311,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "sorta bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1322,7 +1322,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "not so bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -1526,7 +1526,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                 "user": {"email": self.user.email},
                 "tags": {"count": "9001"},
                 "fingerprint": ["group1"],
@@ -1622,7 +1622,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "abc",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"count": "2"},
                     "fingerprint": ["group1"],
@@ -1633,7 +1633,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "def",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"count": "9001"},
                     "fingerprint": ["group1"],
@@ -1669,7 +1669,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                 "user": {"email": self.user.email},
                 "tags": {"group_id": "the tag"},
                 "fingerprint": ["group1"],
@@ -1925,8 +1925,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def test_top_events_with_functions_on_different_transactions(self):
         """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
+        transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=6)).isoformat()
         transaction_data["transaction"] = "/foo_bar/"
         transaction2 = self.store_event(transaction_data, project_id=self.project.id)
         with self.feature(self.enabled_features):
@@ -1959,8 +1959,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     def test_top_events_with_query(self):
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
+        transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=6)).isoformat()
         transaction_data["transaction"] = "/foo_bar/"
         self.store_event(transaction_data, project_id=self.project.id)
         with self.feature(self.enabled_features):
@@ -2142,7 +2142,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         prototype["logentry"] = {"formatted": "not handled"}
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
-        prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        prototype["timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
         self.store_event(data=prototype, project_id=project.id)
 
         with self.feature(self.enabled_features):
@@ -2654,7 +2654,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         timestamp_days = [timestamp.replace(hour=0, minute=0, second=0) for timestamp in timestamps]
 
         for ts, ts_hr, ts_day in zip(timestamps, timestamp_hours, timestamp_days):
-            key = f"{iso_format(ts)}+00:00,{iso_format(ts_day)}+00:00,{iso_format(ts_hr)}+00:00"
+            key = f"{ts.isoformat()},{ts_day.isoformat()},{ts_hr.isoformat()}"
             count = sum(e["count"] for e in self.event_data if e["data"]["timestamp"] == ts)
             results = data[key]
             assert [{"count": count}] in [attrs for time, attrs in results["data"]]
@@ -2693,8 +2693,8 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
 
     def test_top_events_with_field_overlapping_other_key(self):
         transaction_data = load_data("transaction")
-        transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
-        transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
+        transaction_data["start_timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
+        transaction_data["timestamp"] = (self.day_ago + timedelta(minutes=6)).isoformat()
         transaction_data["transaction"] = OTHER_KEY
         for i in range(5):
             data = transaction_data.copy()
@@ -2990,7 +2990,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "poof",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group1"],
@@ -3001,7 +3001,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "voof",
-                    "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(hours=1, minutes=2)).isoformat(),
                     "fingerprint": ["group2"],
                     "user": {"email": self.user2.email},
                     "tags": {"shared-tag": "yup"},
@@ -3012,7 +3012,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "very bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group3"],
                     "user": {"email": "foo@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -3023,7 +3023,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "oh no",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group4"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -3034,7 +3034,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "kinda bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "user": {"email": self.user.email},
                     "tags": {"shared-tag": "yup"},
                     "fingerprint": ["group7"],
@@ -3046,7 +3046,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "sorta bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group5"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -3057,7 +3057,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             {
                 "data": {
                     "message": "not so bad",
-                    "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                    "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                     "fingerprint": ["group6"],
                     "user": {"email": "bar@example.com"},
                     "tags": {"shared-tag": "yup"},
@@ -3268,7 +3268,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
-                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "timestamp": (self.day_ago + timedelta(minutes=2)).isoformat(),
                 "user": {"email": self.user.email},
                 "tags": {"group_id": "the tag"},
                 "fingerprint": ["group1"],
@@ -3315,7 +3315,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         prototype["logentry"] = {"formatted": "not handled"}
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
-        prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
+        prototype["timestamp"] = (self.day_ago + timedelta(minutes=2)).isoformat()
         self.store_event(data=prototype, project_id=project.id)
 
         with self.feature(self.enabled_features):

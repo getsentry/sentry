@@ -359,7 +359,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @patch("sentry.seer.similarity.utils.metrics")
     def test_lookup_group_data_stacktrace_bulk_invalid_stacktrace_exception(self, mock_metrics):
         """
-        Test that if a group has over MAX_FRAME_COUNT only system frames, its data is not included in
+        Test that if a group has over MAX_FRAME_COUNT frames, its data is not included in
         the bulk lookup result
         """
         # Use 2 events
@@ -367,7 +367,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_ids = [row["group_id"] for row in rows]
         for group_id in group_ids:
             hashes.update({group_id: self.group_hashes[group_id]})
-        # Create one event where the stacktrace has over MAX_FRAME_COUNT system only frames
+        # Create one event where the stacktrace has over MAX_FRAME_COUNT frames
         exception = copy.deepcopy(EXCEPTION)
         exception["values"][0]["stacktrace"]["frames"] = [
             {
@@ -414,9 +414,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         sample_rate = options.get("seer.similarity.metrics_sample_rate")
         mock_metrics.incr.assert_called_with(
-            "grouping.similarity.over_threshold_only_system_frames",
+            "grouping.similarity.frame_count_filter",
             sample_rate=sample_rate,
-            tags={"platform": "java", "referrer": "backfill"},
+            tags={
+                "platform": "java",
+                "referrer": "backfill",
+                "stacktrace_type": "system",
+                "outcome": "block",
+            },
         )
 
     def test_lookup_group_data_stacktrace_bulk_with_fallback_success(self):
@@ -1818,7 +1823,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         project_same_cohort_not_eligible = self.create_project(
             organization=self.organization, id=self.project.id + thread_number
         )
-        project_same_cohort_not_eligible.platform = "c"  # Not currently eligible
+        project_same_cohort_not_eligible.platform = "other"  # Not currently eligible
         project_same_cohort_not_eligible.save()
         self.create_event(project_same_cohort_not_eligible.id, times_seen=5)
 

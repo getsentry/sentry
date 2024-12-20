@@ -15,6 +15,10 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
+  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
   return (
     <div>
       <TagHeader>
@@ -39,9 +43,8 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {hasOther && (
           <TagValueRow>
             <TagValue>{t('Other')}</TagValue>
-            <TagBar
-              percentage={percent(tag.totalValues - totalVisible, tag.totalValues)}
-            />
+            <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+            <TagBar percentage={otherPercentage} />
           </TagValueRow>
         )}
       </TagValueContent>
@@ -102,7 +105,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   );
 }
 
-export function TagBar({
+function TagBar({
   percentage,
   style,
   ...props
@@ -144,9 +147,10 @@ const TagPreviewTitle = styled(TagTitle)`
 `;
 
 // The 40px is a buffer to prevent percentages from overflowing
+const progressBarWidth = '45px';
 const TagValueContent = styled('div')`
   display: grid;
-  grid-template-columns: 4fr auto 45px;
+  grid-template-columns: 4fr auto ${progressBarWidth};
   color: ${p => p.theme.subText};
   grid-column-gap: ${space(1)};
 
@@ -181,8 +185,9 @@ const TagBarContainer = styled('div')`
     inset: 0;
     content: '';
     border-radius: 3px;
-    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
-    border: 1px solid ${p => p.theme.translucentBorder};
+    background: ${p =>
+      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
+    box-shadow: inset 0 0 0 1px ${p => p.theme.translucentInnerBorder};
     width: 100%;
   }
 `;
