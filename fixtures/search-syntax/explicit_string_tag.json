@@ -1,0 +1,43 @@
+[
+  {
+    "query": "tags[fruit,string]:apple release:1.2.1 tags[project_id,string]:123",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitStringTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "fruit", "quoted": false}
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": "apple", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {"type": "keySimple", "value": "release", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": "1.2.1", "quoted": false}
+      },
+      {"type": "spaces", "value": " "},
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitStringTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "project_id", "quoted": false}
+        },
+        "operator": "",
+        "value": {"type": "valueText", "value": "123", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

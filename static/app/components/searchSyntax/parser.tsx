@@ -43,6 +43,8 @@ export enum Token {
   LOGIC_BOOLEAN = 'logicBoolean',
   KEY_SIMPLE = 'keySimple',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
+  KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -127,7 +129,11 @@ export const interchangeableFilterOperators = {
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
 };
 
-const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
+const textKeys = [
+  Token.KEY_SIMPLE,
+  Token.KEY_EXPLICIT_TAG,
+  Token.KEY_EXPLICIT_STRING_TAG,
+] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -486,6 +492,26 @@ export class TokenConverter {
     key,
   });
 
+  tokenKeyExplicitStringTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_TAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_TAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_AGGREGATE_PARAMS as const,
@@ -771,13 +797,25 @@ export class TokenConverter {
    */
   checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
     if (
-      ![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG, Token.KEY_AGGREGATE].includes(key.type)
+      ![
+        Token.KEY_SIMPLE,
+        Token.KEY_EXPLICIT_TAG,
+        Token.KEY_AGGREGATE,
+        Token.KEY_EXPLICIT_NUMBER_TAG,
+        Token.KEY_EXPLICIT_STRING_TAG,
+      ].includes(key.type)
     ) {
       return null;
     }
 
     const keyName = getKeyName(
-      key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
+      key as TokenResult<
+        | Token.KEY_SIMPLE
+        | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_STRING_TAG
+      >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
@@ -838,7 +876,10 @@ export class TokenConverter {
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
     // Explicit tag keys will always be treated as text filters
-    if (key.type === Token.KEY_EXPLICIT_TAG) {
+    if (
+      key.type === Token.KEY_EXPLICIT_TAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_TAG
+    ) {
       return this.checkInvalidTextValue(value);
     }
 

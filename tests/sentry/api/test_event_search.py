@@ -93,6 +93,12 @@ def result_transformer(result):
         if token["type"] == "keyExplicitTag":
             return SearchKey(name=f"tags[{token['key']['value']}]")
 
+        if token["type"] == "keyExplicitStringTag":
+            return SearchKey(name=f"tags[{token['key']['value']},string]")
+
+        if token["type"] == "keyExplicitNumberTag":
+            return SearchKey(name=f"tags[{token['key']['value']},number]")
+
         if token["type"] == "keyAggregate":
             name = node_visitor(token["name"]).name
             # Consistent join aggregate function parameters
