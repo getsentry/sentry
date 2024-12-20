@@ -10,32 +10,28 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {shiftTimeserieToNow} from '../common/shiftTimeserieToNow';
 import type {Release, TimeseriesData} from '../common/types';
 
-import {LineChartWidget} from './lineChartWidget';
-import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
-import sampleThroughputTimeSeries from './sampleThroughputTimeSeries.json';
+import {AreaChartWidget} from './areaChartWidget';
+import sampleLatencyTimeSeries from './sampleLatencyTimeSeries.json';
+import sampleSpanDurationTimeSeries from './sampleSpanDurationTimeSeries.json';
 
-const sampleDurationTimeSeries2 = {
-  ...sampleDurationTimeSeries,
-  field: 'p50(span.duration)',
-  data: sampleDurationTimeSeries.data.map(datum => {
-    return {
-      ...datum,
-      value: datum.value * 0.3 + 30 * Math.random(),
-    };
-  }),
-};
-
-export default storyBook(LineChartWidget, story => {
+export default storyBook(AreaChartWidget, story => {
   story('Getting Started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="LineChartWidget" /> is a Dashboard Widget Component. It displays
-          a timeseries chart with one or more timeseries. Used to visualize data that
-          changes over time in Project Details, Dashboards, Performance, and other UIs.
+          <JSXNode name="AreaChartWidget" /> is a Dashboard Widget Component. It displays
+          a timeseries chart with multiple timeseries, and the timeseries are stacked.
+          Each timeseries is shown using a solid block of color. This chart is used to
+          visualize multiple timeseries that represent parts of something. For example, a
+          chart that shows time spent in the app broken down by component. In all other
+          ways, it behaves like <JSXNode name="LineChartWidget" />, though it doesn't
+          support features like "Previous Period Data".
+        </p>
+        <p>
+          <em>NOTE:</em> This chart is not appropriate for showing a single timeseries!
+          You should use <JSXNode name="LineChartWidget" /> instead.
         </p>
       </Fragment>
     );
@@ -46,20 +42,14 @@ export default storyBook(LineChartWidget, story => {
     const {datetime} = selection;
     const {start, end} = datetime;
 
-    const throughputTimeSeries = toTimeSeriesSelection(
-      sampleThroughputTimeSeries as unknown as TimeseriesData,
+    const latencyTimeSeries = toTimeSeriesSelection(
+      sampleLatencyTimeSeries as unknown as TimeseriesData,
       start,
       end
     );
 
-    const durationTimeSeries1 = toTimeSeriesSelection(
-      sampleDurationTimeSeries as unknown as TimeseriesData,
-      start,
-      end
-    );
-
-    const durationTimeSeries2 = toTimeSeriesSelection(
-      sampleDurationTimeSeries2,
+    const spanDurationTimeSeries = toTimeSeriesSelection(
+      sampleSpanDurationTimeSeries as unknown as TimeseriesData,
       start,
       end
     );
@@ -67,55 +57,27 @@ export default storyBook(LineChartWidget, story => {
     return (
       <Fragment>
         <p>
-          The visualization of <JSXNode name="LineChartWidget" /> a line chart. It has
-          some bells and whistles including automatic axes labels, and a hover tooltip.
-          Like other widgets, it automatically fills the parent element.
+          The visualization of <JSXNode name="AreaChartWidget" /> a stacked area chart. It
+          has some bells and whistles including automatic axes labels, and a hover
+          tooltip. Like other widgets, it automatically fills the parent element.
         </p>
         <SmallSizingWindow>
-          <LineChartWidget
-            title="eps()"
-            description="Number of events per second"
-            timeseries={[throughputTimeSeries]}
+          <AreaChartWidget
+            title="Duration Breakdown"
+            description="Explains what proportion of total duration is taken up by latency vs. span duration"
+            timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
             meta={{
               fields: {
-                'eps()': 'rate',
+                'avg(latency)': 'duration',
+                'avg(span.duration)': 'duration',
               },
               units: {
-                'eps()': '1/second',
+                'avg(latency)': 'millisecond',
+                'avg(span.duration)': 'millisecond',
               },
             }}
           />
         </SmallSizingWindow>
-
-        <p>
-          The <code>dataCompletenessDelay</code> prop indicates that this data is live,
-          and the last few buckets might not have complete data. The delay is a number in
-          seconds. Any data bucket that happens in that delay window will be plotted with
-          a dotted line. By default the delay is <code>0</code>.
-        </p>
-
-        <SideBySide>
-          <MediumWidget>
-            <LineChartWidget
-              title="span.duration"
-              dataCompletenessDelay={60 * 60 * 3}
-              timeseries={[
-                shiftTimeserieToNow(durationTimeSeries1),
-                shiftTimeserieToNow(durationTimeSeries2),
-              ]}
-              meta={{
-                fields: {
-                  'p99(span.duration)': 'duration',
-                  'p50(span.duration)': 'duration',
-                },
-                units: {
-                  'p99(span.duration)': 'millisecond',
-                  'p50(span.duration)': 'millisecond',
-                },
-              }}
-            />
-          </MediumWidget>
-        </SideBySide>
       </Fragment>
     );
   });
@@ -124,26 +86,26 @@ export default storyBook(LineChartWidget, story => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="LineChartWidget" /> supports the usual loading and error states.
+          <JSXNode name="AreaChartWidget" /> supports the usual loading and error states.
           The loading state shows a spinner. The error state shows a message, and an
           optional "Retry" button.
         </p>
 
         <SideBySide>
           <SmallWidget>
-            <LineChartWidget title="Loading Count" isLoading />
+            <AreaChartWidget title="Loading Count" isLoading />
           </SmallWidget>
           <SmallWidget>
-            <LineChartWidget title="Missing Count" />
+            <AreaChartWidget title="Missing Count" />
           </SmallWidget>
           <SmallWidget>
-            <LineChartWidget
+            <AreaChartWidget
               title="Count Error"
               error={new Error('Something went wrong!')}
             />
           </SmallWidget>
           <SmallWidget>
-            <LineChartWidget
+            <AreaChartWidget
               title="Data Error"
               error={new Error('Something went wrong!')}
               onRetry={() => {}}
@@ -165,22 +127,22 @@ export default storyBook(LineChartWidget, story => {
         </p>
 
         <MediumWidget>
-          <LineChartWidget
+          <AreaChartWidget
             title="error_rate()"
             description="Rate of Errors"
             timeseries={[
-              {
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-                color: theme.error,
-              } as unknown as TimeseriesData,
+              {...sampleLatencyTimeSeries, color: theme.error},
+
+              {...sampleSpanDurationTimeSeries, color: theme.warning},
             ]}
             meta={{
               fields: {
-                'error_rate()': 'rate',
+                'avg(latency)': 'duration',
+                'avg(span.duration)': 'duration',
               },
               units: {
-                'error_rate()': '1/second',
+                'avg(latency)': 'millisecond',
+                'avg(span.duration)': 'millisecond',
               },
             }}
           />
@@ -193,40 +155,37 @@ export default storyBook(LineChartWidget, story => {
     const releases = [
       {
         version: 'ui@0.1.2',
-        timestamp: sampleThroughputTimeSeries.data.at(2)?.timestamp,
+        timestamp: sampleLatencyTimeSeries.data.at(2)?.timestamp,
       },
       {
         version: 'ui@0.1.3',
-        timestamp: sampleThroughputTimeSeries.data.at(20)?.timestamp,
+        timestamp: sampleLatencyTimeSeries.data.at(20)?.timestamp,
       },
     ].filter(hasTimestamp);
 
     return (
       <Fragment>
         <p>
-          <JSXNode name="LineChartWidget" /> supports the <code>releases</code> prop. If
+          <JSXNode name="AreaChartWidget" /> supports the <code>releases</code> prop. If
           passed in, the widget will plot every release as a vertical line that overlays
           the chart data. Clicking on a release line will open the release details page.
         </p>
 
         <MediumWidget>
-          <LineChartWidget
+          <AreaChartWidget
             title="error_rate()"
-            timeseries={[
-              {
-                ...sampleThroughputTimeSeries,
-                field: 'error_rate()',
-              } as unknown as TimeseriesData,
-            ]}
-            releases={releases}
+            timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
             meta={{
               fields: {
-                'error_rate()': 'rate',
+                'avg(latency)': 'duration',
+                'avg(span.duration)': 'duration',
               },
               units: {
-                'error_rate()': '1/second',
+                'avg(latency)': 'millisecond',
+                'avg(span.duration)': 'millisecond',
               },
             }}
+            releases={releases}
           />
         </MediumWidget>
       </Fragment>
