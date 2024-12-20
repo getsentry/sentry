@@ -24,6 +24,7 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Open Team Membership'),
         help: t('Allow organization members to freely join any team'),
+        isDangerous: true,
         confirm: {
           true: t(
             'This will allow any members of your organization to freely join any team and access any project of your organization. Do you want to continue?'
