@@ -1,12 +1,10 @@
-import React, {Fragment, useCallback, useEffect} from 'react';
+import React, {Fragment, useEffect} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import useDrawer from 'sentry/components/globalDrawer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {
@@ -16,8 +14,6 @@ import {
 } from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
@@ -61,6 +57,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 type Query = {
   aggregate?: string;
   domain?: string;
@@ -68,7 +66,6 @@ type Query = {
 
 export function HTTPDomainSummaryPage() {
   const location = useLocation<Query>();
-  const organization = useOrganization();
   const {projects} = useProjects();
   const {view} = useDomainViewFilters();
 
@@ -81,7 +78,6 @@ export function HTTPDomainSummaryPage() {
     domain,
     project: projectId,
     transaction,
-    transactionMethod,
     'user.geo.subregion': subregions,
   } = useLocationQuery({
     fields: {
@@ -89,40 +85,17 @@ export function HTTPDomainSummaryPage() {
       domain: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
       transaction: decodeScalar,
-      transactionMethod: decodeScalar,
     },
   });
 
-  const {openDrawer} = useDrawer();
-  const navigate = useNavigate();
-
-  const openSamplesPanel = useCallback(() => {
-    openDrawer(() => <HTTPSamplesPanel />, {
-      ariaLabel: t('Samples'),
-      onClose: () => {
-        navigate({
-          query: {
-            ...location.query,
-            transaction: undefined,
-            transactionMethod: undefined,
-          },
-        });
-      },
-      transitionProps: {stiffness: 1000},
-    });
-  }, [openDrawer, navigate, location.query]);
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: HTTPSamplesPanel,
+    moduleName: ModuleName.HTTP,
+  });
 
   useEffect(() => {
-    const detailKey = transaction
-      ? [domain, transactionMethod, transaction].filter(Boolean).join(':')
-      : undefined;
-
-    if (detailKey) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: ModuleName.HTTP,
-      });
-      openSamplesPanel();
+    if (transaction) {
+      openSamplesDrawer();
     }
   });
 
