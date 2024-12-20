@@ -2,7 +2,6 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import SearchBar from 'sentry/components/events/searchBar';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
@@ -23,7 +22,6 @@ import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -45,7 +43,6 @@ import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHe
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import Tab from '../../tabs';
 
@@ -102,7 +99,6 @@ type Props = {
 export default function SpanSummaryTable(props: Props) {
   const {project} = props;
   const organization = useOrganization();
-  const {data: supportedTags} = useSpanFieldSupportedTags();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
   const [spanOp, groupId] = spanSlug.split(':');
@@ -227,25 +223,12 @@ export default function SpanSummaryTable(props: Props) {
   return (
     <Fragment>
       <StyledSearchBarWrapper>
-        {organization.features.includes('search-query-builder-performance') ? (
-          <SpanSearchQueryBuilder
-            projects={projectIds}
-            initialQuery={spansQuery}
-            onSearch={handleSearch}
-            searchSource="transaction_span_summary"
-          />
-        ) : (
-          <SearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={spansQuery}
-            fields={eventView.fields}
-            placeholder={t('Search for span attributes')}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            onSearch={handleSearch}
-          />
-        )}
+        <SpanSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={spansQuery}
+          onSearch={handleSearch}
+          searchSource="transaction_span_summary"
+        />
       </StyledSearchBarWrapper>
       <VisuallyCompleteWithData
         id="SpanDetails-SpanDetailsTable"

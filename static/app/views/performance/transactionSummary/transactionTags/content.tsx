@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -200,22 +199,12 @@ function InnerContent(
             <DatePageFilter />
           </PageFilterBar>
           <StyledSearchBarWrapper>
-            {organization.features.includes('search-query-builder-performance') ? (
-              <TransactionSearchQueryBuilder
-                projects={projectIds}
-                initialQuery={query}
-                onSearch={handleSearch}
-                searchSource="transaction_tags"
-              />
-            ) : (
-              <SearchBar
-                organization={organization}
-                projectIds={eventView.project}
-                query={query}
-                fields={eventView.fields}
-                onSearch={handleSearch}
-              />
-            )}
+            <TransactionSearchQueryBuilder
+              projects={projectIds}
+              initialQuery={query}
+              onSearch={handleSearch}
+              searchSource="transaction_tags"
+            />
           </StyledSearchBarWrapper>
           <CompactSelect
             value={aggregateColumn}
