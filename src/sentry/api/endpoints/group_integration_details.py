@@ -266,12 +266,26 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration.get_installation(organization_id=organization_id)
-        try:
-            data = installation.create_issue(request.data)
-        except IntegrationFormError as exc:
-            return Response(exc.field_errors, status=400)
-        except IntegrationError as e:
-            return Response({"non_field_errors": [str(e)]}, status=400)
+
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "provider": integration.provider,
+                    "integration_id": integration.id,
+                }
+            )
+
+            try:
+                data = installation.create_issue(request.data)
+            except IntegrationFormError as exc:
+                lifecycle.record_halt(exc)
+                return Response(exc.field_errors, status=400)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return Response({"non_field_errors": [str(e)]}, status=400)
 
         external_issue_key = installation.make_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(
