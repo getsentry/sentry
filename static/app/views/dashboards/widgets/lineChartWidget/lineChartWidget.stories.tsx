@@ -26,6 +26,14 @@ const sampleDurationTimeSeries2 = {
       value: datum.value * 0.3 + 30 * Math.random(),
     };
   }),
+  meta: {
+    fields: {
+      'p50(span.duration)': 'duration',
+    },
+    units: {
+      'p50(span.duration)': 'millisecond',
+    },
+  },
 };
 
 export default storyBook(LineChartWidget, story => {
@@ -76,14 +84,6 @@ export default storyBook(LineChartWidget, story => {
             title="eps()"
             description="Number of events per second"
             timeseries={[throughputTimeSeries]}
-            meta={{
-              fields: {
-                'eps()': 'rate',
-              },
-              units: {
-                'eps()': '1/second',
-              },
-            }}
           />
         </SmallSizingWindow>
 
@@ -103,16 +103,6 @@ export default storyBook(LineChartWidget, story => {
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
-              meta={{
-                fields: {
-                  'p99(span.duration)': 'duration',
-                  'p50(span.duration)': 'duration',
-                },
-                units: {
-                  'p99(span.duration)': 'millisecond',
-                  'p50(span.duration)': 'millisecond',
-                },
-              }}
             />
           </MediumWidget>
         </SideBySide>
@@ -172,17 +162,17 @@ export default storyBook(LineChartWidget, story => {
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
                 color: theme.error,
               } as unknown as TimeseriesData,
             ]}
-            meta={{
-              fields: {
-                'error_rate()': 'rate',
-              },
-              units: {
-                'error_rate()': '1/second',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -216,17 +206,17 @@ export default storyBook(LineChartWidget, story => {
               {
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
+                meta: {
+                  fields: {
+                    'error_rate()': 'rate',
+                  },
+                  units: {
+                    'error_rate()': '1/second',
+                  },
+                },
               } as unknown as TimeseriesData,
             ]}
             releases={releases}
-            meta={{
-              fields: {
-                'error_rate()': 'rate',
-              },
-              units: {
-                'error_rate()': '1/second',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>
