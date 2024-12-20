@@ -165,7 +165,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
         )
     except DataSource.DoesNotExist:
         return None
-    bulk_delete_snuba_subscriptions([QuerySubscription])
+    bulk_delete_snuba_subscriptions([query_subscription])
     return data_source
 
 
@@ -175,7 +175,8 @@ def dual_delete_migrated_alert_rule(
 ) -> None:
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
-    except AlertRuleDetector.DoesNotExist:
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    except (AlertRuleDetector.DoesNotExist, AlertRuleWorkflow.DoesNotExist):
         # TODO: log failure
         return
 
@@ -187,7 +188,8 @@ def dual_delete_migrated_alert_rule(
         # TODO: log failure
         return
 
-    # deleting the alert_rule also deletes alert_rule_workflow (in main delete logic)
+    # deleting the alert_rule would also delete alert_rule_workflow, but let's do it here
+    RegionScheduledDeletion.schedule(instance=alert_rule_workflow, days=0, actor=user)
     # also deletes alert_rule_detector, detector_workflow, detector_state
     RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
     # also deletes workflow_data_condition_group
