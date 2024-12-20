@@ -195,11 +195,13 @@ export function getGroupEventDetailsQueryData({
   query,
   start,
   end,
+  statsPeriod,
 }: {
   query: string | undefined;
   end?: string;
   environments?: string[];
   start?: string;
+  statsPeriod?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
@@ -221,6 +223,10 @@ export function getGroupEventDetailsQueryData({
     params.end = end;
   }
 
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
   return params;
 }
 
@@ -232,6 +238,7 @@ export function getGroupEventQueryKey({
   query,
   start,
   end,
+  statsPeriod,
 }: {
   environments: string[];
   eventId: string;
@@ -240,6 +247,7 @@ export function getGroupEventQueryKey({
   end?: string;
   query?: string;
   start?: string;
+  statsPeriod?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
@@ -249,6 +257,7 @@ export function getGroupEventQueryKey({
         query,
         start,
         end,
+        statsPeriod,
       }),
     },
   ];

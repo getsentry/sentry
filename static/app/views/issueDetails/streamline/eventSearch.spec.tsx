@@ -74,53 +74,65 @@ describe('EventSearch', () => {
   it('filters issue tokens from event queries', function () {
     const validQuery = `${tagKey}:${tagValue} device.family:[iphone,pixel]`;
 
-    const {result: onlyIssueTokens} = renderHook(() => useEventQuery({group}), {
-      wrapper: makeAllTheProviders({
-        organization,
-        router: RouterFixture({
-          location: LocationFixture({
-            query: {query: 'is:resolved assigned:[me,#issues] issue.priority:high'},
+    const {result: onlyIssueTokens} = renderHook(
+      () => useEventQuery({groupId: group.id}),
+      {
+        wrapper: makeAllTheProviders({
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {query: 'is:resolved assigned:[me,#issues] issue.priority:high'},
+            }),
           }),
         }),
-      }),
-    });
+      }
+    );
     expect(onlyIssueTokens.current).toBe('');
 
-    const {result: combinedTokens} = renderHook(() => useEventQuery({group}), {
-      wrapper: makeAllTheProviders({
-        organization,
-        router: RouterFixture({
-          location: LocationFixture({
-            query: {query: `is:resolved assigned:[me,#issues] ${validQuery}`},
+    const {result: combinedTokens} = renderHook(
+      () => useEventQuery({groupId: group.id}),
+      {
+        wrapper: makeAllTheProviders({
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {query: `is:resolved assigned:[me,#issues] ${validQuery}`},
+            }),
           }),
         }),
-      }),
-    });
+      }
+    );
     expect(combinedTokens.current).toBe(validQuery);
 
-    const {result: onlyEventTokens} = renderHook(() => useEventQuery({group}), {
-      wrapper: makeAllTheProviders({
-        organization,
-        router: RouterFixture({
-          location: LocationFixture({
-            query: {query: validQuery},
+    const {result: onlyEventTokens} = renderHook(
+      () => useEventQuery({groupId: group.id}),
+      {
+        wrapper: makeAllTheProviders({
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {query: validQuery},
+            }),
           }),
         }),
-      }),
-    });
+      }
+    );
     expect(onlyEventTokens.current).toBe(validQuery);
 
-    const {result: unrecognizedFilterKey} = renderHook(() => useEventQuery({group}), {
-      wrapper: makeAllTheProviders({
-        organization,
-        router: RouterFixture({
-          location: LocationFixture({
-            // This isn't in the TagsFixture or ISSUE_EVENT_PROPERTY_FIELDS
-            query: {query: `${validQuery} organization.slug:sentry`},
+    const {result: unrecognizedFilterKey} = renderHook(
+      () => useEventQuery({groupId: group.id}),
+      {
+        wrapper: makeAllTheProviders({
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              // This isn't in the TagsFixture or ISSUE_EVENT_PROPERTY_FIELDS
+              query: {query: `${validQuery} organization.slug:sentry`},
+            }),
           }),
         }),
-      }),
-    });
+      }
+    );
     expect(unrecognizedFilterKey.current).toBe(validQuery);
   });
 });

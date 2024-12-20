@@ -106,7 +106,7 @@ export function useGroupEventAttachments({
   const hasStreamlinedUI = useHasStreamlinedUI();
   const location = useLocation();
   const organization = useOrganization();
-  const eventQuery = useEventQuery({group});
+  const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
 
   const fetchAllAvailable = hasStreamlinedUI ? options?.fetchAllAvailable : true;

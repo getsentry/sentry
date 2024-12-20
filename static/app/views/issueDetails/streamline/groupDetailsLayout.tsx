@@ -31,7 +31,7 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const searchQuery = useEventQuery({group});
+  const searchQuery = useEventQuery({groupId: group.id});
   const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = sidebarOpen || isScreenSmall;

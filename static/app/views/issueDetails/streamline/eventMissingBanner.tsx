@@ -3,17 +3,41 @@ import styled from '@emotion/styled';
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
 import {Flex} from 'sentry/components/container/flex';
+import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {KNOWN_EVENT_IDS} from 'sentry/views/issueDetails/streamline/hooks/useStreamlineGroupEvent';
+import {KNOWN_EVENT_IDS} from 'sentry/views/issueDetails/useGroupEvent';
 
 export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
-  const params = useParams();
-  const eventId = params.eventId;
-
+  const organization = useOrganization();
+  const {groupId, eventId} = useParams<{eventId: string; groupId: string}>();
+  const baseUrl = `/organizations/${organization.slug}/issues/${groupId}/events`;
   const isSpecificEvent = !KNOWN_EVENT_IDS.has(eventId);
+
+  const specificEventTips = [
+    t(
+      'Double check the event ID. It may be incorrect, or its age exceeded the retention policy.'
+    ),
+    tct(
+      'Switch over to a [link:recommended] event instead, it should have more useful data.',
+      {
+        link: <Link to={`${baseUrl}/recommended/`} />,
+      }
+    ),
+  ];
+  const knownEventTips = [
+    t(
+      'Change up your filters. Try more environments, a wider date range, or a different query'
+    ),
+    tct('If nothing stands out, try [link:clearing your filters] all together', {
+      link: <Link to={`${baseUrl}/${eventId}/`} />,
+    }),
+  ];
+
+  const tips = isSpecificEvent ? specificEventTips : knownEventTips;
 
   return (
     <Flex align="center" justify="center">
@@ -30,19 +54,9 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
           <SubText style={{marginTop: space(1)}}>
             {t('If this is unexpected, here are some things you can try:')}
             <ul style={{margin: 0}}>
-              {isSpecificEvent ? (
-                <li>
-                  {t(
-                    'The event ID might be incorrect, or exceeded your retention policy.'
-                  )}
-                </li>
-              ) : null}
-              <li>
-                {t(
-                  'Change up your filters. Try more environments, a wider date range, or a different query'
-                )}
-              </li>
-              <li>{t('Other tips')}</li>
+              {tips.map((tip, i) => (
+                <li key={i}>{tip}</li>
+              ))}
             </ul>
           </SubText>
         </Flex>
@@ -54,7 +68,7 @@ export function EventMissingBanner({eventError}: {eventError?: RequestError}) {
 function ResponseText({eventError}: {eventError?: RequestError}) {
   const errorStatus = eventError?.status;
   const errorDetails = eventError?.responseJSON?.detail;
-  if (!errorStatus && !errorDetails) {
+  if (!errorDetails) {
     return null;
   }
   return (
