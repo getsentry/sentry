@@ -102,7 +102,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @staticmethod
-    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+    def __group_hourly_daily_stats(
+        group: Group, environment_ids: Sequence[int]
+    ) -> tuple[list[list[float]], list[list[float]]]:
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
