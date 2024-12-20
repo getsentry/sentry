@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -7,7 +9,9 @@ pytestmark = [requires_snuba]
 
 
 class SharedGroupDetailsTest(APITestCase):
-    def _get_path_functions(self):
+    def _get_path_functions(
+        self,
+    ) -> tuple[Callable[[str], str], Callable[[str], str], Callable[[str], str]]:
         # The urls for shared group details are supported both with an org slug and without.
         # We test both as long as we support both.
         # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
@@ -18,7 +22,7 @@ class SharedGroupDetailsTest(APITestCase):
             lambda share_id: f"/api/0/organizations/{self.organization.id}/shared/issues/{share_id}/",
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -44,7 +48,7 @@ class SharedGroupDetailsTest(APITestCase):
             assert response.data["project"]["slug"] == group.project.slug
             assert response.data["project"]["organization"]["slug"] == group.organization.slug
 
-    def test_does_not_leak_assigned_to(self):
+    def test_does_not_leak_assigned_to(self) -> None:
         self.login_as(user=self.user)
 
         min_ago = before_now(minutes=1).isoformat()
@@ -71,7 +75,7 @@ class SharedGroupDetailsTest(APITestCase):
             assert response.data["project"]["organization"]["slug"] == group.organization.slug
             assert "assignedTo" not in response.data
 
-    def test_feature_disabled(self):
+    def test_feature_disabled(self) -> None:
         self.login_as(user=self.user)
 
         group = self.create_group()
@@ -93,7 +97,7 @@ class SharedGroupDetailsTest(APITestCase):
 
             assert response.status_code == 404
 
-    def test_permalink(self):
+    def test_permalink(self) -> None:
         group = self.create_group()
 
         share_id = group.get_share_id()
