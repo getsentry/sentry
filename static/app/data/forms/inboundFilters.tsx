@@ -77,7 +77,8 @@ export const customFilterFields: Field[] = [
     help: (
       <Fragment>
         {t('Filter events by error messages. ')}
-        {newLineHelpText} {globHelpText}
+        {newLineHelpText} {globHelpText}{' '}
+        {t('Exceptions are matched on "<type>: <message>", for example "TypeError: *".')}
       </Fragment>
     ),
     getData: getOptionsData,
