@@ -1474,8 +1474,36 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsSpanIndexedEndpoin
             },
         }
 
-    def test_other_category_span(self):
-        super().test_other_category_span()
+    def test_filtering_numeric_attr(self):
+        span_1 = self.create_span(
+            {"description": "foo"},
+            measurements={"foo": {"value": 30}},
+            start_ts=self.ten_mins_ago,
+        )
+        span_2 = self.create_span(
+            {"description": "foo"},
+            measurements={"foo": {"value": 10}},
+            start_ts=self.ten_mins_ago,
+        )
+        self.store_spans([span_1, span_2], is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["tags[foo,number]"],
+                "query": "span.duration:>=0 tags[foo,number]:>20",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span_1["span_id"],
+                "project.name": self.project.slug,
+                "tags[foo,number]": 30,
+            },
+        ]
 
 
 class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
