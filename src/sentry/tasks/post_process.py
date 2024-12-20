@@ -1003,7 +1003,12 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     # If the flag is enabled, use the code below
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    workflow_job: WorkflowJob = dict(job)
+    # PostProcessJob event is optional, WorkflowJob event is required
+    try:
+        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+    except Exception:
+        logger.exception("Could not create WorkflowJob", extra={"job": job})
+        return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
         process_workflows(workflow_job)
