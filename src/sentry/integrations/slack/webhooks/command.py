@@ -27,7 +27,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils import metrics
 
-_logger = logging.getLogger("sentry.integration.slack.bot-commands.")
+_logger = logging.getLogger("sentry.integration.slack.bot-commands")
 
 from .base import SlackDMEndpoint
 
