@@ -176,11 +176,11 @@ def get_module_component(
     elif platform == "java":
         if "$$Lambda$" in module:
             module_component.update(contributes=False, hint="ignored java lambda")
-        if module[:35] == "sun.reflect.GeneratedMethodAccessor":
+        if module.startswith("sun.reflect.GeneratedMethodAccessor"):
             module_component.update(
                 values=["sun.reflect.GeneratedMethodAccessor"], hint="removed reflection marker"
             )
-        elif module[:44] == "jdk.internal.reflect.GeneratedMethodAccessor":
+        elif module.startswith("jdk.internal.reflect.GeneratedMethodAccessor"):
             module_component.update(
                 values=["jdk.internal.reflect.GeneratedMethodAccessor"],
                 hint="removed reflection marker",
