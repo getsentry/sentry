@@ -1,5 +1,13 @@
 {
   "field": "p99(span.duration)",
+  "meta": {
+    "fields": {
+      "p99(span.duration)": "duration"
+    },
+    "units": {
+      "p99(span.duration)": "millisecond"
+    }
+  },
   "data": [
     {
       "value": 163.26759544018776,

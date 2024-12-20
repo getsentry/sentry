@@ -1,5 +1,13 @@
 {
   "field": "eps()",
+  "meta": {
+    "fields": {
+      "eps()": "rate"
+    },
+    "units": {
+      "eps()": "1/second"
+    }
+  },
   "data": [
     {
       "value": 7456.966666666666,
