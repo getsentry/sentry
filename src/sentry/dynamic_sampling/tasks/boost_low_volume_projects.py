@@ -75,10 +75,11 @@ from sentry.utils.snuba import raw_snql_query
 PROJECTS_WITH_METRICS = {1, 11276}  # sentry  # javascript
 logger = logging.getLogger(__name__)
 
-ProjectWithTxCountAndRates = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
-OrganizationProjectWithTxCountAndRates = tuple[
-    OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount
-]
+# a tuple type alias of project_id, root_count, keep_count, drop_count, to be used in extraction of metrics for a specific project
+ProjectVolumes = tuple[ProjectId, int, DecisionKeepCount, DecisionDropCount]
+
+# the same as ProjectVolumes, but with the organization ID added
+OrgProjectVolumes = tuple[OrganizationId, ProjectId, int, DecisionKeepCount, DecisionDropCount]
 
 
 @instrumented_task(
@@ -211,7 +212,7 @@ def boost_low_volume_projects_of_org_with_query(
 @dynamic_sampling_task
 def boost_low_volume_projects_of_org(
     org_id: OrganizationId,
-    projects_with_tx_count_and_rates: Sequence[ProjectWithTxCountAndRates],
+    projects_with_tx_count_and_rates: Sequence[ProjectVolumes],
 ) -> None:
     """
     Task to adjust the sample rates of the projects of a single organization specified by an
@@ -232,7 +233,7 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     org_ids: list[int],
     measure: SamplingMeasure,
     query_interval: timedelta | None = None,
-) -> Mapping[OrganizationId, Sequence[ProjectWithTxCountAndRates]]:
+) -> Mapping[OrganizationId, Sequence[ProjectVolumes]]:
     """
     Fetches for each org and each project the total root transaction count and how many transactions were kept and
     dropped.
@@ -242,23 +243,20 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
     with timer:
         context.incr_function_state(func_name, num_iterations=1)
 
+        project_count_query_iter = query_project_counts_by_org(
+            org_ids,
+            measure,
+            query_interval,
+        )
         aggregated_projects = defaultdict(list)
-        for chunk in TimedIterator(
-            context,
-            query_projects_with_total_root_transaction_count_and_rates(
-                org_ids,
-                measure,
-                query_interval,
-            ),
-            func_name,
-        ):
-            for row in chunk:
-                aggregated_projects[row["org_id"]].append(
+        for chunk in TimedIterator(context, project_count_query_iter, func_name):
+            for org_id, project_id, root_count_value, keep_count, drop_count in chunk:
+                aggregated_projects[org_id].append(
                     (
-                        row["project_id"],
-                        row["root_count_value"],
-                        row["keep_count"],
-                        row["drop_count"],
+                        project_id,
+                        root_count_value,
+                        keep_count,
+                        drop_count,
                     )
                 )
 
@@ -276,11 +274,11 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         return aggregated_projects
 
 
-def query_projects_with_total_root_transaction_count_and_rates(
+def query_project_counts_by_org(
     org_ids: list[int],
     measure: SamplingMeasure,
     query_interval: timedelta | None = None,
-) -> Iterator[Sequence[OrganizationProjectWithTxCountAndRates]]:
+) -> Iterator[Sequence[OrgProjectVolumes]]:
     """Queries the total root transaction count and how many transactions were kept and dropped
     for each project in a given interval (defaults to the last hour).
 
@@ -304,55 +302,47 @@ def query_projects_with_total_root_transaction_count_and_rates(
     else:
         raise ValueError(f"Unsupported measure: {measure}")
 
-    where = [
-        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
-        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-        Condition(Column("metric_id"), Op.EQ, metric_id),
-        Condition(Column("org_id"), Op.IN, org_ids),
-    ]
-
-    keep_count = Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function("equals", [Column(transaction_tag), "keep"]),
+    query = Query(
+        match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+        select=[
+            Function("sum", [Column("value")], "root_count_value"),
+            Column("org_id"),
+            Column("project_id"),
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column(transaction_tag), "keep"]),
+                ],
+                alias="keep_count",
+            ),
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column(transaction_tag), "drop"]),
+                ],
+                alias="drop_count",
+            ),
         ],
-        alias="keep_count",
-    )
-    drop_count = Function(
-        "sumIf",
-        [
-            Column("value"),
-            Function("equals", [Column(transaction_tag), "drop"]),
+        groupby=[Column("org_id"), Column("project_id")],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - query_interval),
+            Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+            Condition(Column("metric_id"), Op.EQ, metric_id),
+            Condition(Column("org_id"), Op.IN, org_ids),
         ],
-        alias="drop_count",
-    )
-
-    query = (
-        Query(
-            match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-            select=[
-                Function("sum", [Column("value")], "root_count_value"),
-                Column("org_id"),
-                Column("project_id"),
-                keep_count,
-                drop_count,
-            ],
-            groupby=[Column("org_id"), Column("project_id")],
-            where=where,
-            granularity=granularity,
-            orderby=[
-                OrderBy(Column("org_id"), Direction.ASC),
-                OrderBy(Column("project_id"), Direction.ASC),
-            ],
-        ).set_limitby(
-            LimitBy(
-                columns=[Column("org_id"), Column("project_id")],
-                count=MAX_TRANSACTIONS_PER_PROJECT,
-            )
-        )
+        granularity=granularity,
+        orderby=[
+            OrderBy(Column("org_id"), Direction.ASC),
+            OrderBy(Column("project_id"), Direction.ASC),
+        ],
+        limitby=LimitBy(
+            columns=[Column("org_id"), Column("project_id")],
+            count=MAX_TRANSACTIONS_PER_PROJECT,
+        ),
         # we are fetching one more than the chunk size to determine if there are more results
-        .set_limit(CHUNK_SIZE + 1)
+        limit=CHUNK_SIZE + 1,
     )
 
     offset = 0
@@ -390,7 +380,7 @@ def query_projects_with_total_root_transaction_count_and_rates(
 
 def calculate_sample_rates_of_projects(
     org_id: int,
-    projects_with_tx_count: Sequence[ProjectWithTxCountAndRates],
+    projects_with_tx_count: Sequence[ProjectVolumes],
 ) -> list[RebalancedItem] | None:
     """
     Calculates the sample rates of projects belonging to a specific org.

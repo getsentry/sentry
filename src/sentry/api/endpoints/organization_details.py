@@ -71,7 +71,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import (
     boost_low_volume_projects_of_org_with_query,
     calculate_sample_rates_of_projects,
-    query_projects_with_total_root_transaction_count_and_rates,
+    query_project_counts_by_org,
 )
 from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
 from sentry.dynamic_sampling.utils import (
@@ -1040,7 +1040,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             measure = SamplingMeasure.SPANS
 
         projects_with_tx_count_and_rates = []
-        for chunk in query_projects_with_total_root_transaction_count_and_rates(
+        for chunk in query_project_counts_by_org(
             [org_id], measure, query_interval=timedelta(days=30)
         ):
             for row in chunk:
