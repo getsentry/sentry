@@ -47,7 +47,7 @@ export function ReleaseSelector({
   sortBy,
 }: Props) {
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
-  const {data, isLoading} = useReleases({searchTerm, sortBy});
+  const {data, isLoading} = useReleases(searchTerm, sortBy);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const location = useLocation();
 

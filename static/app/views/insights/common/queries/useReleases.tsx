@@ -16,13 +16,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
-export function useReleases({
-  searchTerm,
-  sortBy,
-}: {
-  searchTerm?: string;
-  sortBy?: ReleasesSortByOption;
-} = {}) {
+export function useReleases(
+  searchTerm: string | undefined,
+  sortBy: ReleasesSortByOption | undefined
+) {
   const organization = useOrganization();
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
@@ -132,7 +129,7 @@ export function useReleaseSelection(): {
 } {
   const location = useLocation();
 
-  const {data: releases, isLoading} = useReleases();
+  const {data: releases, isLoading} = useReleases(undefined, undefined);
 
   // If there are more than 1 release, the first one should be the older one
   const primaryRelease =
