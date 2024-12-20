@@ -225,12 +225,12 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 event = event.for_group(event.group)
 
         if event is None:
-            return Response(
-                {
-                    "detail": "Event not found. The event ID may be incorrect, or it's age exceeded the retention period."
-                },
-                status=404,
+            error_text = (
+                "Event not found. The event ID may be incorrect, or its age exceeded the retention period."
+                if event_id not in {"recommended", "latest", "oldest"}
+                else "No matching event found. Try changing the environments, date range, or query."
             )
+            return Response({"detail": error_text}, status=404)
 
         collapse = request.GET.getlist("collapse", [])
         if "stacktraceOnly" in collapse:
