@@ -809,6 +809,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.unmerge",
     "sentry.tasks.update_user_reports",
     "sentry.tasks.user_report",
+    "sentry.tempest.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.rules.processing.delayed_processing",
@@ -972,6 +973,7 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
+    Queue("tempest", routing_key="tempest"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("uptime", routing_key="uptime"),
@@ -1187,6 +1189,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.uptime.tasks.subscription_checker",
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
+    },
+    "poll_tempest": {
+        "task": "sentry.tempest.tasks.poll_tempest",
+        # Run every 5 minute
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 5 * 60},
     },
     "transaction-name-clusterer": {
         "task": "sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",

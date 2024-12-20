@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.tempest.models import TempestCredentials
 from sentry.tempest.permissions import TempestCredentialsPermission
 from sentry.tempest.serializers import DRFTempestCredentialsSerializer, TempestCredentialsSerializer
+from sentry.tempest.tasks import fetch_latest_item_id
 
 
 @region_silo_endpoint
@@ -50,7 +51,9 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         serializer = DRFTempestCredentialsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            serializer.save(created_by_id=request.user.id, project=project)
+            credentials = serializer.save(created_by_id=request.user.id, project=project)
+            # Make initial call to determine the latest item ID
+            fetch_latest_item_id.delay(credentials.id)
         except IntegrityError:
             return Response(
                 {"detail": "A credential with this client ID already exists."}, status=400
