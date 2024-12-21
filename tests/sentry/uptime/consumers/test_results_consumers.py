@@ -699,3 +699,20 @@ class ProcessResultTest(ProducerTestMixin):
         group_2 = mock_process_group.mock_calls[1].args[0]
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
+
+    @mock.patch("sentry.uptime.consumers.results_consumer._snuba_uptime_checks_producer.produce")
+    @override_options({"uptime.snuba_uptime_results.enabled": True})
+    def test_produces_snuba_uptime_results(self, mock_produce) -> None:
+        """
+        Validates that the consumer produces a message to Snuba's Kafka topic for uptime check results
+        """
+        factory = UptimeResultsStrategyFactory(mode="parallel", max_batch_size=3, max_workers=1)
+        consumer = factory.create_with_partitions(mock.Mock(), {self.partition: 0})
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        self.send_result(result, consumer=consumer)
+        mock_produce.assert_called_once()
+        assert mock_produce.call_args.args[0].topic == "snuba-uptime-checks"
+        # TODO :assert it's the right message
