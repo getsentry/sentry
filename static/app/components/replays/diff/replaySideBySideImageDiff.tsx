@@ -20,8 +20,8 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
   return (
     <Flex column>
       <DiffHeader>
-        <Before />
-        <After />
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
 
       <ReplayGrid>
