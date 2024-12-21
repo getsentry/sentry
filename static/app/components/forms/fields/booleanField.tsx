@@ -13,6 +13,7 @@ export interface BooleanFieldProps extends InputFieldProps {
     false?: React.ReactNode;
     true?: React.ReactNode;
   };
+  isDangerous?: boolean;
 }
 
 export default class BooleanField extends Component<BooleanFieldProps> {
@@ -33,7 +34,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
   };
 
   render() {
-    const {confirm, ...fieldProps} = this.props;
+    const {confirm, isDangerous, ...fieldProps} = this.props;
 
     return (
       <FormField {...fieldProps} resetOnError>
@@ -71,6 +72,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
               <Confirm
                 renderMessage={() => confirm[(!value).toString()]}
                 onConfirm={() => handleChange({})}
+                isDangerous={isDangerous}
               >
                 {({open}) => (
                   <Tooltip title={disabledReason} skipWrapper disabled={!disabled}>
