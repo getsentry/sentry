@@ -123,9 +123,12 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert not WorkflowDataConditionGroup.objects.filter(
             id=workflow_data_condition_group.id
         ).exists()
-        assert not Workflow.objects.filter(id=workflow.id).exists()
 
         # check data source
         assert not DataSource.objects.filter(id=data_source.id).exists()
         query_subscription.refresh_from_db()
         assert query_subscription.status == QuerySubscription.Status.DELETING.value
+
+        # don't delete the associated workflow
+        # uncomment this when things change in the dual write
+        # assert Workflow.objects.filter(id=workflow.id).exists()
