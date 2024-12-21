@@ -13,7 +13,7 @@ from sentry.models.group import Group
 logger = logging.getLogger(__name__)
 
 
-def _fix_label(label):
+def _fix_label(label) -> str:
     if isinstance(label, tuple):
         return ":".join(label)
     return label

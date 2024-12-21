@@ -83,14 +83,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         },
     }
 
-    def _get_activity(self, request: Request, group, num):
-        return Activity.objects.get_activities_for_group(group, num)
-
-    def _get_seen_by(self, request: Request, group):
+    def _get_seen_by(self, request: Request, group: Group):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group):
+    def _get_context_plugins(self, request: Request, group: Group):
         project = group.project
         return serialize(
             [
@@ -105,7 +102,9 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         )
 
     @staticmethod
-    def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
+    def __group_hourly_daily_stats(
+        group: Group, environment_ids: Sequence[int]
+    ) -> tuple[list[list[float]], list[list[float]]]:
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.backend.rollup(
@@ -133,7 +132,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
         return hourly_stats, daily_stats
 
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         Retrieve an Issue
         `````````````````
@@ -164,7 +163,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
 
             # TODO: these probably should be another endpoint
-            activity = self._get_activity(request, group, num=100)
+            activity = Activity.objects.get_activities_for_group(group, 100)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -317,7 +316,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             )
             raise
 
-    def put(self, request: Request, group) -> Response:
+    def put(self, request: Request, group: Group) -> Response:
         """
         Update an Issue
         ```````````````
