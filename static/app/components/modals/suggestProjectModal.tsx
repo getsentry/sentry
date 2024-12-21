@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -30,38 +30,30 @@ type Props = ModalRenderProps & {
   organization: Organization;
 };
 
-type State = {
-  askTeammate: boolean;
-};
+function SuggestProjectModal(props: Props) {
+  const [askTeammate, setAskTeammate] = useState<boolean>(false);
+  const {matchedUserAgentString, organization, closeModal, Body, Header, Footer} = props;
 
-class SuggestProjectModal extends Component<Props, State> {
-  state: State = {
-    askTeammate: false,
-  };
-
-  handleGetStartedClick = () => {
-    const {matchedUserAgentString, organization} = this.props;
+  const handleGetStartedClick = () => {
     trackAnalytics('growth.clicked_mobile_prompt_setup_project', {
       matchedUserAgentString,
       organization,
     });
   };
 
-  handleAskTeammate = () => {
-    const {matchedUserAgentString, organization} = this.props;
-    this.setState({askTeammate: true});
+  const handleAskTeammate = () => {
+    setAskTeammate(true);
     trackAnalytics('growth.clicked_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
       organization,
     });
   };
 
-  goBack = () => {
-    this.setState({askTeammate: false});
+  const goBack = () => {
+    setAskTeammate(false);
   };
 
-  handleSubmitSuccess = () => {
-    const {matchedUserAgentString, organization, closeModal} = this.props;
+  const handleSubmitSuccess = () => {
     addSuccessMessage('Notified teammate successfully');
     trackAnalytics('growth.submitted_mobile_prompt_ask_teammate', {
       matchedUserAgentString,
@@ -70,28 +62,27 @@ class SuggestProjectModal extends Component<Props, State> {
     closeModal();
   };
 
-  handlePreSubmit = () => {
+  const handlePreSubmit = () => {
     addLoadingMessage(t('Submitting\u2026'));
   };
 
-  handleSubmitError = () => {
+  const handleSubmitError = () => {
     addErrorMessage(t('Error notifying teammate'));
   };
 
-  renderAskTeammate() {
-    const {Body, organization} = this.props;
+  const renderAskTeammate = () => {
     return (
       <Body>
         <Form
           apiEndpoint={`/organizations/${organization.slug}/request-project-creation/`}
           apiMethod="POST"
           submitLabel={t('Send')}
-          onSubmitSuccess={this.handleSubmitSuccess}
-          onSubmitError={this.handleSubmitError}
-          onPreSubmit={this.handlePreSubmit}
+          onSubmitSuccess={handleSubmitSuccess}
+          onSubmitError={handleSubmitError}
+          onPreSubmit={handlePreSubmit}
           extraButton={
             <BackWrapper>
-              <StyledBackButton onClick={this.goBack}>{t('Back')}</StyledBackButton>
+              <StyledBackButton onClick={goBack}>{t('Back')}</StyledBackButton>
             </BackWrapper>
           }
         >
@@ -109,11 +100,9 @@ class SuggestProjectModal extends Component<Props, State> {
         </Form>
       </Body>
     );
-  }
+  };
 
-  renderMain() {
-    const {Body, Footer, organization} = this.props;
-
+  const renderMain = () => {
     const paramString = qs.stringify({
       referrer: 'suggest_project',
       category: 'mobile',
@@ -167,14 +156,14 @@ class SuggestProjectModal extends Component<Props, State> {
               <ButtonBar gap={1}>
                 <Button
                   priority={hasAccess ? 'default' : 'primary'}
-                  onClick={this.handleAskTeammate}
+                  onClick={handleAskTeammate}
                 >
                   {t('Tell a Teammate')}
                 </Button>
                 {hasAccess && (
                   <LinkButton
                     href={newProjectLink}
-                    onClick={this.handleGetStartedClick}
+                    onClick={handleGetStartedClick}
                     priority="primary"
                   >
                     {t('Get Started')}
@@ -186,22 +175,18 @@ class SuggestProjectModal extends Component<Props, State> {
         </Footer>
       </Fragment>
     );
-  }
+  };
 
-  render() {
-    const {Header} = this.props;
-    const {askTeammate} = this.state;
-    const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
-    return (
-      <Fragment>
-        <Header>
-          <PatternHeader />
-          <Title>{header}</Title>
-        </Header>
-        {this.state.askTeammate ? this.renderAskTeammate() : this.renderMain()}
-      </Fragment>
-    );
-  }
+  const header = askTeammate ? t('Tell a Teammate') : t('Try Sentry for Mobile');
+  return (
+    <Fragment>
+      <Header>
+        <PatternHeader />
+        <Title>{header}</Title>
+      </Header>
+      {askTeammate ? renderAskTeammate() : renderMain()}
+    </Fragment>
+  );
 }
 
 const ModalContainer = styled('div')`
