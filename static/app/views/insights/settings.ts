@@ -25,6 +25,7 @@ import {
   DATA_TYPE_PLURAL as CRONS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as CRONS_MODULE_DOC_LINK,
   MODULE_FEATURES as CRONS_MODULE_FEATURES,
+  MODULE_HIDDEN_FEATURES as CRONS_MODULE_HIDDEN_FEATURES,
   MODULE_TITLE as CRONS_MODULE_TITLE,
 } from 'sentry/views/insights/crons/settings';
 import {
@@ -93,6 +94,7 @@ import {
   DATA_TYPE_PLURAL as UPTIME_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
   MODULE_FEATURES as UPTIME_MODULE_FEATURES,
+  MODULE_HIDDEN_FEATURES as UPTIME_MODULE_HIDDEN_FEATURES,
   MODULE_TITLE as UPTIME_MODULE_TITLE,
 } from 'sentry/views/insights/uptime/settings';
 
@@ -196,9 +198,22 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
 };
 
 /**
- * Modules that will not display tabs when the feature is not enabled
+ * Features that control the visibility of modules
  */
-export const MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED: ModuleName[] = [
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
-];
+export const MODULE_FEATURE_HIDDEN_MAP: Record<ModuleName, string[]> = {
+  [ModuleName.DB]: ['insights-entry-points'],
+  [ModuleName.APP_START]: ['insights-entry-points'],
+  [ModuleName.HTTP]: ['insights-entry-points'],
+  [ModuleName.RESOURCE]: ['insights-entry-points'],
+  [ModuleName.VITAL]: ['insights-entry-points'],
+  [ModuleName.CACHE]: ['insights-entry-points'],
+  [ModuleName.QUEUE]: ['insights-entry-points'],
+  [ModuleName.AI]: ['insights-entry-points'],
+  [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
+  [ModuleName.MOBILE_UI]: ['insights-entry-points'],
+  [ModuleName.MOBILE_SCREENS]: ['insights-entry-points'],
+  [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
+  [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_HIDDEN_FEATURES],
+  [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_HIDDEN_FEATURES],
+  [ModuleName.OTHER]: ['insights-entry-points'],
+};
