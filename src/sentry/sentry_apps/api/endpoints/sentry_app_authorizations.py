@@ -15,6 +15,7 @@ from sentry.sentry_apps.api.bases.sentryapps import SentryAppAuthorizationsBaseE
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.token_exchange.refresher import Refresher
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,8 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 },
             )
             return Response({"error": e.msg or "Unauthorized"}, status=403)
+        except UnableToAcquireLock:
+            return Response({"error": "invalid_grant"}, status=409)
 
         attrs = {"state": request.data.get("state"), "application": None}
 
