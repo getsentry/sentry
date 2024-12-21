@@ -1,9 +1,8 @@
-import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {SelectValue} from 'sentry/types/core';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {FILTER_OPTIONS} from './constants';
 import type {DataFilter} from './types';
@@ -22,34 +21,30 @@ type Props = {
   zoomKeys: string[];
 };
 
-class Histogram extends Component<Props> {
-  isZoomed() {
-    const {location, zoomKeys} = this.props;
+function Histogram(props: Props) {
+  const {location, zoomKeys, children} = props;
+  const navigate = useNavigate();
+
+  const isZoomed = () => {
     return zoomKeys.map(key => location.query[key]).some(value => value !== undefined);
-  }
+  };
 
-  handleResetView = () => {
-    const {location, zoomKeys} = this.props;
-
-    browserHistory.push({
+  const handleResetView = () => {
+    navigate({
       pathname: location.pathname,
       query: removeHistogramQueryStrings(location, zoomKeys),
     });
   };
 
-  getActiveFilter() {
-    const {location} = this.props;
-
+  const getActiveFilter = () => {
     const dataFilter = location.query.dataFilter
       ? decodeScalar(location.query.dataFilter)
       : FILTER_OPTIONS[0].value;
     return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
-  }
+  };
 
-  handleFilterChange = (value: string) => {
-    const {location, zoomKeys} = this.props;
-
-    browserHistory.push({
+  const handleFilterChange = (value: string) => {
+    navigate({
       pathname: location.pathname,
       query: {
         ...removeHistogramQueryStrings(location, zoomKeys),
@@ -58,16 +53,14 @@ class Histogram extends Component<Props> {
     });
   };
 
-  render() {
-    const childrenProps = {
-      isZoomed: this.isZoomed(),
-      handleResetView: this.handleResetView,
-      activeFilter: this.getActiveFilter(),
-      handleFilterChange: this.handleFilterChange,
-      filterOptions: FILTER_OPTIONS,
-    };
-    return this.props.children(childrenProps);
-  }
+  const childrenProps = {
+    isZoomed: isZoomed(),
+    handleResetView,
+    activeFilter: getActiveFilter(),
+    handleFilterChange,
+    filterOptions: FILTER_OPTIONS,
+  };
+  return children(childrenProps);
 }
 
 export function removeHistogramQueryStrings(location: Location, zoomKeys: string[]) {
