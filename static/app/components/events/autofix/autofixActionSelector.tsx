@@ -83,6 +83,7 @@ function AutofixActionSelector<T extends string>({
 
 const Container = styled('div')`
   min-height: 40px;
+  padding: 0 ${space(1)};
 `;
 
 const ContentWrapper = styled('div')`
