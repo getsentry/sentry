@@ -93,6 +93,19 @@ client.addHooks(new Sentry.OpenFeatureIntegrationHook());
 // Evaluating flags will record the result on the Sentry client.
 const result = client.getBooleanValue('my-flag', false);`,
   },
+  [IntegrationOptions.GENERIC]: {
+    importStatement: ``,
+    integration: 'featureFlagsIntegration()',
+    sdkInit: `const flagsIntegration = Sentry.getClient()?.getIntegrationByName<Sentry.FeatureFlagsIntegration>('FeatureFlags');
+
+if (flagsIntegration) {
+  flagsIntegration.addFeatureFlag('test-flag', false);
+} else {
+  // Something went wrong, check your DSN and/or integrations
+}
+
+Sentry.captureException(new Error('Something went wrong!'));`,
+  },
 };
 
 const isAutoInstall = (params: Params) =>
