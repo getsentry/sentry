@@ -685,7 +685,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
             mock_seer_request.reset_mock()
 
-    def test_too_many_system_frames(self) -> None:
+    def test_too_many_frames(self) -> None:
         error_type = "FailedToFetchError"
         error_value = "Charlie didn't bring the ball back"
         context_line = f"raise {error_type}('{error_value}')"
