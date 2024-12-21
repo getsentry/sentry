@@ -1,4 +1,5 @@
 import sentry_sdk
+from jsonschema import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -39,7 +40,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
             queryset=sentry_app.components.all(),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, errors=[], serializer=SentryAppComponentSerializer()
+                x, request.user, errors={}, serializer=SentryAppComponentSerializer()
             ),
         )
 
@@ -59,7 +60,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         organization: RpcOrganization,
     ) -> Response:
         components = []
-        errors = []
+        errors = {}
 
         with sentry_sdk.start_transaction(name="sentry.api.sentry_app_components.get"):
             with sentry_sdk.start_span(op="sentry-app-components.get_installs"):
@@ -80,11 +81,20 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                     with sentry_sdk.start_span(op="sentry-app-components.prepare_components"):
                         try:
                             SentryAppComponentPreparer(component=component, install=install).run()
-                        except APIError:
-                            errors.append(str(component.uuid))
+
+                        # APIError is for webhook request fails
+                        except (APIError, ValidationError) as e:
+                            errors[str(component.uuid)] = (
+                                f"Encountered error: {str(e)}, while preparing component: {str(component.uuid)}"
+                            )
+
+                        except Exception as e:
+                            error_id = sentry_sdk.capture_exception(e)
+                            errors[str(component.uuid)] = (
+                                f"Something went wrong while trying to link issue for component: {str(component.uuid)}. Sentry error ID: {error_id}"
+                            )
 
                         components.append(component)
-
         return self.paginate(
             request=request,
             queryset=components,
