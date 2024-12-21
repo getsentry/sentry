@@ -16,6 +16,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {
+  ContinuousProfilingBetaBanner,
   ProfilingAM1OrMMXUpgrade,
   ProfilingBetaAlertBanner,
   ProfilingUpgradeButton,
@@ -124,6 +125,9 @@ export default function ProfilingContent({location}: ProfilingContentProps) {
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
+          {organization.features.includes('continuous-profiling-beta') ? (
+            <ContinuousProfilingBetaBanner />
+          ) : null}
           <ProfilingContentPageHeader tab={tab} onTabChange={onTabChange} />
           {tab === 'flamegraph' ? (
             <FlamegraphBody>
