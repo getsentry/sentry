@@ -137,7 +137,7 @@ export function getAlertRuleExploreUrl({
     orgSlug,
     selection: {
       datetime: {
-        period,
+        period: period === '9998m' ? '7d' : period,
         start: null,
         end: null,
         utc: null,
