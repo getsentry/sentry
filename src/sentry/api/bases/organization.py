@@ -134,7 +134,7 @@ class OrganizationReleasePermission(OrganizationPermission):
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
         "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
-        "DELETE": ["project:admin", "project:releases"],
+        "DELETE": ["project:admin"],
     }
 
 
