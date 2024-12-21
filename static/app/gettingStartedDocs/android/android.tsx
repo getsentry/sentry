@@ -10,7 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getAndroidMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
@@ -305,9 +304,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/android/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
