@@ -85,7 +85,7 @@ function FieldGroup({
       <FieldDescription
         displayNone={!shouldRenderLabel && !helpElement}
         inline={inline}
-        htmlFor={id}
+        // htmlFor={id}
         aria-label={ariaLabel}
       >
         {shouldRenderLabel && (
