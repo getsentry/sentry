@@ -68,10 +68,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
-        }
-        self.form_fields["notes"] = {
-            "type": "string",
-            "placeholder": "e.g. @jane, @on-call-team",
+            "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
         self._repository: IssueAlertNotificationMessageRepository = (
