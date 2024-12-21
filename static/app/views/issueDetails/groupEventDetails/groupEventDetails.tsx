@@ -162,13 +162,11 @@ function GroupEventDetails() {
 
   const renderContent = () => {
     if (isLoadingEvent) {
-      if (hasStreamlinedUI) {
-        return <GroupEventDetailsLoading />;
-      }
-      return <LoadingIndicator />;
+      return hasStreamlinedUI ? <GroupEventDetailsLoading /> : <LoadingIndicator />;
     }
 
-    if (isEventError) {
+    // The streamlined UI uses a different error interface
+    if (isEventError && !hasStreamlinedUI) {
       return (
         <GroupEventDetailsLoadingError
           environments={environments}

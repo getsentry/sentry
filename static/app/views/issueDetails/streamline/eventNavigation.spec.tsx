@@ -34,7 +34,6 @@ describe('EventNavigation', () => {
   const defaultProps: React.ComponentProps<typeof IssueEventNavigation> = {
     event: testEvent,
     group,
-    query: undefined,
   };
 
   beforeEach(() => {
