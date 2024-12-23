@@ -22,6 +22,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
   COLD_START_TYPE,
@@ -108,6 +109,41 @@ export function ScreenSummaryContentPage() {
     }
   }, [location, appStartType]);
 
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: (
+      <SpanSamplesPanel
+        additionalFilters={{
+          [SpanMetricsField.APP_START_TYPE]: appStartType,
+          ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+        }}
+        groupId={spanGroup}
+        moduleName={ModuleName.APP_START}
+        transactionName={transactionName}
+        spanDescription={spanDescription}
+        spanOp={spanOp}
+        onClose={() => {
+          router.replace({
+            pathname: router.location.pathname,
+            query: omit(
+              router.location.query,
+              'spanGroup',
+              'transactionMethod',
+              'spanDescription',
+              'spanOp'
+            ),
+          });
+        }}
+      />
+    ),
+    moduleName: ModuleName.SCREEN_RENDERING,
+  });
+
+  useEffect(() => {
+    if (transactionName && spanGroup && spanOp && appStartType) {
+      openSamplesDrawer();
+    }
+  });
+
   return (
     <Fragment>
       <HeaderContainer>
@@ -179,31 +215,6 @@ export function ScreenSummaryContentPage() {
       <SamplesContainer>
         <SamplesTables transactionName={transactionName} />
       </SamplesContainer>
-      {spanGroup && spanOp && appStartType && (
-        <SpanSamplesPanel
-          additionalFilters={{
-            [SpanMetricsField.APP_START_TYPE]: appStartType,
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
-          groupId={spanGroup}
-          moduleName={ModuleName.APP_START}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }

@@ -1,6 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -8,12 +7,12 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
@@ -65,7 +64,6 @@ function ScreenSummary() {
 
 export function ScreenSummaryContent() {
   const location = useLocation<Query>();
-  const router = useRouter();
 
   const {
     transaction: transactionName,
@@ -74,6 +72,28 @@ export function ScreenSummaryContent() {
     spanOp,
     'device.class': deviceClass,
   } = location.query;
+
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: (
+      <SpanSamplesPanel
+        additionalFilters={{
+          ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+        }}
+        groupId={spanGroup}
+        moduleName={ModuleName.OTHER}
+        transactionName={transactionName}
+        spanDescription={spanDescription}
+        spanOp={spanOp}
+      />
+    ),
+    moduleName: ModuleName.SCREEN_RENDERING,
+  });
+
+  useEffect(() => {
+    if (spanGroup && spanOp) {
+      openSamplesDrawer();
+    }
+  });
 
   return (
     <Fragment>
@@ -95,31 +115,6 @@ export function ScreenSummaryContent() {
           EventSamples={_props => <div />}
         />
       </SamplesContainer>
-
-      {spanGroup && spanOp && (
-        <SpanSamplesPanel
-          additionalFilters={{
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
-          groupId={spanGroup}
-          moduleName={ModuleName.OTHER}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
-          }}
-        />
-      )}
     </Fragment>
   );
 }
