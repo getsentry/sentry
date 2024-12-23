@@ -13,13 +13,14 @@ import {useDomainViewFilters} from '../../pages/useFilters';
 interface SampleDrawerHeaderProps {
   transaction: string;
   project?: Project;
+  subtitle?: string;
   transactionMethod?: string;
 }
 
 export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
   const organization = useOrganization();
 
-  const {project, transaction, transactionMethod} = props;
+  const {project, subtitle, transaction, transactionMethod} = props;
   const {view} = useDomainViewFilters();
 
   const label =
@@ -38,6 +39,8 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
           tooltip={project.slug}
         />
       )}
+
+      {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
 
       {project ? (
         <TruncatedLink
@@ -67,6 +70,10 @@ const Bar = styled('h4')`
 
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
+`;
+
+const Subtitle = styled('span')`
+  color: ${p => p.theme.subText};
 `;
 
 const TruncatedLink = styled(Link)`
