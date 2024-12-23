@@ -1,6 +1,6 @@
 import abc
 from collections.abc import Sequence
-from typing import Any, TypeVar
+from typing import Any
 
 from sentry.models.project import Project
 
@@ -24,9 +24,6 @@ class Mapper(abc.ABC):
     @abc.abstractmethod
     def backward(self, projects: Sequence[Project], value: Any) -> Any:
         return value
-
-
-TMapper = TypeVar("TMapper", bound=Mapper)
 
 
 class MapperConfig:
