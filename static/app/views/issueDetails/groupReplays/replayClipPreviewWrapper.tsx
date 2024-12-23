@@ -1,7 +1,7 @@
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {Group} from 'sentry/types/group';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
@@ -20,7 +20,7 @@ type Props = {
 export function ReplayClipPreviewWrapper(props: Props) {
   const {selectedReplayIndex} = props;
   const {analyticsContext} = useReplayContext();
-  const replayReaderData = useReplayReader({
+  const replayReaderData = useLoadReplayReader({
     orgSlug: props.orgSlug,
     replaySlug: props.replaySlug,
     group: props.group,

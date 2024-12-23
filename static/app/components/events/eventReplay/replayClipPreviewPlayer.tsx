@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -28,7 +28,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 interface ReplayClipPreviewPlayerProps {
   analyticsContext: string;
   orgSlug: string;
-  replayReaderResult: ReturnType<typeof useReplayReader>;
+  replayReaderResult: ReturnType<typeof useLoadReplayReader>;
   focusTab?: TabKey;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
   handleBackClick?: () => void;

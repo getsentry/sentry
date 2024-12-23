@@ -2,14 +2,14 @@ import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 interface Props
   extends Pick<
-    ReturnType<typeof useReplayReader>,
+    ReturnType<typeof useLoadReplayReader>,
     'fetchError' | 'fetching' | 'projectSlug' | 'replay'
   > {}
 
