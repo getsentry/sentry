@@ -11,6 +11,22 @@ We don't want to save these keys because:
 """
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
 
+"""
+Action types that are integrations
+"""
+INTEGRATION_ACTION_TYPES = [
+    Action.Type.SLACK,
+    Action.Type.DISCORD,
+    Action.Type.MSTEAMS,
+    Action.Type.PAGERDUTY,
+    Action.Type.OPSGENIE,
+    Action.Type.GITHUB,
+    Action.Type.GITHUB_ENTERPRISE,
+    Action.Type.JIRA,
+    Action.Type.JIRA_SERVER,
+    Action.Type.AZURE_DEVOPS,
+]
+
 ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY: dict[Action.Type, ActionTarget] = {
     Action.Type.SLACK: ActionTarget.SPECIFIC,
     Action.Type.DISCORD: ActionTarget.SPECIFIC,
