@@ -3,8 +3,15 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
@@ -28,6 +35,10 @@ describe('WidgetBuilderSlideout', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
     });
+  });
+
+  afterEach(() => {
+    ModalStore.reset();
   });
 
   it('should show the sort by step if the widget is a chart and there are fields selected', async () => {
@@ -134,5 +145,61 @@ describe('WidgetBuilderSlideout', () => {
 
     expect(await screen.findByText('count')).toBeInTheDocument();
     expect(screen.queryByText('Sort by')).not.toBeInTheDocument();
+  });
+
+  it('should show the confirm modal if the widget is unsaved', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+    renderGlobalModal();
+
+    await userEvent.type(await screen.findByPlaceholderText('Name'), 'some name');
+    await userEvent.click(await screen.findByText('Close'));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByText('You have unsaved changes. Are you sure you want to leave?')
+    ).toBeInTheDocument();
+  });
+
+  it('should not show the confirm modal if the widget is unsaved', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid={false}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByText('Close'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
+      ).not.toBeInTheDocument();
+    });
   });
 });
