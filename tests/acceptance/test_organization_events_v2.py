@@ -9,7 +9,7 @@ from selenium.webdriver.common.keys import Keys
 
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, timestamp_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -117,8 +117,8 @@ def generate_transaction(trace=None, span=None):
             (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
             span_start_time = start_datetime + start_delta
-            span["start_timestamp"] = timestamp_format(span_start_time)
-            span["timestamp"] = timestamp_format(span_start_time + span_length)
+            span["start_timestamp"] = span_start_time.timestamp()
+            span["timestamp"] = (span_start_time + span_length).timestamp()
             spans.append(span)
 
             if isinstance(child, dict):
@@ -135,8 +135,8 @@ def generate_transaction(trace=None, span=None):
                 (start_delta, span_length) = time_offsets.get(span_id, (timedelta(), timedelta()))
 
                 span_start_time = start_datetime + start_delta
-                span["start_timestamp"] = timestamp_format(span_start_time)
-                span["timestamp"] = timestamp_format(span_start_time + span_length)
+                span["start_timestamp"] = span_start_time.timestamp()
+                span["timestamp"] = (span_start_time + span_length).timestamp()
                 spans.append(span)
 
         return spans

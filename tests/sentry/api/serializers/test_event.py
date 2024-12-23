@@ -12,7 +12,7 @@ from sentry.models.eventerror import EventError
 from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, timestamp_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
@@ -579,10 +579,8 @@ class SqlFormatEventSerializerTest(TestCase):
                         "op": "db",
                         "parent_span_id": "abe79ad9292b90a9",
                         "span_id": "9c045ea336297177",
-                        "start_timestamp": timestamp_format(
-                            before_now(minutes=1, milliseconds=200)
-                        ),
-                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "start_timestamp": before_now(minutes=1, milliseconds=200).timestamp(),
+                        "timestamp": before_now(minutes=1).timestamp(),
                         "trace_id": "ff62a8b040f340bda5d830223def1d81",
                     },
                     {
@@ -590,10 +588,8 @@ class SqlFormatEventSerializerTest(TestCase):
                         "op": "http",
                         "parent_span_id": "a99fd04e79e17631",
                         "span_id": "abe79ad9292b90a9",
-                        "start_timestamp": timestamp_format(
-                            before_now(minutes=1, milliseconds=200)
-                        ),
-                        "timestamp": timestamp_format(before_now(minutes=1)),
+                        "start_timestamp": before_now(minutes=1, milliseconds=200).timestamp(),
+                        "timestamp": before_now(minutes=1).timestamp(),
                         "trace_id": "ff62a8b040f340bda5d830223def1d81",
                     },
                 ],
