@@ -7,13 +7,8 @@ import {
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
-export const isModuleEnabled = (module: ModuleName, organization: Organization) => {
-  const moduleFeatures: string[] | undefined = MODULE_FEATURE_MAP[module];
-  if (!moduleFeatures) {
-    return false;
-  }
-  return moduleFeatures.every(feature => organization.features.includes(feature));
-};
+export const isModuleEnabled = (module: ModuleName, organization: Organization) =>
+  MODULE_FEATURE_MAP[module].every(f => organization.features.includes(f));
 
 export const isModuleHidden = (module: ModuleName, organization: Organization) =>
   MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED.includes(module) &&
