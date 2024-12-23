@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => ({
@@ -17,13 +17,13 @@ const wrapper = ({children}: {children?: React.ReactNode}) => (
   </OrganizationContext.Provider>
 );
 
-describe('useReplayReader', () => {
+describe('useLoadReplayReader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   it('should accept a replaySlug with project and id parts', () => {
-    const {result} = renderHook(useReplayReader, {
+    const {result} = renderHook(useLoadReplayReader, {
       wrapper,
       initialProps: {
         orgSlug: organization.slug,
@@ -39,7 +39,7 @@ describe('useReplayReader', () => {
   });
 
   it('should accept a replaySlug with only the replay-id', () => {
-    const {result} = renderHook(useReplayReader, {
+    const {result} = renderHook(useLoadReplayReader, {
       wrapper,
       initialProps: {
         orgSlug: organization.slug,

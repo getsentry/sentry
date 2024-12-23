@@ -16,8 +16,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
@@ -132,7 +132,7 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const {fetching, replay} = useReplayReader({
+  const {fetching, replay} = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
