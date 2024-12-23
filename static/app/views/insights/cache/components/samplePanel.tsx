@@ -92,13 +92,6 @@ export function CacheSamplePanel() {
     });
   };
 
-  // `detailKey` controls whether the panel is open. If all required properties are ailable, concat them to make a key, otherwise set to `undefined` and hide the panel
-  const detailKey = query.transaction
-    ? [query.transaction].filter(Boolean).join(':')
-    : undefined;
-
-  const isPanelOpen = Boolean(detailKey);
-
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
     transaction: query.transaction,
@@ -124,7 +117,6 @@ export function CacheSamplePanel() {
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
           `avg(${SpanMetricsField.CACHE_ITEM_SIZE})`,
         ],
-        enabled: isPanelOpen,
       },
       Referrer.SAMPLES_CACHE_METRICS_RIBBON
     );
@@ -136,7 +128,6 @@ export function CacheSamplePanel() {
           transaction: query.transaction,
         } satisfies MetricsQueryFilters),
         fields: [`avg(${MetricsFields.TRANSACTION_DURATION})`],
-        enabled: isPanelOpen && Boolean(query.transaction),
       },
       Referrer.SAMPLES_CACHE_TRANSACTION_DURATION
     );
@@ -171,7 +162,6 @@ export function CacheSamplePanel() {
         ],
         sorts: [SPAN_SAMPLES_SORT],
         limit,
-        enabled: isPanelOpen,
       },
       Referrer.SAMPLES_CACHE_SPAN_SAMPLES
     );
