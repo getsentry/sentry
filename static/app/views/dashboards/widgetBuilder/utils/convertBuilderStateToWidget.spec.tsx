@@ -85,4 +85,18 @@ describe('convertBuilderStateToWidget', function () {
 
     expect(widget.queries[0].fieldAliases).toEqual(['test', '', 'another one']);
   });
+
+  it('adds legend aliases to the widget queries', function () {
+    const mockState: WidgetBuilderState = {
+      legendAlias: ['test', 'test2'],
+      query: ['transaction.duration:>100', 'transaction.duration:>50'],
+    };
+
+    const widget = convertBuilderStateToWidget(mockState);
+
+    expect(widget.queries[0].name).toEqual('test');
+    expect(widget.queries[0].conditions).toEqual('transaction.duration:>100');
+    expect(widget.queries[1].name).toEqual('test2');
+    expect(widget.queries[1].conditions).toEqual('transaction.duration:>50');
+  });
 });

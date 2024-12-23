@@ -680,4 +680,31 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.limit).toEqual(10);
     });
   });
+
+  describe('legendAlias', () => {
+    it('can decode and update legendAlias', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            legendAlias: ['test', 'test2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.legendAlias).toEqual(['test', 'test2']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_LEGEND_ALIAS,
+          payload: ['test3', 'test4'],
+        });
+      });
+
+      expect(result.current.state.legendAlias).toEqual(['test3', 'test4']);
+    });
+  });
 });
