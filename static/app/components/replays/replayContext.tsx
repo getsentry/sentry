@@ -390,7 +390,7 @@ export function Provider({
     ]
   );
 
-  useTouchEventsCheck({replay});
+  useTouchEventsCheck({replay: isFetching ? null : replay});
 
   const initVideoRoot = useCallback(
     (root: RootElem) => {
