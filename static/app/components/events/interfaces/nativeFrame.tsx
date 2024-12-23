@@ -151,7 +151,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [expanded, setExpanded] = useState(true);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
@@ -528,7 +528,7 @@ const RowHeader = styled('span')<{
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(4)};
   grid-template-rows: repeat(2, auto);
   align-items: center;
   align-content: center;
