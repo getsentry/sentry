@@ -8,9 +8,9 @@ import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerM
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -114,7 +114,7 @@ function DiffSides({
   return (
     <Fragment>
       <ReplayPlayerPluginsContextProvider>
-        <ReplayPlayerEventsContextProvider replay={replay}>
+        <ReplayReaderProvider replay={replay}>
           <Cover style={{width}}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
@@ -137,7 +137,7 @@ function DiffSides({
               </ReplayPlayerStateContextProvider>
             </Placement>
           </Cover>
-        </ReplayPlayerEventsContextProvider>
+        </ReplayReaderProvider>
       </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>
