@@ -60,7 +60,7 @@ type Props = ModalRenderProps & {
 };
 
 export default function SentryAppPublishRequestModal(props: Props) {
-  const [form] = useState<FormModel>(new FormModel({transformData}));
+  const [form] = useState<FormModel>(() => new FormModel({transformData}));
   const {app, closeModal, Header, Body} = props;
 
   const formFields = () => {
