@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo, useState} from 'react';
+import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -32,6 +32,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useVitalsDrawer} from 'sentry/views/insights/common/utils/useVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
@@ -105,6 +106,25 @@ export function PageOverview() {
   });
   const {data: projectScores, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({transaction, browserTypes, subregions});
+
+  const {openVitalsDrawer} = useVitalsDrawer({
+    Component: <PageOverviewWebVitalsDetailPanel webVital={state.webVital} />,
+    webVital: state.webVital,
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(router.location.query, 'webVital'),
+      });
+
+      setState({...state, webVital: null});
+    },
+  });
+
+  useEffect(() => {
+    if (state.webVital) {
+      openVitalsDrawer();
+    }
+  });
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -239,16 +259,6 @@ export function PageOverview() {
             </Layout.Body>
           )}
         </ModuleBodyUpsellHook>
-        <PageOverviewWebVitalsDetailPanel
-          webVital={state.webVital}
-          onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(router.location.query, 'webVital'),
-            });
-            setState({...state, webVital: null});
-          }}
-        />
       </Tabs>
     </React.Fragment>
   );
