@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {DeprecatedNewOnboardingSidebar} from 'sentry/components/onboardingWizard/deprecatedNewSidebar';
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
@@ -12,7 +11,6 @@ import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardi
 import {
   findCompleteTasks,
   hasQuickStartUpdatesFeatureGA,
-  taskIsDone,
 } from 'sentry/components/onboardingWizard/utils';
 import ProgressRing, {
   RingBackground,
@@ -25,7 +23,6 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import theme from 'sentry/utils/theme';
-import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -42,12 +39,10 @@ export function NewOnboardingStatus({
   hidePanel,
   onShowPanel,
 }: NewOnboardingStatusProps) {
-  const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const {projects} = useProjects();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const hasMarkedUnseenTasksAsComplete = useRef(false);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
     false
@@ -84,23 +79,6 @@ export function NewOnboardingStatus({
   const skipQuickStart =
     !organization.features?.includes('onboarding') || (allTasksCompleted && !isActive);
 
-  const unseenDoneTasks = useMemo(
-    () =>
-      allTasks
-        .filter(task => taskIsDone(task) && !task.completionSeen)
-        .map(task => task.task),
-    [allTasks]
-  );
-
-  const markDoneTaskAsComplete = useCallback(() => {
-    for (const unseenDoneTask of unseenDoneTasks) {
-      updateOnboardingTask(api, organization, {
-        task: unseenDoneTask,
-        completionSeen: true,
-      });
-    }
-  }, [api, organization, unseenDoneTasks]);
-
   const handleShowPanel = useCallback(() => {
     if (!walkthrough && !isActive === true) {
       trackAnalytics('quick_start.opened', {
@@ -109,10 +87,8 @@ export function NewOnboardingStatus({
       });
     }
 
-    markDoneTaskAsComplete();
-
     onShowPanel();
-  }, [onShowPanel, isActive, walkthrough, markDoneTaskAsComplete, organization]);
+  }, [onShowPanel, isActive, walkthrough, organization]);
 
   useEffect(() => {
     if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
@@ -133,17 +109,6 @@ export function NewOnboardingStatus({
     setQuickStartCompleted,
     allTasksCompleted,
   ]);
-
-  useEffect(() => {
-    if (pendingCompletionSeen && isActive && !hasMarkedUnseenTasksAsComplete.current) {
-      markDoneTaskAsComplete();
-      hasMarkedUnseenTasksAsComplete.current = true;
-    }
-
-    if (!pendingCompletionSeen || !isActive) {
-      hasMarkedUnseenTasksAsComplete.current = false;
-    }
-  }, [isActive, pendingCompletionSeen, markDoneTaskAsComplete]);
 
   if (skipQuickStart) {
     return null;
