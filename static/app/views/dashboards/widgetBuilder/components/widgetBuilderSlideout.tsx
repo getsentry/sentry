@@ -51,7 +51,7 @@ function WidgetBuilderSlideout({
   isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
-  const [initialState, _setInitialState] = useState(state);
+  const [initialState] = useState(state);
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
@@ -103,7 +103,7 @@ function WidgetBuilderSlideout({
               bypass: isEqual(initialState, state),
               message: t('You have unsaved changes. Are you sure you want to leave?'),
               priority: 'danger',
-              onConfirm: () => onClose(),
+              onConfirm: onClose,
             });
           }}
         >
