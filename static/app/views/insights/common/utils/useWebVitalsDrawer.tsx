@@ -11,7 +11,11 @@ interface UseSamplesDrawerProps {
   webVital: WebVitals | null;
 }
 
-export function useVitalsDrawer({Component, webVital, onClose}: UseSamplesDrawerProps) {
+export function useWebVitalsDrawer({
+  Component,
+  webVital,
+  onClose,
+}: UseSamplesDrawerProps) {
   const {openDrawer} = useDrawer();
 
   const openVitalsDrawer = useCallback(() => {
