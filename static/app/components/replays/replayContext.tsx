@@ -460,20 +460,20 @@ export function Provider({
     ]
   );
 
-  // useEffect(() => {
-  //   const replayer = replayerRef.current;
-  //   if (!replayer) {
-  //     return;
-  //   }
-  //   if (isPlaying) {
-  //     // we need to pass in the current time when pausing for mobile replays
-  //     replayer.pause(getCurrentPlayerTime());
-  //     replayer.setConfig({speed: prefs.playbackSpeed});
-  //     replayer.play(getCurrentPlayerTime());
-  //   } else {
-  //     replayer.setConfig({speed: prefs.playbackSpeed});
-  //   }
-  // }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
+  useEffect(() => {
+    const replayer = replayerRef.current;
+    if (!replayer) {
+      return;
+    }
+    if (isPlaying) {
+      // we need to pass in the current time when pausing for mobile replays
+      replayer.pause(getCurrentPlayerTime());
+      replayer.setConfig({speed: prefs.playbackSpeed});
+      replayer.play(getCurrentPlayerTime());
+    } else {
+      replayer.setConfig({speed: prefs.playbackSpeed});
+    }
+  }, [getCurrentPlayerTime, isPlaying, prefs.playbackSpeed]);
 
   const togglePlayPause = useCallback(
     (play: boolean) => {

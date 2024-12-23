@@ -136,26 +136,13 @@ export class VideoReplayer {
   }
 
   private addListeners(el: HTMLVideoElement, index: number): void {
-    const handleEnded = () => {
-      // console.log(
-      //   'before hande segment end',
-      //   this._currentVideo,
-      //   this._currentVideo?.currentTime,
-      //   this._currentVideo?.ended,
-      //   this._timer
-      // );
-
-      // console.log(`${index} - handle ended`);
-      this.handleSegmentEnd(index);
-    };
+    const handleEnded = () => this.handleSegmentEnd(index);
 
     const handleLoadedData = event => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
         this._callbacks.onLoaded(event);
       }
-
-      // console.log(`${index} - handle loaded data`);
 
       // Only call this for current segment as we preload multiple
       // segments simultaneously
@@ -216,32 +203,6 @@ export class VideoReplayer {
     el.setAttribute('preload', 'auto');
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
-
-    // const isSafari =
-    //   navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
-
-    // if (isSafari) {
-    //   // Safari makes 2 fetch requests for video source URLs,
-    //   // one for the first byte and one for the rest of the bytes.
-    //   // The delay between these two requests causes the video to lag,
-    //   // and disappear, manually fetching the data and converting
-    //   // it to a blob to avoids this undesired behaviour.
-    //   // After successfully fetching the data and setting the source of
-    //   // the video to a local blob URL it will act the same as other
-    //   // browsers.
-    //   const asyncFn = async () => {
-    //     const res = await fetch(`${this._videoApiPrefix}${segmentData.id}/`);
-    //     // Blob is missing the video type so we need to add it back manually
-    //     const initialBlob = await res.blob();
-    //     const blobWithType = new Blob([await initialBlob.arrayBuffer()], {
-    //       type: 'video/mp4',
-    //     });
-    //     sourceEl.src = URL.createObjectURL(blobWithType);
-    //   };
-    //   asyncFn();
-    // } else {
-    // sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
-    // }
 
     this.addListeners(el, index);
 
@@ -375,7 +336,6 @@ export class VideoReplayer {
    * Create videos from a slice of _attachments, given the start and end index.
    */
   protected preloadVideos({low, high}: {high: number; low: number}) {
-    // console.log('preloadVideos', low, high);
     // Make sure we don't go out of bounds
     const l = Math.max(0, low);
     const h = Math.min(high, this._attachments.length + 1);
@@ -454,8 +414,6 @@ export class VideoReplayer {
         this.setVideoTime(this._currentVideo, 0);
       }
     }
-    // console.log('next video', nextVideo, nextVideo.currentTime, this._timer);
-    // nextVideo.preload = 'auto';
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
@@ -464,7 +422,6 @@ export class VideoReplayer {
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
-    // console.log('playVideo', video);
     if (!video) {
       return Promise.resolve();
     }
@@ -479,11 +436,7 @@ export class VideoReplayer {
     }
 
     const playPromise = video.play();
-    // try {
     await playPromise;
-    // } catch (e) {
-    //   console.log(e);
-    // }
 
     // Buffering is over after play promise is resolved
     this.setBuffering(false);
@@ -661,7 +614,6 @@ export class VideoReplayer {
    * @param videoOffsetMs The time within the entire video, to start playing at
    */
   public async play(videoOffsetMs: number): Promise<void> {
-    // console.log('videoReplay:play()', videoOffsetMs);
     this.startReplay(videoOffsetMs);
 
     // When we seek to a new spot in the replay, pause the old video
@@ -698,7 +650,6 @@ export class VideoReplayer {
    * called when seeking while video is not playing.
    */
   public pause(videoOffsetMs: number) {
-    // console.log('videoReplay:pause()', videoOffsetMs);
     const index = this._currentIndex ?? 0;
     this.pauseReplay(videoOffsetMs);
 

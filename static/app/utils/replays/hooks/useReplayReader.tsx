@@ -33,14 +33,6 @@ export default function useReplayReader({
     replayId,
   });
 
-  // console.log('useReplayReader', {
-  //   attachments,
-  //   errors,
-  //   replayRecord,
-  //   fetching,
-  //   replayData,
-  // });
-
   // get first error matching our group
   const firstMatchingError = useMemo(
     () => group && errors.find(error => error['issue.id'].toString() === group.id),
