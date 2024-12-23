@@ -4,6 +4,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -45,9 +46,10 @@ function ResourceSummary() {
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
-  const {
-    query: {transaction},
-  } = useLocation();
+  const location = useLocation();
+  const {transaction} = location.query;
+
+  const navigate = useNavigate();
 
   const {openSamplesDrawer} = useSamplesDrawer({
     Component: (
@@ -61,6 +63,15 @@ function ResourceSummary() {
       />
     ),
     moduleName: ModuleName.RESOURCE,
+    onClose: () => {
+      navigate({
+        query: {
+          ...location.query,
+          transaction: undefined,
+          transactionMethod: undefined,
+        },
+      });
+    },
   });
 
   useEffect(() => {

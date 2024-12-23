@@ -14,6 +14,7 @@ import {
 } from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
@@ -88,9 +89,20 @@ export function HTTPDomainSummaryPage() {
     },
   });
 
+  const navigate = useNavigate();
+
   const {openSamplesDrawer} = useSamplesDrawer({
     Component: <HTTPSamplesPanel />,
     moduleName: ModuleName.HTTP,
+    onClose: () => {
+      navigate({
+        query: {
+          ...location.query,
+          transaction: undefined,
+          transactionMethod: undefined,
+        },
+      });
+    },
   });
 
   useEffect(() => {
