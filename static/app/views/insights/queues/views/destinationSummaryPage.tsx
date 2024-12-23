@@ -7,7 +7,6 @@ import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -44,20 +43,9 @@ function DestinationSummaryPage() {
   });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
 
-  const navigate = useNavigate();
-
   const {openSamplesDrawer} = useSamplesDrawer({
     Component: <MessageSpanSamplesPanel />,
     moduleName: ModuleName.QUEUE,
-    onClose: () => {
-      navigate({
-        query: {
-          ...query,
-          transaction: undefined,
-          transactionMethod: undefined,
-        },
-      });
-    },
   });
 
   useEffect(() => {
