@@ -1,14 +1,13 @@
 import logging
 from typing import Any
 
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_TYPE_2_INTEGRATION_ID_KEY,
     ACTION_TYPE_2_TARGET_DISPLAY_KEY,
     ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
-    ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY,
     EXCLUDED_ACTION_DATA_KEYS,
+    INTEGRATION_ACTION_TYPES,
     RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
     SlackDataBlob,
 )
@@ -79,14 +78,9 @@ def build_notification_actions_from_rule_data_actions(
             )
             continue
 
-        # For all integrations, the target type is specific
-        # For email, the target type is user
-        # For sentry app, the target type is sentry app
-        # FWIW, we don't use target type for issue alerts
-        target_type = ACTION_TYPE_2_TARGET_TYPE_RULE_REGISTRY.get(action_type)
-
-        if target_type == ActionTarget.SPECIFIC:
-
+        # If the action is an integration, we need to set additional fields
+        # TODO(iamrajjoshi): We might need to do this for others as well to make queries easier
+        if integration_action_type := (action_type in INTEGRATION_ACTION_TYPES):
             # Get the integration_id
             integration_id_key = ACTION_TYPE_2_INTEGRATION_ID_KEY.get(action_type)
             if integration_id_key is None:
@@ -116,20 +110,20 @@ def build_notification_actions_from_rule_data_actions(
         notification_action = Action(
             type=action_type,
             data=(
-                # If the target type is specific, sanitize the action data
+                # If the action is an integration, sanitize the action data
                 # Otherwise, use the action data as is
                 sanitize_to_action(action, action_type)
-                if target_type == ActionTarget.SPECIFIC
+                if integration_action_type
                 else action
             ),
             integration_id=integration_id,
             target_identifier=target_identifier,
             target_display=target_display,
-            target_type=target_type,
+            target_type=None,  # we don't need to save the target type for issue alerts
         )
-
-        notification_action.save()
 
         notification_actions.append(notification_action)
 
+    # Bulk create the actions, note: this won't call save()
+    Action.objects.bulk_create(notification_actions)
     return notification_actions

@@ -1,5 +1,4 @@
 from sentry.eventstore.models import GroupEvent
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
@@ -10,6 +9,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ACTION_TYPE_2_TARGET_DISPLAY_KEY,
     ACTION_TYPE_2_TARGET_IDENTIFIER_KEY,
     EXCLUDED_ACTION_DATA_KEYS,
+    INTEGRATION_ACTION_TYPES,
     RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
 )
 
@@ -48,7 +48,9 @@ class TestNotificationActionMigrationUtils(TestCase):
             assert key not in exclude_keys
 
     def assert_action_attributes(
-        self, action: Action, compare_dict: dict[str, str], target_type: ActionTarget
+        self,
+        action: Action,
+        compare_dict: dict[str, str],
     ):
         """
         Asserts that the action attributes are equivalent to the compare_dict.
@@ -58,11 +60,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         assert id is not None
         assert action.type == RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER.get(id)
 
-        # assert target_type matches the target_type
-        assert action.target_type == target_type
-
-        if target_type == ActionTarget.SPECIFIC:
-
+        if action.type in INTEGRATION_ACTION_TYPES:
             # assert integration_id matches the integration_id key value from the compare_dict
             integration_id_key = ACTION_TYPE_2_INTEGRATION_ID_KEY.get(Action.Type(action.type))
             assert integration_id_key is not None
@@ -82,20 +80,10 @@ class TestNotificationActionMigrationUtils(TestCase):
             if target_display_key is not None:
                 assert action.target_display == compare_dict.get(target_display_key)
 
-    def assert_action(
-        self,
-        action: Action,
-        compare_dict: dict[str, str],
-        target_type: ActionTarget = ActionTarget.SPECIFIC,
-    ):
-        """
-        Asserts that the action is equivalent to the compare_dict.
-        """
-        self.assert_action_attributes(action, compare_dict, target_type)
-        self.assert_action_data_blob(action, compare_dict)
-
     def assert_actions_migrated_correctly(
-        self, actions: list[Action], rule_data_actions: list[dict]
+        self,
+        actions: list[Action],
+        rule_data_actions: list[dict],
     ):
         """
         Asserts that the actions are equivalent to the Rule.
@@ -105,7 +93,8 @@ class TestNotificationActionMigrationUtils(TestCase):
         # checks if the action is equivalent to action_data
         for action, rule_data in zip(actions, rule_data_actions):
             assert isinstance(action, Action)
-            self.assert_action(action, rule_data)
+            self.assert_action_attributes(action, rule_data)
+            self.assert_action_data_blob(action, rule_data)
 
     def test_slack_action_migration(self):
         # Some examples of action data
