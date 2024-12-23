@@ -248,8 +248,9 @@ describe('useWidgetBuilderState', () => {
         LocationFixture({
           query: {
             displayType: DisplayType.TABLE,
-            field: ['event.type', 'potato'],
-            yAxis: [
+            field: [
+              'event.type',
+              'potato',
               'count()',
               'count_unique(user)',
               'count_unique(potato)',
@@ -267,8 +268,6 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.fields).toEqual([
         {field: 'event.type', alias: undefined, kind: 'field'},
         {field: 'potato', alias: undefined, kind: 'field'},
-      ]);
-      expect(result.current.state.yAxis).toEqual([
         {
           function: ['count', '', undefined, undefined],
           alias: undefined,
@@ -316,6 +315,61 @@ describe('useWidgetBuilderState', () => {
         },
         {
           function: ['count_unique', 'potato', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('does not duplicate fields when changing display from table to chart', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            dataset: WidgetType.ERRORS,
+            field: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.SPANS,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', 'span.duration', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.yAxis).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.LINE,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', 'span.duration', undefined, undefined],
           alias: undefined,
           kind: 'function',
         },
@@ -425,13 +479,7 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
-      expect(result.current.state.yAxis).toEqual([
-        {
-          function: ['count', 'span.duration', undefined, undefined],
-          alias: undefined,
-          kind: 'function',
-        },
-      ]);
+      expect(result.current.state.yAxis).toEqual([]);
       expect(result.current.state.query).toEqual(['']);
       expect(result.current.state.sort).toEqual([
         {
