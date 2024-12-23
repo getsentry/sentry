@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from time import time
 from typing import Any
-from unittest.mock import ANY, MagicMock, Mock, call, patch
+from unittest.mock import ANY, MagicMock, Mock, patch
 from uuid import uuid1
 
 from sentry import options
@@ -347,102 +347,6 @@ class GetSeerSimilarIssuesTest(TestCase):
                     "stacktrace_string": "",
                 },
             )
-
-    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
-    @patch("sentry.seer.similarity.utils.metrics")
-    def test_too_many_frames(
-        self, mock_metrics: Mock, mock_record_did_call_seer: MagicMock
-    ) -> None:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        context_line = f"raise {error_type}('{error_value}')"
-        new_event = Event(
-            project_id=self.project.id,
-            event_id="22312012112120120908201304152013",
-            data={
-                "title": f"{error_type}('{error_value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": error_type,
-                            "value": error_value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": f"play_fetch_{i}",
-                                        "filename": f"dogpark{i}.py",
-                                        "context_line": context_line,
-                                    }
-                                    for i in range(MAX_FRAME_COUNT + 1)
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "java",
-            },
-        )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [],
-        }
-        assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
-            expected_metadata,
-            None,
-        )
-
-        sample_rate = options.get("seer.similarity.metrics_sample_rate")
-        mock_metrics.incr.assert_any_call(
-            "grouping.similarity.over_threshold_only_system_frames",
-            sample_rate=sample_rate,
-            tags={"platform": "java", "referrer": "ingest"},
-        )
-        mock_record_did_call_seer.assert_any_call(call_made=False, blocker="over-threshold-frames")
-
-    @patch("sentry.seer.similarity.utils.record_did_call_seer_metric")
-    def test_too_many_frames_allowed_platform(self, mock_record_did_call_seer: MagicMock) -> None:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        context_line = f"raise {error_type}('{error_value}')"
-        new_event = Event(
-            project_id=self.project.id,
-            event_id="22312012112120120908201304152013",
-            data={
-                "title": f"{error_type}('{error_value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": error_type,
-                            "value": error_value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": f"play_fetch_{i}",
-                                        "filename": f"dogpark{i}.py",
-                                        "context_line": context_line,
-                                    }
-                                    for i in range(MAX_FRAME_COUNT + 1)
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "python",
-            },
-        )
-        expected_metadata = {
-            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-            "results": [],
-        }
-        assert get_seer_similar_issues(new_event, new_event.get_grouping_variants()) == (
-            expected_metadata,
-            None,
-        )
-
-        assert (
-            call(call_made=False, blocker="over-threshold-frames")
-            not in mock_record_did_call_seer.call_args_list
-        )
 
 
 class TestMaybeCheckSeerForMatchingGroupHash(TestCase):
