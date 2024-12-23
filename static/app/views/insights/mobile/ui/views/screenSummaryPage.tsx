@@ -86,7 +86,7 @@ export function ScreenSummaryContent() {
         spanOp={spanOp}
       />
     ),
-    moduleName: ModuleName.SCREEN_RENDERING,
+    moduleName: ModuleName.OTHER,
   });
 
   useEffect(() => {

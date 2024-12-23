@@ -135,7 +135,7 @@ export function ScreenSummaryContentPage() {
         }}
       />
     ),
-    moduleName: ModuleName.SCREEN_RENDERING,
+    moduleName: ModuleName.APP_START,
   });
 
   useEffect(() => {
