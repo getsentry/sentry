@@ -43,7 +43,6 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
-    queue="profiles.process",
     retry_backoff=True,
     retry_backoff_max=20,
     retry_jitter=True,
