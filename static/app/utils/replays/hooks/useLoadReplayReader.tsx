@@ -20,7 +20,7 @@ interface ReplayReaderResult extends ReturnType<typeof useReplayData> {
   replayId: string;
 }
 
-export default function useReplayReader({
+export default function useLoadReplayReader({
   orgSlug,
   replaySlug,
   clipWindow,

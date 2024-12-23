@@ -7,15 +7,15 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
 import ReplayClipPreview from './replayClipPreview';
 
-jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
-const mockUseReplayReader = jest.mocked(useReplayReader);
+const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';
@@ -48,7 +48,7 @@ const mockReplay = ReplayReader.factory({
   },
 });
 
-mockUseReplayReader.mockImplementation(() => {
+mockUseLoadReplayReader.mockImplementation(() => {
   return {
     attachments: [],
     errors: [],
@@ -120,7 +120,7 @@ describe('ReplayClipPreview', () => {
 
   it('Should render a placeholder when is fetching the replay data', () => {
     // Change the mocked hook to return a loading state
-    mockUseReplayReader.mockImplementationOnce(() => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
         errors: [],
@@ -141,7 +141,7 @@ describe('ReplayClipPreview', () => {
 
   it('Should throw error when there is a fetch error', () => {
     // Change the mocked hook to return a fetch error
-    mockUseReplayReader.mockImplementationOnce(() => {
+    mockUseLoadReplayReader.mockImplementationOnce(() => {
       return {
         attachments: [],
         errors: [],
