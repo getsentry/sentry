@@ -18,6 +18,7 @@ from sentry.utils import auth, json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.geo import geo_by_addr
 from sentry.utils.http import absolute_uri
+from sentry.web.client_config import get_client_config
 from sentry.web.forms.accounts import TwoFactorForm
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
@@ -242,6 +243,7 @@ class TwoFactorAuthView(BaseView):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
+        # TODO: add react_config to the context
         return render_to_response(
             ["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
             {
@@ -249,6 +251,7 @@ class TwoFactorAuthView(BaseView):
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
+                "react_config": get_client_config(request, self.active_organization),
             },
             request,
             status=200,
