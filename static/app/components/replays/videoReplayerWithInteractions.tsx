@@ -6,8 +6,6 @@ import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer'
 import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
 import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
 
-type RootElem = HTMLDivElement | null;
-
 interface VideoReplayerWithInteractionsOptions {
   context: {sdkName: string | undefined | null; sdkVersion: string | undefined | null};
   durationMs: number;
@@ -15,7 +13,7 @@ interface VideoReplayerWithInteractionsOptions {
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   speed: number;
   start: number;
   theme: Theme;
@@ -84,7 +82,7 @@ export class VideoReplayerWithInteractions {
     });
 
     this.replayer = new Replayer(eventsWithSnapshots, {
-      root: root as Element,
+      root,
       blockClass: 'sentry-block',
       mouseTail: {
         duration: 0.75 * 1000,
