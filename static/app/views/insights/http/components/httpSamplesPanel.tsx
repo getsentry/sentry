@@ -293,13 +293,11 @@ export function HTTPSamplesPanel() {
   return (
     <PageAlertProvider>
       <DrawerHeader>
-        {project && (
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={query.transaction}
-            transactionMethod={query.transactionMethod}
-          />
-        )}
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+          transactionMethod={query.transactionMethod}
+        />
       </DrawerHeader>
 
       <SampleDrawerBody>

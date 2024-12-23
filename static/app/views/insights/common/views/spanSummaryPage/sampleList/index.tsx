@@ -132,13 +132,11 @@ export function SampleList({
   return (
     <PageAlertProvider>
       <DrawerHeader>
-        {project && (
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={transactionName}
-            transactionMethod={transactionMethod}
-          />
-        )}
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={transactionName}
+          transactionMethod={transactionMethod}
+        />
       </DrawerHeader>
 
       <SampleDrawerBody>

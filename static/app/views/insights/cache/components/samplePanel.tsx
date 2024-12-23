@@ -241,12 +241,10 @@ export function CacheSamplePanel() {
   return (
     <PageAlertProvider>
       <DrawerHeader>
-        {project && (
-          <SampleDrawerHeaderTransaction
-            project={project}
-            transaction={query.transaction}
-          />
-        )}
+        <SampleDrawerHeaderTransaction
+          project={project}
+          transaction={query.transaction}
+        />
       </DrawerHeader>
 
       <SampleDrawerBody>
