@@ -3,28 +3,23 @@ import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webV
 describe('applyStaticWeightsToTimeseries', function () {
   it('updates timeseries scores with static weighing', function () {
     const timeseriesData = {
-      lcp: [],
-      fcp: [],
-      cls: [],
-      ttfb: [],
-      inp: [],
-      unweightedLcp: [
+      lcp: [
         {name: '2024-07-01T00:00:00.000Z', value: 90},
         {name: '2024-07-02T00:00:00.000Z', value: 40},
       ],
-      unweightedFcp: [
+      fcp: [
         {name: '2024-07-01T00:00:00.000Z', value: 30},
         {name: '2024-07-02T00:00:00.000Z', value: 20},
       ],
-      unweightedCls: [
+      cls: [
         {name: '2024-07-01T00:00:00.000Z', value: 10},
         {name: '2024-07-02T00:00:00.000Z', value: 90},
       ],
-      unweightedTtfb: [
+      ttfb: [
         {name: '2024-07-01T00:00:00.000Z', value: 22},
         {name: '2024-07-02T00:00:00.000Z', value: 43},
       ],
-      unweightedInp: [
+      inp: [
         {name: '2024-07-01T00:00:00.000Z', value: 100},
         {name: '2024-07-02T00:00:00.000Z', value: 0},
       ],
