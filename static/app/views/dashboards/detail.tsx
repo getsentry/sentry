@@ -17,7 +17,6 @@ import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {openConfirmModal} from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -793,7 +792,7 @@ class DashboardDetail extends Component<Props, State> {
         this.onUpdateWidget(newWidgets);
       }
 
-      this.handleCloseWidgetBuilder({isSaving: true});
+      this.handleCloseWidgetBuilder();
     } catch (error) {
       addErrorMessage(t('Failed to save widget'));
     }
@@ -818,20 +817,7 @@ class DashboardDetail extends Component<Props, State> {
     );
   };
 
-  handleCloseWidgetBuilder = ({isSaving}: {isSaving?: boolean}) => {
-    if (isSaving) {
-      this.closeWidgetBuilder();
-      return;
-    }
-
-    openConfirmModal({
-      message: t('You have unsaved changes. Are you sure you want to leave?'),
-      priority: 'danger',
-      onConfirm: () => this.closeWidgetBuilder(),
-    });
-  };
-
-  closeWidgetBuilder = () => {
+  handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
 
     this.setState({isWidgetBuilderOpen: false});
@@ -843,6 +829,7 @@ class DashboardDetail extends Component<Props, State> {
       })
     );
   };
+
   onCommit = () => {
     const {api, organization, location, dashboard, onDashboardUpdate} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -1321,9 +1308,7 @@ class DashboardDetail extends Component<Props, State> {
 
                                   <WidgetBuilderV2
                                     isOpen={this.state.isWidgetBuilderOpen}
-                                    onClose={() =>
-                                      this.handleCloseWidgetBuilder({isSaving: false})
-                                    }
+                                    onClose={this.handleCloseWidgetBuilder}
                                     dashboardFilters={
                                       getDashboardFiltersFromURL(location) ??
                                       dashboard.filters

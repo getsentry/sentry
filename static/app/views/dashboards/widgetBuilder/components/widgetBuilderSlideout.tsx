@@ -1,8 +1,10 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {Button} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,6 +51,7 @@ function WidgetBuilderSlideout({
   isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
   const {state} = useWidgetBuilderContext();
+  const [initialState, _setInitialState] = useState(state);
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
@@ -95,7 +98,17 @@ function WidgetBuilderSlideout({
           borderless
           aria-label={t('Close Widget Builder')}
           icon={<IconClose size="sm" />}
-          onClick={onClose}
+          onClick={() => {
+            if (isEqual(initialState, state)) {
+              onClose();
+            } else {
+              openConfirmModal({
+                message: t('You have unsaved changes. Are you sure you want to leave?'),
+                priority: 'danger',
+                onConfirm: () => onClose(),
+              });
+            }
+          }}
         >
           {t('Close')}
         </CloseButton>
