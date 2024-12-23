@@ -34,15 +34,14 @@ function useReplayerInstance() {
   const theme = useTheme();
   const [prefs] = useReplayPrefs();
   const initialPrefsRef = useRef(prefs); // don't re-mount the player when prefs change, instead there's a useEffect
-  const replay = useReplayReader();
-  const projectSlug = useReplayProjectSlug({replayRecord: replay.getReplay()});
   const getPlugins = useReplayPlayerPlugins();
+  const replay = useReplayReader();
+  const isVideoReplay = replay.getVideoEvents().length > 0;
+  const projectSlug = useReplayProjectSlug({replayRecord: replay.getReplay()});
 
   // Hooks to sync this Replayer state up and out of this component
   const dispatch = useReplayPlayerStateDispatch();
   const userAction = useReplayUserAction();
-
-  const isVideoReplay = replay.getVideoEvents().length > 0;
 
   // useLayoutEffect in order to wait for `mountPointRef.current`
   useLayoutEffect(() => {
