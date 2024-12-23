@@ -26,6 +26,8 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
         ...location.query,
         transaction: undefined,
         transactionMethod: undefined,
+        spanGroup: undefined,
+        spanOp: undefined,
         query: undefined,
       },
     });
