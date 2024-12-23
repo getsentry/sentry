@@ -1,9 +1,10 @@
-import {createContext, useContext} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import type {RecordingFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
 
-const context = createContext<RecordingFrame[]>([]);
+type EventsTuple = [RecordingFrame[], VideoEvent[]];
+const context = createContext<EventsTuple>([[], []]);
 
 export function ReplayPlayerEventsContextProvider({
   children,
@@ -12,7 +13,11 @@ export function ReplayPlayerEventsContextProvider({
   children: React.ReactNode;
   replay: ReplayReader;
 }) {
-  return <context.Provider value={replay.getRRWebFrames()}>{children}</context.Provider>;
+  const events = useMemo(
+    (): EventsTuple => [replay.getRRWebFrames(), replay.getVideoEvents()],
+    [replay]
+  );
+  return <context.Provider value={events}>{children}</context.Provider>;
 }
 
 export function useReplayPlayerEvents() {

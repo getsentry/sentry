@@ -8,13 +8,21 @@ import type {
 } from '@sentry-internal/rrweb/typings/replay/machine';
 
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
+import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
 import {uniq} from 'sentry/utils/array/uniq';
 import clamp from 'sentry/utils/number/clamp';
 import type {Dimensions} from 'sentry/utils/replays/types';
 
+type ReplayerTuple = [Replayer, VideoReplayer | null];
+
 type ReplayerAction =
-  | {dispatch: Dispatch<ReplayerAction>; replayer: Replayer; type: 'didMountPlayer'}
-  | {replayer: Replayer; type: 'didUnmountPlayer'}
+  | {
+      dispatch: Dispatch<ReplayerAction>;
+      replayer: Replayer;
+      type: 'didMountPlayer';
+      videoReplayer: VideoReplayer | null;
+    }
+  | {replayer: Replayer; type: 'didUnmountPlayer'; videoReplayer: VideoReplayer | null}
   | {type: 'didStart'}
   | {type: 'didPause'}
   | {type: 'didResume'}
@@ -41,7 +49,8 @@ interface State {
   dimensions: Dimensions;
   isFinished: boolean;
   playerState: 'playing' | 'paused' | 'live';
-  replayerCleanup: Map<Replayer, () => void>;
+  replayerCleanup: Map<Replayer | VideoReplayer, () => void>;
+  replayerTuples: Map<Replayer, ReplayerTuple>;
   replayers: Replayer[];
   speedState: 'normal' | 'skipping';
 }
@@ -54,6 +63,7 @@ function createInitialState(): State {
     playerState: 'paused',
     replayerCleanup: new Map(),
     replayers: [],
+    replayerTuples: new Map<Replayer, ReplayerTuple>(),
     speedState: 'normal',
   };
 }
@@ -67,9 +77,12 @@ export function ReplayPlayerStateContextProvider({children}: {children: ReactNod
 
   const handleUserAction = useCallback(
     (userAction: UserAction) => {
-      state.replayers.forEach(replayer => invokeUserAction(replayer, userAction));
+      // state.replayers.forEach(replayer => invokeUserAction(replayer, userAction));
+      state.replayerTuples.forEach(([replayer, videoReplayer]) =>
+        invokeUserAction(replayer, videoReplayer, userAction)
+      );
     },
-    [state.replayers]
+    [state]
   );
 
   return (
@@ -104,8 +117,19 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       );
       applyStateToReplayer(state, replayerAction.replayer, state.replayers.at(0));
 
+      if (replayerAction.videoReplayer) {
+        state.replayerCleanup.set(replayerAction.videoReplayer, () => {
+          // Cleanup the videoReplayer
+        });
+        // applyStateToReplayer(state, replayerAction.videoReplayer, state.replayers.at(0));
+      }
+
       return {
         ...state,
+        replayerTuples: state.replayerTuples.set(replayerAction.replayer, [
+          replayerAction.replayer,
+          replayerAction.videoReplayer,
+        ]),
         replayers: uniq([...state.replayers, replayerAction.replayer]),
       };
     }
@@ -113,10 +137,21 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
       state.replayerCleanup.get(replayerAction.replayer)?.();
       state.replayerCleanup.delete(replayerAction.replayer);
 
+      if (replayerAction.videoReplayer) {
+        state.replayerCleanup.get(replayerAction.videoReplayer)?.();
+        state.replayerCleanup.delete(replayerAction.videoReplayer);
+      }
+
       // Don't call destroy. It basically just removes the component from the
       // DOM and then triggers `ReplayerEvents.Destroy`.
       // replayerAction.replayer.destroy();
 
+      const [, videoReplayer] = state.replayerTuples.get(replayerAction.replayer) ?? [
+        replayerAction.replayer,
+        null,
+      ];
+      videoReplayer?.destroy();
+      state.replayerTuples.delete(replayerAction.replayer);
       return {
         ...state,
         replayers: state.replayers.filter(
@@ -161,26 +196,37 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
   }
 }
 
-function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
+function invokeUserAction(
+  replayer: Replayer,
+  videoReplayer: VideoReplayer | null,
+  userAction: UserAction
+): void {
   switch (userAction.type) {
-    case 'play':
-      replayer.play(replayer.getCurrentTime());
+    case 'play': {
+      const currentTime = replayer.getCurrentTime();
+      replayer.play(currentTime);
+      videoReplayer?.play(currentTime);
       return;
-    case 'pause':
-      replayer.pause(replayer.getCurrentTime());
+    }
+    case 'pause': {
+      const currentTime = replayer.getCurrentTime();
+      replayer.pause(currentTime);
+      videoReplayer?.pause(currentTime);
       return;
+    }
     case 'setConfigIsSkippingInactive':
-      replayer.setConfig({
-        skipInactive: userAction.isSkippingInactive,
-      });
-      return;
-    case 'setConfigPlaybackSpeed':
-      replayer.setConfig({
-        speed: userAction.playbackSpeed,
-      });
+      // not supported by videoReplay
+      if (!videoReplayer) {
+        replayer.setConfig({skipInactive: userAction.isSkippingInactive});
+      }
       return;
 
-    case 'jumpToOffset':
+    case 'setConfigPlaybackSpeed':
+      replayer.setConfig({speed: userAction.playbackSpeed});
+      videoReplayer?.setConfig({speed: userAction.playbackSpeed});
+      return;
+
+    case 'jumpToOffset': {
       const offsetMs = clamp(userAction.offsetMs, 0, replayer.getMetaData().totalTime);
       // TOOD: going back to the start of the replay needs to re-build & re-render the first frame I think.
 
@@ -188,17 +234,20 @@ function invokeUserAction(replayer: Replayer, userAction: UserAction): void {
       // If the replayer is set to skip inactive, we should turn it off before
       // manually scrubbing, so when the player resumes playing it's not stuck
       // fast-forwarding even through sections with activity
-      replayer.setConfig({skipInactive});
+      replayer.setConfig({skipInactive: false});
 
       if (replayer.service.state.value === 'playing') {
         replayer.play(offsetMs);
+        videoReplayer?.play(offsetMs);
       } else {
         replayer.pause(offsetMs);
+        videoReplayer?.pause(offsetMs);
       }
 
       replayer.setConfig({skipInactive});
 
       return;
+    }
     default:
       // @ts-expect-error: Unreachable code: the switch should be exhaustive and cover all possible values.
       throw Error('Unknown action: ' + action.type);
@@ -275,7 +324,7 @@ function subscribeToReplayer(replayer: Replayer, dispatch: Dispatch<ReplayerActi
 
 function applyStateToReplayer(
   state: State,
-  replayer: Replayer,
+  replayer: Replayer | VideoReplayer,
   templateReplayer: Replayer | undefined
 ) {
   const currentTime = Math.max(0, templateReplayer?.getCurrentTime() ?? 0);

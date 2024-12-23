@@ -1,5 +1,5 @@
 import type {JSXElementConstructor, ReactNode} from 'react';
-import {Children, Fragment} from 'react';
+import {Children} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
@@ -29,19 +29,21 @@ export default function storyBook(
 
   return function RenderStory() {
     return (
-      <Fragment>
+      <Flex column gap={space(4)}>
+        <BookHeading bookContext={bookContext} />
         {contexts.map(({name, render}, i) => {
           const children = render();
           const isOneChild = Children.count(children) === 1;
           const key = `${i}_${name}`;
 
           return (
-            <Fragment key={key}>
+            <Story key={key}>
+              <StoryTitle id={key}>{name}</StoryTitle>
               {isOneChild ? children : <SideBySide>{children}</SideBySide>}
-            </Fragment>
+            </Story>
           );
         })}
-      </Fragment>
+      </Flex>
     );
   };
 }

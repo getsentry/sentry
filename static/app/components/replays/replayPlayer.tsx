@@ -8,6 +8,7 @@ import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay'
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {
   baseReplayerCss,
+  legacyVideoReplayerCss,
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -217,6 +218,7 @@ const SentryPlayerRoot = styled(BasePlayerRoot)`
   ${baseReplayerCss}
   /* Sentry-specific styles for the player */
   ${p => sentryReplayerCss(p.theme)}
+  ${legacyVideoReplayerCss}
 `;
 
 const Overlay = styled('div')`

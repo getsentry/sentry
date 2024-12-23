@@ -20,7 +20,7 @@ function makeWrapper(replay: ReplayReader) {
 }
 
 describe('replayPlayerEventsContext', () => {
-  it('should have a stable to the list of rrweb event frames', () => {
+  it('should have a stable to the list of rrweb event frames and video frames', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
@@ -39,7 +39,7 @@ describe('replayPlayerEventsContext', () => {
     expect(result.current).toEqual(initialRef);
   });
 
-  it('should return the rrweb frames for the replay', () => {
+  it('should return the rrweb frames and video frames for the replay', () => {
     const mockReplay = ReplayReader.factory({
       attachments: [],
       errors: [],
@@ -48,11 +48,15 @@ describe('replayPlayerEventsContext', () => {
     });
     const mockRRwebFrames: any[] = [];
     mockReplay!.getRRWebFrames = jest.fn().mockReturnValue(mockRRwebFrames);
+    const mockVideoFrames: any[] = [];
+    mockReplay!.getVideoEvents = jest.fn().mockReturnValue(mockVideoFrames);
 
     const {result} = renderHook(useReplayPlayerEvents, {
       wrapper: makeWrapper(mockReplay!),
     });
 
-    expect(result.current).toStrictEqual(mockRRwebFrames);
+    expect(result.current).toHaveLength(2);
+    expect(result.current[0]).toStrictEqual(mockRRwebFrames);
+    expect(result.current[1]).toStrictEqual(mockVideoFrames);
   });
 });

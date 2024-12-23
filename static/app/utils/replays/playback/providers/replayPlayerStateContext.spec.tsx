@@ -85,6 +85,7 @@ describe('replayPlayerStateContext', () => {
       playerState: 'paused',
       replayerCleanup: expect.any(Map),
       replayers: [],
+      replayerTuples: expect.any(Map),
       speedState: 'normal',
     });
 
@@ -140,13 +141,29 @@ describe('replayPlayerStateContext', () => {
     expect(result.current.state.replayerCleanup.has(replayer1)).toBeFalsy();
     expect(result.current.state.replayerCleanup.has(replayer2)).toBeFalsy();
 
-    act(() => dispatch({type: 'didMountPlayer', dispatch, replayer: replayer1}));
-    act(() => dispatch({type: 'didMountPlayer', dispatch, replayer: replayer2}));
+    act(() =>
+      dispatch({
+        type: 'didMountPlayer',
+        dispatch,
+        replayer: replayer1,
+        videoReplayer: null,
+      })
+    );
+    act(() =>
+      dispatch({
+        type: 'didMountPlayer',
+        dispatch,
+        replayer: replayer2,
+        videoReplayer: null,
+      })
+    );
     expect(result.current.state.replayers).toStrictEqual([replayer1, replayer2]);
     expect(result.current.state.replayerCleanup.has(replayer1)).toBeTruthy();
     expect(result.current.state.replayerCleanup.has(replayer2)).toBeTruthy();
 
-    act(() => dispatch({type: 'didUnmountPlayer', replayer: replayer1}));
+    act(() =>
+      dispatch({type: 'didUnmountPlayer', replayer: replayer1, videoReplayer: null})
+    );
     expect(result.current.state.replayers).toStrictEqual([replayer2]);
     expect(result.current.state.replayerCleanup.has(replayer1)).toBeFalsy();
     expect(result.current.state.replayerCleanup.has(replayer2)).toBeTruthy();
@@ -168,12 +185,17 @@ describe('replayPlayerStateContext', () => {
     expect(result.current.state.replayers).toHaveLength(0);
 
     act(() =>
-      initialDispatch({type: 'didMountPlayer', dispatch: initialDispatch, replayer})
+      initialDispatch({
+        type: 'didMountPlayer',
+        dispatch: initialDispatch,
+        replayer,
+        videoReplayer: null,
+      })
     );
     expect(result.current.state.replayers).toHaveLength(1);
     expect(result.current.dispatch).toBe(initialDispatch);
 
-    act(() => initialDispatch({type: 'didUnmountPlayer', replayer}));
+    act(() => initialDispatch({type: 'didUnmountPlayer', replayer, videoReplayer: null}));
     expect(result.current.state.replayers).toHaveLength(0);
     expect(result.current.dispatch).toBe(initialDispatch);
   });
@@ -194,12 +216,14 @@ describe('replayPlayerStateContext', () => {
 
     expect(result.current.state.replayers).toHaveLength(0);
 
-    act(() => dispatch({type: 'didMountPlayer', dispatch, replayer}));
+    act(() =>
+      dispatch({type: 'didMountPlayer', dispatch, replayer, videoReplayer: null})
+    );
     const secondUserAction = result.current.userAction;
     expect(result.current.state.replayers).toHaveLength(1);
     expect(secondUserAction).not.toBe(initialUserAction);
 
-    act(() => dispatch({type: 'didUnmountPlayer', replayer}));
+    act(() => dispatch({type: 'didUnmountPlayer', replayer, videoReplayer: null}));
     const thirdUserAction = result.current.userAction;
     expect(result.current.state.replayers).toHaveLength(0);
     expect(secondUserAction).not.toBe(initialUserAction);
@@ -219,7 +243,9 @@ describe('replayPlayerStateContext', () => {
     const dispatch = result.current.dispatch;
     const replayer = new Replayer(RRWEB_EVENTS, {});
 
-    act(() => dispatch({type: 'didMountPlayer', dispatch, replayer}));
+    act(() =>
+      dispatch({type: 'didMountPlayer', dispatch, replayer, videoReplayer: null})
+    );
     act(() => result.current.userAction({type: 'jumpToOffset', offsetMs: 1000}));
     expect(replayerPauseMock).toHaveBeenLastCalledWith(1000);
   });

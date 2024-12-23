@@ -2,10 +2,13 @@ import {type HTMLAttributes, useEffect, useLayoutEffect, useRef} from 'react';
 import {type Interpolation, type Theme, useTheme} from '@emotion/react';
 import {Replayer} from '@sentry-internal/rrweb';
 
+import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {
   baseReplayerCss,
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
+import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
+import {useReplayBasics} from 'sentry/utils/replays/playback/providers/replayBasicsProvider';
 import {useReplayPlayerEvents} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
@@ -13,6 +16,7 @@ import {
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function useReplayerInstance() {
   // The div that is emitted from react, where we will attach the replayer to
@@ -20,17 +24,26 @@ function useReplayerInstance() {
 
   // The single Replayer instance, that is mounted into mountPointRef
   const replayerRef = useRef<Replayer | null>(null);
+  // The optional VideoReplayer instance, that is also mounted into mountPointRef
+  const videoReplayerRef = useRef<VideoReplayer | null>(null);
 
   // Collect the info Replayer depends on:
+  const organization = useOrganization();
   const theme = useTheme();
   const [prefs] = useReplayPrefs();
   const initialPrefsRef = useRef(prefs); // don't re-mount the player when prefs change, instead there's a useEffect
+  const {projectSlug, replay} = useReplayBasics();
   const getPlugins = useReplayPlayerPlugins();
   const events = useReplayPlayerEvents();
 
   // Hooks to sync this Replayer state up and out of this component
   const dispatch = useReplayPlayerStateDispatch();
   const userAction = useReplayUserAction();
+
+  const [webFrames, videoEvents] = events;
+  const isVideoReplay = videoEvents.length > 0;
+  const orgSlug = organization.slug;
+  const replayId = replay.getReplay().id;
 
   // useLayoutEffect in order to wait for `mountPointRef.current`
   useLayoutEffect(() => {
@@ -39,7 +52,25 @@ function useReplayerInstance() {
       return () => {};
     }
 
-    const replayer = new Replayer(events, {
+    const videoReplayer = isVideoReplay
+      ? new VideoReplayer(videoEvents, {
+          videoApiPrefix: `/api/0/projects/${orgSlug}/${projectSlug}/replays/${replayId}/videos/`,
+          root,
+          start: replay.getStartTimestampMs(),
+          onFinished: () => {},
+          onLoaded: () => {},
+          onBuffer: () => {},
+          // clipWindow,
+          durationMs: replay.getDurationMs(),
+          config: {
+            skipInactive: false, // not supported by videoReplay
+            speed: initialPrefsRef.current.playbackSpeed,
+          },
+        })
+      : null;
+    videoReplayer?.setConfig({speed: initialPrefsRef.current.playbackSpeed});
+
+    const replayer = new Replayer(webFrames, {
       root,
       blockClass: 'sentry-block',
       mouseTail: {
@@ -48,15 +79,32 @@ function useReplayerInstance() {
         lineWidth: 2,
         strokeStyle: theme.purple200,
       },
-      plugins: getPlugins(events),
-      skipInactive: initialPrefsRef.current.isSkippingInactive,
+      plugins: getPlugins(webFrames),
+      skipInactive: isVideoReplay
+        ? false // not supported by videoReplay
+        : initialPrefsRef.current.isSkippingInactive,
       speed: initialPrefsRef.current.playbackSpeed,
     });
 
     replayerRef.current = replayer;
-    dispatch({type: 'didMountPlayer', replayer, dispatch});
-    return () => dispatch({type: 'didUnmountPlayer', replayer});
-  }, [dispatch, events, getPlugins, theme]);
+    videoReplayerRef.current = videoReplayer;
+
+    dispatch({type: 'didMountPlayer', replayer, videoReplayer, dispatch});
+    return () => dispatch({type: 'didUnmountPlayer', replayer, videoReplayer});
+  }, [
+    dispatch,
+    events,
+    getPlugins,
+    isVideoReplay,
+    orgSlug,
+    organization.slug,
+    projectSlug,
+    replay,
+    replayId,
+    theme,
+    videoEvents,
+    webFrames,
+  ]);
 
   useEffect(() => {
     if (!replayerRef.current) {
@@ -66,13 +114,16 @@ function useReplayerInstance() {
     if (replayerRef.current.config.speed !== prefs.playbackSpeed) {
       userAction({type: 'setConfigPlaybackSpeed', playbackSpeed: prefs.playbackSpeed});
     }
-    if (replayerRef.current.config.skipInactive !== prefs.isSkippingInactive) {
+    if (
+      !isVideoReplay &&
+      replayerRef.current.config.skipInactive !== prefs.isSkippingInactive
+    ) {
       userAction({
         type: 'setConfigIsSkippingInactive',
         isSkippingInactive: prefs.isSkippingInactive,
       });
     }
-  }, [prefs, userAction]);
+  }, [isVideoReplay, prefs, userAction]);
 
   return mountPointRef;
 }
@@ -94,7 +145,7 @@ export default function ReplayPlayer({offsetMs, ...props}: Props) {
   }, [offsetMs, userAction]);
 
   return (
-    <div
+    <Stacked
       {...props}
       css={[baseReplayerCss, sentryReplayerCss, props.css]}
       ref={mountPointRef}

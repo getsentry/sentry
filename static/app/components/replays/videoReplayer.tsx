@@ -3,11 +3,9 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
-type RootElem = HTMLDivElement | null;
-
 // The number of segments to load on either side of the requested segment (around 15 seconds)
 // Also the number of segments we load initially
-const PRELOAD_BUFFER = 1;
+const PRELOAD_BUFFER = 3;
 
 interface OffsetOptions {
   segmentOffsetMs?: number;
@@ -19,7 +17,7 @@ interface VideoReplayerOptions {
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   start: number;
   videoApiPrefix: string;
   clipWindow?: ClipWindow;
@@ -92,9 +90,9 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
-    if (root) {
-      root.appendChild(this.wrapper);
-    }
+    this.wrapper.className = 'video-replayer-wrapper';
+
+    root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
@@ -213,14 +211,15 @@ export class VideoReplayer {
     const sourceEl = document.createElement('source');
     el.style.display = 'none';
     sourceEl.setAttribute('type', 'video/mp4');
+    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
     el.setAttribute('playinline', '');
     el.setAttribute('preload', 'auto');
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
-    const isSafari =
-      navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+    // const isSafari =
+    //   navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
 
     // if (isSafari) {
     //   // Safari makes 2 fetch requests for video source URLs,
@@ -242,7 +241,7 @@ export class VideoReplayer {
     //   };
     //   asyncFn();
     // } else {
-    sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
+    // sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     // }
 
     this.addListeners(el, index);
@@ -377,6 +376,7 @@ export class VideoReplayer {
    * Create videos from a slice of _attachments, given the start and end index.
    */
   protected preloadVideos({low, high}: {high: number; low: number}) {
+    console.log('preloadVideos', low, high);
     // Make sure we don't go out of bounds
     const l = Math.max(0, low);
     const h = Math.min(high, this._attachments.length + 1);
@@ -456,8 +456,8 @@ export class VideoReplayer {
       }
     }
     // console.log('next video', nextVideo, nextVideo.currentTime, this._timer);
-    nextVideo.preload = 'auto';
-    nextVideo.style.display = 'inline-block';
+    // nextVideo.preload = 'auto';
+    nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
     // next video
@@ -465,6 +465,7 @@ export class VideoReplayer {
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
+    console.log('playVideo', video);
     if (!video) {
       return Promise.resolve();
     }
@@ -479,11 +480,11 @@ export class VideoReplayer {
     }
 
     const playPromise = video.play();
-    try {
-      await playPromise;
-    } catch (e) {
-      console.log(e);
-    }
+    // try {
+    await playPromise;
+    // } catch (e) {
+    //   console.log(e);
+    // }
 
     // Buffering is over after play promise is resolved
     this.setBuffering(false);
@@ -492,9 +493,6 @@ export class VideoReplayer {
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
-    // Needs to be in seconds
-    video.currentTime = timeMs / 1000;
-
     // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
     // Setting currentTime will cause a side-effect of resetting 'ended' to false.
     // The additional assignment of currentTime is required to make sure ended is reset before we assign the actual currentTime
@@ -502,6 +500,9 @@ export class VideoReplayer {
       // we set it to 1ms before to reduce flickering
       video.currentTime = (timeMs - 1) / 1000;
     }
+
+    // Needs to be in seconds
+    video.currentTime = timeMs / 1000;
   }
 
   /**
@@ -661,6 +662,7 @@ export class VideoReplayer {
    * @param videoOffsetMs The time within the entire video, to start playing at
    */
   public async play(videoOffsetMs: number): Promise<void> {
+    console.log('videoReplay:play()', videoOffsetMs);
     this.startReplay(videoOffsetMs);
 
     // When we seek to a new spot in the replay, pause the old video
@@ -697,7 +699,7 @@ export class VideoReplayer {
    * called when seeking while video is not playing.
    */
   public pause(videoOffsetMs: number) {
-    console.log('pausing');
+    console.log('videoReplay:pause()', videoOffsetMs);
     const index = this._currentIndex ?? 0;
     this.pauseReplay(videoOffsetMs);
 

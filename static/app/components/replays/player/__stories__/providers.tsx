@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {StaticNoSkipReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
+import {ReplayBasicsProvider} from 'sentry/utils/replays/playback/providers/replayBasicsProvider';
 import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
@@ -17,9 +18,13 @@ export default function Providers({
   return (
     <ReplayPreferencesContextProvider prefsStrategy={StaticNoSkipReplayPreferences}>
       <ReplayPlayerPluginsContextProvider>
-        <ReplayPlayerEventsContextProvider replay={replay}>
-          <ReplayPlayerStateContextProvider>{children}</ReplayPlayerStateContextProvider>
-        </ReplayPlayerEventsContextProvider>
+        <ReplayBasicsProvider replay={replay}>
+          <ReplayPlayerEventsContextProvider replay={replay}>
+            <ReplayPlayerStateContextProvider>
+              {children}
+            </ReplayPlayerStateContextProvider>
+          </ReplayPlayerEventsContextProvider>
+        </ReplayBasicsProvider>
       </ReplayPlayerPluginsContextProvider>
     </ReplayPreferencesContextProvider>
   );
