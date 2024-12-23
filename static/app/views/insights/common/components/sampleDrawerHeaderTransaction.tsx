@@ -11,8 +11,8 @@ import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transaction
 import {useDomainViewFilters} from '../../pages/useFilters';
 
 interface SampleDrawerHeaderProps {
-  project: Project;
   transaction: string;
+  project?: Project;
   transactionMethod?: string;
 }
 
@@ -22,29 +22,38 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
   const {project, transaction, transactionMethod} = props;
   const {view} = useDomainViewFilters();
 
+  const label =
+    transaction && transactionMethod && !transaction.startsWith(transactionMethod)
+      ? `${transactionMethod} ${transaction}`
+      : transaction;
+
   return (
     <Bar>
-      <ProjectAvatar
-        project={project}
-        direction="left"
-        size={16}
-        hasTooltip
-        tooltip={project.slug}
-      />
+      {project && (
+        <ProjectAvatar
+          project={project}
+          direction="left"
+          size={16}
+          hasTooltip
+          tooltip={project.slug}
+        />
+      )}
 
-      <TruncatedLink
-        to={{
-          pathname: getTransactionSummaryBaseUrl(organization.slug, view),
-          search: qs.stringify({
-            project: project.slug,
-            transaction,
-          }),
-        }}
-      >
-        {transaction && transactionMethod && !transaction.startsWith(transactionMethod)
-          ? `${transactionMethod} ${transaction}`
-          : transaction}
-      </TruncatedLink>
+      {project ? (
+        <TruncatedLink
+          to={{
+            pathname: getTransactionSummaryBaseUrl(organization.slug, view),
+            search: qs.stringify({
+              project: project.slug,
+              transaction,
+            }),
+          }}
+        >
+          {label}
+        </TruncatedLink>
+      ) : (
+        <TruncatedSpan>{label}</TruncatedSpan>
+      )}
     </Bar>
   );
 }
@@ -56,5 +65,9 @@ const Bar = styled('div')`
 `;
 
 const TruncatedLink = styled(Link)`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const TruncatedSpan = styled('span')`
   ${p => p.theme.overflowEllipsis}
 `;
