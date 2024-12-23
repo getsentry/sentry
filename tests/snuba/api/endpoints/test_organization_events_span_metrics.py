@@ -1775,6 +1775,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         ]
 
+    def test_frames_delay_gauge_metric(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(mobile.frames_delay,release,foo)",
+                    "avg_if(mobile.frames_delay,release,bar)",
+                    "avg_compare(mobile.frames_delay,release,foo,bar)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data == [
+            {
+                "avg_compare(mobile.frames_delay,release,foo,bar)": 1.0,
+                "avg_if(mobile.frames_delay,release,foo)": 5.0,
+                "avg_if(mobile.frames_delay,release,bar)": 10.0,
+            }
+        ]
+        assert meta["units"]["avg_if(mobile.frames_delay,release,foo)"] == "second"
+        assert meta["units"]["avg_if(mobile.frames_delay,release,bar)"] == "second"
+        assert meta["units"]["avg_compare(mobile.frames_delay,release,foo,bar)"] is None
+
     def test_resolve_messaging_message_receive_latency_gauge(self):
         self.store_span_metric(
             {
