@@ -60,7 +60,7 @@ export default function TempestSettings({organization, project}: Props) {
                   name: 'tempestFetchScreenshots',
                   type: 'boolean',
                   label: t('Fetch Screenshots'),
-                  help: t('Allow Tempest to fetch screenshots from the project.'),
+                  help: t('Allow Tempest to fetch screenshots for the project.'),
                 },
               ],
             },
