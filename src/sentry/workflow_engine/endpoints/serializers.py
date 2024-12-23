@@ -3,6 +3,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.issues.grouptype import ErrorGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -126,11 +128,30 @@ class DetectorSerializer(Serializer):
             for group, serialized in zip(condition_groups, serialize(condition_groups, user=user))
         }
 
+        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
+        project_ids = [item.project_id for item in filtered_item_list]
+
+        project_options_list = list(
+            ProjectOption.objects.filter(
+                key__in=Detector.error_detector_project_options.values(), project__in=project_ids
+            )
+        )
+
+        configs: dict[int, dict[str, Any]] = defaultdict(
+            dict
+        )  # make the config for Error Detectors
+        for option in project_options_list:
+            configs[option.project_id][option.key] = option.value
+
         for item in item_list:
             attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
+            if item.id in configs:
+                attrs[item]["config"] = configs[item.id]
+            else:
+                attrs[item]["config"] = item.config
 
         return attrs
 
@@ -144,4 +165,5 @@ class DetectorSerializer(Serializer):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
+            "config": attrs.get("config"),
         }
