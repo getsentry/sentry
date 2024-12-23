@@ -8,7 +8,7 @@ import type {
 } from '@sentry-internal/rrweb/typings/replay/machine';
 
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
-import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
+import type {VideoReplayer} from 'sentry/components/replays/videoReplayer';
 import {uniq} from 'sentry/utils/array/uniq';
 import clamp from 'sentry/utils/number/clamp';
 import type {Dimensions} from 'sentry/utils/replays/types';

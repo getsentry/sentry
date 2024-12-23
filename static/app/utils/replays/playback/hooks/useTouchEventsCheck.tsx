@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
   replay: ReplayReader | null;

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import useProjects from 'sentry/utils/useProjects';
-import {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
   replayRecord: ReplayRecord | undefined;
