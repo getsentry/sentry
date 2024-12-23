@@ -5,14 +5,16 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';
 import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useNavigate');
 
+const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseLocation = jest.mocked(useLocation);
 
 const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
@@ -93,11 +95,9 @@ const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
 ]);
 
 describe('useConsoleFilters', () => {
-  beforeEach(() => {
-    jest.mocked(browserHistory.replace).mockReset();
-  });
-
   it('should update the url when setters are called', () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
     const LOG_FILTER = ['error'];
     const SEARCH_FILTER = 'component';
 
@@ -116,23 +116,29 @@ describe('useConsoleFilters', () => {
     });
 
     result.current.setLogLevel(LOG_FILTER);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_c_logLevel: LOG_FILTER,
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_c_logLevel: LOG_FILTER,
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({frames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_c_logLevel: LOG_FILTER,
-        f_c_search: SEARCH_FILTER,
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_c_logLevel: LOG_FILTER,
+          f_c_search: SEARCH_FILTER,
+        },
       },
-    });
+      {replace: true}
+    );
   });
 
   it('should not filter anything when no values are set', async () => {
