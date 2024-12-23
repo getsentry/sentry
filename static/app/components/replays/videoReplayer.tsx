@@ -91,7 +91,6 @@ export class VideoReplayer {
 
     this.wrapper = document.createElement('div');
     this.wrapper.className = 'video-replayer-wrapper';
-
     root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
@@ -376,7 +375,7 @@ export class VideoReplayer {
    * Create videos from a slice of _attachments, given the start and end index.
    */
   protected preloadVideos({low, high}: {high: number; low: number}) {
-    console.log('preloadVideos', low, high);
+    // console.log('preloadVideos', low, high);
     // Make sure we don't go out of bounds
     const l = Math.max(0, low);
     const h = Math.min(high, this._attachments.length + 1);
@@ -465,7 +464,7 @@ export class VideoReplayer {
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
-    console.log('playVideo', video);
+    // console.log('playVideo', video);
     if (!video) {
       return Promise.resolve();
     }
@@ -662,7 +661,7 @@ export class VideoReplayer {
    * @param videoOffsetMs The time within the entire video, to start playing at
    */
   public async play(videoOffsetMs: number): Promise<void> {
-    console.log('videoReplay:play()', videoOffsetMs);
+    // console.log('videoReplay:play()', videoOffsetMs);
     this.startReplay(videoOffsetMs);
 
     // When we seek to a new spot in the replay, pause the old video
@@ -699,7 +698,7 @@ export class VideoReplayer {
    * called when seeking while video is not playing.
    */
   public pause(videoOffsetMs: number) {
-    console.log('videoReplay:pause()', videoOffsetMs);
+    // console.log('videoReplay:pause()', videoOffsetMs);
     const index = this._currentIndex ?? 0;
     this.pauseReplay(videoOffsetMs);
 

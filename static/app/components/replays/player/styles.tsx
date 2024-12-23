@@ -115,14 +115,3 @@ export const sentryReplayerCss = (theme: Theme) => css`
     }
   }
 `;
-
-// Positions the canvas for video replays and shows the purple "mousetails"
-export const legacyVideoReplayerCss = css`
-  .video-replayer-wrapper + .replayer-wrapper {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
-`;

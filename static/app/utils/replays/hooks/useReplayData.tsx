@@ -7,7 +7,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import {useReplayProjectSlug} from 'sentry/utils/replays/playback/hooks/useReplayProjectSlug';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
@@ -98,9 +98,6 @@ function useReplayData({
   );
 
   const projectSlug = useReplayProjectSlug({replayRecord});
-
-  // console.log('Found projectSlug', projectSlug, projects);
-  // TODO: log when replayRecord.project_id is not null, and projectSlug is null.
 
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {
