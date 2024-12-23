@@ -105,7 +105,7 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
   );
 }
 
-function TagBar({
+export function TagBar({
   percentage,
   style,
   ...props
