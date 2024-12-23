@@ -25,6 +25,7 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
 )
+from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     get_or_create_uptime_subscription,
@@ -79,7 +80,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
             # from the checker
-            send_uptime_config_deletion(result["subscription_id"])
+            # TODO: Send to region specifically from this check result once we update the schema
+            send_uptime_config_deletion(
+                get_active_region_configs()[0].slug, result["subscription_id"]
+            )
             metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
             return
 

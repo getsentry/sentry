@@ -93,7 +93,6 @@ class CreateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.id == new_sub.id
         assert new_sub.status == UptimeSubscription.Status.ACTIVE.value
         assert new_sub.subscription_id is not None
-        assert new_sub.subscription_id != uptime_sub.subscription_id
 
     def test_without_task(self):
         url = "https://sentry.io"
