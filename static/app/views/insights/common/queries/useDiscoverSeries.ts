@@ -40,6 +40,7 @@ interface UseMetricsSeriesOptions<Fields> {
   overriddenRoute?: string;
   referrer?: string;
   search?: MutableSearch;
+  transformAliasToInputFormat?: boolean;
   yAxis?: Fields;
 }
 
@@ -117,6 +118,7 @@ const useDiscoverSeries = <T extends string[]>(
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      transformAliasToInputFormat: options.transformAliasToInputFormat ? '1' : '0',
     }),
     options: {
       enabled: options.enabled && pageFilters.isReady,

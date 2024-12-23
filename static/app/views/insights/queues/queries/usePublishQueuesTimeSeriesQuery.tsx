@@ -22,6 +22,7 @@ export function usePublishQueuesTimeSeriesQuery({enabled, destination, referrer}
       yAxis,
       search,
       enabled,
+      transformAliasToInputFormat: true,
     },
     referrer
   );
