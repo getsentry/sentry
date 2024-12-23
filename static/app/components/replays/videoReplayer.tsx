@@ -92,6 +92,7 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
+    this.wrapper.className = 'video-replayer-wrapper';
     if (root) {
       root.appendChild(this.wrapper);
     }
