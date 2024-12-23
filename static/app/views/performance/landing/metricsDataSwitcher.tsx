@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricDataSwitcherOutcome} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -14,6 +13,7 @@ import {
   METRIC_SEARCH_SETTING_PARAM,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface MetricDataSwitchProps {
   children: (props: MetricDataSwitcherOutcome) => React.ReactNode;
@@ -91,13 +91,14 @@ function MetricsSwitchHandler({
   const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
   const hasQuery = decodeScalar(query.query, '');
   const queryIsTransactionsBased = mepSearchState === MEPState.TRANSACTIONS_ONLY;
+  const navigate = useNavigate();
 
   const shouldAdjustQuery =
     hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly;
 
   useEffect(() => {
     if (shouldAdjustQuery) {
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -107,7 +108,7 @@ function MetricsSwitchHandler({
         },
       });
     }
-  }, [shouldAdjustQuery, location]);
+  }, [shouldAdjustQuery, location, navigate]);
 
   if (hasQuery && queryIsTransactionsBased && !outcome.forceTransactionsOnly) {
     eventView.query = ''; // TODO: Create switcher provider and move it to the route level to remove the need for this.
