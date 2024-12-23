@@ -8,6 +8,7 @@ import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilt
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useNavigate');
 
 const mockUseLocation = jest.mocked(useLocation);
 
