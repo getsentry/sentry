@@ -23,7 +23,7 @@ export interface WidgetFrameProps extends StateProps {
   borderless?: boolean;
   children?: React.ReactNode;
   description?: React.ReactElement | string;
-  onFullScreenViewClick?: () => void;
+  onFullScreenViewClick?: () => void | Promise<void>;
   title?: string;
   warnings?: string[];
 }
