@@ -7,7 +7,7 @@ export const DATA_TYPE_PLURAL = t('Cron Check-Ins');
 export const BASE_URL = 'crons';
 
 export const MODULE_DESCRIPTION = t(
-  'Monitor cron jobs for failures, timeouts, and missed runs.'
+  'Scheduled monitors that check in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/crons/';
 

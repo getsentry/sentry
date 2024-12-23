@@ -4,8 +4,8 @@ import dropRightWhile from 'lodash/dropRightWhile';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface Props<K extends string> {
   columns: GridColumnOrder<K>[];
@@ -19,6 +19,7 @@ export default function useQueryBasedColumnResize<K extends string>({
   paramName = 'width',
 }: Props<K>) {
   const queryParam = location.query[paramName];
+  const navigate = useNavigate();
   const columnsWidthWidths = useMemo(() => {
     const widths = decodeList(queryParam);
 
@@ -34,15 +35,18 @@ export default function useQueryBasedColumnResize<K extends string>({
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
       );
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          [paramName]: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            [paramName]: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
+          },
         },
-      });
+        {replace: true}
+      );
     },
-    [columns, location.pathname, location.query, paramName]
+    [columns, location.pathname, location.query, paramName, navigate]
   );
 
   return {

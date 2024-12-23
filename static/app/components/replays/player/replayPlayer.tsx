@@ -8,13 +8,14 @@ import {
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
 import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
-import {useReplayBasics} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function useReplayerInstance() {
@@ -33,7 +34,8 @@ function useReplayerInstance() {
   const theme = useTheme();
   const [prefs] = useReplayPrefs();
   const initialPrefsRef = useRef(prefs); // don't re-mount the player when prefs change, instead there's a useEffect
-  const {projectSlug, replay} = useReplayBasics();
+  const replay = useReplayReader();
+  const projectSlug = useReplayProjectSlug({replayRecord: replay.getReplay()});
   const getPlugins = useReplayPlayerPlugins();
 
   // Hooks to sync this Replayer state up and out of this component
@@ -81,6 +83,7 @@ function useReplayerInstance() {
         strokeStyle: theme.purple200,
       },
       plugins: getPlugins(webFrames),
+
       skipInactive: isVideoReplay
         ? false // not supported by videoReplay
         : initialPrefsRef.current.isSkippingInactive,
