@@ -2116,6 +2116,20 @@ register(
 )
 
 register(
+    "statistical_detectors.throughput.threshold.transactions",
+    default=50,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "statistical_detectors.throughput.threshold.functions",
+    default=25,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "options_automator_slack_webhook_enabled",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
