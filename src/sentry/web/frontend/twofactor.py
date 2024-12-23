@@ -243,7 +243,6 @@ class TwoFactorAuthView(BaseView):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
-        # TODO: add react_config to the context
         return render_to_response(
             ["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
             {
