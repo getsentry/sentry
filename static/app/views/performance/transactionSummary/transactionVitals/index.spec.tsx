@@ -25,9 +25,7 @@ import {
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
+jest.mock('sentry/utils/useNavigate');
 
 const mockUseNavigate = jest.mocked(useNavigate);
 
