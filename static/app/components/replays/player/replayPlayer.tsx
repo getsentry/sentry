@@ -8,14 +8,13 @@ import {
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
 import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
-import {useReplayBasics} from 'sentry/utils/replays/playback/providers/replayBasicsProvider';
-import {useReplayPlayerEvents} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayBasics} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function useReplayerInstance() {
@@ -29,21 +28,19 @@ function useReplayerInstance() {
 
   // Collect the info Replayer depends on:
   const organization = useOrganization();
+  const orgSlug = organization.slug;
+
   const theme = useTheme();
   const [prefs] = useReplayPrefs();
   const initialPrefsRef = useRef(prefs); // don't re-mount the player when prefs change, instead there's a useEffect
   const {projectSlug, replay} = useReplayBasics();
   const getPlugins = useReplayPlayerPlugins();
-  const events = useReplayPlayerEvents();
 
   // Hooks to sync this Replayer state up and out of this component
   const dispatch = useReplayPlayerStateDispatch();
   const userAction = useReplayUserAction();
 
-  const [webFrames, videoEvents] = events;
-  const isVideoReplay = videoEvents.length > 0;
-  const orgSlug = organization.slug;
-  const replayId = replay.getReplay().id;
+  const isVideoReplay = replay.getVideoEvents().length > 0;
 
   // useLayoutEffect in order to wait for `mountPointRef.current`
   useLayoutEffect(() => {
@@ -51,6 +48,10 @@ function useReplayerInstance() {
     if (!root || replayerRef.current) {
       return () => {};
     }
+
+    const replayId = replay.getReplay().id;
+    const webFrames = replay.getRRWebFrames();
+    const videoEvents = replay.getVideoEvents();
 
     const videoReplayer = isVideoReplay
       ? new VideoReplayer(videoEvents, {
@@ -91,20 +92,7 @@ function useReplayerInstance() {
 
     dispatch({type: 'didMountPlayer', replayer, videoReplayer, dispatch});
     return () => dispatch({type: 'didUnmountPlayer', replayer, videoReplayer});
-  }, [
-    dispatch,
-    events,
-    getPlugins,
-    isVideoReplay,
-    orgSlug,
-    organization.slug,
-    projectSlug,
-    replay,
-    replayId,
-    theme,
-    videoEvents,
-    webFrames,
-  ]);
+  }, [dispatch, getPlugins, isVideoReplay, orgSlug, projectSlug, replay, theme]);
 
   useEffect(() => {
     if (!replayerRef.current) {

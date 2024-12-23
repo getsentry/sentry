@@ -1,6 +1,6 @@
 import {createContext, useContext, useMemo} from 'react';
 
-import {useReplayProjectSlug} from 'sentry/utils/replays/playback/hooks/useReplayProjectSlug';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 type Basics = {
@@ -17,7 +17,7 @@ const context = createContext<Basics>({
   })!,
 });
 
-export function ReplayBasicsProvider({
+export function ReplayReaderProvider({
   children,
   replay,
 }: {
