@@ -16,7 +16,6 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
 import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
@@ -81,20 +80,9 @@ export function CacheLandingPage() {
     },
   });
 
-  const navigate = useNavigate();
-
   const {openSamplesDrawer} = useSamplesDrawer({
     Component: <CacheSamplePanel />,
     moduleName: ModuleName.CACHE,
-    onClose: () => {
-      navigate({
-        query: {
-          ...location.query,
-          transaction: undefined,
-          transactionMethod: undefined,
-        },
-      });
-    },
   });
 
   useEffect(() => {

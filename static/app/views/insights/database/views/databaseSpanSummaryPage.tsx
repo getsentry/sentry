@@ -10,7 +10,6 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import InsightIssuesList from 'sentry/views/insights/common/components/issues';
@@ -150,8 +149,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const navigate = useNavigate();
-
   const {openSamplesDrawer} = useSamplesDrawer({
     Component: (
       <SampleList
@@ -163,15 +160,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       />
     ),
     moduleName: ModuleName.DB,
-    onClose: () => {
-      navigate({
-        query: {
-          ...location.query,
-          transaction: undefined,
-          transactionMethod: undefined,
-        },
-      });
-    },
   });
 
   useEffect(() => {
