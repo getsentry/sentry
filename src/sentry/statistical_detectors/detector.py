@@ -109,6 +109,7 @@ class RegressionDetector(ABC):
         unique_project_ids: set[int] = set()
 
         total_count = 0
+        skipped_count = 0
         regressed_count = 0
         improved_count = 0
 
@@ -127,6 +128,7 @@ class RegressionDetector(ABC):
                 # If the number of events is too low, then we skip updating
                 # to minimize false positives
                 if payload.count <= cls.min_throughput_threshold():
+                    skipped_count += 1
                     continue
 
                 metrics.distribution(
@@ -166,6 +168,13 @@ class RegressionDetector(ABC):
         metrics.incr(
             "statistical_detectors.objects.total",
             amount=total_count,
+            tags={"source": cls.source, "kind": cls.kind},
+            sample_rate=1.0,
+        )
+
+        metrics.incr(
+            "statistical_detectors.objects.skipped",
+            amount=skipped_count,
             tags={"source": cls.source, "kind": cls.kind},
             sample_rate=1.0,
         )
