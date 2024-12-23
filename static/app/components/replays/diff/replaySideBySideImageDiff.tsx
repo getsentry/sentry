@@ -5,9 +5,9 @@ import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {space} from 'sentry/styles/space';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
@@ -26,7 +26,7 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
 
       <ReplayGrid>
         <ReplayPlayerPluginsContextProvider>
-          <ReplayPlayerEventsContextProvider replay={replay}>
+          <ReplayReaderProvider replay={replay}>
             <Border>
               <ReplayPlayerStateContextProvider>
                 <ReplayPlayerMeasurer measure="width">
@@ -41,7 +41,7 @@ export function ReplaySideBySideImageDiff({leftOffsetMs, replay, rightOffsetMs}:
                 </ReplayPlayerMeasurer>
               </ReplayPlayerStateContextProvider>
             </Border>
-          </ReplayPlayerEventsContextProvider>
+          </ReplayReaderProvider>
         </ReplayPlayerPluginsContextProvider>
       </ReplayGrid>
     </Flex>
