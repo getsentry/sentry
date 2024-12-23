@@ -152,7 +152,6 @@ def get_filename_component(
         new_filename = _java_assist_enhancer_re.sub(r"\1<auto>", filename)
         if new_filename != filename:
             filename_component.update(values=[new_filename], hint="cleaned javassist parts")
-            filename = new_filename
 
     return filename_component
 
@@ -176,11 +175,11 @@ def get_module_component(
     elif platform == "java":
         if "$$Lambda$" in module:
             module_component.update(contributes=False, hint="ignored java lambda")
-        if module[:35] == "sun.reflect.GeneratedMethodAccessor":
+        if module.startswith("sun.reflect.GeneratedMethodAccessor"):
             module_component.update(
                 values=["sun.reflect.GeneratedMethodAccessor"], hint="removed reflection marker"
             )
-        elif module[:44] == "jdk.internal.reflect.GeneratedMethodAccessor":
+        elif module.startswith("jdk.internal.reflect.GeneratedMethodAccessor"):
             module_component.update(
                 values=["jdk.internal.reflect.GeneratedMethodAccessor"],
                 hint="removed reflection marker",
@@ -342,7 +341,7 @@ def frame(
     if context_line_component is not None:
         values.append(context_line_component)
 
-    rv = FrameGroupingComponent(values=values, in_app=frame.in_app)
+    frame_component = FrameGroupingComponent(values=values, in_app=frame.in_app)
 
     # if we are in javascript fuzzing mode we want to disregard some
     # frames consistently.  These force common bad stacktraces together
@@ -351,8 +350,9 @@ def frame(
     if context["javascript_fuzzing"] and get_behavior_family_for_platform(platform) == "javascript":
         func = frame.raw_function or frame.function
         if func:
+            # Strip leading namespacing, i.e., turn `some.module.path.someFunction` into
+            # `someFunction` and `someObject.someMethod` into `someMethod`
             func = func.rsplit(".", 1)[-1]
-        # special case empty functions not to have a hint
         if not func:
             function_component.update(contributes=False)
         elif func in (
@@ -368,12 +368,12 @@ def frame(
             "eval code",
             "<anonymous>",
         ):
-            rv.update(contributes=False, hint="ignored low quality javascript frame")
+            frame_component.update(contributes=False, hint="ignored low quality javascript frame")
 
     if context["is_recursion"]:
-        rv.update(contributes=False, hint="ignored due to recursion")
+        frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant"]: rv}
+    return {context["variant"]: frame_component}
 
 
 def get_contextline_component(
@@ -412,7 +412,7 @@ def stacktrace(
 
     return call_with_variants(
         _single_stacktrace_variant,
-        ["!system", "app"],
+        ["!app", "system"],
         interface,
         event=event,
         context=context,
@@ -423,11 +423,11 @@ def stacktrace(
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, meta: dict[str, Any]
 ) -> ReturnedVariants:
-    variant = context["variant"]
+    variant_name = context["variant"]
 
     frames = stacktrace.frames
 
-    values = []
+    frame_components = []
     prev_frame = None
     frames_for_filtering = []
     found_in_app_frame = False
@@ -437,7 +437,7 @@ def _single_stacktrace_variant(
             context["is_recursion"] = is_recursive_frames(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if variant == "app":
+        if variant_name == "app":
             if frame.in_app:
                 found_in_app_frame = True
             else:
@@ -445,7 +445,7 @@ def _single_stacktrace_variant(
                 # the rust enhancer doesn't know about system vs app variants
                 frame_component.update(contributes=False, hint="non app frame")
 
-        values.append(frame_component)
+        frame_components.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
         prev_frame = frame
 
@@ -454,15 +454,17 @@ def _single_stacktrace_variant(
     # for grouping.
     if (
         len(frames) == 1
-        and values[0].contributes
+        and frame_components[0].contributes
         and get_behavior_family_for_platform(frames[0].platform or event.platform) == "javascript"
         and not frames[0].function
         and frames[0].is_url()
     ):
-        values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
+        frame_components[0].update(
+            contributes=False, hint="ignored single non-URL JavaScript frame"
+        )
 
-    main_variant, _ = context.config.enhancements.assemble_stacktrace_component(
-        values,
+    stacktrace_component = context.config.enhancements.assemble_stacktrace_component(
+        frame_components,
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
@@ -473,12 +475,12 @@ def _single_stacktrace_variant(
     # number of contributing frames isn't big enough. In that case it also sets `contributes` to
     # false, as it does when there are no contributing frames. In this latter case it doesn't set a
     # hint, though, so we do it here.
-    if not main_variant.hint and not main_variant.contributes:
+    if not stacktrace_component.hint and not stacktrace_component.contributes:
         if len(frames) == 0:
             frames_description = "frames"
-        elif variant == "system":
+        elif variant_name == "system":
             frames_description = "contributing frames"
-        elif variant == "app":
+        elif variant_name == "app":
             # If there are in-app frames but the stacktrace nontheless doesn't contribute, it must
             # be because all of the frames got marked as non-contributing in the enhancer
             if found_in_app_frame:
@@ -486,9 +488,9 @@ def _single_stacktrace_variant(
             else:
                 frames_description = "in-app frames"
 
-        main_variant.hint = f"ignored because it contains no {frames_description}"
+        stacktrace_component.hint = f"ignored because it contains no {frames_description}"
 
-    return {variant: main_variant}
+    return {variant_name: stacktrace_component}
 
 
 @stacktrace.variant_processor
@@ -505,50 +507,48 @@ def stacktrace_variant_processor(
 def single_exception(
     interface: SingleException, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
+    exception = interface
+
     type_component = ErrorTypeGroupingComponent(
-        values=[interface.type] if interface.type else [],
+        values=[exception.type] if exception.type else [],
     )
     system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
-    if interface.mechanism:
-        if interface.mechanism.synthetic:
-            # Ignore synthetic exceptions as they are produced from platform
-            # specific error codes.
-            #
-            # For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
-            # the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
-            #
-            # Do not update type component of system variant, such that regex
-            # can be continuously modified without unnecessarily creating new
-            # groups.
+    if exception.mechanism:
+        if exception.mechanism.synthetic:
+            # Ignore the error type for synthetic exceptions as it can vary by platform and doesn't
+            # actually carry any meaning with respect to what went wrong. (Synthetic exceptions
+            # are dummy excepttions created by the SDK in order to harvest a stacktrace.)
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
             system_type_component.update(
                 contributes=False, hint="ignored because exception is synthetic"
             )
-        if interface.mechanism.meta and "ns_error" in interface.mechanism.meta:
+        if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = NSErrorGroupingComponent(
                 values=[
-                    interface.mechanism.meta["ns_error"].get("domain"),
-                    interface.mechanism.meta["ns_error"].get("code"),
+                    exception.mechanism.meta["ns_error"].get("domain"),
+                    exception.mechanism.meta["ns_error"].get("code"),
                 ],
             )
 
-    if interface.stacktrace is not None:
+    if exception.stacktrace is not None:
         with context:
-            context["exception_data"] = interface.to_json()
-            stacktrace_variants: dict[str, StacktraceGroupingComponent] = (
-                context.get_grouping_component(interface.stacktrace, event=event, **meta)
+            context["exception_data"] = exception.to_json()
+            stacktrace_components_by_variant: dict[str, StacktraceGroupingComponent] = (
+                context.get_grouping_components_by_variant(
+                    exception.stacktrace, event=event, **meta
+                )
             )
     else:
-        stacktrace_variants = {
-            "app": StacktraceGroupingComponent(),
+        stacktrace_components_by_variant = {
+            "!app": StacktraceGroupingComponent(),
         }
 
-    rv = {}
+    exception_components_by_variant = {}
 
-    for variant, stacktrace_component in stacktrace_variants.items():
+    for variant_name, stacktrace_component in stacktrace_components_by_variant.items():
         values: list[
             ErrorTypeGroupingComponent
             | ErrorValueGroupingComponent
@@ -556,7 +556,7 @@ def single_exception(
             | StacktraceGroupingComponent
         ] = [
             stacktrace_component,
-            system_type_component if variant == "system" else type_component,
+            system_type_component if variant_name == "system" else type_component,
         ]
 
         if ns_error_component is not None:
@@ -565,7 +565,7 @@ def single_exception(
         if context["with_exception_value_fallback"]:
             value_component = ErrorValueGroupingComponent()
 
-            raw = interface.value
+            raw = exception.value
             if raw is not None:
                 favors_other_component = stacktrace_component.contributes or (
                     ns_error_component is not None and ns_error_component.contributes
@@ -595,11 +595,11 @@ def single_exception(
 
             values.append(value_component)
 
-        rv[variant] = ExceptionGroupingComponent(
+        exception_components_by_variant[variant_name] = ExceptionGroupingComponent(
             values=values, frame_counts=stacktrace_component.frame_counts
         )
 
-    return rv
+    return exception_components_by_variant
 
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
@@ -609,16 +609,16 @@ def chained_exception(
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
-    # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
-    exception_components = {
-        id(exception): context.get_grouping_component(exception, event=event, **meta)
+    # For each exception, create a dictionary of grouping components by variant name
+    exception_components_by_exception = {
+        id(exception): context.get_grouping_components_by_variant(exception, event=event, **meta)
         for exception in all_exceptions
     }
 
     # Filter the exceptions according to rules for handling exception groups.
     try:
         exceptions = filter_exceptions_for_exception_groups(
-            all_exceptions, exception_components, event
+            all_exceptions, exception_components_by_exception, event
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
@@ -632,39 +632,43 @@ def chained_exception(
     if main_exception_id:
         event.data["main_exception_id"] = main_exception_id
 
-    # Case 1: we have a single exception, use the single exception
-    # component directly to avoid a level of nesting
+    # Cases 1 and 2: Either this never was a chained exception (this is our entry point for single
+    # exceptions, too), or this is a chained exception consisting solely of an exception group and a
+    # single inner exception. In the former case, all we have is the single exception component, so
+    # return it. In the latter case, the there's no value-add to the wrapper, so discard it and just
+    # return the component for the inner exception.
     if len(exceptions) == 1:
-        return exception_components[id(exceptions[0])]
+        return exception_components_by_exception[id(exceptions[0])]
 
-    # Case 2: produce a component for each chained exception
-    by_name: dict[str, list[ExceptionGroupingComponent]] = {}
+    # Case 3: This is either a chained exception or an exception group containing at least two inner
+    # exceptions. Either way, we need to wrap our exception components in a chained exception component.
+    exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
     for exception in exceptions:
-        for name, component in exception_components[id(exception)].items():
-            by_name.setdefault(name, []).append(component)
+        for variant_name, component in exception_components_by_exception[id(exception)].items():
+            exception_components_by_variant.setdefault(variant_name, []).append(component)
 
-    rv = {}
+    chained_exception_components_by_variant = {}
 
-    for name, component_list in by_name.items():
+    for variant_name, variant_exception_components in exception_components_by_variant.items():
         # Calculate an aggregate tally of the different types of frames (in-app vs system,
         # contributing or not) across all of the exceptions in the chain
         total_frame_counts: Counter[str] = Counter()
-        for exception_component in component_list:
+        for exception_component in variant_exception_components:
             total_frame_counts += exception_component.frame_counts
 
-        rv[name] = ChainedExceptionGroupingComponent(
-            values=component_list,
+        chained_exception_components_by_variant[variant_name] = ChainedExceptionGroupingComponent(
+            values=variant_exception_components,
             frame_counts=total_frame_counts,
         )
 
-    return rv
+    return chained_exception_components_by_variant
 
 
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, ReturnedVariants],
+    exception_components: dict[int, dict[str, ExceptionGroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
@@ -704,8 +708,8 @@ def filter_exceptions_for_exception_groups(
         node = exception_tree.get(exception_id)
         return node.children if node else []
 
-    # This recursive generator gets the "top-level exceptions", and is used below.
-    # "Top-level exceptions are those that are the first descendants of the root that are not exception groups.
+    # This recursive generator gets the "top-level exceptions," and is used below.
+    # Top-level exceptions are those that are the first descendants of the root that are not exception groups.
     # For examples, see https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
     def get_top_level_exceptions(
         exception: SingleException,
@@ -747,8 +751,8 @@ def filter_exceptions_for_exception_groups(
     # If there's only one distinct top-level exception in the group,
     # use it and its first-path children, but throw out the exception group and any copies.
     # For example, Group<['Da', 'Da', 'Da']> should just be treated as a single 'Da'.
-    # We'll also set the main_exception_id, which is used in the extract_metadata function
-    # in src/sentry/eventtypes/error.py - which will ensure the issue is titled by this
+    # We'll also set `main_exception_id`, which is used in the `extract_metadata` function
+    # in `src/sentry/eventtypes/error.py`, in order to ensure the issue is titled by this
     # item rather than the exception group.
     if len(distinct_top_level_exceptions) == 1:
         main_exception = distinct_top_level_exceptions[0]
@@ -814,14 +818,16 @@ def _filtered_threads(
     if not stacktrace:
         return {"app": ThreadsGroupingComponent(contributes=False, hint="thread has no stacktrace")}
 
-    rv = {}
+    thread_components_by_variant = {}
 
-    for name, stacktrace_component in context.get_grouping_component(
+    for variant_name, stacktrace_component in context.get_grouping_components_by_variant(
         stacktrace, event=event, **meta
     ).items():
-        rv[name] = ThreadsGroupingComponent(values=[stacktrace_component])
+        thread_components_by_variant[variant_name] = ThreadsGroupingComponent(
+            values=[stacktrace_component], frame_counts=stacktrace_component.frame_counts
+        )
 
-    return rv
+    return thread_components_by_variant
 
 
 @threads.variant_processor

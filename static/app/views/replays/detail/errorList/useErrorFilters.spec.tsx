@@ -4,9 +4,9 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import type {
   ErrorSelectOption,
   FilterFields,
@@ -14,7 +14,9 @@ import type {
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useNavigate');
 
+const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseLocation = jest.mocked(useLocation);
 
 const {
@@ -54,11 +56,9 @@ const {
 );
 
 describe('useErrorFilters', () => {
-  beforeEach(() => {
-    jest.mocked(browserHistory.replace).mockReset();
-  });
-
   it('should update the url when setters are called', () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
     const errorFrames = [
       ERROR_1_JS_RANGEERROR,
       ERROR_2_NEXTJS_TYPEERROR,
@@ -87,23 +87,29 @@ describe('useErrorFilters', () => {
     });
 
     result.current.setFilters([PROJECT_OPTION]);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_e_project: [PROJECT_OPTION.value],
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_e_project: [PROJECT_OPTION.value],
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({errorFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_e_project: [PROJECT_OPTION.value],
-        f_e_search: SEARCH_FILTER,
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_e_project: [PROJECT_OPTION.value],
+          f_e_search: SEARCH_FILTER,
+        },
       },
-    });
+      {replace: true}
+    );
   });
 
   it('should not filter anything when no values are set', async () => {

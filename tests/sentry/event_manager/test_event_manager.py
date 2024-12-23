@@ -46,7 +46,7 @@ from sentry.event_manager import (
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import load_grouping_config
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -1121,7 +1121,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).exists()
 
         # ensure we're not erroring on second creation
-        event = self.make_release_event("1.0", project_id)
+        self.make_release_event("1.0", project_id)
 
     def test_group_release_with_env(self) -> None:
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
@@ -1891,9 +1891,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
-                        )
+                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -2115,14 +2113,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
         )
 
-    def test_checksum_rehashed(self) -> None:
+    def test_invalid_checksum_gets_hashed(self) -> None:
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
-        assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
+        assert len(hashes) == 1
+        assert hashes[0] == hash_from_values(checksum)
 
     def test_legacy_attributes_moved(self) -> None:
         event_params = make_event(
@@ -2274,7 +2273,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """
         ).dumps()
 
-        grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
+        grouping_config: GroupingConfig = {
+            "id": DEFAULT_GROUPING_CONFIG,
+            "enhancements": enhancements_str,
+        }
 
         with patch(
             "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",

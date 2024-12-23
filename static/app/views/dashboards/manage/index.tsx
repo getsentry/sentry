@@ -60,6 +60,7 @@ import TemplateCard from './templateCard';
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
+  {label: t('Dashboard Name (Z-A)'), value: '-title'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Popular'), value: 'mostPopular'},
@@ -120,6 +121,9 @@ function ManageDashboards() {
         query: {
           ...pick(location.query, ['cursor', 'query']),
           sort: getActiveSort().value,
+          ...(organization.features.includes('dashboards-favourite')
+            ? {pin: 'favorites'}
+            : {}),
           per_page:
             dashboardsLayout === GRID ? rowCount * columnCount : DASHBOARD_TABLE_NUM_ROWS,
         },

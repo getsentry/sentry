@@ -64,6 +64,7 @@ import {
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
+import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
@@ -203,9 +204,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    const newTabs = [TRACE_TAB];
+    // New trace UI has the trace info and web vitalsin the bottom drawer
+    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
 
-    if (props.tree.vitals.size > 0) {
+    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
       const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
 
@@ -282,8 +284,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           type: 'set results',
           results: matches,
           resultsLookup: lookup,
-          resultIteratorIndex: resultIteratorIndex,
-          resultIndex: resultIndex,
+          resultIteratorIndex,
+          resultIndex,
           previousNode: activeNodeSearchResult,
           node,
         });
@@ -319,9 +321,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
+        // The new ui has the trace info and web vitals in the bottom drawer and
+        // we don't treat the trace node as a clickable node
+        if (isTraceNode(node) && hasTraceNewUi) {
+          return;
+        }
+
         if (queryStringAnimationTimeoutRef.current) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
+
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = TraceTree.PathToNode(node);
@@ -361,7 +370,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [traceDispatch, hasTraceNewUi]
   );
 
   const onRowClick = useCallback(
@@ -370,6 +379,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      // The new ui has the trace info and web vitals in the bottom drawer and
+      // we don't treat the trace node as a clickable node
+      if (isTraceNode(node) && hasTraceNewUi) {
+        traceDispatch({
+          type: 'set roving index',
+          action_source: 'click',
+          index,
+          node,
+        });
+        return;
+      }
+
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
@@ -402,7 +423,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch, organization, projects]
+    [setRowAsFocused, traceDispatch, organization, projects, hasTraceNewUi]
   );
 
   const scrollRowIntoView = useCallback(
@@ -451,7 +472,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         traceDispatch({
           type: 'set roving index',
           node: maybeNode,
-          index: index,
+          index,
           action_source: 'click',
         });
 
@@ -582,8 +603,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
-        node: node,
-        index: index,
+        node,
+        index,
         action_source: 'load',
       });
     });
@@ -789,6 +810,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TraceActionsMenu
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
         <TracePreferencesDropdown
           autogroup={
             traceState.preferences.autogroup.parent &&

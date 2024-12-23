@@ -136,7 +136,7 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
         {message}
         <SectionDivider />
         <InterimSection
-          title={t('Related Profile')}
+          title={t('Profile')}
           type="no_instrumentation_profile"
           initialCollapse={false}
           actions={
@@ -327,7 +327,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   return (
     <HeaderContainer>
       <HeaderContainer>
-        <StyledSectionHeading>{t('Related Profile')}</StyledSectionHeading>
+        <StyledSectionHeading>{t('Profile')}</StyledSectionHeading>
         <QuestionTooltip
           position="top"
           size="sm"

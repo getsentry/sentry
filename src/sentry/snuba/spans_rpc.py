@@ -2,6 +2,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
@@ -10,7 +11,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, Tr
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import FLOAT, INT, STRING
+from sentry.search.eap.constants import FLOAT, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.spans import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse, SearchResolverConfig
 from sentry.search.events.fields import get_function_alias, is_function
@@ -29,6 +30,7 @@ def categorize_column(column: ResolvedColumn | ResolvedFunction) -> Column:
         return Column(key=column.proto_definition, label=column.public_alias)
 
 
+@sentry_sdk.trace
 def run_table_query(
     params: SnubaParams,
     query_string: str,
@@ -45,8 +47,9 @@ def run_table_query(
         SearchResolver(params=params, config=config) if search_resolver is None else search_resolver
     )
     meta = resolver.resolve_meta(referrer=referrer)
-    query = resolver.resolve_query(query_string)
-    columns, contexts = resolver.resolve_columns(selected_columns)
+    query, query_contexts = resolver.resolve_query(query_string)
+    columns, column_contexts = resolver.resolve_columns(selected_columns)
+    contexts = resolver.clean_contexts(query_contexts + column_contexts)
     # We allow orderby function_aliases if they're a selected_column
     # eg. can orderby sum_span_self_time, assuming sum(span.self_time) is selected
     orderby_aliases = {
@@ -153,7 +156,7 @@ def get_timeseries_query(
 ) -> TimeSeriesRequest:
     resolver = SearchResolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
-    query = resolver.resolve_query(query_string)
+    query, query_contexts = resolver.resolve_query(query_string)
     (aggregations, _) = resolver.resolve_aggregates(y_axes)
     (groupbys, _) = resolver.resolve_columns(groupby)
     if extra_conditions is not None:
@@ -176,9 +179,28 @@ def get_timeseries_query(
             if isinstance(groupby.proto_definition, AttributeKey)
         ],
         granularity_secs=granularity_secs,
+        # TODO: need to add this once the RPC supports it
+        # virtual_column_contexts=[context for context in resolver.clean_contexts(query_contexts) if context is not None],
     )
 
 
+def validate_granularity(
+    params: SnubaParams,
+    granularity_secs: int,
+) -> None:
+    """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
+    but the RPC adds additional rules on validation so those are checked here"""
+    if params.date_range.total_seconds() / granularity_secs > MAX_ROLLUP_POINTS:
+        raise InvalidSearchQuery(
+            "Selected interval would create too many buckets for the timeseries"
+        )
+    if granularity_secs not in VALID_GRANULARITIES:
+        raise InvalidSearchQuery(
+            f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
+        )
+
+
+@sentry_sdk.trace
 def run_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -189,6 +211,7 @@ def run_timeseries_query(
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
+    validate_granularity(params, granularity_secs)
     rpc_request = get_timeseries_query(
         params, query_string, y_axes, [], referrer, config, granularity_secs
     )
@@ -249,6 +272,7 @@ def run_timeseries_query(
     )
 
 
+@sentry_sdk.trace
 def build_top_event_conditions(
     resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
 ) -> Any:
@@ -264,7 +288,7 @@ def build_top_event_conditions(
                 ]
             else:
                 value = event[key]
-            resolved_term = resolver.resolve_term(
+            resolved_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
@@ -273,7 +297,7 @@ def build_top_event_conditions(
             )
             if resolved_term is not None:
                 row_conditions.append(resolved_term)
-            other_term = resolver.resolve_term(
+            other_term, context = resolver.resolve_term(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
@@ -306,6 +330,7 @@ def run_top_events_timeseries_query(
     This is because at time of writing, the query construction is very straightforward, if that changes perhaps we can
     change this"""
     """Make a table query first to get what we need to filter by"""
+    validate_granularity(params, granularity_secs)
     search_resolver = SearchResolver(params, config)
     top_events = run_table_query(
         params,
@@ -318,6 +343,8 @@ def run_top_events_timeseries_query(
         config,
         search_resolver=search_resolver,
     )
+    if len(top_events["data"]) == 0:
+        return {}
     # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
     groupby_columns = [col for col in raw_groupby if not is_function(col)]
     groupby_columns_without_project = [

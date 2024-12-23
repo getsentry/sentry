@@ -101,6 +101,7 @@ from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
@@ -112,7 +113,13 @@ from sentry.users.models.user_option import UserOption
 from sentry.users.models.userip import UserIP
 from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleDetector,
+    AlertRuleTriggerDataCondition,
+    AlertRuleWorkflow,
+    DataConditionGroup,
+)
 
 __all__ = [
     "export_to_file",
@@ -661,18 +668,15 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.NOTIFICATION, data="")
+        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
         )
 
-        # TODO @saponifi3d: Update comparison to be DetectorState.Critical
-        self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="WorkflowCondition",
-            condition_result="True",
+        data_condition = self.create_data_condition(
+            comparison=75,
+            condition_result=True,
             condition_group=notification_condition_group,
         )
 
@@ -688,19 +692,31 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        # TODO @saponifi3d: Create or define trigger workflow action type
         trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
         self.create_data_condition_group_action(
             action=trigger_workflows_action, condition_group=detector_conditions
         )
         self.create_data_condition(
-            condition="eq",
-            comparison="critical",
-            type="DetectorCondition",
-            condition_result="True",
+            comparison=75,
+            condition_result=True,
             condition_group=detector_conditions,
         )
         detector.workflow_condition_group = detector_conditions
+
+        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleTriggerDataCondition.objects.create(
+            alert_rule_trigger=trigger, data_condition=data_condition
+        )
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
+        )
 
         return org
 

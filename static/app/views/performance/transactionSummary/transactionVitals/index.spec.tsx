@@ -175,6 +175,10 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   afterEach(() => {

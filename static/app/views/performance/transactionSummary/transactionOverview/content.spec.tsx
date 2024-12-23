@@ -189,6 +189,10 @@ describe('Transaction Summary Content', function () {
         metrics: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -227,7 +231,7 @@ describe('Transaction Summary Content', function () {
       await screen.findByTestId('page-filter-environment-selector')
     ).toBeInTheDocument();
     expect(screen.getByTestId('page-filter-timerange-selector')).toBeInTheDocument();
-    expect(screen.getByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(screen.getByTestId('search-query-builder')).toBeInTheDocument();
     expect(screen.getByTestId('transaction-summary-charts')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: /user misery/i})).toBeInTheDocument();
 

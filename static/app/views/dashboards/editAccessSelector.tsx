@@ -65,7 +65,9 @@ function EditAccessSelector({
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
-      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+      selectedOptions[1] && selectedOptions[1] !== '_allUsers'
+        ? [selectedOptions[1]]
+        : [],
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -276,9 +278,8 @@ function EditAccessSelector({
           ? [triggerAvatars]
           : [
               <StyledFeatureBadge
-                key="beta-badge"
-                type="beta"
-                title={t('This feature is available for early adopters and may change')}
+                key="new-badge"
+                type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
               t('Edit Access:'),
@@ -330,6 +331,7 @@ const StyledDisplayName = styled('div')`
 const StyledAvatarList = styled(AvatarList)`
   margin-left: 10px;
   margin-right: -3px;
+  font-weight: normal;
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`

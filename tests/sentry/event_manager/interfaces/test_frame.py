@@ -10,7 +10,7 @@ def make_frames_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"stacktrace": {"frames": [data]}})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         frame = evt.interfaces["stacktrace"].frames[0]
 
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": frame.to_json()})
