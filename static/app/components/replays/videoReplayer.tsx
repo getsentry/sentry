@@ -414,6 +414,7 @@ export class VideoReplayer {
         this.setVideoTime(this._currentVideo, 0);
       }
     }
+
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
