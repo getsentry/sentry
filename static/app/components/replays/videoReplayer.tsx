@@ -3,8 +3,6 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
-type RootElem = HTMLDivElement | null;
-
 // The number of segments to load on either side of the requested segment (around 15 seconds)
 // Also the number of segments we load initially
 const PRELOAD_BUFFER = 3;
@@ -19,7 +17,7 @@ interface VideoReplayerOptions {
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   start: number;
   videoApiPrefix: string;
   clipWindow?: ClipWindow;
@@ -92,9 +90,7 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
-    if (root) {
-      root.appendChild(this.wrapper);
-    }
+    root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
