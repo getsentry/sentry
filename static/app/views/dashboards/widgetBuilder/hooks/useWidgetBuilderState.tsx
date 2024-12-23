@@ -25,6 +25,7 @@ export type WidgetBuilderStateQueryParams = {
   description?: string;
   displayType?: DisplayType;
   field?: (string | undefined)[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
   sort?: string[];
@@ -42,6 +43,7 @@ export const BuilderStateAction = {
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
   SET_LIMIT: 'SET_LIMIT',
+  SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
 } as const;
 
 type WidgetAction =
@@ -53,13 +55,15 @@ type WidgetAction =
   | {payload: Column[]; type: typeof BuilderStateAction.SET_Y_AXIS}
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
-  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT};
+  | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
+  | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
   fields?: Column[];
+  legendAlias?: string[];
   limit?: number;
   query?: string[];
   sort?: Sort[];
@@ -109,10 +113,36 @@ function useWidgetBuilderState(): {
     decoder: decodeScalar,
     deserializer: deserializeLimit,
   });
+  const [legendAlias, setLegendAlias] = useQueryParamState<string[]>({
+    fieldName: 'legendAlias',
+    decoder: decodeList,
+  });
 
   const state = useMemo(
-    () => ({title, description, displayType, dataset, fields, yAxis, query, sort, limit}),
-    [title, description, displayType, dataset, fields, yAxis, query, sort, limit]
+    () => ({
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+    }),
+    [
+      title,
+      description,
+      displayType,
+      dataset,
+      fields,
+      yAxis,
+      query,
+      sort,
+      limit,
+      legendAlias,
+    ]
   );
 
   const dispatch = useCallback(
@@ -128,6 +158,7 @@ function useWidgetBuilderState(): {
           setDisplayType(action.payload);
           if (action.payload === DisplayType.BIG_NUMBER) {
             setSort([]);
+            setLegendAlias([]);
           }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
@@ -136,6 +167,7 @@ function useWidgetBuilderState(): {
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
             setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
+            setLegendAlias([]);
           } else {
             setFields(columns);
             setYAxis([
@@ -185,6 +217,9 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_LIMIT:
           setLimit(action.payload);
           break;
+        case BuilderStateAction.SET_LEGEND_ALIAS:
+          setLegendAlias(action.payload);
+          break;
         default:
           break;
       }
@@ -199,6 +234,7 @@ function useWidgetBuilderState(): {
       setQuery,
       setSort,
       setLimit,
+      setLegendAlias,
       fields,
       yAxis,
       displayType,
