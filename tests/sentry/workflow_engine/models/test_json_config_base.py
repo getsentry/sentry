@@ -18,6 +18,7 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             "location": "Cityville",
             "interests": ["Travel", "Technology"],
         }
+
         self.example_schema = {
             "$id": "https://example.com/user-profile.schema.json",
             "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -49,7 +50,6 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             description = "Example"
             category = GroupCategory.PERFORMANCE.value
             detector_config_schema = {"type": "object", "additionalProperties": False}
-
 
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
