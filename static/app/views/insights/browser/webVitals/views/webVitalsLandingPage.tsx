@@ -30,7 +30,7 @@ import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modul
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {useVitalsDrawer} from 'sentry/views/insights/common/utils/useVitalsDrawer';
+import {useWebVitalsDrawer} from 'sentry/views/insights/common/utils/useWebVitalsDrawer';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {
   ModuleName,
@@ -64,7 +64,7 @@ export function WebVitalsLandingPage() {
       ? undefined
       : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
 
-  const {openVitalsDrawer} = useVitalsDrawer({
+  const {openVitalsDrawer} = useWebVitalsDrawer({
     Component: <WebVitalsDetailPanel webVital={state.webVital} />,
     webVital: state.webVital,
     onClose: () => {
