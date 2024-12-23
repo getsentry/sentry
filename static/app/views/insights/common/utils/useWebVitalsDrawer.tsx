@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 
 import type {WebVitals} from '../../browser/webVitals/types';
 
-interface UseSamplesDrawerProps {
+interface UseWebVitalsDrawerProps {
   Component: React.ReactNode;
   onClose: () => void;
   webVital: WebVitals | null;
@@ -15,7 +15,7 @@ export function useWebVitalsDrawer({
   Component,
   webVital,
   onClose,
-}: UseSamplesDrawerProps) {
+}: UseWebVitalsDrawerProps) {
   const {openDrawer} = useDrawer();
 
   const openVitalsDrawer = useCallback(() => {
