@@ -70,6 +70,8 @@ const Bar = styled('h4')`
 
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
+
+  overflow: hidden;
 `;
 
 const Subtitle = styled('span')`
