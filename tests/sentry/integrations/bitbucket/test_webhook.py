@@ -5,7 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
-from sentry.integrations.bitbucket.webhook import PROVIDER_NAME
+from sentry.integrations.bitbucket.webhook import PROVIDER_NAME, is_valid_signature
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository
@@ -192,3 +192,56 @@ class PushEventWebhookTest(WebhookBaseTest):
         # url has been updated
         repo_out_of_date_url.refresh_from_db()
         assert repo_out_of_date_url.url == "https://bitbucket.org/maxbittker/newsdiffs"
+
+
+class WebhookSignatureTest(WebhookBaseTest):
+    method = "post"
+
+    def setUp(self):
+        super().setUp()
+
+        repo = self.create_repository()
+        repo.config["webhook_secret"] = "test_secret"
+        repo.save()
+
+    def send_signed_webhook(self):
+        return self.get_response(
+            self.organization_id,
+            raw_data=PUSH_EVENT_EXAMPLE,
+            extra_headers=dict(
+                HTTP_X_EVENT_KEY="repo:push",
+                HTTP_X_HUB_SIGNATURE=self.signature,
+                REMOTE_ADDR=BITBUCKET_IP,
+            ),
+        )
+
+    def test_is_valid_signature(self):
+        # https://support.atlassian.com/bitbucket-cloud/docs/manage-webhooks/#Examples
+        assert is_valid_signature(
+            b"Hello World!",
+            "It's a Secret to Everybody",
+            "a4771c39fbe90f317c7824e83ddef3caae9cb3d976c214ace1f2937e133263c9",
+        )
+
+    def test_success(self):
+        self.signature = "sha256=ee07bac3b2fa849cf4346113dc5f6b9738660673aca6fa8f07ce459e7543f980"
+        response = self.send_signed_webhook()
+        assert response.status_code == 204
+
+    def test_missing_signature(self):
+        self.signature = ""
+        response = self.send_signed_webhook()
+        assert response.status_code == 400
+        assert response.content == b"Missing webhook signature"
+
+    def test_invalid_signature(self):
+        self.signature = "sha256=definitely-invalid"
+        response = self.send_signed_webhook()
+        assert response.status_code == 400
+        assert response.content == b"Webhook signature is invalid"
+
+    def test_invalid_method(self):
+        self.signature = "sha1=b842d7b7d535c446133bcf18cf085fb9472175c7"
+        response = self.send_signed_webhook()
+        assert response.status_code == 400
+        assert response.content == b"Signature method is not supported"
