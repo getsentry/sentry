@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
@@ -60,7 +60,7 @@ type Props = ModalRenderProps & {
 };
 
 export default function SentryAppPublishRequestModal(props: Props) {
-  const form = new FormModel({transformData});
+  const [form] = useState<FormModel>(new FormModel({transformData}));
   const {app, closeModal, Header, Body} = props;
 
   const formFields = () => {
