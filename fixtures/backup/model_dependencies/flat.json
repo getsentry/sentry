@@ -447,7 +447,6 @@
   "sentry.lostpasswordhash": [
     "sentry.user"
   ],
-  "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
     "sentry.project",
