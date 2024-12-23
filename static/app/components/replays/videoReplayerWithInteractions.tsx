@@ -65,8 +65,6 @@ export class VideoReplayerWithInteractions {
       config: this.config,
     });
 
-    root.classList.add('video-replayer');
-
     const grouped = Object.groupBy(touchEvents, (t: any) => t.data.pointerId);
     Object.values(grouped).forEach(t => {
       if (t?.length !== 2) {
