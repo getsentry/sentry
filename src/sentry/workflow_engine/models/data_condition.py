@@ -29,6 +29,10 @@ class Condition(models.TextChoices):
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    EVENT_FREQUENCY = "event_frequency"
+    EVENT_UNIQUE_USER_FREQUENCY = "event_unique_user_frequency"
+    EVENT_FREQUENCY_PERCENT = "event_frequency_percent"
+    EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = "event_unique_user_frequency_with_conditions"
 
 
 condition_ops = {
@@ -66,6 +70,18 @@ class DataCondition(DefaultFieldsModel):
         related_name="conditions",
         on_delete=models.CASCADE,
     )
+
+    @property
+    def slow_conditions(self) -> list[Condition]:
+        return [
+            Condition.EVENT_FREQUENCY,
+            Condition.EVENT_UNIQUE_USER_FREQUENCY,
+            Condition.EVENT_FREQUENCY_PERCENT,
+            Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS,
+        ]
+
+    def is_slow_condition(self):
+        return Condition(self.type) in self.slow_conditions
 
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
