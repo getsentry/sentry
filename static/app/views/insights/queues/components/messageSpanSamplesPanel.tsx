@@ -229,6 +229,9 @@ export function MessageSpanSamplesPanel() {
         <SampleDrawerHeaderTransaction
           project={project}
           transaction={query.transaction}
+          subtitle={
+            messageActorType === MessageActorType.PRODUCER ? t('Producer') : t('Consumer')
+          }
         />
       </DrawerHeader>
 
