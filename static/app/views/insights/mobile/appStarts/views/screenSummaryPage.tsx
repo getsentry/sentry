@@ -21,6 +21,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SamplesTables} from 'sentry/views/insights/mobile/appStarts/components/samples';
 import {
   COLD_START_TYPE,
@@ -110,6 +111,44 @@ export function ScreenSummaryContentPage() {
     }
   }, [location, appStartType, navigate]);
 
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: (
+      <SpanSamplesPanel
+        additionalFilters={{
+          [SpanMetricsField.APP_START_TYPE]: appStartType,
+          ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
+        }}
+        groupId={spanGroup}
+        moduleName={ModuleName.APP_START}
+        transactionName={transactionName}
+        spanDescription={spanDescription}
+        spanOp={spanOp}
+        onClose={() => {
+          navigate(
+            {
+              pathname: location.pathname,
+              query: omit(
+                location.query,
+                'spanGroup',
+                'transactionMethod',
+                'spanDescription',
+                'spanOp'
+              ),
+            },
+            {replace: true}
+          );
+        }}
+      />
+    ),
+    moduleName: ModuleName.SCREEN_RENDERING,
+  });
+
+  useEffect(() => {
+    if (transactionName && spanGroup && spanOp && appStartType) {
+      openSamplesDrawer();
+    }
+  });
+
   return (
     <Fragment>
       <HeaderContainer>
@@ -181,34 +220,6 @@ export function ScreenSummaryContentPage() {
       <SamplesContainer>
         <SamplesTables transactionName={transactionName} />
       </SamplesContainer>
-      {spanGroup && spanOp && appStartType && (
-        <SpanSamplesPanel
-          additionalFilters={{
-            [SpanMetricsField.APP_START_TYPE]: appStartType,
-            ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-          }}
-          groupId={spanGroup}
-          moduleName={ModuleName.APP_START}
-          transactionName={transactionName}
-          spanDescription={spanDescription}
-          spanOp={spanOp}
-          onClose={() => {
-            navigate(
-              {
-                pathname: location.pathname,
-                query: omit(
-                  location.query,
-                  'spanGroup',
-                  'transactionMethod',
-                  'spanDescription',
-                  'spanOp'
-                ),
-              },
-              {replace: true}
-            );
-          }}
-        />
-      )}
     </Fragment>
   );
 }

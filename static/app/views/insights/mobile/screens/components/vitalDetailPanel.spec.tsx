@@ -46,7 +46,7 @@ describe('VitalDetailPanel', () => {
   test('renders correctly with given props', () => {
     render(
       <PageAlertProvider>
-        <VitalDetailPanel vital={mockVital} status={mockStatus} onClose={jest.fn()} />
+        <VitalDetailPanel vital={mockVital} status={mockStatus} />
       </PageAlertProvider>
     );
 
@@ -69,7 +69,7 @@ describe('VitalDetailPanel', () => {
     const onCloseMock = jest.fn();
     render(
       <PageAlertProvider>
-        <VitalDetailPanel vital={mockVital} status={mockStatus} onClose={onCloseMock} />
+        <VitalDetailPanel vital={mockVital} status={mockStatus} />
       </PageAlertProvider>
     );
 
