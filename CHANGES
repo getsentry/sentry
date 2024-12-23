@@ -1,3 +1,35 @@
+24.12.1
+-------
+
+### Various fixes & improvements
+
+- fix: fixes KeyError when running with stale topic dlq (#82512) by @lynnagara
+- chore(issue-views): Add analytics back to tab actions (#82504) by @MichaelSun48
+- chore(sentry apps): Introduce new error types for sentry apps (#82507) by @Christinarlong
+- fix timezone normalization (#82496) by @kneeyo1
+- ref(tsc): convert teamAccessRequestModal to FC (#82470) by @michellewzhang
+- ref(tsc): convert dashboardWidgetQuerySelectorModal to FC (#82466) by @michellewzhang
+- ref(issue-views): Overhaul issue views state and logic to a new context  (#82429) by @MichaelSun48
+- ref: strptime -> fromisoformat in tests (#82488) by @asottile-sentry
+- chore(various): Fix linter warnings (#82494) by @lobsterkatie
+- ref(insights): Split out `getAxisMaxForPercentageSeries` (#82493) by @gggritso
+- fix(ecosystem): Track metrics for issue detail ticket creation (#82436) by @GabeVillalobos
+- ref(aci): pass WorkflowJob into process_workflows (#82489) by @cathteng
+- fix(group-events): Fix typo and error text (#82490) by @leeandher
+- fix(web): Add react_config context on auth pages take 2 (#82480) by @BYK
+- feat(alerts): ACI dual write alert rule helpers (#82400) by @ceorourke
+- feat(dashboards): Pass `LineChart` series meta alongside the data (#82047) by @gggritso
+- fix(eap): Numeric attribute filtering in snql eap (#82472) by @Zylphrex
+- chore(issues): Opt in a few more endpoint tests to stronger types (#82382) by @mrduncan
+- ref: remove calls to iso_format in testutils (#82461) by @asottile-sentry
+- feat(dashboards): enable sorting by column in table view (#82239) by @harshithadurai
+- ref(workflow_engine): remove remaining references to condition in validators (#82438) by @mifu67
+- fix(flags): separate permission class (#82463) by @oioki
+- feat(new-trace): Fixing scroll on trace drawer (#82475) by @Abdkhan14
+- support routing stale messages to lowpri topic (#82322) by @lynnagara
+
+_Plus 240 more_
+
 24.12.0
 -------
 
