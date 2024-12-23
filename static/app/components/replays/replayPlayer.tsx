@@ -4,6 +4,7 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
 import {
@@ -182,7 +183,7 @@ function BasePlayerRoot({
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
-        <div ref={viewEl} className={className} data-inspectable={inspectable} />
+        <Stacked ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
         {isPreview || isVideoReplay || isFetching || !hasDefaultMaskSettings ? null : (
