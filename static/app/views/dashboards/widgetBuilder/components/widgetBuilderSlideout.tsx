@@ -8,6 +8,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   type DashboardDetails,
@@ -50,6 +51,7 @@ function WidgetBuilderSlideout({
   setIsPreviewDraggable,
   isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
+  const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const theme = useTheme();
@@ -109,7 +111,12 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderDatasetSelector />
         </Section>
-        <Section>{state.dataset === WidgetType.SPANS && <RPCToggle />}</Section>
+        {organization.features.includes('visibility-explore-dataset') &&
+          state.dataset === WidgetType.SPANS && (
+            <Section>
+              <RPCToggle />
+            </Section>
+          )}
         <Section>
           <WidgetBuilderTypeSelector />
         </Section>
