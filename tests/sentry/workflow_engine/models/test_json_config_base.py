@@ -48,12 +48,17 @@ class TestDetectorConfig(TestJsonConfigBase):
         with pytest.raises(ValueError):
             self.create_detector(name="test_detector", type="no_registration")
 
-    def test_detector_mismatched_schema(self):
+    def test_detector_schema(self):
+        self.create_detector(name="test_detector", type="test", config=self.correct_config)
+
         with pytest.raises(ValidationError):
             self.create_detector(name="test_detector", type="test", config={"hi": "there"})
 
-    def test_detector_correct_schema(self):
-        self.create_detector(name="test_detector", type="test", config=self.correct_config)
+    def test_detector_empty_schema(self):
+        self.create_detector(name="example_detector", type="example", config={})
+
+        with pytest.raises(ValidationError):
+            self.create_detector(name="test_detector", type="example", config={"hi": "there"})
 
 
 class TestWorkflowConfig(TestJsonConfigBase):
