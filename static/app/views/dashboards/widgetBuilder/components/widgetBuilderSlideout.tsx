@@ -8,12 +8,14 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   type DashboardDetails,
   type DashboardFilters,
   DisplayType,
   type Widget,
+  WidgetType,
 } from 'sentry/views/dashboards/types';
 import WidgetBuilderDatasetSelector from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import WidgetBuilderFilterBar from 'sentry/views/dashboards/widgetBuilder/components/filtersBar';
@@ -21,6 +23,7 @@ import WidgetBuilderGroupBySelector from 'sentry/views/dashboards/widgetBuilder/
 import WidgetBuilderNameAndDescription from 'sentry/views/dashboards/widgetBuilder/components/nameAndDescFields';
 import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import WidgetBuilderQueryFilterBuilder from 'sentry/views/dashboards/widgetBuilder/components/queryFilterBuilder';
+import RPCToggle from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import SaveButton from 'sentry/views/dashboards/widgetBuilder/components/saveButton';
 import WidgetBuilderSortBySelector from 'sentry/views/dashboards/widgetBuilder/components/sortBySelector';
 import WidgetBuilderTypeSelector from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
@@ -48,6 +51,7 @@ function WidgetBuilderSlideout({
   setIsPreviewDraggable,
   isWidgetInvalid,
 }: WidgetBuilderSlideoutProps) {
+  const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const {widgetIndex} = useParams();
   const theme = useTheme();
@@ -107,6 +111,12 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderDatasetSelector />
         </Section>
+        {organization.features.includes('visibility-explore-dataset') &&
+          state.dataset === WidgetType.SPANS && (
+            <Section>
+              <RPCToggle />
+            </Section>
+          )}
         <Section>
           <WidgetBuilderTypeSelector />
         </Section>
