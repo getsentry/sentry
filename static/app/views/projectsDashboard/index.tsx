@@ -31,6 +31,8 @@ import {
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {useUser} from 'sentry/utils/useUser';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
@@ -85,36 +87,51 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
       ProjectsStatsStore.reset();
     };
   }, []);
+  const user = useUser();
   const [projectQuery, setProjectQuery] = useState('');
   const debouncedSearchQuery = useMemo(
     () => debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
     []
   );
+  const {projects, fetching, fetchError} = useProjects();
+
+  const showNonMemberProjects = useMemo(() => {
+    const isOrgAdminOrManager =
+      organization.orgRole === 'owner' || organization.orgRole === 'manager';
+    const isOpenMembership = organization.features.includes('open-membership');
+
+    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
+  }, [user, organization.orgRole, organization.features]);
 
   const canUserCreateProject = canCreateProject(organization);
-  if (loadingTeams) {
+  if (loadingTeams || fetching) {
     return <LoadingIndicator />;
   }
 
-  if (error) {
+  if (error || fetchError) {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
-  const canJoinTeam = organization.access.includes('team:read');
 
-  const selectedTeams = getTeamParams(location ? location.query.team : '');
-  const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
+  const canJoinTeam = organization.access.includes('team:read');
+  const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
+  const filteredTeams =
+    selectedTeams[0] === 'myteams' || selectedTeams.length === 0
+      ? teams
+      : teams.filter(team => selectedTeams.includes(team.id));
 
   const filteredTeamProjects = uniqBy(
     (filteredTeams ?? teams).flatMap(team => team.projects),
     'id'
   );
-  const projects = uniqBy(
-    teams.flatMap(teamObj => teamObj.projects),
-    'id'
-  );
   setGroupedEntityTag('projects.total', 1000, projects.length);
 
-  const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
+  const currentProjects =
+    // No teams are specifically selected and query parameter is present
+    // Use all projects if open membership is enabled
+    location.query.team === '' && showNonMemberProjects
+      ? projects
+      : // No teams are specifically selected - Use "myteams"
+        filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
@@ -126,12 +143,10 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   }
 
   function handleChangeFilter(activeFilters: string[]) {
-    const {...currentQuery} = location.query;
-
     router.push({
       pathname: location.pathname,
       query: {
-        ...currentQuery,
+        ...location.query,
         team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
@@ -190,9 +205,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
             <TeamFilter
               selectedTeams={selectedTeams}
               handleChangeFilter={handleChangeFilter}
-              showIsMemberTeams
-              showSuggestedOptions={false}
-              showMyTeamsDescription
+              hideUnassigned
+              hideOtherTeams={!showNonMemberProjects}
             />
             <StyledSearchBar
               defaultQuery=""
