@@ -90,6 +90,7 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
+    this.wrapper.className = 'video-replayer-wrapper';
     root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
