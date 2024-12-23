@@ -113,6 +113,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'cache_miss_rate()',
+          transformAliasToInputFormat: '1',
         },
       })
     );
@@ -136,6 +137,7 @@ describe('CacheLandingPage', function () {
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
+          transformAliasToInputFormat: '1',
         },
       })
     );

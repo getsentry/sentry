@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   AreaChartWidget,
@@ -11,13 +12,15 @@ import {
   AreaChartWidgetVisualization,
   type AreaChartWidgetVisualizationProps,
 } from 'sentry/views/dashboards/widgets/areaChartWidget/areaChartWidgetVisualization';
+import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
 
-import {AVG_COLOR, COUNT_COLOR, THROUGHPUT_COLOR} from '../../colors';
+import {THROUGHPUT_COLOR} from '../../colors';
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
 interface InsightsAreaChartWidgetProps
   extends Pick<AreaChartWidgetProps, 'title' | 'meta' | 'isLoading'> {
+  aliases: Aliases;
   error: AreaChartWidgetProps['error'] | null;
   series: DiscoverSeries[];
 }
@@ -36,7 +39,7 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
         color: serie.color ?? COMMON_COLORS[timeserie.field],
       };
     }),
-    meta: props.meta,
+    aliases: props.aliases,
   };
 
   return (
@@ -87,8 +90,8 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
 
 const COMMON_COLORS = {
   'spm()': THROUGHPUT_COLOR,
-  'avg(messaging.message.receive.latency)': COUNT_COLOR,
-  'avg(span.duration)': AVG_COLOR,
+  'avg(messaging.message.receive.latency)': CHART_PALETTE[2][1],
+  'avg(span.duration)': CHART_PALETTE[2][2],
 };
 
 const ChartContainer = styled('div')`

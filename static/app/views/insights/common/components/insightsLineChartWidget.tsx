@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
 import {
   LineChartWidget,
   type LineChartWidgetProps,
@@ -27,6 +28,7 @@ interface InsightsLineChartWidgetProps
   extends Pick<LineChartWidgetProps, 'title' | 'isLoading'> {
   error: LineChartWidgetProps['error'] | null;
   series: DiscoverSeries[];
+  aliases?: Aliases;
 }
 
 export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
@@ -43,6 +45,7 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
         color: serie.color ?? COMMON_COLORS[timeserie.field],
       };
     }),
+    aliases: props.aliases,
     dataCompletenessDelay: 90,
   };
 
@@ -71,6 +74,7 @@ export function InsightsLineChartWidget(props: InsightsLineChartWidgetProps) {
                     <ModalChartContainer>
                       <LineChartWidgetVisualization
                         {...visualizationProps}
+                        aliases={props.aliases}
                         releases={
                           releases
                             ? releases.map(release => ({
