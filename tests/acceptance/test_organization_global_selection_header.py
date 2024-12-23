@@ -7,7 +7,7 @@ from django.utils import timezone as django_timezone
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from fixtures.page_objects.issue_list import IssueListPage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 event_time = before_now(days=3)
@@ -51,7 +51,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project_1.id,
@@ -60,7 +60,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-2"],
                 "environment": "prod",
             },
