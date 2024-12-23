@@ -30,6 +30,7 @@ export function convertWidgetToBuilderStateParams(
   let yAxis = widget.queries.flatMap(q => q.aggregates);
   const query = widget.queries.flatMap(q => q.conditions);
   const sort = widget.queries.flatMap(q => q.orderby);
+  let legendAlias = widget.queries.flatMap(q => q.name);
 
   let field: string[] = [];
   if (
@@ -38,6 +39,7 @@ export function convertWidgetToBuilderStateParams(
   ) {
     field = widget.queries.flatMap(widgetQuery => stringifyFields(widgetQuery, 'fields'));
     yAxis = [];
+    legendAlias = [];
   } else {
     field = widget.queries.flatMap(widgetQuery =>
       stringifyFields(widgetQuery, 'columns')
@@ -54,5 +56,6 @@ export function convertWidgetToBuilderStateParams(
     yAxis,
     query,
     sort,
+    legendAlias,
   };
 }
