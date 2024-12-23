@@ -274,6 +274,10 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params.end == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
+@pytest.mark.parametrize(
+    ["count", "should_emit"],
+    [(100, True), (10, False)],
+)
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @django_db_all
@@ -282,6 +286,8 @@ def test_detect_transaction_trends(
     query_transactions,
     timestamp,
     project,
+    count,
+    should_emit,
 ):
     n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
@@ -292,7 +298,7 @@ def test_detect_transaction_trends(
                 project_id=project.id,
                 group="/123",
                 fingerprint="/123",
-                count=100,
+                count=count,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
@@ -307,7 +313,11 @@ def test_detect_transaction_trends(
     with override_options(options):
         for ts in timestamps:
             detect_transaction_trends([project.organization.id], [project.id], ts)
-    assert detect_transaction_change_points.apply_async.called
+
+    if should_emit:
+        assert detect_transaction_change_points.apply_async.called
+    else:
+        assert not detect_transaction_change_points.apply_async.called
 
 
 @mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
@@ -725,6 +735,10 @@ def test_get_regression_versions_active(
         assert regressions == []
 
 
+@pytest.mark.parametrize(
+    ["count", "should_emit"],
+    [(100, True), (10, False)],
+)
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
@@ -733,6 +747,8 @@ def test_detect_function_trends(
     query_functions,
     timestamp,
     project,
+    count,
+    should_emit,
 ):
     n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
@@ -743,7 +759,7 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 fingerprint=f"{123:x}",
-                count=100,
+                count=count,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
@@ -758,7 +774,11 @@ def test_detect_function_trends(
     with override_options(options):
         for ts in timestamps:
             detect_function_trends([project.id], ts)
-    assert detect_function_change_points.apply_async.called
+
+    if should_emit:
+        assert detect_function_change_points.apply_async.called
+    else:
+        assert not detect_function_change_points.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.functions.query")
