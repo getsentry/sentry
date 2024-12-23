@@ -30,7 +30,7 @@ export interface MetricTimeseriesRow {
   interval: number;
 }
 
-type DiscoverSeries = Series & {
+export type DiscoverSeries = Series & {
   meta?: EventsMetaType;
 };
 
