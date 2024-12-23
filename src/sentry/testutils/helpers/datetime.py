@@ -5,11 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import time_machine
 
-__all__ = ["iso_format", "before_now", "timestamp_format"]
-
-
-def iso_format(date: datetime) -> str:
-    return date.isoformat()[:19]
+__all__ = ["before_now", "timestamp_format"]
 
 
 def before_now(**kwargs: float) -> datetime:
