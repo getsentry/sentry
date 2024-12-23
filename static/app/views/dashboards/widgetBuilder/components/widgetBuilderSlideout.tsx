@@ -99,15 +99,12 @@ function WidgetBuilderSlideout({
           aria-label={t('Close Widget Builder')}
           icon={<IconClose size="sm" />}
           onClick={() => {
-            if (isEqual(initialState, state)) {
-              onClose();
-            } else {
-              openConfirmModal({
-                message: t('You have unsaved changes. Are you sure you want to leave?'),
-                priority: 'danger',
-                onConfirm: () => onClose(),
-              });
-            }
+            openConfirmModal({
+              bypass: isEqual(initialState, state),
+              message: t('You have unsaved changes. Are you sure you want to leave?'),
+              priority: 'danger',
+              onConfirm: () => onClose(),
+            });
           }}
         >
           {t('Close')}
