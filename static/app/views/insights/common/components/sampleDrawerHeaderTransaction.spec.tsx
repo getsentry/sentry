@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SampleDrawerHeaderTransaction} from './sampleDrawerHeader';
+import {SampleDrawerHeaderTransaction} from './sampleDrawerHeaderTransaction';
 
 describe('SampleDrawerHeaderTransaction', () => {
   it('Links to the transaction summary page', () => {
