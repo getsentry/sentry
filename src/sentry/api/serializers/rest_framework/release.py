@@ -87,7 +87,10 @@ class ReleaseSerializer(serializers.Serializer):
 
 class ReleaseWithVersionSerializer(ReleaseSerializer):
     version = serializers.CharField(
-        max_length=MAX_VERSION_LENGTH, trim_whitespace=False, required=True
+        max_length=MAX_VERSION_LENGTH,
+        trim_whitespace=False,
+        required=True,
+        help_text=f"The version of the release, with a maximum length of {MAX_VERSION_LENGTH} characters.",
     )
     owner = UserField(required=False)
 
