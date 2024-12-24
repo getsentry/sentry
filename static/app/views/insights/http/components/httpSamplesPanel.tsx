@@ -32,6 +32,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
+  useEAPSpans,
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
@@ -54,6 +55,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
 import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
 import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {USE_EAP_HTTP_MODULE} from 'sentry/views/insights/http/views/httpLandingPage';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   ModuleName,
@@ -78,6 +80,7 @@ export function HTTPSamplesPanel() {
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
       spanSearchQuery: decodeScalar,
+      url: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
     },
   });
@@ -137,9 +140,13 @@ export function HTTPSamplesPanel() {
   const isPanelOpen = Boolean(detailKey);
 
   const ADDITONAL_FILTERS = {
-    'span.domain':
-      query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
-    transaction: query.transaction,
+    ...(query.url
+      ? {url: query.url}
+      : {
+          'span.domain':
+            query.domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(query.domain),
+          transaction: query.transaction,
+        }),
     ...(query[SpanMetricsField.USER_GEO_SUBREGION].length > 0
       ? {
           [SpanMetricsField.USER_GEO_SUBREGION]: `[${query[SpanMetricsField.USER_GEO_SUBREGION].join(',')}]`,
@@ -228,12 +235,28 @@ export function HTTPSamplesPanel() {
 
   const durationAxisMax = computeAxisMax([durationData?.[`avg(span.self_time)`]]);
 
-  const {
-    data: durationSamplesData,
-    isFetching: isDurationSamplesDataFetching,
-    error: durationSamplesDataError,
-    refetch: refetchDurationSpanSamples,
-  } = useSpanSamples({
+  const durationEAPSamplesRes = useEAPSpans(
+    {
+      search,
+      fields: [
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.RESPONSE_CODE,
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.ID,
+        SpanIndexedField.SPAN_SELF_TIME,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: SPAN_SAMPLE_LIMIT,
+      enabled: isPanelOpen && query.panel === 'duration' && USE_EAP_HTTP_MODULE,
+    },
+    Referrer.SAMPLES_PANEL_DURATION_SAMPLES
+  );
+
+  const durationSamples = useSpanSamples({
     search,
     fields: [
       SpanIndexedField.TRACE,
@@ -243,16 +266,22 @@ export function HTTPSamplesPanel() {
     ],
     min: 0,
     max: durationAxisMax,
-    enabled: isPanelOpen && query.panel === 'duration' && durationAxisMax > 0,
+    enabled:
+      isPanelOpen &&
+      query.panel === 'duration' &&
+      durationAxisMax > 0 &&
+      !USE_EAP_HTTP_MODULE,
     referrer: Referrer.SAMPLES_PANEL_DURATION_SAMPLES,
   });
 
   const {
-    data: responseCodeSamplesData,
-    isFetching: isResponseCodeSamplesDataFetching,
-    error: responseCodeSamplesDataError,
-    refetch: refetchResponseCodeSpanSamples,
-  } = useSpansIndexed(
+    data: durationSamplesData,
+    isFetching: isDurationSamplesDataFetching,
+    error: durationSamplesDataError,
+    refetch: refetchDurationSpanSamples,
+  } = USE_EAP_HTTP_MODULE ? durationEAPSamplesRes : durationSamples;
+
+  const eapResponse = useEAPSpans(
     {
       search,
       fields: [
@@ -266,10 +295,36 @@ export function HTTPSamplesPanel() {
       ],
       sorts: [SPAN_SAMPLES_SORT],
       limit: SPAN_SAMPLE_LIMIT,
-      enabled: isPanelOpen && query.panel === 'status',
+      enabled: isPanelOpen && query.panel === 'status' && USE_EAP_HTTP_MODULE,
     },
     Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
   );
+
+  const spanIndexedResponse = useSpansIndexed(
+    {
+      search,
+      fields: [
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.RESPONSE_CODE,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: SPAN_SAMPLE_LIMIT,
+      enabled: isPanelOpen && query.panel === 'status' && !USE_EAP_HTTP_MODULE,
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
+  );
+
+  const {
+    data: responseCodeSamplesData,
+    isFetching: isResponseCodeSamplesDataFetching,
+    error: responseCodeSamplesDataError,
+    refetch: refetchResponseCodeSpanSamples,
+  } = USE_EAP_HTTP_MODULE ? spanIndexedResponse : eapResponse;
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
