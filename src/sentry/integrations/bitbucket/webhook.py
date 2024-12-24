@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import ipaddress
 import logging
 from abc import ABC, abstractmethod
@@ -30,6 +32,29 @@ logger = logging.getLogger("sentry.webhooks")
 PROVIDER_NAME = "integrations:bitbucket"
 
 
+def is_valid_signature(body: bytes, secret: str, signature: str) -> bool:
+    hash_object = hmac.new(
+        secret.encode("utf-8"),
+        msg=body,
+        digestmod=hashlib.sha256,
+    )
+    expected_signature = hash_object.hexdigest()
+
+    if not hmac.compare_digest(expected_signature, signature):
+        logger.info(
+            "%s.webhook.invalid-signature",
+            PROVIDER_NAME,
+            extra={"expected": expected_signature, "given": signature},
+        )
+        return False
+    return True
+
+
+class WebhookSignatureException(Exception):
+    def __init__(self, message: str = ""):
+        super().__init__(message)
+
+
 class Webhook(ABC):
     @property
     @abstractmethod
@@ -37,7 +62,7 @@ class Webhook(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
+    def __call__(self, request: HttpRequest, organization: Organization, event: Mapping[str, Any]):
         raise NotImplementedError
 
     def update_repo_data(self, repo, event):
@@ -75,7 +100,7 @@ class PushEventWebhook(Webhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, organization: Organization, event: Mapping[str, Any]):
+    def __call__(self, request: HttpRequest, organization: Organization, event: Mapping[str, Any]):
         authors = {}
 
         try:
@@ -86,6 +111,19 @@ class PushEventWebhook(Webhook):
             )
         except Repository.DoesNotExist:
             raise Http404()
+
+        if "webhook_secret" in repo.config:
+            secret = repo.config["webhook_secret"]
+            try:
+                method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+            except (IndexError, KeyError, ValueError):
+                raise WebhookSignatureException("Missing webhook signature")
+
+            if method != "sha256":
+                raise WebhookSignatureException("Signature method is not supported")
+
+            if not is_valid_signature(request.body, secret, signature):
+                raise WebhookSignatureException("Webhook signature is invalid")
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -207,6 +245,9 @@ class BitbucketWebhookEndpoint(Endpoint):
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             provider_key="bitbucket",
         ).capture():
-            event_handler(organization, event)
+            try:
+                event_handler(request, organization, event)
+            except WebhookSignatureException as e:
+                return HttpResponse(str(e), status=400)
 
         return HttpResponse(status=204)
