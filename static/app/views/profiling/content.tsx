@@ -4,7 +4,6 @@ import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -25,7 +24,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -228,23 +226,12 @@ function ProfilingTransactionsContent(props: ProfilingTabContentProps) {
           <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
           <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
         </PageFilterBar>
-        {organization.features.includes('search-query-builder-performance') ? (
-          <TransactionSearchQueryBuilder
-            projects={selection.projects}
-            initialQuery={query}
-            onSearch={handleSearch}
-            searchSource="profile_landing"
-          />
-        ) : (
-          <SearchBar
-            searchSource="profile_landing"
-            organization={organization}
-            projectIds={selection.projects}
-            query={query}
-            onSearch={handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-          />
-        )}
+        <TransactionSearchQueryBuilder
+          projects={selection.projects}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="profile_landing"
+        />
       </ActionBar>
       {props.shouldShowProfilingOnboardingPanel ? (
         <ProfilingOnboardingCTA />
