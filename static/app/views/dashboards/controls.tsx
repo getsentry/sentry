@@ -78,6 +78,32 @@ function Controls({
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const api = useApi();
+
+  const handleCallEvents = async (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    const shareId = '1';
+    const widgetId = '1';
+
+    try {
+      await api.requestPromise(
+        `/organizations/${organization.slug}/shared/widget/${shareId}/${widgetId}`,
+        {
+          method: 'GET',
+        }
+      );
+      // console.log('API Response:', response);
+    } catch (error) {
+      // console.error('API Error:', error);
+      if (error.status) {
+        // console.log('Error Status:', error.status);
+      }
+      if (error.responseJSON) {
+        // console.log('Error Response:', error.responseJSON);
+      }
+    }
+  };
+
   if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
     return (
       <StyledButtonBar gap={1} key="edit-controls">
@@ -220,6 +246,15 @@ function Controls({
                 />
               </Feature>
             )}
+            <Button onClick={handleCallEvents} size="sm">
+              {t('call events')}
+            </Button>
+            <Feature features="dashboards-edit-access">
+              <EditAccessSelector
+                dashboard={dashboard}
+                onChangeEditAccess={onChangeEditAccess}
+              />
+            </Feature>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
