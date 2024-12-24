@@ -7,6 +7,7 @@
     "type": "git",
     "url": "git://github.com/getsentry/sentry.git"
   },
+  "sideEffects": ["*.css", "*.less"],
   "dependencies": {
     "@acemarke/react-prod-sourcemaps": "^0.2.1",
     "@babel/core": "~7.25.9",
@@ -51,7 +52,10 @@
     "@react-stately/tabs": "^3.6.9",
     "@react-stately/tree": "^3.8.4",
     "@react-types/shared": "^3.24.1",
-    "@rsdoctor/webpack-plugin": "0.4.7",
+    "@rsdoctor/webpack-plugin": "0.4.11",
+    "@rspack/cli": "^1.1.6",
+    "@rspack/core": "^1.1.6",
+    "@rspack/plugin-react-refresh": "^1.0.1",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/rrweb": "2.26.0",
     "@sentry-internal/rrweb-player": "2.26.0",
@@ -181,6 +185,7 @@
     "@sentry/jest-environment": "6.0.0",
     "@sentry/profiling-node": "8.43.0",
     "@styled/typescript-styled-plugin": "^1.0.1",
+    "@swc/plugin-emotion": "^4.0.3",
     "@testing-library/dom": "10.1.0",
     "@testing-library/jest-dom": "6.4.5",
     "@testing-library/react": "16.0.0",
@@ -243,16 +248,23 @@
     "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write --log-level=error",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 webpack serve",
+    "dev-ui-rspack": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 rspack serve",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development webpack --watch",
+    "dev-acceptance-rspack": "NO_DEV_SERVER=1 NODE_ENV=development rspack --watch",
     "webpack-profile": "NO_TS_FORK=1 webpack --profile --json > stats.json",
+    "webpack-profile-rspack": "NO_TS_FORK=1 rspack build --json > stats.json",
     "install-api-docs": "yarn install --cwd ./api-docs",
     "build-deprecated-docs": "yarn install-api-docs && ts-node api-docs/index.ts api-docs/openapi.json tests/apidocs/openapi-deprecated.json",
     "diff-docs": "yarn install-api-docs && ts-node api-docs/openapi-diff.ts",
     "deref-api-docs": "ts-node api-docs/index.ts tests/apidocs/openapi-spectacular.json tests/apidocs/openapi-derefed.json",
     "build-chartcuterie-config": "NODE_ENV=production webpack --config=config/webpack.chartcuterie.config.ts",
+    "build-chartcuterie-config-rspack": "NODE_ENV=production rspack --config=./config/rspack.chartcuterie.config.ts",
     "build-acceptance": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production webpack",
+    "build-acceptance-rspack": "IS_ACCEPTANCE_TEST=1 NODE_ENV=production rspack",
     "build-production": "NODE_ENV=production webpack --mode production",
+    "build-production-rspack": "NODE_ENV=production rspack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 webpack",
+    "build-rspack": "NODE_OPTIONS=--max-old-space-size=4096 rspack",
     "build-js-loader": "ts-node scripts/build-js-loader.ts",
     "validate-api-examples": "yarn --cwd api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
@@ -274,9 +286,7 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": [
-      "current node"
-    ]
+    "test": ["current node"]
   },
   "volta": {
     "extends": ".volta.json"
