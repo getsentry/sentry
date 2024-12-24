@@ -70,8 +70,6 @@ export function DomainViewHeader({
     ...additionalBreadCrumbs,
   ];
 
-  const showModuleTabs = organization.features.includes('insights-entry-points');
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
@@ -83,19 +81,14 @@ export function DomainViewHeader({
     },
   ];
 
-  if (showModuleTabs) {
-    tabList.push(
-      ...modules.map(
-        moduleName =>
-          ({
-            key: moduleName,
-            children: <TabLabel moduleName={moduleName} />,
-            to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
-            hidden: isModuleHidden(moduleName, organization),
-          }) satisfies TabListItemProps
-      )
-    );
-  }
+  modules.forEach(moduleName =>
+    tabList.push({
+      key: moduleName,
+      children: <TabLabel moduleName={moduleName} />,
+      to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+      hidden: isModuleHidden(moduleName, organization),
+    })
+  );
 
   return (
     <Fragment>
