@@ -33,7 +33,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const eventQuery = useEventQuery({group});
+  const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??

@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -10,9 +9,12 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {
+  EventDetailsContext,
+  useEventDetailsReducer,
+} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetailsHeader} from 'sentry/views/issueDetails/streamline/eventDetailsHeader';
 import {IssueEventNavigation} from 'sentry/views/issueDetails/streamline/eventNavigation';
-import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import StreamlinedSidebar from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 import {ToggleSidebar} from 'sentry/views/issueDetails/streamline/sidebar/toggleSidebar';
@@ -31,7 +33,7 @@ export function GroupDetailsLayout({
   project,
   children,
 }: GroupDetailsLayoutProps) {
-  const searchQuery = useEventQuery({group});
+  const {eventDetails, dispatch} = useEventDetailsReducer();
   const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
   const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
@@ -39,7 +41,7 @@ export function GroupDetailsLayout({
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   return (
-    <Fragment>
+    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
       <StreamlinedGroupHeader
         group={group}
         event={event ?? null}
@@ -53,7 +55,7 @@ export function GroupDetailsLayout({
             <NavigationSidebarWrapper
               hasToggleSidebar={!issueTypeConfig.filterAndSearchHeader.enabled}
             >
-              <IssueEventNavigation event={event} group={group} query={searchQuery} />
+              <IssueEventNavigation event={event} group={group} />
               {/* Since the event details header is disabled, display the sidebar toggle here */}
               {!issueTypeConfig.filterAndSearchHeader.enabled && (
                 <ToggleSidebar size="sm" />
@@ -66,7 +68,7 @@ export function GroupDetailsLayout({
           <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
-    </Fragment>
+    </EventDetailsContext.Provider>
   );
 }
 

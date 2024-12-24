@@ -36,7 +36,7 @@ export function EventDetailsHeader({
   const navigate = useNavigate();
   const location = useLocation();
   const environments = useEnvironmentsFromUrl();
-  const searchQuery = useEventQuery({group});
+  const searchQuery = useEventQuery({groupId: group.id});
   const {baseUrl} = useGroupDetailsRoute();
 
   const issueTypeConfig = getConfigForIssueType(group, project);

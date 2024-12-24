@@ -92,6 +92,8 @@ export interface EventDetailsContextType extends EventDetailsState {
 
 export const EventDetailsContext = createContext<EventDetailsContextType>({
   sectionData: {},
+  navScrollMargin: 0,
+  eventCount: 0,
   dispatch: () => {},
 });
 
@@ -103,6 +105,7 @@ export interface EventDetailsState {
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
+  eventCount?: number;
   navScrollMargin?: number;
 }
 
@@ -117,7 +120,15 @@ type UpdateDetailsAction = {
   state?: Omit<EventDetailsState, 'sectionData'>;
 };
 
-export type EventDetailsActions = UpdateSectionAction | UpdateDetailsAction;
+type UpdateEventCountAction = {
+  count: number;
+  type: 'UPDATE_EVENT_COUNT';
+};
+
+export type EventDetailsActions =
+  | UpdateSectionAction
+  | UpdateDetailsAction
+  | UpdateEventCountAction;
 
 function updateSection(
   state: EventDetailsState,
@@ -151,6 +162,8 @@ export function useEventDetailsReducer() {
           return updateSection(state, action.key, action.config ?? {});
         case 'UPDATE_DETAILS':
           return {...state, ...action.state};
+        case 'UPDATE_EVENT_COUNT':
+          return {...state, eventCount: action.count};
         default:
           return state;
       }
