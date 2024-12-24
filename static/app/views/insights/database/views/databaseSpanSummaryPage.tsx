@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -46,6 +46,8 @@ import {
   SpanMetricsField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
 
 type Query = {
   transaction: string;
@@ -146,6 +148,25 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_DOMAIN]: string[];
     [SpanMetricsField.SPAN_GROUP]: string;
   };
+
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={span[SpanMetricsField.SPAN_GROUP]}
+        moduleName={ModuleName.DB}
+        transactionName={transaction}
+        transactionMethod={transactionMethod}
+        referrer={TraceViewSources.QUERIES_MODULE}
+      />
+    ),
+    moduleName: ModuleName.DB,
+  });
+
+  useEffect(() => {
+    if (transaction) {
+      openSamplesDrawer();
+    }
+  });
 
   const {
     isPending: isThroughputDataLoading,
@@ -286,14 +307,6 @@ export function DatabaseSpanSummaryPage({params}: Props) {
                 </ModuleLayout.Full>
               )}
             </ModuleLayout.Layout>
-
-            <SampleList
-              groupId={span[SpanMetricsField.SPAN_GROUP]}
-              moduleName={ModuleName.DB}
-              transactionName={transaction}
-              transactionMethod={transactionMethod}
-              referrer={TraceViewSources.QUERIES_MODULE}
-            />
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
