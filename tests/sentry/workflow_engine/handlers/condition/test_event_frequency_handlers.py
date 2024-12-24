@@ -51,7 +51,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
 
     def test_batch_query(self):
         batch_query = self.handler().batch_query(
-            group_ids=[self.event.group_id, self.event2.group_id, self.perf_event.group_id],
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
@@ -63,7 +63,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         }
 
         batch_query = self.handler().batch_query(
-            group_ids=[self.event3.group_id],
+            group_ids={self.event3.group_id},
             start=self.start,
             end=self.end,
             environment_id=self.environment2.id,
@@ -73,7 +73,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
     def test_get_error_and_generic_group_ids(self):
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
-        ).values("id", "type", "project__organization_id")
+        ).values("id", "type", "project_id", "project__organization_id")
         error_issue_ids, generic_issue_ids = self.handler().get_error_and_generic_group_ids(groups)
         assert self.event.group_id in error_issue_ids
         assert self.event2.group_id in error_issue_ids

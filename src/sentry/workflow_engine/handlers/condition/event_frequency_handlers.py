@@ -9,15 +9,15 @@ from django.db.models import QuerySet
 
 from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
-from sentry.issues.grouptype import get_group_type_by_type_id
-from sentry.models.group import Group, GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.models.group import Group
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 from sentry.utils.iterators import chunked
 from sentry.utils.snuba import options_override
-from sentry.workflow_engine.models.data_condition import Condition, DataConditionResult
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
 
 SNUBA_LIMIT = 10000
 STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
@@ -217,7 +217,7 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
         if error_issue_ids and organization_id:
             error_sums = self.get_chunked_result(
-                tsdb_function=tsdb.get_sums,
+                tsdb_function=tsdb.backend.get_sums,
                 model=get_issue_tsdb_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
                 organization_id=organization_id,
@@ -230,7 +230,7 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
 
         if generic_issue_ids and organization_id:
             generic_sums = self.get_chunked_result(
-                tsdb_function=tsdb.get_sums,
+                tsdb_function=tsdb.backend.get_sums,
                 # this isn't necessarily performance, just any non-error category
                 model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
