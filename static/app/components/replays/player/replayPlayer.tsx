@@ -61,7 +61,7 @@ function useReplayerInstance() {
           start: replay.getStartTimestampMs(),
           onFinished: () => {},
           onLoaded: () => {},
-          onBuffer: () => {},
+          onBuffer: isBuffering => dispatch({type: 'changeBufferState', isBuffering}),
           // clipWindow,
           durationMs: replay.getDurationMs(),
           config: {

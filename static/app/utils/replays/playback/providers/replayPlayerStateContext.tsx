@@ -1,5 +1,5 @@
 import type {Dispatch, ReactNode} from 'react';
-import {createContext, useCallback, useContext, useReducer} from 'react';
+import {createContext, useCallback, useContext, useEffect, useReducer} from 'react';
 import type {Replayer} from '@sentry-internal/rrweb';
 import {ReplayerEvents} from '@sentry-internal/rrweb';
 import type {
@@ -13,9 +13,8 @@ import {uniq} from 'sentry/utils/array/uniq';
 import clamp from 'sentry/utils/number/clamp';
 import type {Dimensions} from 'sentry/utils/replays/types';
 
-type ReplayerTuple = [Replayer, VideoReplayer | null];
-
 type ReplayerAction =
+  | {isBuffering: boolean; type: 'changeBufferState'}
   | {
       dispatch: Dispatch<ReplayerAction>;
       replayer: Replayer;
@@ -45,25 +44,27 @@ type UserAction =
   | {offsetMs: number; type: 'jumpToOffset'};
 
 interface State {
+  bufferState: 'buffering' | 'buffering-to-play' | 'ready';
   currentSpeed: undefined | number;
   dimensions: Dimensions;
   isFinished: boolean;
   playerState: 'playing' | 'paused' | 'live';
   replayerCleanup: Map<Replayer | VideoReplayer, () => void>;
-  replayerTuples: Map<Replayer, ReplayerTuple>;
   replayers: Replayer[];
   speedState: 'normal' | 'skipping';
+  videoReplayers: Map<Replayer, VideoReplayer | null>;
 }
 
 function createInitialState(): State {
   return {
+    bufferState: 'ready',
     currentSpeed: 1,
     dimensions: {width: 0, height: 0},
     isFinished: false,
     playerState: 'paused',
     replayerCleanup: new Map(),
     replayers: [],
-    replayerTuples: new Map<Replayer, ReplayerTuple>(),
+    videoReplayers: new Map<Replayer, VideoReplayer | null>(),
     speedState: 'normal',
   };
 }
@@ -76,14 +77,22 @@ export function ReplayPlayerStateContextProvider({children}: {children: ReactNod
   const [state, dispatch] = useReducer(stateReducer, null, createInitialState);
 
   const handleUserAction = useCallback(
-    (userAction: UserAction) => {
-      // state.replayers.forEach(replayer => invokeUserAction(replayer, userAction));
-      state.replayerTuples.forEach(([replayer, videoReplayer]) =>
-        invokeUserAction(replayer, videoReplayer, userAction)
-      );
-    },
+    (userAction: UserAction) =>
+      state.videoReplayers.forEach((videoReplayer, replayer) =>
+        invokeUserAction(state, replayer, videoReplayer, userAction)
+      ),
     [state]
   );
+
+  useEffect(() => {
+    if (state.bufferState === 'buffering-to-play') {
+      if (state.playerState === 'playing') {
+        handleUserAction({type: 'pause'});
+      } else if (state.playerState === 'paused') {
+        handleUserAction({type: 'play'});
+      }
+    }
+  }, [handleUserAction, state.bufferState, state.playerState]);
 
   return (
     <StateContext.Provider value={state}>
@@ -110,53 +119,50 @@ export function useReplayUserAction() {
 
 function stateReducer(state: State, replayerAction: ReplayerAction): State {
   switch (replayerAction.type) {
+    case 'changeBufferState':
+      if (replayerAction.isBuffering) {
+        return {
+          ...state,
+          bufferState:
+            state.playerState === 'playing' ? 'buffering-to-play' : 'buffering',
+        };
+      }
+      return {...state, bufferState: 'ready'};
     case 'didMountPlayer': {
-      state.replayerCleanup.set(
-        replayerAction.replayer,
-        subscribeToReplayer(replayerAction.replayer, replayerAction.dispatch)
-      );
-      applyStateToReplayer(state, replayerAction.replayer, state.replayers.at(0));
+      const {dispatch, replayer, videoReplayer} = replayerAction;
+      state.replayerCleanup.set(replayer, subscribeToReplayer(replayer, dispatch));
+      applyStateToReplayer(state, replayer, state.replayers.at(0));
 
-      if (replayerAction.videoReplayer) {
-        state.replayerCleanup.set(replayerAction.videoReplayer, () => {
-          // Cleanup the videoReplayer
+      if (videoReplayer) {
+        state.replayerCleanup.set(videoReplayer, () => {
+          videoReplayer.destroy(); // Cleanup the videoReplayer? What about the remove() call?
         });
-        // applyStateToReplayer(state, replayerAction.videoReplayer, state.replayers.at(0));
+        applyStateToReplayer(state, videoReplayer, state.replayers.at(0));
       }
 
       return {
         ...state,
-        replayerTuples: state.replayerTuples.set(replayerAction.replayer, [
-          replayerAction.replayer,
-          replayerAction.videoReplayer,
-        ]),
-        replayers: uniq([...state.replayers, replayerAction.replayer]),
+        videoReplayers: state.videoReplayers.set(replayer, videoReplayer),
+        replayers: uniq([...state.replayers, replayer]),
       };
     }
     case 'didUnmountPlayer': {
-      state.replayerCleanup.get(replayerAction.replayer)?.();
-      state.replayerCleanup.delete(replayerAction.replayer);
+      const {replayer, videoReplayer} = replayerAction;
+      state.replayerCleanup.get(replayer)?.();
+      state.replayerCleanup.delete(replayer);
 
-      if (replayerAction.videoReplayer) {
-        state.replayerCleanup.get(replayerAction.videoReplayer)?.();
-        state.replayerCleanup.delete(replayerAction.videoReplayer);
+      if (videoReplayer) {
+        state.videoReplayers.delete(replayer);
+        state.replayerCleanup.get(videoReplayer)?.();
+        state.replayerCleanup.delete(videoReplayer);
       }
 
       // Don't call destroy. It basically just removes the component from the
       // DOM and then triggers `ReplayerEvents.Destroy`.
-      // replayerAction.replayer.destroy();
 
-      const [, videoReplayer] = state.replayerTuples.get(replayerAction.replayer) ?? [
-        replayerAction.replayer,
-        null,
-      ];
-      videoReplayer?.destroy();
-      state.replayerTuples.delete(replayerAction.replayer);
       return {
         ...state,
-        replayers: state.replayers.filter(
-          replayer => replayer !== replayerAction.replayer
-        ),
+        replayers: state.replayers.filter(r => r !== replayer),
       };
     }
     case 'didStart':
@@ -197,18 +203,24 @@ function stateReducer(state: State, replayerAction: ReplayerAction): State {
 }
 
 function invokeUserAction(
+  state: State,
   replayer: Replayer,
   videoReplayer: VideoReplayer | null,
   userAction: UserAction
 ): void {
   switch (userAction.type) {
     case 'play': {
-      const currentTime = replayer.getCurrentTime();
-      replayer.play(currentTime);
-      videoReplayer?.play(currentTime);
+      if (state.bufferState === 'ready') {
+        const currentTime = replayer.getCurrentTime();
+        replayer.play(currentTime);
+        videoReplayer?.play(currentTime);
+      }
       return;
     }
     case 'pause': {
+      if (state.bufferState === 'buffering-to-play') {
+        state.bufferState = 'buffering';
+      }
       const currentTime = replayer.getCurrentTime();
       replayer.pause(currentTime);
       videoReplayer?.pause(currentTime);
