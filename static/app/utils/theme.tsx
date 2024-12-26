@@ -418,6 +418,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
   [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+  [DATA_CATEGORY_INFO.uptime.plural]: '#a397f7',
 };
 
 /**

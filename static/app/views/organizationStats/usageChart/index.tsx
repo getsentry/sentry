@@ -86,6 +86,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     disabled: false,
     yAxisMinInterval: 100,
   },
+  {
+    label: DATA_CATEGORY_INFO.uptime.titleName,
+    value: DATA_CATEGORY_INFO.uptime.plural,
+    disabled: true,
+    yAxisMinInterval: 100,
+  },
 ];
 
 export enum ChartDataTransform {
