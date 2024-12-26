@@ -225,14 +225,6 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate: Function) -> Functio
     return _snql_on_tx_satisfaction_factory
 
 
-def _dist_count_aggregation_on_tx_satisfaction_factory(
-    org_id: int, satisfaction: str, metric_ids: Sequence[int], alias: str | None = None
-) -> Function:
-    return _aggregation_on_tx_satisfaction_func_factory("countIf")(
-        org_id, satisfaction, metric_ids, alias
-    )
-
-
 def _set_count_aggregation_on_tx_satisfaction_factory(
     org_id: int, satisfaction: str, metric_ids: Sequence[int], alias: str | None = None
 ) -> Function:

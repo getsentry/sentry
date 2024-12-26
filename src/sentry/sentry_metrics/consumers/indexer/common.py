@@ -26,9 +26,6 @@ MessageBatch = list[Message[KafkaPayload]]
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
-DEFAULT_QUEUED_MIN_MESSAGES = 100000
-
 
 @dataclass(frozen=True)
 class IndexerOutputMessageBatch:
