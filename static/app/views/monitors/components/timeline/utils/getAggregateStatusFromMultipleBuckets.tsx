@@ -26,8 +26,8 @@ export function getAggregateStatusFromMultipleBuckets(
 }
 
 /**
- * Given multiple stats buckets [{ok: 1, ...}, {ok: 0, ...}]
- * returns the aggregate status across all buckets
+ * Given multiple stats buckets [{..., error: 1, unknown: 0}, {..., error: 0, unknown: 4}]
+ * returns the aggregate status across all buckets (unknown)
  */
 export function getAggregateStatusFromMultipleStatsBuckets(statsArr: StatsBucket[]) {
   return statsArr
