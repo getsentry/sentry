@@ -789,7 +789,6 @@ module.exports = {
     browser: true,
     es6: true,
     jest: true,
-    jquery: true, // hard-loaded into vendor.js
   },
 
   globals: {
