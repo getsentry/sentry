@@ -8,9 +8,6 @@ from sentry.utils import kafka_config
 
 logger = logging.getLogger("sentry.batching-kafka-consumer")
 
-DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
-DEFAULT_QUEUED_MIN_MESSAGES = 10000
-
 
 def wait_for_topics(admin_client: AdminClient, topics: list[str], timeout: int = 10) -> None:
     """
