@@ -234,5 +234,5 @@ class RefsChangedWebhookTest(WebhookTestBase):
             self.integration.id,
             raw_data=orjson.dumps(payload),
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
-            status_code=409,
+            status_code=400,
         )
