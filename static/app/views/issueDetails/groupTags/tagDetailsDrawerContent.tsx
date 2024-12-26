@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import Color from 'color';
 import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
@@ -27,6 +26,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
 type TagSort = 'date' | 'count';
@@ -176,7 +176,7 @@ function TagDetailsRow({
       <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
       <RightAlignedValue>{displayPercentage}</RightAlignedValue>
       {tag.totalValues ? (
-        <TagBarContainer style={{width: `${percentage}%`, height: space(1.5)}} />
+        <TagBar percentage={percentage} style={{height: space(1.5)}} />
       ) : (
         '--'
       )}
@@ -294,7 +294,7 @@ function TagValueActionsMenu({
 
 const Table = styled('div')`
   display: grid;
-  grid-template-columns: repeat(4, auto) 1fr auto;
+  grid-template-columns: 1fr repeat(3, auto) 45px min-content;
   column-gap: ${space(2)};
   row-gap: ${space(0.5)};
   margin: 0 -${space(1)};
@@ -384,23 +384,4 @@ const OverflowTimeSince = styled(TimeSince)`
 
 const ExternalLinkbutton = styled(Button)`
   color: ${p => p.theme.subText};
-`;
-
-const TagBarContainer = styled('div')`
-  height: ${space(1)};
-  position: relative;
-  flex: 1;
-  min-width: ${space(1)};
-  display: flex;
-  align-items: center;
-  &:before {
-    position: absolute;
-    inset: 0;
-    content: '';
-    border-radius: 3px;
-    background: ${p =>
-      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 20px, ${Color(p.theme.gray300).alpha(0.7).toString()} 100%)`};
-    box-shadow: inset 0 0 0 1px ${p => p.theme.translucentInnerBorder};
-    width: 100%;
-  }
 `;
