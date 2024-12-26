@@ -3223,22 +3223,6 @@
       ]
     ]
   },
-  "sentry.metricskeyindexer": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sentry.metricskeyindexer",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_metricskeyindexer",
-    "uniques": [
-      [
-        "string"
-      ]
-    ]
-  },
   "sentry.monitor": {
     "dangling": false,
     "foreign_keys": {
