@@ -24,3 +24,14 @@ export function mergeEnvMappings(
     return mergedEnvs;
   }, {});
 }
+
+/**
+ * Combines job status counts
+ */
+export function mergeStats(statsA: StatsBucket, statsB: StatsBucket): StatsBucket {
+  const combinedStats = {} as StatsBucket;
+  for (const status of CHECKIN_STATUS_PRECEDENT) {
+    combinedStats[status] = (statsA[status] ?? 0) + (statsB[status] ?? 0);
+  }
+  return combinedStats;
+}
