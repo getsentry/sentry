@@ -200,7 +200,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         for message, reason in self.TEAM_HALT_MAPPINGS.items():
             if message in str(response.data):
                 return IntegrationResponse(
-                    interaction_result=EventLifecycleOutcome.SUCCESS,
+                    interaction_result=EventLifecycleOutcome.HALTED,
                     response=response,
                     outcome_reason=str(reason),
                 )
