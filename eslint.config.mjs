@@ -6,7 +6,7 @@
 // import {FlatCompat} from '@eslint/eslintrc';
 
 import {builtinModules} from 'node:module';
-import {fixupPluginRules} from '@eslint/compat'; // fixupConfigRules
+import {fixupPluginRules} from '@eslint/compat';
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import globals from 'globals';
@@ -22,22 +22,9 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 import typescript from 'typescript-eslint';
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
-
-// To bring back:
 // import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
-// To bring in:
-// Bring back
-// import pluginNoRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
-// New:
-// import pluginFilenameExport from 'eslint-plugin-filename-export';
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-// const compat = new FlatCompat({
-//   baseDirectory: __dirname,
-//   recommendedConfig: eslint.configs.recommended,
-//   allConfig: eslint.configs.all,
-// });
+invariant(react.configs.flat, 'For typescript');
 
 const baseRules = {
   /**
@@ -507,11 +494,11 @@ const reactRules = {
   // Useful for exporting some test utilities
   'jest/no-export': 'off',
 
-  // 'typescript-sort-keys/interface': [
-  //   'error',
-  //   'asc',
-  //   {caseSensitive: true, natural: false, requiredFirst: true},
-  // ],
+  'typescript-sort-keys/interface': [
+    'error',
+    'asc',
+    {caseSensitive: true, natural: false, requiredFirst: true},
+  ],
 };
 
 const appRules = {
@@ -772,15 +759,13 @@ const strictRules = {
 // Used by both: `languageOptions` & `parserOptions`
 const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
 
-invariant(react.configs.flat, 'For typescript');
-
 /**
  * To get started with this ESLint Configuration list be sure to read at least
  * these sections of the docs:
  *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
  *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
  */
-export default [
+export default typescript.config([
   {
     /**
      * Main parser & linter options
@@ -814,9 +799,7 @@ export default [
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        // TODO(ryan953): potential for speedup with 'type-info' or 'none'
-        // See also: eslint-plugin-deprecation
-        jsDocParsingMode: 'type-info',
+        jsDocParsingMode: 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
         project: './tsconfig.json',
@@ -836,6 +819,13 @@ export default [
         version: '18.2.0',
         defaultVersion: '18.2',
       },
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
+      },
+      'import/resolver': {
+        typescript: {},
+      },
+      'import/extensions': ['.js', '.jsx'],
     },
   },
   {
@@ -897,53 +887,38 @@ export default [
     name: 'eslint/recommended',
     ...eslint.configs.recommended,
   },
-  ...typescript.configs.recommended,
-  ...typescript.configs.stylistic,
+  {
+    name: 'import/recommended',
+    ...importPlugin.flatConfigs.recommended,
+  },
   {
     name: 'react/recommended',
     ...react.configs.flat.recommended,
   },
   {
-    name: 'react/jsx',
+    name: 'react/jsx-runtime',
     ...react.configs.flat['jsx-runtime'],
   },
   {
-    name: 'react/hooks',
+    name: 'react/hooks/recommended',
     plugins: {
       'react-hooks': fixupPluginRules(reactHooks),
     },
     rules: reactHooks.configs.recommended.rules,
   },
   {
-    name: 'jest',
-    ...jest.configs['flat/recommended'],
-  },
-  {
-    name: 'jest-dom',
-    ...jestDom.configs['flat/recommended'],
-  },
-  {
-    name: 'prettier/recommended',
-    ...prettier,
-  },
-  {
     name: 'sentry/custom',
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
     plugins: {
+      ...jest.configs['flat/recommended'].plugins,
       ...react.configs.flat.plugins,
       '@emotion': emotion,
       '@typescript-eslint': typescript.plugin,
       'react-hooks': fixupPluginRules(reactHooks),
       'simple-import-sort': simpleImportSort,
-      'testing-library': testingLibrary.configs['flat/react'].plugins,
       'typescript-sort-keys': typescriptSortKeys,
-      // Bring back
       // 'no-lookahead-lookbehind-regexp': noLookaheadLookbehindRegexp,
-      // New:
-      // 'filename-export': pluginFilenameExport,
-      // 'no-relative-import-paths': pluginNoRelativeImportPaths,
-      import: importPlugin,
       sentry,
     },
     rules: {
@@ -953,140 +928,6 @@ export default [
       ...strictRules,
     },
   },
-  // {
-  // rules: {
-  //   /**
-  //    * Allow empty arrow functions `() => {}`, while keeping other empty functions restricted
-  //    * @see https://eslint.org/docs/latest/rules/no-empty-function#allow-arrowfunctions
-  //    */
-  //   '@typescript-eslint/no-empty-function': ['error', {allow: ['arrowFunctions']}],
-  //   '@typescript-eslint/ban-ts-comment': 1,
-  //   'no-const-assign': 'error',
-  //   /** Restrict imports from devDependencies since they are not included in library build. peerDependencies are ok */
-  //   'import/no-extraneous-dependencies': [
-  //     'error',
-  //     {
-  //       devDependencies: false,
-  //       peerDependencies: true,
-  //     },
-  //   ],
-  //   /**
-  //    * Enforce import order with empty lines between import group
-  //    * @see https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/order.md
-  //    */
-  //   'import/order': [
-  //     'error',
-  //     {
-  //       groups: ['builtin', 'external', 'internal', ['parent', 'sibling', 'index']],
-  //       pathGroups: [
-  //         {
-  //           pattern: 'toolbar/**',
-  //           group: 'internal',
-  //         },
-  //       ],
-  //       'newlines-between': 'always',
-  //       alphabetize: {
-  //         order:
-  //           'asc' /* sort in ascending order. Options: ['ignore', 'asc', 'desc'] */,
-  //         caseInsensitive: true /* ignore case. Options: [true, false] */,
-  //       },
-  //     },
-  //   ],
-  //   /**
-  //    * When there is only a single export from a module, prefer using default export over named export.
-  //    * @see https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/prefer-default-export.md
-  //    */
-  //   'import/prefer-default-export': [
-  //     'error',
-  //     {
-  //       target: 'single',
-  //     },
-  //   ],
-  //   /**
-  //    * Prevent exporting anonymous functions, classes, and objects.
-  //    * @see https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-anonymous-default-export.md
-  //    */
-  //   'import/no-anonymous-default-export': [
-  //     'error',
-  //     {
-  //       allowArray: false,
-  //       allowArrowFunction: false,
-  //       allowAnonymousClass: false,
-  //       allowAnonymousFunction: false,
-  //       allowCallExpression: true,
-  //       allowLiteral: false,
-  //       allowObject: false,
-  //     },
-  //   ],
-  //   /**
-  //    * Enforces that filenames match the name of the default export.
-  //    * @see https://github.com/ekwoka/eslint-plugin-filename-export?tab=readme-ov-file#rules
-  //    */
-  //   // 'filename-export/match-default-export': [
-  //   //   'error',
-  //   //   {
-  //   //     casing: 'strict',
-  //   //     stripextra: false,
-  //   //   },
-  //   // ],
-  //   /**
-  //    * Reports use of an exported name as the locally imported name of a default export.
-  //    * https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/no-named-as-default.md
-  //    *
-  //    * TODO: need to update the plugin once it suppots ESLint v9
-  //    * Depends on https://github.com/import-js/eslint-plugin-import/pull/2996
-  //    */
-  //   // 'import/no-named-as-default': 'error',
-  //   /**
-  //    * Disallow combined module and type imports like this `import React, {FC} from 'react'`.
-  //    * Eslint will try to split into type and module imports instead
-  //    * @see https://typescript-eslint.io/rules/consistent-type-imports/
-  //    */
-  //   '@typescript-eslint/consistent-type-imports': ['error', {}],
-  //   /**
-  //    * Enforce absolute imports within src/lib/*
-  //    * https://www.npmjs.com/package/eslint-plugin-no-relative-import-paths
-  //    */
-  //   // 'no-relative-import-paths/no-relative-import-paths': [
-  //   //   'error',
-  //   //   {
-  //   //     rootDir: 'src/lib',
-  //   //     prefix: 'toolbar',
-  //   //   },
-  //   // ],
-  //   'import/no-cycle': 'error',
-  //   'prettier/prettier': [
-  //     'error',
-  //     {
-  //       semi: true,
-  //       singleQuote: true,
-  //       jsxSingleQuote: false,
-  //       trailingComma: 'es5',
-  //       bracketSpacing: false,
-  //       jsxBracketSameLine: true,
-  //       arrowParens: 'avoid',
-  //     },
-  //   ],
-  //   /* Required by vite */
-  //   // 'react-refresh/only-export-components': ['warn', {allowConstantExport: true}],
-  //   '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
-  //   /**
-  //    * Allow unused variables with names stating with '_'
-  //    * @see https://eslint.org/docs/latest/rules/no-unused-vars
-  //    * @see https://typescript-eslint.io/rules/no-unused-vars/
-  //    */
-  //   '@typescript-eslint/no-unused-vars': [
-  //     'error',
-  //     {
-  //       argsIgnorePattern: '^_',
-  //       varsIgnorePattern: '^_',
-  //       caughtErrorsIgnorePattern: '^_',
-  //       ignoreRestSiblings: true,
-  //       args: 'after-used',
-  //     },
-  //   ],
-  // },
-  // },
   {
     name: 'devtoolbar',
     files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
@@ -1106,27 +947,32 @@ export default [
       ],
     },
   },
-  /* Allow devDependencies imports for tests and config files */
-  // {
-  //   files: [
-  //     '**/*.spec.*',
-  //     '**/testUtils/*.{js,jsx,ts,tsx}',
-  //     '*/*.{js,jsx,ts,tsx}',
-  //     '**/setupTests.ts',
-  //     '**/*.stories.*',
-  //     '*.config.{js,ts}',
-  //   ],
-  //   plugins: {
-  //     import: pluginImport,
-  //   },
-  //   rules: {
-  //     'import/no-extraneous-dependencies': [
-  //       'error',
-  //       {
-  //         devDependencies: true,
-  //         peerDependencies: true,
-  //       },
-  //     ],
-  //   },
-  // },
-];
+  {
+    name: 'jest/recommended',
+    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    ...jest.configs['flat/recommended'],
+  },
+  {
+    name: 'jest-dom/recommended',
+    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    ...jestDom.configs['flat/recommended'],
+  },
+  {
+    name: 'testing-library/react',
+    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    ...testingLibrary.configs['flat/react'],
+  },
+  {
+    // We specify rules explicitly for the sdk-loader here so we do not have
+    // eslint ignore comments included in the source file, which is consumed
+    // by users.
+    files: ['**/js-sdk-loader.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+  {
+    name: 'prettier/recommended',
+    ...prettier,
+  },
+]);
