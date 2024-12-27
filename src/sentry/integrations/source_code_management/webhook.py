@@ -73,7 +73,9 @@ class SCMWebhookEndpoint(Endpoint, ABC, Generic[T]):
         try:
             event_type = request.headers.get(self.method_header)
             if not event_type:
-                raise BadRequest(detail=f"Missing required header {self.method_header}")
+                raise BadRequest(
+                    detail=f"Missing required header {request.headers.to_wsgi_name(self.method_header)}"
+                )
 
             return self._handlers.get(event_type)
         except KeyError:

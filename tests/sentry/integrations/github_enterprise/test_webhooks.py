@@ -88,7 +88,7 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 400
-        assert b"Missing required header x-github-event" in response.content
+        assert b"Missing required header HTTP_X_GITHUB_EVENT" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_invalid_json(self, mock_installation):
