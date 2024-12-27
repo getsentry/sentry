@@ -5,18 +5,14 @@ import hmac
 import logging
 import re
 
-import orjson
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry import options
-from sentry.api.api_owners import ApiOwner
-from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.exceptions import BadRequest
 from sentry.constants import ObjectStatus
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
     GitHubWebhook,
     InstallationEventWebhook,
@@ -24,13 +20,13 @@ from sentry.integrations.github.webhook import (
     PushEventWebhook,
     get_github_external_id,
 )
-from sentry.integrations.utils.metrics import IntegrationWebhookEvent
+from sentry.integrations.source_code_management.webhook import SCMWebhookEndpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
 from sentry.utils.sdk import Scope
 
 logger = logging.getLogger("sentry.webhooks")
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 
@@ -111,17 +107,25 @@ class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullReque
     pass
 
 
-class GitHubEnterpriseWebhookBase(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
+@region_silo_endpoint
+class GitHubEnterpriseWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
+    @property
+    def provider(self) -> str:
+        return "github_enterprise"
 
-    _handlers: dict[str, type[GitHubWebhook]] = {}
+    @property
+    def _handlers(self) -> dict[str, type[GitHubWebhook]]:
+        return {
+            "push": GitHubEnterprisePushEventWebhook,
+            "pull_request": GitHubEnterprisePullRequestEventWebhook,
+            "installation": GitHubEnterpriseInstallationEventWebhook,
+        }
 
-    # https://developer.github.com/webhooks/
-    def get_handler(self, event_type):
-        return self._handlers.get(event_type)
+    @property
+    def method_header(self) -> str:
+        return "x-github-event"
 
-    def is_valid_signature(self, method, body, secret, signature):
+    def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method != "sha1" and method != "sha256":
             raise UnsupportedSignatureAlgorithmError()
 
@@ -136,78 +140,15 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
         return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_secret(self, event, host):
-        metadata = get_installation_metadata(event, host)
+    def check_secret(self, event, **kwargs):
+        metadata = get_installation_metadata(event, kwargs.get("host"))
         if metadata:
             return metadata.get("webhook_secret")
         else:
-            return None
+            logger.warning("github_enterprise.webhook.missing-integration", extra=self.log_extra)
+            raise BadRequest()
 
-    def _handle(self, request: HttpRequest) -> HttpResponse:
-        clear_tags_and_context()
-        scope = Scope.get_isolation_scope()
-
-        try:
-            host = get_host(request=request)
-            if not host:
-                raise MissingRequiredHeaderError()
-        except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-enterprise-host")
-            sentry_sdk.capture_exception(e)
-            return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
-
-        extra: dict[str, str | None] = {"host": host}
-        # If we do tag the host early we can't even investigate
-        scope.set_tag("host", host)
-
-        try:
-            body = bytes(request.body)
-            if len(body) == 0:
-                raise MissingWebhookPayloadError()
-        except MissingWebhookPayloadError as e:
-            logger.warning("github_enterprise.webhook.missing-body", extra=extra)
-            sentry_sdk.capture_exception(e)
-            return HttpResponse(MISSING_WEBHOOK_PAYLOAD_ERROR, status=400)
-
-        try:
-            github_event = request.headers.get("x-github-event")
-            if not github_event:
-                raise MissingRequiredHeaderError()
-
-            handler = self.get_handler(github_event)
-        except MissingRequiredHeaderError as e:
-            logger.exception("github_enterprise.webhook.missing-event", extra=extra)
-            sentry_sdk.capture_exception(e)
-            return HttpResponse(MISSING_GITHUB_EVENT_HEADER_ERROR, status=400)
-
-        if not handler:
-            return HttpResponse(status=204)
-
-        try:
-            # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
-            # See https://sentry.io/organizations/sentry/issues/2565421410
-            event = orjson.loads(body)
-        except orjson.JSONDecodeError:
-            logger.warning(
-                "github_enterprise.webhook.invalid-json",
-                extra=extra,
-                exc_info=True,
-            )
-            logger.exception("Invalid JSON.")
-            return HttpResponse(status=400)
-
-        secret = self.get_secret(event, host)
-        if not secret:
-            logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
-            return HttpResponse(status=400)
-
+    def check_signature(self, request: HttpRequest, body: bytes, secret: str, host: str) -> None:
         try:
             sha256_signature = request.headers.get("x-hub-signature-256")
             sha1_signature = request.headers.get("x-hub-signature")
@@ -222,7 +163,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                     raise MalformedSignatureError()
 
                 _, signature = sha256_signature.split("=", 1)
-                extra["signature_algorithm"] = "sha256"
+                self.log_extra["signature_algorithm"] = "sha256"
                 is_valid = self.is_valid_signature("sha256", body, secret, signature)
                 if not is_valid:
                     raise InvalidSignatureError()
@@ -235,24 +176,24 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
                 _, signature = sha1_signature.split("=", 1)
                 is_valid = self.is_valid_signature("sha1", body, secret, signature)
-                extra["signature_algorithm"] = "sha1"
+                self.log_extra["signature_algorithm"] = "sha1"
                 if not is_valid:
                     raise InvalidSignatureError()
 
         except InvalidSignatureError as e:
-            logger.warning("github_enterprise.webhook.invalid-signature", extra=extra)
+            logger.warning("github_enterprise.webhook.invalid-signature", extra=self.log_extra)
             sentry_sdk.capture_exception(e)
 
-            return HttpResponse(INVALID_SIGNATURE_ERROR, status=401)
+            raise AuthenticationFailed(INVALID_SIGNATURE_ERROR)
         except UnsupportedSignatureAlgorithmError as e:
             # we should never end up here with the regex checks above on the signature format,
             # but just in case
             logger.exception(
                 "github-enterprise-app.webhook.unsupported-signature-algorithm",
-                extra=extra,
+                extra=self.log_extra,
             )
             sentry_sdk.capture_exception(e)
-            return HttpResponse(UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR, 400)
+            raise BadRequest(UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR)
 
         except MissingRequiredHeaderError as e:
             # older versions of GitHub 2.14.0 and older do not always send signature headers
@@ -266,54 +207,57 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
             if host not in allowed_legacy_hosts:
                 # the host is not allowed to skip signature verification by omitting the headers
-                logger.warning("github_enterprise.webhook.missing-signature", extra=extra)
+                logger.warning("github_enterprise.webhook.missing-signature", extra=self.log_extra)
                 sentry_sdk.capture_exception(e)
-                return HttpResponse(MISSING_SIGNATURE_HEADERS_ERROR, status=400)
+                raise BadRequest(MISSING_SIGNATURE_HEADERS_ERROR)
             else:
                 # the host is allowed to skip signature verification
                 # log it, and continue on.
-                extra["github_enterprise_version"] = request.headers.get(
+                self.log_extra["github_enterprise_version"] = request.headers.get(
                     "x-github-enterprise-version"
                 )
-                extra["ip_address"] = request.headers.get("x-real-ip")
-                logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
+                self.log_extra["ip_address"] = request.headers.get("x-real-ip")
+                logger.info(
+                    "github_enterprise.webhook.allowed-missing-signature", extra=self.log_extra
+                )
                 sentry_sdk.capture_message("Allowed missing signature")
 
         except (MalformedSignatureError, IndexError) as e:
-            logger.warning("github_enterprise.webhook.malformed-signature", extra=extra)
+            logger.warning("github_enterprise.webhook.malformed-signature", extra=self.log_extra)
             sentry_sdk.capture_exception(e)
-            return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
+            raise BadRequest(MALFORMED_SIGNATURE_ERROR)
 
-        event_handler = handler()
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event, host=host)
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
+        clear_tags_and_context()
+        scope = Scope.get_isolation_scope()
+
+        try:
+            host = get_host(request=request)
+            if not host:
+                raise MissingRequiredHeaderError()
+        except MissingRequiredHeaderError as e:
+            logger.exception("github_enterprise.webhook.missing-enterprise-host")
+            sentry_sdk.capture_exception(e)
+            return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
+
+        self.log_extra["host"] = host
+        # If we do tag the host early we can't even investigate
+        scope.set_tag("host", host)
+
+        body = self.get_body(request.body)
+        handler = self.get_handler(request)
+
+        if not handler:
+            return HttpResponse(status=204)
+
+        # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
+        # See https://sentry.io/organizations/sentry/issues/2565421410
+        event = self.get_event(body)
+
+        secret = self.check_secret(event, host=host)
+
+        self.check_signature(request, body, secret, host)
+
+        self.fire_event_handler(handler(), event, host=host)
 
         return HttpResponse(status=204)
-
-
-@region_silo_endpoint
-class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
-    owner = ApiOwner.ECOSYSTEM
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
-    _handlers = {
-        "push": GitHubEnterprisePushEventWebhook,
-        "pull_request": GitHubEnterprisePullRequestEventWebhook,
-        "installation": GitHubEnterpriseInstallationEventWebhook,
-    }
-
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
-
-        return super().dispatch(request, *args, **kwargs)
-
-    @method_decorator(csrf_exempt)
-    def post(self, request: HttpRequest) -> HttpResponse:
-        return self._handle(request)

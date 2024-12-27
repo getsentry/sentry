@@ -8,29 +8,24 @@ from collections.abc import Mapping, MutableMapping
 from datetime import timezone
 from typing import Any
 
-import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.exceptions import PermissionDenied
 
 from sentry import analytics, options
-from sentry.api.api_owners import ApiOwner
-from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.base import all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
-from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
-from sentry.integrations.source_code_management.webhook import SCMWebhook
-from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
+from sentry.integrations.source_code_management.webhook import SCMWebhook, SCMWebhookEndpoint
+from sentry.integrations.utils.metrics import IntegrationWebhookEventType
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -583,28 +578,27 @@ class PullRequestEventWebhook(GitHubWebhook):
 
 
 @all_silo_endpoint
-class GitHubIntegrationsWebhookEndpoint(Endpoint):
+class GitHubIntegrationsWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
     """
     GitHub Webhook API reference:
     https://docs.github.com/en/webhooks-and-events/webhooks/about-webhooks
     """
 
-    authentication_classes = ()
-    permission_classes = ()
+    @property
+    def provider(self) -> str:
+        return "github"
 
-    owner = ApiOwner.ECOSYSTEM
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
+    @property
+    def _handlers(self) -> dict[str, type[GitHubWebhook]]:
+        return {
+            "push": PushEventWebhook,
+            "pull_request": PullRequestEventWebhook,
+            "installation": InstallationEventWebhook,
+        }
 
-    _handlers: dict[str, type[GitHubWebhook]] = {
-        "push": PushEventWebhook,
-        "pull_request": PullRequestEventWebhook,
-        "installation": InstallationEventWebhook,
-    }
-
-    def get_handler(self, event_type: str) -> type[GitHubWebhook] | None:
-        return self._handlers.get(event_type)
+    @property
+    def method_header(self) -> str:
+        return "X-Github-Event"
 
     def is_valid_signature(self, method: str, body: bytes, secret: str, signature: str) -> bool:
         if method == "sha1":
@@ -615,76 +609,40 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        if request.method != "POST":
-            return HttpResponse(status=405)
+    def check_secret(self) -> str | None:
+        secret = options.get("github-app.webhook-secret")
+        if not secret:
+            logger.error("github.webhook.missing-secret", extra=self.log_extra)
+            raise PermissionDenied()
 
-        return super().dispatch(request, *args, **kwargs)
+        return secret
 
-    def get_logging_data(self) -> dict[str, Any] | None:
-        return {
-            "request_method": self.request.method,
-            "request_path": self.request.path,
-        }
-
-    def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
-
-    def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
-
-    def handle(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
         clear_tags_and_context()
-        secret = self.get_secret()
 
-        if secret is None:
-            logger.error("github.webhook.missing-secret", extra=self.get_logging_data())
-            return HttpResponse(status=401)
+        secret = self.check_secret()
+        body = self.get_body(request.body)
 
-        body = bytes(request.body)
-        if not body:
-            logger.error("github.webhook.missing-body", extra=self.get_logging_data())
-            return HttpResponse(status=400)
-
-        try:
-            handler = self.get_handler(request.META["HTTP_X_GITHUB_EVENT"])
-        except KeyError:
-            logger.exception("github.webhook.missing-event", extra=self.get_logging_data())
-            logger.exception("Missing Github event in webhook.")
-            return HttpResponse(status=400)
-
+        handler = self.get_handler(request)
         if not handler:
             logger.info(
                 "github.webhook.missing-handler",
-                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"event_type": request.headers.get(self.method_header)},
             )
             return HttpResponse(status=204)
 
         try:
-            method, signature = request.META["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+            method, signature = request.headers.get("X-Hub-Signature", "").split("=", 1)
         except (KeyError, IndexError):
-            logger.exception("github.webhook.missing-signature", extra=self.get_logging_data())
-            logger.exception("Missing webhook secret.")
+            logger.exception("github.webhook.missing-signature", extra=self.log_extra)
             return HttpResponse(status=400)
 
         if not self.is_valid_signature(method, body, secret, signature):
-            logger.error("github.webhook.invalid-signature", extra=self.get_logging_data())
+            logger.error("github.webhook.invalid-signature", extra=self.log_extra)
             return HttpResponse(status=401)
 
-        try:
-            event = orjson.loads(body)
-        except orjson.JSONDecodeError:
-            logger.exception("github.webhook.invalid-json", extra=self.get_logging_data())
-            logger.exception("Invalid JSON.")
-            return HttpResponse(status=400)
+        event = self.get_event(body)
 
-        event_handler = handler()
+        self.fire_event_handler(handler(), event)
 
-        with IntegrationWebhookEvent(
-            interaction_type=event_handler.event_type,
-            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key=event_handler.provider,
-        ).capture():
-            event_handler(event)
         return HttpResponse(status=204)

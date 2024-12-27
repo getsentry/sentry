@@ -88,7 +88,7 @@ class WebhookTest(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
         assert response.status_code == 400
-        assert b"Missing X-GitHub-Event header" in response.content
+        assert b"Missing required header x-github-event" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     def test_invalid_json(self, mock_installation):
@@ -117,7 +117,7 @@ class WebhookTest(APITestCase):
             HTTP_X_HUB_SIGNATURE="sha1=33521abeaaf9a57c2abf486e0ccd54d23cf36fec",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
@@ -212,7 +212,7 @@ class WebhookTest(APITestCase):
             HTTP_X_HUB_SIGNATURE_256="sha256=7fb2fed663d2f386f29c1cff8980e11738a435b7e3c9332c1ab1fcc870f8abcd",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        assert response.status_code == 401
+        assert response.status_code == 403
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
