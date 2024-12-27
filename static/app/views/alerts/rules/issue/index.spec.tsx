@@ -27,7 +27,6 @@ import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
@@ -226,8 +225,8 @@ describe('IssueRuleEditor', function () {
         method: 'DELETE',
         body: {},
       });
-      createWrapper();
-      renderGlobalModal();
+      const {router} = createWrapper();
+      renderGlobalModal({router});
       await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
@@ -236,7 +235,7 @@ describe('IssueRuleEditor', function () {
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         '/settings/org-slug/projects/project-slug/alerts/'
       );
     });

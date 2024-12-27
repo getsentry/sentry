@@ -6,6 +6,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -17,10 +18,10 @@ import {
 
 import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
+  const router = RouterFixture();
   const organization = OrganizationFixture();
 
   const project1 = ReleaseProjectFixture({
@@ -70,9 +71,10 @@ describe('ReleaseActions', function () {
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
-      />
+      />,
+      {router}
     );
-    renderGlobalModal();
+    renderGlobalModal({router});
 
     await userEvent.click(screen.getByLabelText('Actions'));
 
@@ -101,7 +103,7 @@ describe('ReleaseActions', function () {
       })
     );
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/releases/`
       )
     );
@@ -119,9 +121,10 @@ describe('ReleaseActions', function () {
         refetchData={refetchDataMock}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
-      />
+      />,
+      {router}
     );
-    renderGlobalModal();
+    renderGlobalModal({router});
 
     await userEvent.click(screen.getByLabelText('Actions'));
 
@@ -162,7 +165,8 @@ describe('ReleaseActions', function () {
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
-      />
+      />,
+      {router}
     );
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(

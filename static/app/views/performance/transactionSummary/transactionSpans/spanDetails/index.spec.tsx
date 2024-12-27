@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
@@ -38,7 +37,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    jest.mocked(browserHistory.push).mockReset();
   });
 
   describe('Without Span Data', function () {
@@ -445,7 +443,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           name: /reset view/i,
         });
         await userEvent.click(resetButton);
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(data.router.push).toHaveBeenCalledWith(
           expect.not.objectContaining({min: expect.any(String), max: expect.any(String)})
         );
       });
@@ -465,7 +463,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         await userEvent.click(searchBarNode);
         await userEvent.paste('count():>3');
         expect(searchBarNode).toHaveTextContent('count():>3');
-        expect(browserHistory.push).not.toHaveBeenCalled();
+        expect(data.router.push).not.toHaveBeenCalled();
       });
 
       it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
@@ -506,7 +504,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           })
         );
 
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(data.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: {
               display: 'histogram',
