@@ -10,7 +10,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import PerformanceContent from 'sentry/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
@@ -372,7 +371,7 @@ describe('Performance > Content', function () {
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/performance/trends/',
         query: {
@@ -395,7 +394,7 @@ describe('Performance > Content', function () {
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    expect(router.push).toHaveBeenCalledTimes(0);
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
@@ -405,7 +404,7 @@ describe('Performance > Content', function () {
       router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(browserHistory.push).toHaveBeenCalledTimes(0);
+    expect(router.push).toHaveBeenCalledTimes(0);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
@@ -419,7 +418,7 @@ describe('Performance > Content', function () {
     await userEvent.click(trendsLinks[0]);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/performance/trends/',
         query: {

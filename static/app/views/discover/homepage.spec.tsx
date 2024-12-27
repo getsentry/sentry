@@ -14,7 +14,6 @@ import {
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -184,7 +183,7 @@ describe('Discover > Homepage', () => {
       />,
       {router: initialData.router, organization: initialData.organization}
     );
-    renderGlobalModal();
+    renderGlobalModal({router: initialData.router});
 
     await userEvent.click(await screen.findByText('Columns'));
 
@@ -194,7 +193,7 @@ describe('Discover > Homepage', () => {
     await userEvent.click(within(modal).getByText('event.type'));
     await userEvent.click(within(modal).getByText('Apply'));
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(initialData.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/organizations/org-slug/discover/homepage/',
         query: expect.objectContaining({

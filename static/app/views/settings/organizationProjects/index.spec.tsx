@@ -1,8 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
@@ -10,6 +10,7 @@ describe('OrganizationProjects', function () {
   let statsGetMock: jest.Mock;
   let projectsPutMock: jest.Mock;
   const project = ProjectFixture();
+  const router = RouterFixture();
 
   beforeEach(function () {
     projectsGetMock = MockApiClient.addMockResponse({
@@ -33,7 +34,7 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    render(<OrganizationProjectsContainer />);
+    render(<OrganizationProjectsContainer />, {router});
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -62,7 +63,7 @@ describe('OrganizationProjects', function () {
   });
 
   it('should search organization projects', async function () {
-    render(<OrganizationProjectsContainer />);
+    render(<OrganizationProjectsContainer />, {router});
 
     expect(await screen.findByText('project-slug')).toBeInTheDocument();
 
@@ -70,7 +71,7 @@ describe('OrganizationProjects', function () {
     await userEvent.type(searchBox, 'random');
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenLastCalledWith({
+      expect(router.replace).toHaveBeenLastCalledWith({
         pathname: '/mock-pathname/',
         query: {query: 'random'},
       });

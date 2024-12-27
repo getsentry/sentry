@@ -24,7 +24,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import DashboardDetail, {
   handleUpdateDashboardSplit,
@@ -1232,7 +1231,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: '',
@@ -1340,7 +1339,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       screen.getByText('All Releases');
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: undefined,
@@ -1550,7 +1549,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       // release isn't used in the redirect
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
             end: undefined,
@@ -1605,7 +1604,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: ['sentry-android-shop@1.2.0'],

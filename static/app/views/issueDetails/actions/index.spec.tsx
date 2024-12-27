@@ -3,6 +3,7 @@ import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceExc
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
   render,
@@ -17,7 +18,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = ProjectFixture({
@@ -215,6 +215,7 @@ describe('GroupActions', function () {
 
   describe('delete', function () {
     it('opens delete confirm modal from more actions dropdown', async () => {
+      const router = RouterFixture();
       const org = OrganizationFixture({
         ...organization,
         access: [...organization.access, 'event:admin'],
@@ -240,7 +241,7 @@ describe('GroupActions', function () {
             event={null}
           />
         </Fragment>,
-        {organization: org}
+        {router, organization: org}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -254,7 +255,7 @@ describe('GroupActions', function () {
       await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
 
       expect(deleteMock).toHaveBeenCalled();
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: `/organizations/${org.slug}/issues/`,
         query: {project: project.id},
       });

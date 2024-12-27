@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {GroupTagValues} from 'sentry/views/issueDetails/groupTagValues';
 
 describe('GroupTagValues', () => {
@@ -92,7 +91,7 @@ describe('GroupTagValues', () => {
     // Clicking next button loads page with query param ?cursor=0:100:0
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({query: expect.objectContaining({cursor: '0:100:0'})})
       );
     });
