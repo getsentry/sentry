@@ -17,7 +17,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DraggableTabMenuButton} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabMenuButton';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
@@ -40,7 +39,6 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   const organization = useOrganization();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
@@ -65,43 +63,6 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
     ],
     [dispatch, tabListState?.selectedKey, tabs]
   );
-
-  const handleDuplicateView = () => {
-    const newViewId = generateTempViewId();
-    const duplicatedTab = state.views.find(
-      view => view.key === tabListState?.selectedKey
-    );
-    if (!duplicatedTab) {
-      return;
-    }
-    dispatch({type: 'DUPLICATE_VIEW', newViewId, syncViews: true});
-    navigate({
-      ...location,
-      query: {
-        ...queryParams,
-        query: duplicatedTab.query,
-        sort: duplicatedTab.querySort,
-        viewId: newViewId,
-      },
-    });
-  };
-
-  const handleDiscardChanges = () => {
-    dispatch({type: 'DISCARD_CHANGES'});
-    const originalTab = state.views.find(view => view.key === tabListState?.selectedKey);
-    if (originalTab) {
-      // TODO(msun): Move navigate logic to IssueViewsContext
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: originalTab.query,
-          sort: originalTab.querySort,
-          viewId: originalTab.id,
-        },
-      });
-    }
-  };
 
   const handleNewViewsSaved: NewTabContext['onNewViewsSaved'] = useCallback<
     NewTabContext['onNewViewsSaved']
@@ -145,37 +106,23 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
         updatedTabs = [...updatedTabs, ...remainingNewViews];
       }
 
-      dispatch({type: 'SET_VIEWS', views: updatedTabs, syncViews: true});
-      navigate(
-        {
-          ...location,
-          query: {
-            ...queryParams,
-            query,
-            sort: IssueSortOptions.DATE,
-          },
+      dispatch({
+        type: 'SET_VIEWS',
+        views: updatedTabs,
+        syncViews: true,
+        updateQueryParams: {
+          newQueryParams: {query, sort: IssueSortOptions.DATE},
+          replace: true,
         },
-        {replace: true}
-      );
+      });
     },
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [location, navigate, setNewViewActive, tabs, viewId]
+    [location, setNewViewActive, tabs, viewId]
   );
 
-  const handleCreateNewView = () => {
-    const tempId = generateTempViewId();
-    dispatch({type: 'CREATE_NEW_VIEW', tempId});
-    tabListState?.setSelectedKey(tempId);
-    navigate({
-      ...location,
-      query: {
-        ...queryParams,
-        query: '',
-        viewId: tempId,
-      },
-    });
-  };
+  useEffect(() => {
+    setOnNewViewsSaved(handleNewViewsSaved);
+  }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   const handleDeleteView = (tab: IssueView) => {
     dispatch({type: 'DELETE_VIEW', syncViews: true});
@@ -184,9 +131,28 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
     tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0].key);
   };
 
-  useEffect(() => {
-    setOnNewViewsSaved(handleNewViewsSaved);
-  }, [setOnNewViewsSaved, handleNewViewsSaved]);
+  const handleDuplicateView = (tab: IssueView) => {
+    const newViewId = generateTempViewId();
+    dispatch({
+      type: 'DUPLICATE_VIEW',
+      newViewId,
+      syncViews: true,
+      updateQueryParams: {
+        newQueryParams: {viewId: newViewId, query: tab.query, sort: tab.querySort},
+      },
+    });
+  };
+
+  const handleAddView = () => {
+    const tempId = generateTempViewId();
+    dispatch({
+      type: 'CREATE_NEW_VIEW',
+      tempId,
+      updateQueryParams: {
+        newQueryParams: {viewId: tempId, query: ''},
+      },
+    });
+  };
 
   const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
     if (tab.key === TEMPORARY_TAB_KEY) {
@@ -198,15 +164,21 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
     if (tab.unsavedChanges) {
       return makeUnsavedChangesMenuOptions({
         onRename: () => setEditingTabKey(tab.key),
-        onDuplicate: handleDuplicateView,
+        onDuplicate: () => handleDuplicateView(tab),
         onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
         onSave: () => dispatch({type: 'SAVE_CHANGES', syncViews: true}),
-        onDiscard: handleDiscardChanges,
+        onDiscard: () =>
+          dispatch({
+            type: 'DISCARD_CHANGES',
+            updateQueryParams: {
+              newQueryParams: {viewId: tab.id, query: tab.query, sort: tab.querySort},
+            },
+          }),
       });
     }
     return makeDefaultMenuOptions({
       onRename: () => setEditingTabKey(tab.key),
-      onDuplicate: handleDuplicateView,
+      onDuplicate: () => handleDuplicateView(tab),
       onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
     });
   };
@@ -223,7 +195,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
       }
       onReorderComplete={() => dispatch({type: 'SYNC_VIEWS_TO_BACKEND'})}
       defaultSelectedKey={initialTabKey}
-      onAddView={handleCreateNewView}
+      onAddView={handleAddView}
       orientation="horizontal"
       editingTabKey={editingTabKey ?? undefined}
       hideBorder
