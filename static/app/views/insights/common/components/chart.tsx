@@ -2,7 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LineSeriesOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import type {
   MarkLineOption,
@@ -88,6 +88,7 @@ type Props = {
   hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   legendFormatter?: (name: string) => string;
+  legendOptions?: LegendComponentOption;
   log?: boolean;
   markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
@@ -139,6 +140,7 @@ function Chart({
   error,
   onLegendSelectChanged,
   onDataZoom,
+  legendOptions,
   /**
    * Setting a default formatter for some reason causes `>` to
    * render correctly instead of rendering as `&gt;` in the legend.
@@ -346,6 +348,10 @@ function Chart({
     })(deDupedParams, asyncTicket);
   };
 
+  const legend = isLegendVisible
+    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    : undefined;
+
   const areaChartProps = {
     seriesOptions: {
       showSymbol: false,
@@ -353,7 +359,7 @@ function Chart({
     grid,
     yAxes,
     utc,
-    legend: isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined,
+    legend,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     tooltip: {
@@ -401,9 +407,7 @@ function Chart({
           tooltip={areaChartProps.tooltip}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
           onMouseOut={onMouseOut}
           onMouseOver={onMouseOver}
@@ -487,9 +491,7 @@ function Chart({
           }}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
         />
       );
