@@ -16,6 +16,13 @@ class EventCreatedByDetectorConditionHandler(DataConditionHandler[WorkflowJob]):
         return event.occurrence.evidence_data.get("detector_id", None) == comparison
 
 
+@condition_handler_registry.register(Condition.EVERY_EVENT)
+class EveryEventConditionHandler(DataConditionHandler[WorkflowJob]):
+    @staticmethod
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        return True
+
+
 @condition_handler_registry.register(Condition.EVENT_SEEN_COUNT)
 class EventSeenCountConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
