@@ -22,7 +22,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -235,7 +234,7 @@ class GroupList extends Component<Props, State> {
       nextPage = undefined;
     }
 
-    browserHistory.push({
+    this.props.router.push({
       pathname: path,
       query: {...query, cursor, page: nextPage},
     });
