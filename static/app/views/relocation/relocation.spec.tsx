@@ -9,7 +9,7 @@ import {
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -38,6 +38,7 @@ const fakeRegions: {[key: string]: FakeRegion} = {
 };
 
 describe('Relocation', function () {
+  let router: InjectedRouter;
   let fetchExistingRelocations: jest.Mock;
   let fetchPublicKeys: jest.Mock;
 
@@ -86,11 +87,12 @@ describe('Relocation', function () {
       step,
     };
 
-    const {router, routerProps, organization} = initializeOrg({
+    const {routerProps, organization, ...rest} = initializeOrg({
       router: {
         params: routeParams,
       },
     });
+    router = rest.router;
 
     return render(<Relocation {...routerProps} />, {
       router,
@@ -144,7 +146,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/in-progress/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/in-progress/');
     });
 
     it('should prevent user from going to the next step if no org slugs or region are entered', async function () {
@@ -365,7 +367,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
@@ -394,7 +396,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
@@ -591,7 +593,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 
@@ -625,7 +627,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
 
     it('redirects to `get-started` page if there is no active relocation', async function () {
@@ -650,7 +652,7 @@ describe('Relocation', function () {
       await waitFor(() => expect(fetchExistingRelocations).toHaveBeenCalledTimes(2));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
 
-      expect(browserHistory.push).toHaveBeenCalledWith('/relocation/get-started/');
+      expect(router.push).toHaveBeenCalledWith('/relocation/get-started/');
     });
   });
 });
