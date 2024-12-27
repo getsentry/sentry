@@ -9,10 +9,10 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
 
@@ -29,10 +29,11 @@ export default function SpanDetailsControls({
   eventView,
   location,
 }: SpanDetailsControlsProps) {
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
 
   const handleSearchQuery = (searchQuery: string): void => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {
         ...location.query,
@@ -43,7 +44,7 @@ export default function SpanDetailsControls({
   };
 
   const handleResetView = () => {
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: removeHistogramQueryStrings(location, Object.values(ZoomKeys)),
     });
