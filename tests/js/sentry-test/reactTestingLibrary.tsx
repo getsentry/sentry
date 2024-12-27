@@ -12,6 +12,7 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -103,6 +104,15 @@ function makeAllTheProviders(options: ProviderOptions) {
         router.push(path);
       };
     }
+
+    DANGEROUS_SET_TEST_HISTORY({
+      goBack: router.goBack,
+      push: router.push,
+      replace: router.replace,
+      listen: jest.fn(() => {}),
+      listenBefore: jest.fn(),
+      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+    });
 
     // By default react-router 6 catches exceptions and displays the stack
     // trace. For tests we want them to bubble out
