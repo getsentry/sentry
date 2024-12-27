@@ -5,7 +5,7 @@ from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
-class TestRegressionEventCondition(ConditionTestCase):
+class TestEveryEventCondition(ConditionTestCase):
     condition = Condition.EVERY_EVENT
     rule_cls = EveryEventCondition
     payload = {"id": EveryEventCondition.id}
