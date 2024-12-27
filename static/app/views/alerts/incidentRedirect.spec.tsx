@@ -4,7 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import IncidentRedirect from './incidentRedirect';
 
@@ -44,7 +43,7 @@ describe('IncidentRedirect', () => {
     );
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/alerts/rules/details/4/',
         query: {
           alert: '123',

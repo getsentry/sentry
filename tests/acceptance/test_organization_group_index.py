@@ -8,7 +8,7 @@ from sentry.models.assistant import AssistantActivity
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 event_time = before_now(days=3)
@@ -36,7 +36,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(event_time - timedelta(hours=1)),
+                "timestamp": (event_time - timedelta(hours=1)).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -46,7 +46,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,

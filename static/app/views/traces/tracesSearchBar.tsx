@@ -1,17 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import SearchBar from 'sentry/components/events/searchBar';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -38,35 +34,17 @@ export function TracesSearchBar({
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
 
-  // Since trace explorer permits cross project searches,
-  // autocompletion should also be cross projects.
-  const {data: supportedTags} = useSpanFieldSupportedTags();
-
   return (
     <TraceSearchBarsContainer>
       {localQueries.map((query, index) => (
         <TraceBar key={index}>
           <SpanLetter>{getSpanName(index)}</SpanLetter>
-          {organization.features.includes('search-query-builder-performance') ? (
-            <SpanSearchQueryBuilder
-              projects={selection.projects}
-              initialQuery={query}
-              onSearch={(queryString: string) => handleSearch(index, queryString)}
-              searchSource="trace-explorer"
-            />
-          ) : (
-            <StyledSearchBar
-              searchSource="trace-explorer"
-              query={query}
-              onSearch={(queryString: string) => handleSearch(index, queryString)}
-              placeholder={t('Search for span attributes')}
-              organization={organization}
-              supportedTags={supportedTags}
-              dataset={DiscoverDatasets.SPANS_INDEXED}
-              projectIds={selection.projects}
-              savedSearchType={SavedSearchType.SPAN}
-            />
-          )}
+          <SpanSearchQueryBuilder
+            projects={selection.projects}
+            initialQuery={query}
+            onSearch={(queryString: string) => handleSearch(index, queryString)}
+            searchSource="trace-explorer"
+          />
           <StyledButton
             aria-label={t('Remove Span')}
             icon={<IconClose size="sm" />}
@@ -126,10 +104,6 @@ const SpanLetter = styled('div')`
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
   align-content: center;
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  width: 100%;
 `;
 
 const StyledButton = styled(Button)`

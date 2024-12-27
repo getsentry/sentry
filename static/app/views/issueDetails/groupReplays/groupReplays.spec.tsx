@@ -10,8 +10,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
 
@@ -21,8 +20,8 @@ const mockReplayUrl = '/organizations/org-slug/replays/';
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
-jest.mock('sentry/utils/replays/hooks/useReplayReader');
-const mockUseReplayReader = jest.mocked(useReplayReader);
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
+const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockEventTimestampMs = mockEventTimestamp.getTime();
@@ -50,7 +49,7 @@ const mockReplay = ReplayReader.factory({
   },
 });
 
-mockUseReplayReader.mockImplementation(() => {
+mockUseLoadReplayReader.mockImplementation(() => {
   return {
     attachments: [],
     errors: [],
@@ -573,14 +572,13 @@ describe('GroupReplays', () => {
         );
       });
 
-      const mockReplace = jest.mocked(browserHistory.replace);
       const replayPlayPlause = (
         await screen.findAllByTestId('replay-table-play-button')
       )[0];
       await userEvent.click(replayPlayPlause);
 
       await waitFor(() =>
-        expect(mockReplace).toHaveBeenCalledWith(
+        expect(router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/replays/',
             query: {

@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 from unittest.mock import patch
+
+from snuba_sdk import Column, Condition, Op
 
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.models.group import Group
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -34,14 +37,11 @@ def _get_oldest_non_null(g: Group, environments: Sequence[str] = ()) -> GroupEve
 class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     def test_get_oldest_latest_for_environments(self):
         project = self.create_project()
-
-        min_ago = iso_format(before_now(minutes=1))
-
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "environment": "production",
-                "timestamp": min_ago,
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
@@ -50,13 +50,17 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             data={
                 "event_id": "b" * 32,
                 "environment": "production",
-                "timestamp": min_ago,
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project.id,
         )
         self.store_event(
-            data={"event_id": "c" * 32, "timestamp": min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "c" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
             project_id=project.id,
         )
 
@@ -69,42 +73,14 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         assert _get_oldest_non_null(group, ["staging", "production"]).event_id == "a" * 32
         assert group.get_oldest_event_for_environments(["staging"]) is None
 
-    def test_perf_issue(self):
-        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-
-        event_data_1 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_1["timestamp"] = iso_format(before_now(seconds=10))
-        event_data_1["start_timestamp"] = iso_format(before_now(seconds=11))
-        event_data_1["event_id"] = "d" * 32
-        event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_2["timestamp"] = iso_format(before_now(seconds=20))
-        event_data_2["start_timestamp"] = iso_format(before_now(seconds=21))
-        event_data_2["event_id"] = "f" * 32
-        event_data_3 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
-        event_data_3["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))
-        event_data_3["event_id"] = "f" * 32
-
-        transaction_event_1 = self.create_performance_issue(
-            event_data=event_data_1, fingerprint=group_fingerprint
-        )
-        self.create_performance_issue(event_data=event_data_2, fingerprint=group_fingerprint)
-        self.create_performance_issue(event_data=event_data_3, fingerprint=group_fingerprint)
-
-        perf_group = transaction_event_1.group
-
-        assert _get_latest_non_null(perf_group).event_id == "d" * 32
-        assert _get_oldest_non_null(perf_group).event_id == "f" * 32
-
     def test_error_issue_get_helpful_for_environments(self):
         project = self.create_project()
-        min_ago = iso_format(before_now(minutes=1))
         replay_id = uuid.uuid4().hex
 
         event_all_helpful_params = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": min_ago,
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -122,7 +98,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": min_ago,
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {
                     "replay": {"replay_id": replay_id},
@@ -133,7 +109,11 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
             assert_no_errors=False,
         )
         event_none_helpful_params = self.store_event(
-            data={"event_id": "c" * 32, "timestamp": min_ago, "fingerprint": ["group-1"]},
+            data={
+                "event_id": "c" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+            },
             project_id=project.id,
         )
 
@@ -141,89 +121,6 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         assert _get_recommended_non_null(group).event_id == event_all_helpful_params.event_id
         assert _get_latest_non_null(group).event_id == event_none_helpful_params.event_id
         assert _get_oldest_non_null(group).event_id == event_all_helpful_params.event_id
-
-    def test_perf_issue_helpful(self):
-        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-
-        transaction_event_data_with_all_helpful = load_data(
-            "transaction-n-plus-one", fingerprint=[group_fingerprint]
-        )
-        transaction_event_data_with_all_helpful["timestamp"] = iso_format(before_now(seconds=10))
-        transaction_event_data_with_all_helpful["start_timestamp"] = iso_format(
-            before_now(seconds=11)
-        )
-        transaction_event_data_with_all_helpful["event_id"] = "d" * 32
-        transaction_event_data_with_all_helpful["contexts"].update(
-            {"profile": {"profile_id": uuid.uuid4().hex}}
-        )
-        transaction_event_data_with_all_helpful["contexts"].update(
-            {"replay": {"replay_id": uuid.uuid4().hex}}
-        )
-        transaction_event_data_with_all_helpful["contexts"]["trace"]["sampled"] = True
-        transaction_event_data_with_all_helpful["errors"] = []
-
-        transaction_event_data_with_none_helpful = load_data(
-            "transaction-n-plus-one", fingerprint=[group_fingerprint]
-        )
-        transaction_event_data_with_none_helpful["timestamp"] = iso_format(before_now(seconds=20))
-        transaction_event_data_with_none_helpful["start_timestamp"] = iso_format(
-            before_now(seconds=21)
-        )
-        transaction_event_data_with_none_helpful["event_id"] = "f" * 32
-
-        transaction_event_1 = self.create_performance_issue(
-            event_data=transaction_event_data_with_all_helpful, fingerprint=group_fingerprint
-        )
-        transaction_event_2 = self.create_performance_issue(
-            event_data=transaction_event_data_with_none_helpful, fingerprint=group_fingerprint
-        )
-
-        perf_group = transaction_event_1.group
-
-        assert _get_recommended_non_null(perf_group).event_id == transaction_event_1.event_id
-        assert _get_latest_non_null(perf_group).event_id == transaction_event_1.event_id
-        assert _get_oldest_non_null(perf_group).event_id == transaction_event_2.event_id
-
-    def test_profile_issue_helpful(self):
-        event_id_1 = uuid.uuid4().hex
-        occurrence, _ = self.process_occurrence(
-            event_id=event_id_1,
-            project_id=self.project.id,
-            event_data={
-                "fingerprint": ["group-1"],
-                "timestamp": before_now(minutes=2).isoformat(),
-                "contexts": {
-                    "profile": {"profile_id": uuid.uuid4().hex},
-                    "replay": {"replay_id": uuid.uuid4().hex},
-                    "trace": {
-                        "sampled": True,
-                        "span_id": "babaae0d4b7512d9",
-                        "trace_id": "a7d67cf796774551a95be6543cacd459",
-                    },
-                },
-                "errors": [],
-            },
-        )
-
-        event_id_2 = uuid.uuid4().hex
-        occurrence_2, _ = self.process_occurrence(
-            event_id=event_id_2,
-            project_id=self.project.id,
-            event_data={
-                "fingerprint": ["group-1"],
-                "timestamp": before_now(minutes=1).isoformat(),
-            },
-        )
-
-        group = Group.objects.get()
-        group.update(type=ProfileFileIOGroupType.type_id)
-
-        group_event = _get_recommended_non_null(group)
-        assert group_event.event_id == occurrence.event_id
-        self.assert_occurrences_identical(group_event.occurrence, occurrence)
-
-        assert _get_latest_non_null(group).event_id == occurrence_2.event_id
-        assert _get_oldest_non_null(group).event_id == occurrence.event_id
 
     @patch("sentry.quotas.backend.get_event_retention")
     def test_get_recommended_event_for_environments_retention_limit(self, mock_get_event_retention):
@@ -237,7 +134,7 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(outside_retention_date),
+                "timestamp": outside_retention_date.isoformat(),
                 "fingerprint": ["group-1"],
                 "contexts": {},
                 "errors": [],
@@ -249,3 +146,495 @@ class GroupTestSnuba(TestCase, SnubaTestCase, PerformanceIssueTestCase, Occurren
         group = Group.objects.get()
         group.last_seen = before_now(days=91)
         assert _get_recommended_non_null(group).event_id == event.event_id
+
+
+def _get_recommended(
+    g: Group,
+    conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> GroupEvent:
+    ret = g.get_recommended_event(conditions=conditions, start=start, end=end)
+    assert ret is not None
+    return ret
+
+
+def _get_latest(
+    g: Group,
+    conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> GroupEvent:
+    ret = g.get_latest_event(conditions=conditions, start=start, end=end)
+    assert ret is not None
+    return ret
+
+
+def _get_oldest(
+    g: Group,
+    conditions: Sequence[Condition] | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+) -> GroupEvent:
+    ret = g.get_oldest_event(conditions=conditions, start=start, end=end)
+    assert ret is not None
+    return ret
+
+
+@freeze_time()
+class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": before_now(minutes=1).isoformat(),
+                "environment": "staging",
+                "fingerprint": ["group-1"],
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+        self.event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": before_now(minutes=2).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+        self.event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "timestamp": before_now(minutes=3).isoformat(),
+                "fingerprint": ["group-1"],
+                "tags": {"organization.slug": "sentry"},
+                "environment": "staging",
+                "contexts": {
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "message": "Error: Division by zero",
+            },
+            project_id=self.project.id,
+        )
+
+        self.group: Group = Group.objects.get()
+        assert isinstance(self.group, Group)
+
+    def test_recommended_event(self):
+        # No filter
+        assert _get_recommended(self.group).event_id == self.event_b.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_recommended_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_recommended(
+                self.group, start=before_now(seconds=120), end=before_now(seconds=30)
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            _get_recommended(
+                self.group, start=before_now(hours=1), end=before_now(seconds=90)
+            ).event_id
+            == self.event_b.event_id
+        )
+
+    def test_latest_event(self):
+        # No filter
+        assert _get_latest(self.group).event_id == self.event_a.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_latest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_latest(
+                self.group, start=before_now(seconds=120), end=before_now(seconds=30)
+            ).event_id
+            == self.event_a.event_id
+        )
+        assert (
+            _get_latest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.event_b.event_id
+        )
+
+    def test_oldest_event(self):
+        # No filter
+        assert _get_oldest(self.group).event_id == self.event_c.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_oldest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("trace_id"), Op.IS_NULL)]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_oldest(
+                self.group, start=before_now(seconds=150), end=before_now(seconds=30)
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            _get_oldest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.event_c.event_id
+        )
+
+
+@freeze_time()
+class GroupTestSnubaPerformanceIssue(TestCase, SnubaTestCase, PerformanceIssueTestCase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
+
+        event_data_a = load_data(
+            "transaction-n-plus-one",
+            fingerprint=[group_fingerprint],
+            timestamp=before_now(minutes=1),
+            start_timestamp=before_now(minutes=1, seconds=1),
+            event_id="a" * 32,
+        )
+        event_data_a["environment"] = "staging"
+
+        event_data_b = load_data(
+            "transaction-n-plus-one",
+            fingerprint=[group_fingerprint],
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=1),
+            event_id="b" * 32,
+        )
+        event_data_b["environment"] = "production"
+        event_data_b["contexts"].update(
+            {
+                "replay": {"replay_id": uuid.uuid4().hex},
+                "profile": {"profile_id": uuid.uuid4().hex},
+            }
+        )
+
+        event_data_c = load_data(
+            "transaction-n-plus-one",
+            fingerprint=[group_fingerprint],
+            timestamp=before_now(minutes=3),
+            start_timestamp=before_now(minutes=3, seconds=1),
+            event_id="c" * 32,
+        )
+        event_data_c["environment"] = "staging"
+        event_data_c["contexts"].update({"profile": {"profile_id": uuid.uuid4().hex}})
+        event_data_c["tags"] = {"organization.slug": "sentry"}
+
+        self.event_a = self.create_performance_issue(
+            event_data=event_data_a, fingerprint=group_fingerprint
+        )
+        self.event_b = self.create_performance_issue(
+            event_data=event_data_b, fingerprint=group_fingerprint
+        )
+        self.event_c = self.create_performance_issue(
+            event_data=event_data_c, fingerprint=group_fingerprint
+        )
+
+        self.group: Group = Group.objects.get()
+        assert isinstance(self.group, Group)
+
+    def test_recommended_event(self):
+        # No filter
+        assert _get_recommended(self.group).event_id == self.event_b.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_recommended_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("profile_id"), Op.IS_NULL)]
+        assert _get_recommended(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_recommended(
+                self.group, start=before_now(seconds=120), end=before_now(seconds=30)
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            _get_recommended(
+                self.group, start=before_now(hours=1), end=before_now(seconds=90)
+            ).event_id
+            == self.event_b.event_id
+        )
+
+    def test_latest_event(self):
+        # No filter
+        assert _get_latest(self.group).event_id == self.event_a.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_latest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("profile_id"), Op.IS_NULL)]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_latest(
+                self.group, start=before_now(seconds=120), end=before_now(seconds=30)
+            ).event_id
+            == self.event_a.event_id
+        )
+        assert (
+            _get_latest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.event_b.event_id
+        )
+
+    def test_oldest_event(self):
+        # No filter
+        assert _get_oldest(self.group).event_id == self.event_c.event_id
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_oldest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_c.event_id
+        conditions = [Condition(Column("profile_id"), Op.IS_NULL)]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.event_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_oldest(
+                self.group, start=before_now(seconds=150), end=before_now(seconds=30)
+            ).event_id
+            == self.event_b.event_id
+        )
+        assert (
+            _get_oldest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.event_c.event_id
+        )
+
+
+@freeze_time()
+class GroupTestSnubaOccurrenceIssue(TestCase, SnubaTestCase, OccurrenceTestMixin):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+
+        self.issue_occ_a, _ = self.process_occurrence(
+            project_id=self.project.id,
+            event_id="a" * 32,
+            event_data={
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "staging",
+                "contexts": {
+                    "profile": {"profile_id": uuid.uuid4().hex},
+                },
+            },
+        )
+
+        self.issue_occ_b, _ = self.process_occurrence(
+            project_id=self.project.id,
+            event_id="b" * 32,
+            event_data={
+                "timestamp": before_now(minutes=2).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "production",
+                "contexts": {
+                    "profile": {"profile_id": uuid.uuid4().hex},
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+            },
+        )
+
+        self.issue_occ_c, _ = self.process_occurrence(
+            project_id=self.project.id,
+            event_id="c" * 32,
+            event_data={
+                "timestamp": before_now(minutes=3).isoformat(),
+                "fingerprint": ["group-1"],
+                "environment": "staging",
+                "tags": {"organization.slug": "sentry"},
+                "contexts": {
+                    "profile": {"profile_id": uuid.uuid4().hex},
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                },
+            },
+        )
+
+        self.group: Group = Group.objects.get()
+        self.group.update(type=ProfileFileIOGroupType.type_id)
+        assert isinstance(self.group, Group)
+        assert self.group.type == ProfileFileIOGroupType.type_id
+
+    def test_recommended_event(self):
+        # No filter
+        self.assert_occurrences_identical(_get_recommended(self.group).occurrence, self.issue_occ_b)
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert (
+            _get_recommended(self.group, conditions=conditions).event_id
+            == self.issue_occ_c.event_id
+        )
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert (
+            _get_recommended(self.group, conditions=conditions).event_id
+            == self.issue_occ_b.event_id
+        )
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_recommended_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert (
+            _get_recommended(self.group, conditions=conditions).event_id
+            == self.issue_occ_c.event_id
+        )
+        conditions = [Condition(Column("replay_id"), Op.IS_NULL)]
+        assert (
+            _get_recommended(self.group, conditions=conditions).event_id
+            == self.issue_occ_a.event_id
+        )
+
+        # Filter by date range
+        assert (
+            _get_recommended(
+                self.group, start=before_now(seconds=150), end=before_now(seconds=30)
+            ).event_id
+            == self.issue_occ_b.event_id
+        )
+        assert (
+            _get_recommended(
+                self.group, start=before_now(hours=1), end=before_now(seconds=90)
+            ).event_id
+            == self.issue_occ_b.event_id
+        )
+
+    def test_latest_event(self):
+        # No filter
+        self.assert_occurrences_identical(_get_latest(self.group).occurrence, self.issue_occ_a)
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.issue_occ_a.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.issue_occ_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_latest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.issue_occ_c.event_id
+        conditions = [Condition(Column("replay_id"), Op.IS_NULL)]
+        assert _get_latest(self.group, conditions=conditions).event_id == self.issue_occ_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_latest(
+                self.group, start=before_now(seconds=120), end=before_now(seconds=30)
+            ).event_id
+            == self.issue_occ_a.event_id
+        )
+        assert (
+            _get_latest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.issue_occ_b.event_id
+        )
+
+    def test_oldest_event(self):
+        # No filter
+        self.assert_occurrences_identical(_get_oldest(self.group).occurrence, self.issue_occ_c)
+
+        # Filter by environment
+        conditions = [Condition(Column("environment"), Op.IN, ["staging"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.issue_occ_c.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["production"])]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.issue_occ_b.event_id
+        conditions = [Condition(Column("environment"), Op.IN, ["development"])]
+        assert self.group.get_oldest_event(conditions=conditions) is None
+
+        # Filter by query
+        conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.issue_occ_c.event_id
+        conditions = [Condition(Column("replay_id"), Op.IS_NULL)]
+        assert _get_oldest(self.group, conditions=conditions).event_id == self.issue_occ_a.event_id
+
+        # Filter by date range
+        assert (
+            _get_oldest(
+                self.group, start=before_now(seconds=150), end=before_now(seconds=30)
+            ).event_id
+            == self.issue_occ_b.event_id
+        )
+        assert (
+            _get_oldest(self.group, start=before_now(hours=1), end=before_now(seconds=90)).event_id
+            == self.issue_occ_c.event_id
+        )

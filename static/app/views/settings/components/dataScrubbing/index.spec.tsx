@@ -92,7 +92,7 @@ describe('Data Scrubbing', function () {
 
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
 
-      for (const index in JSON.parse(relayPiiConfig).rules) {
+      for (const index in JSON.parse(relayPiiConfig).rules as number[]) {
         expect(screen.getAllByRole('button', {name: 'Edit Rule'})[index]).toBeDisabled();
         expect(
           screen.getAllByRole('button', {name: 'Delete Rule'})[index]

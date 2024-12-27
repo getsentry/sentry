@@ -30,7 +30,7 @@ describe('Dashboards util', () => {
     projects: [],
   };
   describe('constructWidgetFromQuery', () => {
-    let baseQuery;
+    let baseQuery!: NonNullable<Parameters<typeof constructWidgetFromQuery>[0]>;
     beforeEach(() => {
       baseQuery = {
         displayType: 'line',
@@ -105,7 +105,7 @@ describe('Dashboards util', () => {
     });
   });
   describe('eventViewFromWidget', () => {
-    let widget;
+    let widget!: Widget;
     beforeEach(() => {
       widget = {
         title: 'Test Query',
@@ -149,7 +149,7 @@ describe('Dashboards util', () => {
   });
 
   describe('getWidgetDiscoverUrl', function () {
-    let widget;
+    let widget!: Widget;
     beforeEach(() => {
       widget = {
         title: 'Test Query',
@@ -198,7 +198,7 @@ describe('Dashboards util', () => {
     });
   });
   describe('getWidgetIssueUrl', function () {
-    let widget;
+    let widget!: Widget;
     beforeEach(() => {
       widget = {
         title: 'Test Query',
@@ -211,6 +211,8 @@ describe('Dashboards util', () => {
             conditions: 'is:unresolved',
             fields: ['events'],
             orderby: 'date',
+            aggregates: [],
+            columns: [],
           },
         ],
       };
@@ -367,7 +369,7 @@ describe('Dashboards util', () => {
 });
 
 describe('isWidgetUsingTransactionName', () => {
-  let baseQuery;
+  let baseQuery!: NonNullable<Parameters<typeof constructWidgetFromQuery>[0]>;
   beforeEach(() => {
     baseQuery = {
       displayType: 'line',
@@ -386,7 +388,7 @@ describe('isWidgetUsingTransactionName', () => {
   });
 
   it('returns true when widget uses transaction as a selected field', () => {
-    baseQuery.queryFields.push('transaction');
+    (baseQuery.queryFields as string[]).push('transaction');
     const widget = constructWidgetFromQuery(baseQuery)!;
     expect(isWidgetUsingTransactionName(widget)).toEqual(true);
   });
@@ -404,13 +406,17 @@ describe('isWidgetUsingTransactionName', () => {
     });
 
     it('returns true when widget uses performance_score as aggregate', () => {
-      baseQuery.queryFields.push('performance_score(measurements.score.total)');
+      (baseQuery.queryFields as string[]).push(
+        'performance_score(measurements.score.total)'
+      );
       const widget = constructWidgetFromQuery(baseQuery)!;
       expect(isUsingPerformanceScore(widget)).toEqual(true);
     });
 
     it('returns true when widget uses performance_score as condition', () => {
-      baseQuery.queryConditions.push('performance_score(measurements.score.total):>0.5');
+      (baseQuery.queryConditions as string[]).push(
+        'performance_score(measurements.score.total):>0.5'
+      );
       const widget = constructWidgetFromQuery(baseQuery)!;
       expect(isUsingPerformanceScore(widget)).toEqual(true);
     });

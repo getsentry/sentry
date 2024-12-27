@@ -233,13 +233,14 @@ class OAuthAuthorizeView(AuthLoginView):
             # If application is not org level we should not show organizations to choose from at all
             organization_options = []
 
-        context = {
+        context = self.get_default_context(request) | {
             "user": request.user,
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
             "organization_options": organization_options,
         }
+
         return self.respond("sentry/oauth-authorize.html", context)
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:

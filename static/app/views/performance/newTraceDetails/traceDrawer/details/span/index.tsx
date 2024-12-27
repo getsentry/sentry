@@ -30,7 +30,7 @@ import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 
 import Alerts from './sections/alerts';
-import {hasFormattedSpanDescription, SpanDescription} from './sections/description';
+import {SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
@@ -120,7 +120,6 @@ function LegacySpanNodeDetailHeader({
 
 function SpanSections({
   node,
-  project,
   organization,
   location,
   onParentClick,
@@ -137,7 +136,6 @@ function SpanSections({
     return (
       <LegacySpanSections
         node={node}
-        project={project}
         organization={organization}
         location={location}
         onParentClick={onParentClick}
@@ -171,7 +169,6 @@ function SpanSections({
 
 function LegacySpanSections({
   node,
-  project,
   organization,
   location,
   onParentClick,
@@ -180,18 +177,9 @@ function LegacySpanSections({
   node: TraceTreeNode<TraceTree.Span>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
-  project: Project | undefined;
 }) {
   return (
     <TraceDrawerComponents.SectionCardGroup>
-      {hasFormattedSpanDescription(node) ? (
-        <SpanDescription
-          node={node}
-          project={project}
-          organization={organization}
-          location={location}
-        />
-      ) : null}
       <GeneralInfo
         node={node}
         organization={organization}
@@ -253,51 +241,53 @@ export function SpanNodeDetails({
   const profileId = node.event?.contexts?.profile?.profile_id ?? null;
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasNewTraceUi}>
+    <TraceDrawerComponents.DetailContainer>
       <SpanNodeDetailHeader
         node={node}
         organization={organization}
         project={project}
         onTabScrollToNode={onTabScrollToNode}
       />
-      {node.event?.projectSlug ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={node.event?.projectSlug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <Alerts node={node} />
-                {issues.length > 0 ? (
-                  <IssueList organization={organization} issues={issues} node={node} />
-                ) : null}
-                <SpanDescription
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                />
-                <SpanSections
-                  node={node}
-                  project={project}
-                  organization={organization}
-                  location={location}
-                  onParentClick={onParentClick}
-                />
-                {organization.features.includes('profiling') ? (
-                  <ProfileDetails event={node.event!} span={node.value} />
-                ) : null}
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : null}
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+        {node.event?.projectSlug ? (
+          <ProfilesProvider
+            orgSlug={organization.slug}
+            projectSlug={node.event?.projectSlug}
+            profileId={profileId || ''}
+          >
+            <ProfileContext.Consumer>
+              {profiles => (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <Alerts node={node} />
+                  {issues.length > 0 ? (
+                    <IssueList organization={organization} issues={issues} node={node} />
+                  ) : null}
+                  <SpanDescription
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                  />
+                  <SpanSections
+                    node={node}
+                    project={project}
+                    organization={organization}
+                    location={location}
+                    onParentClick={onParentClick}
+                  />
+                  {organization.features.includes('profiling') ? (
+                    <ProfileDetails event={node.event!} span={node.value} />
+                  ) : null}
+                </ProfileGroupProvider>
+              )}
+            </ProfileContext.Consumer>
+          </ProfilesProvider>
+        ) : null}
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }

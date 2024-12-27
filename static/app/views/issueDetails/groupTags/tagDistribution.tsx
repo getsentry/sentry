@@ -5,11 +5,52 @@ import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+
+export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
+  const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+
+  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
+  return (
+    <div>
+      <TagHeader>
+        <TagPreviewTitle>{tag.key}</TagPreviewTitle>
+      </TagHeader>
+      <TagValueContent>
+        {tag.topValues.map((tagValue, tagValueIdx) => {
+          const percentage = percent(tagValue.count, tag.totalValues);
+          const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
+          return (
+            <TagValueRow key={tagValueIdx}>
+              <Tooltip delay={300} title={tagValue.name} skipWrapper>
+                <TagValue>
+                  <DeviceName value={tagValue.name} />
+                </TagValue>
+              </Tooltip>
+              <TagBarValue>{displayPercentage}</TagBarValue>
+              <TagBar percentage={percentage} />
+            </TagValueRow>
+          );
+        })}
+        {hasOther && (
+          <TagValueRow>
+            <TagValue>{t('Other')}</TagValue>
+            <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+            <TagBar percentage={otherPercentage} />
+          </TagValueRow>
+        )}
+      </TagValueContent>
+    </div>
+  );
+}
 
 export function TagDistribution({tag}: {tag: GroupTag}) {
   const location = useLocation();
@@ -73,7 +114,11 @@ export function TagBar({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  return <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />;
+  return (
+    <TagBarPlaceholder>
+      <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />
+    </TagBarPlaceholder>
+  );
 }
 
 const TagPanel = styled(Link)`
@@ -101,10 +146,15 @@ const TagTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
 `;
 
+const TagPreviewTitle = styled(TagTitle)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
 // The 40px is a buffer to prevent percentages from overflowing
+const progressBarWidth = '45px';
 const TagValueContent = styled('div')`
   display: grid;
-  grid-template-columns: 4fr auto 45px;
+  grid-template-columns: 4fr auto ${progressBarWidth};
   color: ${p => p.theme.subText};
   grid-column-gap: ${space(1)};
 
@@ -127,20 +177,28 @@ const TagValue = styled('div')`
   margin-right: ${space(0.5)};
 `;
 
+const TagBarPlaceholder = styled('div')`
+  position: relative;
+  height: ${space(1)};
+  width: 100%;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  overflow: hidden;
+`;
+
 const TagBarContainer = styled('div')`
   height: ${space(1)};
-  position: relative;
-  flex: 1;
+  position: absolute;
+  left: 0;
+  top: 0;
   min-width: ${space(1)};
-  display: flex;
-  align-items: center;
   &:before {
     position: absolute;
     inset: 0;
     content: '';
-    border-radius: 3px;
-    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
-    border: 1px solid ${p => p.theme.translucentBorder};
+    background: ${p =>
+      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

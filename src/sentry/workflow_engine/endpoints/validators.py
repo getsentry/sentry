@@ -37,7 +37,7 @@ class DataSourceCreator(Generic[T]):
 
 class BaseDataConditionValidator(CamelSnakeSerializer):
 
-    condition = serializers.CharField(
+    type = serializers.CharField(
         required=True,
         max_length=200,
         help_text="Condition used to compare data value to the stored comparison value",
@@ -51,14 +51,8 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
     def result(self) -> Field:
         raise NotImplementedError
 
-    @property
-    def type(self) -> str:
-        # TODO: This should probably at least be an enum
-        raise NotImplementedError
-
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        attrs["type"] = self.type
         return attrs
 
 
@@ -84,15 +78,15 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
     def supported_results(self) -> frozenset[DetectorPriorityLevel]:
         raise NotImplementedError
 
-    def validate_condition(self, value: str) -> Condition:
+    def validate_type(self, value: str) -> Condition:
         try:
-            condition = Condition(value)
+            type = Condition(value)
         except ValueError:
-            condition = None
+            type = None
 
-        if condition not in self.supported_conditions:
-            raise serializers.ValidationError(f"Unsupported condition {value}")
-        return condition
+        if type not in self.supported_conditions:
+            raise serializers.ValidationError(f"Unsupported type {value}")
+        return type
 
     def validate_result(self, value: str) -> DetectorPriorityLevel:
         try:
@@ -160,7 +154,6 @@ class BaseGroupTypeDetectorValidator(CamelSnakeSerializer):
             )
             for condition in validated_data["data_conditions"]:
                 DataCondition.objects.create(
-                    condition=condition["condition"],
                     comparison=condition["comparison"],
                     condition_result=condition["result"],
                     type=condition["type"],

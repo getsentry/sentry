@@ -80,11 +80,6 @@ class MetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
-    def resolve_value(self, value: str) -> int:
-        value_id = self.builder.resolve_tag_value(value)
-
-        return value_id
-
     @property
     def should_skip_interval_calculation(self):
         return self.builder.builder_config.skip_time_conditions and (

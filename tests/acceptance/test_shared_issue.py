@@ -1,6 +1,6 @@
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -17,7 +17,7 @@ class SharedIssueTest(AcceptanceTestCase):
 
     def test_python_event(self):
         data = load_data(platform="python")
-        data["timestamp"] = iso_format(before_now(days=1))
+        data["timestamp"] = before_now(days=1).isoformat()
         event = self.store_event(data=data, project_id=self.project.id)
         assert event.group is not None
 

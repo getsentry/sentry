@@ -111,9 +111,9 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
 def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str | None]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
-        if module[:35] == "sun.reflect.GeneratedMethodAccessor":
+        if module.startswith("sun.reflect.GeneratedMethodAccessor"):
             return "sun.reflect.GeneratedMethodAccessor", "removed reflection marker"
-        if module[:44] == "jdk.internal.reflect.GeneratedMethodAccessor":
+        if module.startswith("jdk.internal.reflect.GeneratedMethodAccessor"):
             return "jdk.internal.reflect.GeneratedMethodAccessor", "removed reflection marker"
         old_module = module
         module = _java_reflect_enhancer_re.sub(r"\1<auto>", module)

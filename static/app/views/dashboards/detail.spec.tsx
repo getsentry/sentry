@@ -24,7 +24,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import DashboardDetail, {
   handleUpdateDashboardSplit,
@@ -45,7 +44,7 @@ describe('Dashboards > Detail', function () {
   const projects = [ProjectFixture()];
 
   describe('prebuilt dashboards', function () {
-    let initialData;
+    let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(function () {
       act(() => ProjectsStore.loadInitialData(projects));
@@ -231,7 +230,10 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let initialData, widgets, mockVisit, mockPut;
+    let initialData!: ReturnType<typeof initializeOrg>;
+    let widgets!: ReturnType<typeof WidgetFixture>[];
+    let mockVisit!: jest.Mock;
+    let mockPut!: jest.Mock;
 
     beforeEach(function () {
       window.confirm = jest.fn();
@@ -1229,7 +1231,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: '',
@@ -1337,7 +1339,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       screen.getByText('All Releases');
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: undefined,
@@ -1547,7 +1549,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       // release isn't used in the redirect
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
             end: undefined,
@@ -1602,7 +1604,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: ['sentry-android-shop@1.2.0'],
@@ -1680,8 +1682,8 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access'],
             ...initialData.organization,
+            features: ['dashboards-edit-access'],
           },
         }
       );
@@ -2121,7 +2123,7 @@ describe('Dashboards > Detail', function () {
     });
 
     describe('widget builder redesign', function () {
-      let mockUpdateDashboard;
+      let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(function () {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2212,7 +2214,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 
@@ -2298,7 +2300,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 

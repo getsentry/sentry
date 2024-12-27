@@ -14,8 +14,8 @@ jest.mock('sentry/utils/useNavigate', () => ({
 const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('WidgetBuilder', () => {
-  let router;
-  let organization;
+  let router!: ReturnType<typeof RouterFixture>;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(function () {
     router = RouterFixture({
       location: {

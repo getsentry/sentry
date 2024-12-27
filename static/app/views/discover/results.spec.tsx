@@ -9,7 +9,6 @@ import selectEvent from 'sentry-test/selectEvent';
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
 
@@ -270,7 +269,7 @@ describe('Results', function () {
       expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();
 
       // Should redirect and retain the old query value
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/discover/results/',
           query: expect.objectContaining({

@@ -34,8 +34,8 @@ const mockWidgetAsQueryParams = {
 };
 
 describe('add to dashboard modal', () => {
-  let eventsStatsMock;
-  let initialData;
+  let eventsStatsMock!: jest.Mock;
+  let initialData!: ReturnType<typeof initializeOrg>;
 
   const testDashboardListItem: DashboardListItem = {
     id: '1',
