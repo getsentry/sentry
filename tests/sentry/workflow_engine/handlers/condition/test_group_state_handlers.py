@@ -119,11 +119,22 @@ class TestExistingHighPriorityIssueCondition(ConditionTestCase):
 
     def test_is_escalating(self):
         self.job["has_reappeared"] = False
+        self.job["has_escalated"] = True
+        self.assert_passes(self.dc, self.job)
+
+        self.job["has_reappeared"] = True
+        self.job["has_escalated"] = False
+        self.assert_passes(self.dc, self.job)
+
+        self.job["has_reappeared"] = False
         self.job["has_escalated"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_priority(self):
         self.group_event.group.priority = PriorityLevel.LOW
+        self.assert_does_not_pass(self.dc, self.job)
+
+        self.group_event.group.priority = PriorityLevel.MEDIUM
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_dual_write(self):
