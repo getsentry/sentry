@@ -1,5 +1,4 @@
-import {useCallback, useRef} from 'react';
-import {findDOMNode} from 'react-dom';
+import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -33,17 +32,11 @@ function TextCopyInput({
   children,
   ...inputProps
 }: Props) {
-  const textRef = useRef<HTMLInputElement>(null);
+  const textNodeId = useId();
 
   const handleSelectText = useCallback(() => {
-    if (!textRef.current) {
-      return;
-    }
-
-    // We use findDOMNode here because `this.textRef` is not a dom node,
-    // it's a ref to AutoSelectText
-    const node = findDOMNode(textRef.current); // eslint-disable-line react/no-find-dom-node
-    if (!node || !(node instanceof HTMLElement)) {
+    const node = document.getElementById(textNodeId);
+    if (!node) {
       return;
     }
 
@@ -53,7 +46,7 @@ function TextCopyInput({
     } else {
       selectText(node);
     }
-  }, [rtl]);
+  }, [rtl, textNodeId]);
 
   /**
    * We are using direction: rtl; to always show the ending of a long overflowing text in input.
@@ -67,10 +60,11 @@ function TextCopyInput({
 
   return (
     <InputGroup className={className}>
+      hello
       <StyledInput
+        id={textNodeId}
         readOnly
         disabled={disabled}
-        ref={textRef}
         style={style}
         value={inputValue}
         onClick={handleSelectText}
