@@ -83,10 +83,6 @@ class SCMWebhookEndpoint(Endpoint, ABC, Generic[T]):
             logger.exception(log_event, extra=self.log_extra)
             raise BadRequest("Missing handler for event type")
 
-    @abstractmethod
-    def check_secret(self, **kwargs) -> str | None:
-        pass
-
     def get_body(self, body: bytes) -> bytes:
         body = bytes(body)
         if not body:
@@ -96,7 +92,7 @@ class SCMWebhookEndpoint(Endpoint, ABC, Generic[T]):
 
         return body
 
-    def get_event(self, body: bytes) -> None:
+    def get_event(self, body: bytes) -> Any:
         try:
             event = json.loads(body)
         except json.JSONDecodeError:
@@ -116,6 +112,10 @@ class SCMWebhookEndpoint(Endpoint, ABC, Generic[T]):
         ).capture():
             event_handler(event, **kwargs)
 
+    @abstractmethod
+    def check_secret(self, **kwargs) -> str:
+        raise NotImplementedError
+
     @method_decorator(csrf_exempt)
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
@@ -126,4 +126,4 @@ class SCMWebhookEndpoint(Endpoint, ABC, Generic[T]):
 
     @abstractmethod
     def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
-        pass
+        raise NotImplementedError

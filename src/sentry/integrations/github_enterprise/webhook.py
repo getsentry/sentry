@@ -140,10 +140,10 @@ class GitHubEnterpriseWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
 
         return constant_time_compare(expected, signature)
 
-    def check_secret(self, event, **kwargs):
-        metadata = get_installation_metadata(event, kwargs.get("host"))
+    def check_secret(self, **kwargs) -> str:
+        metadata = get_installation_metadata(kwargs.get("event"), kwargs.get("host"))
         if metadata:
-            return metadata.get("webhook_secret")
+            return metadata.get("webhook_secret", "")
         else:
             logger.warning("github_enterprise.webhook.missing-integration", extra=self.log_extra)
             raise BadRequest()
@@ -254,7 +254,7 @@ class GitHubEnterpriseWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
         # See https://sentry.io/organizations/sentry/issues/2565421410
         event = self.get_event(body)
 
-        secret = self.check_secret(event, host=host)
+        secret = self.check_secret(event=event, host=host)
 
         self.check_signature(request, body, secret, host)
 

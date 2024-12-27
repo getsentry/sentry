@@ -609,13 +609,13 @@ class GitHubIntegrationsWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
 
         return constant_time_compare(expected, signature)
 
-    def check_secret(self) -> str | None:
+    def check_secret(self, **kwargs) -> str:
         secret = options.get("github-app.webhook-secret")
         if not secret:
             logger.error("github.webhook.missing-secret", extra=self.log_extra)
             raise PermissionDenied()
 
-        return secret
+        return str(secret)
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
         clear_tags_and_context()
