@@ -1,39 +1,8 @@
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
-// Test utils to keep the tests code dry
-export const f = (name: string, key: number, in_app: boolean = true) =>
-  new Frame({name, key, is_application: in_app});
-export const c = (fr: Frame) => new CallTreeNode(fr, null);
-export const firstCallee = (node: CallTreeNode) => node.children[0];
-export const nthCallee = (node: CallTreeNode, n: number) => {
-  const child = node.children[n];
-  if (!child) {
-    throw new Error('Child not found');
-  }
-  return child;
-};
-
-export const makeTestingBoilerplate = () => {
-  const timings: [Frame['name'], string][] = [];
-
-  const openSpy = jest.fn();
-  const closeSpy = jest.fn();
-
-  // We need to wrap the spy fn because they are not allowed to reference external variables
-  const open = (node, value) => {
-    timings.push([node.frame.name, 'open']);
-    openSpy(node, value);
-  };
-  // We need to wrap the spy fn because they are not allowed to reference external variables
-  const close = (node, val) => {
-    timings.push([node.frame.name, 'close']);
-    closeSpy(node, val);
-  };
-
-  return {open, close, timings, openSpy, closeSpy};
-};
+import {c, f, makeTestingBoilerplate} from './testUtils';
 
 // Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
 // will format the stack samples as a tree string so it's more human friendly.

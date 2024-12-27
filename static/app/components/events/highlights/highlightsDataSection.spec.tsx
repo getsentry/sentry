@@ -7,12 +7,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
-import {
-  TEST_EVENT_CONTEXTS,
-  TEST_EVENT_TAGS,
-} from 'sentry/components/events/highlights/util.spec';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
+
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture();
