@@ -1,4 +1,5 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -13,7 +14,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -244,15 +244,16 @@ describe('Performance > Landing > Index', function () {
   });
 
   it('Can switch between landing displays', async function () {
+    const router = RouterFixture();
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER, abc: '123'},
     });
 
-    wrapper = render(<WrappedComponent data={data} />);
+    wrapper = render(<WrappedComponent data={data} />, {router});
     expect(screen.getByTestId('frontend-other-view')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
-    expect(browserHistory.push).toHaveBeenNthCalledWith(
+    expect(router.push).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         pathname: data.location.pathname,

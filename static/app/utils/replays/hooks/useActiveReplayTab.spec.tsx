@@ -5,8 +5,6 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 
-const mockPush = jest.mocked(browserHistory.push);
-
 function mockLocation(query: string = '') {
   window.location.search = qs.stringify({query});
 }
@@ -14,13 +12,10 @@ function mockLocation(query: string = '') {
 describe('useActiveReplayTab', () => {
   beforeEach(() => {
     mockLocation();
-    mockPush.mockReset();
   });
 
   it('should use Breadcrumbs as a default', () => {
-    const {result} = renderHook(useActiveReplayTab, {
-      initialProps: {},
-    });
+    const {result} = renderHook(useActiveReplayTab, {initialProps: {}});
 
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
   });
@@ -42,7 +37,7 @@ describe('useActiveReplayTab', () => {
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('nEtWoRk');
-    expect(mockPush).toHaveBeenLastCalledWith({
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       state: undefined,
       query: {query: '', t_main: TabKey.NETWORK},
@@ -56,7 +51,7 @@ describe('useActiveReplayTab', () => {
     expect(result.current.getActiveTab()).toBe(TabKey.BREADCRUMBS);
 
     result.current.setActiveTab('foo bar');
-    expect(mockPush).toHaveBeenLastCalledWith({
+    expect(browserHistory.push).toHaveBeenLastCalledWith({
       pathname: '/',
       query: {query: '', t_main: TabKey.BREADCRUMBS},
     });

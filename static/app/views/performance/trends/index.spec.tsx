@@ -17,7 +17,6 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import TrendsIndex from 'sentry/views/performance/trends/';
@@ -359,7 +358,7 @@ describe('Performance > Trends', function () {
     const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[2];
     await clickEl(menuAction);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(data.router.push).toHaveBeenCalledWith({
       pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
@@ -384,7 +383,7 @@ describe('Performance > Trends', function () {
     enterSearch(input, 'transaction.duration:>9000');
 
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/trends/',
         query: expect.objectContaining({
           project: ['1'],
@@ -423,7 +422,7 @@ describe('Performance > Trends', function () {
     const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[0];
     await clickEl(menuAction);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(data.router.push).toHaveBeenCalledWith({
       pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
@@ -459,7 +458,7 @@ describe('Performance > Trends', function () {
     const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[1];
     await clickEl(menuAction);
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(data.router.push).toHaveBeenCalledWith({
       pathname: '/trends/',
       query: expect.objectContaining({
         project: expect.anything(),
@@ -489,7 +488,7 @@ describe('Performance > Trends', function () {
       const option = screen.getByRole('option', {name: trendFunction.label});
       await clickEl(option);
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/trends/',
         query: expect.objectContaining({
           regressionCursor: undefined,
@@ -569,7 +568,7 @@ describe('Performance > Trends', function () {
       const option = screen.getByRole('option', {name: parameter.label});
       await clickEl(option);
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(data.router.push).toHaveBeenCalledWith({
         pathname: '/trends/',
         query: expect.objectContaining({
           trendParameter: parameter.label,
@@ -718,7 +717,7 @@ describe('Performance > Trends', function () {
     );
 
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenNthCalledWith(
+      expect(data.router.push).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           query: {
@@ -746,7 +745,7 @@ describe('Performance > Trends', function () {
       }
     );
 
-    jest.mocked(browserHistory.push).mockReset();
+    jest.mocked(data.router.push).mockReset();
 
     const byTransactionLink = await screen.findByTestId('breadcrumb-link');
 

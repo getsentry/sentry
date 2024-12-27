@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -97,7 +96,7 @@ describe('OrgDashboards', () => {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -161,7 +160,7 @@ describe('OrgDashboards', () => {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -260,7 +259,7 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(initialData.router.replace).not.toHaveBeenCalled();
   });
 
   it('does not redirect to add query params if location is cleared manually', async () => {
@@ -305,7 +304,7 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(initialData.router.replace).toHaveBeenCalledTimes(1));
 
     rerender(
       <OrgDashboards
@@ -331,6 +330,6 @@ describe('OrgDashboards', () => {
     );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(browserHistory.replace).toHaveBeenCalledTimes(1);
+    expect(initialData.router.replace).toHaveBeenCalledTimes(1);
   });
 });
