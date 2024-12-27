@@ -15,7 +15,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -23,6 +22,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {getExclusiveTimeDisplayedValue} from '../utils';
 
@@ -34,6 +34,7 @@ type Props = {
 };
 
 export default function ExclusiveTimeTimeSeries(props: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const {organization, eventView, spanSlug, withoutZerofill} = props;
 
@@ -69,7 +70,7 @@ export default function ExclusiveTimeTimeSeries(props: Props) {
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
   return (
