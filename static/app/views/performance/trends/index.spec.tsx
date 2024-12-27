@@ -176,7 +176,6 @@ describe('Performance > Trends', function () {
       state: undefined,
     });
 
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -747,7 +746,7 @@ describe('Performance > Trends', function () {
       }
     );
 
-    (browserHistory.push as any).mockReset();
+    jest.mocked(browserHistory.push).mockReset();
 
     const byTransactionLink = await screen.findByTestId('breadcrumb-link');
 
