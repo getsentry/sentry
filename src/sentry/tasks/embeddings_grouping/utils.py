@@ -14,7 +14,7 @@ from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.types import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (

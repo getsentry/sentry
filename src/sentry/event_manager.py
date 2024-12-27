@@ -68,13 +68,13 @@ from sentry.grouping.ingest.utils import (
     check_for_group_creation_load_shed,
     is_non_error_type_group,
 )
+from sentry.grouping.types import ErrorGroupType
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
