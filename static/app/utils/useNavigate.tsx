@@ -12,7 +12,7 @@ type NavigateOptions = {
   state?: any;
 };
 
-interface ReactRouter3Navigate {
+export interface ReactRouter3Navigate {
   (to: LocationDescriptor, options?: NavigateOptions): void;
   (delta: number): void;
 }
