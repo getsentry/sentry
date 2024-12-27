@@ -23,6 +23,7 @@ class Condition(models.TextChoices):
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
     EVERY_EVENT = "every_event"
+    EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
 
