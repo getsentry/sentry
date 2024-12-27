@@ -78,6 +78,8 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
+    "similarity-embeddings",
+    "similarity-embeddings-delete-by-hash",
 }
 
 
@@ -770,14 +772,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
-        if "stats" in attrs:
-            context.update(stats=attrs["stats"])
-        if "transactionStats" in attrs:
-            context.update(transactionStats=attrs["transactionStats"])
-        if "sessionStats" in attrs:
-            context.update(sessionStats=attrs["sessionStats"])
-        if "options" in attrs:
-            context.update(options=attrs["options"])
+
+        if attrs["has_access"] or user.is_staff:
+            if "stats" in attrs:
+                context.update(stats=attrs["stats"])
+            if "transactionStats" in attrs:
+                context.update(transactionStats=attrs["transactionStats"])
+            if "sessionStats" in attrs:
+                context.update(sessionStats=attrs["sessionStats"])
+            if "options" in attrs:
+                context.update(options=attrs["options"])
 
         return context
 

@@ -53,8 +53,9 @@ import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTa
 import GroupHeader from 'sentry/views/issueDetails/header';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
-import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/useMergedIssuesDrawer';
-import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/useSimilarIssuesDrawer';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -570,6 +571,7 @@ function GroupDetailsContent({
   const {openTagsDrawer} = useGroupTagsDrawer({group});
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
   const {isDrawerOpen} = useDrawer();
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
@@ -587,6 +589,8 @@ function GroupDetailsContent({
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
       openMergedIssuesDrawer();
+    } else if (currentTab === Tab.ACTIVITY) {
+      openIssueActivityDrawer();
     }
   }, [
     currentTab,
@@ -595,6 +599,7 @@ function GroupDetailsContent({
     openTagsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
+    openIssueActivityDrawer,
   ]);
 
   useTrackView({group, event, project, tab: currentTab});
@@ -604,6 +609,7 @@ function GroupDetailsContent({
     Tab.TAGS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
+    Tab.ACTIVITY,
   ].includes(currentTab);
 
   return hasStreamlinedUI ? (

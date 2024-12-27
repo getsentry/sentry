@@ -12,6 +12,12 @@ from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionResponse,
 )
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
+    TraceItemAttributeNamesRequest,
+    TraceItemAttributeNamesResponse,
+    TraceItemAttributeValuesRequest,
+    TraceItemAttributeValuesResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemTableRequest,
     TraceItemTableResponse,
@@ -65,6 +71,20 @@ def table_rpc(req: TraceItemTableRequest) -> TraceItemTableResponse:
 def timeseries_rpc(req: TimeSeriesRequest) -> TimeSeriesResponse:
     resp = _make_rpc_request("EndpointTimeSeries", "v1", req.meta.referrer, req)
     response = TimeSeriesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def attribute_names_rpc(req: TraceItemAttributeNamesRequest) -> TraceItemAttributeNamesResponse:
+    resp = _make_rpc_request("EndpointTraceItemAttributeNames", "v1", req.meta.referrer, req)
+    response = TraceItemAttributeNamesResponse()
+    response.ParseFromString(resp.data)
+    return response
+
+
+def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttributeValuesResponse:
+    resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
+    response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
     return response
 
@@ -126,6 +146,7 @@ def _make_rpc_request(
     with sentry_sdk.start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
         if referrer:
             span.set_tag("snuba.referrer", referrer)
+            span.set_data("snuba.query", req)
         http_resp = _snuba_pool.urlopen(
             "POST",
             f"/rpc/{endpoint_name}/{class_version}",

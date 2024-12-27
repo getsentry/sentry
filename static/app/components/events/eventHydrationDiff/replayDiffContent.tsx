@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimestamps';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: Props) {
-  const replayContext = useReplayReader({
+  const replayContext = useLoadReplayReader({
     orgSlug,
     replaySlug,
   });

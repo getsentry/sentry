@@ -1,10 +1,9 @@
-import type {CloudResourceContext} from '@sentry/types';
+import type {CloudResourceContext} from '@sentry/core';
 
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -336,17 +335,17 @@ export interface EntryRequestDataDefault {
   apiTarget: null;
   method: string;
   url: string;
-  cookies?: [key: string, value: string][];
+  cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | [key: string, value: any][];
   env?: Record<string, string>;
   fragment?: string | null;
-  headers?: [key: string, value: string][];
+  headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: [key: string, value: string][] | string;
+  query?: Array<[key: string, value: string] | null> | string;
 }
 
 export interface EntryRequestDataGraphQl
@@ -642,8 +641,9 @@ export interface ResponseContext {
   type: 'response';
 }
 
-export type FeatureFlag = {flag: string; result: boolean};
-export type Flags = {values: FeatureFlag[]};
+// event.contexts.flags can be overriden by the user so the type is not strict
+export type FeatureFlag = {flag?: string; result?: boolean};
+export type Flags = {values?: FeatureFlag[]};
 
 export type EventContexts = {
   'Current Culture'?: CultureContext;
@@ -814,7 +814,6 @@ export interface EventTransaction
   )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

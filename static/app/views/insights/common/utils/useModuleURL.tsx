@@ -3,6 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {BASE_URL as CRONS_BASE_URL} from 'sentry/views/insights/crons/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
 import {BASE_URL as AI_BASE_URL} from 'sentry/views/insights/llmMonitoring/settings';
@@ -18,8 +19,8 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
-import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {BASE_URL as UPTIME_BASE_URL} from 'sentry/views/insights/uptime/settings';
 
 export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_BASE_URL,
@@ -34,6 +35,8 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,
   [ModuleName.MOBILE_SCREENS]: MOBILE_SCREENS_BASE_URL,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_BASE_URL,
+  [ModuleName.CRONS]: CRONS_BASE_URL,
+  [ModuleName.UPTIME]: UPTIME_BASE_URL,
   [ModuleName.OTHER]: '',
 };
 
@@ -66,7 +69,6 @@ export function useModuleURLBuilder(
   detectDomainView: boolean = true
 ): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
-  const hasDomainViewFeature = organization?.features.includes('insights-domain-view');
   const {view: currentView} = useDomainViewFilters();
 
   if (!organization) {
@@ -76,28 +78,17 @@ export function useModuleURLBuilder(
 
   const {slug} = organization;
 
-  if (hasDomainViewFeature) {
-    return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
-      let view = detectDomainView ? currentView : currentView ?? domainView;
+  return function (moduleName: RoutableModuleNames, domainView?: DomainView) {
+    let view = detectDomainView ? currentView : currentView ?? domainView;
 
-      if (!view) {
-        view = getModuleView(moduleName as ModuleName);
-      }
+    if (!view) {
+      view = getModuleView(moduleName as ModuleName);
+    }
 
-      return bare
-        ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
-        : normalizeUrl(
-            `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
-          );
-    };
-  }
-
-  // TODO - delete this block once the domain view feature is fully rolled out
-  return function (moduleName: RoutableModuleNames) {
     return bare
-      ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+      ? `${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
       : normalizeUrl(
-          `/organizations/${slug}/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
+          `/organizations/${slug}/${DOMAIN_VIEW_BASE_URL}/${view}/${MODULE_BASE_URLS[moduleName]}`
         );
   };
 }

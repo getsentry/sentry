@@ -23,6 +23,7 @@ interface Props {
 function SpanSummaryButton(props: Props) {
   const location = useLocation();
   const resourceBaseUrl = useModuleURL(ModuleName.RESOURCE);
+  const queryBaseUrl = useModuleURL(ModuleName.DB);
 
   const {event, organization, span} = props;
 
@@ -41,7 +42,7 @@ function SpanSummaryButton(props: Props) {
       <LinkButton
         size="xs"
         to={querySummaryRouteWithQuery({
-          orgSlug: organization.slug,
+          base: queryBaseUrl,
           query: location.query,
           group: sentryTags.group,
           projectID: event.projectID,
@@ -53,7 +54,7 @@ function SpanSummaryButton(props: Props) {
           });
         }}
       >
-        {t('View Query Summary')}
+        {t('View Summary')}
       </LinkButton>
     );
   }

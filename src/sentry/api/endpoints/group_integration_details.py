@@ -13,6 +13,10 @@ from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.project_management.metrics import (
+    ProjectManagementActionType,
+    ProjectManagementEvent,
+)
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -162,62 +166,72 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         if not integration or not org_integration:
             return Response(status=404)
 
-        if not self._has_issue_feature_on_integration(integration):
-            return Response(
-                {"detail": "This feature is not supported for this integration."}, status=400
-            )
-
-        installation = integration.get_installation(organization_id=organization_id)
-        try:
-            data = installation.get_issue(external_issue_id, data=request.data)
-        except IntegrationFormError as exc:
-            return Response(exc.field_errors, status=400)
-        except IntegrationError as e:
-            return Response({"non_field_errors": [str(e)]}, status=400)
-
-        defaults = {
-            "title": data.get("title"),
-            "description": data.get("description"),
-            "metadata": data.get("metadata"),
-        }
-
-        external_issue_key = installation.make_external_key(data)
-        external_issue, created = ExternalIssue.objects.get_or_create(
-            organization_id=organization_id,
-            integration_id=integration.id,
-            key=external_issue_key,
-            defaults=defaults,
-        )
-
-        if created:
-            integration_issue_linked.send_robust(
-                integration=integration,
-                organization=group.project.organization,
-                user=request.user,
-                sender=self.__class__,
-            )
-        else:
-            external_issue.update(**defaults)
-
-        installation.store_issue_last_defaults(group.project, request.user, request.data)
-        try:
-            installation.after_link_issue(external_issue, data=request.data)
-        except IntegrationFormError as exc:
-            return Response(exc.field_errors, status=400)
-        except IntegrationError as e:
-            return Response({"non_field_errors": [str(e)]}, status=400)
-
-        try:
-            with transaction.atomic(router.db_for_write(GroupLink)):
-                GroupLink.objects.create(
-                    group_id=group.id,
-                    project_id=group.project_id,
-                    linked_type=GroupLink.LinkedType.issue,
-                    linked_id=external_issue.id,
-                    relationship=GroupLink.Relationship.references,
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.LINK_EXTERNAL_ISSUE,
+            integration=integration,
+        ).capture() as lifecycle:
+            if not self._has_issue_feature_on_integration(integration):
+                return Response(
+                    {"detail": "This feature is not supported for this integration."}, status=400
                 )
-        except IntegrityError:
-            return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
+
+            installation = integration.get_installation(organization_id=organization_id)
+
+            try:
+                data = installation.get_issue(external_issue_id, data=request.data)
+            except IntegrationFormError as exc:
+                lifecycle.record_halt(exc)
+                return Response(exc.field_errors, status=400)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return Response({"non_field_errors": [str(e)]}, status=400)
+
+            defaults = {
+                "title": data.get("title"),
+                "description": data.get("description"),
+                "metadata": data.get("metadata"),
+            }
+
+            external_issue_key = installation.make_external_key(data)
+            external_issue, created = ExternalIssue.objects.get_or_create(
+                organization_id=organization_id,
+                integration_id=integration.id,
+                key=external_issue_key,
+                defaults=defaults,
+            )
+
+            if created:
+                integration_issue_linked.send_robust(
+                    integration=integration,
+                    organization=group.project.organization,
+                    user=request.user,
+                    sender=self.__class__,
+                )
+            else:
+                external_issue.update(**defaults)
+
+            installation.store_issue_last_defaults(group.project, request.user, request.data)
+            try:
+                installation.after_link_issue(external_issue, data=request.data)
+            except IntegrationFormError as exc:
+                lifecycle.record_halt(exc)
+                return Response(exc.field_errors, status=400)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return Response({"non_field_errors": [str(e)]}, status=400)
+
+            try:
+                with transaction.atomic(router.db_for_write(GroupLink)):
+                    GroupLink.objects.create(
+                        group_id=group.id,
+                        project_id=group.project_id,
+                        linked_type=GroupLink.LinkedType.issue,
+                        linked_id=external_issue.id,
+                        relationship=GroupLink.Relationship.references,
+                    )
+            except IntegrityError as exc:
+                lifecycle.record_halt(exc)
+                return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
         self.create_issue_activity(request, group, installation, external_issue, new=False)
 
@@ -252,12 +266,26 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
 
         installation = integration.get_installation(organization_id=organization_id)
-        try:
-            data = installation.create_issue(request.data)
-        except IntegrationFormError as exc:
-            return Response(exc.field_errors, status=400)
-        except IntegrationError as e:
-            return Response({"non_field_errors": [str(e)]}, status=400)
+
+        with ProjectManagementEvent(
+            action_type=ProjectManagementActionType.CREATE_EXTERNAL_ISSUE_VIA_ISSUE_DETAIL,
+            integration=integration,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "provider": integration.provider,
+                    "integration_id": integration.id,
+                }
+            )
+
+            try:
+                data = installation.create_issue(request.data)
+            except IntegrationFormError as exc:
+                lifecycle.record_halt(exc)
+                return Response(exc.field_errors, status=400)
+            except IntegrationError as e:
+                lifecycle.record_failure(e)
+                return Response({"non_field_errors": [str(e)]}, status=400)
 
         external_issue_key = installation.make_external_key(data)
         external_issue, created = ExternalIssue.objects.get_or_create(

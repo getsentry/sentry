@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
@@ -59,11 +59,11 @@ type Props = ModalRenderProps & {
   app: SentryApp;
 };
 
-export default class SentryAppPublishRequestModal extends Component<Props> {
-  form = new FormModel({transformData});
+export default function SentryAppPublishRequestModal(props: Props) {
+  const [form] = useState<FormModel>(() => new FormModel({transformData}));
+  const {app, closeModal, Header, Body} = props;
 
-  get formFields() {
-    const {app} = this.props;
+  const formFields = () => {
     const permissions = getPermissionSelectionsFromScopes(app.scopes);
 
     const permissionQuestionBaseText =
@@ -132,57 +132,54 @@ export default class SentryAppPublishRequestModal extends Component<Props> {
     }
 
     return baseFields;
-  }
-
-  handleSubmitSuccess = () => {
-    addSuccessMessage(t('Request to publish %s successful.', this.props.app.slug));
-    this.props.closeModal();
   };
 
-  handleSubmitError = err => {
+  const handleSubmitSuccess = () => {
+    addSuccessMessage(t('Request to publish %s successful.', app.slug));
+    closeModal();
+  };
+
+  const handleSubmitError = err => {
     addErrorMessage(
       tct('Request to publish [app] fails. [detail]', {
-        app: this.props.app.slug,
+        app: app.slug,
         detail: err?.responseJSON?.detail,
       })
     );
   };
 
-  render() {
-    const {app, Header, Body} = this.props;
-    const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
-    const forms = [
-      {
-        title: t('Questions to answer'),
-        fields: this.formFields,
-      },
-    ];
-    return (
-      <Fragment>
-        <Header>{t('Publish Request Questionnaire')}</Header>
-        <Body>
-          <Explanation>
-            {t(
-              `Please fill out this questionnaire in order to get your integration evaluated for publication.
+  const endpoint = `/sentry-apps/${app.slug}/publish-request/`;
+  const forms = [
+    {
+      title: t('Questions to answer'),
+      fields: formFields(),
+    },
+  ];
+  return (
+    <Fragment>
+      <Header>{t('Publish Request Questionnaire')}</Header>
+      <Body>
+        <Explanation>
+          {t(
+            `Please fill out this questionnaire in order to get your integration evaluated for publication.
               Once your integration has been approved, users outside of your organization will be able to install it.`
-            )}
-          </Explanation>
-          <Form
-            allowUndo
-            apiMethod="POST"
-            apiEndpoint={endpoint}
-            onSubmitSuccess={this.handleSubmitSuccess}
-            onSubmitError={this.handleSubmitError}
-            model={this.form}
-            submitLabel={t('Request Publication')}
-            onCancel={() => this.props.closeModal()}
-          >
-            <JsonForm forms={forms} />
-          </Form>
-        </Body>
-      </Fragment>
-    );
-  }
+          )}
+        </Explanation>
+        <Form
+          allowUndo
+          apiMethod="POST"
+          apiEndpoint={endpoint}
+          onSubmitSuccess={handleSubmitSuccess}
+          onSubmitError={handleSubmitError}
+          model={form}
+          submitLabel={t('Request Publication')}
+          onCancel={closeModal}
+        >
+          <JsonForm forms={forms} />
+        </Form>
+      </Body>
+    </Fragment>
+  );
 }
 
 const Explanation = styled('div')`

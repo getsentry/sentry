@@ -42,7 +42,6 @@ from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
-    AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
@@ -181,12 +180,6 @@ ORG_OPTIONS = (
     ("allowJoinRequests", "sentry:join_requests", bool, JOIN_REQUESTS_DEFAULT),
     ("apdexThreshold", "sentry:apdex_threshold", int, None),
     (
-        "aiSuggestedSolution",
-        "sentry:ai_suggested_solution",
-        bool,
-        AI_SUGGESTED_SOLUTION,
-    ),
-    (
         "hideAiFeatures",
         "sentry:hide_ai_features",
         bool,
@@ -282,7 +275,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     scrubIPAddresses = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
-    aiSuggestedSolution = serializers.BooleanField(required=False)
     hideAiFeatures = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
     githubOpenPRBot = serializers.BooleanField(required=False)
@@ -665,10 +657,6 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="Specify `true` to opt-in to new features before they're released to the public.",
         required=False,
     )
-    aiSuggestedSolution = serializers.BooleanField(
-        help_text="Specify `true` to opt-in to [AI Suggested Solution](/product/issues/issue-details/ai-suggested-solution/) to get AI help on how to solve an issue.",
-        required=False,
-    )
     hideAiFeatures = serializers.BooleanField(
         help_text="Specify `true` to hide AI features from the organization.",
         required=False,
@@ -1048,7 +1036,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 error_sample_rate_fallback=None,
             )
             if current_rate:
-                project.update_option("sentry:target_sample_rate", current_rate)
+                project.update_option("sentry:target_sample_rate", round(current_rate, 4))
 
     def handle_delete(self, request: Request, organization: Organization):
         """

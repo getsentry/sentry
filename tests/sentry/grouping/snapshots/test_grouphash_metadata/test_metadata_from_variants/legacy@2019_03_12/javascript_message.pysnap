@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:33.723615+00:00'
+created: '2024-12-17T22:50:03.381240+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,9 +9,21 @@ hashing_metadata: {
   "message_source": "message"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "False",
+    "message_source": "message"
+  }
+}
+---
 contributing variants:
   default*
     hash: "4119639092e62c55ea8be348e4d9260d"
+    contributing component: message
     component:
       default*
         message*

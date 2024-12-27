@@ -74,47 +74,28 @@ function RelatedIssuesSection({
   // This is important for traces since issues can be for any project in the org
   const baseUrl = `/organizations/${orgSlug}/issues/?project=-1`;
   let title: React.ReactNode = null;
-  let linkToTrace: React.ReactNode = null;
+  let extraInfo: React.ReactNode = null;
   let openIssuesButton: React.ReactNode = null;
   if (relationType === 'trace_connected' && traceMeta) {
-    title = t('Issues in the same trace');
-    linkToTrace = (
-      <small>
-        {t('These issues were all found within ')}
-        <Link
-          to={`/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`}
-        >
-          {t('this trace')}
-        </Link>
-        .
-      </small>
-    );
-    openIssuesButton = (
-      <LinkButton
-        to={`${baseUrl}&query=trace:${traceMeta.trace_id}`}
-        size="xs"
-        analyticsEventName="Clicked Open Issues from trace-connected related issues"
-        analyticsEventKey="similar_issues.trace_connected_issues_clicked_open_issues"
-      >
-        {t('Open in Issues')}
-      </LinkButton>
-    );
+    ({title, extraInfo, openIssuesButton} = getTraceConnectedContent(
+      traceMeta,
+      baseUrl,
+      orgSlug
+    ));
   } else {
-    title = t('Issues caused by the same root cause');
-    openIssuesButton = (
-      <LinkButton
-        to={`${baseUrl}&query=issue.id:[${groupId},${issues}]`}
-        size="xs"
-        analyticsEventName="Clicked Open Issues from same-root related issues"
-        analyticsEventKey="similar_issues.same_root_cause_clicked_open_issues"
-      >
-        {t('Open in Issues')}
-      </LinkButton>
+    title = t('Issues with similar titles');
+    extraInfo = t(
+      'These issues have the same title and may have been caused by the same root cause.'
+    );
+    openIssuesButton = getLinkButton(
+      `${baseUrl}&query=issue.id:[${groupId},${issues}]`,
+      'Clicked Open Issues from same-root related issues',
+      'similar_issues.same_root_cause_clicked_open_issues'
     );
   }
 
   return (
-    <HeaderWrapper>
+    <Fragment>
       {isPending ? (
         <LoadingIndicator />
       ) : isError ? (
@@ -124,28 +105,67 @@ function RelatedIssuesSection({
         />
       ) : issues.length > 0 ? (
         <Fragment>
-          <Title>{title}</Title>
-          <TextButtonWrapper>
-            {linkToTrace}
-            {openIssuesButton}
-          </TextButtonWrapper>
+          <HeaderWrapper>
+            <Title>{title}</Title>
+            <TextButtonWrapper>
+              <span>{extraInfo}</span>
+              {openIssuesButton}
+            </TextButtonWrapper>
+          </HeaderWrapper>
           <GroupList
             orgSlug={orgSlug}
-            queryParams={{query: query}}
+            queryParams={{query}}
             source="similar-issues-tab"
             canSelectGroups={false}
             withChart={false}
+            withColumns={['event']}
           />
         </Fragment>
       ) : null}
-    </HeaderWrapper>
+    </Fragment>
   );
 }
+
+const getTraceConnectedContent = (
+  traceMeta: RelatedIssuesResponse['meta'],
+  baseUrl: string,
+  orgSlug: string
+) => {
+  const title = t('Issues in the same trace');
+  const url = `/organizations/${orgSlug}/performance/trace/${traceMeta.trace_id}/?node=error-${traceMeta.event_id}`;
+  const extraInfo = (
+    <small>
+      {t('These issues were all found within')}
+      <Link to={url}>{t('this trace')}</Link>.
+    </small>
+  );
+  const openIssuesButton = getLinkButton(
+    `${baseUrl}&query=trace:${traceMeta.trace_id}`,
+    'Clicked Open Issues from trace-connected related issues',
+    'similar_issues.trace_connected_issues_clicked_open_issues'
+  );
+
+  return {title, extraInfo, openIssuesButton};
+};
+
+const getLinkButton = (to: string, eventName: string, eventKey: string) => {
+  return (
+    <LinkButton
+      to={to}
+      size="xs"
+      analyticsEventName={eventName}
+      analyticsEventKey={eventKey}
+    >
+      {t('Open in Issues')}
+    </LinkButton>
+  );
+};
 
 // Export the component without feature flag controls
 export {GroupRelatedIssues};
 
 const Title = styled('h4')`
+  font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(0.75)};
 `;
 
@@ -158,7 +178,9 @@ const HeaderWrapper = styled('div')`
 `;
 
 const TextButtonWrapper = styled('div')`
+  align-items: center;
   display: flex;
   justify-content: space-between;
   margin-bottom: ${space(1)};
+  width: 100%;
 `;

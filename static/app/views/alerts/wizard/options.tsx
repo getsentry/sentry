@@ -18,7 +18,6 @@ import {
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {
   DEFAULT_EAP_METRICS_ALERT_FIELD,
-  DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
   DEFAULT_METRIC_ALERT_FIELD,
 } from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
@@ -29,7 +28,6 @@ import {
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasEAPAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
-import {hasInsightsAlerts} from 'sentry/views/insights/common/utils/hasInsightsAlerts';
 import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
@@ -49,7 +47,6 @@ export type AlertType =
   | 'custom_metrics'
   | 'llm_tokens'
   | 'llm_cost'
-  | 'insights_metrics'
   | 'uptime_monitor'
   | 'eap_metrics';
 
@@ -95,9 +92,8 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   llm_cost: t('LLM cost'),
   llm_tokens: t('LLM token usage'),
-  insights_metrics: t('Insights Metric'),
   uptime_monitor: t('Uptime Monitor'),
-  eap_metrics: t('EAP Metric'),
+  eap_metrics: t('Spans'),
 };
 
 /**
@@ -105,7 +101,6 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
  * for adding feature badges or other call-outs for newer alert types.
  */
 export const AlertWizardExtraContent: Partial<Record<AlertType, React.ReactNode>> = {
-  insights_metrics: <FeatureBadge type="alpha" />,
   eap_metrics: <FeatureBadge type="experimental" />,
   uptime_monitor: <FeatureBadge type="beta" />,
 };
@@ -140,7 +135,6 @@ export const getAlertWizardCategories = (org: Organization) => {
         'fid',
         'cls',
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-        ...(hasInsightsAlerts(org) ? ['insights_metrics' as const] : []),
         ...(hasEAPAlerts(org) ? ['eap_metrics' as const] : []),
       ],
     });
@@ -236,11 +230,6 @@ export const AlertWizardRuleTemplates: Record<
   },
   llm_cost: {
     aggregate: 'sum(ai.total_cost)',
-    dataset: Dataset.GENERIC_METRICS,
-    eventTypes: EventTypes.TRANSACTION,
-  },
-  insights_metrics: {
-    aggregate: DEFAULT_INSIGHTS_METRICS_ALERT_FIELD,
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

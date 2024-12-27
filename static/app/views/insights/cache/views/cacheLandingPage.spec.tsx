@@ -30,7 +30,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -253,7 +253,7 @@ describe('CacheLandingPage', function () {
     expect(screen.getByRole('cell', {name: 'my-transaction'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'my-transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
+      '/organizations/org-slug/insights/backend/caches/?project=123&statsPeriod=10d&transaction=my-transaction'
     );
 
     expect(screen.getByRole('columnheader', {name: 'Project'})).toBeInTheDocument();
@@ -313,7 +313,7 @@ describe('CacheLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    render(<CacheLandingPage />);
+    render(<CacheLandingPage />, {organization});
 
     await waitFor(() => {
       expect(

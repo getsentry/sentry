@@ -47,6 +47,7 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
+from sentry.features.rollout import in_rollout_group
 from sentry.grouping.api import (
     NULL_GROUPHASH_INFO,
     GroupHashInfo,
@@ -70,6 +71,9 @@ from sentry.grouping.ingest.utils import (
 )
 from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.ingest.transaction_clusterer.datasource.redis import (
+    record_transaction_name as record_transaction_name_for_clustering,
+)
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -99,6 +103,8 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
+from sentry.receivers.features import record_event_processed
+from sentry.receivers.onboarding import record_release_received, record_user_context_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
@@ -131,6 +137,8 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_measurement
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
+
+from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import BaseEvent, Event
@@ -175,10 +183,6 @@ def get_tag(data: dict[str, Any], key: str) -> Any | None:
         if k == key:
             return v
     return None
-
-
-def is_sample_event(job):
-    return get_tag(job["data"], "sample_event") == "yes"
 
 
 def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
@@ -342,7 +346,7 @@ class EventManager:
             grouping_config = config.get("grouping_config")
         # if we still don't have a grouping also try the project
         if grouping_config is None and project is not None:
-            grouping_config = get_grouping_config_dict_for_project(self._project)
+            grouping_config = get_grouping_config_dict_for_project(project)
         self._grouping_config = grouping_config
         self._client_ip = client_ip
         self._user_agent = user_agent
@@ -2111,14 +2115,17 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
             reason = "microservice_max_retry"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "max_retries"})
+            logger.exception("Seer severity microservice max retries exceeded")
         except TimeoutError:
             reason = "microservice_timeout"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "timeout"})
+            logger.exception("Seer severity microservice timeout")
         except Exception:
             reason = "microservice_error"
             update_severity_error_count()
             metrics.incr("issues.severity.error", tags={"reason": "unknown"})
+            logger.exception("Seer severity microservice error")
             sentry_sdk.capture_exception()
         else:
             update_severity_error_count(reset=True)
@@ -2369,7 +2376,7 @@ def save_attachment(
         return
     from sentry import ratelimits as ratelimiter
 
-    is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+    is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
         key="event_attachment.save_per_sec",
         limit=options.get("sentry.save-event-attachments.project-per-sec-limit"),
         project=project,
@@ -2377,7 +2384,7 @@ def save_attachment(
     )
     rate_limit_tag = "per_sec"
     if not is_limited:
-        is_limited, num_requests, reset_time = ratelimiter.backend.is_limited_with_value(
+        is_limited, _, _ = ratelimiter.backend.is_limited_with_value(
             key="event_attachment.save_5_min",
             limit=options.get("sentry.save-event-attachments.project-per-5-minute-limit"),
             project=project,
@@ -2512,6 +2519,34 @@ def _detect_performance_problems(
         )
 
 
+@sentry_sdk.tracing.trace
+def _record_transaction_info(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    """
+    this function does what we do in post_process for transactions. if this option is
+    turned on, we do the actions here instead of in post_process, with the goal
+    eventually being to not run transactions through post_process
+    """
+    for job in jobs:
+        try:
+            event = job["event"]
+            if not in_rollout_group("transactions.do_post_process_in_save", event.event_id):
+                continue
+
+            project = event.project
+            with sentry_sdk.start_span(op="event_manager.record_transaction_name_for_clustering"):
+                record_transaction_name_for_clustering(project, event.data)
+
+            # these are what the "transaction_processed" signal hooked into
+            # we should not use signals here, so call the recievers directly
+            # instead of sending a signal. we should consider potentially
+            # deleting these
+            record_event_processed(project, event)
+            record_user_context_received(project, event)
+            record_release_received(project, event)
+        except Exception:
+            sentry_sdk.capture_exception()
+
+
 class PerformanceJob(TypedDict, total=False):
     performance_problems: Sequence[PerformanceProblem]
     event: Event
@@ -2577,6 +2612,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
 @sentry_sdk.tracing.trace
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
+    from .ingest.types import ConsumerType
+
     organization_ids = {project.organization_id for project in projects.values()}
     organizations = {o.id: o for o in Organization.objects.get_many_from_cache(organization_ids)}
 
@@ -2628,6 +2665,13 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     with metrics.timer("save_transaction_events.eventstream_insert_many"):
         _eventstream_insert_many(jobs)
 
+    for job in jobs:
+        track_sampled_event(
+            job["event"].event_id,
+            ConsumerType.Transactions,
+            TransactionStageStatus.SNUBA_TOPIC_PUT,
+        )
+
     with metrics.timer("save_transaction_events.track_outcome_accepted_many"):
         _track_outcome_accepted_many(jobs)
 
@@ -2636,6 +2680,9 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
 
     with metrics.timer("save_transaction_events.send_occurrence_to_platform"):
         _send_occurrence_to_platform(jobs, projects)
+
+    with metrics.timer("save_transaction_events.record_transaction_info"):
+        _record_transaction_info(jobs, projects)
 
     return jobs
 

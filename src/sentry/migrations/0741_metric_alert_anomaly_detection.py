@@ -20,6 +20,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0740_one_relocation_file_kind_per_relocation"),
     ]

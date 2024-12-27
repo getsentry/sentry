@@ -216,6 +216,12 @@ describe('Dashboards > Detail', function () {
   });
 
   it('toggles between grid and list view', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
+      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
+    });
+
     render(<ManageDashboards />, {
       ...RouteComponentPropsFixture(),
       organization: {
@@ -228,10 +234,12 @@ describe('Dashboards > Detail', function () {
     await userEvent.click(await screen.findByTestId('list'));
 
     expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"list"');
+    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
 
     expect(await screen.findByTestId('grid')).toBeInTheDocument();
     await userEvent.click(await screen.findByTestId('grid'));
 
     expect(localStorage.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
+    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 });

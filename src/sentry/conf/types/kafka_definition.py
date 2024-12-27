@@ -26,6 +26,7 @@ class Topic(Enum):
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
     METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
+    EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
     INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
@@ -84,6 +85,8 @@ class ConsumerDefinition(TypedDict, total=False):
     dlq_topic: Topic
     dlq_max_invalid_ratio: float | None
     dlq_max_consecutive_count: int | None
+
+    stale_topic: Topic
 
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:

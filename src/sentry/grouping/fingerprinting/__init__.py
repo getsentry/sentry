@@ -4,14 +4,14 @@ import inspect
 import logging
 from collections.abc import Generator, Mapping, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, Self, TypedDict, TypeVar
 
 from django.conf import settings
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import get_rule_bool
+from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.event_frames import find_stack_frames
@@ -108,7 +108,42 @@ class _ReleaseInfo(TypedDict):
     release: str | None
 
 
-class EventAccess:
+class FingerprintRuleAttributes(TypedDict):
+    title: NotRequired[str]
+
+
+class FingerprintWithAttributes(NamedTuple):
+    fingerprint: list[str]
+    attributes: FingerprintRuleAttributes
+
+
+class FingerprintRuleConfig(TypedDict):
+    # Each matcher is a list of [<name of event attribute to match>, <value to match>]
+    matchers: list[list[str]]
+    fingerprint: list[str]
+    attributes: NotRequired[FingerprintRuleAttributes]
+    is_builtin: NotRequired[bool]
+
+
+# This is just `FingerprintRuleConfig` with an extra `text` entry and with `attributes` required
+# rather than optional. (Unfortunately, you can't overwrite lack of required-ness when subclassing a
+# TypedDict, so we have to create the full type independently.)
+class FingerprintRuleJSON(TypedDict):
+    text: str
+    # Each matcher is a list of [<name of event attribute to match>, <value to match>]
+    matchers: list[list[str]]
+    fingerprint: list[str]
+    attributes: FingerprintRuleAttributes
+    is_builtin: NotRequired[bool]
+
+
+class FingerprintRuleMatch(NamedTuple):
+    matched_rule: FingerprintRule
+    fingerprint: list[str]
+    attributes: FingerprintRuleAttributes
+
+
+class EventDatastore:
     def __init__(self, event: Mapping[str, Any]) -> None:
         self.event = event
         self._exceptions: list[_ExceptionInfo] | None = None
@@ -121,7 +156,7 @@ class EventAccess:
         self._family: list[_FamilyInfo] | None = None
         self._release: list[_ReleaseInfo] | None = None
 
-    def get_messages(self) -> list[_MessageInfo]:
+    def _get_messages(self) -> list[_MessageInfo]:
         if self._messages is None:
             self._messages = []
             message = get_path(self.event, "logentry", "formatted", filter=True)
@@ -129,7 +164,7 @@ class EventAccess:
                 self._messages.append({"message": message})
         return self._messages
 
-    def get_log_info(self) -> list[_LogInfo]:
+    def _get_log_info(self) -> list[_LogInfo]:
         if self._log_info is None:
             log_info: _LogInfo = {}
             logger = get_path(self.event, "logger", filter=True)
@@ -144,7 +179,7 @@ class EventAccess:
                 self._log_info = []
         return self._log_info
 
-    def get_exceptions(self) -> list[_ExceptionInfo]:
+    def _get_exceptions(self) -> list[_ExceptionInfo]:
         if self._exceptions is None:
             self._exceptions = []
             for exc in get_path(self.event, "exception", "values", filter=True) or ():
@@ -156,7 +191,7 @@ class EventAccess:
                 )
         return self._exceptions
 
-    def get_frames(self) -> list[_FrameInfo]:
+    def _get_frames(self) -> list[_FrameInfo]:
         if self._frames is None:
             self._frames = frames = []
 
@@ -177,35 +212,38 @@ class EventAccess:
             find_stack_frames(self.event, _push_frame)
         return self._frames
 
-    def get_toplevel(self) -> list[_MessageInfo | _ExceptionInfo]:
+    def _get_toplevel(self) -> list[_MessageInfo | _ExceptionInfo]:
         if self._toplevel is None:
-            self._toplevel = [*self.get_messages(), *self.get_exceptions()]
+            self._toplevel = [*self._get_messages(), *self._get_exceptions()]
         return self._toplevel
 
-    def get_tags(self) -> list[dict[str, str]]:
+    def _get_tags(self) -> list[dict[str, str]]:
         if self._tags is None:
             self._tags = [
                 {"tags.%s" % k: v for (k, v) in get_path(self.event, "tags", filter=True) or ()}
             ]
         return self._tags
 
-    def get_sdk(self) -> list[_SdkInfo]:
+    def _get_sdk(self) -> list[_SdkInfo]:
         if self._sdk is None:
             self._sdk = [{"sdk": normalized_sdk_tag_from_event(self.event)}]
         return self._sdk
 
-    def get_family(self) -> list[_FamilyInfo]:
+    def _get_family(self) -> list[_FamilyInfo]:
         self._family = self._family or [
             {"family": get_behavior_family_for_platform(self.event.get("platform"))}
         ]
         return self._family
 
-    def get_release(self) -> list[_ReleaseInfo]:
+    def _get_release(self) -> list[_ReleaseInfo]:
         self._release = self._release or [{"release": self.event.get("release")}]
         return self._release
 
-    def get_values(self, match_group: str) -> list[dict[str, Any]]:
-        return getattr(self, "get_" + match_group)()
+    def get_values(self, match_type: str) -> list[dict[str, Any]]:
+        """
+        Pull values from all the spots in the event appropriate to the given match type.
+        """
+        return getattr(self, "_get_" + match_type)()
 
 
 class FingerprintingRules:
@@ -231,14 +269,16 @@ class FingerprintingRules:
                 base_rules = FINGERPRINTING_BASES.get(base, [])
                 yield from base_rules
 
-    def get_fingerprint_values_for_event(self, event: dict[str, object]) -> None | object:
+    def get_fingerprint_values_for_event(
+        self, event: Mapping[str, object]
+    ) -> None | FingerprintRuleMatch:
         if not (self.bases or self.rules):
             return None
-        access = EventAccess(event)
+        event_datastore = EventDatastore(event)
         for rule in self.iter_rules():
-            new_values = rule.get_fingerprint_values_for_event_access(access)
-            if new_values is not None:
-                return (rule,) + new_values
+            match = rule.test_for_match_with_event(event_datastore)
+            if match is not None:
+                return FingerprintRuleMatch(rule, match.fingerprint, match.attributes)
         return None
 
     @classmethod
@@ -337,8 +377,13 @@ MATCHERS = {
 }
 
 
-class FingerprintMatch:
-    def __init__(self, key: str, pattern: str, negated: bool = False) -> None:
+class FingerprintMatcher:
+    def __init__(
+        self,
+        key: str,  # The event attribute on which to match
+        pattern: str,  # The value to match (or to not match, depending on `negated`)
+        negated: bool = False,  # If True, match when `event[key]` does NOT equal `pattern`
+    ) -> None:
         if key.startswith("tags."):
             self.key = key
         else:
@@ -350,7 +395,7 @@ class FingerprintMatch:
         self.negated = negated
 
     @property
-    def match_group(self) -> str:
+    def match_type(self) -> str:
         if self.key == "message":
             return "toplevel"
         if self.key in ("logger", "level"):
@@ -385,7 +430,7 @@ class FingerprintMatch:
         return False
 
     def _positive_match(self, values: dict[str, Any]) -> bool:
-        # path is special in that it tests against two values (abs_path and path)
+        # `path` is special in that it tests against two values (`abs_path` and `filename`)
         if self.key == "path":
             value = values.get("abs_path")
             if self._positive_path_match(value):
@@ -396,7 +441,7 @@ class FingerprintMatch:
                     return True
             return False
 
-        # message tests against value as well as this is what users expect
+        # message tests against exception value also, as this is what users expect
         if self.key == "message":
             for key in ("message", "value"):
                 value = values.get(key)
@@ -407,22 +452,15 @@ class FingerprintMatch:
         value = values.get(self.key)
         if value is None:
             return False
-        elif self.key == "package":
+        elif self.key in ["package", "release"]:
             if self._positive_path_match(value):
                 return True
-        elif self.key == "family":
+        elif self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
-                return True
-        elif self.key == "sdk":
-            flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "release":
-            if self._positive_path_match(value):
                 return True
         elif self.key == "app":
-            ref_val = get_rule_bool(self.pattern)
+            ref_val = bool_from_string(self.pattern)
             if ref_val is not None and ref_val == value:
                 return True
         elif glob_match(value, self.pattern, ignorecase=self.key in ("level", "value")):
@@ -436,14 +474,14 @@ class FingerprintMatch:
         return [key, self.pattern]
 
     @classmethod
-    def _from_config_structure(cls, obj: Sequence[str]) -> Self:
-        key = obj[0]
+    def _from_config_structure(cls, matcher: list[str]) -> Self:
+        key = matcher[0]
         if key.startswith("!"):
             key = key[1:]
             negated = True
         else:
             negated = False
-        return cls(key, obj[1], negated)
+        return cls(key, matcher[1], negated)
 
     @property
     def text(self) -> str:
@@ -457,9 +495,9 @@ class FingerprintMatch:
 class FingerprintRule:
     def __init__(
         self,
-        matchers: Sequence[FingerprintMatch],
+        matchers: Sequence[FingerprintMatcher],
         fingerprint: list[str],
-        attributes: dict[str, Any],
+        attributes: FingerprintRuleAttributes,
         is_builtin: bool = False,
     ) -> None:
         self.matchers = matchers
@@ -467,24 +505,24 @@ class FingerprintRule:
         self.attributes = attributes
         self.is_builtin = is_builtin
 
-    def get_fingerprint_values_for_event_access(
-        self, event_access: EventAccess
-    ) -> None | tuple[list[str], dict[str, Any]]:
-        by_match_group: dict[str, list[FingerprintMatch]] = {}
+    def test_for_match_with_event(
+        self, event_datastore: EventDatastore
+    ) -> None | FingerprintWithAttributes:
+        matchers_by_match_type: dict[str, list[FingerprintMatcher]] = {}
         for matcher in self.matchers:
-            by_match_group.setdefault(matcher.match_group, []).append(matcher)
+            matchers_by_match_type.setdefault(matcher.match_type, []).append(matcher)
 
-        for match_group, matchers in by_match_group.items():
-            for values in event_access.get_values(match_group):
+        for match_type, matchers in matchers_by_match_type.items():
+            for values in event_datastore.get_values(match_type):
                 if all(x.matches(values) for x in matchers):
                     break
             else:
                 return None
 
-        return self.fingerprint, self.attributes
+        return FingerprintWithAttributes(self.fingerprint, self.attributes)
 
-    def _to_config_structure(self) -> dict[str, Any]:
-        config_structure: dict[str, Any] = {
+    def _to_config_structure(self) -> FingerprintRuleJSON:
+        config_structure: FingerprintRuleJSON = {
             "text": self.text,
             "matchers": [x._to_config_structure() for x in self.matchers],
             "fingerprint": self.fingerprint,
@@ -497,19 +535,19 @@ class FingerprintRule:
         return config_structure
 
     @classmethod
-    def _from_config_structure(cls, obj: dict[str, Any]) -> Self:
+    def _from_config_structure(cls, config: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls(
-            [FingerprintMatch._from_config_structure(x) for x in obj["matchers"]],
-            obj["fingerprint"],
-            obj.get("attributes") or {},
-            obj.get("is_builtin") or False,
+            [FingerprintMatcher._from_config_structure(x) for x in config["matchers"]],
+            config["fingerprint"],
+            config.get("attributes") or {},
+            config.get("is_builtin") or False,
         )
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> FingerprintRuleJSON:
         return self._to_config_structure()
 
     @classmethod
-    def from_json(cls, json: dict[str, object]) -> Self:
+    def from_json(cls, json: FingerprintRuleConfig | FingerprintRuleJSON) -> Self:
         return cls._from_config_structure(json)
 
     @property
@@ -546,7 +584,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         in_header = True
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False
@@ -572,7 +610,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         self,
         _: object,
         children: tuple[
-            object, list[FingerprintMatch], object, object, object, tuple[list[str], dict[str, Any]]
+            object, list[FingerprintMatcher], object, object, object, FingerprintWithAttributes
         ],
     ) -> FingerprintRule:
         _, matcher, _, _, _, (fingerprint, attributes) = children
@@ -580,9 +618,9 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_matcher(
         self, _: object, children: tuple[object, list[str], str, object, str]
-    ) -> FingerprintMatch:
-        _, negation, ty, _, argument = children
-        return FingerprintMatch(ty, argument, bool(negation))
+    ) -> FingerprintMatcher:
+        _, negation, key, _, pattern = children
+        return FingerprintMatcher(key, pattern, bool(negation))
 
     def visit_matcher_type(self, _: object, children: list[str]) -> str:
         return children[0]
@@ -594,16 +632,18 @@ class FingerprintingVisitor(NodeVisitorBase):
 
     def visit_fingerprint(
         self, _: object, children: list[str | tuple[str, str]]
-    ) -> tuple[list[str], dict[str, str]]:
+    ) -> FingerprintWithAttributes:
         fingerprint = []
-        attributes = {}
+        attributes: FingerprintRuleAttributes = {}
         for item in children:
             if isinstance(item, tuple):
-                key, value = item
-                attributes[key] = value
+                # This should always be true, because otherwise an error would have been raised when
+                # we visited the child node in `visit_fp_attribute`
+                if item[0] == "title":
+                    attributes["title"] = item[1]
             else:
                 fingerprint.append(item)
-        return fingerprint, attributes
+        return FingerprintWithAttributes(fingerprint, attributes)
 
     def visit_fp_value(self, _: object, children: tuple[object, str, object, object]) -> str:
         _, argument, _, _ = children

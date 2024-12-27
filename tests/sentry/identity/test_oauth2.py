@@ -12,6 +12,7 @@ from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.providers.dummy import DummyProvider
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -40,12 +41,6 @@ class OAuth2CallbackViewTest(TestCase):
             client_secret="secret-value",
         )
 
-    def assert_failure_metric(self, mock_record, error_msg):
-        (event_failures,) = (
-            call for call in mock_record.mock_calls if call.args[0] == EventLifecycleOutcome.FAILURE
-        )
-        assert event_failures.args[1] == error_msg
-
     @responses.activate
     def test_exchange_token_success(
         self,
@@ -73,10 +68,7 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_exchange_token_success_customer_domains(self, mock_record, mock_integration_const):
@@ -101,10 +93,7 @@ class OAuth2CallbackViewTest(TestCase):
             "redirect_uri": "http://testserver/extensions/default/setup/",
         }
 
-        assert len(mock_record.mock_calls) == 2
-        start, success = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert success.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_exchange_token_ssl_error(self, mock_record, mock_integration_const):
@@ -122,7 +111,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "error_description" in result
         assert "SSL" in result["error_description"]
 
-        self.assert_failure_metric(mock_record, "ssl_error")
+        assert_failure_metric(mock_record, "ssl_error")
 
     @responses.activate
     def test_connection_error(self, mock_record, mock_integration_const):
@@ -140,7 +129,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "connect" in result["error"]
         assert "error_description" in result
 
-        self.assert_failure_metric(mock_record, "connection_error")
+        assert_failure_metric(mock_record, "connection_error")
 
     @responses.activate
     def test_exchange_token_no_json(self, mock_record, mock_integration_const):
@@ -153,7 +142,7 @@ class OAuth2CallbackViewTest(TestCase):
         assert "error_description" in result
         assert "JSON" in result["error_description"]
 
-        self.assert_failure_metric(mock_record, "json_error")
+        assert_failure_metric(mock_record, "json_error")
 
 
 @control_silo_test

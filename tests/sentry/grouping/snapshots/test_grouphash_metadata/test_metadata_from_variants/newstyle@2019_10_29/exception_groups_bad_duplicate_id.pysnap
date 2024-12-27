@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:54.079419+00:00'
+created: '2024-12-17T22:50:19.214962+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,9 +9,21 @@ hashing_metadata: {
   "message_source": "exception"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "message",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.message": {
+    "message_parameterized": "True",
+    "message_source": "exception"
+  }
+}
+---
 contributing variants:
   app*
     hash: "e2bf1e0628b7b1824a9b63dec7a079a3"
+    contributing component: chained-exception
     component:
       app*
         chained-exception*

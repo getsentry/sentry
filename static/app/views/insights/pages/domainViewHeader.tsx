@@ -6,9 +6,9 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
+import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
@@ -19,7 +19,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
+import {isModuleEnabled, isModuleHidden} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -34,11 +34,6 @@ export type Props = {
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
 
-type Tab = {
-  key: string;
-  label: React.ReactNode;
-};
-
 export function DomainViewHeader({
   modules,
   headerTitle,
@@ -50,7 +45,6 @@ export function DomainViewHeader({
   domainBaseUrl,
   tabs,
 }: Props) {
-  const navigate = useNavigate();
   const organization = useOrganization();
   const moduleURLBuilder = useModuleURLBuilder();
   const moduleTitles = useModuleTitles();
@@ -78,39 +72,28 @@ export function DomainViewHeader({
 
   const showModuleTabs = organization.features.includes('insights-entry-points');
 
-  const defaultHandleTabChange = (key: ModuleName | typeof OVERVIEW_PAGE_TITLE) => {
-    if (key === selectedModule || (key === OVERVIEW_PAGE_TITLE && !module)) {
-      return;
-    }
-    if (!key) {
-      return;
-    }
-    if (key === OVERVIEW_PAGE_TITLE) {
-      navigate(domainBaseUrl);
-      return;
-    }
-    navigate(`${moduleURLBuilder(key as RoutableModuleNames)}/`);
-  };
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
-  const handleTabChange =
-    hideDefaultTabs && tabs ? tabs.onTabChange : defaultHandleTabChange;
-
-  const tabList: Tab[] = [
+  const tabList: TabListItemProps[] = [
     {
       key: OVERVIEW_PAGE_TITLE,
-      label: OVERVIEW_PAGE_TITLE,
+      children: OVERVIEW_PAGE_TITLE,
+      to: domainBaseUrl,
     },
   ];
 
   if (showModuleTabs) {
     tabList.push(
-      ...modules.map(moduleName => ({
-        key: moduleName,
-        label: <TabLabel moduleName={moduleName} />,
-      }))
+      ...modules.map(
+        moduleName =>
+          ({
+            key: moduleName,
+            children: <TabLabel moduleName={moduleName} />,
+            to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
+            hidden: isModuleHidden(moduleName, organization),
+          }) satisfies TabListItemProps
+      )
     );
   }
 
@@ -128,11 +111,11 @@ export function DomainViewHeader({
             <FeedbackWidgetButton />
           </ButtonBar>
         </Layout.HeaderActions>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Tabs value={tabValue} onChange={tabs?.onTabChange}>
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                <TabList.Item {...tab} key={tab.key} />
               ))}
             </TabList>
           )}

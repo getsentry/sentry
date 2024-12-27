@@ -293,11 +293,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
 
     def authenticate(self, request: Request):
-        if not request.json_body:
+        if not request.data:
             raise AuthenticationFailed("Invalid request")
 
-        client_id = request.json_body.get("client_id")
-        client_secret = request.json_body.get("client_secret")
+        client_id = request.data.get("client_id")
+        client_secret = request.data.get("client_secret")
 
         invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
@@ -422,11 +422,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        if token.organization_id:
+        if token.scoping_organization_id:
             # We need to make sure the organization to which the token has access is the same as the one in the URL
             organization = None
             organization_context = organization_service.get_organization_by_id(
-                id=token.organization_id
+                id=token.organization_id, include_projects=False, include_teams=False
             )
             if organization_context:
                 organization = organization_context.organization
@@ -439,30 +439,15 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                         organization.slug != target_org_id_or_slug
                         and organization.id != target_org_id_or_slug
                     ):
-                        # TODO (@athena): We want to raise auth excecption here but to be sure
-                        # I soft launch this by only logging the error for now
-                        # raise AuthenticationFailed("Unauthorized organization access")
-                        logger.info(
-                            "Token has access to organization %s but wants to get access to organization %s: %s",
-                            organization.slug,
-                            target_org_id_or_slug,
-                            request.path_info,
-                        )
-                else:
-                    # TODO (@athena): We want to limit org level token's access to org level endpoints only
-                    # so in the future this will be an auth exception but for now we soft launch by logging an error
-                    logger.info(
-                        "Token has only access to organization %s but is calling an endpoint for multiple organizations: %s",
-                        organization.slug,
-                        request.path_info,
+                        raise AuthenticationFailed("Unauthorized organization access.")
+                # We want to limit org scoped tokens access to org level endpoints only
+                # Except some none-org level endpoints that we added special treatments for
+                elif resolved_url.url_name not in ["sentry-api-0-organizations"]:
+                    raise AuthenticationFailed(
+                        "This token access is limited to organization endpoints."
                     )
             else:
-                # TODO (@athena): If there is an organization token we should be able to fetch organization context
-                # Otherwise we should raise an exception
-                # For now adding logging to investigate if this is a valid case we need to address
-                logger.info(
-                    "Token has access to an unknown organization: %s", token.organization_id
-                )
+                raise AuthenticationFailed("Cannot resolve organization from token.")
 
         return self.transform_auth(
             user,

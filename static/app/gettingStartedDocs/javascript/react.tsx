@@ -28,6 +28,7 @@ import {
   getReplayConfigureDescription,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -430,6 +431,7 @@ const docs: Docs = {
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

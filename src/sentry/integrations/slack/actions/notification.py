@@ -34,6 +34,10 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id
+from sentry.integrations.slack.utils.errors import (
+    SLACK_SDK_HALT_ERROR_CATEGORIES,
+    unpack_slack_api_error,
+)
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -64,10 +68,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel": {"type": "string", "placeholder": "e.g., #critical, Jane Schmidt"},
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
-        }
-        self.form_fields["notes"] = {
-            "type": "string",
-            "placeholder": "e.g. @jane, @on-call-team",
+            "notes": {"type": "string", "placeholder": "e.g., @jane, @on-call-team"},
         }
 
         self._repository: IssueAlertNotificationMessageRepository = (
@@ -181,57 +182,73 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             client = SlackSdkClient(integration_id=integration.id)
             text = str(blocks.get("text"))
-            try:
-                response = client.chat_postMessage(
-                    blocks=json_blocks,
-                    text=text,
-                    channel=channel,
-                    unfurl_links=False,
-                    unfurl_media=False,
-                    thread_ts=thread_ts,
-                    reply_broadcast=reply_broadcast,
-                )
-                metrics.incr(
-                    SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"action": "send_notification"},
-                )
-            except SlackApiError as e:
-                # Record the error code and details from the exception
-                new_notification_message_object.error_code = e.response.status_code
-                new_notification_message_object.error_details = {
-                    "msg": str(e),
-                    "data": e.response.data,
-                    "url": e.response.api_url,
-                }
+            # Wrap the Slack API call with lifecycle tracking
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                try:
+                    response = client.chat_postMessage(
+                        blocks=json_blocks,
+                        text=text,
+                        channel=channel,
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        thread_ts=thread_ts,
+                        reply_broadcast=reply_broadcast,
+                    )
+                    metrics.incr(
+                        SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
+                        sample_rate=1.0,
+                        tags={"action": "send_notification"},
+                    )
+                except SlackApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.response.status_code
+                    new_notification_message_object.error_details = {
+                        "msg": str(e),
+                        "data": e.response.data,
+                        "url": e.response.api_url,
+                    }
 
-                log_params = {
-                    "error": str(e),
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "channel_name": self.get_option("channel"),
-                }
-                # temporarily log the payload so we can debug message failures
-                log_params["payload"] = json_blocks
+                    log_params: dict[str, str | int] = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "payload": json_blocks,
+                    }
+                    if self.get_option("channel"):
+                        log_params["channel_name"] = self.get_option("channel")
 
-                self.logger.info(
-                    "slack.issue_alert.error",
-                    extra=log_params,
-                )
-                metrics.incr(
-                    SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={
-                        "action": "send_notification",
-                        "ok": e.response.get("ok", False),
-                        "status": e.response.status_code,
-                    },
-                )
-            else:
-                ts = response.get("ts")
-                new_notification_message_object.message_identifier = (
-                    str(ts) if ts is not None else None
-                )
+                    self.logger.info(
+                        "slack.issue_alert.error",
+                        extra=log_params,
+                    )
+                    metrics.incr(
+                        SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC,
+                        sample_rate=1.0,
+                        tags={
+                            "action": "send_notification",
+                            "ok": e.response.get("ok", False),
+                            "status": e.response.status_code,
+                        },
+                    )
+
+                    lifecycle.add_extras(log_params)
+                    # If the error is a channel not found or archived, we can halt the flow
+                    if (
+                        (reason := unpack_slack_api_error(e))
+                        and reason is not None
+                        and reason in SLACK_SDK_HALT_ERROR_CATEGORIES
+                    ):
+                        lifecycle.record_halt(reason.message)
+                    else:
+                        lifecycle.record_failure(e)
+                else:
+                    ts = response.get("ts")
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
 
             if rule_action_uuid and rule_id:
                 try:

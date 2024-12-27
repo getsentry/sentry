@@ -15,7 +15,6 @@ from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
@@ -26,7 +25,6 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
-    get_metrics_dsn,
     process_profile_task,
 )
 from sentry.profiles.utils import Profile
@@ -306,19 +304,37 @@ def proguard_file_bug(project):
 
 
 @django_db_all
+def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+    sample_v1_profile["transaction_tags"] = {"device.class": "1"}
+
+    _normalize(profile=sample_v1_profile, organization=organization)
+
+    assert sample_v1_profile.get("os", {}).get("build_number")
+    assert sample_v1_profile.get("device", {}).get("classification")
+    assert sample_v1_profile["device"]["classification"] == "low"
+
+
+@django_db_all
 def test_normalize_ios_profile(organization, ios_profile):
+    ios_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=ios_profile, organization=organization)
     for k in ["device_os_build_number", "device_classification"]:
         assert k in ios_profile
 
+    assert ios_profile["device_classification"] == "low"
+
 
 @django_db_all
 def test_normalize_android_profile(organization, android_profile):
+    android_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=android_profile, organization=organization)
     for k in ["android_api_level", "device_classification"]:
         assert k in android_profile
 
     assert isinstance(android_profile["android_api_level"], int)
+    assert android_profile["device_classification"] == "low"
 
 
 def test_process_symbolicator_results_for_sample():
@@ -825,41 +841,23 @@ def test_set_frames_platform_android():
     assert platforms == ["android", "android"]
 
 
-@django_db_all
-def test_get_metrics_dsn(default_project):
-    key1 = ProjectKey.objects.create(project=default_project, use_case=UseCase.PROFILING.value)
-    ProjectKey.objects.create(project_id=default_project.id, use_case=UseCase.PROFILING.value)
-
-    assert get_metrics_dsn(default_project.id) == key1.get_dsn(public=True)
-
-
-@patch("sentry.options.get")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
 @patch("sentry.profiles.task._push_profile_to_vroom")
 @django_db_all
 @pytest.mark.parametrize(
-    "profile,outcomes_in_consumer",
-    [
-        ("sample_v1_profile", True),
-        ("sample_v2_profile", True),
-        ("sample_v1_profile", False),
-        ("sample_v2_profile", False),
-    ],
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_emit_profile_duration_outcome(
     _push_profile_to_vroom,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome_legacy,
     _track_outcome,
-    options_get,
     profile,
-    outcomes_in_consumer,
     organization,
     project,
     request,
@@ -867,11 +865,6 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     _push_profile_to_vroom.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
-    options_get.side_effect = lambda name: (
-        outcomes_in_consumer
-        if name == "profiling.emit_outcomes_in_profiling_consumer.enabled"
-        else None
-    )
 
     profile = request.getfixturevalue(profile)
     profile["organization_id"] = organization.id
@@ -882,58 +875,40 @@ def test_process_profile_task_should_emit_profile_duration_outcome(
     assert _track_duration_outcome.call_count == 1
 
     if "profiler_id" not in profile:
-        if outcomes_in_consumer:
-            assert _track_outcome.call_count == 1
-            _track_outcome.assert_called_with(
-                profile=profile,
-                project=project,
-                categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                outcome=Outcome.ACCEPTED,
-            )
-        else:
-            assert _track_outcome_legacy.call_count == 1
+        assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
     else:
-        assert _track_outcome_legacy.call_count == 0
+        assert _track_outcome.call_count == 0
 
 
-@patch("sentry.options.get")
 @patch("sentry.quotas.backend.should_emit_profile_duration_outcome")
 @patch("sentry.profiles.task._track_outcome")
-@patch("sentry.profiles.task._track_outcome_legacy")
 @patch("sentry.profiles.task._track_duration_outcome")
 @patch("sentry.profiles.task._symbolicate_profile")
 @patch("sentry.profiles.task._deobfuscate_profile")
 @patch("sentry.profiles.task._push_profile_to_vroom")
 @django_db_all
 @pytest.mark.parametrize(
-    "profile,outcomes_in_consumer",
-    [
-        ("sample_v1_profile", True),
-        ("sample_v2_profile", True),
-        ("sample_v1_profile", False),
-        ("sample_v2_profile", False),
-    ],
+    "profile",
+    ["sample_v1_profile", "sample_v2_profile"],
 )
 def test_process_profile_task_should_not_emit_profile_duration_outcome(
     _push_profile_to_vroom,
     _deobfuscate_profile,
     _symbolicate_profile,
     _track_duration_outcome,
-    _track_outcome_legacy,
     _track_outcome,
     should_emit_profile_duration_outcome,
-    options_get,
     profile,
-    outcomes_in_consumer,
     organization,
     project,
     request,
 ):
-    options_get.side_effect = lambda name: (
-        outcomes_in_consumer
-        if name == "profiling.emit_outcomes_in_profiling_consumer.enabled"
-        else None
-    )
     _push_profile_to_vroom.return_value = True
     _deobfuscate_profile.return_value = True
     _symbolicate_profile.return_value = True
@@ -952,15 +927,13 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
     )
 
     if "profiler_id" not in profile:
-        if outcomes_in_consumer:
-            assert _track_outcome.call_count == 1
-            _track_outcome.assert_called_with(
-                profile=profile,
-                project=project,
-                categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
-                outcome=Outcome.ACCEPTED,
-            )
-        else:
-            assert _track_outcome_legacy.call_count == 1
+        assert _track_outcome.call_count == 1
+        _track_outcome.assert_called_with(
+            profile=profile,
+            project=project,
+            categories=[DataCategory.PROFILE, DataCategory.PROFILE_INDEXED],
+            outcome=Outcome.ACCEPTED,
+        )
+
     else:
-        assert _track_outcome_legacy.call_count == 0
+        assert _track_outcome.call_count == 0

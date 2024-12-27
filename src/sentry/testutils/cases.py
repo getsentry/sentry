@@ -27,13 +27,13 @@ from django.contrib.auth import login
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.cache import cache
-from django.db import DEFAULT_DB_ALIAS, connection, connections
+from django.db import connection, connections
 from django.db.migrations.executor import MigrationExecutor
 from django.http import HttpRequest
+from django.test import RequestFactory
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
 from django.test import override_settings
-from django.test.utils import CaptureQueriesContext
 from django.urls import resolve, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -89,17 +89,12 @@ from sentry.models.authprovider import AuthProvider as AuthProviderModel
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.dashboard import Dashboard
-from sentry.models.dashboard_widget import (
-    DashboardWidget,
-    DashboardWidgetDisplayTypes,
-    DashboardWidgetQuery,
-)
+from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetDisplayTypes
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.files.file import File
 from sentry.models.groupmeta import GroupMeta
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -110,6 +105,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.base import alert_page_needs_org_id
 from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
@@ -117,14 +113,12 @@ from sentry.plugins.base import plugins
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
-from sentry.rules.base import RuleBase
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
-    PROFILE_METRICS_MAP,
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
@@ -138,11 +132,10 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
-from sentry.types.condition_activity import ConditionActivity, ConditionActivityType
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
@@ -168,7 +161,7 @@ from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_m
 from .asserts import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
-from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
+from .helpers import AuthProvider, Feature, TaskRunner, override_options
 from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
@@ -215,11 +208,6 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
 class BaseTestCase(Fixtures):
-    def assertRequiresAuthentication(self, path, method="GET"):
-        resp = getattr(self.client, method.lower())(path)
-        assert resp.status_code == 302
-        assert resp["Location"].startswith("http://testserver" + reverse("sentry-login"))
-
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self):
         auth.register("dummy", DummyProvider)
@@ -276,7 +264,7 @@ class BaseTestCase(Fixtures):
         self,
         user=None,
         auth=None,
-        method=None,
+        method="get",
         is_superuser=False,
         is_staff=False,
         path="/",
@@ -285,18 +273,12 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = HttpRequest()
+        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
         if subdomain:
             setattr(request, "subdomain", subdomain)
-        if method:
-            request.method = method
-        request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
-        if GET is not None:
-            for k, v in GET.items():
-                request.GET[k] = v
         if secure_scheme:
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
@@ -437,70 +419,12 @@ class BaseTestCase(Fixtures):
         assert deleted_log.date_created == original_object.date_added
         assert deleted_log.date_deleted >= deleted_log.date_created
 
-    def assertWriteQueries(self, queries, debug=False, *args, **kwargs):
-        func = kwargs.pop("func", None)
-        using = kwargs.pop("using", DEFAULT_DB_ALIAS)
-        conn = connections[using]
-
-        context = _AssertQueriesContext(self, queries, debug, conn)
-        if func is None:
-            return context
-
-        with context:
-            func(*args, **kwargs)
-
     def get_mock_uuid(self):
         class uuid:
             hex = "abc123"
             bytes = b"\x00\x01\x02"
 
         return uuid
-
-
-class _AssertQueriesContext(CaptureQueriesContext):
-    def __init__(self, test_case, queries, debug, connection):
-        self.test_case = test_case
-        self.queries = queries
-        self.debug = debug
-        super().__init__(connection)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        super().__exit__(exc_type, exc_value, traceback)
-        if exc_type is not None:
-            return
-
-        parsed_queries = parse_queries(self.captured_queries)
-
-        if self.debug:
-            import pprint
-
-            pprint.pprint("====================== Raw Queries ======================")
-            pprint.pprint(self.captured_queries)
-            pprint.pprint("====================== Table writes ======================")
-            pprint.pprint(parsed_queries)
-
-        for table, num in parsed_queries.items():
-            expected = self.queries.get(table, 0)
-            if expected == 0:
-                import pprint
-
-                pprint.pprint(
-                    "WARNING: no query against %s emitted, add debug=True to see all the queries"
-                    % (table)
-                )
-            else:
-                self.test_case.assertTrue(
-                    num == expected,
-                    "%d write queries expected on `%s`, got %d, add debug=True to see all the queries"
-                    % (expected, table, num),
-                )
-
-        for table, num in self.queries.items():
-            executed = parsed_queries.get(table, None)
-            self.test_case.assertFalse(
-                executed is None,
-                "no query against %s emitted, add debug=True to see all the queries" % (table),
-            )
 
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
@@ -958,24 +882,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("has_escalated", False)
         return EventState(**kwargs)
 
-    def get_condition_activity(self, **kwargs) -> ConditionActivity:
-        kwargs.setdefault("group_id", self.event.group.id)
-        kwargs.setdefault("type", ConditionActivityType.CREATE_ISSUE)
-        kwargs.setdefault("timestamp", self.event.datetime)
-        return ConditionActivity(**kwargs)
-
-    def passes_activity(
-        self,
-        rule: RuleBase,
-        condition_activity: ConditionActivity | None = None,
-        event_map: dict[str, Any] | None = None,
-    ):
-        if condition_activity is None:
-            condition_activity = self.get_condition_activity()
-        if event_map is None:
-            event_map = {}
-        return rule.passes_activity(condition_activity, event_map)
-
     def assertPasses(self, rule, event=None, **kwargs):
         if event is None:
             event = self.event
@@ -1032,32 +938,8 @@ class PermissionTestCase(TestCase):
     def assert_manager_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "manager", **kwargs)
 
-    def assert_teamless_member_can_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-
-        self.assert_can_access(user, path, **kwargs)
-
     def assert_member_cannot_access(self, path, **kwargs):
         return self.assert_role_cannot_access(path, "member", **kwargs)
-
-    def assert_manager_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, "manager", **kwargs)
-
-    def assert_teamless_member_cannot_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="member", teams=[])
-
-        self.assert_cannot_access(user, path, **kwargs)
-
-    def assert_team_admin_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, "admin", **kwargs)
-
-    def assert_teamless_admin_can_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.create_member(user=user, organization=self.organization, role="admin", teams=[])
-
-        self.assert_can_access(user, path, **kwargs)
 
     def assert_team_admin_cannot_access(self, path, **kwargs):
         return self.assert_role_cannot_access(path, "admin", **kwargs)
@@ -1068,18 +950,8 @@ class PermissionTestCase(TestCase):
 
         self.assert_cannot_access(user, path, **kwargs)
 
-    def assert_team_owner_can_access(self, path, **kwargs):
-        return self.assert_role_can_access(path, "owner", **kwargs)
-
     def assert_owner_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "owner", **kwargs)
-
-    def assert_owner_cannot_access(self, path, **kwargs):
-        return self.assert_role_cannot_access(path, "owner", **kwargs)
-
-    def assert_non_member_cannot_access(self, path, **kwargs):
-        user = self.create_user(is_superuser=False)
-        self.assert_cannot_access(user, path, **kwargs)
 
     def assert_role_can_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
@@ -1259,19 +1131,12 @@ class SnubaTestCase(BaseTestCase):
     def initialize(self, reset_snuba, call_snuba):
         self.call_snuba = call_snuba
 
-    @contextmanager
-    def disable_snuba_query_cache(self):
-        self.snuba_update_config({"use_readthrough_query_cache": 0, "use_cache": 0})
-        yield
-        self.snuba_update_config({"use_readthrough_query_cache": None, "use_cache": None})
-
-    @classmethod
-    def snuba_get_config(cls):
-        return _snuba_pool.request("GET", "/config.json").data
-
-    @classmethod
-    def snuba_update_config(cls, config_vals):
-        return _snuba_pool.request("POST", "/config.json", body=json.dumps(config_vals))
+    def create_project(self, **kwargs) -> Project:
+        if "flags" not in kwargs:
+            # We insert events directly into snuba in tests, so we need to set has_transactions to True so the
+            # application knows that events have been sent
+            kwargs["flags"] = Project.flags.has_transactions
+        return super().create_project(**kwargs)
 
     def init_snuba(self):
         self.snuba_eventstream = SnubaEventStream()
@@ -1367,16 +1232,6 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def store_outcome(self, group):
-        data = [self.__wrap_group(group)]
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/outcomes/insert",
-                data=json.dumps(data),
-            ).status_code
-            == 200
-        )
-
     def store_span(self, span, is_eap=False):
         span["ingest_in_eap"] = is_eap
         assert (
@@ -1403,43 +1258,6 @@ class SnubaTestCase(BaseTestCase):
             requests.post(
                 settings.SENTRY_SNUBA + "/tests/entities/search_issues/insert",
                 data=json.dumps(issues),
-            ).status_code
-            == 200
-        )
-
-    def store_metrics_summary(self, span):
-        common_fields = {
-            "duration_ms": span["duration_ms"],
-            "end_timestamp": (span["start_timestamp_ms"] + span["duration_ms"]) / 1000,
-            "group": span["sentry_tags"].get("group", "0"),
-            "is_segment": span["is_segment"],
-            "project_id": span["project_id"],
-            "received": span["received"],
-            "retention_days": span["retention_days"],
-            "segment_id": span.get("segment_id", "0"),
-            "span_id": span["span_id"],
-            "trace_id": span["trace_id"],
-        }
-        rows = []
-        for mri, summaries in span.get("_metrics_summary", {}).items():
-            for summary in summaries:
-                rows.append(
-                    {
-                        **common_fields,
-                        **{
-                            "count": summary.get("count", 0),
-                            "max": summary.get("max", 0.0),
-                            "mri": mri,
-                            "min": summary.get("min", 0.0),
-                            "sum": summary.get("sum", 0.0),
-                            "tags": summary.get("tags", {}),
-                        },
-                    }
-                )
-        assert (
-            requests.post(
-                settings.SENTRY_SNUBA + "/tests/entities/metrics_summaries/insert",
-                data=json.dumps(rows),
             ).status_code
             == 200
         )
@@ -1531,7 +1349,6 @@ class BaseSpansTestCase(SnubaTestCase):
         tags: Mapping[str, Any] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
         status: str | None = None,
@@ -1570,8 +1387,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["measurements"] = {
                 measurement: {"value": value} for measurement, value in measurements.items()
             }
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
@@ -1582,9 +1397,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["status"] = status
 
         self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
     def store_indexed_span(
         self,
@@ -1602,7 +1414,6 @@ class BaseSpansTestCase(SnubaTestCase):
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
-        store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         group: str = "00",
         category: str | None = None,
         organization_id: int = 1,
@@ -1644,8 +1455,6 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["segment_id"] = transaction_id[:16]
         if profile_id:
             payload["profile_id"] = profile_id
-        if store_metrics_summary:
-            payload["_metrics_summary"] = store_metrics_summary
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
@@ -1655,9 +1464,6 @@ class BaseSpansTestCase(SnubaTestCase):
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
         if not store_only_summary:
             self.store_span(payload, is_eap=is_eap)
-
-        if "_metrics_summary" in payload:
-            self.store_metrics_summary(payload)
 
 
 class BaseMetricsTestCase(SnubaTestCase):
@@ -2273,49 +2079,6 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 subvalue,
             )
 
-    def store_profile_functions_metric(
-        self,
-        value: dict[str, int] | list[int] | int,
-        metric: str = "function.duration",
-        internal_metric: str | None = None,
-        entity: str | None = None,
-        tags: dict[str, str] | None = None,
-        timestamp: datetime | None = None,
-        project: int | None = None,
-        use_case_id: UseCaseID = UseCaseID.SPANS,
-    ):
-        internal_metric = (
-            PROFILE_METRICS_MAP[metric] if internal_metric is None else internal_metric
-        )
-        entity = self.ENTITY_MAP[metric] if entity is None else entity
-        org_id = self.organization.id
-
-        if tags is None:
-            tags = {}
-
-        if timestamp is None:
-            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
-        else:
-            metric_timestamp = timestamp.timestamp()
-
-        if project is None:
-            project = self.project.id
-
-        val_list: list[int | dict[str, int]] = []
-        if not isinstance(value, list):
-            val_list.append(value)
-        else:
-            val_list = value
-        for subvalue in val_list:
-            self.store_metric(
-                org_id,
-                project,
-                internal_metric,
-                tags,
-                int(metric_timestamp),
-                subvalue,
-            )
-
     def wait_for_metric_count(
         self,
         project,
@@ -2363,7 +2126,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
+            "timestamp": timestamp.isoformat(),
             "type": "error",
             # This is necessary because event type error should not exist without
             # an exception being in the payload
@@ -2768,32 +2531,6 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         func = getattr(self.client, method)
         return func(url, data=data)
 
-    def assert_widget_queries(self, widget_id, data):
-        result_queries = DashboardWidgetQuery.objects.filter(widget_id=widget_id).order_by("order")
-        for ds, expected_ds in zip(result_queries, data):
-            assert ds.name == expected_ds["name"]
-            assert ds.fields == expected_ds["fields"]
-            assert ds.conditions == expected_ds["conditions"]
-
-    def assert_widget(self, widget, order, title, display_type, queries=None):
-        assert widget.order == order
-        assert widget.display_type == display_type
-        assert widget.title == title
-
-        if not queries:
-            return
-
-        self.assert_widget_queries(widget.id, queries)
-
-    def assert_widget_data(self, data, title, display_type, queries=None):
-        assert data["displayType"] == display_type
-        assert data["title"] == title
-
-        if not queries:
-            return
-
-        self.assert_widget_queries(data["id"], queries)
-
     def assert_serialized_widget_query(self, data, widget_data_source):
         if "id" in data:
             assert data["id"] == str(widget_data_source.id)
@@ -3059,50 +2796,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         ) as self.mock_post:
             yield
 
-    def assert_performance_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert "N+1 Query" in attachment["text"]
-        assert (
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in attachment["blocks"][1]["text"]["text"]
-        )
-        title_link = attachment["blocks"][0]["text"]["text"][13:][1:-1]
-        notification_uuid = self.get_notification_uuid(title_link)
-        assert (
-            attachment["blocks"][-2]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
-        )
-
-    def assert_performance_issue_blocks(
-        self,
-        blocks,
-        org: Organization,
-        project_slug: str,
-        group,
-        referrer,
-        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
-        issue_link_extra_params=None,
-    ):
-        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
-        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
-        if issue_link_extra_params is not None:
-            issue_link += issue_link_extra_params
-        assert (
-            blocks[1]["text"]["text"]
-            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
-        )
-        assert (
-            blocks[2]["text"]["text"]
-            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
-        )
-        assert blocks[3]["elements"][0]["text"] == "State: *New*   First Seen: *10\xa0minutes ago*"
-        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
-        assert (
-            blocks[4]["elements"][0]["text"]
-            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
     def assert_performance_issue_blocks_with_culprit_blocks(
         self,
         blocks,
@@ -3131,17 +2824,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
         assert (
             blocks[5]["elements"][0]["text"]
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
-        )
-
-    def assert_generic_issue_attachments(
-        self, attachment, project_slug, referrer, alert_type="workflow"
-    ):
-        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
-        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
-        assert (
-            attachment["footer"]
-            == f"{project_slug} | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
     def assert_generic_issue_blocks(
@@ -3706,7 +3388,7 @@ class TraceTestCase(SpanTestCase):
         start, _ = self.get_start_end_from_day_ago(1000)
         return self.store_event(
             {
-                "timestamp": iso_format(start),
+                "timestamp": start.isoformat(),
                 "contexts": {
                     "trace": {
                         "type": "trace",

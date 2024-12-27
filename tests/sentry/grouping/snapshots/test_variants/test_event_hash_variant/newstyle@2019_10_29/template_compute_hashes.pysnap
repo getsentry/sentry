@@ -1,14 +1,15 @@
 ---
-created: '2020-02-26T19:54:43.597288Z'
+created: '2024-12-17T22:47:07.768868+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 default:
-  hash: "826f66ef602835f68030c04c634df320"
+  hash: "1f5bdebe3c9f414c7dbb4296a8353245"
+  contributing component: template
   component:
     default*
       template*
         filename*
           "foo.html"
         context-line*
-          "hello world"
+          "{% invalid template tag %}"

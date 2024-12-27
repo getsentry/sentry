@@ -1,5 +1,5 @@
+import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Span} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
@@ -22,8 +22,6 @@ import {
   type StatsEventParameters,
 } from 'sentry/utils/analytics/statsAnalyticsEvents';
 
-import type {AiSuggestedSolutionEventParameters} from './analytics/aiSuggestedSolutionAnalyticsEvents';
-import {aiSuggestedSolutionEventMap} from './analytics/aiSuggestedSolutionAnalyticsEvents';
 import type {CoreUIEventParameters} from './analytics/coreuiAnalyticsEvents';
 import {coreUIEventMap} from './analytics/coreuiAnalyticsEvents';
 import type {DashboardsEventParameters} from './analytics/dashboardsAnalyticsEvents';
@@ -94,7 +92,6 @@ interface EventParameters
     DynamicSamplingEventParameters,
     OnboardingEventParameters,
     StackTraceEventParameters,
-    AiSuggestedSolutionEventParameters,
     EcosystemEventParameters,
     IntegrationEventParameters,
     ProjectCreationEventParameters,
@@ -127,7 +124,6 @@ const allEventMap: Record<string, string | null> = {
   ...dynamicSamplingEventMap,
   ...onboardingEventMap,
   ...stackTraceEventMap,
-  ...aiSuggestedSolutionEventMap,
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,

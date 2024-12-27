@@ -1,0 +1,108 @@
+---
+created: '2024-12-17T22:46:37.256253+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  contributing component: null
+  component:
+    app (exception of system takes precedence)
+      chained-exception (ignored because hash matches system variant)
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_other_stuff()"
+              function (function name is not used if context-line is available)
+                "do_other_stuff"
+            frame (ignored due to recursion)
+              module*
+                "dostuff"
+              context-line*
+                "do_some_other_different_stuff()"
+              function (function name is not used if context-line is available)
+                "do_other_stuff"
+          type*
+            "DoOtherStuffException"
+          value (stacktrace and type take precedence)
+            "Can't do the other stuff"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_stuff()"
+              function (function name is not used if context-line is available)
+                "do_stuff"
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_different_stuff()"
+              function (function name is not used if context-line is available)
+                "do_different_stuff"
+          type*
+            "DoStuffException"
+          value (stacktrace and type take precedence)
+            "Can't do the stuff"
+        exception (exception has no stacktrace)
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."
+--------------------------------------------------------------------------
+system:
+  hash: "b8e05ed0c06d6bc6c6052bb9dae6d6eb"
+  contributing component: chained-exception
+  component:
+    system*
+      chained-exception*
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_other_stuff()"
+              function (function name is not used if context-line is available)
+                "do_other_stuff"
+            frame (ignored due to recursion)
+              module*
+                "dostuff"
+              context-line*
+                "do_some_other_different_stuff()"
+              function (function name is not used if context-line is available)
+                "do_other_stuff"
+          type*
+            "DoOtherStuffException"
+          value (stacktrace and type take precedence)
+            "Can't do the other stuff"
+        exception*
+          stacktrace*
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_stuff()"
+              function (function name is not used if context-line is available)
+                "do_stuff"
+            frame*
+              module*
+                "dostuff"
+              context-line*
+                "do_some_different_stuff()"
+              function (function name is not used if context-line is available)
+                "do_different_stuff"
+          type*
+            "DoStuffException"
+          value (stacktrace and type take precedence)
+            "Can't do the stuff"
+        exception (exception has no stacktrace)
+          type*
+            "System.AggregateException"
+          value*
+            "One or more errors occurred."

@@ -165,12 +165,8 @@ class Referrer(Enum):
     API_ORGANIZATION_METRICS_DATA = "api.organization.metrics-data"
     API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
     API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
-    API_ORGANIZATION_METRICS_METADATA_FETCH_METRICS_SUMMARIES = (
-        "api.organization.metrics-metadata.fetch-metrics-summaries"
-    )
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
-    API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -324,6 +320,12 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID = (
         "api.performance.generic-widget-chart.slow-screens-by-ttid"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_COLD_START = (
+        "api.performance.generic-widget-chart.slow-screens-by-cold-start"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_WARM_START = (
+        "api.performance.generic-widget-chart.slow-screens-by-warm-start"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.tpm-area.metrics-enhanced"
     )
@@ -410,7 +412,6 @@ class Referrer(Enum):
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
-    API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
     API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
         "api.profiling.profile-flamegraph-transaction-candidates"
     )

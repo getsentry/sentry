@@ -1,9 +1,11 @@
 import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/insights/browser/resources/settings';
 import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser/webVitals/settings';
 import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/settings';
+import {MODULE_TITLE as CRONS_MODULE_TITLE} from 'sentry/views/insights/crons/settings';
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/insights/database/settings';
 import {
   FRONTEND_MODULE_TITLE as HTTP_FRONTEND_MODULE_TITLE,
+  MOBILE_MODULE_TITLE as HTTP_MOBILE_MODULE_TITLE,
   MODULE_TITLE as HTTP_MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
@@ -15,6 +17,7 @@ import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/insights/mobi
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import {MODULE_TITLE as UPTIME_MODULE_TITLE} from 'sentry/views/insights/uptime/settings';
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
@@ -29,6 +32,8 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
   [ModuleName.MOBILE_SCREENS]: MOBILE_VITALS_MODULE_TITLE,
   [ModuleName.SCREEN_RENDERING]: SCREEN_RENDERING_MODULE_TITLE,
+  [ModuleName.CRONS]: CRONS_MODULE_TITLE,
+  [ModuleName.UPTIME]: UPTIME_MODULE_TITLE,
   [ModuleName.OTHER]: '',
 };
 
@@ -42,7 +47,9 @@ export const DOMAIN_VIEW_MODULE_TITLES: Record<
 > = {
   ai: {},
   backend: {},
-  mobile: {},
+  mobile: {
+    [ModuleName.HTTP]: HTTP_MOBILE_MODULE_TITLE,
+  },
   frontend: {
     [ModuleName.HTTP]: HTTP_FRONTEND_MODULE_TITLE,
   },

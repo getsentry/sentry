@@ -13,9 +13,10 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import PluginError
+from sentry.features.rollout import in_rollout_group
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
@@ -30,6 +31,7 @@ from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.manager import LockManager
@@ -38,6 +40,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
+from sentry.workflow_engine.types import WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -480,6 +483,17 @@ def should_update_escalating_metrics(event: Event, is_transaction_event: bool) -
     )
 
 
+def _get_event_id_from_cache_key(cache_key: str) -> str | None:
+    """
+    format is "e:{}:{}",event_id,project_id
+    """
+
+    try:
+        return cache_key.split(":")[1]
+    except IndexError:
+        return None
+
+
 @instrumented_task(
     name="sentry.tasks.post_process.post_process_group",
     time_limit=120,
@@ -501,6 +515,7 @@ def post_process_group(
     """
     Fires post processing hooks for a group.
     """
+    from sentry.ingest.types import ConsumerType
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
@@ -527,6 +542,18 @@ def post_process_group(
             # need to rewind history.
             data = processing_store.get(cache_key)
             if not data:
+                event_id = _get_event_id_from_cache_key(cache_key)
+                if event_id:
+                    if in_rollout_group(
+                        "transactions.do_post_process_in_save",
+                        event_id,
+                    ):
+                        # if we're doing the work for transactions in save_event_transaction
+                        # instead of here, this is expected, so simply increment a metric
+                        # instead of logging
+                        metrics.incr("post_process.skipped_do_post_process_in_save")
+                        return
+
                 logger.info(
                     "post_process.skipped",
                     extra={"cache_key": cache_key, "reason": "missing_cache"},
@@ -534,7 +561,6 @@ def post_process_group(
                 return
             with metrics.timer("tasks.post_process.delete_event_cache"):
                 processing_store.delete_by_key(cache_key)
-
             occurrence = None
             event = process_event(data, group_id)
         else:
@@ -619,6 +645,11 @@ def post_process_group(
                     project=event.project,
                     event=event,
                 )
+            track_sampled_event(
+                event.event_id,
+                ConsumerType.Transactions,
+                TransactionStageStatus.POST_PROCESS_FINISHED,
+            )
 
         metric_tags = {}
         if group_id:
@@ -690,12 +721,12 @@ def run_post_process_job(job: PostProcessJob) -> None:
     ):
         return
 
-    if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
-        # pipeline for generic issues
-        pipeline = GENERIC_POST_PROCESS_PIPELINE
-    else:
+    if issue_category in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # specific pipelines for issue types
         pipeline = GROUP_CATEGORY_POST_PROCESS_PIPELINE[issue_category]
+    else:
+        # pipeline for generic issues
+        pipeline = GENERIC_POST_PROCESS_PIPELINE
 
     for pipeline_step in pipeline:
         try:
@@ -964,6 +995,29 @@ def process_replay_link(job: PostProcessJob) -> None:
         )
 
 
+def process_workflow_engine(job: PostProcessJob) -> None:
+    if job["is_reprocessed"]:
+        return
+
+    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
+    # If the flag is enabled, use the code below
+    from sentry.workflow_engine.processors.workflow import process_workflows
+
+    # PostProcessJob event is optional, WorkflowJob event is required
+    if "event" not in job:
+        logger.error("Missing event to create WorkflowJob", extra={"job": job})
+        return
+
+    try:
+        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+    except Exception:
+        logger.exception("Could not create WorkflowJob", extra={"job": job})
+        return
+
+    with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
+        process_workflows(workflow_job)
+
+
 def process_rules(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1205,8 +1259,10 @@ def process_plugins(job: PostProcessJob) -> None:
 
 
 def process_similarity(job: PostProcessJob) -> None:
-    if job["is_reprocessed"] or features.has(
-        "projects:similarity-embeddings", job["event"].group.project
+    if not options.get("sentry.similarity.indexing.enabled"):
+        return
+    if job["is_reprocessed"] or job["event"].group.project.get_option(
+        "sentry:similarity_backfill_completed"
     ):
         return
 
@@ -1525,6 +1581,9 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_rules),
+    ],
+    GroupCategory.METRIC_ALERT: [
+        process_workflow_engine,
     ],
 }
 

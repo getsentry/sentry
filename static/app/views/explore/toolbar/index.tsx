@@ -1,15 +1,20 @@
-import {useMemo} from 'react';
-
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useResultMode} from 'sentry/views/explore/hooks/useResultsMode';
-import {useSampleFields} from 'sentry/views/explore/hooks/useSampleFields';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
+import {
+  useExploreDataset,
+  useExploreFields,
+  useExploreGroupBys,
+  useExploreMode,
+  useExploreSortBys,
+  useExploreVisualizes,
+  useSetExploreDataset,
+  useSetExploreMode,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ToolbarDataset} from 'sentry/views/explore/toolbar/toolbarDataset';
 import {ToolbarGroupBy} from 'sentry/views/explore/toolbar/toolbarGroupBy';
-import {ToolbarResults} from 'sentry/views/explore/toolbar/toolbarResults';
+import {ToolbarMode} from 'sentry/views/explore/toolbar/toolbarMode';
 import {ToolbarSortBy} from 'sentry/views/explore/toolbar/toolbarSortBy';
+import {ToolbarSuggestedQueries} from 'sentry/views/explore/toolbar/toolbarSuggestedQueries';
 import {ToolbarVisualize} from 'sentry/views/explore/toolbar/toolbarVisualize';
 
 type Extras = 'dataset toggle';
@@ -19,34 +24,32 @@ interface ExploreToolbarProps {
 }
 
 export function ExploreToolbar({extras}: ExploreToolbarProps) {
-  const [dataset, setDataset] = useDataset();
-  const [resultMode, setResultMode] = useResultMode();
-
-  const [sampleFields] = useSampleFields();
-
-  const {groupBys} = useGroupBys();
-  const [visualizes] = useVisualizes();
-
-  const fields = useMemo(() => {
-    if (resultMode === 'samples') {
-      return sampleFields;
-    }
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
-  }, [resultMode, sampleFields, groupBys, visualizes]);
-
-  const [sorts, setSorts] = useSorts({fields});
+  const dataset = useExploreDataset();
+  const setDataset = useSetExploreDataset();
+  const mode = useExploreMode();
+  const setMode = useSetExploreMode();
+  const fields = useExploreFields();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
+  const sortBys = useExploreSortBys();
+  const setSortBys = useSetExploreSortBys();
 
   return (
     <div>
       {extras?.includes('dataset toggle') && (
         <ToolbarDataset dataset={dataset} setDataset={setDataset} />
       )}
-      <ToolbarResults resultMode={resultMode} setResultMode={setResultMode} />
+      <ToolbarMode mode={mode} setMode={setMode} />
       <ToolbarVisualize />
-      <ToolbarGroupBy disabled={resultMode !== 'aggregate'} />
-      <ToolbarSortBy fields={fields} sorts={sorts} setSorts={setSorts} />
+      <ToolbarGroupBy disabled={mode !== Mode.AGGREGATE} />
+      <ToolbarSortBy
+        fields={fields}
+        groupBys={groupBys}
+        visualizes={visualizes}
+        sorts={sortBys}
+        setSorts={setSortBys}
+      />
+      <ToolbarSuggestedQueries />
     </div>
   );
 }

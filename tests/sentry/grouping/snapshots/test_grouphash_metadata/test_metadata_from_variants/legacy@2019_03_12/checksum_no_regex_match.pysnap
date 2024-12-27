@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:23.883934+00:00'
+created: '2024-12-16T06:52:20.236565+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,10 +9,14 @@ hashing_metadata: {
   "raw_checksum": "not a legit checksum"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "checksum",
+    "is_hybrid_fingerprint": "False"
+  }
+}
+---
 contributing variants:
-  checksum*
-    hash: "not a legit checksum"
-    checksum: "not a legit checksum"
   hashed_checksum*
     hash: "de46d023e69b171b90ccf3ebca7aede4"
     checksum: "de46d023e69b171b90ccf3ebca7aede4"

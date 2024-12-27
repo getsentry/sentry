@@ -346,7 +346,7 @@ A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
 - `alertThreshold`: The value that the subscription needs to reach to trigger the
 alert rule.
-- `actions`: A list of actions that take place when the threshold is met. Set as an empty list if no actions are to take place.
+- `actions`: A list of actions that take place when the threshold is met.
 ```json
 triggers: [
     {
@@ -408,9 +408,6 @@ Metric alert rule trigger actions follow the following structure:
     )
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
-    )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
     monitorType = serializers.IntegerField(

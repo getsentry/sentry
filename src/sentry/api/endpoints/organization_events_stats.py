@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -22,7 +22,6 @@ from sentry.snuba import (
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    profile_functions_metrics,
     spans_eap,
     spans_indexed,
     spans_metrics,
@@ -185,6 +184,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         query_source = self.get_request_source(request)
+
+        transform_alias_to_input_format = request.GET.get("transformAliasToInputFormat") == "1"
+
         with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
@@ -253,7 +255,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
                         spans_eap,
@@ -285,9 +286,24 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None,
+            comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
+                if use_rpc and dataset == spans_eap:
+                    return spans_rpc.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        raw_groupby=self.get_field_list(organization, request),
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        granularity_secs=rollup,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=False,
+                        ),
+                    )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
@@ -323,7 +339,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=False,
                     ),
+                    comparison_delta=comparison_delta,
                 )
+
             return scoped_dataset.timeseries_query(
                 selected_columns=query_columns,
                 query=query,
@@ -353,6 +371,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                     actor=request.user,
                 ),
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -370,7 +389,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
-                comparison_delta: datetime | None,
+                comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
@@ -534,6 +553,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         get_event_stats = get_event_stats_factory(dataset)
+        zerofill_results = not (
+            request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
+        )
+        if use_rpc:
+            # The rpc will usually zerofill for us so we don't need to do it ourselves
+            zerofill_results = False
 
         try:
             return Response(
@@ -543,11 +568,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events,
                     allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
+                    zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
                 ),
                 status=200,
             )

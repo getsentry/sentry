@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:32.690112+00:00'
+created: '2024-12-17T22:50:02.548727+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,9 +9,20 @@ hashing_metadata: {
   "security_report_type": "hpkp"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "hpkp"
+  }
+}
+---
 contributing variants:
   default*
     hash: "1e37a374cb33572622d02ff7a6237c44"
+    contributing component: hpkp
     component:
       default*
         hpkp*

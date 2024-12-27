@@ -19,6 +19,9 @@ export function NewIssueExperienceButton() {
   const user = useUser();
   const organization = useOrganization();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
+  const hasEnforceStreamlinedUIFlag = organization.features.includes(
+    'issue-details-streamline-enforce'
+  );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const openForm = useFeedbackForm();
   const {mutate} = useMutateUserOptions();
@@ -27,11 +30,12 @@ export function NewIssueExperienceButton() {
     mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
-      organization: organization,
+      organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
 
-  if (!hasStreamlinedUIFlag) {
+  // We hide the toggle if the org doesn't have the 'opt-in' flag, or has the 'remove opt-out' flag.
+  if (!hasStreamlinedUIFlag || hasEnforceStreamlinedUIFlag) {
     return null;
   }
 
@@ -94,19 +98,6 @@ export function NewIssueExperienceButton() {
           key: 'switch-to-old-ui',
           label: t('Switch to the old issue experience'),
           onAction: handleToggle,
-        },
-        {
-          key: 'learn-more',
-          label: t('Learn more about the new UI'),
-          onAction: () => {
-            trackAnalytics('issue_details.streamline_ui_learn_more', {
-              organization,
-            });
-            window.open(
-              'https://sentry.zendesk.com/hc/en-us/articles/30882241712795',
-              '_blank'
-            );
-          },
         },
         {
           key: 'give-feedback',

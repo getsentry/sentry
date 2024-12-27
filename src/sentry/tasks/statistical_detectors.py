@@ -237,6 +237,10 @@ class EndpointRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.75
 
     @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.transactions")
+
+    @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
@@ -277,6 +281,10 @@ class FunctionRegressionDetector(RegressionDetector):
     buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
+
+    @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.functions")
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -586,6 +594,9 @@ def emit_function_regression_issue(
                 "unweighted_t_value": regression["unweighted_t_value"],
             }
         )
+
+    if not payloads:
+        return 0
 
     response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
     if response.status != 200:

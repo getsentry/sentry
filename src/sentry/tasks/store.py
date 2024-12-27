@@ -16,6 +16,7 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
+from sentry.features.rollout import in_rollout_group
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
@@ -26,6 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
+from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -582,6 +584,21 @@ def _do_save_event(
             raise
 
         finally:
+            if (
+                consumer_type == ConsumerType.Transactions
+                and event_id
+                and in_rollout_group("transactions.do_post_process_in_save", event_id)
+            ):
+                # we won't use the transaction data in post_process
+                # so we can delete it from the cache now.
+                if cache_key:
+                    processing_store.delete_by_key(cache_key)
+                    track_sampled_event(
+                        data["event_id"],
+                        ConsumerType.Transactions,
+                        TransactionStageStatus.REDIS_DELETED,
+                    )
+
             reprocessing2.mark_event_reprocessed(data)
             if cache_key and has_attachments:
                 attachment_cache.delete(cache_key)
@@ -639,6 +656,10 @@ def save_event_transaction(
     project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_STARTED
+        )
     _do_save_event(
         cache_key,
         data,
@@ -648,6 +669,10 @@ def save_event_transaction(
         consumer_type=ConsumerType.Transactions,
         **kwargs,
     )
+    if event_id:
+        track_sampled_event(
+            event_id, ConsumerType.Transactions, TransactionStageStatus.SAVE_TXN_FINISHED
+        )
 
 
 @instrumented_task(
