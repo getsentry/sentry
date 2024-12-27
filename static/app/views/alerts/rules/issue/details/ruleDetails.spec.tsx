@@ -41,7 +41,6 @@ describe('AlertRuleDetails', () => {
   };
 
   beforeEach(() => {
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,

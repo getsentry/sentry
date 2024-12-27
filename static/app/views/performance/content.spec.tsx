@@ -75,7 +75,6 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 describe('Performance > Content', function () {
   beforeEach(function () {
     act(() => void TeamStore.loadInitialData([], false, null));
-    browserHistory.push = jest.fn();
     jest.spyOn(pageFilters, 'updateDateTime');
 
     MockApiClient.addMockResponse({
