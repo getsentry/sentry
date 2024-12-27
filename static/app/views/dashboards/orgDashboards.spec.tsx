@@ -237,7 +237,8 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    // The first call is done by the page filters
+    expect(initialData.router.replace).not.toHaveBeenCalledTimes(2);
   });
 
   it('does not add query params for page filters if none are saved', () => {
