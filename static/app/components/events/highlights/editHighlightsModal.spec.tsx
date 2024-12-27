@@ -14,13 +14,11 @@ import {openModal} from 'sentry/actionCreators/modal';
 import EditHighlightsModal, {
   type EditHighlightsModalProps,
 } from 'sentry/components/events/highlights/editHighlightsModal';
-import {
-  TEST_EVENT_CONTEXTS,
-  TEST_EVENT_TAGS,
-} from 'sentry/components/events/highlights/util.spec';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Project} from 'sentry/types/project';
 import * as analytics from 'sentry/utils/analytics';
+
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('EditHighlightsModal', function () {
   const organization = OrganizationFixture();

@@ -1,75 +1,8 @@
-import merge from 'lodash/merge';
-
-import type {DeepPartial} from 'sentry/types/utils';
-
 import {Frame} from '../frame';
 
-import {makeTestingBoilerplate} from './profile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
+import {makeSentrySampledProfile, makeTestingBoilerplate} from './testUtils';
 import {createSentrySampleProfileFrameIndex} from './utils';
-
-export const makeSentrySampledProfile = (
-  profile?: DeepPartial<Profiling.SentrySampledProfile>
-) => {
-  return merge(
-    {
-      event_id: '1',
-      version: '1',
-      os: {
-        name: 'iOS',
-        version: '16.0',
-        build_number: '19H253',
-      },
-      device: {
-        architecture: 'arm64e',
-        is_emulator: false,
-        locale: 'en_US',
-        manufacturer: 'Apple',
-        model: 'iPhone14,3',
-      },
-      timestamp: '2022-09-01T09:45:00.000Z',
-      platform: 'cocoa',
-      profile: {
-        samples: [
-          {
-            stack_id: 0,
-            thread_id: '0',
-            elapsed_since_start_ns: 0,
-          },
-          {
-            stack_id: 1,
-            thread_id: '0',
-            elapsed_since_start_ns: 1000,
-          },
-        ],
-        frames: [
-          {
-            function: 'main',
-            instruction_addr: '',
-            lineno: 1,
-            colno: 1,
-            file: 'main.c',
-          },
-          {
-            function: 'foo',
-            instruction_addr: '',
-            lineno: 2,
-            colno: 2,
-            file: 'main.c',
-          },
-        ],
-        stacks: [[1, 0], [0]],
-      },
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 0,
-        trace_id: '1',
-      },
-    },
-    profile
-  ) as Profiling.SentrySampledProfile;
-};
 
 describe('SentrySampledProfile', () => {
   it('constructs a profile', () => {
