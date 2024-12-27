@@ -7,17 +7,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 
-interface DraggableTabMenuButtonProps {
+interface IssueViewEllipsisMenuProps {
   menuOptions: MenuItemProps[];
   'aria-label'?: string;
   hasUnsavedChanges?: boolean;
 }
 
-export function DraggableTabMenuButton({
+export function IssueViewEllipsisMenu({
   hasUnsavedChanges = false,
   menuOptions,
   ...props
-}: DraggableTabMenuButtonProps) {
+}: IssueViewEllipsisMenuProps) {
   return (
     <TriggerIconWrap>
       <StyledDropdownMenu
