@@ -14,7 +14,8 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 jest.mock('sentry/actionCreators/modal');
 
 describe('AddToDashboardButton', () => {
-  let setMode, setVisualizes;
+  let setMode: ReturnType<typeof useSetExploreMode>;
+  let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
 
   function TestPage({visualizeIndex}: {visualizeIndex: number}) {
     setMode = useSetExploreMode();
@@ -227,7 +228,6 @@ describe('AddToDashboardButton', () => {
             'p90(span.duration)',
           ],
           chartType: ChartType.LINE,
-          label: 'Custom Explore Widget',
         },
       ])
     );

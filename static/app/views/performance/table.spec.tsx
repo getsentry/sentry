@@ -32,7 +32,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   });
 };
 
-function WrappedComponent({data, ...rest}) {
+function WrappedComponent({data, ...rest}: any) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -49,7 +49,7 @@ function WrappedComponent({data, ...rest}) {
   );
 }
 
-function mockEventView(data) {
+function mockEventView(data: ReturnType<typeof initializeData>) {
   const eventView = new EventView({
     id: '1',
     name: 'my query',
@@ -90,7 +90,7 @@ function mockEventView(data) {
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
     query: 'event.type:transaction transaction:/api*',
-    project: [data.projects[0].id, data.projects[1].id],
+    project: [Number(data.projects[0].id), Number(data.projects[1].id)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
@@ -107,7 +107,7 @@ function mockEventView(data) {
 }
 
 describe('Performance > Table', function () {
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})

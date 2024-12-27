@@ -81,7 +81,7 @@ describe('Relocation', function () {
     sessionStorage.clear();
   });
 
-  function renderPage(step) {
+  function renderPage(step: string) {
     const routeParams = {
       step,
     };
@@ -98,12 +98,12 @@ describe('Relocation', function () {
     });
   }
 
-  async function waitForRenderSuccess(step) {
+  async function waitForRenderSuccess(step: string) {
     renderPage(step);
     await waitFor(() => expect(screen.getByTestId(step)).toBeInTheDocument());
   }
 
-  async function waitForRenderError(step) {
+  async function waitForRenderError(step: string) {
     renderPage(step);
     await waitFor(() => expect(screen.getByTestId('loading-error')).toBeInTheDocument());
   }
