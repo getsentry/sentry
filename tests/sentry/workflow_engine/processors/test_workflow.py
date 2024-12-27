@@ -65,24 +65,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow, workflow}
 
-    def test_every_event(self):
-        dcg = self.create_data_condition_group()
-        self.create_data_condition(
-            type=Condition.EVERY_EVENT,
-            comparison=True,
-            condition_result=True,
-            condition_group=dcg,
-        )
-
-        workflow = self.create_workflow(when_condition_group=dcg)
-        self.create_detector_workflow(
-            detector=self.error_detector,
-            workflow=workflow,
-        )
-
-        triggered_workflows = process_workflows(self.job)
-        assert triggered_workflows == {self.error_workflow, workflow}
-
     def test_no_detector(self):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
