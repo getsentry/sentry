@@ -14,7 +14,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('PerformanceScoreBreakdownChart', function () {
   const organization = OrganizationFixture();
-  let eventsStatsMock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({

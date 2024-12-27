@@ -162,7 +162,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     return endpoints;
   }
 
-  getRetentionPrioritiesData(...data) {
+  getRetentionPrioritiesData(...data: any) {
     return {
       dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
         id: key,
@@ -943,10 +943,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             saveOnBlur
             allowUndo
             initialData={
-              project.dynamicSamplingBiases?.reduce((acc, bias) => {
-                acc[bias.id] = bias.active;
-                return acc;
-              }, {}) ?? {}
+              project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
+                (acc, bias) => {
+                  acc[bias.id] = bias.active;
+                  return acc;
+                },
+                {}
+              ) ?? {}
             }
             onSubmitSuccess={(response, _instance, id, change) => {
               ProjectsStore.onUpdateSuccess(response);

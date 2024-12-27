@@ -12,7 +12,9 @@ describe('useChartInterval', function () {
   });
 
   it('allows changing chart interval', async function () {
-    let chartInterval, setChartInterval, intervalOptions;
+    let chartInterval!: ReturnType<typeof useChartInterval>[0];
+    let setChartInterval!: ReturnType<typeof useChartInterval>[1];
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
       [chartInterval, setChartInterval, intervalOptions] = useChartInterval();

@@ -20,7 +20,7 @@ const mockedUsedLocation = jest.mocked(useLocation);
 const mockedUseNavigate = jest.mocked(useNavigate);
 
 describe('useWidgetBuilderState', () => {
-  let mockNavigate;
+  let mockNavigate!: jest.Mock;
   beforeEach(() => {
     mockNavigate = jest.fn();
     mockedUseNavigate.mockReturnValue(mockNavigate);

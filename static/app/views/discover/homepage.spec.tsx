@@ -22,7 +22,10 @@ import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
   const features = ['global-views', 'discover-query'];
-  let initialData, organization, mockHomepage, measurementsMetaMock;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let organization: ReturnType<typeof OrganizationFixture>;
+  let mockHomepage: jest.Mock;
+  let measurementsMetaMock: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({

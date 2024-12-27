@@ -63,7 +63,7 @@ const options: NonNullable<
 ];
 
 describe('SearchBarAction', () => {
-  let handleFilter;
+  let handleFilter!: jest.Mock;
 
   beforeEach(() => {
     handleFilter = jest.fn();

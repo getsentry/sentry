@@ -14,8 +14,8 @@ describe('Sentry Application Dashboard', function () {
   const NUM_INSTALLS = 5;
   const NUM_UNINSTALLS = 2;
 
-  let sentryApp;
-  let webhookRequest;
+  let sentryApp: ReturnType<typeof SentryAppFixture>;
+  let webhookRequest: ReturnType<typeof SentryAppWebhookRequestFixture>;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

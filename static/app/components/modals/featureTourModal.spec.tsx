@@ -21,7 +21,8 @@ const steps = [
 ];
 
 describe('FeatureTourModal', function () {
-  let onAdvance, onCloseModal;
+  let onAdvance!: jest.Mock;
+  let onCloseModal!: jest.Mock;
 
   const createWrapper = (props = {}) =>
     render(

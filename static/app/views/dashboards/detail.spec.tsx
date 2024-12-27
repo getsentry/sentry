@@ -45,7 +45,7 @@ describe('Dashboards > Detail', function () {
   const projects = [ProjectFixture()];
 
   describe('prebuilt dashboards', function () {
-    let initialData;
+    let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(function () {
       act(() => ProjectsStore.loadInitialData(projects));
@@ -231,7 +231,10 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let initialData, widgets, mockVisit, mockPut;
+    let initialData!: ReturnType<typeof initializeOrg>;
+    let widgets!: ReturnType<typeof WidgetFixture>[];
+    let mockVisit!: jest.Mock;
+    let mockPut!: jest.Mock;
 
     beforeEach(function () {
       window.confirm = jest.fn();
@@ -1680,8 +1683,8 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access'],
             ...initialData.organization,
+            features: ['dashboards-edit-access'],
           },
         }
       );
@@ -2121,7 +2124,7 @@ describe('Dashboards > Detail', function () {
     });
 
     describe('widget builder redesign', function () {
-      let mockUpdateDashboard;
+      let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(function () {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2212,7 +2215,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 
@@ -2298,7 +2301,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 

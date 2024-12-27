@@ -24,7 +24,7 @@ import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/organizations/pageFilters/persistence');
 
-function getField(role, name) {
+function getField(role: string, name: string) {
   return screen.getByRole(role, {name});
 }
 
@@ -40,7 +40,7 @@ describe('projectGeneralSettings', function () {
     verifySSL: true,
   });
   const groupingConfigs = GroupingConfigsFixture();
-  let putMock;
+  let putMock: jest.Mock;
 
   const router = RouterFixture();
   const routerProps = {

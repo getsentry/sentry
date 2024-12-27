@@ -8,6 +8,8 @@ import * as pageFilters from 'sentry/actionCreators/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import PerformanceContent from 'sentry/views/performance/content';
@@ -15,7 +17,7 @@ import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 const FEATURES = ['performance-view'];
 
-function WrappedComponent({router}) {
+function WrappedComponent({router}: {router: InjectedRouter}) {
   return (
     <MEPSettingProvider>
       <PerformanceContent router={router} location={router.location} />
@@ -23,7 +25,11 @@ function WrappedComponent({router}) {
   );
 }
 
-function initializeData(projects, query, features = FEATURES) {
+function initializeData(
+  projects: Project[],
+  query: Record<string, string | string[] | undefined>,
+  features = FEATURES
+) {
   const organization = OrganizationFixture({
     features,
   });
@@ -42,7 +48,10 @@ function initializeData(projects, query, features = FEATURES) {
   return initialData;
 }
 
-function initializeTrendsData(query, addDefaultQuery = true) {
+function initializeTrendsData(
+  query: Record<string, string | string[] | undefined>,
+  addDefaultQuery = true
+) {
   const projects = [
     ProjectFixture({id: '1', firstTransactionEvent: false}),
     ProjectFixture({id: '2', firstTransactionEvent: true}),
@@ -287,7 +296,7 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const {router} = initializeData(projects, {project: [1]});
+    const {router} = initializeData(projects, {project: ['1']});
 
     render(<WrappedComponent router={router} />, {
       router,

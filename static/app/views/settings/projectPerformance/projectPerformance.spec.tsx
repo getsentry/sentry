@@ -27,7 +27,9 @@ describe('projectPerformance', function () {
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock;
+  let getMock: jest.Mock;
+  let postMock: jest.Mock;
+  let deleteMock: jest.Mock;
 
   const router = RouterFixture();
   const routerProps = {
@@ -351,7 +353,7 @@ describe('projectPerformance', function () {
 
       // Ensure that PUT request is fired to update
       // project settings
-      const expectedPUTPayload = {};
+      const expectedPUTPayload: Record<string, number> = {};
       expectedPUTPayload[threshold] = newValue;
       expect(performanceIssuesPutMock).toHaveBeenCalledWith(
         '/projects/org-slug/project-slug/performance-issues/configure/',

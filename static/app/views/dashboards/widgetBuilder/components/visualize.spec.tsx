@@ -17,8 +17,8 @@ jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
-  let organization;
-  let mockNavigate;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
