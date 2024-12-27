@@ -21,7 +21,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
@@ -165,8 +164,8 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList />, {organization});
-    renderGlobalModal();
+    render(<OrganizationMembersList />, {organization, router});
+    renderGlobalModal({router});
 
     // The organization member row
     expect(await screen.findByTestId(members[0].email)).toBeInTheDocument();
@@ -191,7 +190,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList />, {organization, router});
-    renderGlobalModal();
+    renderGlobalModal({router});
 
     // The organization member row
     expect(await screen.findByTestId(members[0].email)).toBeInTheDocument();
@@ -215,7 +214,7 @@ describe('OrganizationMembersList', function () {
     });
 
     render(<OrganizationMembersList />, {organization, router});
-    renderGlobalModal();
+    renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
@@ -223,8 +222,8 @@ describe('OrganizationMembersList', function () {
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/new/');
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith('/organizations/new/');
   });
 
   it('can redirect to remaining org after leaving', async function () {
@@ -242,7 +241,7 @@ describe('OrganizationMembersList', function () {
     OrganizationsStore.addOrReplace(secondOrg);
 
     render(<OrganizationMembersList />, {organization, router});
-    renderGlobalModal();
+    renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
@@ -250,8 +249,8 @@ describe('OrganizationMembersList', function () {
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
     expect(deleteMock).toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith('/organizations/org-two/issues/');
+    expect(router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledWith('/organizations/org-two/issues/');
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 
@@ -262,8 +261,8 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList />, {organization});
-    renderGlobalModal();
+    render(<OrganizationMembersList />, {organization, router});
+    renderGlobalModal({router});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Leave'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
@@ -474,13 +473,13 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList />, {organization});
+      render(<OrganizationMembersList />, {organization, router});
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
-      renderGlobalModal();
+      renderGlobalModal({router});
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
@@ -544,7 +543,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList />, {organization: org});
+      render(<OrganizationMembersList />, {organization: org, router});
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Role: Member'}), [
@@ -553,7 +552,7 @@ describe('OrganizationMembersList', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
-      renderGlobalModal();
+      renderGlobalModal({router});
       await userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(updateWithApprove).toHaveBeenCalledWith(
@@ -574,8 +573,8 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: inviteOrg});
-      renderGlobalModal();
+      render(<OrganizationMembersList />, {organization: inviteOrg, router});
+      renderGlobalModal({router});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -591,8 +590,8 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: org});
-      renderGlobalModal();
+      render(<OrganizationMembersList />, {organization: org, router});
+      renderGlobalModal({router});
 
       expect(await screen.findByRole('button', {name: 'Invite Members'})).toBeDisabled();
     });
@@ -608,8 +607,8 @@ describe('OrganizationMembersList', function () {
         requiresSso: true,
       });
 
-      render(<OrganizationMembersList />, {organization: org});
-      renderGlobalModal();
+      render(<OrganizationMembersList />, {organization: org, router});
+      renderGlobalModal({router});
 
       await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -625,8 +624,8 @@ describe('OrganizationMembersList', function () {
         },
       });
 
-      render(<OrganizationMembersList />, {organization: org});
-      renderGlobalModal();
+      render(<OrganizationMembersList />, {organization: org, router});
+      renderGlobalModal({router});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Invite Members'}));
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -643,8 +642,8 @@ describe('OrganizationMembersList', function () {
         method: 'GET',
         body: {},
       });
-      render(<OrganizationMembersList />, {organization});
-      renderGlobalModal();
+      render(<OrganizationMembersList />, {organization, router});
+      renderGlobalModal({router});
 
       expect(await screen.findByText('Members')).toBeInTheDocument();
       expect(screen.getByText(member.name)).toBeInTheDocument();

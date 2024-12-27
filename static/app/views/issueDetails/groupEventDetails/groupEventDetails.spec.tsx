@@ -19,7 +19,6 @@ import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 
@@ -346,7 +345,6 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
@@ -364,12 +362,12 @@ describe('groupEventDetails', () => {
       router: props.router,
     });
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(props.router.replace).not.toHaveBeenCalled();
 
     props.router.location.query.environment = ['prod'];
     rerender(<GroupEventDetails />);
 
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
+    await waitFor(() => expect(props.router.replace).toHaveBeenCalled());
   });
 
   it('does not redirect when switching to a valid environment selection for event', async function () {
@@ -381,13 +379,13 @@ describe('groupEventDetails', () => {
       router: props.router,
     });
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(props.router.replace).not.toHaveBeenCalled();
     props.router.location.query.environment = [];
     rerender(<GroupEventDetails />);
 
     expect(await screen.findByTestId('group-event-details')).toBeInTheDocument();
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(props.router.replace).not.toHaveBeenCalled();
   });
 
   it('displays error on event error', async function () {
@@ -509,7 +507,6 @@ describe('EventCause', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('renders suspect commit', async function () {

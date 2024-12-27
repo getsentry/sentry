@@ -17,7 +17,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -836,11 +835,11 @@ describe('Performance > TransactionSummary', function () {
       await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledTimes(1);
+        expect(router.push).toHaveBeenCalledTimes(1);
       });
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -912,7 +911,7 @@ describe('Performance > TransactionSummary', function () {
       await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -948,7 +947,7 @@ describe('Performance > TransactionSummary', function () {
       await userEvent.click(await findByLabelText(pagination, 'Next'));
 
       // Check the navigation.
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/',
         query: {
           transaction: '/performance',
@@ -1060,8 +1059,8 @@ describe('Performance > TransactionSummary', function () {
 
       await userEvent.click(screen.getByTestId('status-ok'));
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: expect.stringContaining('transaction.status:ok'),

@@ -10,7 +10,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
@@ -573,14 +572,13 @@ describe('GroupReplays', () => {
         );
       });
 
-      const mockReplace = jest.mocked(browserHistory.replace);
       const replayPlayPlause = (
         await screen.findAllByTestId('replay-table-play-button')
       )[0];
       await userEvent.click(replayPlayPlause);
 
       await waitFor(() =>
-        expect(mockReplace).toHaveBeenCalledWith(
+        expect(router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/replays/',
             query: {
