@@ -72,11 +72,6 @@ describe('PerformanceScoreBreakdownChart', function () {
         method: 'GET',
         query: expect.objectContaining({
           yAxis: [
-            'weighted_performance_score(measurements.score.lcp)',
-            'weighted_performance_score(measurements.score.fcp)',
-            'weighted_performance_score(measurements.score.cls)',
-            'weighted_performance_score(measurements.score.inp)',
-            'weighted_performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
