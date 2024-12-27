@@ -3,7 +3,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.issues.grouptype import ErrorGroupType
+from sentry.grouping.types import ErrorGroupType
 from sentry.models.options.project_option import ProjectOption
 from sentry.workflow_engine.models import (
     DataCondition,

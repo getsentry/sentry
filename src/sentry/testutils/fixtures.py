@@ -9,10 +9,10 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
+from sentry.grouping.types import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.grouprelease import GroupRelease
