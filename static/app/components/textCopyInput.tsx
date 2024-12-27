@@ -60,7 +60,6 @@ function TextCopyInput({
 
   return (
     <InputGroup className={className}>
-      hello
       <StyledInput
         id={textNodeId}
         readOnly
