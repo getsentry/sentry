@@ -109,7 +109,6 @@ function mockEventView(data) {
 describe('Performance > Table', function () {
   let eventsMock;
   beforeEach(function () {
-    browserHistory.push = jest.fn();
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
     );

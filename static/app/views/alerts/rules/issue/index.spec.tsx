@@ -125,7 +125,6 @@ const createWrapper = (props = {}) => {
 describe('IssueRuleEditor', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
-    browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/rules/configuration/',
       body: ProjectAlertRuleConfigurationFixture(),
