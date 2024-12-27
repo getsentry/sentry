@@ -24,6 +24,7 @@ class Condition(models.TextChoices):
     EVENT_SEEN_COUNT = "event_seen_count"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    EVERY_EVENT = "every_event"
 
 
 condition_ops = {
