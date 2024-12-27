@@ -27,7 +27,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {WebVitalDetailHeader} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useInteractionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useInteractionsCategorizedSamplesQuery';
 import {useTransactionsCategorizedSamplesQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionsCategorizedSamplesQuery';
@@ -119,9 +119,7 @@ export function PageOverviewWebVitalsDetailPanel({
     subregions,
   });
 
-  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
-    projectScoresData?.data?.[0]
-  );
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
 
   const {data: transactionsTableData, isLoading: isTransactionWebVitalsQueryLoading} =
     useTransactionsCategorizedSamplesQuery({

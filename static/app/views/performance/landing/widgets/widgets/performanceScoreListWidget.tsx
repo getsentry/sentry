@@ -74,7 +74,6 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         data={formatTimeSeriesResultsToChartData(
           weightedTimeseriesData,
           segmentColors,
-          false,
           order
         )}
         type={ChartType.AREA}
