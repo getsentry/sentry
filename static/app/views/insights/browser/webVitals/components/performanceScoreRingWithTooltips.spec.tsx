@@ -11,11 +11,6 @@ describe('PerformanceScoreRingWithTooltips', function () {
       ttfbScore: 99,
       inpScore: 98,
       totalScore: 83,
-      lcpWeight: 38,
-      fcpWeight: 23,
-      clsWeight: 18,
-      ttfbWeight: 16,
-      inpWeight: 10,
     };
     render(
       <PerformanceScoreRingWithTooltips
