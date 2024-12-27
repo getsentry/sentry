@@ -38,8 +38,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    // need to typecast to any to be able to call mockReset
-    (browserHistory.push as any).mockReset();
+    jest.mocked(browserHistory.push).mockReset();
   });
 
   describe('Without Span Data', function () {

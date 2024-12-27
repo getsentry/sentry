@@ -74,7 +74,6 @@ describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData([project]);
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
