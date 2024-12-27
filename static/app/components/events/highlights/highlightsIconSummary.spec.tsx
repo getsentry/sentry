@@ -5,10 +5,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-import {
-  TEST_EVENT_CONTEXTS,
-  TEST_EVENT_TAGS,
-} from 'sentry/components/events/highlights/util.spec';
+
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 jest.mock('sentry/components/events/contexts/contextIcon', () => ({
   ...jest.requireActual('sentry/components/events/contexts/contextIcon'),
