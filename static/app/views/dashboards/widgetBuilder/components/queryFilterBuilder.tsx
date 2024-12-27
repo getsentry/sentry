@@ -151,7 +151,7 @@ function WidgetBuilderQueryFilterBuilder({
               type="text"
               name="name"
               placeholder={t('Legend Alias')}
-              value={state.legendAlias?.[index]}
+              value={state.legendAlias?.[index] || ''}
               onChange={e => {
                 dispatch({
                   type: BuilderStateAction.SET_LEGEND_ALIAS,
