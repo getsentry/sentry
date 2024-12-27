@@ -28,16 +28,16 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
-  const useNodeId = useId();
+  const userNodeId = useId();
 
   const handleSelectText = useCallback(() => {
-    const node = document.getElementById(useNodeId);
+    const node = document.getElementById(userNodeId);
     if (!node) {
       return;
     }
 
     selectText(node);
-  }, [useNodeId]);
+  }, [userNodeId]);
 
   const {onClick: handleCopyToClipboard} = useCopyToClipboard({
     text: user ?? '',
@@ -58,7 +58,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     <Flex align="center" gap={space(1)} className={className} style={style}>
       <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
         <Flex
-          id={useNodeId}
+          id={userNodeId}
           align="center"
           wrap="wrap"
           gap={space(0.5)}
