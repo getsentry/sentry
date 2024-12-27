@@ -33,7 +33,7 @@ function XAxis({
   addSecondsToTimeFormat = false,
   ...props
 }: XAxisProps): XAXisComponentOption {
-  const AxisLabelFormatter = (value: string, index: number) => {
+  const AxisLabelFormatter = (value: string | number, index: number) => {
     const firstItem = index === 0;
     // Always show the date of the first item. Otherwise check the interval duration
     const showDate = firstItem ? true : !computeShortInterval({start, end, period});
@@ -51,7 +51,7 @@ function XAxis({
     }
 
     if (props.truncate) {
-      return truncationFormatter(value, props.truncate);
+      return truncationFormatter(value as string, props.truncate);
     }
 
     return undefined;

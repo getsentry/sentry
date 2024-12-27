@@ -17,7 +17,8 @@ jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 describe('HTTPLandingPage', function () {
   const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let spanListRequestMock!: jest.Mock;
+  let spanChartsRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 

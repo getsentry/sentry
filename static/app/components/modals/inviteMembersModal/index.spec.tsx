@@ -15,7 +15,7 @@ import type {Scope} from 'sentry/types/core';
 import type {DetailedTeam} from 'sentry/types/organization';
 
 describe('InviteMembersModal', function () {
-  const styledWrapper = styled(c => c.children);
+  const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
 
   type MockApiResponseFn = (
     client: typeof MockApiClient,
@@ -39,7 +39,7 @@ describe('InviteMembersModal', function () {
 
   const defaultMockModalProps = {
     Body: styledWrapper(),
-    Header: p => <span>{p.children}</span>,
+    Header: (p: {children?: React.ReactNode}) => <span>{p.children}</span>,
     Footer: styledWrapper(),
     closeModal: () => {},
     CloseButton: makeCloseButton(() => {}),
@@ -297,7 +297,11 @@ describe('InviteMembersModal', function () {
   });
 
   it('marks failed invites', async function () {
-    const failedCreateMemberMock = (client, orgSlug, _) => {
+    const failedCreateMemberMock = (
+      client: typeof MockApiClient,
+      orgSlug: string,
+      _: any
+    ) => {
       return client.addMockResponse({
         url: `/organizations/${orgSlug}/members/`,
         method: 'POST',
@@ -402,7 +406,11 @@ describe('InviteMembersModal', function () {
     });
 
     it('POSTS to the invite-request endpoint', async function () {
-      const createInviteRequestMock = (client, orgSlug, _) => {
+      const createInviteRequestMock = (
+        client: typeof MockApiClient,
+        orgSlug: string,
+        _: any
+      ) => {
         return client.addMockResponse({
           url: `/organizations/${orgSlug}/invite-requests/`,
           method: 'POST',

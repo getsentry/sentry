@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ViewHierarchy} from '.';
+import {ViewHierarchy, type ViewHierarchyData} from './index';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {
@@ -47,8 +47,8 @@ const DEFAULT_MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
-  let MOCK_DATA;
-  let project;
+  let MOCK_DATA!: ViewHierarchyData;
+  let project!: ReturnType<typeof ProjectFixture>;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
     project = ProjectFixture();

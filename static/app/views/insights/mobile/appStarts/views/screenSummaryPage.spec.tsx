@@ -49,7 +49,7 @@ describe('Screen Summary', function () {
   });
 
   describe('Native Project', function () {
-    let eventsMock;
+    let eventsMock: jest.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({

@@ -92,7 +92,9 @@ describe('ProjectFilters', function () {
     for (const filter of Object.keys(FILTERS)) {
       const mock = createFilterMock(filter);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: FILTERS[filter]}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: FILTERS[filter as keyof typeof FILTERS]})
+      );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
         expect.objectContaining({

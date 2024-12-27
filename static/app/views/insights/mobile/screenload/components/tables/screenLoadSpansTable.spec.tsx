@@ -42,7 +42,7 @@ describe('ScreenLoadSpansTable', function () {
     },
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,

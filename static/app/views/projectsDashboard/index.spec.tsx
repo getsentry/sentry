@@ -21,8 +21,8 @@ jest.unmock('lodash/debounce');
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
-    (fn, timeout) =>
-    (...args) => {
+    (fn: (...args: any[]) => void, timeout: number) =>
+    (...args: any[]) => {
       if (debounceMap.has(fn)) {
         clearTimeout(debounceMap.get(fn));
       }

@@ -19,7 +19,7 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('TeamMembers', function () {
-  let createMock;
+  let createMock: jest.Mock;
 
   const organization = OrganizationFixture();
   const team = TeamFixture();

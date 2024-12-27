@@ -64,7 +64,7 @@ describe('TraceDataSection', () => {
     culprit: 'n/a',
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
-    'issue.id': event['issue.id'],
+    'issue.id': (event as any)['issue.id'],
     project: project.slug,
     'project.name': project.name,
     title: event.title,

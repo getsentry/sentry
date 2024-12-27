@@ -9,8 +9,8 @@ jest.mock('moment-timezone', () => {
 });
 
 describe('Chart XAxis', function () {
-  let axisLabelFormatter;
-  let xAxisObj;
+  let axisLabelFormatter: (value: string | number, index: number) => string;
+  let xAxisObj!: ReturnType<typeof XAxis>;
   const props: XAxisProps = {
     isGroupedByDate: true,
     theme: lightTheme,
@@ -27,7 +27,8 @@ describe('Chart XAxis', function () {
             utc: false,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
@@ -47,7 +48,8 @@ describe('Chart XAxis', function () {
             utc: true,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
@@ -67,7 +69,8 @@ describe('Chart XAxis', function () {
             period: '7d',
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
@@ -89,7 +92,8 @@ describe('Chart XAxis', function () {
             utc: false,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
@@ -109,7 +113,8 @@ describe('Chart XAxis', function () {
             utc: true,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {
@@ -130,7 +135,8 @@ describe('Chart XAxis', function () {
             utc: true,
           });
 
-          axisLabelFormatter = xAxisObj.axisLabel.formatter;
+          // @ts-expect-error formatter type is missing
+          axisLabelFormatter = xAxisObj.axisLabel!.formatter;
         });
 
         it('formats axis label for first data point', function () {

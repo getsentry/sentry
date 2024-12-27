@@ -14,13 +14,13 @@ import useSortNetwork from './useSortNetwork';
 
 jest.mock('sentry/utils/useUrlParams', () => {
   const map = new Map();
-  return (name, dflt) => {
+  return (name: string, dflt: string) => {
     if (!map.has(name)) {
       map.set(name, dflt);
     }
     return {
       getParamValue: () => map.get(name),
-      setParamValue: value => {
+      setParamValue: (value: string) => {
         map.set(name, value);
       },
     };

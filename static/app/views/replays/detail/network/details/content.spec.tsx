@@ -181,7 +181,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -204,7 +204,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -228,7 +228,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -285,7 +285,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -310,7 +310,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -330,7 +330,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -387,7 +387,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -412,7 +412,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );
@@ -432,7 +432,7 @@ describe('NetworkDetailsContent', () => {
             <NetworkDetailsContent
               {...basicSectionProps()}
               isSetup={isSetup}
-              item={mockItems[itemName]}
+              item={mockItems[itemName as keyof typeof mockItems]}
               visibleTab={visibleTab}
             />
           );

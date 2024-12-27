@@ -16,10 +16,10 @@ import selectEvent from 'sentry-test/selectEvent';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function () {
-  let sentryApp;
-  let token;
-  let createAppRequest;
-  let editAppRequest;
+  let sentryApp: ReturnType<typeof SentryAppFixture>;
+  let token: ReturnType<typeof SentryAppTokenFixture>;
+  let createAppRequest: jest.Mock;
+  let editAppRequest: jest.Mock;
 
   const maskedValue = '************oken';
 
@@ -576,7 +576,7 @@ describe('Sentry Application Details', function () {
 
     it('handles client secret rotation', async function () {
       sentryApp = SentryAppFixture();
-      sentryApp.clientSecret = null;
+      sentryApp.clientSecret = undefined;
 
       MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,

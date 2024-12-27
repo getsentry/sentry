@@ -161,7 +161,7 @@ describe('RawStacktraceContent', () => {
       );
     });
 
-    const inAppFrame = (fnName, line) =>
+    const inAppFrame = (fnName: string, line: number) =>
       FrameFixture({
         function: fnName,
         module: 'example.application',
@@ -169,7 +169,7 @@ describe('RawStacktraceContent', () => {
         filename: 'application',
         platform: undefined,
       });
-    const systemFrame = (fnName, line) =>
+    const systemFrame = (fnName: string, line: number) =>
       FrameFixture({
         function: fnName,
         module: 'example.application',

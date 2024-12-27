@@ -5,6 +5,7 @@ import {
   addMessage,
   addSuccessMessage,
   clearIndicators,
+  type Indicator,
 } from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
 import IndicatorStore from 'sentry/stores/indicatorStore';
@@ -39,7 +40,7 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     // when "type" is empty, we should treat it as loading state
-    let indicator;
+    let indicator!: Indicator;
     act(() => {
       indicator = IndicatorStore.add('Loading');
     });

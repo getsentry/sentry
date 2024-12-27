@@ -150,7 +150,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.lcp)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.lcp)'
+          );
         },
       ],
     });
@@ -188,7 +190,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.cls)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.cls)'
+          );
         },
       ],
     });

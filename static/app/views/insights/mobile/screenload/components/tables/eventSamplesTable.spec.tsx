@@ -8,7 +8,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
 describe('EventSamplesTable', function () {
-  let mockLocation, mockQuery: NewQuery, mockEventView;
+  let mockLocation: ReturnType<typeof LocationFixture>;
+  let mockQuery: NewQuery;
+  let mockEventView: EventView;
   beforeEach(function () {
     mockLocation = LocationFixture({
       query: {

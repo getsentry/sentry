@@ -1,4 +1,5 @@
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -20,15 +21,14 @@ import QueryList from 'sentry/views/discover/queryList';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Discover > QueryList', function () {
-  let location,
-    savedQueries,
-    organization,
-    deleteMock,
-    duplicateMock,
-    queryChangeMock,
-    updateHomepageMock,
-    eventsStatsMock,
-    wrapper;
+  let location: ReturnType<typeof LocationFixture>;
+  let savedQueries: ReturnType<typeof DiscoverSavedQueryFixture>[];
+  let organization: ReturnType<typeof OrganizationFixture>;
+  let deleteMock: jest.Mock;
+  let duplicateMock: jest.Mock;
+  let queryChangeMock: jest.Mock;
+  let updateHomepageMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   const {router} = initializeOrg();
 
@@ -74,17 +74,15 @@ describe('Discover > QueryList', function () {
       statusCode: 204,
     });
 
-    location = {
+    location = LocationFixture({
       pathname: '/organizations/org-slug/discover/queries/',
       query: {cursor: '0:1:1', statsPeriod: '14d'},
-    };
+    });
     queryChangeMock = jest.fn();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    wrapper?.unmount();
-    wrapper = null;
   });
 
   it('renders an empty list', function () {

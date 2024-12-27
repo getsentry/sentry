@@ -5,7 +5,7 @@ import FormModel from 'sentry/components/forms/model';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 describe('PermissionsObserver', () => {
-  let model;
+  let model: FormModel;
 
   beforeEach(() => {
     model = new FormModel();

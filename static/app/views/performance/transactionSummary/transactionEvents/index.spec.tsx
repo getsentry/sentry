@@ -18,7 +18,7 @@ jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
 
-function WrappedComponent({data}) {
+function WrappedComponent({data}: {data: ReturnType<typeof initializeData>}) {
   return (
     <MEPSettingProvider>
       <TransactionEvents

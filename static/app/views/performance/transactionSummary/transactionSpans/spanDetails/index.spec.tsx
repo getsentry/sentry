@@ -16,7 +16,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
-function initializeData(settings) {
+function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
   act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
