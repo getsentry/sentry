@@ -49,6 +49,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {appendQueryDatasetParam, hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -109,6 +110,7 @@ export type TableViewProps = {
 function TableView(props: TableViewProps) {
   const {projects} = useProjects();
   const routes = useRoutes();
+  const navigate = useNavigate();
   const replayLinkGenerator = generateReplayLink(routes);
 
   /**
@@ -124,6 +126,7 @@ function TableView(props: TableViewProps) {
     const nextEventView = eventView.withResizedColumn(columnIndex, newWidth);
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView,
       extraQuery: {
