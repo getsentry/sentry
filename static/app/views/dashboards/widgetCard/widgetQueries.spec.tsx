@@ -20,7 +20,7 @@ import WidgetQueries, {
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg();
 
-  const renderWithProviders = component =>
+  const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
@@ -674,7 +674,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: DisplayType.LINE,
       interval: '5m',
     };
-    let childProps;
+    let childProps!: GenericWidgetQueriesChildrenProps;
     const {rerender} = renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -727,7 +727,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+    expect(childProps.timeseriesResults![0].seriesName).toEqual(
       'this query alias changed : count()'
     );
   });

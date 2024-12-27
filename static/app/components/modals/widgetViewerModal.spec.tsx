@@ -96,8 +96,9 @@ async function renderModal({
 }
 
 describe('Modals -> WidgetViewerModal', function () {
-  let initialData, initialDataWithFlag;
-  let widgetLegendState: WidgetLegendSelectionState;
+  let initialData!: ReturnType<typeof initializeOrg>;
+  let initialDataWithFlag!: ReturnType<typeof initializeOrg>;
+  let widgetLegendState!: WidgetLegendSelectionState;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -675,7 +676,8 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     describe('TopN Chart Widget', function () {
-      let mockQuery, mockWidget;
+      let mockQuery!: Widget['queries'][number];
+      let mockWidget!: Widget;
 
       function mockEventsStats() {
         return MockApiClient.addMockResponse({
@@ -746,7 +748,6 @@ describe('Modals -> WidgetViewerModal', function () {
           fields: ['error.type', 'count()'],
           aggregates: ['count()'],
           columns: ['error.type'],
-          id: '1',
           name: 'Query Name',
           orderby: '',
         };
@@ -1137,7 +1138,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Issue Table Widget', function () {
-    let issuesMock;
+    let issuesMock!: jest.Mock;
     const mockQuery = {
       conditions: 'is:unresolved',
       fields: ['events', 'status', 'title'],
@@ -1353,7 +1354,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let metricsMock;
+    let metricsMock!: jest.Mock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],

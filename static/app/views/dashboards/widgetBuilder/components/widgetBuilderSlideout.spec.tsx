@@ -22,7 +22,7 @@ jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 
 describe('WidgetBuilderSlideout', () => {
-  let organization;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 

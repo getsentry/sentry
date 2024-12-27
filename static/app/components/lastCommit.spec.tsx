@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import LastCommit from 'sentry/components/lastCommit';
 
 describe('LastCommit', function () {
-  let mockedCommit;
+  let mockedCommit!: ReturnType<typeof CommitFixture>;
   const mockedCommitTitle = '(improve) Add Links to Spike-Protection Email (#2408)';
 
   beforeEach(() => {
@@ -17,7 +17,7 @@ describe('LastCommit', function () {
   });
 
   it('links to the commit in GitHub', function () {
-    mockedCommit.repository.provider = {id: 'github'};
+    mockedCommit.repository!.provider = {id: 'github', name: 'GitHub'};
     const mockedCommitURL = `${mockedCommit.repository?.url}/commit/${mockedCommit.id}`;
 
     render(<LastCommit commit={mockedCommit} />);

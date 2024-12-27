@@ -16,7 +16,7 @@ describe('OrgDashboards', () => {
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
-  let initialData;
+  let initialData!: ReturnType<typeof initializeOrg>;
   beforeEach(() => {
     initialData = initializeOrg({
       organization,
@@ -84,11 +84,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -150,11 +148,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -223,11 +219,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -254,11 +248,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -301,11 +293,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -329,11 +319,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>

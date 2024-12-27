@@ -18,7 +18,7 @@ describe('ScreenLoadEventSamples', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  let mockEventsRequest;
+  let mockEventsRequest!: jest.Mock;
   beforeEach(function () {
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
