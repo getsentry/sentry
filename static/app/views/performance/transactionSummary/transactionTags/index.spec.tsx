@@ -55,7 +55,6 @@ describe('Performance > Transaction Tags', function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary/tags/'})
     );
-    browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
