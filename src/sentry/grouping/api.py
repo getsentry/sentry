@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import sentry_sdk
 
-from sentry import options
+from sentry import features, options
 from sentry.db.models.fields.node import NodeData
 from sentry.grouping.component import (
     AppGroupingComponent,
@@ -228,9 +228,23 @@ def get_fingerprinting_config_for_project(
     """
 
     from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+    from sentry.grouping.types import ErrorGroupType
+    from sentry.workflow_engine.models.detector import Detector
 
     bases = get_projects_default_fingerprinting_bases(project, config_id=config_id)
-    raw_rules = project.get_option("sentry:fingerprinting_rules")
+
+    if features.has("organizations:workflow-engine-error-detector", project.organization):
+        try:
+            error_detector: Detector = Detector.objects.get(
+                project=project, type=ErrorGroupType.slug
+            )
+            raw_rules = error_detector.get_option("sentry:fingerprinting_rules")
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            raw_rules = project.get_option("sentry:fingerprinting_rules")
+    else:
+        raw_rules = project.get_option("sentry:fingerprinting_rules")
+
     if not raw_rules:
         return FingerprintingRules([], bases=bases)
 

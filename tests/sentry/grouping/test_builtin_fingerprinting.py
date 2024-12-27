@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 
@@ -20,6 +21,7 @@ from sentry.grouping.fingerprinting import (
     _load_configs,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
@@ -547,6 +549,33 @@ class BuiltInFingerprintingTest(TestCase):
         """
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
+
+        assert event.data["fingerprint"] == ["chunkloaderror"]
+        assert event.data["_fingerprint_info"]["matched_rule"] == {
+            "attributes": {},
+            "fingerprint": ["chunkloaderror"],
+            "matchers": [["family", "javascript"], ["type", "ChunkLoadError"]],
+            "text": 'family:"javascript" type:"ChunkLoadError" -> "chunkloaderror"',
+            "is_builtin": True,
+        }
+
+    @with_feature("organizations:workflow-engine-error-detector")
+    @patch("sentry_sdk.capture_exception")
+    def test_built_in_chunkload_rules_detector_config(self, mock_exception):
+        """
+        With the workflow engine flag enabled, the result should be the same but using the Detector logic
+        """
+
+        # no detector
+        event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
+
+        assert mock_exception.call_count == 1
+        mock_exception.reset_mock()
+
+        self.create_detector(project=self.project)
+
+        event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
+        assert mock_exception.call_count == 0
 
         assert event.data["fingerprint"] == ["chunkloaderror"]
         assert event.data["_fingerprint_info"]["matched_rule"] == {
