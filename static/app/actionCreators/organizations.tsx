@@ -1,3 +1,5 @@
+import type {NavigateFunction} from 'react-router-dom';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';
@@ -10,15 +12,17 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 type RedirectRemainingOrganizationParams = {
   /**
+   * navigate function from useNavigate
+   */
+  navigate: NavigateFunction;
+  /**
    * The organization slug
    */
   orgId: string;
-
   /**
    * Should remove org?
    */
@@ -32,6 +36,7 @@ type RedirectRemainingOrganizationParams = {
  * Can optionally remove organization from organizations store.
  */
 export function redirectToRemainingOrganization({
+  navigate,
   orgId,
   removeOrg,
 }: RedirectRemainingOrganizationParams) {
@@ -40,7 +45,7 @@ export function redirectToRemainingOrganization({
     org => org.status.id === 'active' && org.slug !== orgId
   );
   if (!allOrgs.length) {
-    browserHistory.push('/organizations/new/');
+    navigate('/organizations/new/');
     return;
   }
 
@@ -54,7 +59,7 @@ export function redirectToRemainingOrganization({
     return;
   }
 
-  browserHistory.push(route);
+  navigate(route);
 
   // Remove org from SidebarDropdown
   if (removeOrg) {
