@@ -15,7 +15,6 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -48,6 +47,7 @@ import {getTitle} from 'sentry/utils/events';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {
   DashboardWidgetSource,
@@ -124,14 +124,15 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
 
 export function pushEventViewToLocation(props: {
   location: Location;
+  navigate: ReactRouter3Navigate;
   nextEventView: EventView;
   extraQuery?: Query;
 }) {
-  const {location, nextEventView} = props;
+  const {navigate, location, nextEventView} = props;
   const extraQuery = props.extraQuery || {};
   const queryStringObject = nextEventView.generateQueryStringObject();
 
-  browserHistory.push({
+  navigate({
     ...location,
     query: {
       ...extraQuery,
