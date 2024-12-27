@@ -14,7 +14,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -268,10 +267,10 @@ describe('Performance > VitalDetail', function () {
 
     // Check the navigation.
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledTimes(1);
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: '1',
@@ -396,8 +395,8 @@ describe('Performance > VitalDetail', function () {
     expect(menuItem).toBeInTheDocument();
     await userEvent.click(menuItem);
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(newRouter.push).toHaveBeenCalledTimes(1);
+    expect(newRouter.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: 1,

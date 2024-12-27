@@ -13,7 +13,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
@@ -253,7 +252,8 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
-      />
+      />,
+      {router}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;
@@ -264,7 +264,7 @@ describe('Discover > QueryList', function () {
     await userEvent.click(withinCard.getByText('Duplicate Query'));
 
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: location.pathname,
         query: {},
       });
@@ -348,7 +348,7 @@ describe('Discover > QueryList', function () {
     expect(queryChangeMock).not.toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: location.pathname,
         query: {cursor: undefined, statsPeriod: '14d'},
       });

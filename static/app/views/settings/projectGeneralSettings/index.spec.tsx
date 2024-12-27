@@ -17,7 +17,6 @@ import selectEvent from 'sentry-test/selectEvent';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
@@ -298,7 +297,7 @@ describe('projectGeneralSettings', function () {
           params={params}
         />
       </ProjectContextProvider>,
-      {organization}
+      {organization, router}
     );
 
     await userEvent.type(
@@ -313,7 +312,7 @@ describe('projectGeneralSettings', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     // Redirects the user
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect(ProjectsStore.getById('2')!.slug).toBe('new-project');
   });
 

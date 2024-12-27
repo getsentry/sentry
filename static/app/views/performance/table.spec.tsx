@@ -5,7 +5,6 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -241,11 +240,11 @@ describe('Performance > Table', function () {
       expect(transactionCellTrigger).toBeInTheDocument();
       await userEvent.click(transactionCellTrigger);
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(0);
+      expect(data.router.push).toHaveBeenCalledTimes(0);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
+      expect(data.router.push).toHaveBeenCalledTimes(1);
+      expect(data.router.push).toHaveBeenNthCalledWith(1, {
         pathname: undefined,
         query: expect.objectContaining({
           query: 'transaction:/apple/cart',

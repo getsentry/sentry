@@ -8,7 +8,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types/release';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseComparisonChart from 'sentry/views/releases/detail/overview/releaseComparisonChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
@@ -81,7 +80,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {chart: 'crashFreeUsers'}})
     );
 
