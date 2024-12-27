@@ -36,17 +36,12 @@ describe('PerformanceScoreRingWithTooltips', function () {
 
   it('renders empty state with default weights', async () => {
     const projectScore = {
-      lcpScore: 0,
-      fcpScore: 0,
-      clsScore: 0,
-      ttfbScore: 0,
-      inpScore: 0,
-      totalScore: 0,
-      lcpWeight: 0,
-      fcpWeight: 0,
-      clsWeight: 0,
-      ttfbWeight: 0,
-      inpWeight: 0,
+      lcpScore: 10,
+      fcpScore: 10,
+      clsScore: 10,
+      ttfbScore: 10,
+      inpScore: 10,
+      totalScore: 10,
     };
     render(
       <PerformanceScoreRingWithTooltips
