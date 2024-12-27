@@ -611,7 +611,7 @@ class GitHubIntegrationsWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
 
     def check_secret(self, **kwargs) -> str:
         secret = options.get("github-app.webhook-secret")
-        if not secret:
+        if secret is None:
             logger.error("github.webhook.missing-secret", extra=self.log_extra)
             raise PermissionDenied()
 
