@@ -11,7 +11,6 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {getAndroidMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayMobileConfigureDescription,
   getReplayVerifyStep,
@@ -445,7 +444,6 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  customMetricsOnboarding: getAndroidMetricsOnboarding(),
   platformOptions,
   replayOnboarding,
 };

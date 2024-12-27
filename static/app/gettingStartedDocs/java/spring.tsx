@@ -9,7 +9,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {
   feedbackOnboardingJsLoader,
@@ -372,7 +371,6 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getJavaMetricsOnboarding(),
   feedbackOnboardingJsLoader,
 };
 
