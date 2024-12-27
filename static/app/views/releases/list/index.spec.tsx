@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
@@ -60,7 +61,8 @@ describe('ReleasesList', () => {
       },
     },
   };
-  let endpointMock, sessionApiMock;
+  let endpointMock: jest.Mock;
+  let sessionApiMock: jest.Mock;
 
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData(projects));
@@ -130,7 +132,7 @@ describe('ReleasesList', () => {
   });
 
   it('displays the right empty state', async () => {
-    let location;
+    let location: ReturnType<typeof LocationFixture>;
 
     const project = ProjectFixture({
       id: '3',
@@ -155,7 +157,7 @@ describe('ReleasesList', () => {
       body: [],
     });
     // does not have releases set up and no releases
-    location = {...routerProps.location, query: {}};
+    location = LocationFixture({...routerProps.location, query: {}});
     const {rerender} = render(
       <ReleasesList
         {...props}
@@ -172,7 +174,7 @@ describe('ReleasesList', () => {
     expect(screen.queryByTestId('release-panel')).not.toBeInTheDocument();
 
     // has releases set up and no releases
-    location = {query: {query: 'abc'}};
+    location = LocationFixture({query: {query: 'abc'}});
     rerender(
       <ReleasesList
         {...props}
@@ -185,7 +187,9 @@ describe('ReleasesList', () => {
       await screen.findByText("There are no releases that match: 'abc'.")
     ).toBeInTheDocument();
 
-    location = {query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'}};
+    location = LocationFixture({
+      query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'},
+    });
     rerender(
       <ReleasesList
         {...props}
@@ -198,7 +202,9 @@ describe('ReleasesList', () => {
       await screen.findByText('There are no releases with data in the last 7 days.')
     ).toBeInTheDocument();
 
-    location = {query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'}};
+    location = LocationFixture({
+      query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'},
+    });
     rerender(
       <ReleasesList
         {...props}
@@ -213,7 +219,9 @@ describe('ReleasesList', () => {
       )
     ).toBeInTheDocument();
 
-    location = {query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
+    location = LocationFixture({
+      query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'},
+    });
     rerender(
       <ReleasesList
         {...props}
@@ -228,7 +236,7 @@ describe('ReleasesList', () => {
       )
     ).toBeInTheDocument();
 
-    location = {query: {sort: ReleasesSortOption.BUILD}};
+    location = LocationFixture({query: {sort: ReleasesSortOption.BUILD}});
     rerender(
       <ReleasesList
         {...props}

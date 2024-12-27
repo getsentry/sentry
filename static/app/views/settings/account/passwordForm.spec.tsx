@@ -5,7 +5,7 @@ import PasswordForm from 'sentry/views/settings/account/passwordForm';
 const ENDPOINT = '/users/me/password/';
 
 describe('PasswordForm', function () {
-  let putMock;
+  let putMock: jest.Mock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

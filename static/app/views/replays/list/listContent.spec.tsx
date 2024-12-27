@@ -36,8 +36,8 @@ mockUseReplayOnboardingSidebarPanel.mockReturnValue({activateSidebar: jest.fn()}
 const mockUseAllMobileProj = jest.mocked(useAllMobileProj);
 mockUseAllMobileProj.mockReturnValue({allMobileProj: false});
 
-const AM1_FEATURES = [];
-const AM2_FEATURES = ['session-replay'];
+const AM1_FEATURES: string[] = [];
+const AM2_FEATURES: string[] = ['session-replay'];
 
 function getMockOrganizationFixture({features}: {features: string[]}) {
   const mockOrg = OrganizationFixture({
@@ -49,7 +49,7 @@ function getMockOrganizationFixture({features}: {features: string[]}) {
 }
 
 describe('ReplayList', () => {
-  let mockFetchReplayListRequest;
+  let mockFetchReplayListRequest: jest.Mock;
   beforeEach(() => {
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockClear();
     mockUseProjectSdkNeedsUpdate.mockClear();

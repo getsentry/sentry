@@ -13,7 +13,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
-const mockResponse = mocks => {
+const mockResponse = (mocks: [string, unknown][]) => {
   mocks.forEach(([url, body]) => MockApiClient.addMockResponse({url, body}));
 };
 
