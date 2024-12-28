@@ -91,7 +91,6 @@ function NativeFrame({
   isShowFramesToggleExpanded,
   isSubFrame,
   onShowFramesToggle,
-  isExpanded,
   platform,
   registersMeta,
   frameMeta,
@@ -280,7 +279,6 @@ function NativeFrame({
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
           expandable={expandable}
-          expanded={expanded}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -522,14 +520,13 @@ const FileName = styled('span')`
 
 const RowHeader = styled('span')<{
   expandable: boolean;
-  expanded: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(4)};
-  grid-template-rows: repeat(2, auto);
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Adjusted to account for the extra element */
+  grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
@@ -544,7 +541,7 @@ const RowHeader = styled('span')<{
   ${p => p.expandable && `cursor: pointer;`};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
+    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
