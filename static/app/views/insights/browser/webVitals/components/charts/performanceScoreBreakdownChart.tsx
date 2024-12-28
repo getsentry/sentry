@@ -72,13 +72,13 @@ export function PerformanceScoreBreakdownChart({
     chartSeriesOrder
   );
 
-  const unweightedTimeseries = formatTimeSeriesResultsToChartData(
+  const timeseries = formatTimeSeriesResultsToChartData(
     {
-      lcp: timeseriesData.unweightedLcp,
-      fcp: timeseriesData.unweightedFcp,
-      cls: timeseriesData.unweightedCls,
-      ttfb: timeseriesData.unweightedTtfb,
-      inp: timeseriesData.unweightedInp,
+      lcp: timeseriesData.lcp,
+      fcp: timeseriesData.fcp,
+      cls: timeseriesData.cls,
+      ttfb: timeseriesData.ttfb,
+      inp: timeseriesData.inp,
       total: timeseriesData.total,
     },
     segmentColors,
@@ -128,10 +128,10 @@ export function PerformanceScoreBreakdownChart({
           },
           valueFormatter: (_value, _label, seriesParams: any) => {
             const timestamp = seriesParams?.data[0];
-            const unweightedValue = unweightedTimeseries
+            const value = timeseries
               .find(series => series.seriesName === seriesParams?.seriesName)
               ?.data.find(dataPoint => dataPoint.name === timestamp)?.value;
-            return `<span class="tooltip-label-value">${unweightedValue}</span>`;
+            return `<span class="tooltip-label-value">${value}</span>`;
           },
         }}
       />

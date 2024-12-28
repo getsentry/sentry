@@ -20,7 +20,7 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_NAMES = [
@@ -41,7 +41,7 @@ pytestmark = pytest.mark.sentry_metrics
 class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,

@@ -5,6 +5,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -24,7 +25,6 @@ import {DEFAULT_QUERY} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types/group';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
@@ -486,7 +486,7 @@ describe('IssueList', function () {
       await userEvent.click(screen.getByRole('button', {name: /custom search/i}));
       await userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
+      expect(router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/searches/789/',
         })
@@ -519,7 +519,7 @@ describe('IssueList', function () {
       await userEvent.click(getSearchInput());
       await userEvent.keyboard('dogs{Enter}');
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
+      expect(router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/',
           query: {
@@ -560,7 +560,7 @@ describe('IssueList', function () {
       await userEvent.paste('assigned:me level:fatal');
       await userEvent.keyboard('{Enter}');
 
-      expect(browserHistory.push as jest.Mock).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'assigned:me level:fatal',
@@ -590,7 +590,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(router.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: {
@@ -620,9 +620,9 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      const routerWithSavedSearch = {
+      const routerWithSavedSearch = RouterFixture({
         params: {searchId: pinnedSearch.id},
-      };
+      });
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
@@ -639,7 +639,7 @@ describe('IssueList', function () {
       });
 
       await waitFor(() => {
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
           })
@@ -671,7 +671,7 @@ describe('IssueList', function () {
           isPinned: true,
         },
       });
-      const routerWithSavedSearch = {params: {searchId: '789'}};
+      const routerWithSavedSearch = RouterFixture({params: {searchId: '789'}});
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
@@ -685,7 +685,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/789/',
           })
@@ -747,7 +747,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(newRouter.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/searches/666/',
             query: expect.objectContaining({
@@ -816,7 +816,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(newRouter.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
             query: expect.objectContaining({
@@ -863,7 +863,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -887,7 +887,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -909,7 +909,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -919,7 +919,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         // cursor is undefined because "prev" cursor is === initial "next" cursor
-        expect(browserHistory.push).toHaveBeenLastCalledWith({
+        expect(router.push).toHaveBeenLastCalledWith({
           pathname: '/organizations/org-slug/issues/',
           query: {
             cursor: undefined,
@@ -955,7 +955,7 @@ describe('IssueList', function () {
       await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith({
+        expect(router.push).toHaveBeenCalledWith({
           pathname: '/organizations/org-slug/issues/',
           query: {
             environment: [],

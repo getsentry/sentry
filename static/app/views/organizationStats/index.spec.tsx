@@ -43,7 +43,7 @@ describe('OrganizationStats', function () {
     routeParams: {},
   };
 
-  let mockRequest;
+  let mockRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -227,7 +227,7 @@ describe('OrganizationStats', function () {
   });
 
   it('does not leak query params onto next page links', async () => {
-    const dummyLocation = PAGE_QUERY_PARAMS.reduce(
+    const dummyLocation = PAGE_QUERY_PARAMS.reduce<{query: Record<string, string>}>(
       (location, param) => {
         location.query[param] = '';
         return location;

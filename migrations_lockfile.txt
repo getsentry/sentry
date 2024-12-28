@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0802_remove_grouping_auto_update_option
+sentry: 0803_delete_unused_metricskeyindexer_pt1
 
 social_auth: 0002_default_auto_field
 
