@@ -1,10 +1,10 @@
 // @ts-check
-/* eslint-disable filename-export/match-default-export */
-
-// import {fileURLToPath} from 'node:url';
-// import path from 'node:path';
-// import {FlatCompat} from '@eslint/eslintrc';
-
+/**
+ * Understanding & making changes to this file:
+ *
+ * This is your friend:
+ * `npx eslint --inspect-config`
+ */
 import {builtinModules} from 'node:module';
 import {fixupPluginRules} from '@eslint/compat';
 import * as emotion from '@emotion/eslint-plugin';
@@ -22,7 +22,7 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
 import typescript from 'typescript-eslint';
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
-// import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
+import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
 
 invariant(react.configs.flat, 'For typescript');
 
@@ -621,7 +621,6 @@ const appRules = {
         },
         {
           name: 'sentry/utils/withSentryRouter',
-          importNames: ['withSentryRouter'],
           message:
             "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
         },
@@ -814,6 +813,21 @@ export default typescript.config([
       noInlineConfig: false,
       reportUnusedDisableDirectives: 'error',
     },
+    // TODO: move these potential overrides and plugin-specific rules into the
+    // corresponding configuration object where the plugin is initially included
+    plugins: {
+      ...jest.configs['flat/recommended'].plugins,
+      ...jestDom.configs['flat/recommended'].plugins,
+      ...react.configs.flat.plugins,
+      ...react.configs.flat['jsx-runtime'].plugins,
+      '@emotion': emotion,
+      '@typescript-eslint': typescript.plugin,
+      'react-hooks': fixupPluginRules(reactHooks),
+      'simple-import-sort': simpleImportSort,
+      'typescript-sort-keys': typescriptSortKeys,
+      // 'no-lookahead-lookbehind-regexp': noLookaheadLookbehindRegexp,
+      sentry,
+    },
     settings: {
       react: {
         version: '18.2.0',
@@ -833,7 +847,7 @@ export default typescript.config([
      * Default file selection
      * https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
      */
-    files: ['**/*.{js,ts,jsx,tsx}'],
+    files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   {
     /**
@@ -844,7 +858,7 @@ export default typescript.config([
       '**/dist/**/*',
       '**/vendor/**/*',
       '**/tests/**/fixtures/**/*',
-      '!.github',
+      // '!.github',
       '*.d.ts',
       'config/chartcuterie/config.js',
       'fixtures/profiles/embedded.js',
@@ -884,43 +898,11 @@ export default typescript.config([
    * remove the override and rely on the recommended rules again.
    */
   {
-    name: 'eslint/recommended',
-    ...eslint.configs.recommended,
-  },
-  {
     name: 'import/recommended',
     ...importPlugin.flatConfigs.recommended,
   },
   {
-    name: 'react/recommended',
-    ...react.configs.flat.recommended,
-  },
-  {
-    name: 'react/jsx-runtime',
-    ...react.configs.flat['jsx-runtime'],
-  },
-  {
-    name: 'react/hooks/recommended',
-    plugins: {
-      'react-hooks': fixupPluginRules(reactHooks),
-    },
-    rules: reactHooks.configs.recommended.rules,
-  },
-  {
     name: 'sentry/custom',
-    // TODO: move these potential overrides and plugin-specific rules into the
-    // corresponding configuration object where the plugin is initially included
-    plugins: {
-      ...jest.configs['flat/recommended'].plugins,
-      ...react.configs.flat.plugins,
-      '@emotion': emotion,
-      '@typescript-eslint': typescript.plugin,
-      'react-hooks': fixupPluginRules(reactHooks),
-      'simple-import-sort': simpleImportSort,
-      'typescript-sort-keys': typescriptSortKeys,
-      // 'no-lookahead-lookbehind-regexp': noLookaheadLookbehindRegexp,
-      sentry,
-    },
     rules: {
       ...baseRules,
       ...reactRules,
@@ -947,20 +929,18 @@ export default typescript.config([
       ],
     },
   },
-  {
-    name: 'jest/recommended',
-    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
-    ...jest.configs['flat/recommended'],
-  },
-  {
-    name: 'jest-dom/recommended',
-    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
-    ...jestDom.configs['flat/recommended'],
-  },
+
   {
     name: 'testing-library/react',
     files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
     ...testingLibrary.configs['flat/react'],
+    rules: {
+      ...baseRules,
+      ...reactRules,
+      ...appRules,
+      ...strictRules,
+      ...testingLibrary.configs['flat/react'].rules,
+    },
   },
   {
     // We specify rules explicitly for the sdk-loader here so we do not have
