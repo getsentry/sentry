@@ -120,8 +120,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           placeholder,
           ...props
         }) => {
-          const showTempNoneOption =
-            !multiple && (props.value === undefined || props.value === null);
+          const showTempNoneOption = !multiple && !props.value;
 
           return (
             <Tooltip title={disabledReason} disabled={!disabled}>
