@@ -807,7 +807,7 @@ export default typescript.config([
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'off', // TODO(ryan953): set to 'error' and autofix
+      reportUnusedDisableDirectives: 'error',
     },
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
