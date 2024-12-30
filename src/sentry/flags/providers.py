@@ -324,7 +324,7 @@ class UnleashProvider:
                 "created_by_type": created_by_type,
                 "flag": result["featureName"],
                 "organization_id": self.organization_id,
-                "tags": {"tags": result["tags"]},
+                "tags": tags,
             }
         ]
 
