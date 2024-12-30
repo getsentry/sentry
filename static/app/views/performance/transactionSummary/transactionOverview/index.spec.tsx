@@ -90,7 +90,6 @@ function TestComponent({
 describe('Performance > TransactionSummary', function () {
   let eventStatsMock: jest.Mock;
   beforeEach(function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     // Small screen size will hide search bar trailing items like warning icon

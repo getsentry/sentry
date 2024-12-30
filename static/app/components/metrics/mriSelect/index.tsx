@@ -59,7 +59,6 @@ function useMriMode() {
     if (mriModeKeyPressed) {
       setMriMode(value => !value);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mriModeKeyPressed]);
 
   return mriMode;
