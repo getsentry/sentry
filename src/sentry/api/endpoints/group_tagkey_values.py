@@ -57,7 +57,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             GlobalParams.ENVIRONMENT,
         ],
         responses={
-            200: inline_sentry_response_serializer("TagKeyValuesDict", TagValueSerializerResponse),
+            200: inline_sentry_response_serializer(
+                "TagKeyValuesDict", list[TagValueSerializerResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
