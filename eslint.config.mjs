@@ -946,7 +946,7 @@ export default typescript.config([
   },
   {
     name: 'testing-library/react - ts files',
-    files: ['**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
       ...testingLibrary.configs['flat/react'].rules,
@@ -955,26 +955,20 @@ export default typescript.config([
     },
   },
   {
-    // TODO(ryan953): Once all the rules in here are set to 'error' we can
-    // merge the config object with the other `testing-library/react` settings
-    // for ts,js files.
     name: 'testing-library/react - tsx files',
     files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      ...testingLibrary.configs['flat/react'].rules,
-      'testing-library/render-result-naming-convention': 'off',
-      'testing-library/no-unnecessary-act': 'off',
-      'testing-library/await-async-queries': 'warn', // TODO(ryan953)
-      'testing-library/no-await-sync-events': 'warn', // TODO(ryan953)
-      'testing-library/no-await-sync-queries': 'warn', // TODO(ryan953)
-      'testing-library/no-container': 'warn', // TODO(ryan953)
-      'testing-library/no-node-access': 'warn', // TODO(ryan953)
-      'testing-library/no-render-in-lifecycle': 'warn', // TODO(ryan953)
-      'testing-library/no-wait-for-multiple-assertions': 'warn', // TODO(ryan953)
-      'testing-library/prefer-presence-queries': 'warn', // TODO(ryan953)
-      'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953)
-      'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953)
+      'testing-library/await-async-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-await-sync-events': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-await-sync-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-render-in-lifecycle': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-wait-for-multiple-assertions': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-presence-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
   },
   {
