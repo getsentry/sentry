@@ -213,6 +213,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         formatter,
       }}
       xAxis={{
+        animation: false,
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
@@ -220,6 +221,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         splitNumber: 0,
       }}
       yAxis={{
+        animation: false,
         axisLabel: {
           formatter(value: number) {
             return formatYAxisValue(value, type, unit);
