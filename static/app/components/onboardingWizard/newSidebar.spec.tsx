@@ -1,11 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -168,6 +162,6 @@ describe('NewSidebar', function () {
 
     // Dismiss skip confirmation
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
-    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
+    expect(screen.queryByText(/Not sure what to do/)).not.toBeInTheDocument();
   });
 });
