@@ -57,6 +57,9 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     max_retries=5,
 )
 def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+    """
+    Pushes details of an uptime subscription to uptime subscription regions.
+    """
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
