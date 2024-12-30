@@ -1232,8 +1232,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        # Run every 6 hours
-        "schedule": crontab(minute="0", hour="*/6"),
+        # Run once a day at 00:00
+        "schedule": crontab(minute="0", hour="0"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
