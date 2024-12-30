@@ -96,7 +96,6 @@ describe('PerformanceScoreBreakdownChart', function () {
           total: [],
         },
         ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-        false,
         ['lcp', 'fcp', 'inp', 'cls', 'ttfb']
       );
       expect(result).toEqual([
