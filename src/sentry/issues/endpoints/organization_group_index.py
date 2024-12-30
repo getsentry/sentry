@@ -36,6 +36,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import QUERY_STATUS_LOOKUP, Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
@@ -59,7 +60,7 @@ def inbox_search(
     date_to: datetime | None = None,
     max_hits: int | None = None,
     actor: Any | None = None,
-) -> CursorResult:
+) -> CursorResult[Group]:
     now: datetime = timezone.now()
     end: datetime | None = None
     end_params: list[datetime] = [
@@ -151,8 +152,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     enforce_rate_limit = True
 
     def _search(
-        self, request: Request, organization, projects, environments, extra_query_kwargs=None
-    ):
+        self,
+        request: Request,
+        organization: Organization,
+        projects: Sequence[Project],
+        environments: Sequence[Environment],
+        extra_query_kwargs: None | Mapping[str, Any] = None,
+    ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
         with start_span(op="_search"):
             query_kwargs = build_query_params_from_request(
                 request, organization, projects, environments
@@ -201,7 +207,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             return result, query_kwargs
 
     @track_slo_response("workflow")
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Issues
         `````````````````````````````
@@ -406,7 +412,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return response
 
     @track_slo_response("workflow")
-    def put(self, request: Request, organization) -> Response:
+    def put(self, request: Request, organization: Organization) -> Response:
         """
         Bulk Mutate a List of Issues
         ````````````````````````````
@@ -493,7 +499,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @track_slo_response("workflow")
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         Bulk Remove a List of Issues
         ````````````````````````````
