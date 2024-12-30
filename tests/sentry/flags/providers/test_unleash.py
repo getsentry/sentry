@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sentry.flags.providers import DeserializationError, UnleashProvider
 
 
-def test_handle_no_email():
+def test_handle_update_no_email():
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -31,7 +31,7 @@ def test_handle_no_email():
     }
 
 
-def test_handle_with_email():
+def test_handle_update_with_email():
     items = UnleashProvider(123, "abcdefgh").handle(
         {
             "id": 28,
@@ -59,9 +59,66 @@ def test_handle_with_email():
     }
 
 
+def test_handle_create():
+    items = UnleashProvider(123, "abcdefgh").handle(
+        {
+            "id": 28,
+            "tags": [{"type": "simple", "value": "testvalue"}],
+            "type": "feature-created",
+            "project": "default",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "michelle@michelle.org",
+            "environment": "development",
+            "featureName": "test-flag",
+            "createdByUserId": 1,
+        }
+    )
+    assert len(items) == 1
+    assert items[0]["action"] == 0
+
+
+def test_handle_junk_action():
+    items = UnleashProvider(123, "abcdefgh").handle(
+        {
+            "id": 28,
+            "tags": [{"type": "simple", "value": "testvalue"}],
+            "type": "feature-junk",
+            "project": "default",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "michelle@michelle.org",
+            "environment": "development",
+            "featureName": "test-flag",
+            "createdByUserId": 1,
+        }
+    )
+    assert len(items) == 0
+
+
+def test_handle_no_tags():
+    items = UnleashProvider(123, "abcdefgh").handle(
+        {
+            "id": 28,
+            "tags": [],
+            "type": "feature-environment-enabled",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "michelle@michelle.org",
+            "featureName": "test-flag",
+            "createdByUserId": 1,
+        }
+    )
+    assert len(items) == 1
+    assert items[0]["action"] == 2
+    assert items[0]["created_at"] == datetime(2024, 12, 30, 0, 0, tzinfo=timezone.utc)
+    assert items[0]["created_by"] == "michelle@michelle.org"
+    assert items[0]["created_by_type"] == 0
+    assert items[0]["flag"] == "test-flag"
+    assert items[0]["organization_id"] == 123
+    assert items[0]["tags"] == {}
+
+
 def test_blank():
     try:
-        UnleashProvider(123, None).handle({})
+        UnleashProvider(123, "abcdefgh").handle({})
     except DeserializationError as exc:
         assert len(exc.errors) == 4
         assert exc.errors["featureName"][0].code == "required"
@@ -72,7 +129,7 @@ def test_blank():
 
 def test_partial_fill():
     try:
-        UnleashProvider(123, None).handle(
+        UnleashProvider(123, "abcdefgh").handle(
             {
                 "id": 28,
                 "tags": [{"type": "simple", "value": "testvalue"}],

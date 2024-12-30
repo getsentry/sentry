@@ -313,8 +313,12 @@ class UnleashProvider:
         created_by, created_by_type = _get_user(result)
         unleash_tags = result.get("tags") or []
         tags = {tag["type"]: tag["value"] for tag in unleash_tags}
-        tags["project"] = result.get("project")
-        tags["environment"] = result.get("environment")
+
+        if result.get("project"):
+            tags["project"] = result.get("project")
+
+        if result.get("environment"):
+            tags["environment"] = result.get("environment")
 
         return [
             {
