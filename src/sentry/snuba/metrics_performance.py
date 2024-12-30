@@ -81,6 +81,8 @@ def query(
                 on_demand_metrics_type=on_demand_metrics_type,
             ),
         )
+        if referrer is None:
+            referrer = ""
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
     with sentry_sdk.start_span(op="mep", name="query.transform_results"):
