@@ -16,7 +16,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
@@ -162,7 +162,7 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const weights = PERFORMANCE_SCORE_WEIGHTS;
+  const weights = getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]));
 
   const commonWebVitalLabelProps = {
     organization,
