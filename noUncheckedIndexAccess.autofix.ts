@@ -17,7 +17,7 @@ import * as readline from 'readline';
 // - verify output
 // - run it
 
-let debug = false || process.env.DEBUG === '1' || process.env.DEBUG === 'true';
+const debug = false || process.env.DEBUG === '1' || process.env.DEBUG === 'true';
 const errors = fs.readFileSync('./noUncheckedIndexAccess.txt', 'utf8').split('\n');
 
 const ERROR_REGEXP =
@@ -69,11 +69,11 @@ function groupByFile(input: TSParsedError[]): Record<string, TSParsedError[]> {
 const parsedErrors = parseErrors(errors);
 const groupedByFileErrors = groupByFile(parsedErrors);
 
-let ranges: Record<string, {end: number; lines: number[]; start: number}[]> = {};
+const ranges: Record<string, {end: number; lines: number[]; start: number}[]> = {};
 
 for (const path in groupedByFileErrors) {
   for (let i = 0; i < groupedByFileErrors[path].length; i++) {
-    let lines: number[] = [groupedByFileErrors[path][i].line];
+    const lines: number[] = [groupedByFileErrors[path][i].line];
     let rp = i;
 
     while (
