@@ -3,7 +3,6 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 export const calculatePerformanceScoreFromStoredTableDataRow = (
   data?: TableDataRow
@@ -47,13 +46,7 @@ function hasWebVitalScore(data: TableDataRow, webVital: WebVitals): boolean {
 
 export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   if (!data) {
-    return {
-      lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
-      fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
-      clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
-      ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
-      inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
-    };
+    return {};
   }
 
   const hasLcp = hasWebVitalScore(data, 'lcp');
