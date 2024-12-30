@@ -769,13 +769,12 @@ const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
  *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
  *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
  */
+
 export default typescript.config([
   {
-    /**
-     * Main parser & linter options
-     * Rules are defined below and inherit these properties
-     * https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
-     */
+    // Main parser & linter options
+    // Rules are defined below and inherit these properties
+    // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
     name: 'main',
     languageOptions: {
       ecmaVersion,
@@ -848,17 +847,13 @@ export default typescript.config([
     },
   },
   {
-    /**
-     * Default file selection
-     * https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
-     */
+    // Default file selection
+    // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
     files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   {
-    /**
-     * Global ignores
-     * https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
-     */
+    // Global ignores
+    // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
     ignores: [
       '.devenv/**/*',
       '.github/**/*',
