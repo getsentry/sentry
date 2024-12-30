@@ -68,6 +68,7 @@ class EventsMeta(TypedDict):
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
 
 
 class EventsResponse(TypedDict):

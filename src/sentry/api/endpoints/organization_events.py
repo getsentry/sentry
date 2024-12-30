@@ -434,9 +434,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        # Referrer should always be not None at this point
-        assert referrer is not None
-
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
