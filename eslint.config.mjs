@@ -809,7 +809,7 @@ export default typescript.config([
         project: './tsconfig.json',
 
         // https://typescript-eslint.io/packages/parser/#projectservice
-        // `projectService` is slower with our current tsconfig files.
+        // `projectService` is recommended, but slower, with our current tsconfig files.
         // projectService: true,
         // tsconfigRootDir: import.meta.dirname,
       },
