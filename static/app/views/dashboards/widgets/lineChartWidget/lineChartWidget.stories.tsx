@@ -103,6 +103,10 @@ export default storyBook(LineChartWidget, story => {
                 shiftTimeserieToNow(durationTimeSeries1),
                 shiftTimeserieToNow(durationTimeSeries2),
               ]}
+              aliases={{
+                'p50(span.duration)': '50th Percentile',
+                'p99(span.duration)': '99th Percentile',
+              }}
             />
           </MediumWidget>
         </SideBySide>
