@@ -65,6 +65,7 @@ describe('ContextPickerModal', function () {
     render(getComponent());
 
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
     expect(screen.queryByText('Select a Project to continue')).not.toBeInTheDocument();
   });
 
@@ -144,6 +145,7 @@ describe('ContextPickerModal', function () {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
+    expect(screen.getByRole('textbox')).toHaveFocus();
     expect(await screen.findByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
@@ -180,6 +182,7 @@ describe('ContextPickerModal', function () {
 
     // Should not have anything selected
     expect(screen.getByText('Select an Organization')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveFocus();
 
     // Select org2
     await selectEvent.select(screen.getByText('Select an Organization'), org2.slug);
