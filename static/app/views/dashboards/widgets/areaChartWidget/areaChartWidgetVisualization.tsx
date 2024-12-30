@@ -28,7 +28,6 @@ import type {Aliases, Release, TimeseriesData} from '../common/types';
 export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   aliases?: Aliases;
-  meta?: Meta;
   releases?: Release[];
 }
 
