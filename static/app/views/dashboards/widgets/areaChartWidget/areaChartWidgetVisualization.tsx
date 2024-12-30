@@ -23,7 +23,7 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {formatTooltipValue} from '../common/formatTooltipValue';
 import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
-import type {Aliases, Meta, Release, TimeseriesData} from '../common/types';
+import type {Aliases, Release, TimeseriesData} from '../common/types';
 
 export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
@@ -38,7 +38,6 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
-  const {meta} = props;
 
   const theme = useTheme();
   const organization = useOrganization();
@@ -74,8 +73,8 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;
-  const type = meta?.fields?.[firstSeriesField] ?? 'number';
-  const unit = meta?.units?.[firstSeriesField] ?? undefined;
+  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
+  const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,

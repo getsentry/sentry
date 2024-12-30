@@ -56,7 +56,6 @@ export function AreaChartWidget(props: AreaChartWidgetProps) {
             timeseries={timeseries}
             releases={props.releases}
             aliases={props.aliases}
-            meta={props.meta}
           />
         </AreaChartWrapper>
       )}
