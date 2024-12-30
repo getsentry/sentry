@@ -3,7 +3,6 @@ from typing import Any
 from unittest.mock import patch
 
 import orjson
-import pytest
 import responses
 from requests.exceptions import ConnectionError
 
@@ -141,14 +140,13 @@ class RefsChangedWebhookTest(WebhookTestBase):
         error = Exception("error")
         mock_event.side_effect = error
 
-        with pytest.raises(Exception):
-            self.get_error_response(
-                self.organization.id,
-                self.integration.id,
-                raw_data=REFS_CHANGED_EXAMPLE,
-                extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
-                status_code=500,
-            )
+        self.get_error_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=REFS_CHANGED_EXAMPLE,
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=500,
+        )
 
         assert_failure_metric(mock_record, error)
 
@@ -234,5 +232,5 @@ class RefsChangedWebhookTest(WebhookTestBase):
             self.integration.id,
             raw_data=orjson.dumps(payload),
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
-            status_code=409,
+            status_code=400,
         )
