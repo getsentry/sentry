@@ -47,6 +47,11 @@ describe('EventTraceView', () => {
 
   it('renders a trace', async () => {
     MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
       body: {
@@ -161,6 +166,11 @@ describe('EventTraceView', () => {
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
+    MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,

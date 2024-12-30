@@ -17,9 +17,11 @@ export type TracingEventParameters = {
     visualizes_count: number;
   };
   'trace.metadata': {
+    has_exceeded_performance_usage_limit: boolean | null;
     num_nodes: number;
     num_root_children: number;
     project_platforms: string[];
+    referrer: string | null;
     shape: string;
     trace_duration_seconds: number;
   };

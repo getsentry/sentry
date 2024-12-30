@@ -63,6 +63,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
+import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics} from './traceAnalytics';
@@ -514,11 +515,23 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [onScrollToNode, setRowAsFocused]
   );
 
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit
+      );
+    }
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -617,6 +630,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
   ]);
 
   // Setup the middleware for the trace reducer
