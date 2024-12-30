@@ -929,6 +929,7 @@ export default typescript.config([
         'error',
         {
           paths: [
+            // @ts-ignore
             ...appRules['no-restricted-imports'][1].paths,
             {
               name: 'sentry/utils/queryClient',
