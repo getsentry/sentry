@@ -96,7 +96,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
   const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
-  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
   ) => {
@@ -210,7 +210,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         axisPointer: {
           type: 'cross',
         },
-        formatter,
+        formatter: formatTooltip,
       }}
       xAxis={{
         axisLabel: {

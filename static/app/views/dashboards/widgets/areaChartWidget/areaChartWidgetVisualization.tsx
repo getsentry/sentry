@@ -72,7 +72,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
   const type = meta?.fields?.[firstSeriesField] ?? 'number';
   const unit = meta?.units?.[firstSeriesField] ?? undefined;
 
-  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
   ) => {
@@ -177,7 +177,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
         axisPointer: {
           type: 'cross',
         },
-        formatter,
+        formatter: formatTooltip,
       }}
       xAxis={{
         axisLabel: {
