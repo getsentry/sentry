@@ -1,7 +1,7 @@
 import type {LocationDescriptor} from 'history';
 
+import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
-import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
