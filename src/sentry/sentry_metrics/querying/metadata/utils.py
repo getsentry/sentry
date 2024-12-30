@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from sentry.snuba.metrics import get_mri
 from sentry.snuba.metrics.naming_layer.mri import is_mri
+from sentry.snuba.metrics.utils import MetricOperationType
 
-METRICS_API_HIDDEN_OPERATIONS = {
+METRICS_API_HIDDEN_OPERATIONS: dict[str, list[MetricOperationType]] = {
     "sentry:metrics_activate_percentiles": [
         "p50",
         "p75",
@@ -12,17 +15,21 @@ METRICS_API_HIDDEN_OPERATIONS = {
     "sentry:metrics_activate_last_for_gauges": ["last"],
 }
 
-NON_QUERYABLE_METRIC_OPERATIONS = ["histogram", "min_timestamp", "max_timestamp"]
+NON_QUERYABLE_METRIC_OPERATIONS: list[MetricOperationType] = [
+    "histogram",
+    "min_timestamp",
+    "max_timestamp",
+]
 
 
 class OperationsConfiguration:
     def __init__(self):
         self.hidden_operations = set()
 
-    def hide_operations(self, operations: list[str]) -> None:
+    def hide_operations(self, operations: list[MetricOperationType]) -> None:
         self.hidden_operations.update(operations)
 
-    def get_hidden_operations(self):
+    def get_hidden_operations(self) -> list[MetricOperationType]:
         return list(self.hidden_operations)
 
 
