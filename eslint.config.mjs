@@ -7,11 +7,9 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import {fixupPluginRules} from '@eslint/compat';
-// import eslint from '@eslint/js';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
-// import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
 import prettier from 'eslint-plugin-prettier/recommended';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -730,14 +728,6 @@ const appRules = {
       format: ['UPPER_CASE'],
     },
   ],
-
-  // Don't allow lookbehind expressions in regexp as they crash safari
-  // We've accidentally used lookbehinds a few times and caused problems.
-  // 'no-lookahead-lookbehind-regexp/no-lookahead-lookbehind-regexp': [
-  //   'error',
-  //   'no-lookbehind',
-  //   'no-negative-lookbehind',
-  // ],
 };
 
 const strictRules = {
@@ -802,7 +792,9 @@ export default typescript.config([
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        jsDocParsingMode: 'none',
+        jsDocParsingMode: Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
+          ? 'all'
+          : 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
         project: './tsconfig.json',
@@ -829,7 +821,6 @@ export default typescript.config([
       'react-hooks': fixupPluginRules(reactHooks),
       'simple-import-sort': simpleImportSort,
       'typescript-sort-keys': typescriptSortKeys,
-      // 'no-lookahead-lookbehind-regexp': noLookaheadLookbehindRegexp,
       sentry,
     },
     settings: {
@@ -912,6 +903,14 @@ export default typescript.config([
   {
     name: 'import/recommended',
     ...importPlugin.flatConfigs.recommended,
+  },
+  {
+    name: 'deprecations',
+    rules: {
+      '@typescript-eslint/no-deprecated': Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
+        ? 'error'
+        : 'off',
+    },
   },
   {
     name: 'getsentry/sentry/custom',
