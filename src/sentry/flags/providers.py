@@ -151,7 +151,7 @@ class LaunchDarklyProvider:
         ]
 
     def validate(self, message_bytes: bytes) -> bool:
-        validator = SecretValidator(
+        validator = PayloadSignatureValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
@@ -232,7 +232,7 @@ class GenericProvider:
         return result
 
     def validate(self, message_bytes: bytes) -> bool:
-        validator = SecretValidator(
+        validator = PayloadSignatureValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
@@ -333,17 +333,11 @@ class UnleashProvider:
         ]
 
     def validate(self, message_bytes: bytes) -> bool:
-        # Since the user is passing in whatever they want as an authorization string,
-        # we don't need to validate it like a normal secret.
-        def _dummy_validate_secret(secret: str, message_bytes: bytes) -> str:
-            return secret
-
-        validator = SecretValidator(
+        validator = AuthTokenValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
             self.signature,
-            secret_validator=_dummy_validate_secret,
         )
         return validator.validate()
 
@@ -390,7 +384,39 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
 """Helpers."""
 
 
-class SecretValidator:
+class AuthTokenValidator:
+    """Abstract payload validator.
+
+    Similar to the SecretValidator class below, except we do not need
+    to validate the authorization string.
+    """
+
+    def __init__(
+        self,
+        organization_id: int,
+        provider: str,
+        request_body: bytes,
+        signature: str | None,
+        secret_finder: Callable[[int, str], Iterator[str]] | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.provider = provider
+        self.request_body = request_body
+        self.signature = signature
+        self.secret_finder = secret_finder or _query_signing_secrets
+
+    def validate(self) -> bool:
+        if self.signature is None:
+            return False
+
+        for secret in self.secret_finder(self.organization_id, self.provider):
+            if secret == self.signature:
+                return True
+
+        return False
+
+
+class PayloadSignatureValidator:
     """Abstract payload validator.
 
     Allows us to inject dependencies for differing use cases. Specifically
