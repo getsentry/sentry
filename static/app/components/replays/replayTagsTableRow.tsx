@@ -31,7 +31,7 @@ function renderValueList(values: ReactNode[]) {
   return valueItems.map(value => {
     return (
       <Fragment>
-        <AnnotatedText value={value} />
+        {value}
         <br />
       </Fragment>
     );
@@ -49,15 +49,13 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
       ));
     }
     if (expandedViewKeys.includes(name)) {
-      if (!renderValueList(values)) {
-        return '[ ]';
+      if (renderValueList(values)) {
+        return (
+          <CollapsibleValue openTag="[" closeTag="]" path="$" noBasePadding>
+            {renderValueList(values)}
+          </CollapsibleValue>
+        );
       }
-
-      return (
-        <CollapsibleValue openTag="[" closeTag="]" path="$" noBasePadding>
-          {renderValueList(values)}
-        </CollapsibleValue>
-      );
     }
 
     return values.map((value, index) => {
