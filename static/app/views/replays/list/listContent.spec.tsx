@@ -88,9 +88,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
@@ -110,9 +108,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 
@@ -132,9 +128,7 @@ describe('ReplayList', () => {
       organization: mockOrg,
     });
 
-    await waitFor(() =>
-      expect(screen.getByText('Get to the root cause faster')).toBeInTheDocument()
-    );
+    await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
   });
 

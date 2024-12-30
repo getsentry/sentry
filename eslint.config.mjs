@@ -454,14 +454,9 @@ const reactImportRules = {
   ],
 };
 
-const reactJestRules = {
-  'jest/no-disabled-tests': 'error',
-};
-
 const reactRules = {
   ...reactReactRules,
   ...reactImportRules,
-  ...reactJestRules,
   /**
    * React hooks
    */
@@ -477,21 +472,6 @@ const reactRules = {
    */
   // highlights literals in JSX components w/o translation tags
   'getsentry/jsx-needs-il8n': ['off'],
-  'testing-library/render-result-naming-convention': 'off',
-  'testing-library/no-unnecessary-act': 'off',
-
-  // Disabled as we have many tests which render as simple validations
-  'jest/expect-expect': 'off',
-
-  // Disabled as we have some comment out tests that cannot be
-  // uncommented due to typescript errors.
-  'jest/no-commented-out-tests': 'off',
-
-  // Disabled as we do sometimes have conditional expects
-  'jest/no-conditional-expect': 'off',
-
-  // Useful for exporting some test utilities
-  'jest/no-export': 'off',
 
   'typescript-sort-keys/interface': [
     'error',
@@ -745,8 +725,6 @@ const strictRules = {
   // This is now considered legacy, callback refs preferred
   'react/no-string-refs': ['error'],
 
-  'jest/no-large-snapshots': ['error', {maxSize: 2000}],
-
   'sentry/no-styled-shortcut': ['error'],
 };
 
@@ -810,8 +788,6 @@ export default typescript.config([
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
     plugins: {
-      ...jest.configs['flat/recommended'].plugins,
-      ...jestDom.configs['flat/recommended'].plugins,
       ...react.configs.flat.plugins,
       ...react.configs.flat['jsx-runtime'].plugins,
       '@emotion': emotion,
@@ -939,17 +915,60 @@ export default typescript.config([
       ],
     },
   },
-
   {
-    name: 'testing-library/react',
-    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    name: 'jest',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    plugins: jest.configs['flat/recommended'].plugins,
+    rules: {
+      'jest/no-disabled-tests': 'error',
+
+      // Disabled as we have many tests which render as simple validations
+      'jest/expect-expect': 'off',
+
+      // Disabled as we have some comment out tests that cannot be
+      // uncommented due to typescript errors.
+      'jest/no-commented-out-tests': 'off',
+
+      // Disabled as we do sometimes have conditional expects
+      'jest/no-conditional-expect': 'off',
+
+      // Useful for exporting some test utilities
+      'jest/no-export': 'off',
+
+      // We don't recommend snapshots, but if there are any keep it small
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+    },
+  },
+  {
+    name: 'jest-dom',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    plugins: jestDom.configs['flat/recommended'].plugins,
+  },
+  {
+    name: 'testing-library/react - ts files',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      ...baseRules,
-      ...reactRules,
-      ...appRules,
-      ...strictRules,
       ...testingLibrary.configs['flat/react'].rules,
+      'testing-library/render-result-naming-convention': 'off',
+      'testing-library/no-unnecessary-act': 'off',
+    },
+  },
+  {
+    name: 'testing-library/react - tsx files',
+    files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
+    ...testingLibrary.configs['flat/react'],
+    rules: {
+      'testing-library/await-async-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-await-sync-events': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-await-sync-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-render-in-lifecycle': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/no-wait-for-multiple-assertions': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-presence-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
   },
   {
