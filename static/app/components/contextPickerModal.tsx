@@ -69,11 +69,7 @@ type Props = ModalRenderProps & {
 };
 
 function autoFocusReactSelect(reactSelectRef: any) {
-  if (!reactSelectRef) {
-    return;
-  }
-
-  reactSelectRef.select?.focus?.();
+  reactSelectRef?.select?.focus?.();
 }
 
 const selectStyles: StylesConfig = {
