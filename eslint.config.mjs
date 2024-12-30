@@ -19,6 +19,7 @@ import testingLibrary from 'eslint-plugin-testing-library';
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
 import globals from 'globals';
 import invariant from 'invariant';
+// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
 import {builtinModules} from 'node:module';
 import typescript from 'typescript-eslint';
 
@@ -652,7 +653,6 @@ const appRules = {
         ['^\\u0000'],
 
         // Node.js builtins.
-        // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
         [`^(${builtinModules.join('|')})(/|$)`],
 
         // Packages. `react` related packages come first.
@@ -792,9 +792,7 @@ export default typescript.config([
         experimentalDecorators: undefined,
 
         // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
-        jsDocParsingMode: Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
-          ? 'all'
-          : 'none',
+        jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
         project: './tsconfig.json',
@@ -807,7 +805,7 @@ export default typescript.config([
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'off', // TODO(ryan953): set to 'error' and autofix
+      reportUnusedDisableDirectives: 'error',
     },
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
@@ -907,7 +905,7 @@ export default typescript.config([
   {
     name: 'deprecations',
     rules: {
-      '@typescript-eslint/no-deprecated': Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
+      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
         ? 'error'
         : 'off',
     },

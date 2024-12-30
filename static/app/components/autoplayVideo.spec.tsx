@@ -1,4 +1,3 @@
-// eslint-disable-next-line no-restricted-imports
 import * as React from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';

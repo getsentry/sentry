@@ -329,5 +329,4 @@ export function fetchMutation(api: Client) {
   };
 }
 
-// eslint-disable-next-line import/export
 export * from '@tanstack/react-query';

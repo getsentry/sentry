@@ -305,7 +305,6 @@ export function findRangeBinarySearch(
   target: number,
   precision = 1
 ): [number, number] {
-  // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
       return [low, high];

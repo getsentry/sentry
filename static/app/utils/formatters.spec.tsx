@@ -170,14 +170,12 @@ describe('userDisplayName', function () {
   it('should show unknown author, if author or email is just whitespace', function () {
     expect(
       userDisplayName({
-        // eslint-disable-next-line quotes
         name: `\t\n `,
       })
     ).toEqual('Unknown author');
 
     expect(
       userDisplayName({
-        // eslint-disable-next-line quotes
         email: `\t\n `,
       })
     ).toEqual('Unknown author');

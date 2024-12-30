@@ -130,7 +130,7 @@ function DifferentialFlamegraphView() {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [differentialFlamegraph.differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
   );
 

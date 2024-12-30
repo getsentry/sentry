@@ -179,7 +179,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     ) {
       // If the query names has changed, then update timeseries labels
 
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(

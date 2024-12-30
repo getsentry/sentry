@@ -341,7 +341,6 @@ export function Provider({
         }
       }
 
-      // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',

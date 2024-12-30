@@ -62,7 +62,7 @@ abstract class AbstractIntegrationDetailedView<
     super.componentDidMount();
     const {location} = this.props;
     const value = location.query.tab === 'configurations' ? 'configurations' : 'overview';
-    // eslint-disable-next-line react/no-did-mount-set-state
+
     this.setState({tab: value});
   }
 

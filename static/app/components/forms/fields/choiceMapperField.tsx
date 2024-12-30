@@ -148,7 +148,6 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     };
 
     const removeRow = (itemKey: string) => {
-      // eslint-disable-next-line no-unused-vars
       saveChanges(
         Object.fromEntries(Object.entries(value).filter(([key, _]) => key !== itemKey))
       );

@@ -72,7 +72,7 @@ describe('Relocation', function () {
     // be safe to ignore this error, but we should remove the mock once we move to react testing
     // library.
     //
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
   });
 

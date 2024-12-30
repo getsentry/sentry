@@ -22,7 +22,6 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   state: State = this.getHooks();
 
   componentDidMount() {
-    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState(this.getHooks());
   }
 
