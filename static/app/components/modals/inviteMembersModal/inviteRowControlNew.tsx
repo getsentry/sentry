@@ -94,7 +94,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
       setRole('billing', 0);
       setTeams([], 0);
     }
-  });
+  }, [isOverMemberLimit, setRole, setTeams]);
 
   return (
     <RowWrapper>
