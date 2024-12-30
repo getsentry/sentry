@@ -81,7 +81,7 @@ def get_provider(
         case "generic":
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
         case "unleash":
-            return UnleashProvider(organization_id, signature=headers.get("X-Unleash-Signature"))
+            return UnleashProvider(organization_id, signature=headers.get("Authorization"))
         case _:
             return None
 
@@ -329,14 +329,13 @@ class UnleashProvider:
         ]
 
     def validate(self, message_bytes: bytes) -> bool:
-        return True
-        # validator = SecretValidator(
-        #     self.organization_id,
-        #     self.provider_name,
-        #     message_bytes,
-        #     self.signature,
-        # )
-        # return validator.validate()
+        validator = SecretValidator(
+            self.organization_id,
+            self.provider_name,
+            message_bytes,
+            self.signature,
+        )
+        return validator.validate()
 
 
 def _handle_unleash_actions(action: str) -> int:
