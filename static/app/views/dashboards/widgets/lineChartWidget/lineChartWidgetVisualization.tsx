@@ -19,17 +19,16 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {formatTooltipValue} from '../common/formatTooltipValue';
+import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
-import type {Meta, Release, TimeseriesData} from '../common/types';
+import type {Release, TimeseriesData} from '../common/types';
 
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatYAxisValue} from './formatYAxisValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
   dataCompletenessDelay?: number;
-  meta?: Meta;
   releases?: Release[];
 }
 
@@ -39,7 +38,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
-  const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
 
@@ -95,8 +93,8 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;
-  const type = meta?.fields?.[firstSeriesField] ?? 'number';
-  const unit = meta?.units?.[firstSeriesField] ?? undefined;
+  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
+  const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
   const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,

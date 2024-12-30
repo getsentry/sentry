@@ -421,7 +421,7 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       showQuerySymbols: widgets.length > 1,
       highlightedSampleId,
       setHighlightedSampleId,
-      isMultiChartMode: isMultiChartMode,
+      isMultiChartMode,
       setIsMultiChartMode: handleSetIsMultiChartMode,
       metricsSamples,
       setMetricsSamples,

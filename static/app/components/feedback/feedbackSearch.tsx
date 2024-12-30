@@ -132,9 +132,9 @@ export default function FeedbackSearch() {
       useCache: true,
       enabled: true,
       keepPreviousData: false,
-      start: start,
-      end: end,
-      statsPeriod: statsPeriod,
+      start,
+      end,
+      statsPeriod,
     },
     {}
   );
@@ -164,9 +164,9 @@ export default function FeedbackSearch() {
       }
 
       const endpointParams = {
-        start: start,
-        end: end,
-        statsPeriod: statsPeriod,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({

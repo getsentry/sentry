@@ -172,6 +172,18 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert data["payload"]["summary"] == group_event.occurrence.issue_title
         assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
 
+    def test_render_label_without_severity(self):
+        rule_data = {
+            "account": self.integration.id,
+            "service": self.service["id"],
+        }
+        rule = self.get_rule(data=rule_data)
+
+        assert (
+            rule.render_label()
+            == "Send a notification to PagerDuty account Example and service Critical with default severity"
+        )
+
     def test_render_label(self):
         rule_data = {
             "account": self.integration.id,
@@ -182,16 +194,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to PagerDuty account Example and service Critical"
+            == "Send a notification to PagerDuty account Example and service Critical with warning severity"
         )
-
-        with self.feature("organizations:integrations-custom-alert-priorities"):
-            # reinitialize rule to utilize flag
-            rule = self.get_rule(data=rule_data)
-            assert (
-                rule.render_label()
-                == "Send a notification to PagerDuty account Example and service Critical with warning severity"
-            )
 
     def test_render_label_without_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -206,16 +210,8 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to PagerDuty account [removed] and service [removed]"
+            == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
         )
-
-        with self.feature("organizations:integrations-custom-alert-priorities"):
-            # reinitialize rule to utilize flag
-            rule = self.get_rule(data=rule_data)
-            assert (
-                rule.render_label()
-                == "Send a notification to PagerDuty account [removed] and service [removed] with default severity"
-            )
 
     def test_valid_service_options(self):
         # create new org that has the same pd account but different a service added

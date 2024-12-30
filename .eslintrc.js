@@ -152,20 +152,8 @@ const baseRules = {
   // https://eslint.org/docs/rules/radix
   radix: ['error'],
 
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'computed-property-spacing': ['error', 'never'],
-
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'array-bracket-spacing': ['error', 'never'],
-
-  // https://eslint.org/docs/rules/space-in-brackets.html
-  'object-curly-spacing': ['error', 'never'],
-
   // https://eslint.org/docs/rules/object-shorthand
   'object-shorthand': ['error', 'properties'],
-
-  // https://eslint.org/docs/rules/space-infix-ops.html
-  'space-infix-ops': ['error'],
 
   // https://eslint.org/docs/rules/vars-on-top
   'vars-on-top': ['off'],
@@ -306,10 +294,6 @@ const reactReactRules = {
   //
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
   'react/sort-comp': ['warn'],
-
-  // Disabled because of prettier
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/wrap-multilines.md
-  'react/jsx-wrap-multilines': ['off'],
 
   // Consistent <Component booleanProp /> (never add ={true})
   // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
@@ -458,7 +442,10 @@ const reactRules = {
   /**
    * React hooks
    */
-  'react-hooks/exhaustive-deps': 'error',
+  'react-hooks/exhaustive-deps': [
+    'error',
+    {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+  ],
   // Biome not yet enforcing all parts of this rule https://github.com/biomejs/biome/issues/1984
   'react-hooks/rules-of-hooks': 'error',
 
@@ -554,12 +541,18 @@ const appRules = {
   'no-restricted-imports': [
     'error',
     {
-      paths: [
+      patterns: [
         {
-          name: 'enzyme',
-          message:
-            'Please import from `sentry-test/enzyme` instead. See: https://github.com/getsentry/frontend-handbook#undefined-theme-properties-in-tests for more information',
+          group: ['sentry/components/devtoolbar/*'],
+          message: 'Do not depend on toolbar internals',
         },
+        {
+          group: ['*.spec*'],
+          message:
+            'Do not import from test files. This causes tests to be executed multiple times.',
+        },
+      ],
+      paths: [
         {
           name: '@testing-library/react',
           message:
@@ -585,7 +578,6 @@ const appRules = {
           message:
             "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
         },
-
         {
           name: 'lodash',
           message:
@@ -595,11 +587,6 @@ const appRules = {
           name: 'lodash/get',
           message:
             'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-        },
-        {
-          name: 'react-bootstrap',
-          message:
-            'Avoid usage of any react-bootstrap components as it will soon be removed',
         },
         {
           name: 'sentry/utils/theme',
@@ -618,6 +605,14 @@ const appRules = {
           importNames: ['withSentryRouter'],
           message:
             "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+        },
+        {
+          name: 'qs',
+          message: 'Please use query-string instead of qs',
+        },
+        {
+          name: 'moment',
+          message: 'Please import moment-timezone instead of moment',
         },
       ],
     },
@@ -750,6 +745,7 @@ const extendsList = [
 if (detectDeprecations) {
   extendsList.push('plugin:deprecation/recommended');
 }
+extendsList.push('prettier'); // From package: `eslint-config-prettier`. Keep this last in the list
 
 module.exports = {
   root: true,
@@ -798,7 +794,6 @@ module.exports = {
     browser: true,
     es6: true,
     jest: true,
-    jquery: true, // hard-loaded into vendor.js
   },
 
   globals: {
@@ -811,7 +806,7 @@ module.exports = {
 
   settings: {
     react: {
-      version: '17.0.2', // React version, can not `detect` because of getsentry
+      version: '18.2.0', // React version, can not `detect` because of getsentry
     },
     'import/parsers': {
       '@typescript-eslint/parser': ['.ts', '.tsx'],
@@ -827,98 +822,6 @@ module.exports = {
     ...reactRules,
     ...appRules,
     ...strictRules,
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': [
-      'error',
-      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
-    ],
-    'no-restricted-imports': [
-      'error',
-      {
-        patterns: [
-          {
-            group: ['sentry/components/devtoolbar/*'],
-            message: 'Do not depend on toolbar internals',
-          },
-        ],
-        paths: [
-          {
-            name: '@testing-library/react',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@testing-library/react-hooks',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@testing-library/user-event',
-            message:
-              'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-          },
-          {
-            name: '@sentry/browser',
-            message:
-              'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
-          },
-          {
-            name: 'marked',
-            message:
-              "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
-          },
-          {
-            name: 'lodash',
-            message:
-              "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
-          },
-          {
-            name: 'lodash/get',
-            message:
-              'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-          },
-          {
-            name: 'sentry/utils/theme',
-            importNames: ['lightColors', 'darkColors'],
-            message:
-              "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-          },
-          {
-            name: 'react-router',
-            importNames: ['withRouter'],
-            message:
-              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-          },
-          {
-            name: 'sentry/utils/withSentryRouter',
-            importNames: ['withSentryRouter'],
-            message:
-              "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-          },
-          {
-            name: 'qs',
-            message: 'Please use query-string instead of qs',
-          },
-          {
-            name: 'moment',
-            message: 'Please import moment-timezone instead of moment',
-          },
-        ],
-      },
-    ],
-
-    // TODO(@anonrig): Remove this from eslint-sentry-config
-    'space-infix-ops': 'off',
-    'object-shorthand': 'off',
-    'object-curly-spacing': 'off',
-    'import/no-amd': 'off',
-    'no-danger-with-children': 'off',
-    'no-fallthrough': 'off',
-    'no-obj-calls': 'off',
-    'array-bracket-spacing': 'off',
-    'computed-property-spacing': 'off',
-    'react/no-danger-with-children': 'off',
-    'jest/no-disabled-tests': 'off',
   },
   // JSON file formatting is handled by Biome. ESLint should not be linting
   // and formatting these files.
@@ -931,6 +834,7 @@ module.exports = {
           'error',
           {
             paths: [
+              ...appRules['no-restricted-imports'][1].paths,
               {
                 name: 'sentry/utils/queryClient',
                 message:
@@ -949,18 +853,6 @@ module.exports = {
         ...reactRules,
         ...appRules,
         ...strictRules,
-        // TODO(@anonrig): Remove this from eslint-sentry-config
-        'space-infix-ops': 'off',
-        'object-shorthand': 'off',
-        'object-curly-spacing': 'off',
-        'import/no-amd': 'off',
-        'no-danger-with-children': 'off',
-        'no-fallthrough': 'off',
-        'no-obj-calls': 'off',
-        'array-bracket-spacing': 'off',
-        'computed-property-spacing': 'off',
-        'react/no-danger-with-children': 'off',
-        'jest/no-disabled-tests': 'off',
       },
     },
     {

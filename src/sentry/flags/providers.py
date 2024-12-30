@@ -1,7 +1,8 @@
 import datetime
 import hashlib
 import hmac
-from typing import Any, TypedDict
+from collections.abc import Callable, Iterator
+from typing import Any, Protocol, TypedDict, TypeVar
 
 from django.http.request import HttpHeaders
 from rest_framework import serializers
@@ -32,6 +33,8 @@ performance but secondarily to allow easy extension of the endpoint without know
 the underlying systems.
 """
 
+T = TypeVar("T", contravariant=True)
+
 
 class FlagAuditLogRow(TypedDict):
     """A complete flag audit log row instance."""
@@ -43,6 +46,16 @@ class FlagAuditLogRow(TypedDict):
     flag: str
     organization_id: int
     tags: dict[str, Any]
+
+
+class ProviderProtocol(Protocol[T]):
+    organization_id: int
+    provider_name: str
+    signature: str | None
+
+    def __init__(self, organization_id: int, signature: str | None) -> None: ...
+    def handle(self, message: T) -> list[FlagAuditLogRow]: ...
+    def validate(self, message_bytes: bytes) -> bool: ...
 
 
 class DeserializationError(Exception):
@@ -58,29 +71,16 @@ class InvalidProvider(Exception):
     ...
 
 
-def handle_provider_event(
-    provider: str,
-    request_data: dict[str, Any],
-    organization_id: int,
-) -> list[FlagAuditLogRow]:
-    match provider:
+def get_provider(
+    organization_id: int, provider_name: str, headers: HttpHeaders
+) -> ProviderProtocol[dict[str, Any]] | None:
+    match provider_name:
         case "launchdarkly":
-            return handle_launchdarkly_event(request_data, organization_id)
+            return LaunchDarklyProvider(organization_id, signature=headers.get("X-LD-Signature"))
+        case "generic":
+            return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
         case _:
-            raise InvalidProvider(provider)
-
-
-def validate_provider_event(
-    provider: str,
-    request_data: bytes,
-    request_headers: HttpHeaders,
-    organization_id: int,
-) -> bool:
-    match provider:
-        case "launchdarkly":
-            return validate_launchdarkly_event(request_data, request_headers, organization_id)
-        case _:
-            raise InvalidProvider(provider)
+            return None
 
 
 """LaunchDarkly provider."""
@@ -115,7 +115,49 @@ SUPPORTED_LAUNCHDARKLY_ACTIONS = {
 }
 
 
-def handle_launchdarkly_actions(action: str) -> int:
+class LaunchDarklyProvider:
+    provider_name = "launchdarkly"
+
+    def __init__(self, organization_id: int, signature: str | None) -> None:
+        self.organization_id = organization_id
+        self.signature = signature
+
+    def handle(self, message: dict[str, Any]) -> list[FlagAuditLogRow]:
+        serializer = LaunchDarklyItemSerializer(data=message)
+        if not serializer.is_valid():
+            raise DeserializationError(serializer.errors)
+
+        result = serializer.validated_data
+
+        access = result["accesses"][0]
+        if access["action"] not in SUPPORTED_LAUNCHDARKLY_ACTIONS:
+            return []
+
+        return [
+            {
+                "action": _handle_launchdarkly_actions(access["action"]),
+                "created_at": datetime.datetime.fromtimestamp(
+                    result["date"] / 1000.0, datetime.UTC
+                ),
+                "created_by": result["member"]["email"],
+                "created_by_type": CREATED_BY_TYPE_MAP["email"],
+                "flag": result["name"],
+                "organization_id": self.organization_id,
+                "tags": {"description": result["description"]},
+            }
+        ]
+
+    def validate(self, message_bytes: bytes) -> bool:
+        validator = SecretValidator(
+            self.organization_id,
+            self.provider_name,
+            message_bytes,
+            self.signature,
+        )
+        return validator.validate()
+
+
+def _handle_launchdarkly_actions(action: str) -> int:
     if action == "createFlag" or action == "cloneFlag":
         return ACTION_MAP["created"]
     if action == "deleteFlag":
@@ -124,60 +166,79 @@ def handle_launchdarkly_actions(action: str) -> int:
         return ACTION_MAP["updated"]
 
 
-def handle_launchdarkly_event(
-    request_data: dict[str, Any], organization_id: int
-) -> list[FlagAuditLogRow]:
-    serializer = LaunchDarklyItemSerializer(data=request_data)
-    if not serializer.is_valid():
-        raise DeserializationError(serializer.errors)
+"""Generic provider.
 
-    result = serializer.validated_data
-
-    access = result["accesses"][0]
-    if access["action"] not in SUPPORTED_LAUNCHDARKLY_ACTIONS:
-        return []
-
-    return [
-        {
-            "action": handle_launchdarkly_actions(access["action"]),
-            "created_at": datetime.datetime.fromtimestamp(result["date"] / 1000.0, datetime.UTC),
-            "created_by": result["member"]["email"],
-            "created_by_type": CREATED_BY_TYPE_MAP["email"],
-            "flag": result["name"],
-            "organization_id": organization_id,
-            "tags": {"description": result["description"]},
-        }
-    ]
-
-
-def validate_launchdarkly_event(
-    request_data: bytes,
-    request_headers: HttpHeaders,
-    organization_id: int,
-) -> bool:
-    """Return "true" if the launchdarkly payload is valid."""
-    signature = request_headers.get("X-LD-Signature")
-    if signature is None:
-        return False
-
-    models = FlagWebHookSigningSecretModel.objects.filter(
-        organization_id=organization_id,
-        provider="launchdarkly",
-    ).all()
-    for model in models:
-        if hmac_sha256_hex_digest(model.secret, request_data) == signature:
-            return True
-    return False
-
-
-def hmac_sha256_hex_digest(key: str, message: bytes):
-    return hmac.new(key.encode(), message, hashlib.sha256).hexdigest()
-
-
-"""Internal flag-pole provider.
-
-Allows us to skip the HTTP endpoint.
+The generic provider represents a Sentry-defined generic web hook
+interface that anyone can integrate with.
 """
+
+
+class GenericItemCreatedBySerializer(serializers.Serializer):
+    id = serializers.CharField(required=True, max_length=100)
+    type = serializers.ChoiceField(choices=(("email", 0), ("id", 1), ("name", 2)), required=True)
+
+
+class GenericItemSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(
+        choices=(("created", 0), ("updated", 1), ("deleted", 2)), required=True
+    )
+    change_id = serializers.IntegerField(required=True)
+    created_at = serializers.DateTimeField(required=True)
+    created_by = GenericItemCreatedBySerializer(required=True)
+    flag = serializers.CharField(required=True, max_length=100)
+
+
+class GenericMetaSerializer(serializers.Serializer):
+    version = serializers.IntegerField(required=True)
+
+
+class GenericRequestSerializer(serializers.Serializer):
+    data = GenericItemSerializer(many=True, required=True)  # type: ignore[assignment]
+    meta = GenericMetaSerializer(required=True)
+
+
+class GenericProvider:
+    provider_name = "generic"
+
+    def __init__(self, organization_id: int, signature: str | None) -> None:
+        self.organization_id = organization_id
+        self.signature = signature
+
+    def handle(self, message: dict[str, Any]) -> list[FlagAuditLogRow]:
+        serializer = GenericRequestSerializer(data=message)
+        if not serializer.is_valid():
+            raise DeserializationError(serializer.errors)
+
+        seen = set()
+        result: list[FlagAuditLogRow] = []
+        for item in serializer.validated_data["data"]:
+            if item["change_id"] not in seen:
+                seen.add(item["change_id"])
+                result.append(
+                    {
+                        "action": ACTION_MAP[item["action"]],
+                        "created_at": item["created_at"],
+                        "created_by": item["created_by"]["id"],
+                        "created_by_type": CREATED_BY_TYPE_MAP[item["created_by"]["type"]],
+                        "flag": item["flag"],
+                        "organization_id": self.organization_id,
+                        "tags": {},
+                    }
+                )
+
+        return result
+
+    def validate(self, message_bytes: bytes) -> bool:
+        validator = SecretValidator(
+            self.organization_id,
+            self.provider_name,
+            message_bytes,
+            self.signature,
+        )
+        return validator.validate()
+
+
+"""Flagpole provider."""
 
 
 class FlagAuditLogItem(TypedDict):
@@ -205,3 +266,51 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
             for item in items
         ]
     )
+
+
+"""Helpers."""
+
+
+class SecretValidator:
+    """Abstract payload validator.
+
+    Allows us to inject dependencies for differing use cases. Specifically
+    the test suite.
+    """
+
+    def __init__(
+        self,
+        organization_id: int,
+        provider: str,
+        request_body: bytes,
+        signature: str | None,
+        secret_finder: Callable[[int, str], Iterator[str]] | None = None,
+        secret_validator: Callable[[str, bytes], str] | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.provider = provider
+        self.request_body = request_body
+        self.signature = signature
+        self.secret_finder = secret_finder or _query_signing_secrets
+        self.secret_validator = secret_validator or hmac_sha256_hex_digest
+
+    def validate(self) -> bool:
+        if self.signature is None:
+            return False
+
+        for secret in self.secret_finder(self.organization_id, self.provider):
+            if self.secret_validator(secret, self.request_body) == self.signature:
+                return True
+        return False
+
+
+def _query_signing_secrets(organization_id: int, provider: str) -> Iterator[str]:
+    for model in FlagWebHookSigningSecretModel.objects.filter(
+        organization_id=organization_id,
+        provider=provider,
+    ).all():
+        yield model.secret
+
+
+def hmac_sha256_hex_digest(key: str, message: bytes):
+    return hmac.new(key.encode(), message, hashlib.sha256).hexdigest()

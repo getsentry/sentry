@@ -33,7 +33,7 @@ export function useCardinalityLimitedMetricVolume({projects}: Props) {
     {
       environments: [],
       datetime: CARDINALITY_DATE_TIME,
-      projects: projects,
+      projects,
     },
     {interval: CARDINALITY_INTERVAL, includeSeries: false}
   );

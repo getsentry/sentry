@@ -425,7 +425,7 @@ const docs: Docs = {
   }),
   performanceOnboarding,
   crashReportOnboarding,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

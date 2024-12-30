@@ -17,6 +17,7 @@ export type TimeseriesData = {
   data: TimeSeriesItem[];
   field: string;
   color?: string;
+  meta?: Meta;
 };
 
 export type ErrorProp = Error | string;

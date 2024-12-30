@@ -86,6 +86,8 @@ class ConsumerDefinition(TypedDict, total=False):
     dlq_max_invalid_ratio: float | None
     dlq_max_consecutive_count: int | None
 
+    stale_topic: Topic
+
 
 def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> None:
     if "dlq_topic" not in consumer_definition and (

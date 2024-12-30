@@ -28,10 +28,6 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.messaging_integration_external_install_clicked': {
-    provider_key: string;
-  };
-  'onboarding.messaging_integration_modal_rendered': {};
   'onboarding.next_step_clicked': {
     newOrg: boolean;
     platform: string;
@@ -99,10 +95,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
   'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
-  'onboarding.messaging_integration_modal_rendered':
-    'Onboarding: Messaging Integration Modal Rendered',
-  'onboarding.messaging_integration_external_install_clicked':
-    'Onboarding: Messaging Integration External Install Clicked',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
   'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.next_step_clicked': 'Onboarding: Next Step Clicked',

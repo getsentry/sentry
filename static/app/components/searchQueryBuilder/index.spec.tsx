@@ -520,6 +520,35 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
       });
 
+      it('switches to keys menu when recent searches no longer exist', async function () {
+        const {rerender} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Recent should be selected
+        expect(screen.getByRole('button', {name: 'Recent'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+
+        // Rerender without recent searches
+        rerender(<SearchQueryBuilder {...defaultProps} />);
+
+        // Recent should not exist anymore
+        expect(screen.queryByRole('button', {name: 'Recent'})).not.toBeInTheDocument();
+        // All should be selected
+        expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+      });
+
       it('when selecting a recent search, should reset query and call onSearch', async function () {
         const mockOnSearch = jest.fn();
         const mockCreateRecentSearch = MockApiClient.addMockResponse({
@@ -855,6 +884,29 @@ describe('SearchQueryBuilder', function () {
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
 
       expect(getLastInput()).toHaveFocus();
+    });
+
+    it('focuses the correct text input after typing boolean operators', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+
+      // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+      // function which causes an act warning despite using userEvent.click.
+      // Cannot find a way to avoid this warning.
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      await userEvent.keyboard('a or b{enter}');
+      jest.restoreAllMocks();
+
+      const lastInput = (await screen.findAllByTestId('query-builder-input')).at(-1);
+      expect(lastInput).toHaveFocus();
+
+      await userEvent.click(getLastInput());
+
+      // Should have three tokens: a, or, b
+      await screen.findByRole('row', {name: /a/});
+      await screen.findByRole('row', {name: /or/});
+      await screen.findByRole('row', {name: /b/});
     });
   });
 

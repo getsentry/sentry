@@ -6,7 +6,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.local.backend import LocalBroker, LocalProducer
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
-from arroyo.utils.clock import TestingClock as Clock
+from arroyo.utils.clock import MockedClock as Clock
 
 from sentry.sentry_metrics.client.kafka import KafkaMetricsBackend
 from sentry.testutils.metrics_backend import GenericMetricsTestMixIn

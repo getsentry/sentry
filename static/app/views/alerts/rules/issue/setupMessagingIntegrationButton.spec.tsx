@@ -25,7 +25,7 @@ describe('SetupAlertIntegrationButton', function () {
     <SetupMessagingIntegrationButton
       projectId={project.id}
       refetchConfigs={jest.fn()}
-      analyticsParams={{view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}}
+      analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
     />
   );
 
@@ -49,7 +49,7 @@ describe('SetupAlertIntegrationButton', function () {
         body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
@@ -63,7 +63,7 @@ describe('SetupAlertIntegrationButton', function () {
         body: [{status: 'active'}, {status: 'disabled'}, {status: 'disabled'}],
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
@@ -77,7 +77,7 @@ describe('SetupAlertIntegrationButton', function () {
         body: [{status: 'disabled'}, {status: 'disabled'}, {status: 'disabled'}],
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });
@@ -94,7 +94,7 @@ describe('SetupAlertIntegrationButton', function () {
         body: {error: 'internal error'},
       })
     );
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -119,7 +119,7 @@ describe('SetupAlertIntegrationButton', function () {
       };
     });
 
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
     mockResponses.forEach(mock => {
       expect(mock).toHaveBeenCalled();
     });

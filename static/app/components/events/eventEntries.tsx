@@ -8,11 +8,10 @@ import EventReplay from 'sentry/components/events/eventReplay';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Entry, Event} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -119,13 +118,6 @@ function EventEntries({
       {!isShare && <EventViewHierarchy event={event} project={project} />}
       {!isShare && <EventAttachments event={event} project={project} group={group} />}
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
-      {event.type === EventOrGroupType.TRANSACTION && event._metrics_summary && (
-        <CustomMetricsEventData
-          projectId={event.projectID}
-          metricsSummary={event._metrics_summary}
-          startTimestamp={event.startTimestamp}
-        />
-      )}
       {!isShare && event.groupID && (
         <EventGroupingInfoSection
           projectSlug={projectSlug}

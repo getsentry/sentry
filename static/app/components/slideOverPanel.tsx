@@ -93,10 +93,10 @@ const _SlideOverPanel = styled(motion.div, {
 }>`
   position: fixed;
 
-  top: ${space(2)};
-  right: 0;
+  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
+  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${space(2)};
+  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -139,6 +139,7 @@ const _SlideOverPanel = styled(motion.div, {
               position: relative;
 
               width: ${PANEL_WIDTH};
+              min-width: 500px;
               height: 100%;
 
               top: 0;

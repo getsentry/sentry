@@ -13,6 +13,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
+from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -50,7 +51,10 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    AlertRuleActivationConditionType,
+)
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.project import Project
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_data_from_seer
@@ -61,7 +65,6 @@ from sentry.seer.anomaly_detection.types import (
 )
 from sentry.seer.anomaly_detection.utils import has_anomaly, translate_direction
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -3040,6 +3043,23 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         assert status_change.new_status == GroupStatus.RESOLVED
         assert occurrence.fingerprint == status_change.fingerprint
 
+    @with_feature("organizations:workflow-engine-metric-alert-processing")
+    @mock.patch("sentry.incidents.subscription_processor.process_data_packets")
+    def test_process_data_packets_called(self, mock_process_data_packets):
+        rule = self.rule
+        detector = self.create_detector(name="hojicha", type=MetricAlertFire.slug)
+        data_source = self.create_data_source(query_id=self.sub.id)
+        data_source.detectors.set([detector])
+        self.send_update(rule, 10)
+        assert mock_process_data_packets.call_count == 1
+        assert (
+            mock_process_data_packets.call_args_list[0][0][1]
+            == DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        )
+        data_packet_list = mock_process_data_packets.call_args_list[0][0][0]
+        assert data_packet_list[0].query_id == self.sub.id
+        assert data_packet_list[0].packet["values"] == {"data": [{"some_col_name": 10}]}
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -3694,7 +3714,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
         self, helper_metrics
     ):
-        MetricsKeyIndexer.objects.all().delete()
         rule = self.crash_rate_alert_rule
         subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
         processor = SubscriptionProcessor(subscription)

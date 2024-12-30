@@ -25,7 +25,6 @@ coverage:
     - static/app/routes.tsx
     - static/app/**/*.stories.tsx
     - static/app/**/__stories__/
-    - tests/
 
 component_management:
   individual_components:
@@ -54,7 +53,7 @@ flags:
     after_n_builds: 4
   backend:
     paths:
-      - 'src/sentry/**/*.py'
+      - '**/*.py'
     carryforward: true
     # Do not send any status checks until n coverage reports are uploaded.
     # NOTE: If you change this, make sure to change `comment.after_n_builds` below as well.

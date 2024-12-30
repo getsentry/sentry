@@ -388,3 +388,13 @@ export async function openInsightChartModal(options: InsightChartModalOptions) {
 
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
+
+export async function openAddTempestCredentialsModal(options: {
+  organization: Organization;
+  project: Project;
+}) {
+  const mod = await import('sentry/components/modals/addTempestCredentialsModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}

@@ -17,8 +17,8 @@ jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
-  let organization;
-  let mockNavigate;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -503,12 +503,64 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
   });
 
+  it('disables the aggregate selection when there is only one aggregate option', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              field: ['issue.id'],
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeDisabled();
+  });
+
+  it('does not show the legend alias input for chart widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p90(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('transaction.duration');
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('p90');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'tags[span.duration,number]': {
+            'span.duration': {
               key: 'span.duration',
               name: 'span.duration',
               kind: 'measurement',
@@ -595,6 +647,62 @@ describe('Visualize', () => {
       expect(screen.getByText('p99')).toBeInTheDocument();
       expect(screen.getByText('p100')).toBeInTheDocument();
       expect(screen.getByText('sum')).toBeInTheDocument();
+    });
+
+    it('shows the correct column options for the aggregate field type', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['p90(span.duration)'],
+              },
+            }),
+          }),
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
+      expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
+      expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
+    });
+
+    it('shows the correct column options for the non-aggregate field type', async () => {
+      render(
+        <WidgetBuilderProvider>
+          <Visualize />
+        </WidgetBuilderProvider>,
+        {
+          organization,
+          router: RouterFixture({
+            location: LocationFixture({
+              query: {
+                dataset: WidgetType.SPANS,
+                displayType: DisplayType.TABLE,
+                field: ['span.duration'],
+              },
+            }),
+          }),
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Column Selection'})
+      );
+
+      const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
+      expect(within(listbox).getByText('span.duration')).toBeInTheDocument();
+      expect(within(listbox).getByText('span.description')).toBeInTheDocument();
     });
   });
 });

@@ -51,7 +51,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
           trackAnalytics('one_other_related_trace_issue.clicked', {
             organization,
             group_id: issueId,
-            area: area,
+            area,
           });
         }}
       >

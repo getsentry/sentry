@@ -17,21 +17,6 @@ import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
 import TagFilters from 'sentry/views/replays/detail/tagPanel/tagFilters';
 import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
-const notSearchable = [
-  'sdk.replay.blockAllMedia',
-  'sdk.replay.errorSampleRate ',
-  'sdk.replay.maskAllInputs',
-  'sdk.replay.maskAllText',
-  'sdk.replay.networkCaptureBodies',
-  'sdk.replay.networkDetailHasUrls',
-  'sdk.replay.networkRequestHasHeaders',
-  'sdk.replay.networkResponseHasHeaders',
-  'sdk.replay.sessionSampleRate',
-  'sdk.replay.shouldRecordCanvas',
-  'sdk.replay.useCompression',
-  'sdk.replay.useCompressionOption',
-];
-
 function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
@@ -43,10 +28,11 @@ function TagPanel() {
     const unorderedTags = {
       ...tags,
       ...Object.fromEntries(
-        Object.entries(sdkOptions ?? {}).map(([key, value]) =>
-          key === 'name' || key === 'version'
-            ? ['sdk.' + key, [value]]
-            : ['sdk.replay.' + key, [value]]
+        Object.entries(sdkOptions ?? {}).map(
+          ([key, value]) =>
+            key === 'name' || key === 'version'
+              ? ['sdk.' + key, [value]]
+              : ['sdk.replay.' + key, [value]] // specify tags from the replay sdk; these tags are not searchable
         )
       ),
     };
@@ -94,7 +80,7 @@ function TagPanel() {
                     key={key}
                     name={key}
                     values={values}
-                    generateUrl={notSearchable.includes(key) ? undefined : generateUrl}
+                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
                   />
                 ))}
               </KeyValueTable>

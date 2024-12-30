@@ -1,4 +1,6 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -14,12 +16,12 @@ import * as utils from 'sentry/views/discover/savedQuery/utils';
 jest.mock('sentry/actionCreators/modal');
 
 function mount(
-  location,
-  organization,
-  router,
-  eventView,
-  savedQuery,
-  yAxis,
+  location: ReturnType<typeof LocationFixture>,
+  organization: Organization,
+  router: ReturnType<typeof RouterFixture>,
+  eventView: EventView,
+  savedQuery: SavedQuery | NewQuery | undefined,
+  yAxis: string[],
   disabled = false,
   setSavedQuery = jest.fn()
 ) {
@@ -28,7 +30,7 @@ function mount(
       location={location}
       organization={organization}
       eventView={eventView}
-      savedQuery={savedQuery}
+      savedQuery={savedQuery as SavedQuery}
       disabled={disabled}
       updateCallback={() => {}}
       yAxis={yAxis}
@@ -47,13 +49,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
   let errorsViewSaved: EventView;
   let errorsViewModified: EventView;
   let errorsQuery: NewQuery;
-  const location = {
+  const location = LocationFixture({
     pathname: '/organization/eventsv2/',
     query: {},
-  };
-  const router = {
+  });
+  const router = RouterFixture({
     location: {query: {}},
-  };
+  });
   const yAxis = ['count()', 'failure_count()'];
 
   beforeEach(() => {
@@ -331,7 +333,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         organization,
         router,
         errorsViewSaved,
-        {...savedQuery, yAxis: 'count()'},
+        {...savedQuery, yAxis: ['count()']},
         ['count()']
       );
 

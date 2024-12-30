@@ -221,7 +221,7 @@ describe('EventTagsAndScreenshot', function () {
       const allTags = applicationTags.concat(customTags);
       const testEvent = EventFixture({tags: allTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('EventTagsAndScreenshot', function () {
       ];
       const testEvent = EventFixture({tags: applicationTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
