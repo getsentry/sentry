@@ -432,7 +432,7 @@ class AuthLoginView(BaseView):
         ]
         metrics.incr("login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0)
 
-        context = {
+        context = self.get_default_context(request=request) | {
             "op": "login",
             "login_form": login_form,
             "referrer": request.GET.get("referrer"),
@@ -527,9 +527,7 @@ class AuthLoginView(BaseView):
         default_context = {
             "server_hostname": get_server_hostname(),
             "login_form": None,
-            "organization": kwargs.pop(
-                "organization", None
-            ),  # NOTE: not utilized in basic login page (only org login)
+            "organization": organization,  # NOTE: not utilized in basic login page (only org login)
             "register_form": None,
             "CAN_REGISTER": False,
             "react_config": get_client_config(request, self.active_organization),
@@ -704,18 +702,11 @@ class AuthLoginView(BaseView):
                     "login.attempt", instance="failure", skip_internal=True, sample_rate=1.0
                 )
 
-        context = {
+        context = self.get_default_context(request=request, organization=organization) | {
             "op": op or "login",
-            "server_hostname": get_server_hostname(),
             "login_form": login_form,
-            "organization": organization,
             "register_form": register_form,
             "CAN_REGISTER": can_register,
-            "join_request_link": self.get_join_request_link(
-                organization=organization, request=request
-            ),
-            "show_login_banner": settings.SHOW_LOGIN_BANNER,
-            "referrer": request.GET.get("referrer"),
         }
 
         context.update(additional_context.run_callbacks(request))

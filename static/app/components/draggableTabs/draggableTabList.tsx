@@ -23,7 +23,6 @@ import {motion, Reorder} from 'framer-motion';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {TabsContext} from 'sentry/components/tabs';
 import {type BaseTabProps, Tab} from 'sentry/components/tabs/tab';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -34,6 +33,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useDimensionsMultiple} from 'sentry/utils/useDimensionsMultiple';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {IssueViewsContext} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
 
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
@@ -273,7 +273,7 @@ function BaseDraggableTabList({
 }: BaseDraggableTabListProps) {
   const navigate = useNavigate();
   const [hoveringKey, setHoveringKey] = useState<Key | null>(null);
-  const {rootProps, setTabListState} = useContext(TabsContext);
+  const {rootProps, setTabListState} = useContext(IssueViewsContext);
   const organization = useOrganization();
   const {
     value,

@@ -10,7 +10,7 @@ from sentry.api.endpoints.custom_rules import (
     UnsupportedSearchQueryReason,
     get_rule_condition,
 )
-from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
 
 
@@ -206,8 +206,8 @@ class CustomRulesEndpoint(APITestCase):
 
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        start_date = datetime.fromisoformat(data["startDate"])
+        end_date = datetime.fromisoformat(data["endDate"])
         assert end_date - start_date == timedelta(days=2)
         projects = data["projects"]
         assert projects == [self.project.id]
@@ -260,8 +260,8 @@ class CustomRulesEndpoint(APITestCase):
         data = resp.data
 
         rule_id = data["ruleId"]
-        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        start_date = datetime.fromisoformat(data["startDate"])
+        end_date = datetime.fromisoformat(data["endDate"])
         assert end_date - start_date == timedelta(days=2)
 
         request_data = {
@@ -275,8 +275,8 @@ class CustomRulesEndpoint(APITestCase):
         assert resp.status_code == 200
         data = resp.data
 
-        start_date = datetime.strptime(data["startDate"], CUSTOM_RULE_DATE_FORMAT)
-        end_date = datetime.strptime(data["endDate"], CUSTOM_RULE_DATE_FORMAT)
+        start_date = datetime.fromisoformat(data["startDate"])
+        end_date = datetime.fromisoformat(data["endDate"])
         assert end_date - start_date >= timedelta(days=2)
 
         projects = data["projects"]

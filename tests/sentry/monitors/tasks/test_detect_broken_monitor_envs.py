@@ -130,7 +130,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             grouphash=hash_from_values([uuid.uuid4()]),
         )
 
-        for i in range(4):
+        for _ in range(4):
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
