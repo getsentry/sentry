@@ -5,24 +5,24 @@
  * This is your friend:
  * `npx eslint --inspect-config`
  */
-import {builtinModules} from 'node:module';
-import {fixupPluginRules} from '@eslint/compat';
 import * as emotion from '@emotion/eslint-plugin';
-import eslint from '@eslint/js';
-import globals from 'globals';
+import {fixupPluginRules} from '@eslint/compat';
+// import eslint from '@eslint/js';
 import importPlugin from 'eslint-plugin-import';
-import invariant from 'invariant';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
+// import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
 import prettier from 'eslint-plugin-prettier/recommended';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import sentry from 'eslint-plugin-sentry';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import testingLibrary from 'eslint-plugin-testing-library';
-import typescript from 'typescript-eslint';
 import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
-import noLookaheadLookbehindRegexp from 'eslint-plugin-no-lookahead-lookbehind-regexp';
+import globals from 'globals';
+import invariant from 'invariant';
+import {builtinModules} from 'node:module';
+import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
 
@@ -811,7 +811,7 @@ export default typescript.config([
     },
     linterOptions: {
       noInlineConfig: false,
-      reportUnusedDisableDirectives: 'error',
+      reportUnusedDisableDirectives: 'off', // TODO(ryan953): set to 'error' and autofix
     },
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
@@ -855,12 +855,17 @@ export default typescript.config([
      * https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
      */
     ignores: [
+      '.devenv/**/*',
+      '.github/**/*',
+      '.mypy_cache/**/*',
+      '.pytest_cache/**/*',
+      '.venv/**/*',
       '**/dist/**/*',
       '**/vendor/**/*',
       '**/tests/**/fixtures/**/*',
       // '!.github',
-      '*.d.ts',
-      'config/chartcuterie/config.js',
+      '**/*.d.ts',
+      'config/chartcuterie/config.js', // TODO: see if this file exists
       'fixtures/profiles/embedded.js',
       'fixtures/artifact_bundle_debug_ids/**/*',
       'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
@@ -902,7 +907,7 @@ export default typescript.config([
     ...importPlugin.flatConfigs.recommended,
   },
   {
-    name: 'sentry/custom',
+    name: 'getsentry/sentry/custom',
     rules: {
       ...baseRules,
       ...reactRules,
@@ -946,6 +951,7 @@ export default typescript.config([
     // We specify rules explicitly for the sdk-loader here so we do not have
     // eslint ignore comments included in the source file, which is consumed
     // by users.
+    name: 'js-sdk-loader.ts',
     files: ['**/js-sdk-loader.ts'],
     rules: {
       'no-console': 'off',
