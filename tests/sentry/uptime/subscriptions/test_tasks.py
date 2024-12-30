@@ -23,6 +23,7 @@ from sentry.uptime.subscriptions.tasks import (
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
     subscription_checker,
+    update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
 from sentry.utils.kafka_config import get_topic_definition
@@ -71,6 +72,7 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
 
     status_translations = {
         UptimeSubscription.Status.CREATING: "create",
+        UptimeSubscription.Status.UPDATING: "update",
         UptimeSubscription.Status.DELETING: "delete",
     }
 
@@ -329,7 +331,7 @@ class SendUptimeConfigDeletionTest(ProducerTestMixin):
 
 
 class SubscriptionCheckerTest(UptimeTestCase):
-    def test_create_delete(self):
+    def test_create_update_delete(self):
         for status in (
             UptimeSubscription.Status.CREATING,
             UptimeSubscription.Status.DELETING,
@@ -357,3 +359,34 @@ class SubscriptionCheckerTest(UptimeTestCase):
                 sub_new.refresh_from_db()
                 assert sub_new.status == status.value
                 assert sub_new.subscription_id is None
+
+
+class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
+    task = update_remote_uptime_subscription
+    expected_status = UptimeSubscription.Status.UPDATING
+
+    def test_update(self):
+        sub = self.create_uptime_subscription(
+            status=UptimeSubscription.Status.UPDATING, region_slugs=["default"]
+        )
+        update_remote_uptime_subscription(sub.id)
+
+        sub.refresh_from_db()
+        assert sub.status == UptimeSubscription.Status.ACTIVE.value
+
+        # Verify config was sent to the region
+        self.assert_producer_calls((sub, Topic.UPTIME_CONFIGS))
+
+    def test_without_regions_uses_default(self):
+        sub = self.create_uptime_subscription(
+            status=UptimeSubscription.Status.UPDATING,
+        )
+        get_active_region_configs()[0].slug
+
+        update_remote_uptime_subscription(sub.id)
+
+        sub.refresh_from_db()
+        assert sub.status == UptimeSubscription.Status.ACTIVE.value
+
+        # Verify config was sent to default region
+        self.assert_producer_calls((sub, Topic.UPTIME_CONFIGS))
