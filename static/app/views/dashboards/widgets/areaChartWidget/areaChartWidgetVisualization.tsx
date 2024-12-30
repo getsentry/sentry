@@ -23,10 +23,11 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {formatTooltipValue} from '../common/formatTooltipValue';
 import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
-import type {Meta, Release, TimeseriesData} from '../common/types';
+import type {Aliases, Meta, Release, TimeseriesData} from '../common/types';
 
 export interface AreaChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
+  aliases?: Aliases;
   meta?: Meta;
   releases?: Release[];
 }
@@ -57,6 +58,10 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
 
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
+
+  const formatSeriesName: (string) => string = name => {
+    return props.aliases?.[name] ?? name;
+  };
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -112,6 +117,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
       valueFormatter: value => {
         return formatTooltipValue(value, type, unit);
       },
+      nameFormatter: formatSeriesName,
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -169,6 +175,9 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
           ? {
               top: 0,
               left: 0,
+              formatter(name: string) {
+                return formatSeriesName(name);
+              },
             }
           : undefined
       }
