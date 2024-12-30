@@ -2916,3 +2916,10 @@ register(
     type=Float,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
