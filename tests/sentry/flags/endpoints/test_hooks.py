@@ -59,6 +59,7 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             "createdBy": "admin",
             "environment": "development",
             "createdByUserId": 1,
+            "featureName": "test-flag",
         }
         signature = "testing12345abcdaslkflsldkfkdlks"
         FlagWebHookSigningSecretModel.objects.create(
