@@ -40,8 +40,6 @@ type Score = {
   ttfbScore: number;
 };
 
-export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
-
 export type InteractionSpanSampleRow = {
   [SpanIndexedField.INP]: number;
   'profile.id': string;
@@ -58,19 +56,11 @@ export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
   totalScore: number;
 };
 
-export type Weight = {
-  clsWeight: number;
-  fcpWeight: number;
-  inpWeight: number;
-  lcpWeight: number;
-  ttfbWeight: number;
-};
-
 export type Opportunity = {
   opportunity: number;
 };
 
-export type ProjectScore = Partial<Score> & Weight;
+export type ProjectScore = Partial<Score>;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 

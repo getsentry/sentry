@@ -14,11 +14,6 @@ jest.mock('sentry/utils/usePageFilters');
 describe('WebVitalMeters', function () {
   const organization = OrganizationFixture();
   const projectScore: ProjectScore = {
-    lcpWeight: 30,
-    fcpWeight: 20,
-    clsWeight: 15,
-    ttfbWeight: 10,
-    inpWeight: 10,
     lcpScore: 100,
     fcpScore: 100,
     clsScore: 100,
