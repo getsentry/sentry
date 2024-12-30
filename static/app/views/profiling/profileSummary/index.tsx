@@ -7,6 +7,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
@@ -26,7 +27,6 @@ import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profil
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';

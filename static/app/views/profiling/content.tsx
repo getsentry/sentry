@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -22,7 +23,6 @@ import {
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
