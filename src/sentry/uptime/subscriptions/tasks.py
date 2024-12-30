@@ -51,6 +51,39 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
 
 
 @instrumented_task(
+    name="sentry.uptime.subscriptions.tasks.update_remote_uptime_subscription",
+    queue="uptime",
+    default_retry_delay=5,
+    max_retries=5,
+)
+def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+    """
+    Pushes details of an uptime subscription to uptime subscription regions.
+    """
+    try:
+        subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
+    except UptimeSubscription.DoesNotExist:
+        metrics.incr("uptime.subscriptions.update.subscription_does_not_exist", sample_rate=1.0)
+        return
+    if subscription.status != UptimeSubscription.Status.UPDATING.value:
+        metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
+        return
+
+    region_slugs = [s.region_slug for s in subscription.regions.all()]
+    if not region_slugs:
+        # XXX: Hack to make sure that region configs are sent even if we don't have region rows present.
+        # Remove once everything is in place
+        region_slugs = [get_active_region_configs()[0].slug]
+
+    for region_slug in region_slugs:
+        send_uptime_subscription_config(region_slug, subscription)
+    subscription.update(
+        status=QuerySubscription.Status.ACTIVE.value,
+        subscription_id=subscription.subscription_id,
+    )
+
+
+@instrumented_task(
     name="sentry.uptime.subscriptions.tasks.delete_uptime_subscription",
     queue="uptime",
     default_retry_delay=5,
@@ -137,6 +170,7 @@ def subscription_checker(**kwargs):
     for subscription in UptimeSubscription.objects.filter(
         status__in=(
             UptimeSubscription.Status.CREATING.value,
+            UptimeSubscription.Status.UPDATING.value,
             UptimeSubscription.Status.DELETING.value,
         ),
         date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
