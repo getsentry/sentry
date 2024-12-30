@@ -10,9 +10,9 @@ import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   useReleases,
   useReleaseSelection,
@@ -33,6 +33,7 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
   const [searchTerm, setSearchTerm] = useState<string | undefined>(undefined);
   const {data, isLoading} = useReleases(searchTerm);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const options: SelectOption<string>[] = [];
@@ -97,7 +98,7 @@ export function ReleaseSelector({selectorKey, selectorValue, triggerLabelPrefix}
         setSearchTerm(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       onChange={newValue => {
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
