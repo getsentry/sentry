@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 import sys
 from collections.abc import Generator, Mapping, Sequence
 from types import FrameType
