@@ -6,14 +6,14 @@ from typing import Any
 
 import orjson
 import sentry_sdk
-from django.core.exceptions import SuspiciousOperation
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic.base import View
 
+from sentry.api.base import Endpoint
+from sentry.api.exceptions import BadRequest
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.webhook import SCMWebhook
@@ -78,7 +78,7 @@ class PushEventWebhook(BitbucketServerWebhook):
         try:
             client = installation.get_client()
         except IntegrationError:
-            raise SuspiciousOperation()
+            raise BadRequest()
 
         # while we're here, make sure repo data is up to date
         self.update_repo_data(repo, event)
@@ -92,12 +92,12 @@ class PushEventWebhook(BitbucketServerWebhook):
                     project_name, repo_name, from_hash, change.get("toHash")
                 )
             except ApiHostError:
-                raise SuspiciousOperation()
+                raise BadRequest(detail="Unable to reach host")
             except ApiUnauthorized:
-                raise SuspiciousOperation()
+                raise BadRequest()
             except Exception as e:
                 sentry_sdk.capture_exception(e)
-                raise SuspiciousOperation()
+                raise
 
             for commit in commits:
                 if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
@@ -134,7 +134,10 @@ class PushEventWebhook(BitbucketServerWebhook):
 
 
 @region_silo_view
-class BitbucketServerWebhookEndpoint(View):
+class BitbucketServerWebhookEndpoint(Endpoint):
+    authentication_classes = ()
+    permission_classes = ()
+
     _handlers: dict[str, type[BitbucketServerWebhook]] = {"repo:refs_changed": PushEventWebhook}
 
     def get_handler(self, event_type) -> type[BitbucketServerWebhook] | None:
