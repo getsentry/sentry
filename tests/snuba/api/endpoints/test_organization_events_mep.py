@@ -2815,87 +2815,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["isMetricsData"]
         assert field_meta["performance_score(measurements.score.ttfb)"] == "number"
 
-    def test_weighted_performance_score(self):
-        self.store_transaction_metric(
-            0.03,
-            metric="measurements.score.ttfb",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            0.30,
-            metric="measurements.score.weight.ttfb",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            0.03,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        self.store_transaction_metric(
-            1.00,
-            metric="measurements.score.ttfb",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            1.00,
-            metric="measurements.score.weight.ttfb",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            1.00,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        self.store_transaction_metric(
-            0.80,
-            metric="measurements.score.inp",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            1.00,
-            metric="measurements.score.weight.inp",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        self.store_transaction_metric(
-            0.80,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "weighted_performance_score(measurements.score.ttfb)",
-                    "weighted_performance_score(measurements.score.inp)",
-                ],
-                "query": "event.type:transaction",
-                "dataset": "metrics",
-                "per_page": 50,
-            }
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        meta = response.data["meta"]
-        field_meta = meta["fields"]
-
-        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.3433333333333333
-        assert data[0]["weighted_performance_score(measurements.score.inp)"] == 0.26666666666666666
-        assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
-
     def test_invalid_performance_score_column(self):
         self.store_transaction_metric(
             0.03,
@@ -2916,56 +2835,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
         assert response.status_code == 400, response.content
-
-    def test_invalid_weighted_performance_score_column(self):
-        self.store_transaction_metric(
-            0.03,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "weighted_performance_score(measurements.score.fp)",
-                ],
-                "query": "event.type:transaction",
-                "dataset": "metrics",
-                "per_page": 50,
-            }
-        )
-        assert response.status_code == 400, response.content
-
-    def test_no_weighted_performance_score_column(self):
-        self.store_transaction_metric(
-            0.0,
-            metric="measurements.score.ttfb",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "weighted_performance_score(measurements.score.ttfb)",
-                ],
-                "query": "event.type:transaction",
-                "dataset": "metrics",
-                "per_page": 50,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        meta = response.data["meta"]
-        field_meta = meta["fields"]
-
-        assert data[0]["weighted_performance_score(measurements.score.ttfb)"] == 0.0
-        assert meta["isMetricsData"]
-        assert field_meta["weighted_performance_score(measurements.score.ttfb)"] == "number"
 
     def test_opportunity_score(self):
         self.store_transaction_metric(
@@ -4162,20 +4031,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
         super().test_total_performance_score()
 
     @pytest.mark.xfail(reason="Not implemented")
-    def test_weighted_performance_score(self):
-        super().test_weighted_performance_score()
-
-    @pytest.mark.xfail(reason="Not implemented")
     def test_invalid_performance_score_column(self):
         super().test_invalid_performance_score_column()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_invalid_weighted_performance_score_column(self):
-        super().test_invalid_weighted_performance_score_column()
-
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_no_weighted_performance_score_column(self):
-        super().test_invalid_weighted_performance_score_column()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_opportunity_score(self):
