@@ -31,6 +31,7 @@ import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView as TraceViewModel} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import type {TraceReducerState} from './traceState';
@@ -133,11 +134,24 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     [organization, projects, traceDispatch]
   );
 
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit
+      );
+    }
+
     // Construct the visual representation of the tree
     props.tree.build();
 
@@ -265,6 +279,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
   ]);
 
   useTraceTimelineChangeSync({
