@@ -133,8 +133,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | RpcUser,
-        acting_user: RpcUser | User | None,
+        assigned_to: Team | RpcUser | User,
+        acting_user: RpcUser | User | None = None,
         create_only: bool = False,
         extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
