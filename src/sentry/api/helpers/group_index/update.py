@@ -256,7 +256,9 @@ def update_groups_with_search_fn(
 ) -> Response:
     group_list = []
     if group_ids:
-        group_list = get_group_list(organization_id, projects, group_ids)
+        # Convert all group IDs to integers and filter out any non-integer values
+        group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
+        group_list = get_group_list(organization_id, projects, group_ids_int)
 
     if not group_list:
         try:
@@ -308,7 +310,7 @@ def validate_request(
 def get_group_list(
     organization_id: int,
     projects: Sequence[Project],
-    group_ids: Sequence[int | str],
+    group_ids: Sequence[int],
 ) -> list[Group]:
     """
     Gets group list based on provided filters.
