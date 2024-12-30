@@ -570,6 +570,11 @@ const appRules = {
           group: ['sentry/components/devtoolbar/*'],
           message: 'Do not depend on toolbar internals',
         },
+        {
+          group: ['*.spec*'],
+          message:
+            'Do not import from test files. This causes tests to be executed multiple times.',
+        },
       ],
       paths: [
         {
