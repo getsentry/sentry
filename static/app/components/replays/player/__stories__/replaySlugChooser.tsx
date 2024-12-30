@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
 import Providers from 'sentry/components/replays/player/__stories__/providers';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
@@ -29,7 +29,7 @@ export default function ReplaySlugChooser({children}: {children: ReactNode}) {
 
 function LoadReplay({children, replaySlug}: {children: ReactNode; replaySlug: string}) {
   const organization = useOrganization();
-  const {fetchError, fetching, replay} = useReplayReader({
+  const {fetchError, fetching, replay} = useLoadReplayReader({
     orgSlug: organization.slug,
     replaySlug,
   });

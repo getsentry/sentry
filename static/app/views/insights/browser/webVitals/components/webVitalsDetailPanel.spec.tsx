@@ -11,7 +11,8 @@ jest.mock('sentry/utils/usePageFilters');
 
 describe('WebVitalsDetailPanel', function () {
   const organization = OrganizationFixture();
-  let eventsMock, eventsStatsMock;
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({

@@ -19,6 +19,9 @@ export const baseReplayerCss = css`
     border: none;
     background: white;
   }
+  .video-replayer-wrapper + .replayer-wrapper > iframe {
+    opacity: 0;
+  }
 
   &[data-inspectable='true'] .replayer-wrapper > iframe {
     /* Set pointer-events to make it easier to right-click & inspect */
@@ -109,20 +112,6 @@ export const sentryReplayerCss = (theme: Theme) => css`
       opacity: 0.5;
       width: 10px;
       height: 10px;
-    }
-  }
-
-  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
-  &.video-replayer {
-    .replayer-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .replayer-wrapper > iframe {
-      opacity: 0;
     }
   }
 `;

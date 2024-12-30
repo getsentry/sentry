@@ -18,18 +18,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
+    GitHubWebhook,
     InstallationEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
-    Webhook,
     get_github_external_id,
 )
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
 from sentry.utils.sdk import Scope
-
-from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -89,16 +87,10 @@ def get_installation_metadata(event, host):
     return integration.metadata["installation"]
 
 
-class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
-    provider = "github_enterprise"
-
-
-class GitHubEnterprisePushEventWebhook(PushEventWebhook):
-    provider = "github_enterprise"
-
-    # https://developer.github.com/v3/activity/events/types/#pushevent
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
+class GitHubEnterpriseWebhook:
+    @property
+    def provider(self) -> str:
+        return "github_enterprise"
 
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
@@ -106,29 +98,24 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
-    def should_ignore_commit(self, commit):
-        return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit["message"])
+
+class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    pass
 
 
-class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
-    provider = "github_enterprise"
+class GitHubEnterprisePushEventWebhook(GitHubEnterpriseWebhook, PushEventWebhook):
+    pass
 
-    # https://developer.github.com/v3/activity/events/types/#pullrequestevent
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
 
-    def get_external_id(self, username: str) -> str:
-        return f"github_enterprise:{username}"
-
-    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return "{}:{}".format(host, integration.metadata["installation"]["id"])
+class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullRequestEventWebhook):
+    pass
 
 
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    _handlers: dict[str, type[InstallationEventWebhook] | type[Webhook]] = {}
+    _handlers: dict[str, type[GitHubWebhook]] = {}
 
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
@@ -163,7 +150,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         else:
             return None
 
-    def handle(self, request: HttpRequest) -> HttpResponse:
+    def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
         scope = Scope.get_isolation_scope()
 
@@ -301,9 +288,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         with IntegrationWebhookEvent(
             interaction_type=event_handler.event_type,
             domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-            provider_key="github-enterprise",
+            provider_key=event_handler.provider,
         ).capture():
-            event_handler(event, host)
+            event_handler(event, host=host)
 
         return HttpResponse(status=204)
 
@@ -329,4 +316,4 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
     @method_decorator(csrf_exempt)
     def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
+        return self._handle(request)

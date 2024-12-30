@@ -452,19 +452,12 @@ class FingerprintMatcher:
         value = values.get(self.key)
         if value is None:
             return False
-        elif self.key == "package":
+        elif self.key in ["package", "release"]:
             if self._positive_path_match(value):
                 return True
-        elif self.key == "family":
+        elif self.key in ["family", "sdk"]:
             flags = self.pattern.split(",")
             if "all" in flags or value in flags:
-                return True
-        elif self.key == "sdk":
-            flags = self.pattern.split(",")
-            if "all" in flags or value in flags:
-                return True
-        elif self.key == "release":
-            if self._positive_path_match(value):
                 return True
         elif self.key == "app":
             ref_val = bool_from_string(self.pattern)
@@ -591,7 +584,7 @@ class FingerprintingVisitor(NodeVisitorBase):
         in_header = True
         for child in children:
             if isinstance(child, str):
-                if in_header and child[:2] == "##":
+                if in_header and child.startswith("##"):
                     changelog.append(child[2:].rstrip())
                 else:
                     in_header = False

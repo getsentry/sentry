@@ -160,6 +160,7 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
 from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.users.models.user import User
@@ -1982,7 +1983,7 @@ class Factories:
         type: str,
         subscription_id: str | None,
         status: UptimeSubscription.Status,
-        url: str,
+        url: str | None,
         url_domain: str,
         url_domain_suffix: str,
         host_provider_id: str,
@@ -1994,6 +1995,10 @@ class Factories:
         date_updated: datetime,
         trace_sampling: bool = False,
     ):
+        if url is None:
+            url = petname.generate().title()
+            url = f"http://{url}.com"
+
         return UptimeSubscription.objects.create(
             type=type,
             subscription_id=subscription_id,
@@ -2017,10 +2022,12 @@ class Factories:
         env: Environment | None,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
-        name: str,
+        name: str | None,
         owner: Actor | None,
         uptime_status: UptimeStatus,
     ):
+        if name is None:
+            name = petname.generate().title()
         owner_team_id = None
         owner_user_id = None
         if owner:
@@ -2038,6 +2045,14 @@ class Factories:
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
+        )
+
+    @staticmethod
+    def create_uptime_subscription_region(
+        subscription: UptimeSubscription, region_slug: str
+    ) -> UptimeSubscriptionRegion:
+        return UptimeSubscriptionRegion.objects.create(
+            uptime_subscription=subscription, region_slug=region_slug
         )
 
     @staticmethod

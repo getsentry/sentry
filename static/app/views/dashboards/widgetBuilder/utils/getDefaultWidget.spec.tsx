@@ -8,7 +8,7 @@ describe('getDefaultWidget', () => {
     expect(widget).toEqual({
       displayType: DisplayType.TABLE,
       interval: '',
-      title: '',
+      title: 'Custom Widget',
       widgetType: WidgetType.ERRORS,
       queries: [
         {
@@ -29,7 +29,7 @@ describe('getDefaultWidget', () => {
     expect(widget).toEqual({
       displayType: DisplayType.TABLE,
       interval: '',
-      title: '',
+      title: 'Custom Widget',
       widgetType: WidgetType.SPANS,
       queries: [
         {
@@ -50,7 +50,7 @@ describe('getDefaultWidget', () => {
     expect(widget).toEqual({
       displayType: DisplayType.TABLE,
       interval: '',
-      title: '',
+      title: 'Custom Widget',
       widgetType: WidgetType.ISSUE,
       queries: [
         {
@@ -71,7 +71,7 @@ describe('getDefaultWidget', () => {
     expect(widget).toEqual({
       displayType: DisplayType.TABLE,
       interval: '',
-      title: '',
+      title: 'Custom Widget',
       widgetType: WidgetType.RELEASE,
       queries: [
         {

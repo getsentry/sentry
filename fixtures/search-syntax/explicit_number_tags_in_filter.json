@@ -1,0 +1,34 @@
+[
+  {
+    "query": "tags[foo,number]:[123, 456]",
+    "result": [
+      {"type": "spaces", "value": ""},
+      {
+        "type": "filter",
+        "filter": "textIn",
+        "negated": false,
+        "key": {
+          "type": "keyExplicitNumberTag",
+          "prefix": "tags",
+          "key": {"type": "keySimple", "value": "foo", "quoted": false}
+        },
+        "operator": "",
+        "value": {
+          "type": "valueTextList",
+          "items": [
+            {
+              "separator": "",
+              "value": {"type": "valueText", "value": "123", "quoted": false}
+            },
+            {
+              "separator": ", ",
+              "value": {"type": "valueText", "value": "456", "quoted": false}
+            }
+          ]
+        }
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
+

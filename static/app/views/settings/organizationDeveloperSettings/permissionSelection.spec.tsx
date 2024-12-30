@@ -7,8 +7,8 @@ import ModalStore from 'sentry/stores/modalStore';
 import PermissionSelection from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
 describe('PermissionSelection', () => {
-  let onChange;
-  let model;
+  let onChange: jest.Mock;
+  let model: FormModel;
 
   beforeEach(() => {
     model = new FormModel();
@@ -42,7 +42,7 @@ describe('PermissionSelection', () => {
   });
 
   it('lists human readable permissions', async () => {
-    const expectOptions = async (name, options) => {
+    const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
         await selectEvent.select(screen.getByRole('textbox', {name}), option);
       }
@@ -57,7 +57,7 @@ describe('PermissionSelection', () => {
   });
 
   it('stores the permissions the User has selected', async () => {
-    const selectByValue = (name, value) =>
+    const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
     await selectByValue('Project', 'Read & Write');

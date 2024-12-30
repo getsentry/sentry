@@ -6,7 +6,7 @@ from django.urls import NoReverseMatch, reverse
 from sentry.models.group import Group
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -214,7 +214,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         data = load_data("transaction")
         data["event_id"] = "d" * 32
         data["timestamp"] = before_now(minutes=1).isoformat()
-        data["start_timestamp"] = iso_format(before_now(minutes=1) - timedelta(seconds=5))
+        data["start_timestamp"] = (before_now(minutes=1) - timedelta(seconds=5)).isoformat()
         data["contexts"]["trace"]["description"] = "b" * 512
         self.store_event(data=data, project_id=self.project.id)
 

@@ -141,7 +141,7 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
         is_expired = (
-            bool(expires_at) and datetime.strptime(cast(str, expires_at), "%Y-%m-%dT%H:%M:%S") < now
+            bool(expires_at) and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
         )
         should_refresh = not access_token or not expires_at or is_expired
 
