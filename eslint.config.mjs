@@ -870,7 +870,7 @@ export default typescript.config([
     ],
   },
   /**
-   * GLobal Rules
+   * Global Rules
    * Any ruleset that does not include `files` or `ignores` fields
    *
    * Plugins are configured within each configuration object.
