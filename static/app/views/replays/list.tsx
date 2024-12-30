@@ -26,8 +26,7 @@ function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj();
-  // const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
-  const mobileBetaOrg = true;
+  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
 
   return (
     <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
