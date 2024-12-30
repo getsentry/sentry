@@ -80,11 +80,6 @@ class MetricsDatasetConfig(DatasetConfig):
         self.builder.metric_ids.add(metric_id)
         return metric_id
 
-    def resolve_value(self, value: str) -> int:
-        value_id = self.builder.resolve_tag_value(value)
-
-        return value_id
-
     @property
     def should_skip_interval_calculation(self):
         return self.builder.builder_config.skip_time_conditions and (
@@ -646,26 +641,6 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_score_function,
-                    default_result_type="number",
-                ),
-                fields.MetricsFunction(
-                    "weighted_performance_score",
-                    required_args=[
-                        fields.MetricArg(
-                            "column",
-                            allowed_columns=[
-                                "measurements.score.fcp",
-                                "measurements.score.lcp",
-                                "measurements.score.fid",
-                                "measurements.score.inp",
-                                "measurements.score.cls",
-                                "measurements.score.ttfb",
-                            ],
-                            allow_custom_measurements=False,
-                        )
-                    ],
-                    calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_weighted_web_vital_score_function,
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
@@ -1614,115 +1589,6 @@ class MetricsDatasetConfig(DatasetConfig):
                                                 Function(
                                                     "equals",
                                                     [Column("metric_id"), weight_metric_id],
-                                                ),
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                                0.0,
-                            ],
-                        ),
-                        1.0,
-                    ],
-                ),
-                0.0,
-            ],
-            alias,
-        )
-
-    def _resolve_weighted_web_vital_score_function(
-        self,
-        args: Mapping[str, str | Column | SelectType | int | float],
-        alias: str,
-    ) -> SelectType:
-        column = args["column"]
-        metric_id = args["metric_id"]
-
-        if column not in [
-            "measurements.score.lcp",
-            "measurements.score.fcp",
-            "measurements.score.fid",
-            "measurements.score.inp",
-            "measurements.score.cls",
-            "measurements.score.ttfb",
-        ]:
-            raise InvalidSearchQuery("performance_score only supports measurements")
-
-        return Function(
-            "greatest",
-            [
-                Function(
-                    "least",
-                    [
-                        Function(
-                            "if",
-                            [
-                                Function(
-                                    "and",
-                                    [
-                                        Function(
-                                            "greater",
-                                            [
-                                                Function(
-                                                    "sumIf",
-                                                    [
-                                                        Column("value"),
-                                                        Function(
-                                                            "equals",
-                                                            [Column("metric_id"), metric_id],
-                                                        ),
-                                                    ],
-                                                ),
-                                                0,
-                                            ],
-                                        ),
-                                        Function(
-                                            "greater",
-                                            [
-                                                Function(
-                                                    "countIf",
-                                                    [
-                                                        Column("value"),
-                                                        Function(
-                                                            "equals",
-                                                            [
-                                                                Column("metric_id"),
-                                                                self.resolve_metric(
-                                                                    "measurements.score.total"
-                                                                ),
-                                                            ],
-                                                        ),
-                                                    ],
-                                                ),
-                                                0,
-                                            ],
-                                        ),
-                                    ],
-                                ),
-                                Function(
-                                    "divide",
-                                    [
-                                        Function(
-                                            "sumIf",
-                                            [
-                                                Column("value"),
-                                                Function(
-                                                    "equals", [Column("metric_id"), metric_id]
-                                                ),
-                                            ],
-                                        ),
-                                        Function(
-                                            "countIf",
-                                            [
-                                                Column("value"),
-                                                Function(
-                                                    "equals",
-                                                    [
-                                                        Column("metric_id"),
-                                                        self.resolve_metric(
-                                                            "measurements.score.total"
-                                                        ),
-                                                    ],
                                                 ),
                                             ],
                                         ),

@@ -10,10 +10,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdButton from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
 
-function renderComponent(eventView, organization, onChangeThreshold) {
+function renderComponent(
+  eventView: EventView,
+  organization: Organization,
+  onChangeThreshold: () => void
+) {
   return render(
     <TransactionThresholdButton
       eventView={eventView}

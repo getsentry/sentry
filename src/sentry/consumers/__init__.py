@@ -9,7 +9,7 @@ from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer
 from arroyo.commit import ONCE_PER_SECOND
-from arroyo.dlq import DlqLimit, DlqPolicy
+from arroyo.dlq import DlqPolicy
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -347,6 +347,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
+        "stale_topic": Topic.INGEST_EVENTS_DLQ,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -381,8 +382,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "release-health",
         },
         "dlq_topic": Topic.INGEST_METRICS_DLQ,
-        "dlq_max_invalid_ratio": 0.01,
-        "dlq_max_consecutive_count": 1000,
     },
     "ingest-generic-metrics": {
         "topic": Topic.INGEST_PERFORMANCE_METRICS,
@@ -392,8 +391,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "ingest_profile": "performance",
         },
         "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-        "dlq_max_invalid_ratio": None,
-        "dlq_max_consecutive_count": None,
     },
     "generic-metrics-last-seen-updater": {
         "topic": Topic.SNUBA_GENERIC_METRICS,
@@ -606,10 +603,7 @@ def get_stream_processor(
     if dlq_producer:
         dlq_policy = DlqPolicy(
             dlq_producer,
-            DlqLimit(
-                max_invalid_ratio=consumer_definition.get("dlq_max_invalid_ratio"),
-                max_consecutive_count=consumer_definition.get("dlq_max_consecutive_count"),
-            ),
+            None,
             None,
         )
 

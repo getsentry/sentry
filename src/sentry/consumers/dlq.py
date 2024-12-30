@@ -113,7 +113,7 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
         # If we get a valid message for a partition later, don't emit a filtered message for it
         if self.offsets_to_forward:
             for partition in message.committable:
-                self.offsets_to_forward.pop(partition)
+                self.offsets_to_forward.pop(partition, None)
 
         self.next_step.submit(message)
 

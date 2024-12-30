@@ -303,8 +303,9 @@ def up(
     """
     from sentry.runner import configure
 
-    click.secho(
-        """
+    if os.environ.get("USE_NEW_DEVSERVICES", "0") != "1":
+        click.secho(
+            """
 WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
 To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
 https://github.com/getsentry/devservices?tab=readme-ov-file#commands
@@ -314,8 +315,8 @@ For Sentry employees - if you hit any bumps or have feedback, we'd love to hear 
 Thanks for helping the Dev Infra team improve this experience!
 
     """,
-        fg="yellow",
-    )
+            fg="yellow",
+        )
 
     configure()
 
@@ -534,8 +535,9 @@ def down(project: str, service: list[str]) -> None:
     an explicit list of services to bring down.
     """
 
-    click.secho(
-        """
+    if os.environ.get("USE_NEW_DEVSERVICES", "0") != "1":
+        click.secho(
+            """
 WARNING: We're transitioning from `sentry devservices` to the new and improved `devservices` in January 2025.
 To give the new devservices a try, set the `USE_NEW_DEVSERVICES` environment variable to `1`. For a full list of commands, see
 https://github.com/getsentry/devservices?tab=readme-ov-file#commands
@@ -544,9 +546,9 @@ Instead of running `sentry devservices down`, consider using `devservices down`.
 For Sentry employees - if you hit any bumps or have feedback, we'd love to hear from you in #discuss-dev-infra.
 Thanks for helping the Dev Infra team improve this experience!
 
-    """,
-        fg="yellow",
-    )
+        """,
+            fg="yellow",
+        )
 
     def _down(container: docker.models.containers.Container) -> None:
         click.secho(f"> Stopping '{container.name}' container", fg="red")

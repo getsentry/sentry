@@ -9,15 +9,17 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
 import useNetworkFilters from './useNetworkFilters';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useNavigate');
 
+const mockUseNavigate = jest.mocked(useNavigate);
 const mockUseLocation = jest.mocked(useLocation);
 
 const [
@@ -116,11 +118,9 @@ describe('useNetworkFilters', () => {
     SPAN_8_FETCH_POST,
   ];
 
-  beforeEach(() => {
-    jest.mocked(browserHistory.replace).mockReset();
-  });
-
   it('should update the url when setters are called', () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
     const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
@@ -152,41 +152,53 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_method: [],
-        f_n_status: [],
-        f_n_type: [TYPE_OPTION.value],
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_method: [],
+          f_n_status: [],
+          f_n_type: [TYPE_OPTION.value],
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_method: [],
-        f_n_status: [STATUS_OPTION.value],
-        f_n_type: [TYPE_OPTION.value],
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_method: [],
+          f_n_status: [STATUS_OPTION.value],
+          f_n_type: [TYPE_OPTION.value],
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_type: [TYPE_OPTION.value],
-        f_n_status: [STATUS_OPTION.value],
-        f_n_search: SEARCH_FILTER,
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_type: [TYPE_OPTION.value],
+          f_n_status: [STATUS_OPTION.value],
+          f_n_search: SEARCH_FILTER,
+        },
       },
-    });
+      {replace: true}
+    );
   });
 
   it('should clear details params when setters are called', () => {
+    const mockNavigate = jest.fn();
+    mockUseNavigate.mockReturnValue(mockNavigate);
+
     const TYPE_OPTION: NetworkSelectOption = {
       value: 'resource.fetch',
       label: 'resource.fetch',
@@ -230,38 +242,47 @@ describe('useNetworkFilters', () => {
     });
 
     result.current.setFilters([TYPE_OPTION]);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_method: [],
-        f_n_status: [],
-        f_n_type: [TYPE_OPTION.value],
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_method: [],
+          f_n_status: [],
+          f_n_type: [TYPE_OPTION.value],
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_method: [],
-        f_n_status: [STATUS_OPTION.value],
-        f_n_type: [TYPE_OPTION.value],
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_method: [],
+          f_n_status: [STATUS_OPTION.value],
+          f_n_type: [TYPE_OPTION.value],
+        },
       },
-    });
+      {replace: true}
+    );
 
     rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
-    expect(browserHistory.replace).toHaveBeenLastCalledWith({
-      pathname: '/',
-      query: {
-        f_n_status: [STATUS_OPTION.value],
-        f_n_type: [TYPE_OPTION.value],
-        f_n_search: SEARCH_FILTER,
+    expect(mockNavigate).toHaveBeenLastCalledWith(
+      {
+        pathname: '/',
+        query: {
+          f_n_status: [STATUS_OPTION.value],
+          f_n_type: [TYPE_OPTION.value],
+          f_n_search: SEARCH_FILTER,
+        },
       },
-    });
+      {replace: true}
+    );
   });
 
   it('should not filter anything when no values are set', () => {

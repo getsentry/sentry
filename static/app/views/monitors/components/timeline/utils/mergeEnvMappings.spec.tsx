@@ -1,6 +1,30 @@
-import type {MonitorBucketEnvMapping} from 'sentry/views/monitors/components/timeline/types';
+import type {
+  MonitorBucketEnvMapping,
+  StatsBucket,
+} from 'sentry/views/monitors/components/timeline/types';
 
-import {mergeEnvMappings} from './mergeEnvMappings';
+import {mergeEnvMappings, mergeStats} from './mergeEnvMappings';
+
+type StatusCounts = [
+  in_progress: number,
+  ok: number,
+  missed: number,
+  timeout: number,
+  error: number,
+  unknown: number,
+];
+
+export function generateStats(counts: StatusCounts) {
+  const [in_progress, ok, missed, timeout, error, unknown] = counts;
+  return {
+    in_progress,
+    ok,
+    missed,
+    timeout,
+    error,
+    unknown,
+  };
+}
 
 describe('mergeEnvMappings', function () {
   it('merges two empty mappings', function () {
@@ -50,5 +74,16 @@ describe('mergeEnvMappings', function () {
     const mergedMapping = mergeEnvMappings(envMappingA, envMappingB);
 
     expect(mergedMapping).toEqual(expectedMerged);
+  });
+});
+
+describe('mergeStats', function () {
+  it('merges two filled mappings', function () {
+    const statsA: StatsBucket = generateStats([0, 0, 1, 2, 1, 0]);
+    const statsB: StatsBucket = generateStats([2, 1, 1, 0, 2, 0]);
+    const expectedMerged: StatsBucket = generateStats([2, 1, 2, 2, 3, 0]);
+    const mergedStats = mergeStats(statsA, statsB);
+
+    expect(mergedStats).toEqual(expectedMerged);
   });
 });
