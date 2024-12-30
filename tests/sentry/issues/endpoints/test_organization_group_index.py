@@ -3989,10 +3989,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) != feedback_group.id
         assert issue["issueCategory"] != "feedback"
 
-    def test_feedback_filtered_by_default_no_snuba_search(self) -> None:
+    def test_feedback_filtered_by_default_no_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_filtered_by_default_test(False)
 
-    def test_feedback_filtered_by_default_use_snuba_search(self) -> None:
+    def test_feedback_filtered_by_default_use_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_filtered_by_default_test(True)
 
     def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool) -> None:
@@ -4025,10 +4025,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) == feedback_group.id
         assert issue["issueCategory"] == "feedback"
 
-    def test_feedback_category_filter_no_snuba_search(self) -> None:
+    def test_feedback_category_filter_no_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_category_filter_test(False)
 
-    def test_feedback_category_filter_use_snuba_search(self) -> None:
+    def test_feedback_category_filter_use_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_category_filter_test(True)
 
 
