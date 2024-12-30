@@ -105,8 +105,7 @@ def send_incident_alert_notification(
                 repository: GenericNotificationMessageRepository = get_default_generic_repository()
                 try:
                     parent_notification_message = repository.get_parent_notification_message(
-                        group_id=incident.group_id,
-                        rule_action_uuid=action.id,
+                        composite_key=f"{incident.alert_rule_id}:{incident.id}:{action.id}"
                     )
                 except Exception as e:
                     lifecycle.record_halt(e)
