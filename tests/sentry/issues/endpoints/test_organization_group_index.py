@@ -429,6 +429,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
+        assert links["next"]["href"] is not None
 
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
