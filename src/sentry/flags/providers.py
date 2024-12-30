@@ -333,11 +333,17 @@ class UnleashProvider:
         ]
 
     def validate(self, message_bytes: bytes) -> bool:
+        # Since the user is passing in whatever they want as an authorization string,
+        # we don't need to validate it like a normal secret.
+        def _dummy_validate_secret(secret: str, message_bytes: bytes) -> str:
+            return secret
+
         validator = SecretValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
             self.signature,
+            secret_validator=_dummy_validate_secret,
         )
         return validator.validate()
 
