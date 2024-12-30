@@ -12,7 +12,7 @@ from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import AuthenticationFailed
 
 from sentry import analytics, options
 from sentry.api.base import all_silo_endpoint
@@ -613,7 +613,7 @@ class GitHubIntegrationsWebhookEndpoint(SCMWebhookEndpoint[GitHubWebhook]):
         secret = options.get("github-app.webhook-secret")
         if secret is None:
             logger.error("github.webhook.missing-secret", extra=self.log_extra)
-            raise PermissionDenied()
+            raise AuthenticationFailed()
 
         return str(secret)
 
