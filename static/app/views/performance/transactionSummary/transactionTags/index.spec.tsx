@@ -6,7 +6,6 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
@@ -55,7 +54,6 @@ describe('Performance > Transaction Tags', function () {
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary/tags/'})
     );
-    browserHistory.replace = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -185,7 +183,7 @@ describe('Performance > Transaction Tags', function () {
     expect(screen.getByText('Heat Map')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         query: {
           project: '1',
           statsPeriod: '14d',
@@ -212,7 +210,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         query: {
           project: '1',
           statsPeriod: '14d',
@@ -251,7 +249,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         query: {
           project: '1',
           statsPeriod: '14d',
@@ -313,7 +311,7 @@ describe('Performance > Transaction Tags', function () {
     expect(await screen.findByText('Suspect Tags')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         query: {
           project: '1',
           statsPeriod: '14d',
@@ -333,7 +331,7 @@ describe('Performance > Transaction Tags', function () {
     await userEvent.click(screen.getByLabelText('Next'));
 
     await waitFor(() =>
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/performance/summary/tags/',
         query: {
           project: '1',
@@ -349,7 +347,7 @@ describe('Performance > Transaction Tags', function () {
     await userEvent.click(screen.getByRole('radio', {name: 'effectiveConnectionType'}));
 
     await waitFor(() => {
-      expect(browserHistory.replace).toHaveBeenCalledWith({
+      expect(router.replace).toHaveBeenCalledWith({
         query: {
           project: '1',
           statsPeriod: '14d',

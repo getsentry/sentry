@@ -58,7 +58,8 @@ describe('queuesLandingPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock;
+  let eventsMock: jest.Mock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({

@@ -21,7 +21,7 @@ describe('CreateTeamModal', function () {
   });
 
   it('calls createTeam action creator on submit', async function () {
-    const styledWrapper = styled(c => c.children);
+    const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     render(
       <CreateTeamModal
         Body={styledWrapper()}

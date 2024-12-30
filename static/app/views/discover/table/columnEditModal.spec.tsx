@@ -28,7 +28,7 @@ function mountModal(
     React.ComponentProps<typeof ColumnEditModal>,
     'columns' | 'onApply' | 'customMeasurements' | 'dataset'
   >,
-  initialData
+  initialData: ReturnType<typeof initializeOrg>
 ) {
   return render(
     <ColumnEditModal
@@ -52,18 +52,18 @@ function mountModal(
 const findAllQueryFields = () => screen.findAllByTestId('queryField');
 
 // Get the nth label (value) within the row of the column editor.
-const findAllQueryFieldNthCell = async nth =>
+const findAllQueryFieldNthCell = async (nth: number) =>
   (await findAllQueryFields())
     .map(f => within(f).getAllByTestId('label')[nth])
     .filter(Boolean);
 
 const getAllQueryFields = () => screen.getAllByTestId('queryField');
-const getAllQueryFieldsNthCell = nth =>
+const getAllQueryFieldsNthCell = (nth: number) =>
   getAllQueryFields()
     .map(f => within(f).getAllByTestId('label')[nth])
     .filter(Boolean);
 
-const openMenu = async (row, column = 0) => {
+const openMenu = async (row: number, column = 0) => {
   const queryFields = await screen.findAllByTestId('queryField');
   const queryField = queryFields[row];
   expect(queryField).toBeInTheDocument();
@@ -77,7 +77,10 @@ const openMenu = async (row, column = 0) => {
   }
 };
 
-const selectByLabel = async (label, options) => {
+const selectByLabel = async (
+  label: string,
+  options: {at: number; control?: boolean; name?: string}
+) => {
   await openMenu(options.at);
   const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
   const opt = menuOptions.find(e => e.textContent?.includes(label));
