@@ -80,7 +80,7 @@ describe('NewSidebar', function () {
     expect(screen.queryByText(beyondBasicsTasks[0].title)).not.toBeInTheDocument();
 
     // Manually expand second group
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     // Tasks from the second group should be visible
     expect(await screen.findByText(beyondBasicsTasks[0].title)).toBeInTheDocument();
     // task from second group are skippable
@@ -132,11 +132,11 @@ describe('NewSidebar', function () {
     );
 
     // Manually expand second group
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     // Tasks from the second group should be visible
     expect(await screen.findByText(beyondBasicsTasks[0].title)).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
 
     // Confirmation to skip should be visible
     expect(await screen.findByText(/Not sure what to do/)).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('button', {name: 'Help'})).toBeInTheDocument();
 
     // Click help
-    userEvent.click(screen.getByRole('button', {name: 'Help'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
 
     // Show help menu
     expect(await screen.findByText('Search Support, Docs and More')).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('link', {name: 'Visit Help Center'})).toBeInTheDocument();
 
     // Click 'Just Skip'
-    userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/onboarding-tasks/`,
@@ -167,7 +167,7 @@ describe('NewSidebar', function () {
     });
 
     // Dismiss skip confirmation
-    userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
     await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
   });
 });
