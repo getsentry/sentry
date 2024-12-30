@@ -92,6 +92,15 @@ function mockTraceResponse(resp?: Partial<ResponseType>) {
   });
 }
 
+function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>) {
+  MockApiClient.addMockResponse({
+    url: '/subscriptions/org-slug/',
+    method: 'GET',
+    asyncDelay: 1,
+    ...(resp ?? {body: {}}),
+  });
+}
+
 function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-trace-meta/trace-id/',
@@ -234,6 +243,7 @@ function getVirtualizedRows(container: HTMLElement) {
 }
 
 async function keyboardNavigationTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e2; i++) {
     keyboard_navigation_transactions.push(
@@ -285,6 +295,7 @@ async function keyboardNavigationTestSetup() {
 }
 
 async function pageloadTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const pageloadTransactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e3; i++) {
     pageloadTransactions.push(
@@ -339,6 +350,7 @@ async function pageloadTestSetup() {
 }
 
 async function nestedTransactionsTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const transactions: TraceFullDetailed[] = [];
 
   let txn = makeTransaction({
@@ -395,6 +407,7 @@ async function nestedTransactionsTestSetup() {
 }
 
 async function searchTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 11; i++) {
     transactions.push(
@@ -448,6 +461,7 @@ async function searchTestSetup() {
 }
 
 async function simpleTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const transactions: TraceFullDetailed[] = [];
   let parent: any;
   for (let i = 0; i < 1e3; i++) {
@@ -505,6 +519,7 @@ async function simpleTestSetup() {
 }
 
 async function completeTestSetup() {
+  mockPerformanceSubscriptionDetailsResponse();
   const start = Date.now() / 1e3;
 
   mockTraceResponse({
@@ -834,6 +849,7 @@ describe('trace view', () => {
   });
 
   it('renders loading state', async () => {
+    mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse();
     mockTraceMetaResponse();
     mockTraceTagsResponse();
@@ -843,6 +859,7 @@ describe('trace view', () => {
   });
 
   it('renders error state if trace fails to load', async () => {
+    mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({statusCode: 404});
     mockTraceMetaResponse({statusCode: 404});
     mockTraceTagsResponse({statusCode: 404});
@@ -852,6 +869,7 @@ describe('trace view', () => {
   });
 
   it('renders error state if meta fails to load', async () => {
+    mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       statusCode: 200,
       body: {
@@ -867,6 +885,7 @@ describe('trace view', () => {
   });
 
   it('renders empty state', async () => {
+    mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       body: {
         transactions: [],
@@ -1573,6 +1592,7 @@ describe('trace view', () => {
     });
 
     it('during search, expanding a row retriggers search', async () => {
+      mockPerformanceSubscriptionDetailsResponse();
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
