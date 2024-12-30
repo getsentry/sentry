@@ -1,5 +1,13 @@
 {
   "field": "avg(latency)",
+  "meta": {
+    "fields": {
+      "avg(latency)": "duration"
+    },
+    "units": {
+      "avg(latency)": "millisecond"
+    }
+  },
   "data": [
     {
       "timestamp": "2024-12-09T22:00:00Z",

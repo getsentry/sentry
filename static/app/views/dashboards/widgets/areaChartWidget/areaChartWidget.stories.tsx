@@ -66,16 +66,6 @@ export default storyBook(AreaChartWidget, story => {
             title="Duration Breakdown"
             description="Explains what proportion of total duration is taken up by latency vs. span duration"
             timeseries={[latencyTimeSeries, spanDurationTimeSeries]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
           />
         </SmallSizingWindow>
       </Fragment>
@@ -135,16 +125,6 @@ export default storyBook(AreaChartWidget, story => {
 
               {...sampleSpanDurationTimeSeries, color: theme.warning},
             ]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
           />
         </MediumWidget>
       </Fragment>
@@ -175,16 +155,6 @@ export default storyBook(AreaChartWidget, story => {
           <AreaChartWidget
             title="error_rate()"
             timeseries={[sampleLatencyTimeSeries, sampleSpanDurationTimeSeries]}
-            meta={{
-              fields: {
-                'avg(latency)': 'duration',
-                'avg(span.duration)': 'duration',
-              },
-              units: {
-                'avg(latency)': 'millisecond',
-                'avg(span.duration)': 'millisecond',
-              },
-            }}
             releases={releases}
           />
         </MediumWidget>
