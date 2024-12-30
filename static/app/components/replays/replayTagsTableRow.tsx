@@ -28,8 +28,8 @@ function renderValueList(values: ReactNode[]) {
     return undefined;
   }
 
-  return valueItems.map(value => (
-    <Fragment>
+  return valueItems.map((value, index) => (
+    <Fragment key={`${index}-${value}`}>
       {value}
       <br />
     </Fragment>
