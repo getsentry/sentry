@@ -48,7 +48,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-):
+) -> EventsResponse:
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
 

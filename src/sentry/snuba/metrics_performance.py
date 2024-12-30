@@ -55,7 +55,7 @@ def query(
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-):
+) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,

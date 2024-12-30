@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import cast
 
 import sentry_sdk
-from snuba_sdk import Condition
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -51,8 +51,10 @@ def query(
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
     skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    dataset: Dataset = Dataset.Events,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
 ) -> EventsResponse:
