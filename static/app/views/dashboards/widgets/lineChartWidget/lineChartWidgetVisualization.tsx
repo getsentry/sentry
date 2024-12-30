@@ -22,12 +22,13 @@ import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {formatTooltipValue} from '../common/formatTooltipValue';
 import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
-import type {Release, TimeseriesData} from '../common/types';
+import type {Aliases, Release, TimeseriesData} from '../common/types';
 
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
+  aliases?: Aliases;
   dataCompletenessDelay?: number;
   releases?: Release[];
 }
@@ -59,6 +60,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
+
+  const formatSeriesName: (string) => string = name => {
+    return props.aliases?.[name] ?? name;
+  };
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -96,7 +101,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
   const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
-  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
   ) => {
@@ -136,6 +141,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       valueFormatter: value => {
         return formatTooltipValue(value, type, unit);
       },
+      nameFormatter: formatSeriesName,
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -202,6 +208,9 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           ? {
               top: 0,
               left: 0,
+              formatter(name: string) {
+                return formatSeriesName(name);
+              },
             }
           : undefined
       }
@@ -210,7 +219,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         axisPointer: {
           type: 'cross',
         },
-        formatter,
+        formatter: formatTooltip,
       }}
       xAxis={{
         animation: false,
