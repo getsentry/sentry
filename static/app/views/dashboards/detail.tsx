@@ -11,6 +11,7 @@ import {
   deleteDashboard,
   updateDashboard,
   updateDashboardPermissions,
+  validateWidget,
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
@@ -763,6 +764,7 @@ class DashboardDetail extends Component<Props, State> {
     index: number | undefined;
     widget: Widget;
   }) => {
+    const {organization, api} = this.props;
     if (
       !this.props.organization.features.includes('dashboards-widget-builder-redesign')
     ) {
@@ -784,6 +786,7 @@ class DashboardDetail extends Component<Props, State> {
       : [...currentDashboard.widgets, mergedWidget];
 
     try {
+      await validateWidget(api, organization.slug, widget);
       if (!this.isEditingDashboard) {
         // If we're not in edit mode, send a request to update the dashboard
         await this.handleUpdateWidgetList(newWidgets);
