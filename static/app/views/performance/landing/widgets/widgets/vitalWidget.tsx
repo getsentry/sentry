@@ -32,7 +32,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
+import {VitalChartInner} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 import {excludeTransaction} from '../../utils';
 import {VitalBar} from '../../vitalsCards';
@@ -244,7 +244,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
   const getChart = (provided: ComponentData) => (
-    <_VitalChart
+    <VitalChartInner
       {...provided.widgetData.chart}
       {...provided}
       field={field}
@@ -340,7 +340,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       : [
           {
             component: provided => (
-              <_VitalChart
+              <VitalChartInner
                 {...provided.widgetData.chart}
                 {...provided}
                 field={field}

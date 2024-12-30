@@ -1,6 +1,28 @@
-/* eslint-env node */
+// @ts-check
+/**
+ * Understanding & making changes to this file:
+ *
+ * This is your friend:
+ * `npx eslint --inspect-config`
+ */
+import * as emotion from '@emotion/eslint-plugin';
+import {fixupPluginRules} from '@eslint/compat';
+import importPlugin from 'eslint-plugin-import';
+import jest from 'eslint-plugin-jest';
+import jestDom from 'eslint-plugin-jest-dom';
+import prettier from 'eslint-plugin-prettier/recommended';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import sentry from 'eslint-plugin-sentry';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import testingLibrary from 'eslint-plugin-testing-library';
+import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import globals from 'globals';
+import invariant from 'invariant';
+import {builtinModules} from 'node:module';
+import typescript from 'typescript-eslint';
 
-const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
+invariant(react.configs.flat, 'For typescript');
 
 const baseRules = {
   /**
@@ -602,7 +624,6 @@ const appRules = {
         },
         {
           name: 'sentry/utils/withSentryRouter',
-          importNames: ['withSentryRouter'],
           message:
             "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
         },
@@ -632,7 +653,7 @@ const appRules = {
 
         // Node.js builtins.
         // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
-        [`^(${require('node:module').builtinModules.join('|')})(/|$)`],
+        [`^(${builtinModules.join('|')})(/|$)`],
 
         // Packages. `react` related packages come first.
         ['^react', '^@?\\w'],
@@ -707,14 +728,6 @@ const appRules = {
       format: ['UPPER_CASE'],
     },
   ],
-
-  // Don't allow lookbehind expressions in regexp as they crash safari
-  // We've accidentally used lookbehinds a few times and caused problems.
-  'no-lookahead-lookbehind-regexp/no-lookahead-lookbehind-regexp': [
-    'error',
-    'no-lookbehind',
-    'no-negative-lookbehind',
-  ],
 };
 
 const strictRules = {
@@ -737,132 +750,222 @@ const strictRules = {
   'sentry/no-styled-shortcut': ['error'],
 };
 
-const extendsList = [
-  'plugin:jest/recommended',
-  'plugin:jest-dom/recommended',
-  'plugin:import/typescript',
-];
-if (detectDeprecations) {
-  extendsList.push('plugin:deprecation/recommended');
-}
-extendsList.push('prettier'); // From package: `eslint-config-prettier`. Keep this last in the list
+// Used by both: `languageOptions` & `parserOptions`
+const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
 
-module.exports = {
-  root: true,
-  extends: extendsList,
+/**
+ * To get started with this ESLint Configuration list be sure to read at least
+ * these sections of the docs:
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
+ */
 
-  plugins: [
-    'jest-dom',
-    'testing-library',
-    'typescript-sort-keys',
-    'react-hooks',
-    '@typescript-eslint',
-    '@emotion',
-    'import',
-    'react',
-    'sentry',
-    'simple-import-sort',
-    'no-lookahead-lookbehind-regexp',
-  ],
-
-  parser: '@typescript-eslint/parser',
-
-  parserOptions: detectDeprecations
-    ? {
-        warnOnUnsupportedTypeScriptVersion: false,
-        ecmaVersion: 6,
-        sourceType: 'module',
+export default typescript.config([
+  {
+    // Main parser & linter options
+    // Rules are defined below and inherit these properties
+    // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+    name: 'main',
+    languageOptions: {
+      ecmaVersion,
+      sourceType: 'module',
+      globals: {
+        // TODO(ryan953): globals.browser seems to have a bug with trailing whitespace
+        ...Object.fromEntries(
+          Object.keys(globals.browser).map(key => [key.trim(), false])
+        ),
+        ...globals.jest,
+        MockApiClient: true,
+        tick: true,
+      },
+      parser: typescript.parser,
+      parserOptions: {
         ecmaFeatures: {
-          jsx: true,
-          modules: true,
-          legacyDecorators: true,
+          globalReturn: false,
         },
+        ecmaVersion,
+
+        // https://typescript-eslint.io/packages/parser/#emitdecoratormetadata
+        emitDecoratorMetadata: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#experimentaldecorators
+        experimentalDecorators: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
+        jsDocParsingMode: Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
+          ? 'all'
+          : 'none',
+
+        // https://typescript-eslint.io/packages/parser/#project
         project: './tsconfig.json',
-      }
-    : {
-        warnOnUnsupportedTypeScriptVersion: false,
-        ecmaVersion: 6,
-        sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-          modules: true,
-          legacyDecorators: true,
+
+        // https://typescript-eslint.io/packages/parser/#projectservice
+        // `projectService` is recommended, but slower, with our current tsconfig files.
+        // projectService: true,
+        // tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    linterOptions: {
+      noInlineConfig: false,
+      reportUnusedDisableDirectives: 'off', // TODO(ryan953): set to 'error' and autofix
+    },
+    // TODO: move these potential overrides and plugin-specific rules into the
+    // corresponding configuration object where the plugin is initially included
+    plugins: {
+      ...jest.configs['flat/recommended'].plugins,
+      ...jestDom.configs['flat/recommended'].plugins,
+      ...react.configs.flat.plugins,
+      ...react.configs.flat['jsx-runtime'].plugins,
+      '@emotion': emotion,
+      '@typescript-eslint': typescript.plugin,
+      'react-hooks': fixupPluginRules(reactHooks),
+      'simple-import-sort': simpleImportSort,
+      'typescript-sort-keys': typescriptSortKeys,
+      sentry,
+    },
+    settings: {
+      react: {
+        version: '18.2.0',
+        defaultVersion: '18.2',
+      },
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
+      },
+      'import/resolver': {
+        typescript: {},
+      },
+      'import/extensions': ['.js', '.jsx'],
+    },
+  },
+  {
+    // Default file selection
+    // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+    files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+  },
+  {
+    // Global ignores
+    // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
+    ignores: [
+      '.devenv/**/*',
+      '.github/**/*',
+      '.mypy_cache/**/*',
+      '.pytest_cache/**/*',
+      '.venv/**/*',
+      '**/*.benchmark.ts',
+      '**/*.d.ts',
+      '**/dist/**/*',
+      '**/tests/**/fixtures/**/*',
+      '**/vendor/**/*',
+      'build-utils/**/*',
+      'config/chartcuterie/config.js', // TODO: see if this file exists
+      'fixtures/artifact_bundle/**/*',
+      'fixtures/artifact_bundle_debug_ids/**/*',
+      'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
+      'fixtures/profiles/embedded.js',
+      'jest.config.ts',
+      'api-docs/**/*',
+      'src/sentry/static/sentry/js/**/*',
+      'src/sentry/templates/sentry/**/*',
+      'stylelint.config.js',
+    ],
+  },
+  /**
+   * Global Rules
+   * Any ruleset that does not include `files` or `ignores` fields
+   *
+   * Plugins are configured within each configuration object.
+   * https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+   *
+   * Rules are grouped by plugin. If you want to override a specific rule inside
+   * the recommended set, then it's recommended to spread the new rule on top
+   * of the predefined ones.
+   *
+   * For example: if you want to enable a new plugin in the codebase and their
+   * recommended rules (or a new rule that's part of an existing plugin)
+   * First you'd setup a configuration object for that plugin:
+   * {
+   *   name: 'my-plugin/recommended',
+   *   ...myPlugin.configs.recommended,
+   * },
+   * Second you'd override the rule you want to deal with, maybe making it a
+   * warning to start:
+   * {
+   *   name: 'my-plugin/recommended',
+   *   ...myPlugin.configs.recommended,
+   *   rules: {
+   *     ...myPlugin.configs.recommended.rules,
+   *     ['the-rule']: 'warning',
+   *   }
+   * },
+   * Finally, once all warnings are fixed, update from 'warning' to 'error', or
+   * remove the override and rely on the recommended rules again.
+   */
+  {
+    name: 'import/recommended',
+    ...importPlugin.flatConfigs.recommended,
+  },
+  {
+    name: 'deprecations',
+    rules: {
+      '@typescript-eslint/no-deprecated': Boolean(process.env.SENTRY_DETECT_DEPRECATIONS)
+        ? 'error'
+        : 'off',
+    },
+  },
+  {
+    name: 'getsentry/sentry/custom',
+    rules: {
+      ...baseRules,
+      ...reactRules,
+      ...appRules,
+      ...strictRules,
+    },
+  },
+  {
+    name: 'devtoolbar',
+    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            // @ts-ignore
+            ...appRules['no-restricted-imports'][1].paths,
+            {
+              name: 'sentry/utils/queryClient',
+              message:
+                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+            },
+          ],
         },
-      },
-
-  env: {
-    browser: true,
-    es6: true,
-    jest: true,
+      ],
+    },
   },
 
-  globals: {
-    require: false,
-    expect: false,
-    MockApiClient: true,
-    tick: true,
-    jest: true,
+  {
+    name: 'testing-library/react',
+    files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
+    ...testingLibrary.configs['flat/react'],
+    rules: {
+      ...baseRules,
+      ...reactRules,
+      ...appRules,
+      ...strictRules,
+      ...testingLibrary.configs['flat/react'].rules,
+    },
   },
-
-  settings: {
-    react: {
-      version: '18.2.0', // React version, can not `detect` because of getsentry
+  {
+    // We specify rules explicitly for the sdk-loader here so we do not have
+    // eslint ignore comments included in the source file, which is consumed
+    // by users.
+    name: 'js-sdk-loader.ts',
+    files: ['**/js-sdk-loader.ts'],
+    rules: {
+      'no-console': 'off',
     },
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.ts', '.tsx'],
-    },
-    'import/resolver': {
-      typescript: {},
-    },
-    'import/extensions': ['.js', '.jsx'],
   },
-
-  rules: {
-    ...baseRules,
-    ...reactRules,
-    ...appRules,
-    ...strictRules,
+  {
+    name: 'prettier/recommended',
+    ...prettier,
   },
-  // JSON file formatting is handled by Biome. ESLint should not be linting
-  // and formatting these files.
-  ignorePatterns: ['*.json'],
-  overrides: [
-    {
-      files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-      rules: {
-        'no-restricted-imports': [
-          'error',
-          {
-            paths: [
-              ...appRules['no-restricted-imports'][1].paths,
-              {
-                name: 'sentry/utils/queryClient',
-                message:
-                  'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-              },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
-      extends: ['plugin:testing-library/react', ...extendsList],
-      rules: {
-        ...baseRules,
-        ...reactRules,
-        ...appRules,
-        ...strictRules,
-      },
-    },
-    {
-      // We specify rules explicitly for the sdk-loader here so we do not have
-      // eslint ignore comments included in the source file, which is consumed
-      // by users.
-      files: ['**/js-sdk-loader.ts'],
-      rules: {
-        'no-console': 'off',
-      },
-    },
-  ],
-};
+]);

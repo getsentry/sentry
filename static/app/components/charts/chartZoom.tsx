@@ -22,6 +22,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>

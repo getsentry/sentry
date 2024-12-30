@@ -27,7 +27,7 @@ export interface TimelineItemProps {
   timestamp?: React.ReactNode;
 }
 
-export const Item = forwardRef(function _Item(
+export const Item = forwardRef(function ItemInner(
   {
     title,
     children,
