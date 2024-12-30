@@ -21,7 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.tags_examples import TagsExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.tagstore.types import TagValueSerializer, TagValueSerializerResponse
+from sentry.tagstore.types import TagValueSerializerResponse
 
 
 @extend_schema(tags=["Events"])
@@ -100,7 +100,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         if key == "user":
             serializer_cls = UserTagValueSerializer(group.project_id)
         else:
-            serializer_cls = TagValueSerializer()
+            serializer_cls = None
 
         paginator = tagstore.backend.get_group_tag_value_paginator(
             group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
