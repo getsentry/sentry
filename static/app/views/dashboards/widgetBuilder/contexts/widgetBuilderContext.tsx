@@ -13,13 +13,22 @@ interface WidgetBuilderProviderProps {
   children: React.ReactNode;
 }
 
-export function WidgetBuilderProvider({children}: WidgetBuilderProviderProps) {
+/**
+ * Provider for maintaining a single source of truth for the widget builder state.
+ */
+function WidgetBuilderStateProvider({children}: WidgetBuilderProviderProps) {
   const widgetBuilderState = useWidgetBuilderState();
   return (
+    <WidgetBuilderContext.Provider value={widgetBuilderState}>
+      {children}
+    </WidgetBuilderContext.Provider>
+  );
+}
+
+export function WidgetBuilderProvider({children}: WidgetBuilderProviderProps) {
+  return (
     <UrlParamBatchProvider>
-      <WidgetBuilderContext.Provider value={widgetBuilderState}>
-        {children}
-      </WidgetBuilderContext.Provider>
+      <WidgetBuilderStateProvider>{children}</WidgetBuilderStateProvider>
     </UrlParamBatchProvider>
   );
 }
