@@ -9,6 +9,7 @@ from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Partition, Topic
+from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -18,6 +19,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry.conf.types import kafka_definition
+from sentry.conf.types.kafka_definition import Topic as KafkaTopic
+from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group, GroupStatus
 from sentry.testutils.helpers.options import override_options
@@ -699,3 +702,106 @@ class ProcessResultTest(ProducerTestMixin):
         group_2 = mock_process_group.mock_calls[1].args[0]
         assert group_1 == [result_1, result_2]
         assert group_2 == [result_3]
+
+    @mock.patch("random.random")
+    def test_check_and_update_regions(self, mock_random):
+        # Force the check to run
+        mock_random.return_value = 0
+
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_topic=KafkaTopic.UPTIME_CONFIGS,
+                enabled=True,
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_topic=KafkaTopic.UPTIME_RESULTS,
+                enabled=True,
+            ),
+        ]
+
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            # Create subscription with only one region
+            sub = self.create_uptime_subscription(
+                subscription_id=uuid.uuid4().hex,
+                region_slugs=["region1"],
+            )
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
+            self.assert_producer_calls(
+                (sub, kafka_definition.Topic.UPTIME_CONFIGS),
+                (sub, kafka_definition.Topic.UPTIME_RESULTS),
+            )
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+
+    @mock.patch("random.random")
+    def test_check_and_update_regions_removes_disabled(self, mock_random):
+        mock_random.return_value = 0
+        sub = self.create_uptime_subscription(
+            subscription_id=uuid.uuid4().hex, region_slugs=["region1", "region2"]
+        )
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_topic=KafkaTopic.UPTIME_CONFIGS,
+                enabled=True,
+            ),
+            UptimeRegionConfig(
+                slug="region2",
+                name="Region 2",
+                config_topic=KafkaTopic.UPTIME_RESULTS,
+                enabled=False,
+            ),
+        ]
+
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == {"region1", "region2"}
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == {"region1"}
+            assert sub.subscription_id
+            self.assert_producer_calls(
+                (sub.subscription_id, kafka_definition.Topic.UPTIME_RESULTS),
+                (sub, kafka_definition.Topic.UPTIME_CONFIGS),
+            )
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+
+    @mock.patch("random.random")
+    def test_check_and_update_regions_random_skip(self, mock_random):
+        # Force the check to NOT run
+        mock_random.return_value = 1
+
+        regions = [
+            UptimeRegionConfig(
+                slug="region1",
+                name="Region 1",
+                config_topic=KafkaTopic.UPTIME_CONFIGS,
+                enabled=True,
+            ),
+        ]
+
+        with override_settings(UPTIME_REGIONS=regions), self.tasks():
+            sub = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex, region_slugs=[])
+            result = self.create_uptime_result(
+                sub.subscription_id,
+                scheduled_check_time=datetime.now() - timedelta(minutes=1),
+            )
+            assert {r.region_slug for r in sub.regions.all()} == set()
+            self.send_result(result)
+            sub.refresh_from_db()
+            assert {r.region_slug for r in sub.regions.all()} == set()
+            self.assert_producer_calls()
