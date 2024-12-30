@@ -5,7 +5,7 @@ import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
 import type {PageFilters} from 'sentry/types/core';
 
 /**
@@ -33,13 +33,6 @@ export function getDefaultSelection(): PageFilters {
  */
 export function extractSelectionParameters(query: Location['query']) {
   return pickBy(pick(query, Object.values(URL_PARAM)), identity);
-}
-
-/**
- * Extract the page filter datetime parameters from an object.
- */
-export function extractDatetimeSelectionParameters(query: Location['query']) {
-  return pickBy(pick(query, Object.values(DATE_TIME_KEYS)), identity);
 }
 
 /**
