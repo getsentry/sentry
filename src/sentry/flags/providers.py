@@ -336,7 +336,6 @@ class UnleashProvider:
         validator = AuthTokenValidator(
             self.organization_id,
             self.provider_name,
-            message_bytes,
             self.signature,
         )
         return validator.validate()
@@ -395,13 +394,11 @@ class AuthTokenValidator:
         self,
         organization_id: int,
         provider: str,
-        request_body: bytes,
         signature: str | None,
         secret_finder: Callable[[int, str], Iterator[str]] | None = None,
     ) -> None:
         self.organization_id = organization_id
         self.provider = provider
-        self.request_body = request_body
         self.signature = signature
         self.secret_finder = secret_finder or _query_signing_secrets
 
