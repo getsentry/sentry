@@ -25,7 +25,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+import IssueListOverview from 'sentry/views/issueList/overviewFc';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
