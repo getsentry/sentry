@@ -443,7 +443,10 @@ type State = {
   previousQuery?: string;
 };
 
-class SmartSearchBar extends Component<DefaultProps & Props, State> {
+/**
+ * @deprecated use SearchQueryBuilder instead
+ */
+class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
   static defaultProps = {
     id: 'smart-search-input',
     includeLabel: true,
@@ -2199,14 +2202,14 @@ class SmartSearchBarContainer extends Component<Props, ContainerState> {
 
   render() {
     // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
-    return <SmartSearchBar {...this.props} members={this.state.members} />;
+    return <DeprecatedSmartSearchBar {...this.props} members={this.state.members} />;
   }
 }
 
 export default withApi(withSentryRouter(withOrganization(SmartSearchBarContainer)));
 
 export type {Props as SmartSearchBarProps};
-export {SmartSearchBar};
+export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;

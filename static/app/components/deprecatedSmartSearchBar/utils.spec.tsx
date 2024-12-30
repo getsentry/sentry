@@ -4,7 +4,7 @@ import {
   filterKeysFromQuery,
   getTagItemsFromKeys,
   removeSpace,
-} from 'sentry/components/smartSearchBar/utils';
+} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {FieldKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
