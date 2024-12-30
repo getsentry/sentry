@@ -201,7 +201,7 @@
     "eslint-plugin-no-lookahead-lookbehind-regexp": "^0.3.0",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.3",
-    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-hooks": "5.0.0",
     "eslint-plugin-sentry": "^2.10.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-testing-library": "^7.1.1",

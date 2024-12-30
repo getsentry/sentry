@@ -186,11 +186,11 @@ export function Card({
 // {null}
 // <Component2/> --> returns a <Card/>
 // Gives us back [<Component1/>, <Component2/>]
-const filterChildren = (children: ReactNode): ReactNode[] => {
+function filterChildren(children: ReactNode): ReactNode[] {
   return Children.toArray(children).filter(
     (child: ReactNode) => child !== null && child !== undefined
   );
-};
+}
 
 // Note: When conditionally rendering children, instead of returning
 // if(!condition) return null inside Component, we should render  {condition ? <Component/> : null}
