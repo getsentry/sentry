@@ -44,8 +44,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
+import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import usePrevious from 'sentry/utils/usePrevious';
+import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
@@ -670,7 +673,16 @@ function IssueListOverviewFc({
   });
   useDisableRouteAnalytics();
 
-  // Fetch data if necessary
+  // Update polling status
+  useEffect(() => {
+    if (realtimeActive) {
+      resumePolling();
+    } else {
+      pollerRef.current?.disable();
+    }
+  }, [realtimeActive, resumePolling]);
+
+  // Fetch data on mount if necessary
   useEffect(() => {
     // Wait for saved searches to load so if the user is on a saved search
     // or they have a pinned search we load the correct data the first time.
@@ -689,14 +701,113 @@ function IssueListOverviewFc({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep org members list up to date with project selection
-  useEffect(() => {
-    const projectIds = selection.projects.map(projectId => String(projectId));
+  const prevUrlQuery = usePrevious(location.query);
+  const previousSelection = usePrevious(selection);
+  const previousSavedSearchLoading = usePrevious(savedSearchLoading);
+  const previousIssuesLoading = usePrevious(issuesLoading);
 
-    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-      setMemberList(indexMembersByProject(members));
+  // Keep data up to date
+  useEffect(() => {
+    const selectionChanged = !isEqual(previousSelection, selection);
+
+    // Wait for saved searches to load before we attempt to fetch stream data
+    // Selection changing could indicate that the projects query parameter has populated
+    // and we should refetch data.
+    if (savedSearchLoading && !selectionChanged) {
+      return;
+    }
+
+    if (
+      previousSavedSearchLoading &&
+      !savedSearchLoading &&
+      organization.features.includes('issue-stream-performance')
+    ) {
+      return;
+    }
+
+    if (
+      savedSearchLoading &&
+      !organization.features.includes('issue-stream-performance')
+    ) {
+      const loadedFromCache = loadFromCache();
+      if (!loadedFromCache) {
+        fetchData();
+      }
+      return;
+    }
+
+    const newUrlQuery = location.query;
+
+    const prevQuery = getQueryFromSavedSearchOrLocation({
+      savedSearch,
+      location,
     });
-  }, [api, organization.slug, selection.projects]);
+    const newQuery = getQuery();
+
+    const prevSort = getSortFromSavedSearchOrLocation({
+      savedSearch,
+      location,
+    });
+    const newSort = getSort();
+
+    // If any important url parameter changed or saved search changed
+    // reload data.
+    if (
+      selectionChanged ||
+      prevUrlQuery.cursor !== newUrlQuery.cursor ||
+      prevUrlQuery.statsPeriod !== newUrlQuery.statsPeriod ||
+      prevUrlQuery.groupStatsPeriod !== newUrlQuery.groupStatsPeriod ||
+      prevQuery !== newQuery ||
+      prevSort !== newSort
+    ) {
+      fetchData(selectionChanged);
+    } else if (
+      !lastRequestRef.current &&
+      previousIssuesLoading === false &&
+      issuesLoading
+    ) {
+      // Reload if we issues are loading or their loading state changed.
+      // This can happen when transitionTo is called
+      fetchData();
+    }
+  }, [
+    prevUrlQuery,
+    location.query,
+    fetchData,
+    savedSearchLoading,
+    selection,
+    previousSelection,
+    organization.features,
+    location,
+    getQueryFromSavedSearchOrLocation,
+    savedSearch,
+    getQuery,
+    getSortFromSavedSearchOrLocation,
+    getSort,
+    issuesLoading,
+    loadFromCache,
+    previousSavedSearchLoading,
+    previousIssuesLoading,
+  ]);
+
+  // If the project selection has changed reload the member list and tag keys
+  // allowing autocomplete and tag sidebar to be more accurate.
+  useEffect(() => {
+    if (!isEqual(previousSelection?.projects, selection.projects)) {
+      loadFromCache();
+      const projectIds = selection.projects.map(projectId => String(projectId));
+
+      fetchOrgMembers(api, organization.slug, projectIds).then(members => {
+        setMemberList(indexMembersByProject(members));
+      });
+    }
+  }, [
+    api,
+    organization.slug,
+    selection.projects,
+    previousSelection?.projects,
+    loadFromCache,
+  ]);
 
   // Cleanup
   useEffect(() => {
@@ -1068,7 +1179,7 @@ function IssueListOverviewFc({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  if (savedSearchLoading && organization.features.includes('issue-stream-performance')) {
+  if (savedSearchLoading && !organization.features.includes('issue-stream-performance')) {
     return (
       <Layout.Page withPadding>
         <LoadingIndicator />
@@ -1169,8 +1280,12 @@ function IssueListOverviewFc({
   );
 }
 
-export default withPageFilters(
-  withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverviewFc)))
+export default withRouteAnalytics(
+  withApi(
+    withPageFilters(
+      withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverviewFc)))
+    )
+  )
 );
 
 export {IssueListOverviewFc};
