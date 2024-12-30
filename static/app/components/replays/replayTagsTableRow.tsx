@@ -28,14 +28,12 @@ function renderValueList(values: ReactNode[]) {
     return undefined;
   }
 
-  return valueItems.map(value => {
-    return (
-      <Fragment>
-        {value}
-        <br />
-      </Fragment>
-    );
-  });
+  return valueItems.map(value => (
+    <Fragment>
+      {value}
+      <br />
+    </Fragment>
+  ));
 }
 
 function ReplayTagsTableRow({name, values, generateUrl}: Props) {
@@ -48,14 +46,12 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         </Fragment>
       ));
     }
-    if (expandedViewKeys.includes(name)) {
-      if (renderValueList(values)) {
-        return (
-          <CollapsibleValue openTag="[" closeTag="]" path="$" noBasePadding>
-            {renderValueList(values)}
-          </CollapsibleValue>
-        );
-      }
+    if (expandedViewKeys.includes(name) && renderValueList(values)) {
+      return (
+        <CollapsibleValue openTag="[" closeTag="]" path="$" noBasePadding>
+          {renderValueList(values)}
+        </CollapsibleValue>
+      );
     }
 
     return values.map((value, index) => {
