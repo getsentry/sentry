@@ -446,13 +446,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.skip_fallback = skip_fallback
         self.notes = notes
 
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return True
-
     def get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
