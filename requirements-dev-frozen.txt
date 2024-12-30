@@ -106,7 +106,7 @@ mmh3==4.0.0
 more-itertools==8.13.0
 msgpack==1.1.0
 msgpack-types==0.2.0
-mypy==1.13.0
+mypy==1.14.0
 mypy-extensions==1.0.0
 nodeenv==1.9.1
 oauthlib==3.1.0
