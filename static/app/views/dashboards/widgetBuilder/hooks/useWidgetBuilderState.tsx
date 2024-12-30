@@ -102,6 +102,7 @@ function useWidgetBuilderState(): {
   const [query, setQuery] = useQueryParamState<string[]>({
     fieldName: 'query',
     decoder: decodeList,
+    deserializer: deserializeQuery,
   });
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
@@ -313,6 +314,17 @@ function serializeSorts(sorts: Sort[]): string[] {
  */
 function deserializeLimit(value: string): number {
   return decodeInteger(value, DEFAULT_RESULTS_LIMIT);
+}
+
+/**
+ * Decodes the query from the query params
+ * Returns an array with an empty string if the query is empty
+ */
+function deserializeQuery(queries: string[]): string[] {
+  if (queries.length === 0) {
+    return [''];
+  }
+  return queries;
 }
 
 export default useWidgetBuilderState;
