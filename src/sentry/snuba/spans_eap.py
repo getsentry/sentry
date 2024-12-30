@@ -50,7 +50,6 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
-    enable_rpc: bool | None = False,
 ):
     builder = SpansEAPQueryBuilder(
         Dataset.EventsAnalyticsPlatform,
