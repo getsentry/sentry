@@ -5,7 +5,6 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -32,7 +31,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
   });
 };
 
-function WrappedComponent({data, ...rest}) {
+function WrappedComponent({data, ...rest}: any) {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -49,7 +48,7 @@ function WrappedComponent({data, ...rest}) {
   );
 }
 
-function mockEventView(data) {
+function mockEventView(data: ReturnType<typeof initializeData>) {
   const eventView = new EventView({
     id: '1',
     name: 'my query',
@@ -90,7 +89,7 @@ function mockEventView(data) {
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
     query: 'event.type:transaction transaction:/api*',
-    project: [data.projects[0].id, data.projects[1].id],
+    project: [Number(data.projects[0].id), Number(data.projects[1].id)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
@@ -107,9 +106,8 @@ function mockEventView(data) {
 }
 
 describe('Performance > Table', function () {
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
-    browserHistory.push = jest.fn();
     mockUseLocation.mockReturnValue(
       LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
     );
@@ -242,11 +240,11 @@ describe('Performance > Table', function () {
       expect(transactionCellTrigger).toBeInTheDocument();
       await userEvent.click(transactionCellTrigger);
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(0);
+      expect(data.router.push).toHaveBeenCalledTimes(0);
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
-      expect(browserHistory.push).toHaveBeenNthCalledWith(1, {
+      expect(data.router.push).toHaveBeenCalledTimes(1);
+      expect(data.router.push).toHaveBeenNthCalledWith(1, {
         pathname: undefined,
         query: expect.objectContaining({
           query: 'transaction:/apple/cart',

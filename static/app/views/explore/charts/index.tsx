@@ -334,10 +334,14 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '8px',
+                  top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
+                legendOptions={{
+                  itemGap: 24,
+                  top: '4px',
+                }}
                 data={data}
                 error={error}
                 loading={loading}

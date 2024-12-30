@@ -12,7 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.grouping_info import get_grouping_info
+from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
@@ -22,6 +22,7 @@ from sentry.seer.similarity.utils import (
     TooManyOnlySystemFramesException,
     event_content_has_stacktrace,
     get_stacktrace_string,
+    has_too_many_contributing_frames,
     killswitch_enabled,
 )
 from sentry.users.models.user import User
@@ -42,24 +43,26 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get_group_hashes_for_group_id(self, group_id: int) -> set[str]:
-        hashes = GroupHash.objects.filter(group_id=group_id)
-        return {hash.hash for hash in hashes}
-
     def get_formatted_results(
         self,
         similar_issues_data: Sequence[SeerSimilarIssueData],
         user: User | AnonymousUser,
-        group_id: int,
+        group: Group,
     ) -> Sequence[tuple[Mapping[str, Any], Mapping[str, Any]] | None]:
         """
         Format the responses using to be used by the frontend by changing the  field names and
         changing the cosine distances into cosine similarities.
         """
-        hashes = self.get_group_hashes_for_group_id(group_id)
         group_data = {}
+        parent_hashes = [
+            similar_issue_data.parent_hash for similar_issue_data in similar_issues_data
+        ]
+        group_hashes = GroupHash.objects.filter(project_id=group.project_id, hash__in=parent_hashes)
+        parent_hashes_group_ids = {
+            group_hash.hash: group_hash.group_id for group_hash in group_hashes
+        }
         for similar_issue_data in similar_issues_data:
-            if similar_issue_data.parent_hash not in hashes:
+            if parent_hashes_group_ids[similar_issue_data.parent_hash] != group.id:
                 formatted_response: FormattedSimilarIssuesEmbeddingsData = {
                     "exception": round(1 - similar_issue_data.stacktrace_distance, 4),
                     "shouldBeGrouped": "Yes" if similar_issue_data.should_group else "No",
@@ -81,16 +84,22 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         latest_event = group.get_latest_event()
         stacktrace_string = ""
+
         if latest_event and event_content_has_stacktrace(latest_event):
-            grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
-            try:
-                stacktrace_string = get_stacktrace_string(
-                    grouping_info, platform=latest_event.platform
-                )
-            except TooManyOnlySystemFramesException:
-                pass
-            except Exception:
-                logger.exception("Unexpected exception in stacktrace string formatting")
+            variants = latest_event.get_grouping_variants(normalize_stacktraces=True)
+
+            if not has_too_many_contributing_frames(
+                latest_event, variants, ReferrerOptions.SIMILAR_ISSUES_TAB
+            ):
+                grouping_info = get_grouping_info_from_variants(variants)
+                try:
+                    stacktrace_string = get_stacktrace_string(
+                        grouping_info, platform=latest_event.platform
+                    )
+                except TooManyOnlySystemFramesException:
+                    pass
+                except Exception:
+                    logger.exception("Unexpected exception in stacktrace string formatting")
 
         if not stacktrace_string or not latest_event:
             return Response([])  # No exception, stacktrace or in-app frames, or event
@@ -138,6 +147,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
 
         if not results:
             return Response([])
-        formatted_results = self.get_formatted_results(results, request.user, group.id)
+        formatted_results = self.get_formatted_results(results, request.user, group)
 
         return Response(formatted_results)
