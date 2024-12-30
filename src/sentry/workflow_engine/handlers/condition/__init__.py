@@ -4,6 +4,7 @@ __all__ = [
     "EveryEventConditionHandler",
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
+    "ExistingHighPriorityIssueConditionHandler",
 ]
 
 from .group_event_handlers import (
@@ -11,4 +12,8 @@ from .group_event_handlers import (
     EventSeenCountConditionHandler,
     EveryEventConditionHandler,
 )
-from .group_state_handlers import ReappearedEventConditionHandler, RegressionEventConditionHandler
+from .group_state_handlers import (
+    ExistingHighPriorityIssueConditionHandler,
+    ReappearedEventConditionHandler,
+    RegressionEventConditionHandler,
+)
