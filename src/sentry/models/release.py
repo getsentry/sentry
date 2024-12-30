@@ -86,6 +86,10 @@ class ReleaseStatus:
         else:
             raise ValueError(repr(value))
 
+    @classmethod
+    def as_choices(cls):
+        return [(cls.OPEN, "open"), (cls.ARCHIVED, "archived")]
+
 
 def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
     return f"g-r:{group_id}-{project_id}-{first}"

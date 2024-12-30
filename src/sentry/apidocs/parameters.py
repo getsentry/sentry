@@ -216,7 +216,7 @@ class ReleaseParams:
         location="path",
         required=True,
         type=str,
-        description="The version identifier of the release",
+        description="The version identifier of the release.",
     )
     PROJECT_ID = OpenApiParameter(
         name="project",

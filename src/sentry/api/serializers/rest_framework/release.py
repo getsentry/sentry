@@ -67,7 +67,7 @@ class ReleaseSerializer(serializers.Serializer):
     dateReleased = serializers.DateTimeField(
         required=False,
         allow_null=True,
-        help_text="An optional date that indicates when the release went live.  If not provided the current time is used.",
+        help_text="An optional date that indicates when the release went live.  If not provided, the current time is used.",
     )
     commits = serializers.ListField(
         child=CommitSerializer(),
@@ -76,7 +76,12 @@ class ReleaseSerializer(serializers.Serializer):
         help_text="An optional list of commit data to be associated.",
     )
 
-    status = serializers.CharField(required=False, allow_null=False)
+    status = serializers.ChoiceField(
+        required=False,
+        allow_null=False,
+        choices=ReleaseStatus.as_choices(),
+        help_text="The status of the release. If not provided, the release is created as open.",
+    )
 
     def validate_status(self, value):
         try:

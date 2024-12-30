@@ -25,6 +25,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
 )
+from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.api.utils import get_auth_api_token_type
 from sentry.apidocs.constants import (
@@ -158,13 +159,23 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
     return queryset
 
 
-@extend_schema_serializer(exclude_fields=["owner"])
+@extend_schema_serializer(exclude_fields=["owner", "headCommits"])
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField(help_text="The projects associated with the release.")
-    headCommits = ListField(
-        child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
+    projects = ListField(
+        child=ProjectField(scope="project:read", id_allowed=True),
+        help_text="The list of project slugs associated with the release.",
     )
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_null=False,  # DEPRECATED
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_null=False,
+        help_text="""An optional way to indicate the start and end commits for each repository included in a release. Head commits must include parameters ``repository`` and ``commit`` (the HEAD SHA). They can optionally include ``previousCommit`` (the SHA of the HEAD of the previous release), which should be specified if this is the first time you've sent commit data.""",
+    )
 
 
 def debounce_update_release_health_data(organization, project_ids: list[int]):
@@ -458,15 +469,14 @@ class OrganizationReleasesEndpoint(
         )
 
     @extend_schema(
-        operation_id="Create a New Release for an Organization",
+        operation_id="Create or Update a Release for an Organization",
         request=ReleaseSerializerWithProjects,
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
-            ReleaseParams.VERSION,
-            ReleaseParams.PROJECT_ID,
         ],
         responses={
-            200: ReleaseSerializerResponse,
+            201: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            208: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -476,12 +486,7 @@ class OrganizationReleasesEndpoint(
     )
     def post(self, request: Request, organization) -> Response:
         """
-        Create a new release for the given organization.
-
-        Releases are used by Sentry to improve its error reporting abilities by
-        correlating first seen events with the release that might have introduced
-        the problem. Releases are also necessary for source maps and other debug
-        features that require manual upload for functioning well.
+        Create a new release for the organization. If the release already exists, this endpoint can be used to update the status of the existing release.
         """
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(

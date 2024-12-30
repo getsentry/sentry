@@ -852,7 +852,7 @@ class OrganizationExamples:
         OpenApiExample(
             "Retrieve release details",
             value=EXAMPLE_RELEASE,
-            status_codes=["200"],
+            status_codes=["200", "201", "208"],
             response_only=True,
         )
     ]
