@@ -204,9 +204,8 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def deassign(
         self,
         group: Group,
-        acting_user: User | RpcUser | None,
-        assigned_to: Team | RpcUser | None = None,
-        extra: dict[str, str] | None = None,
+        # XXX: Some callers do not pass an acting user but we should make it mandatory
+        acting_user: User | RpcUser | None = None,
         assignment_source: AssignmentSource | None = None,
     ) -> None:
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
