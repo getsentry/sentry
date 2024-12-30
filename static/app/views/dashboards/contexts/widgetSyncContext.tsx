@@ -28,6 +28,7 @@ export function WidgetSyncContextProvider({
 }: WidgetSyncContextProviderProps) {
   const register: RegistrationFunction = chart => {
     chart.group = groupName;
+    // eslint-disable-next-line import/namespace
     echarts?.connect(groupName);
   };
 
