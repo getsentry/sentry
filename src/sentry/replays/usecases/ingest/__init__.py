@@ -194,7 +194,7 @@ def track_initial_segment_event(
     if not project.flags.has_replays:
         first_replay_received.send_robust(project=project, sender=Project)
 
-    # Beta customers are not billed post GA.
+    # Beta customers will have a 2 months grace period post GA.
     if should_skip_billing(org_id, is_replay_video) or is_replay_video:
         track_outcome(
             org_id=org_id,
