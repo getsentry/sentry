@@ -3,5 +3,11 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "include": ["eslint.config.mjs", "static/app", "tests/js", "config", "scripts"]
+  "include": [
+    "eslint.config.mjs",
+    "static/app",
+    "tests/js",
+    "config",
+    "scripts"
+  ]
 }
