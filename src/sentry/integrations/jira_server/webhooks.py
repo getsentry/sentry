@@ -1,20 +1,19 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http.request import HttpRequest
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
-from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.exceptions import BadRequest
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.scope import clear_tags_and_context
+from sentry.integrations.webhook import IntegrationWebhookEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt, metrics
 
@@ -49,44 +48,48 @@ def get_integration_from_token(token: str | None) -> RpcIntegration:
 
 
 @region_silo_endpoint
-class JiraServerIssueUpdatedWebhook(Endpoint):
-    owner = ApiOwner.INTEGRATIONS
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
-    authentication_classes = ()
-    permission_classes = ()
+class JiraServerIssueUpdatedWebhook(IntegrationWebhookEndpoint):
+    provider = "jira_server"
 
-    @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
+    def authenticate(self, request: Request, **kwargs) -> Any:
+        token = kwargs["token"]
 
-    def post(self, request: Request, token, *args, **kwargs) -> Response:
-        clear_tags_and_context()
-        extra: dict[str, object] = {}
         try:
             integration = get_integration_from_token(token)
-            extra["integration_id"] = integration.id
+            self.log_extra["integration_id"] = integration.id
         except ValueError as err:
-            extra.update({"token": token, "error": str(err)})
-            logger.warning("token-validation-error", extra=extra)
+            self.log_extra.update({"token": token, "error": str(err)})
+            logger.warning("token-validation-error", extra=self.log_extra)
             metrics.incr("jira_server.webhook.invalid_token")
-            return self.respond(status=400)
+            raise BadRequest()
 
+        return integration
+
+    def unpack_payload(self, request: Request, **kwargs) -> Any:
         data = request.data
 
         # Note: If we ever process more webhooks from jira server
         # we also need to update JiraServerRequestParser
         if not data.get("changelog"):
-            logger.info("missing-changelog", extra=extra)
+            logger.info("missing-changelog", extra=self.log_extra)
+            return None
+
+        return data
+
+    def post(self, request: Request, token, *args, **kwargs) -> Response:
+        clear_tags_and_context()
+        integration = self.authenticate(request, token=token)
+
+        data = self.unpack_payload(request)
+        if data is None:
             return self.respond()
 
         try:
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            extra.update({"token": token, "error": str(err)})
-            logger.info("sync-failed", extra=extra)
+            self.log_extra.update({"token": token, "error": str(err)})
+            logger.info("sync-failed", extra=self.log_extra)
             logger.exception("Invalid token.")
             return self.respond(status=400)
         else:

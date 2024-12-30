@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import abc
 import logging
+from abc import ABC
 from collections.abc import MutableMapping
 from typing import Any
 
-from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
 from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
@@ -13,8 +12,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry.api.base import Endpoint
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError, get_token
+from sentry.integrations.webhook import IntegrationWebhookEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -24,18 +23,12 @@ class JiraTokenError(Exception):
     pass
 
 
-class JiraWebhookBase(Endpoint, abc.ABC):
+class JiraWebhookBase(IntegrationWebhookEndpoint, ABC):
     """
     Base class for webhooks used in the Jira integration
     """
 
-    authentication_classes = ()
-    permission_classes = ()
     provider = "jira"
-
-    @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(
         self,
@@ -61,7 +54,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
         ):
             logger.info(
                 "Atlassian Connect Security Request Tester tried disallowed method",
-                extra={"path": request.path, "method": request.method},
+                extra=self.log_extra,
             )
             return self.respond(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
