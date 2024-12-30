@@ -37,7 +37,7 @@ export function formatTimeSeriesResultsToChartData(
       seriesName: webVital.toUpperCase(),
       data: series.map(({name, value}) => ({
         name,
-        value: Math.round(value * 100 * 0.01),
+        value: Math.round(value),
       })),
       color,
     };
