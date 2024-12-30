@@ -178,6 +178,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
         formatter,
       }}
       xAxis={{
+        animation: false,
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
@@ -185,6 +186,7 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
         splitNumber: 0,
       }}
       yAxis={{
+        animation: false,
         axisLabel: {
           formatter(value: number) {
             return formatYAxisValue(value, type, unit);
