@@ -237,8 +237,8 @@ describe('ReleaseSeries', function () {
       </Fragment>
     );
 
-    await waitFor(() => expect(screen.getByText('Series 1')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText('Series 2')).toBeInTheDocument());
+    await screen.findByText('Series 1');
+    await screen.findByText('Series 2');
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });

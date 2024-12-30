@@ -64,6 +64,6 @@ describe('AccountAuthorizations', function () {
     await waitFor(() =>
       expect(screen.queryByText('Delete Shrimp')).not.toBeInTheDocument()
     );
-    await waitFor(() => expect(screen.queryByText('Keep Shrimp')).toBeInTheDocument());
+    await screen.findByText('Keep Shrimp');
   });
 });

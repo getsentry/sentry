@@ -102,12 +102,12 @@ describe('Relocation', function () {
 
   async function waitForRenderSuccess(step: string) {
     renderPage(step);
-    await waitFor(() => expect(screen.getByTestId(step)).toBeInTheDocument());
+    await screen.findByTestId(step);
   }
 
   async function waitForRenderError(step: string) {
     renderPage(step);
-    await waitFor(() => expect(screen.getByTestId('loading-error')).toBeInTheDocument());
+    await screen.findByTestId('loading-error');
   }
 
   describe('Get Started', function () {
@@ -261,7 +261,7 @@ describe('Relocation', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
       await waitFor(() => expect(fetchPublicKeys).toHaveBeenCalledTimes(2));
-      await waitFor(() => expect(screen.getByTestId('get-started')).toBeInTheDocument());
+      await screen.findByTestId('get-started');
 
       await waitFor(() =>
         expect(successfulFetchExistingEarthRelocation).toHaveBeenCalledTimes(1)
@@ -347,7 +347,7 @@ describe('Relocation', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
       await waitFor(() => expect(successfulFetchEarthPublicKey).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(successfulFetchMoonPublicKey).toHaveBeenCalledTimes(2));
-      await waitFor(() => expect(screen.getByTestId('public-key')).toBeInTheDocument());
+      await screen.findByTestId('public-key');
 
       expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
       expect(screen.queryByText('key.pub')).toBeInTheDocument();

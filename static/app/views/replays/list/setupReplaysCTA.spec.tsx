@@ -1,4 +1,4 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SetupReplaysCTA} from 'sentry/views/replays/list/replayOnboardingPanel';
 
@@ -12,7 +12,7 @@ describe('SetupReplaysCTA', () => {
     render(<SetupReplaysCTA primaryAction="setup" orgSlug="foo" disabled />);
     const setupBtn = screen.getByTestId('setup-replays-btn');
     await userEvent.hover(setupBtn);
-    await waitFor(() => screen.getByTestId('setup-replays-tooltip'));
+    await screen.findByTestId('setup-replays-tooltip');
     expect(screen.getByTestId('setup-replays-tooltip')).toBeInTheDocument();
   });
 
@@ -27,7 +27,7 @@ describe('SetupReplaysCTA', () => {
     render(<SetupReplaysCTA primaryAction="create" orgSlug="foo" disabled />);
     const createBtn = screen.getByTestId('create-project-btn');
     await userEvent.hover(createBtn);
-    await waitFor(() => screen.getByTestId('create-project-tooltip'));
+    await screen.findByTestId('create-project-tooltip');
     expect(screen.getByTestId('create-project-tooltip')).toBeInTheDocument();
   });
 });
