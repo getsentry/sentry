@@ -12,6 +12,7 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import BadRequest
 from sentry.integrations.base import IntegrationDomain
@@ -137,6 +138,7 @@ class PushEventWebhook(BitbucketServerWebhook):
 class BitbucketServerWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
+    owner = ApiOwner.ECOSYSTEM
 
     _handlers: dict[str, type[BitbucketServerWebhook]] = {"repo:refs_changed": PushEventWebhook}
 
