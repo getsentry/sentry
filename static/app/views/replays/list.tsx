@@ -52,10 +52,10 @@ function ReplaysListContainer() {
               <ReplayListPageHeaderHook />
               {allMobileProj && mobileBetaOrg ? (
                 <StyledAlert icon={<IconInfo />} showIcon>
-                  <strong>{t(`Mobile Replay is now generally available.`)}</strong>{' '}
                   {tct(
-                    `Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
+                    `[strong:Mobile Replay is now generally available.] Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
                     {
+                      strong: <strong />,
                       link: (
                         <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
                       ),
