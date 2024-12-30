@@ -83,7 +83,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():
@@ -165,7 +165,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: dict = {
+        aggregate_kwargs: dict[str, str] = {
             "log_level": "3",
             "has_stacktrace": "5",
             "relative_volume": "1",
@@ -3804,7 +3804,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     @patch("sentry.analytics.record")
-    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock):
+    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
@@ -3961,7 +3961,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
 
-    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
+    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool) -> None:
         with Feature(
             {
                 FeedbackGroup.build_visible_feature_name(): True,
@@ -3989,13 +3989,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) != feedback_group.id
         assert issue["issueCategory"] != "feedback"
 
-    def test_feedback_filtered_by_default_no_snuba_search(self, _):
+    def test_feedback_filtered_by_default_no_snuba_search(self) -> None:
         self.run_feedback_filtered_by_default_test(False)
 
-    def test_feedback_filtered_by_default_use_snuba_search(self, _):
+    def test_feedback_filtered_by_default_use_snuba_search(self) -> None:
         self.run_feedback_filtered_by_default_test(True)
 
-    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
+    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool) -> None:
         with Feature(
             {
                 FeedbackGroup.build_visible_feature_name(): True,
@@ -4025,10 +4025,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) == feedback_group.id
         assert issue["issueCategory"] == "feedback"
 
-    def test_feedback_category_filter_no_snuba_search(self, _):
+    def test_feedback_category_filter_no_snuba_search(self) -> None:
         self.run_feedback_category_filter_test(False)
 
-    def test_feedback_category_filter_use_snuba_search(self, _):
+    def test_feedback_category_filter_use_snuba_search(self) -> None:
         self.run_feedback_category_filter_test(True)
 
 
