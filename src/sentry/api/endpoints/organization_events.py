@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from types import ModuleType
 from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
@@ -55,7 +56,7 @@ class DiscoverDatasetSplitException(Exception):
     pass
 
 
-ALLOWED_EVENTS_REFERRERS = {
+ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_ORGANIZATION_EVENTS.value,
     Referrer.API_ORGANIZATION_EVENTS_V2.value,
     Referrer.API_DASHBOARDS_TABLEWIDGET.value,
@@ -167,10 +168,9 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
-    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE,
+    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE.value,
 }
 
-API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
 LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
 # reduced limit will be the future default for all organizations not explicitly on increased limit
@@ -273,8 +273,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     enforce_rate_limit = True
 
-    def rate_limits(*args, **kwargs) -> dict[str, dict[RateLimitCategory, RateLimit]]:
-        return rate_limit_events(*args, **kwargs)
+    rate_limits = rate_limit_events
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
@@ -295,11 +294,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
 
-        all_features = (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {}
-        )
+        all_features: dict[str, bool] = {}
+
+        if batch_features is not None:
+            for feature_name, result in batch_features.get(
+                f"organization:{organization.id}", {}
+            ).items():
+                all_features[feature_name] = bool(result)
 
         for feature_name in feature_names:
             if feature_name not in all_features:
@@ -379,7 +380,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 }
             )
         except InvalidParams as err:
-            raise ParseError(err)
+            raise ParseError(detail=str(err))
 
         batch_features = self.get_features(organization, request)
 
@@ -418,7 +419,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            referrer = API_TOKEN_REFERRER
+            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+        elif referrer is None:
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             if referrer:
                 with sentry_sdk.isolation_scope() as scope:
@@ -428,12 +431,15 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
+        # Referrer should always be not None at this point
+        assert referrer is not None
+
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
-        def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+        def _data_fn(scoped_dataset, offset, limit, query) -> Mapping[str, Any]:
             if use_rpc and dataset == spans_eap:
                 return spans_rpc.run_table_query(
                     params=snuba_params,
@@ -488,6 +494,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
                 if does_widget_have_split and not has_override_feature:
+                    split_dataset: ModuleType
+
                     # This is essentially cached behaviour and we skip the check
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
                         split_dataset = errors
@@ -678,7 +686,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
-            def fn(offset, limit) -> dict[str, Any]:
+            def fn(offset, limit) -> Mapping[str, Any]:
                 if save_discover_dataset_decision and discover_saved_query_id:
                     return _discover_data_fn(
                         scoped_dataset, offset, limit, scoped_query, discover_saved_query_id
