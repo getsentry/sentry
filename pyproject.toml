@@ -427,6 +427,7 @@ module = [
     "sentry.lang.java.processing",
     "sentry.llm.*",
     "sentry.migrations.*",
+    "sentry.models.activity",
     "sentry.models.event",
     "sentry.models.eventattachment",
     "sentry.models.groupsubscription",
