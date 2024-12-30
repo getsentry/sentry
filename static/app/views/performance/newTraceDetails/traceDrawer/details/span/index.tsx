@@ -30,7 +30,7 @@ import {TraceDrawerComponents} from '.././styles';
 import {IssueList} from '../issues/issues';
 
 import Alerts from './sections/alerts';
-import {SpanDescription} from './sections/description';
+import {hasFormattedSpanDescription, SpanDescription} from './sections/description';
 import {GeneralInfo} from './sections/generalInfo';
 import {hasSpanHTTPInfo, SpanHTTPInfo} from './sections/http';
 import {hasSpanKeys, SpanKeys} from './sections/keys';
@@ -120,6 +120,7 @@ function LegacySpanNodeDetailHeader({
 
 function SpanSections({
   node,
+  project,
   organization,
   location,
   onParentClick,
@@ -136,6 +137,7 @@ function SpanSections({
     return (
       <LegacySpanSections
         node={node}
+        project={project}
         organization={organization}
         location={location}
         onParentClick={onParentClick}
@@ -169,6 +171,7 @@ function SpanSections({
 
 function LegacySpanSections({
   node,
+  project,
   organization,
   location,
   onParentClick,
@@ -177,9 +180,18 @@ function LegacySpanSections({
   node: TraceTreeNode<TraceTree.Span>;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
+  project: Project | undefined;
 }) {
   return (
     <TraceDrawerComponents.SectionCardGroup>
+      {hasFormattedSpanDescription(node) ? (
+        <SpanDescription
+          node={node}
+          project={project}
+          organization={organization}
+          location={location}
+        />
+      ) : null}
       <GeneralInfo
         node={node}
         organization={organization}
