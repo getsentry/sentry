@@ -76,8 +76,10 @@ class JiraServerIssueUpdatedWebhook(IntegrationWebhookEndpoint):
 
         return data
 
-    def post(self, request: Request, token, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args, **kwargs) -> Response:
         clear_tags_and_context()
+
+        token = kwargs["token"]  # URL param
         integration = self.authenticate(request, token=token)
 
         data = self.unpack_payload(request)
