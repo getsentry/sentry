@@ -10,7 +10,7 @@ describe('PermissionSelection', () => {
   let onChange: jest.Mock;
   let model: FormModel;
 
-  beforeEach(() => {
+  function renderForm() {
     model = new FormModel();
     onChange = jest.fn();
     render(
@@ -30,9 +30,10 @@ describe('PermissionSelection', () => {
       </Form>
     );
     ModalStore.reset();
-  });
+  }
 
   it('renders a row for each resource', () => {
+    renderForm();
     expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
@@ -42,6 +43,7 @@ describe('PermissionSelection', () => {
   });
 
   it('lists human readable permissions', async () => {
+    renderForm();
     const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
         await selectEvent.select(screen.getByRole('textbox', {name}), option);
@@ -57,6 +59,7 @@ describe('PermissionSelection', () => {
   });
 
   it('stores the permissions the User has selected', async () => {
+    renderForm();
     const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
