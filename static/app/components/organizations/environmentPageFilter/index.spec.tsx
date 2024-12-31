@@ -76,8 +76,8 @@ describe('EnvironmentPageFilter', function () {
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
 
     // Select prod & stage by clicking on their checkboxes
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));

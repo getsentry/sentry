@@ -636,6 +636,7 @@ describe('Dashboards > Detail', function () {
 
     it('hides add widget option', async function () {
       // @ts-expect-error this is assigning to readonly property...
+      // eslint-disable-next-line import/namespace
       types.MAX_WIDGETS = 1;
 
       render(
@@ -1738,15 +1739,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions for dashboard', async function () {
@@ -1806,15 +1807,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions with teams for dashboard', async function () {
@@ -1890,15 +1891,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
+          }),
+        })
+      );
     });
 
     it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {

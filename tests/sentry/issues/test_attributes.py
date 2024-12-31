@@ -11,7 +11,6 @@ from sentry.issues.attributes import (
     Operation,
     _bulk_retrieve_group_values,
     _bulk_retrieve_snapshot_values,
-    _retrieve_group_values,
 )
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
@@ -24,19 +23,6 @@ from sentry.utils.snuba import raw_snql_query
 
 
 class GroupAttributesTest(TestCase):
-    def test_retrieve_group_values(self) -> None:
-        group = self.create_group()
-        assert _retrieve_group_values(group.id) == GroupValues(
-            id=group.id,
-            project_id=group.project_id,
-            status=group.status,
-            substatus=group.substatus,
-            first_seen=group.first_seen,
-            num_comments=group.num_comments,
-            priority=group.priority,
-            first_release_id=None,
-        )
-
     def test_bulk_retrieve_group_values(self) -> None:
         group = self.create_group()
         release = self.create_release(project=group.project)

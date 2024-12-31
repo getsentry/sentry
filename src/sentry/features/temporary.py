@@ -321,6 +321,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enable showing INP web vital in default views
     manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable handling missing webvitals in performance score
+    manager.add("organizations:performance-vitals-handle-missing-webvitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enabled for those orgs who participated in the profiling Beta program
@@ -423,8 +425,6 @@ def register_temporary_features(manager: FeatureManager):
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
-    # Enable linking to Slack alerts from multiple teams to a single channel
-    manager.add("organizations:slack-multiple-team-single-channel-linking", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:stacktrace-processing-caching", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable SAML2 Single-logout
     manager.add("organizations:sso-saml2-slo", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
@@ -527,6 +527,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:visibility-explore-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the dataset toggle on the new explore page
     manager.add("organizations:visibility-explore-dataset", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable RPC on the new explore page
+    manager.add("organizations:visibility-explore-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable minimap in the widget viewer modal in dashboards
     manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled unresolved issue webhook for organization
