@@ -1,5 +1,4 @@
 from sentry.api.bases.organizationmember import MemberAndStaffPermission, MemberPermission
-from sentry.testutils.helpers import Feature
 from tests.sentry.api.bases.test_organization import PermissionBaseTestCase
 
 
@@ -27,34 +26,30 @@ class MemberPermissionTest(PermissionBaseTestCase):
         self.create_member(user=member_user, organization=self.org, role="member")
         assert self.has_object_perm("GET", self.org, user=member_user)
         assert not self.has_object_perm("PUT", self.org, user=member_user)
-        assert not self.has_object_perm("POST", self.org, user=member_user)
         assert not self.has_object_perm("DELETE", self.org, user=member_user)
 
-        with Feature({"organizations:members-invite-teammates": True}):
-            self.org.flags.disable_member_invite = False
-            self.org.save()
-            assert self.has_object_perm("POST", self.org, user=member_user)
+        self.org.flags.disable_member_invite = False
+        self.org.save()
+        assert self.has_object_perm("POST", self.org, user=member_user)
 
-            self.org.flags.disable_member_invite = True
-            self.org.save()
-            assert not self.has_object_perm("POST", self.org, user=member_user)
+        self.org.flags.disable_member_invite = True
+        self.org.save()
+        assert not self.has_object_perm("POST", self.org, user=member_user)
 
     def test_org_admin(self):
         admin_user = self.create_user()
         self.create_member(user=admin_user, organization=self.org, role="admin")
         assert self.has_object_perm("GET", self.org, user=admin_user)
         assert not self.has_object_perm("PUT", self.org, user=admin_user)
-        assert not self.has_object_perm("POST", self.org, user=admin_user)
         assert not self.has_object_perm("DELETE", self.org, user=admin_user)
 
-        with Feature({"organizations:members-invite-teammates": True}):
-            self.org.flags.disable_member_invite = False
-            self.org.save()
-            assert self.has_object_perm("POST", self.org, user=admin_user)
+        self.org.flags.disable_member_invite = False
+        self.org.save()
+        assert self.has_object_perm("POST", self.org, user=admin_user)
 
-            self.org.flags.disable_member_invite = True
-            self.org.save()
-            assert not self.has_object_perm("POST", self.org, user=admin_user)
+        self.org.flags.disable_member_invite = True
+        self.org.save()
+        assert not self.has_object_perm("POST", self.org, user=admin_user)
 
     def test_org_manager(self):
         manager_user = self.create_user()
