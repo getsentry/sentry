@@ -1,8 +1,9 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -92,13 +93,20 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
 
   const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
   const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
-  const otherProjects = unlinkedProjects
-    .filter(p => p.access.includes('project:write'))
-    .map(p => ({
-      value: p.id,
-      searchKey: p.slug,
-      label: <ProjectListElement>{p.slug}</ProjectListElement>,
-    }));
+  const otherProjects = useMemo(() => {
+    return unlinkedProjects
+      .filter(p => p.access.includes('project:write'))
+      .map(p => ({
+        value: p.id,
+        searchKey: p.slug,
+        label: (
+          <ProjectListElement>
+            <ProjectAvatar project={p} />
+            <span>{p.slug}</span>
+          </ProjectListElement>
+        ),
+      }));
+  }, [unlinkedProjects]);
 
   return (
     <Fragment>
@@ -195,6 +203,9 @@ const StyledPanelItem = styled(PanelItem)`
 `;
 
 const ProjectListElement = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
   padding: ${space(0.25)} 0;
 `;
 
