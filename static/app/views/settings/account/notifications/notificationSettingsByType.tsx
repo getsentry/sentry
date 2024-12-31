@@ -474,7 +474,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 
 export default withOrganizations(NotificationSettingsByTypeV2);
 
-export const TopJsonForm = styled(JsonForm)`
+const TopJsonForm = styled(JsonForm)`
   ${Panel} {
     border-bottom: 0;
     margin-bottom: 0;
@@ -483,7 +483,7 @@ export const TopJsonForm = styled(JsonForm)`
   }
 `;
 
-export const BottomJsonForm = styled(JsonForm)`
+const BottomJsonForm = styled(JsonForm)`
   ${Panel} {
     border-top-right-radius: 0;
     border-top-left-radius: 0;
