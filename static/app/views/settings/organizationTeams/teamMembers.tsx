@@ -133,7 +133,7 @@ function AddMemberDropdown({
         value: m.id,
         label: (
           <StyledUserListElement>
-            <StyledAvatar
+            <UserAvatar
               user={{
                 id: m.user?.id ?? m.id,
                 name: m.user?.name ?? m.name,
@@ -142,6 +142,7 @@ function AddMemberDropdown({
                 avatarUrl: m.user?.avatarUrl ?? undefined,
                 type: 'user',
               }}
+              title={m.user?.name ?? m.name ?? m.user?.email ?? m.email}
               size={24}
               className="avatar"
             />
@@ -407,18 +408,12 @@ const StyledUserListElement = styled('div')`
   gap: ${space(0.5)};
   align-items: center;
   text-transform: initial;
+  font-weight: normal;
 `;
 
 const StyledNameOrEmail = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   ${p => p.theme.overflowEllipsis};
-`;
-
-const StyledAvatar = styled(UserAvatar)`
-  min-width: 1.75em;
-  min-height: 1.75em;
-  width: 1.5em;
-  height: 1.5em;
 `;
 
 const StyledMembersLabel = styled('div')`
@@ -430,7 +425,7 @@ const StyledMembersLabel = styled('div')`
 `;
 
 const StyledCreateMemberLink = styled(Link)`
-  text-transform: none;
+  text-transform: initial;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)`
