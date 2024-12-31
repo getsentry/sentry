@@ -1,9 +1,8 @@
-name: test-docker-compose-backend
+name: test-devservices-backend
 
 on:
   schedule:
-    - cron: '0 0 * * *'
-
+    - cron: '0 * * * *'
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
@@ -13,9 +12,11 @@ concurrency:
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
+  USE_NEW_DEVSERVICES: 1
+  IS_DEV: 1
 
 jobs:
-  docker-compose-api-docs:
+  devservices-api-docs:
     name: api docs test
     runs-on: ubuntu-24.04
     steps:
@@ -31,9 +32,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse
+        run: devservices up
 
       - name: Run API docs tests
         # install ts-node for ts build scripts to execute properly without potentially installing
@@ -44,11 +43,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-backend-test:
+  devservices-backend-test:
     name: backend test
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -73,13 +70,11 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
+        id: setup
         uses: ./.github/actions/test-setup-sentry-devservices
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
-          docker compose -f devservices/docker-compose-testing.yml up -d
+        run: devservices up --mode backend-ci
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -107,11 +102,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-backend-migration-tests:
+  devservices-backend-migration-tests:
     name: backend migration tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -127,9 +120,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres snuba clickhouse
+        run: devservices up
 
       - name: run tests
         run: |
@@ -146,11 +137,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-cli:
+  devservices-cli:
     name: cli test
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -165,9 +154,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Run test
         run: |
@@ -184,11 +171,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-migration:
+  devservices-migration:
     name: check migration
     runs-on: ubuntu-24.04
     strategy:
@@ -204,9 +189,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Migration & lockfile checks
         env:
@@ -217,11 +200,9 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
-  docker-compose-monolith-dbs:
+  devservices-monolith-dbs:
     name: monolith-dbs test
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -236,9 +217,7 @@ jobs:
         id: setup
 
       - name: Bring up devservices
-        run: |
-          docker network create sentry
-          docker compose -f devservices/docker-compose-testing.yml up -d redis postgres
+        run: devservices up --mode migrations
 
       - name: Run test
         run: |
@@ -265,24 +244,22 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          docker compose -f devservices/docker-compose-testing.yml ps
-          docker compose -f devservices/docker-compose-testing.yml logs --tail 1000
+        run: devservices logs
 
   # This check runs once all dependent jobs have passed
   # It symbolizes that all required Backend checks have succesfully passed (Or skipped)
   # This step is the only required backend check
-  docker-compose-backend-required-check:
+  devservices-backend-required-check:
     needs:
       [
-        docker-compose-api-docs,
-        docker-compose-backend-test,
-        docker-compose-backend-migration-tests,
-        docker-compose-cli,
-        docker-compose-migration,
-        docker-compose-monolith-dbs,
+        devservices-api-docs,
+        devservices-backend-test,
+        devservices-backend-migration-tests,
+        devservices-cli,
+        devservices-migration,
+        devservices-monolith-dbs,
       ]
-    name: Docker Compose Backend
+    name: Devservices Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ubuntu-24.04
