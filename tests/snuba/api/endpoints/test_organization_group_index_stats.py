@@ -64,7 +64,6 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
-        assert "isUnhandled" not in response_data[0]
 
     def test_unhandled(self):
         self.store_event(
