@@ -278,7 +278,7 @@ class PerfIssuePlatformEventMixin(PerformanceIssueTestCase):
                 tag[1] = data.get("environment")
                 break
         else:
-            event_data["tags"].append(data.get("environment"))
+            raise AssertionError("expected `environment` tag")
 
         # Store a performance event
         event = self.create_performance_issue(
@@ -300,9 +300,6 @@ class StandardIntervalTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueTest
         raise NotImplementedError
 
     def _run_test(self, minutes, data, passes, add_events=False):
-        if not self.environment:
-            self.environment = self.create_environment(name="prod")
-
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
         environment_rule = self.get_rule(data=data, rule=Rule(environment_id=self.environment.id))
 
@@ -661,8 +658,6 @@ class EventUniqueUserFrequencyConditionWithConditionsTestCase(StandardIntervalTe
         self.assertDoesNotPass(rule, event, is_new=False)
 
     def _run_test(self, minutes, data, passes, add_events=False):
-        if not self.environment:
-            self.environment = self.create_environment(name="prod")
         data["filter_match"] = "all"
         data["conditions"] = data.get("conditions", [])
         rule = self.get_rule(

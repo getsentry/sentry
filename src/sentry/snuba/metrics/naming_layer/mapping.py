@@ -92,12 +92,6 @@ def get_public_name_from_mri(internal_name: TransactionMRI | SessionMRI | str) -
         return internal_name
 
 
-def is_private_mri(internal_name: TransactionMRI | SessionMRI | str) -> bool:
-    public_name = get_public_name_from_mri(internal_name)
-    # If the public name is the same as internal name it means that the internal is "private".
-    return public_name == internal_name
-
-
 def _extract_name_from_custom_metric_mri(mri: str) -> str | None:
     parsed_mri = parse_mri(mri)
     if parsed_mri is None:

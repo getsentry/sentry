@@ -809,10 +809,6 @@ source: tests/sentry/backup/test_comparators.py
     - user
   model_name: sentry.lostpasswordhash
 - comparators:
-  - class: ForeignKeyComparator
-    fields: []
-  model_name: sentry.metricskeyindexer
-- comparators:
   - class: UUID4Comparator
     fields:
     - guid

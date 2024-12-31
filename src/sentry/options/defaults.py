@@ -2307,12 +2307,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "releases_v2.single-tenant",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # The flag disables the file io on main thread detector
 register(
     "performance_issues.file_io_main_thread.disabled",

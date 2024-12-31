@@ -8,7 +8,9 @@ describe('useDragNDropColumns', () => {
   const initialColumns = ['span.op', 'span_id', 'timestamp'];
 
   it('should insert a column', () => {
-    let columns, setColumns, insertColumn;
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let insertColumn: ReturnType<typeof useDragNDropColumns>['insertColumn'];
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
@@ -26,7 +28,11 @@ describe('useDragNDropColumns', () => {
   });
 
   it('should update a column at a specific index', () => {
-    let columns, setColumns, updateColumnAtIndex;
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let updateColumnAtIndex: ReturnType<
+      typeof useDragNDropColumns
+    >['updateColumnAtIndex'];
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
@@ -44,7 +50,9 @@ describe('useDragNDropColumns', () => {
   });
 
   it('should delete a column at a specific index', () => {
-    let columns, setColumns, deleteColumnAtIndex;
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let deleteColumnAtIndex: (index: number) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);
@@ -62,7 +70,9 @@ describe('useDragNDropColumns', () => {
   });
 
   it('should swap two columns at specific indices', () => {
-    let columns, setColumns, onDragEnd;
+    let columns!: string[];
+    let setColumns: (columns: string[]) => void;
+    let onDragEnd: (arg: any) => void;
 
     function TestPage() {
       [columns, setColumns] = useState(initialColumns);

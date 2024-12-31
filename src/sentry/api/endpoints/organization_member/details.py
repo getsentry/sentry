@@ -226,10 +226,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_member = not (
             request.access.has_scope("member:invite") and request.access.has_scope("member:admin")
         )
-        enable_member_invite = (
-            features.has("organizations:members-invite-teammates", organization)
-            and not organization.flags.disable_member_invite
-        )
+        enable_member_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
         reinvite_request_only = set(result.keys()).issubset({"reinvite", "regenerate"})
         # Members can only resend invites that they sent
@@ -470,8 +467,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         if (
-                            features.has("organizations:members-invite-teammates", organization)
-                            and not organization.flags.disable_member_invite
+                            not organization.flags.disable_member_invite
                             and request.access.has_scope("member:invite")
                         ):
                             return self._handle_deletion_by_member(

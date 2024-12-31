@@ -406,6 +406,7 @@ class SlackActionEndpoint(Endpoint):
                     )
 
                 view = View(**slack_request.data["view"])
+                assert view.private_metadata is not None
                 private_metadata = orjson.loads(view.private_metadata)
                 original_tags_from_request = set(private_metadata.get("tags", {}))
 

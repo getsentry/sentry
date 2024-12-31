@@ -89,9 +89,6 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
 
-    def get_issues(self, repo):
-        return self.get(BitbucketAPIPath.issues.format(repo=repo))
-
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)
 

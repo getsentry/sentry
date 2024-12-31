@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {SlowestFunctionsWidget} from 'sentry/views/profiling/landing/slowestFunctionsWidget';
@@ -246,7 +246,7 @@ describe('SlowestFunctionsWidget', function () {
     const items = screen.getAllByRole('listitem', {});
     expect(items.length).toEqual(2);
 
-    const buttons = getAllByRole(items[0], 'button', {});
+    const buttons = within(items[0]).getAllByRole('button');
     expect(buttons.length).toEqual(2);
     await userEvent.click(buttons[1]);
 
