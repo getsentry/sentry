@@ -4,83 +4,9 @@ import {
   addSuccessMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
-
-const api = new Client();
-
-/**
- * Removes an integration from a project.
- *
- * @param orgSlug Organization Slug
- * @param projectId Project Slug
- * @param integration The organization integration to remove
- */
-export function removeIntegrationFromProject(
-  orgSlug: string,
-  projectId: string,
-  integration: Integration
-) {
-  const endpoint = `/projects/${orgSlug}/${projectId}/integrations/${integration.id}/`;
-  addLoadingMessage();
-
-  return api.requestPromise(endpoint, {method: 'DELETE'}).then(
-    () => {
-      addSuccessMessage(t('Disabled %s for %s', integration.name, projectId));
-    },
-    () => {
-      addErrorMessage(t('Failed to disable %s for %s', integration.name, projectId));
-    }
-  );
-}
-
-/**
- * Add an integration to a project
- *
- * @param orgSlug Organization Slug
- * @param projectId Project Slug
- * @param integration The organization integration to add
- */
-export function addIntegrationToProject(
-  orgSlug: string,
-  projectId: string,
-  integration: Integration
-) {
-  const endpoint = `/projects/${orgSlug}/${projectId}/integrations/${integration.id}/`;
-  addLoadingMessage();
-
-  return api.requestPromise(endpoint, {method: 'PUT'}).then(
-    () => {
-      addSuccessMessage(t('Enabled %s for %s', integration.name, projectId));
-    },
-    () => {
-      addErrorMessage(t('Failed to enabled %s for %s', integration.name, projectId));
-    }
-  );
-}
-
-/**
- * Delete a respository
- *
- * @param client ApiClient
- * @param orgSlug Organization Slug
- * @param repositoryId Repository ID
- */
-export function deleteRepository(client: Client, orgSlug: string, repositoryId: string) {
-  addLoadingMessage();
-  const promise = client.requestPromise(
-    `/organizations/${orgSlug}/repos/${repositoryId}/`,
-    {
-      method: 'DELETE',
-    }
-  );
-  promise.then(
-    () => clearIndicators(),
-    () => addErrorMessage(t('Unable to delete repository.'))
-  );
-  return promise;
-}
 
 /**
  * Cancel the deletion of a respository
