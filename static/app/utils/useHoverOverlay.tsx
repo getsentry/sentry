@@ -98,6 +98,19 @@ interface UseHoverOverlayProps {
    * Offset along the main axis.
    */
   offset?: number;
+
+  /**
+   * Callback whenever the hovercard is blurred
+   * See also `onHover`
+   */
+  onBlur?: () => void;
+
+  /**
+   * Callback whenever the hovercard is hovered
+   * See also `onBlur`
+   */
+  onHover?: () => void;
+
   /**
    * Position for the overlay.
    */
@@ -115,6 +128,7 @@ interface UseHoverOverlayProps {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+
   /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
@@ -159,6 +173,8 @@ function useHoverOverlay(
     offset = 8,
     position = 'top',
     containerDisplayMode = 'inline-block',
+    onHover,
+    onBlur,
   }: UseHoverOverlayProps
 ) {
   const theme = useTheme();
@@ -166,6 +182,14 @@ function useHoverOverlay(
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;
+
+  useEffect(() => {
+    if (isOpen) {
+      onHover?.();
+    } else {
+      onBlur?.();
+    }
+  }, [isOpen, onBlur, onHover]);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
