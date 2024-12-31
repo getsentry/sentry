@@ -14,10 +14,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = pytest.mark.sentry_metrics
 
 
-def format_project_event(project_id_or_slug, event_id):
-    return f"{project_id_or_slug}:{event_id}"
-
-
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
@@ -381,7 +377,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                             "avg(span.self_time)": 1.0,
                             "avg(span.duration)": 2.0,
                         }
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
     def test_nan_column(self):
@@ -397,7 +393,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                 for span in entry["data"]:
                     if span["op"] == "db":
                         assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
     def test_invalid_column(self):
