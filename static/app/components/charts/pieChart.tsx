@@ -77,7 +77,7 @@ class PieChart extends Component<Props> {
       .reduce(
         (acc, [name, value]) => ({
           ...acc,
-          [name]: value,
+          [name!]: value,
         }),
         {}
       );

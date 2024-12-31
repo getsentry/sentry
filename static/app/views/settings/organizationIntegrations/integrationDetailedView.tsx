@@ -70,7 +70,7 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get provider() {
-    return this.state.information.providers[0];
+    return this.state.information.providers[0]!;
   }
 
   get description() {

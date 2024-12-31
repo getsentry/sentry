@@ -162,7 +162,7 @@ describe('ProjectKeys', function () {
     });
 
     expect(expandButton).not.toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();

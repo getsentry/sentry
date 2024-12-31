@@ -6,7 +6,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 
-import type {JsonFormObject} from './types';
+import type {FieldObject, JsonFormObject} from './types';
 
 const user = UserFixture();
 
@@ -168,7 +168,7 @@ describe('JsonForm', function () {
   });
 
   describe('fields prop', function () {
-    const jsonFormFields = [fields.name, fields.platform];
+    const jsonFormFields = [fields.name, fields.platform] as FieldObject[];
 
     it('default', function () {
       render(<JsonForm fields={jsonFormFields} />);

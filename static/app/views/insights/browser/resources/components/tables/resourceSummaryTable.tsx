@@ -173,7 +173,7 @@ function ResourceSummaryTable() {
         columnOrder={columnOrder}
         columnSortBy={[
           {
-            key: sort.field,
+            key: sort.field as keyof Row,
             order: sort.kind,
           },
         ]}

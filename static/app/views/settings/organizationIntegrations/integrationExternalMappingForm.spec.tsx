@@ -204,7 +204,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(getResponse).not.toHaveBeenCalled();
     // Now that the user types, query for results
     await userEvent.type(sentryNameField, 'option2');
-    await userEvent.click(screen.getAllByText('option2')[1]);
+    await userEvent.click(screen.getAllByText('option2')[1]!);
     await waitFor(() => expect(getResponse).toHaveBeenCalled());
   });
 });

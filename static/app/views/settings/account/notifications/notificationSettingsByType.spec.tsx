@@ -439,7 +439,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[3], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[3]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
