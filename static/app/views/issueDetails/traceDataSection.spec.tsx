@@ -254,7 +254,7 @@ describe('TraceDataSection', () => {
     });
   });
 
-  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
+  it('skips the timeline and shows NO related issues (only 1 issue)', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
@@ -275,13 +275,13 @@ describe('TraceDataSection', () => {
     render(<TraceDataSection event={event} />, {organization});
 
     // We do not display any related issues because we only have 1 issue
-    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
     expect(
-      await screen.queryByText('AttributeError: Something Failed')
+      screen.queryByText('AttributeError: Something Failed')
     ).not.toBeInTheDocument();
 
     // We do not display the timeline because we only have 1 event
-    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
