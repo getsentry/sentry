@@ -2,8 +2,10 @@ from typing import Any
 
 import sentry_sdk
 
+from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
 from sentry.rules.conditions.event_attribute import attribute_registry
+from sentry.utils import json
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -39,10 +41,7 @@ class EventSeenCountConditionHandler(DataConditionHandler[WorkflowJob]):
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
 class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
-
-        attribute = comparison.get("attribute", "")
+    def get_attribute_values(event: GroupEvent, attribute: str) -> list[str]:
         path = attribute.split(".")
         first_attribute = path[0]
         try:
@@ -58,9 +57,18 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
             except KeyError as e:
                 attribute_values = []
                 sentry_sdk.capture_exception(e)
+        return attribute_values
 
-        match = comparison.get("match")
-        desired_value = comparison.get("value")
+    @staticmethod
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        comparison_dict = json.loads(comparison)
+
+        event = job["event"]
+        attribute = comparison_dict.get("attribute", "")
+        attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
+
+        match = comparison_dict.get("match")
+        desired_value = comparison_dict.get("value")
         if not (match and desired_value) and not (match in (MatchType.IS_SET, MatchType.NOT_SET)):
             return False
 

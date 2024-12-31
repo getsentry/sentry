@@ -6,6 +6,7 @@ from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.utils import json
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -72,9 +73,10 @@ def create_existing_high_priority_issue_data_condition(
 def create_event_attribute_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    comparison = {"match": data["match"], "value": data["value"], "attribute": data["attribute"]}
     return DataCondition.objects.create(
         type=Condition.EVENT_ATTRIBUTE,
-        comparison=True,
+        comparison=json.dumps(comparison),
         condition_result=True,
         condition_group=dcg,
     )
