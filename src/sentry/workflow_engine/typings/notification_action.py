@@ -133,7 +133,26 @@ class DiscordDataBlob(DataBlob):
     tags: str = ""
 
 
+@dataclass
+class PagerDutyDataBlob(DataBlob):
+    """
+    PagerDutyDataBlob is a specific type that represents the data blob for a PagerDuty notification action.
+    """
+
+    severity: str = ""
+
+
+@dataclass
+class OpsgenieDataBlob(DataBlob):
+    """
+    OpsgenieDataBlob is a specific type that represents the data blob for a Opsgenie notification action.
+    """
+
+    priority: str = ""
+
+
 ACTION_TYPE_2_BLOB_TYPE: dict[Action.Type, type[DataBlob]] = {
     Action.Type.SLACK: SlackDataBlob,
     Action.Type.DISCORD: DiscordDataBlob,
+    Action.Type.PAGERDUTY: PagerDutyDataBlob,
 }

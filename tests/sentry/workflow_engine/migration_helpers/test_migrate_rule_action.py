@@ -191,3 +191,53 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
 
         self.assert_actions_migrated_correctly(actions, action_data)
+
+    def test_pagerduty_action_migration(self):
+        action_data = [
+            {
+                "account": "123456",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "service": "91919",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "account": "999999",
+                "service": "19191",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "uuid": "9a8b7c6d-5e4f-3a2b-1c0d-9a8b7c6d5e4f",
+                "severity": "warning",
+            },
+            {
+                "account": "77777",
+                "service": "57436",
+                "severity": "info",
+                "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data)
+
+    def test_opsgenie_action_migration(self):
+        action_data = [
+            {
+                "account": "123456",
+                "team": "1234-bufo-bot",
+                "priority": "P1",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "account": "999999",
+                "team": "1234-bufo-bot-2",
+                "priority": "P3",
+                "id": "sentry.integrations.opsgenie.notify_action.OpsgenieNotifyTeamAction",
+                "uuid": "01234567-89ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data)
