@@ -54,7 +54,7 @@ describe('DatabaseSpanDescription', function () {
       {organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('SELECT USERS FRO*')).toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe('DatabaseSpanDescription', function () {
       {organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
       await screen.findByText('SELECT users FROM my_table LIMIT 1;')
@@ -150,7 +150,7 @@ describe('DatabaseSpanDescription', function () {
       {organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(
       await screen.findByText('SELECT users FROM my_table LIMIT 1;')
@@ -205,7 +205,7 @@ describe('DatabaseSpanDescription', function () {
       {organization}
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // expect(await screen.findBy).toBeInTheDocument();
     const mongoQuerySnippet = await screen.findByText(
