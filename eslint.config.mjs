@@ -964,7 +964,6 @@ export default typescript.config([
       'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-render-in-lifecycle': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-      'testing-library/no-wait-for-multiple-assertions': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-presence-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line

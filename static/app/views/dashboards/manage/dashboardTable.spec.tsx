@@ -201,8 +201,8 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('cannot delete last dashboard', function () {
@@ -251,8 +251,8 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('does not throw an error if the POST fails during duplication', async function () {
@@ -282,9 +282,9 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
-      // Should not update, and not throw error
-      expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
   it('renders access column', async function () {

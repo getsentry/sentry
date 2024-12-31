@@ -160,8 +160,8 @@ describe('Screens Landing Page', function () {
 
       await waitFor(() => {
         expect(metricsMock).toHaveBeenCalled();
-        expect(spanMetricsMock).toHaveBeenCalled();
       });
+      expect(spanMetricsMock).toHaveBeenCalled();
 
       const cards = [
         {header: 'Cold App Start', value: '1'},

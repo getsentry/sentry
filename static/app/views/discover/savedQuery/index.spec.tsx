@@ -421,8 +421,8 @@ describe('Discover > SaveQueryButtonGroup', function () {
             }),
             yAxis
           );
-          expect(mockSetSavedQuery).toHaveBeenCalled();
         });
+        expect(mockSetSavedQuery).toHaveBeenCalled();
       });
     });
 
