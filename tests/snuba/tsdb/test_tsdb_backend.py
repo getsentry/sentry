@@ -21,7 +21,7 @@ def timestamp(d):
     return t - (t % 3600)
 
 
-def has_shape(data, shape, allow_empty=False):
+def has_shape(data, shape):
     """
     Determine if a data object has the provided shape
 
@@ -33,18 +33,16 @@ def has_shape(data, shape, allow_empty=False):
     A tuple is the same shape if it has the same length as `shape` and all the
     values have the same shape as the corresponding value in `shape`
     Any other object simply has to have the same type.
-    If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
     """
-    if not isinstance(data, type(shape)):
-        return False
+    assert isinstance(data, type(shape))
     if isinstance(data, dict):
         return (
-            (allow_empty or len(data) > 0)
+            len(data) > 0
             and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
             and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
-        return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)
+        return len(data) > 0 and all(has_shape(v, shape[0]) for v in data)
     elif isinstance(data, tuple):
         return len(data) == len(shape) and all(
             has_shape(data[i], shape[i]) for i in range(len(data))

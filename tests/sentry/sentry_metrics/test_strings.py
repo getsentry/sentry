@@ -118,7 +118,7 @@ def test_shared_mri_string_range(mri, id):
             "metric_stats": (800, 899),
         }[parsed_mri.namespace]
     except KeyError:
-        raise Exception(f"Unknown namespace: {parsed_mri.namespace}")
+        raise AssertionError(f"Unknown namespace: {parsed_mri.namespace}")
 
     start += PREFIX
     end += PREFIX
