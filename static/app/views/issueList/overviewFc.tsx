@@ -705,10 +705,11 @@ function IssueListOverviewFc({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const prevUrlQuery = usePrevious(location.query);
   const previousSelection = usePrevious(selection);
   const previousSavedSearchLoading = usePrevious(savedSearchLoading);
   const previousIssuesLoading = usePrevious(issuesLoading);
+
+  const previousRequestParams = usePrevious(requestParams);
 
   // Keep data up to date
   useEffect(() => {
@@ -740,30 +741,9 @@ function IssueListOverviewFc({
       return;
     }
 
-    const newUrlQuery = location.query;
-
-    const prevQuery = getQueryFromSavedSearchOrLocation({
-      savedSearch,
-      location,
-    });
-    const newQuery = getQuery();
-
-    const prevSort = getSortFromSavedSearchOrLocation({
-      savedSearch,
-      location,
-    });
-    const newSort = getSort();
-
     // If any important url parameter changed or saved search changed
     // reload data.
-    if (
-      selectionChanged ||
-      prevUrlQuery.cursor !== newUrlQuery.cursor ||
-      prevUrlQuery.statsPeriod !== newUrlQuery.statsPeriod ||
-      prevUrlQuery.groupStatsPeriod !== newUrlQuery.groupStatsPeriod ||
-      prevQuery !== newQuery ||
-      prevSort !== newSort
-    ) {
+    if (!isEqual(previousRequestParams, requestParams)) {
       fetchData(selectionChanged);
     } else if (
       !lastRequestRef.current &&
@@ -775,23 +755,17 @@ function IssueListOverviewFc({
       fetchData();
     }
   }, [
-    prevUrlQuery,
-    location.query,
     fetchData,
     savedSearchLoading,
     selection,
     previousSelection,
     organization.features,
-    location,
-    getQueryFromSavedSearchOrLocation,
-    savedSearch,
-    getQuery,
-    getSortFromSavedSearchOrLocation,
-    getSort,
     issuesLoading,
     loadFromCache,
     previousSavedSearchLoading,
     previousIssuesLoading,
+    previousRequestParams,
+    requestParams,
   ]);
 
   // Fetch members on mount
