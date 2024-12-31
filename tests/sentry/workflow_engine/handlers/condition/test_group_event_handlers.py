@@ -53,7 +53,12 @@ class TestEveryEventCondition(ConditionTestCase):
 class TestEventAttributeCondition(ConditionTestCase):
     condition = Condition.EVENT_ATTRIBUTE
     rule_cls = EventAttributeCondition
-    payload = {"id": EventAttributeCondition.id}
+    payload = {
+        "id": EventAttributeCondition.id,
+        "match": MatchType.EQUAL,
+        "value": "php",
+        "attribute": "platform",
+    }
 
     def get_event(self, **kwargs):
         data = {
@@ -917,16 +922,16 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.assert_passes(self.dc, self.job)
 
     def test_dual_write(self):
-        comparison = {
-            "match": MatchType.EQUAL,
-            "value": "php",
-            "attribute": "platform",
-        }
-        self.payload.update(comparison)
         dcg = self.create_data_condition_group()
         dc = self.translate_to_data_condition(self.payload, dcg)
 
         assert dc.type == self.condition
-        assert dc.comparison == json.dumps(comparison)
+        assert dc.comparison == json.dumps(
+            {
+                "match": MatchType.EQUAL,
+                "value": "php",
+                "attribute": "platform",
+            }
+        )
         assert dc.condition_result is True
         assert dc.condition_group == dcg

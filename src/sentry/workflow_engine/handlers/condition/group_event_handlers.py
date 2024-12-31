@@ -57,6 +57,9 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
             except KeyError as e:
                 attribute_values = []
                 sentry_sdk.capture_exception(e)
+
+        attribute_values = [str(value).lower() for value in attribute_values if value is not None]
+
         return attribute_values
 
     @staticmethod
@@ -73,7 +76,6 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
             return False
 
         desired_value = str(desired_value).lower()
-        attribute_values = [str(value).lower() for value in attribute_values if value is not None]
 
         # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
         if match == MatchType.IS_SET:
