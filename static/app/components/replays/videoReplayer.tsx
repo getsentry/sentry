@@ -196,6 +196,8 @@ export class VideoReplayer {
     const el = document.createElement('video');
     const sourceEl = document.createElement('source');
     el.style.display = 'none';
+    el.style.zIndex = index.toString();
+    el.style.position = 'absolute';
     sourceEl.setAttribute('type', 'video/mp4');
     sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
@@ -407,14 +409,13 @@ export class VideoReplayer {
     }
 
     // This is the soon-to-be previous video that needs to be hidden
-    if (this._currentVideo) {
-      this._currentVideo.style.display = 'none';
-      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
-      if (this._currentVideo.ended) {
-        this.setVideoTime(this._currentVideo, 0);
-      }
-    }
-
+    // if (this._currentVideo) {
+    //   this._currentVideo.style.display = 'none';
+    //   // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+    //   if (this._currentVideo.ended) {
+    //     this.setVideoTime(this._currentVideo, 0);
+    //   }
+    // }
     nextVideo.style.display = 'block';
 
     // Update current video so that we can hide it when showing the
