@@ -42,7 +42,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
               onAction: props.onRetry,
             },
           ]
-        : []
+        : props.actions
       : props.actions) ?? [];
 
   const shouldShowFullScreenViewButton =

@@ -184,6 +184,41 @@ describe('WidgetFrame', () => {
       await userEvent.hover($trigger);
       expect(await screen.findByText('Actions are not supported')).toBeInTheDocument();
     });
+
+    it('Shows actions even in error state', async () => {
+      const onAction = jest.fn();
+      const error = new Error('Something is wrong');
+
+      render(
+        <WidgetFrame
+          title="EPS"
+          description="Number of events per second"
+          error={error}
+          actions={[
+            {
+              key: 'hello',
+              label: 'Make Go',
+              onAction,
+            },
+          ]}
+        />
+      );
+
+      const $button = screen.getByRole('button', {name: 'Make Go'});
+      expect($button).toBeInTheDocument();
+      await userEvent.click($button);
+
+      expect(onAction).toHaveBeenCalledTimes(1);
+    });
+
+    it('Shows a "Retry" action if a retry callback is provided', () => {
+      const onRetry = jest.fn();
+      const error = new Error('Something is wrong');
+
+      render(<WidgetFrame title="EPS" error={error} onRetry={onRetry} />);
+
+      expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    });
   });
 
   describe('Full Screen View Button', () => {
