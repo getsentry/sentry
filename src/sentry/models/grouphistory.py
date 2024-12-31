@@ -1,8 +1,12 @@
-from typing import TYPE_CHECKING, ClassVar, Optional, Union
+from __future__ import annotations
+
+import datetime
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -149,7 +153,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 class GroupHistoryManager(BaseManager["GroupHistory"]):
-    def filter_to_team(self, team: "Team"):
+    def filter_to_team(self, team: Team) -> QuerySet[GroupHistory]:
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
 
@@ -241,13 +245,13 @@ class GroupHistory(Model):
             self.team_id = actor.id
 
 
-def get_prev_history(group, status):
+def get_prev_history(group: Group, status: int) -> GroupHistory | None:
     """
     Finds the most recent row that is the inverse of this history row, if one exists.
     """
     previous_statuses = PREVIOUS_STATUSES.get(status)
     if not previous_statuses:
-        return
+        return None
 
     prev_histories = GroupHistory.objects.filter(
         group=group, status__in=previous_statuses
@@ -256,11 +260,11 @@ def get_prev_history(group, status):
 
 
 def record_group_history_from_activity_type(
-    group: "Group",
+    group: Group,
     activity_type: int,
-    actor: Union["User", "Team"] | None = None,
-    release: Optional["Release"] = None,
-):
+    actor: RpcUser | User | Team | None = None,
+    release: Release | None = None,
+) -> GroupHistory | None:
     """
     Writes a `GroupHistory` row for an activity type if there's a relevant `GroupHistoryStatus` that
     maps to it
@@ -275,14 +279,15 @@ def record_group_history_from_activity_type(
 
     if status is not None:
         return record_group_history(group, status, actor, release)
+    return None
 
 
 def record_group_history(
-    group: "Group",
+    group: Group,
     status: int,
-    actor: Union["User", "RpcUser", "Team"] | None = None,
-    release: Optional["Release"] = None,
-):
+    actor: User | RpcUser | Team | None = None,
+    release: Release | None = None,
+) -> GroupHistory:
     from sentry.models.team import Team
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
@@ -312,16 +317,16 @@ def record_group_history(
 
 
 def bulk_record_group_history(
-    groups: list["Group"],
+    groups: Sequence[Group],
     status: int,
-    actor: Union["User", "RpcUser", "Team"] | None = None,
-    release: Optional["Release"] = None,
-):
+    actor: User | RpcUser | Team | None = None,
+    release: Release | None = None,
+) -> list[GroupHistory]:
     from sentry.models.team import Team
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
-    def get_prev_history_date(group, status):
+    def get_prev_history_date(group: Group, status: int) -> datetime.datetime | None:
         prev_history = get_prev_history(group, status)
         return prev_history.date_added if prev_history else None
 
