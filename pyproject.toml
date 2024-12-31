@@ -276,7 +276,6 @@ module = [
     "sentry.scim.endpoints.utils",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
-    "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
     "sentry.search.events.datasets.function_aliases",
     "sentry.search.events.datasets.metrics",
