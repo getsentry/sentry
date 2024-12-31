@@ -73,7 +73,7 @@ def translate_transaction_status(val: str) -> str:
     return SPAN_STATUS_NAME_TO_CODE[val]
 
 
-def to_list(value: list[str] | str) -> list[str]:
+def to_list[T](value: list[T] | T) -> list[T]:
     if isinstance(value, list):
         return value
     return [value]
