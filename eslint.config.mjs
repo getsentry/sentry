@@ -945,7 +945,7 @@ export default typescript.config([
     plugins: jestDom.configs['flat/recommended'].plugins,
   },
   {
-    name: 'testing-library/react - ts files',
+    name: 'testing-library/react',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
@@ -959,7 +959,6 @@ export default typescript.config([
     files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      'testing-library/no-await-sync-events': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953): Fix the violations, then delete this line
