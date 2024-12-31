@@ -803,7 +803,7 @@ export default typescript.config([
   {
     // Default file selection
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
-    files: ['**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   {
     // Global ignores

@@ -122,8 +122,7 @@ pyproject.toml                                           @getsentry/owners-pytho
 babel.config.*                                           @getsentry/owners-js-build
 biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-eslint.config.js                                         @getsentry/owners-js-build
-eslintrc.js                                              @getsentry/owners-js-build
+eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
