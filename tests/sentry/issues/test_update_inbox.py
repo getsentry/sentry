@@ -21,7 +21,6 @@ class MarkReviewedTest(TestCase):
             group_list=self.group_list,
             project_lookup=self.project_lookup,
             acting_user=self.user,
-            http_referrer="",
             sender=self,
         )
         assert not GroupInbox.objects.filter(group=self.group).exists()
@@ -33,7 +32,6 @@ class MarkReviewedTest(TestCase):
             group_list=self.group_list,
             project_lookup=self.project_lookup,
             acting_user=self.user,
-            http_referrer="",
             sender=self,
         )
         assert not GroupInbox.objects.filter(group=self.group).exists()
@@ -53,7 +51,6 @@ class MarkReviewedTest(TestCase):
             group_list=[],
             project_lookup=self.project_lookup,
             acting_user=self.user,
-            http_referrer="",
             sender=self,
         )
         assert GroupInbox.objects.filter(group=self.group).exists()
@@ -65,7 +62,6 @@ class MarkReviewedTest(TestCase):
             group_list=self.group_list + [new_group],
             project_lookup=self.project_lookup,
             acting_user=self.user,
-            http_referrer="",
             sender=self,
         )
 
