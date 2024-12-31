@@ -136,7 +136,6 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
     @property
     def TEAM_HALT_MAPPINGS(self) -> dict[str, MessageCommandHaltReason]:
         from sentry.integrations.slack.webhooks.command import (
-            CHANNEL_ALREADY_LINKED_MESSAGE,
             INSUFFICIENT_ROLE_MESSAGE,
             LINK_FROM_CHANNEL_MESSAGE,
             LINK_USER_FIRST_MESSAGE,
@@ -147,7 +146,6 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
             LINK_FROM_CHANNEL_MESSAGE: MessageCommandHaltReason.LINK_FROM_CHANNEL,
             LINK_USER_FIRST_MESSAGE: MessageCommandHaltReason.LINK_USER_FIRST,
             INSUFFICIENT_ROLE_MESSAGE: MessageCommandHaltReason.INSUFFICIENT_ROLE,
-            CHANNEL_ALREADY_LINKED_MESSAGE: MessageCommandHaltReason.CHANNEL_ALREADY_LINKED,
             TEAM_NOT_LINKED_MESSAGE: MessageCommandHaltReason.TEAM_NOT_LINKED,
         }
 
