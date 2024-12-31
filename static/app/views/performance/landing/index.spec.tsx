@@ -296,7 +296,7 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
@@ -320,7 +320,7 @@ describe('Performance > Landing > Index', function () {
 
       wrapper = render(<WrappedComponent data={data} />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
       expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
     });

@@ -59,6 +59,6 @@ describe('TimelineCursor', function () {
 
     // move cursor outside it is not visible
     fireEvent.mouseMove(body, {clientX: 120, clientY: 20});
-    await waitForElementToBeRemoved(() => screen.getByRole('presentation'));
+    await waitForElementToBeRemoved(() => screen.queryByRole('presentation'));
   });
 });

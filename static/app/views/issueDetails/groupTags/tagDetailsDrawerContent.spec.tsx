@@ -63,7 +63,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {router});
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByText('Value')).toBeInTheDocument();
     expect(screen.getByText('Last Seen')).toBeInTheDocument();
@@ -101,7 +101,7 @@ describe('TagDetailsDrawerContent', () => {
     });
     render(<TagDetailsDrawerContent group={group} />, {router});
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
