@@ -1,8 +1,7 @@
 {
   "extends": "./config/tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": true,
-    "noUncheckedIndexedAccess": true
+    "allowJs": true
   },
   "include": [".eslintrc.js", "static/app", "tests/js", "config", "scripts"]
 }
