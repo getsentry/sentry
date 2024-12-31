@@ -115,10 +115,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     const showRemoveButton = !isCurrentUser;
     const showLeaveButton = isCurrentUser;
     const isInviteFromCurrentUser = pending && inviterName === currentUser.name;
-    const canInvite =
-      organization.features?.includes('members-invite-teammates') &&
-      organization.allowMemberInvite &&
-      access.includes('member:invite');
+    const canInvite = organization.allowMemberInvite && access.includes('member:invite');
     // members can remove invites they sent if allowMemberInvite is true
     const canEditInvite = canInvite && isInviteFromCurrentUser;
     const canRemoveMember =

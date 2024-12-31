@@ -29,9 +29,7 @@ function defaultInvite(): InviteRow {
 function canInvite(organization: Organization) {
   return (
     organization.access?.includes('member:write') ||
-    (organization.features.includes('members-invite-teammates') &&
-      organization.allowMemberInvite &&
-      organization.access?.includes('member:invite'))
+    (organization.allowMemberInvite && organization.access?.includes('member:invite'))
   );
 }
 
