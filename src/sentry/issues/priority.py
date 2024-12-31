@@ -30,10 +30,6 @@ PRIORITY_TO_GROUP_HISTORY_STATUS = {
     PriorityLevel.LOW: GroupHistoryStatus.PRIORITY_LOW,
 }
 
-GROUP_HISTORY_STATUS_TO_PRIORITY = {
-    value: key for key, value in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
-}
-
 
 def update_priority(
     group: Group,

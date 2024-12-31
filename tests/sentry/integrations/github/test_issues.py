@@ -283,26 +283,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert title == event.title
 
     @responses.activate
-    def test_get_repo_issues(self):
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/issues",
-            json=[{"number": 321, "title": "hello", "body": "This is the description"}],
-        )
-        assert self.install.get_repo_issues(self.repo) == ((321, "#321 hello"),)
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
-
-    @responses.activate
     def test_link_issue(self):
         issue_id = "321"
 
