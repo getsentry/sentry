@@ -476,6 +476,7 @@ module = [
     "sentry.models.activity",
     "sentry.models.event",
     "sentry.models.eventattachment",
+    "sentry.models.groupassignee",
     "sentry.models.groupsubscription",
     "sentry.models.options.*",
     "sentry.monkey.*",
