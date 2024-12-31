@@ -425,7 +425,7 @@ describe('IssueRuleEditor', function () {
       // Production environment is preselected because it's the first option.
       // staging should also be selectable.
       await selectEvent.select(
-        within(filtersContainer).getAllByText('production')[0],
+        within(filtersContainer).getAllByText('production')[0]!,
         'staging'
       );
     });

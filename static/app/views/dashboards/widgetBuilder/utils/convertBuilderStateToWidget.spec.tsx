@@ -56,8 +56,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-geo.country');
-    expect(widget.queries[1].orderby).toEqual('-geo.country');
+    expect(widget.queries[0]!.orderby).toEqual('-geo.country');
+    expect(widget.queries[1]!.orderby).toEqual('-geo.country');
   });
 
   it('does not convert aggregates to aliased format', function () {
@@ -68,8 +68,8 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].orderby).toEqual('-count()');
-    expect(widget.queries[1].orderby).toEqual('-count()');
+    expect(widget.queries[0]!.orderby).toEqual('-count()');
+    expect(widget.queries[1]!.orderby).toEqual('-count()');
   });
 
   it('adds aliases to the widget queries', function () {
@@ -83,6 +83,6 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].fieldAliases).toEqual(['test', '', 'another one']);
+    expect(widget.queries[0]!.fieldAliases).toEqual(['test', '', 'another one']);
   });
 });

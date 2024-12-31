@@ -164,7 +164,7 @@ describe('ContextPickerModal', function () {
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,
-      body: organizations[1].projects,
+      body: organizations[1]!.projects,
     });
 
     OrganizationsStore.load(organizations);

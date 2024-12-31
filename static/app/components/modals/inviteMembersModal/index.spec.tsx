@@ -96,12 +96,12 @@ describe('InviteMembersModal', function () {
     const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
     const roleInputs = screen.getAllByRole('textbox', {name: 'Role'});
 
-    await userEvent.type(emailInputs[0], 'test1@test.com');
+    await userEvent.type(emailInputs[0]!, 'test1@test.com');
     await userEvent.tab();
 
-    await selectEvent.select(roleInputs[0], 'Admin');
+    await selectEvent.select(roleInputs[0]!, 'Admin');
 
-    await userEvent.type(emailInputs[1], 'test2@test.com');
+    await userEvent.type(emailInputs[1]!, 'test2@test.com');
     await userEvent.tab();
   };
 
@@ -162,10 +162,10 @@ describe('InviteMembersModal', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Add another'}));
 
     const emailInputs = screen.getAllByRole('textbox', {name: 'Email Addresses'});
-    await userEvent.type(emailInputs[0], 'test@test.com');
+    await userEvent.type(emailInputs[0]!, 'test@test.com');
     await userEvent.tab();
 
-    await userEvent.type(emailInputs[1], 'test@test.com');
+    await userEvent.type(emailInputs[1]!, 'test@test.com');
     await userEvent.tab();
 
     expect(screen.getByText('Duplicate emails between invite rows.')).toBeInTheDocument();
@@ -211,8 +211,8 @@ describe('InviteMembersModal', function () {
     await setupMemberInviteState();
 
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
-    await selectEvent.select(teamInputs[0], '#team-slug');
-    await selectEvent.select(teamInputs[1], '#team-slug');
+    await selectEvent.select(teamInputs[0]!, '#team-slug');
+    await selectEvent.select(teamInputs[1]!, '#team-slug');
 
     await userEvent.click(screen.getByRole('button', {name: 'Send invites (2)'}));
 

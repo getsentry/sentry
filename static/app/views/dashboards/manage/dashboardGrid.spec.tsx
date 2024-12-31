@@ -190,7 +190,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-delete'));
 
     expect(deleteMock).not.toHaveBeenCalled();
@@ -246,7 +248,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     expect(createMock).not.toHaveBeenCalled();
@@ -280,7 +284,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     expect(postMock).not.toHaveBeenCalled();
@@ -373,7 +379,7 @@ describe('Dashboards - DashboardGrid', function () {
     );
 
     expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    const favoriteButton = screen.queryAllByLabelText('Favorite')[0];
+    const favoriteButton = screen.queryAllByLabelText('Favorite')[0]!;
     await userEvent.click(favoriteButton);
 
     await waitFor(() => {

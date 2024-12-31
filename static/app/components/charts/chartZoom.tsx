@@ -242,7 +242,7 @@ class ChartZoom extends Component<Props> {
       return;
     }
 
-    this.setPeriod(this.history[0]);
+    this.setPeriod(this.history[0]!);
 
     // reset history
     this.history = [];

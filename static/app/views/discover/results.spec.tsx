@@ -1309,7 +1309,7 @@ describe('Results', function () {
             ...LocationFixture(),
             query: {
               ...EventView.fromNewQueryWithLocation(
-                getTransactionViews(organization)[0],
+                getTransactionViews(organization)[0]!,
                 LocationFixture()
               ).generateQueryStringObject(),
             },
@@ -1331,7 +1331,7 @@ describe('Results', function () {
         {router, organization}
       );
 
-      await screen.findAllByText(getTransactionViews(organization)[0].name);
+      await screen.findAllByText(getTransactionViews(organization)[0]!.name);
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 

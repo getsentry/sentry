@@ -220,7 +220,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
                 <Control>
                   <SelectControl
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey][fieldKey]
+                      ? mappedSelectors[itemKey]![fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}

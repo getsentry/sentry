@@ -38,7 +38,7 @@ export function makeCombinedReducers<M extends ReducersObject>(
     const nextState = {} as ReducersState<M>;
 
     for (const key of keys) {
-      nextState[key] = reducers[key](state[key], action);
+      nextState[key] = reducers[key]!(state[key], action);
     }
 
     return nextState;

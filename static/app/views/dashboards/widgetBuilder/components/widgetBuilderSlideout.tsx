@@ -69,7 +69,7 @@ function WidgetBuilderSlideout({
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsPreviewDraggable(!entry.isIntersecting);
+        setIsPreviewDraggable(!entry!.isIntersecting);
       },
       {threshold: 0}
     );

@@ -207,7 +207,7 @@ class SpanChart {
     };
 
     for (let i = 0; i < this.spanTrees.length; i++) {
-      depth += this.forEachSpanOfTree(this.spanTrees[i], depth, visit);
+      depth += this.forEachSpanOfTree(this.spanTrees[i]!, depth, visit);
     }
 
     return nodes;

@@ -97,12 +97,12 @@ function SearchBar(props: SearchBarProps) {
       isDropdownOpen &&
       transactionCount > 0
     ) {
-      const currentHighlightedItem = searchResults[0].children[highlightedItemIndex];
+      const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
       const nextHighlightedItemIndex =
         (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
         transactionCount;
       setHighlightedItemIndex(nextHighlightedItemIndex);
-      const nextHighlightedItem = searchResults[0].children[nextHighlightedItemIndex];
+      const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
 
       let newSearchResults = searchResults;
       if (currentHighlightedItem) {

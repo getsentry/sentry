@@ -49,7 +49,7 @@ class SearchSources extends Component<Props> {
     if (idx >= sources.length) {
       return this.renderResults(results);
     }
-    const Source = sources[idx];
+    const Source = sources[idx]!;
     return (
       <Source {...this.props}>
         {(args: SourceResult) => {

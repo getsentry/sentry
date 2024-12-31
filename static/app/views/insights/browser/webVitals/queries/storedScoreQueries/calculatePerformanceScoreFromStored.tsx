@@ -100,10 +100,10 @@ const calculateWeights = (data: TableDataRow) => {
     }
   );
   return {
-    lcpWeight: hasLcp ? lcpWeight : 0,
-    fcpWeight: hasFcp ? fcpWeight : 0,
-    clsWeight: hasCls ? clsWeight : 0,
-    ttfbWeight: hasTtfb ? ttfbWeight : 0,
-    inpWeight: hasInp ? inpActualWeight : 0,
+    lcpWeight: hasLcp ? lcpWeight! : 0,
+    fcpWeight: hasFcp ? fcpWeight! : 0,
+    clsWeight: hasCls ? clsWeight! : 0,
+    ttfbWeight: hasTtfb ? ttfbWeight! : 0,
+    inpWeight: hasInp ? inpActualWeight! : 0,
   };
 };

@@ -51,7 +51,7 @@ export default function CombinedAlertBadge({rule}: Props) {
   if (!isIssueAlertInstance && rule.monitorType === MonitorType.ACTIVATED) {
     const isWaiting =
       !rule.activations?.length ||
-      (rule.activations?.length && rule.activations[0].isComplete);
+      (rule.activations?.length && rule.activations[0]!.isComplete);
 
     return (
       <Tooltip

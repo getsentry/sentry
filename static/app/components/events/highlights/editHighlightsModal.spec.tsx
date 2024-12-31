@@ -154,7 +154,7 @@ describe('EditHighlightsModal', function () {
     const previewCtxButtons = screen.queryAllByTestId('highlights-remove-ctx');
     expect(previewCtxButtons).toHaveLength(highlightContextTitles.length);
 
-    await userEvent.click(previewTagButtons[0]);
+    await userEvent.click(previewTagButtons[0]!);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.edit_modal.remove_tag',
       expect.anything()
@@ -163,7 +163,7 @@ describe('EditHighlightsModal', function () {
       previewTagButtons.length - 1
     );
 
-    await userEvent.click(previewCtxButtons[0]);
+    await userEvent.click(previewCtxButtons[0]!);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.edit_modal.remove_context_key',
       expect.anything()

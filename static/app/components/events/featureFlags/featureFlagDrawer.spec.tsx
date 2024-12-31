@@ -71,16 +71,16 @@ describe('FeatureFlagDrawer', function () {
     const drawerScreen = await renderFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result === true);
-    expect(drawerScreen.getByText(webVitalsFlag.flag)).toBeInTheDocument();
-    expect(drawerScreen.getByText(enableReplay.flag)).toBeInTheDocument();
+    expect(drawerScreen.getByText(webVitalsFlag!.flag)).toBeInTheDocument();
+    expect(drawerScreen.getByText(enableReplay!.flag)).toBeInTheDocument();
 
     const searchInput = drawerScreen.getByRole('textbox', {
       name: 'Search Flags',
     });
-    await userEvent.type(searchInput, webVitalsFlag.flag);
+    await userEvent.type(searchInput, webVitalsFlag!.flag);
 
-    expect(drawerScreen.getByText(webVitalsFlag.flag)).toBeInTheDocument();
-    expect(drawerScreen.queryByText(enableReplay.flag)).not.toBeInTheDocument();
+    expect(drawerScreen.getByText(webVitalsFlag!.flag)).toBeInTheDocument();
+    expect(drawerScreen.queryByText(enableReplay!.flag)).not.toBeInTheDocument();
   });
 
   it('allows sort dropdown to affect displayed flags', async function () {
@@ -91,8 +91,8 @@ describe('FeatureFlagDrawer', function () {
     // the flags are reversed by default, so webVitalsFlag should be following enableReplay
     expect(
       drawerScreen
-        .getByText(enableReplay.flag)
-        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+        .getByText(enableReplay!.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     const sortControl = drawerScreen.getByRole('button', {
@@ -104,8 +104,8 @@ describe('FeatureFlagDrawer', function () {
     // expect webVitalsFlag to be preceding enableReplay
     expect(
       drawerScreen
-        .getByText(enableReplay.flag)
-        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag.flag))
+        .getByText(enableReplay!.flag)
+        .compareDocumentPosition(drawerScreen.getByText(webVitalsFlag!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     await userEvent.click(sortControl);
@@ -116,8 +116,8 @@ describe('FeatureFlagDrawer', function () {
     // enableReplay follows webVitalsFlag in Z-A sort
     expect(
       drawerScreen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(drawerScreen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(drawerScreen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 

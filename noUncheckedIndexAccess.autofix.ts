@@ -21,7 +21,7 @@ const debug = false || process.env.DEBUG === '1' || process.env.DEBUG === 'true'
 const errors = fs.readFileSync('./noUncheckedIndexAccess.txt', 'utf8').split('\n');
 
 const ERROR_REGEXP =
-  /(?<path>.*)\((?<line>\d+),(?<column>\d+).*(?<id>TS\d+)\:\s(?<message>.*)/gm;
+  /(?<path>.*)\((?<line>\d+),(?<column>\d+).*(?<id>TS\d+)\:\s(?<message>.*)/;
 
 interface TSParsedError {
   column: number;
@@ -54,6 +54,7 @@ function parseErrors(input: string[]): TSParsedError[] {
     }
     parsedErrors.push(error);
   }
+
   return parsedErrors;
 }
 
@@ -68,7 +69,6 @@ function groupByFile(input: TSParsedError[]): Record<string, TSParsedError[]> {
 
 const parsedErrors = parseErrors(errors);
 const groupedByFileErrors = groupByFile(parsedErrors);
-
 const ranges: Record<string, {end: number; lines: number[]; start: number}[]> = {};
 
 for (const path in groupedByFileErrors) {
@@ -120,7 +120,7 @@ function waitForYesNo() {
   return new Promise(resolve => {
     const handler = (str, key) => {
       process.stdin.setRawMode(false);
-      const answer = str.toLowerCase();
+      const answer = str?.toLowerCase();
 
       if ((key.ctrl && key.name === 'c') || key.name === 'q' || key.name === 'd') {
         process.stdin.setRawMode(false);
@@ -153,11 +153,19 @@ const makePrompt = (line: number[]) => {
 };
 
 (async () => {
-  for (const file of Object.keys(ranges)) {
-    for (const instances of ranges[file]) {
-      cp.execSync(`echo "${makePrompt(instances.lines)}" | pbcopy`);
-      cp.spawn('cursor', [`./${file}`]);
-      await waitForYesNo();
+  console.log('Start fixing y/n?');
+  await waitForYesNo().then(answer => {
+    if (!answer) {
+      process.exit(0);
     }
+  });
+
+  for (const file of Object.keys(ranges)) {
+    // for (const instances of ranges[file]) {
+    cp.execSync(`echo "${makePrompt(ranges[file][0]!.lines)}" | pbcopy`);
+    cp.spawn('cursor', [`./${file}`]);
+    const answer = await waitForYesNo();
+    if (answer) console.log(`✅ ${file}`);
+    // }
   }
 })();

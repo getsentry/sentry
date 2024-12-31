@@ -157,8 +157,8 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
                             <CommitLink
                               inline
                               showIcon={false}
-                              commitId={commits[0].id}
-                              repository={commits[0].repository}
+                              commitId={commits[0]!.id}
+                              repository={commits[0]!.repository}
                             />
                           ),
                         release: (
