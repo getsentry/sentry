@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -291,16 +291,58 @@ function IssueListOverviewFc({
     return pickBy(params, v => defined(v)) as EndpointParams;
   }, [selection, location, getQuery, getSort, getGroupStatsPeriod]);
 
-  const getCacheEndpointParams = useCallback((): EndpointParams => {
-    const cursor = location.query.cursor;
-    return {
+  const requestParams = useMemo(() => {
+    // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
+    const savedSearchLookupEnabled = 0;
+    const savedSearchLookupDisabled = 1;
+
+    const params: any = {
       ...getEndpointParams(),
-      cursor,
+      limit: MAX_ITEMS,
+      shortIdLookup: 1,
+      savedSearch: organization.features.includes('issue-stream-performance')
+        ? savedSearchLoading
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled
+        : savedSearchLookupDisabled,
     };
-  }, [getEndpointParams, location.query.cursor]);
+
+    if (organization.features.includes('issue-stream-performance') && selectedSearchId) {
+      params.searchId = selectedSearchId;
+    }
+
+    if (
+      organization.features.includes('issue-stream-performance') &&
+      savedSearchLoading &&
+      !defined(location.query.query)
+    ) {
+      delete params.query;
+    }
+
+    const currentQuery = location.query || {};
+    if ('cursor' in currentQuery) {
+      params.cursor = currentQuery.cursor;
+    }
+
+    // If no stats period values are set, use default
+    if (!params.statsPeriod && !params.start) {
+      params.statsPeriod = DEFAULT_STATS_PERIOD;
+    }
+
+    params.expand = ['owners', 'inbox'];
+    params.collapse = ['stats', 'unhandled'];
+
+    return params;
+  }, [
+    getEndpointParams,
+    location.query,
+    organization.features,
+    savedSearchLoading,
+    selectedSearchId,
+  ]);
 
   const loadFromCache = useCallback((): boolean => {
-    const cache = IssueListCacheStore.getFromCache(getCacheEndpointParams());
+    const cache = IssueListCacheStore.getFromCache(requestParams);
     if (!cache) {
       return false;
     }
@@ -319,7 +361,7 @@ function IssueListOverviewFc({
     }, 0);
 
     return true;
-  }, [getCacheEndpointParams]);
+  }, [requestParams]);
 
   const resumePolling = useCallback(() => {
     if (!pageLinks) {
@@ -399,22 +441,22 @@ function IssueListOverviewFc({
         fetchAllCounts ||
         !tabQueriesWithCounts.every(tabQuery => queryCounts[tabQuery] !== undefined)
       ) {
-        const requestParams: CountsEndpointParams = {
+        const countsRequestParams: CountsEndpointParams = {
           ...omit(endpointParams, 'query'),
           // fetch the counts for the tabs whose counts haven't been fetched yet
           query: tabQueriesWithCounts.filter(_query => _query !== currentTabQuery),
         };
 
         // If no stats period values are set, use default
-        if (!requestParams.statsPeriod && !requestParams.start) {
-          requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+        if (!countsRequestParams.statsPeriod && !countsRequestParams.start) {
+          countsRequestParams.statsPeriod = DEFAULT_STATS_PERIOD;
         }
 
         lastFetchCountsRequestRef.current = api.request(
           `/organizations/${organization.slug}/issues-count/`,
           {
             method: 'GET',
-            data: qs.stringify(requestParams),
+            data: qs.stringify(countsRequestParams),
 
             success: data => {
               if (!data) {
@@ -450,20 +492,20 @@ function IssueListOverviewFc({
       if (!newGroupIds.length) {
         return;
       }
-      const requestParams: StatEndpointParams = {
+      const statsRequestParams: StatEndpointParams = {
         ...getEndpointParams(),
         groups: newGroupIds,
       };
       // If no stats period values are set, use default
-      if (!requestParams.statsPeriod && !requestParams.start) {
-        requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
+      if (!statsRequestParams.statsPeriod && !statsRequestParams.start) {
+        statsRequestParams.statsPeriod = DEFAULT_STATS_PERIOD;
       }
 
       lastStatsRequestRef.current = api.request(
         `/organizations/${organization.slug}/issues-stats/`,
         {
           method: 'GET',
-          data: qs.stringify(requestParams),
+          data: qs.stringify(statsRequestParams),
           success: data => {
             if (!data) {
               return;
@@ -507,49 +549,6 @@ function IssueListOverviewFc({
       span?.setAttribute('query.sort', getSort());
 
       setError(null);
-
-      // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
-      const savedSearchLookupEnabled = 0;
-      const savedSearchLookupDisabled = 1;
-
-      const requestParams: any = {
-        ...getEndpointParams(),
-        limit: MAX_ITEMS,
-        shortIdLookup: 1,
-        savedSearch: organization.features.includes('issue-stream-performance')
-          ? savedSearchLoading
-            ? savedSearchLookupEnabled
-            : savedSearchLookupDisabled
-          : savedSearchLookupDisabled,
-      };
-
-      if (
-        organization.features.includes('issue-stream-performance') &&
-        selectedSearchId
-      ) {
-        requestParams.searchId = selectedSearchId;
-      }
-
-      if (
-        organization.features.includes('issue-stream-performance') &&
-        savedSearchLoading &&
-        !defined(location.query.query)
-      ) {
-        delete requestParams.query;
-      }
-
-      const currentQuery = location.query || {};
-      if ('cursor' in currentQuery) {
-        requestParams.cursor = currentQuery.cursor;
-      }
-
-      // If no stats period values are set, use default
-      if (!requestParams.statsPeriod && !requestParams.start) {
-        requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
-      }
-
-      requestParams.expand = ['owners', 'inbox'];
-      requestParams.collapse = ['stats', 'unhandled'];
 
       if (lastRequestRef.current) {
         lastRequestRef.current.cancel();
@@ -619,6 +618,13 @@ function IssueListOverviewFc({
             setQueryMaxCount(newQueryMaxCount);
             setPageLinks(newPageLinks !== null ? newPageLinks : '');
 
+            IssueListCacheStore.save(requestParams, {
+              groups: GroupStore.getState() as Group[],
+              queryCount: newQueryCount,
+              queryMaxCount: newQueryMaxCount,
+              pageLinks: newPageLinks ?? '',
+            });
+
             if (data.length === 0) {
               trackAnalytics('issue_search.empty', {
                 organization,
@@ -656,15 +662,13 @@ function IssueListOverviewFc({
       api,
       fetchCounts,
       fetchStats,
-      getEndpointParams,
       getQuery,
       getSort,
       location.query,
       organization,
       realtimeActive,
+      requestParams,
       resumePolling,
-      savedSearchLoading,
-      selectedSearchId,
     ]
   );
 
@@ -790,24 +794,29 @@ function IssueListOverviewFc({
     previousIssuesLoading,
   ]);
 
+  // Fetch members on mount
+  useEffect(() => {
+    const projectIds = selection.projects.map(projectId => String(projectId));
+
+    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
+      setMemberList(indexMembersByProject(members));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // If the project selection has changed reload the member list and tag keys
   // allowing autocomplete and tag sidebar to be more accurate.
   useEffect(() => {
-    if (!isEqual(previousSelection?.projects, selection.projects)) {
-      loadFromCache();
-      const projectIds = selection.projects.map(projectId => String(projectId));
-
-      fetchOrgMembers(api, organization.slug, projectIds).then(members => {
-        setMemberList(indexMembersByProject(members));
-      });
+    if (isEqual(previousSelection?.projects, selection.projects)) {
+      return;
     }
-  }, [
-    api,
-    organization.slug,
-    selection.projects,
-    previousSelection?.projects,
-    loadFromCache,
-  ]);
+
+    const projectIds = selection.projects.map(projectId => String(projectId));
+
+    fetchOrgMembers(api, organization.slug, projectIds).then(members => {
+      setMemberList(indexMembersByProject(members));
+    });
+  }, [api, organization.slug, selection.projects, previousSelection?.projects]);
 
   // Cleanup
   useEffect(() => {
@@ -818,25 +827,6 @@ function IssueListOverviewFc({
       api.clear();
     };
   }, [api]);
-
-  // Cache on unmount
-  useEffect(() => {
-    () => {
-      return () => {
-        const storeGroups = GroupStore.getState() as Group[];
-
-        if (storeGroups.length > 0 && !issuesLoading && !realtimeActive) {
-          IssueListCacheStore.save(getCacheEndpointParams(), {
-            groups: storeGroups,
-            queryCount,
-            queryMaxCount,
-            pageLinks,
-          });
-        }
-      };
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const allResultsVisible = useCallback(() => {
     if (!pageLinks) {
@@ -1161,11 +1151,11 @@ function IssueListOverviewFc({
       id: newSavedSearch.id ? parseInt(newSavedSearch.id, 10) : -1,
       is_global: newSavedSearch.isGlobal,
       query: newSavedSearch.query,
-      visibility: savedSearch.visibility,
+      visibility: newSavedSearch.visibility,
     });
     setIssuesLoading(true);
     setTimeout(() => {
-      transitionTo(undefined, savedSearch);
+      transitionTo(undefined, newSavedSearch);
     }, 0);
   };
 
