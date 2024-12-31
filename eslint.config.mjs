@@ -890,7 +890,7 @@ export default typescript.config([
       '@emotion': emotion,
     },
     rules: {
-      '@emotion/import-from-emotion': 'error',
+      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
       '@emotion/jsx-import': 'off', // Not needed, handled by babel
       '@emotion/no-vanilla': 'error',
       '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
