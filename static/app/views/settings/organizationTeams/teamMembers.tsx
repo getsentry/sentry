@@ -1,6 +1,5 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -25,15 +24,19 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
-import withApi from 'sentry/utils/withApi';
-import withConfig from 'sentry/utils/withConfig';
-import withOrganization from 'sentry/utils/withOrganization';
-import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
   GRID_TEMPLATE,
@@ -53,86 +56,52 @@ interface Props extends RouteComponentProps<RouteParams, {}> {
   team: Team;
 }
 
-interface State extends AsyncViewState {
-  dropdownBusy: boolean;
-  error: boolean;
-  orgMembers: Member[];
+function AddMemberDropdown({
+  teamMembers,
+  organization,
+  team,
+  teamId,
+  isTeamAdmin,
+}: {
+  isTeamAdmin: boolean;
+  organization: Organization;
+  team: Team;
+  teamId: string;
   teamMembers: TeamMember[];
-}
-
-class TeamMembers extends DeprecatedAsyncView<Props, State> {
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      error: false,
-      dropdownBusy: false,
-      teamMembers: [],
-      orgMembers: [],
-    };
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    // Initialize "add member" dropdown with data
-    this.fetchMembersRequest('');
-  }
-
-  debouncedFetchMembersRequest = debounce(
-    (query: string) =>
-      this.setState({dropdownBusy: true}, () => this.fetchMembersRequest(query)),
-    200
+}) {
+  const api = useApi({persistInFlight: true});
+  const [memberQuery, setMemberQuery] = useState('');
+  const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
+  const {data: orgMembers = [], isLoading: isOrgMembersLoading} = useApiQuery<Member[]>(
+    [
+      `/organizations/${organization.slug}/members/`,
+      {
+        query: debouncedMemberQuery ? {query: debouncedMemberQuery} : undefined,
+      },
+    ],
+    {
+      staleTime: 0,
+    }
   );
 
-  fetchMembersRequest = async (query: string) => {
-    const {organization, api} = this.props;
+  const existingMembers = new Set(teamMembers.map(member => member.id));
 
-    try {
-      const data = await api.requestPromise(
-        `/organizations/${organization.slug}/members/`,
-        {
-          query: {query},
-        }
-      );
-      this.setState({
-        orgMembers: data,
-        dropdownBusy: false,
-      });
-    } catch (_err) {
-      addErrorMessage(t('Unable to load organization members.'), {
-        duration: 2000,
-      });
+  // members can add other members to a team if the `Open Membership` setting is enabled
+  // otherwise, `org:write` or `team:admin` permissions are required
+  const hasOpenMembership = !!organization?.openMembership;
+  const canAddMembers = hasOpenMembership || isTeamAdmin;
 
-      this.setState({
-        dropdownBusy: false,
-      });
-    }
-  };
+  const isDropdownDisabled = team.flags['idp:provisioned'];
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, params} = this.props;
-
-    return [
-      [
-        'teamMembers',
-        `/teams/${organization.slug}/${params.teamId}/members/`,
-        {},
-        {paginate: true},
-      ],
-    ];
-  }
-
-  addTeamMember = (selection: Item) => {
-    const {organization, params} = this.props;
-    const {orgMembers, teamMembers} = this.state;
-
+  const addTeamMember = (selection: Item) => {
     // Reset members list after adding member to team
-    this.debouncedFetchMembersRequest('');
+    setMemberQuery('');
 
     joinTeam(
-      this.props.api,
+      api,
       {
         orgId: organization.slug,
-        teamId: params.teamId,
+        teamId,
         memberId: selection.value,
       },
       {
@@ -141,36 +110,145 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
           if (orgMember === undefined) {
             return;
           }
-          this.setState({
-            error: false,
-            teamMembers: teamMembers.concat([orgMember as TeamMember]),
-          });
+          // this.setState({
+          //   error: false,
+          //   teamMembers: teamMembers.concat([orgMember as TeamMember]),
+          // });
           addSuccessMessage(t('Successfully added member to team.'));
         },
-        error: resp => {
+        error: (resp: RequestError) => {
           const errorMessage =
             resp?.responseJSON?.detail || t('Unable to add team member.');
-          addErrorMessage(errorMessage);
+          addErrorMessage(errorMessage as string);
         },
       }
     );
   };
 
-  removeTeamMember = (member: Member) => {
-    const {organization, params} = this.props;
-    const {teamMembers} = this.state;
+  /**
+   * We perform an API request to support orgs with > 100 members (since that's the max API returns)
+   *
+   * @param {Event} e React Event when member filter input changes
+   */
+  const handleMemberFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMemberQuery(e.target.value);
+    // this.setState({dropdownBusy: true});
+  };
+
+  const items = (orgMembers || [])
+    .filter(m => !existingMembers.has(m.id))
+    .map(m => ({
+      searchKey: `${m.name} ${m.email}`,
+      value: m.id,
+      label: (
+        <StyledUserListElement>
+          <StyledAvatar user={m} size={24} className="avatar" />
+          <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+        </StyledUserListElement>
+      ),
+    }));
+
+  const menuHeader = (
+    <StyledMembersLabel>
+      {t('Members')}
+      <StyledCreateMemberLink
+        to=""
+        onClick={() => openInviteMembersModal({source: 'teams'})}
+        data-test-id="invite-member"
+      >
+        {t('Invite Member')}
+      </StyledCreateMemberLink>
+    </StyledMembersLabel>
+  );
+
+  return (
+    <DropdownAutoComplete
+      closeOnSelect={false}
+      items={items}
+      alignMenu="right"
+      onSelect={
+        canAddMembers
+          ? addTeamMember
+          : selection =>
+              openTeamAccessRequestModal({
+                teamId,
+                orgId: organization.slug,
+                memberId: selection.value,
+              })
+      }
+      menuHeader={menuHeader}
+      emptyMessage={t('No members')}
+      onChange={handleMemberFilterChange}
+      onClose={() => setMemberQuery('')}
+      disabled={isDropdownDisabled}
+      data-test-id="add-member-menu"
+      busy={isOrgMembersLoading}
+    >
+      {({isOpen}) => (
+        <DropdownButton
+          isOpen={isOpen}
+          size="xs"
+          data-test-id="add-member"
+          disabled={isDropdownDisabled}
+        >
+          {t('Add Member')}
+        </DropdownButton>
+      )}
+    </DropdownAutoComplete>
+  );
+}
+
+function TeamMembers({team}: Props) {
+  const config = useLegacyStore(ConfigStore);
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const {teamId} = useParams<{teamId: string}>();
+  const location = useLocation();
+
+  const {
+    data: teamMembers = [],
+    isError: isTeamMembersError,
+    isLoading: isTeamMembersLoading,
+    refetch: refetchTeamMembers,
+    getResponseHeader: getTeamMemberResponseHeader,
+  } = useApiQuery<TeamMember[]>(
+    [
+      `/teams/${organization.slug}/${teamId}/members/`,
+      {
+        query: {
+          cursor: location.query.cursor,
+          query: location.query.query,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
+
+  if (isTeamMembersError) {
+    return <LoadingError onRetry={refetchTeamMembers} />;
+  }
+
+  const teamMembersPageLinks = getTeamMemberResponseHeader?.('Link');
+
+  const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
+  const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
+  const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
+
+  const removeTeamMember = (member: Member) => {
     leaveTeam(
-      this.props.api,
+      api,
       {
         orgId: organization.slug,
-        teamId: params.teamId,
+        teamId,
         memberId: member.id,
       },
       {
         success: () => {
-          this.setState({
-            teamMembers: teamMembers.filter(m => m.id !== member.id),
-          });
+          // this.setState({
+          //   teamMembers: teamMembers.filter(m => m.id !== member.id),
+          // });
           addSuccessMessage(t('Successfully removed member from team.'));
         },
         error: () =>
@@ -181,22 +259,20 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
     );
   };
 
-  updateTeamMemberRole = (member: Member, newRole: string) => {
-    const {organization} = this.props;
-    const {teamId} = this.props.params;
+  const updateTeamMemberRole = (member: Member, newRole: string) => {
     const endpoint = `/organizations/${organization.slug}/members/${member.id}/teams/${teamId}/`;
 
-    this.props.api.request(endpoint, {
+    api.request(endpoint, {
       method: 'PUT',
       data: {teamRole: newRole},
       success: data => {
-        const teamMembers: any = [...this.state.teamMembers];
-        const i = teamMembers.findIndex(m => m.id === member.id);
-        teamMembers[i] = {
+        const newTeamMembers = [...teamMembers];
+        const i = newTeamMembers.findIndex(m => m.id === member.id);
+        newTeamMembers[i] = {
           ...member,
           teamRole: data.teamRole,
         };
-        this.setState({teamMembers});
+        // this.setState({teamMembers});
         addSuccessMessage(t('Successfully changed role for team member.'));
       },
       error: () => {
@@ -207,93 +283,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
     });
   };
 
-  /**
-   * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-   *
-   * @param {Event} e React Event when member filter input changes
-   */
-  handleMemberFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({dropdownBusy: true});
-    this.debouncedFetchMembersRequest(e.target.value);
-  };
-
-  renderDropdown(isTeamAdmin: boolean) {
-    const {organization, params, team} = this.props;
-    const {orgMembers} = this.state;
-    const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
-
-    // members can add other members to a team if the `Open Membership` setting is enabled
-    // otherwise, `org:write` or `team:admin` permissions are required
-    const hasOpenMembership = !!organization?.openMembership;
-    const canAddMembers = hasOpenMembership || isTeamAdmin;
-
-    const isDropdownDisabled = team.flags['idp:provisioned'];
-
-    const items = (orgMembers || [])
-      .filter(m => !existingMembers.has(m.id))
-      .map(m => ({
-        searchKey: `${m.name} ${m.email}`,
-        value: m.id,
-        label: (
-          <StyledUserListElement>
-            <StyledAvatar user={m} size={24} className="avatar" />
-            <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-          </StyledUserListElement>
-        ),
-      }));
-
-    const menuHeader = (
-      <StyledMembersLabel>
-        {t('Members')}
-        <StyledCreateMemberLink
-          to=""
-          onClick={() => openInviteMembersModal({source: 'teams'})}
-          data-test-id="invite-member"
-        >
-          {t('Invite Member')}
-        </StyledCreateMemberLink>
-      </StyledMembersLabel>
-    );
-
-    return (
-      <DropdownAutoComplete
-        closeOnSelect={false}
-        items={items}
-        alignMenu="right"
-        onSelect={
-          canAddMembers
-            ? this.addTeamMember
-            : selection =>
-                openTeamAccessRequestModal({
-                  teamId: params.teamId,
-                  orgId: organization.slug,
-                  memberId: selection.value,
-                })
-        }
-        menuHeader={menuHeader}
-        emptyMessage={t('No members')}
-        onChange={this.handleMemberFilterChange}
-        busy={this.state.dropdownBusy}
-        onClose={() => this.debouncedFetchMembersRequest('')}
-        disabled={isDropdownDisabled}
-        data-test-id="add-member-menu"
-      >
-        {({isOpen}) => (
-          <DropdownButton
-            isOpen={isOpen}
-            size="xs"
-            data-test-id="add-member"
-            disabled={isDropdownDisabled}
-          >
-            {t('Add Member')}
-          </DropdownButton>
-        )}
-      </DropdownAutoComplete>
-    );
-  }
-
-  renderPageTextBlock() {
-    const {organization, team} = this.props;
+  const renderPageTextBlock = () => {
     const {openMembership} = organization;
     const isIdpProvisioned = team.flags['idp:provisioned'];
 
@@ -308,14 +298,10 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
       : t(
           '"Open Membership" is disabled for the organization. Org Owner/Manager/Admin, or Team Admins can add members for this team.'
         );
-  }
+  };
 
-  renderMembers(isTeamAdmin: boolean) {
-    const {config, organization, team} = this.props;
-
-    const {teamMembers, loading} = this.state;
-
-    if (loading) {
+  const renderMembers = () => {
+    if (isTeamMembersLoading) {
       return <LoadingIndicator />;
     }
     if (teamMembers.length) {
@@ -328,8 +314,8 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
             team={team}
             member={member}
             user={config.user}
-            removeMember={this.removeTeamMember}
-            updateMemberRole={this.updateTeamMemberRole}
+            removeMember={removeTeamMember}
+            updateMemberRole={updateTeamMemberRole}
           />
         );
       });
@@ -339,44 +325,38 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
         {t('This team has no members')}
       </EmptyMessage>
     );
-  }
+  };
 
-  render() {
-    if (this.state.error) {
-      return <LoadingError onRetry={this.fetchData} />;
-    }
+  return (
+    <Fragment>
+      <TextBlock>{renderPageTextBlock()}</TextBlock>
 
-    const {organization, team} = this.props;
-    const {teamMembersPageLinks} = this.state;
-    const {openMembership} = organization;
+      <PermissionAlert
+        access={organization.openMembership ? ['org:read'] : ['team:write']}
+        team={team}
+      />
 
-    const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
-    const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
-    const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
-
-    return (
-      <Fragment>
-        <TextBlock>{this.renderPageTextBlock()}</TextBlock>
-
-        <PermissionAlert
-          access={openMembership ? ['org:read'] : ['team:write']}
-          team={team}
-        />
-
-        <Panel>
-          <StyledPanelHeader hasButtons>
-            <div>{t('Members')}</div>
-            <div>
-              <TeamRoleColumnLabel />
-            </div>
-            <Flex justify="end">{this.renderDropdown(isTeamAdmin)}</Flex>
-          </StyledPanelHeader>
-          {this.renderMembers(isTeamAdmin)}
-        </Panel>
-        <Pagination pageLinks={teamMembersPageLinks} />
-      </Fragment>
-    );
-  }
+      <Panel>
+        <StyledPanelHeader hasButtons>
+          <div>{t('Members')}</div>
+          <div>
+            <TeamRoleColumnLabel />
+          </div>
+          <Flex justify="end">
+            <AddMemberDropdown
+              teamMembers={teamMembers}
+              organization={organization}
+              team={team}
+              teamId={teamId}
+              isTeamAdmin={isTeamAdmin}
+            />
+          </Flex>
+        </StyledPanelHeader>
+        {renderMembers()}
+      </Panel>
+      <Pagination pageLinks={teamMembersPageLinks} />
+    </Fragment>
+  );
 }
 
 const StyledUserListElement = styled('div')`
@@ -414,4 +394,4 @@ const StyledPanelHeader = styled(PanelHeader)`
   ${GRID_TEMPLATE}
 `;
 
-export default withConfig(withApi(withOrganization(TeamMembers)));
+export default TeamMembers;
