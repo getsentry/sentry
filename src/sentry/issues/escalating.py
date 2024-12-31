@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import math
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
@@ -261,7 +261,7 @@ def _query_metrics_with_pagination(
             )
 
 
-def transform_to_groups_count_response(data: dict) -> list[GroupsCountResponse]:
+def transform_to_groups_count_response(data: dict[str, Any]) -> list[GroupsCountResponse]:
     """
     Transforms results from `get_series` metrics query to List[GroupsCountResponse]
     """
@@ -284,7 +284,7 @@ def transform_to_groups_count_response(data: dict) -> list[GroupsCountResponse]:
     return result
 
 
-def compare_lists(list1, list2):
+def compare_lists(list1: list[GroupsCountResponse], list2: list[GroupsCountResponse]) -> bool:
     # Convert each dictionary in the list to a frozenset so it's hashable
     set1 = set(map(lambda x: frozenset(x.items()), list1))
     set2 = set(map(lambda x: frozenset(x.items()), list2))
@@ -489,7 +489,7 @@ def manage_issue_states(
     group: Group,
     group_inbox_reason: GroupInboxReason,
     event: GroupEvent | None = None,
-    snooze_details: Mapping[str, Any] | None = None,
+    snooze_details: MutableMapping[str, Any] | None = None,
     activity_data: Mapping[str, Any] | None = None,
 ) -> None:
     from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs

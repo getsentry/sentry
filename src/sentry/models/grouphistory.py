@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -285,7 +286,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: Group,
     status: int,
-    actor: User | RpcUser | Team | None = None,
+    actor: User | RpcUser | Team | AnonymousUser | None = None,
     release: Release | None = None,
 ) -> GroupHistory:
     from sentry.models.team import Team
@@ -319,7 +320,7 @@ def record_group_history(
 def bulk_record_group_history(
     groups: Sequence[Group],
     status: int,
-    actor: User | RpcUser | Team | None = None,
+    actor: User | RpcUser | Team | AnonymousUser | None = None,
     release: Release | None = None,
 ) -> list[GroupHistory]:
     from sentry.models.team import Team
