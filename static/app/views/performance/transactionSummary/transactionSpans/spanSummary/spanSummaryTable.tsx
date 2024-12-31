@@ -251,9 +251,6 @@ export default function SpanSummaryTable(props: Props) {
                 location,
                 sort,
               }),
-            // This error seems to show up when we enable noUncheckedIndexedAccess. I currently
-            // don't know how to fix it, as it seems related to the generic type of the data. Skipping for now.
-            // @ts-expect-error
             renderBodyCell: renderBodyCell(
               location,
               organization,
