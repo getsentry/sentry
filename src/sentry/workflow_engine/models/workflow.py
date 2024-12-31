@@ -38,8 +38,20 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def config_schema(self) -> dict[str, Any]:
-        # TODO: fill in
-        return {}
+        return {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://example.com/product.schema.json",
+            "title": "Workflow Schema",
+            "type": "object",
+            "properties": {
+                "frequency": {
+                    "description": "How often the workflow should fire for a Group (minutes)",
+                    "type": "integer",
+                    "minimum": 0,
+                },
+            },
+            "additionalProperties": False,
+        }
 
     __repr__ = sane_repr("name", "organization_id")
 
