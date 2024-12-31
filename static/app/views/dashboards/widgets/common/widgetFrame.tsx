@@ -48,7 +48,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const shouldShowFullScreenViewButton =
     Boolean(props.onFullScreenViewClick) && !props.error;
 
-  const hasActions = actions && actions.length > 0;
+  const shouldShowActions = actions && actions.length > 0;
 
   return (
     <Frame aria-label="Widget panel" borderless={props.borderless}>
@@ -70,7 +70,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             (currentBadgeProps, i) => <RigidBadge key={i} {...currentBadgeProps} />
           )}
 
-        {(props.description || shouldShowFullScreenViewButton || hasActions) && (
+        {(props.description || shouldShowFullScreenViewButton || shouldShowActions) && (
           <TitleHoverItems>
             {props.description && (
               // Ideally we'd use `QuestionTooltip` but we need to firstly paint the icon dark, give it 100% opacity, and remove hover behaviour.
