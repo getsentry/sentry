@@ -339,6 +339,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: MetricUnit | None
+    metric_id: int
     mri: str
     projectIds: Sequence[int]
     blockingStatus: Sequence[BlockedMetric] | None
