@@ -6,7 +6,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -35,7 +34,6 @@ LINK_TEAM_MESSAGE = (
     "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive "
     "notifications of issues in Sentry in Slack."
 )
-CHANNEL_ALREADY_LINKED_MESSAGE = "This channel already has a team linked to it."
 LINK_USER_FIRST_MESSAGE = (
     "You must first link your identity to Sentry by typing /sentry link. Be aware that you "
     "must be an admin or higher in your Sentry organization or a team admin to link your team."
@@ -101,12 +99,6 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         has_valid_role = False
         for organization_membership in organization_memberships:
-            if not features.has(
-                "organizations:slack-multiple-team-single-channel-linking",
-                organization_membership.organization,
-            ) and is_team_linked_to_channel(organization_membership.organization, slack_request):
-                return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
-
             if is_valid_role(organization_membership) or is_team_admin(organization_membership):
                 has_valid_role = True
 
