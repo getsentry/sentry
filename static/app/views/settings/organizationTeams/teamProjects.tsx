@@ -15,6 +15,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -101,8 +102,8 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
         searchKey: p.slug,
         label: (
           <ProjectListElement>
-            <ProjectAvatar project={p} />
-            <span>{p.slug}</span>
+            <ProjectAvatar project={p} size={16} />
+            <TextOverflow>{p.slug}</TextOverflow>
           </ProjectListElement>
         ),
       }));
@@ -131,6 +132,7 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
             ) : (
               <DropdownAutoComplete
                 items={otherProjects}
+                minWidth={300}
                 onChange={evt => setQuery(evt.target.value)}
                 onSelect={selection => {
                   const project = unlinkedProjects.find(p => p.id === selection.value);
