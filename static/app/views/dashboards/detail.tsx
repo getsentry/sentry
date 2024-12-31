@@ -819,6 +819,7 @@ class DashboardDetail extends Component<Props, State> {
 
   handleCloseWidgetBuilder = () => {
     const {organization, router, location, params} = this.props;
+
     this.setState({isWidgetBuilderOpen: false});
     router.push(
       getDashboardLocation({

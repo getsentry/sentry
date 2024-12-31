@@ -466,7 +466,7 @@ describe('CustomViewsHeader', () => {
 
       render(<CustomViewsIssueListHeader {...defaultProps} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
       );
 
@@ -497,7 +497,7 @@ describe('CustomViewsHeader', () => {
 
       render(<CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
       );
 
@@ -527,7 +527,7 @@ describe('CustomViewsHeader', () => {
 
       render(<CustomViewsIssueListHeader {...defaultProps} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
       );
 
@@ -560,7 +560,7 @@ describe('CustomViewsHeader', () => {
 
         render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
         );
 
@@ -611,7 +611,7 @@ describe('CustomViewsHeader', () => {
 
         render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
         );
 
@@ -660,7 +660,7 @@ describe('CustomViewsHeader', () => {
 
         render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
         );
 
@@ -699,7 +699,7 @@ describe('CustomViewsHeader', () => {
           {router: unsavedTabRouter}
         );
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
         );
 
@@ -771,7 +771,7 @@ describe('CustomViewsHeader', () => {
           {router: unsavedTabRouter}
         );
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
         );
 

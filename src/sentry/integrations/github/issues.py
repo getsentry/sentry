@@ -287,17 +287,6 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return (("", "Unassigned"),) + users
 
-    def get_repo_issues(self, repo: str) -> Sequence[tuple[str, str]]:
-        client = self.get_client()
-        try:
-            response = client.get_issues(repo)
-        except Exception as e:
-            self.raise_error(e)
-
-        issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
-
-        return issues
-
     def get_repo_labels(self, repo: str) -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:

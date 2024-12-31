@@ -133,7 +133,6 @@ class LabelContainer extends Component<LabelContainerProps> {
   componentDidMount() {
     const {current} = this.elementDOMRef;
     if (current) {
-      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         width: current.clientWidth,
       });
@@ -179,7 +178,6 @@ class MultiLabelContainer extends Component<MultiLabelContainerProps> {
   componentDidMount() {
     const {current} = this.elementDOMRef;
     if (current) {
-      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         width: current.clientWidth,
       });

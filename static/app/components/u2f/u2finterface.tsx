@@ -56,14 +56,12 @@ class U2fInterface extends Component<Props, State> {
   componentDidMount() {
     const supported = !!window.PublicKeyCredential;
 
-    // eslint-disable-next-line react/no-did-mount-set-state
     this.setState({isSupported: supported});
 
     const isSafari =
       navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
 
     if (isSafari) {
-      // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({
         deviceFailure: 'safari: requires interaction',
         isSafari,

@@ -223,7 +223,7 @@ describe('EventFeatureFlagList', function () {
     expect(search).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
     expect(
-      screen.queryByText('No feature flags were found for this event')
+      screen.getByText('No feature flags were found for this event')
     ).toBeInTheDocument();
   });
 

@@ -20,14 +20,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
-function initializeData(settings) {
+function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
   ProjectsStore.loadInitialData(data.projects);
   return data;
 }
 
 describe('TraceView', () => {
-  let data;
+  let data!: ReturnType<typeof initializeData>;
 
   beforeEach(() => {
     data = initializeData({});

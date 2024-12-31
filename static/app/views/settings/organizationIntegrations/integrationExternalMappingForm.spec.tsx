@@ -11,7 +11,7 @@ describe('IntegrationExternalMappingForm', function () {
     dataEndpoint,
     getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
     sentryNamesMapper: mappings => mappings,
-  };
+  } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
   const MOCK_USER_MAPPING = {
     id: '1',
     userId: '1',
@@ -30,7 +30,9 @@ describe('IntegrationExternalMappingForm', function () {
     {id: '3', name: 'option3'},
   ];
 
-  let getResponse, postResponse, putResponse;
+  let getResponse: jest.Mock;
+  let postResponse: jest.Mock;
+  let putResponse: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();

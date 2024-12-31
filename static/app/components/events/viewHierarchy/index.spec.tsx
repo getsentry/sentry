@@ -2,7 +2,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ViewHierarchy} from '.';
+import {ViewHierarchy, type ViewHierarchyData} from './index';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {
@@ -47,8 +47,8 @@ const DEFAULT_MOCK_DATA = {
 };
 
 describe('View Hierarchy', function () {
-  let MOCK_DATA;
-  let project;
+  let MOCK_DATA!: ViewHierarchyData;
+  let project!: ReturnType<typeof ProjectFixture>;
   beforeEach(() => {
     MOCK_DATA = DEFAULT_MOCK_DATA;
     project = ProjectFixture();
@@ -78,7 +78,7 @@ describe('View Hierarchy', function () {
   it('can expand and collapse by clicking the icon', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
@@ -90,7 +90,7 @@ describe('View Hierarchy', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('can navigate with keyboard shortcuts after a selection', async function () {

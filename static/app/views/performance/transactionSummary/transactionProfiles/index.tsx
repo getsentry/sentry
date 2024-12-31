@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';

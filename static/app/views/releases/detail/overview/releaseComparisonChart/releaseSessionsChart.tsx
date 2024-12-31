@@ -26,6 +26,7 @@ import {
   initSessionsChart,
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 

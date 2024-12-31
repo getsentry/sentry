@@ -31,7 +31,6 @@ from sentry.utils import metrics
 __all__ = ["PostgresIndexer"]
 
 
-_INDEXER_CACHE_METRIC = "sentry_metrics.indexer.memcache"
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 
 _PARTITION_KEY = "pg"

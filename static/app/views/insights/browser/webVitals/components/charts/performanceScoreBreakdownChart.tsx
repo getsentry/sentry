@@ -11,6 +11,7 @@ import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
@@ -24,12 +25,11 @@ type Props = {
   transaction?: string;
 };
 
-export const formatTimeSeriesResultsToChartData = (
+export function formatTimeSeriesResultsToChartData(
   data: WebVitalsScoreBreakdown,
   segmentColors: string[],
-  useWeights = true,
-  order = ORDER
-): Series[] => {
+  order: WebVitals[] = ORDER
+): Series[] {
   return order.map((webVital, index) => {
     const series = data[webVital];
     const color = segmentColors[index];
@@ -37,14 +37,12 @@ export const formatTimeSeriesResultsToChartData = (
       seriesName: webVital.toUpperCase(),
       data: series.map(({name, value}) => ({
         name,
-        value: Math.round(
-          value * (useWeights ? PERFORMANCE_SCORE_WEIGHTS[webVital] : 100) * 0.01
-        ),
+        value: Math.round(value),
       })),
       color,
     };
   });
-};
+}
 
 export function PerformanceScoreBreakdownChart({
   transaction,
@@ -68,21 +66,19 @@ export function PerformanceScoreBreakdownChart({
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
     weightedTimeseriesData,
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
-  const unweightedTimeseries = formatTimeSeriesResultsToChartData(
+  const timeseries = formatTimeSeriesResultsToChartData(
     {
-      lcp: timeseriesData.unweightedLcp,
-      fcp: timeseriesData.unweightedFcp,
-      cls: timeseriesData.unweightedCls,
-      ttfb: timeseriesData.unweightedTtfb,
-      inp: timeseriesData.unweightedInp,
+      lcp: timeseriesData.lcp,
+      fcp: timeseriesData.fcp,
+      cls: timeseriesData.cls,
+      ttfb: timeseriesData.ttfb,
+      inp: timeseriesData.inp,
       total: timeseriesData.total,
     },
     segmentColors,
-    false,
     chartSeriesOrder
   );
 
@@ -128,10 +124,10 @@ export function PerformanceScoreBreakdownChart({
           },
           valueFormatter: (_value, _label, seriesParams: any) => {
             const timestamp = seriesParams?.data[0];
-            const unweightedValue = unweightedTimeseries
+            const value = timeseries
               .find(series => series.seriesName === seriesParams?.seriesName)
               ?.data.find(dataPoint => dataPoint.name === timestamp)?.value;
-            return `<span class="tooltip-label-value">${unweightedValue}</span>`;
+            return `<span class="tooltip-label-value">${value}</span>`;
           },
         }}
       />

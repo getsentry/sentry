@@ -140,7 +140,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     expect(screen.getByText('Send a Pagerduty notification')).toBeInTheDocument();
     expect(screen.getByText('Send an Opsgenie notification')).toBeInTheDocument();
 
-    expect(screen.queryByTestId('sentry_notification-form')).toBeInTheDocument();
+    expect(screen.getByTestId('sentry_notification-form')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Save'));
     expect(mockPOST).toHaveBeenCalledWith(
@@ -157,7 +157,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       })
     );
     await waitFor(() => {
-      expect(screen.queryByTestId('sentry_notification-action')).toBeInTheDocument();
+      expect(screen.getByTestId('sentry_notification-action')).toBeInTheDocument();
     });
   });
 
@@ -205,7 +205,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Add Action'));
     await userEvent.click(screen.getByText('Send a Slack notification'));
 
-    expect(screen.queryByTestId('slack-form')).toBeInTheDocument();
+    expect(screen.getByTestId('slack-form')).toBeInTheDocument();
     expect(screen.getByText('sentry-ecosystem')).toBeInTheDocument();
 
     // Select workspace
@@ -231,7 +231,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       })
     );
     await waitFor(() => {
-      expect(screen.queryByTestId('slack-action')).toBeInTheDocument();
+      expect(screen.getByTestId('slack-action')).toBeInTheDocument();
     });
   });
 
@@ -340,7 +340,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Add Action'));
     await userEvent.click(screen.getByText('Send a Pagerduty notification'));
 
-    expect(screen.queryByTestId('pagerduty-form')).toBeInTheDocument();
+    expect(screen.getByTestId('pagerduty-form')).toBeInTheDocument();
 
     // Use default account
     expect(screen.getByText('sentry-enterprise')).toBeInTheDocument();
@@ -367,7 +367,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       })
     );
     await waitFor(() => {
-      expect(screen.queryByTestId('pagerduty-action')).toBeInTheDocument();
+      expect(screen.getByTestId('pagerduty-action')).toBeInTheDocument();
     });
   });
 
@@ -445,7 +445,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Add Action'));
     await userEvent.click(screen.getByText('Send an Opsgenie notification'));
 
-    expect(screen.queryByTestId('opsgenie-form')).toBeInTheDocument();
+    expect(screen.getByTestId('opsgenie-form')).toBeInTheDocument();
 
     // Use default account
     expect(screen.getByText('sentry-enterprise')).toBeInTheDocument();
@@ -472,7 +472,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       })
     );
     await waitFor(() => {
-      expect(screen.queryByTestId('opsgenie-action')).toBeInTheDocument();
+      expect(screen.getByTestId('opsgenie-action')).toBeInTheDocument();
     });
   });
 
