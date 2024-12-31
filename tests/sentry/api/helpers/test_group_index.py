@@ -269,6 +269,29 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @patch("sentry.signals.issue_resolved.send_robust")
+    def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        request = self.make_request(
+            user=self.user,
+            method="GET",
+            # The UI calls the endpoint with the short ID, not the group ID
+            GET={"id": group.qualified_short_id},
+        )
+        request.data = {"status": "resolved", "substatus": None}
+
+        assert request.GET.getlist("id")[0] == group.qualified_short_id
+        assert request.GET.getlist("id")[0].isdigit() is False
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        assert group_list == [group]
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.RESOLVED
+        assert send_robust.called
+
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
