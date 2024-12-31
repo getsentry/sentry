@@ -55,7 +55,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
     expect(result.current.needsUpdate).toBeFalsy();
   });
 
@@ -78,7 +80,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
@@ -106,7 +110,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
     expect(result.current.needsUpdate).toBeTruthy();
   });
 
@@ -134,7 +140,9 @@ describe('useProjectSdkNeedsUpdate', () => {
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
     });
-    expect(result.current.isFetching).toBeFalsy();
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
     expect(result.current.needsUpdate).toBeFalsy();
   });
 });

@@ -165,6 +165,8 @@ describe('ScreensOverview', () => {
     await waitFor(() => {
       expect(transactionMetricsMock).toHaveBeenCalled();
     });
-    expect(spanMetricsMock).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(spanMetricsMock).toHaveBeenCalled();
+    });
   });
 });

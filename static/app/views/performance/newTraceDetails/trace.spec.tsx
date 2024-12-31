@@ -827,9 +827,15 @@ async function assertHighlightedRowAtIndex(
   await waitFor(() => {
     expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
   });
-  const highlighted_row = virtualizedContainer.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
-  const r = Array.from(virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
-  expect(r.indexOf(highlighted_row!)).toBe(index);
+  await waitFor(() => {
+    const highlighted_row = virtualizedContainer.querySelector(
+      ACTIVE_SEARCH_HIGHLIGHT_ROW
+    );
+    const r = Array.from(
+      virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR)
+    );
+    expect(r.indexOf(highlighted_row!)).toBe(index);
+  });
 }
 
 describe('trace view', () => {
@@ -1778,11 +1784,13 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
-      expect(
-        screen
-          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
-          .textContent?.includes('transaction-op-6')
-      ).toBeTruthy();
+      await waitFor(() => {
+        expect(
+          screen
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .textContent?.includes('transaction-op-6')
+        ).toBeTruthy();
+      });
     });
 
     it('pinning a tab and clicking on a new node spawns a new tab', async () => {
