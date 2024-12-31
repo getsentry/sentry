@@ -211,7 +211,7 @@ describe('AlertRulesList', () => {
       body: [],
     });
 
-    expect(screen.queryByText(deletedRuleName)).toBeInTheDocument();
+    expect(screen.getByText(deletedRuleName)).toBeInTheDocument();
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
     await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
@@ -252,7 +252,7 @@ describe('AlertRulesList', () => {
       body: [],
     });
 
-    expect(screen.queryByText(deletedRuleName)).toBeInTheDocument();
+    expect(screen.getByText(deletedRuleName)).toBeInTheDocument();
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
     await userEvent.click(screen.getByRole('button', {name: 'Delete Rule'}));
@@ -661,7 +661,7 @@ describe('AlertRulesList', () => {
     });
 
     expect(
-      screen.queryByRole('link', {name: 'Uptime Rule Auto Detected'})
+      screen.getByRole('link', {name: 'Uptime Rule Auto Detected'})
     ).toBeInTheDocument();
     await userEvent.click(actions);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));

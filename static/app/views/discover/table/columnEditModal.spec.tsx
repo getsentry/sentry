@@ -878,7 +878,7 @@ describe('Discover -> ColumnEditModal', function () {
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
-      expect(screen.queryByRole('button', {name: 'Remove column'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Remove column'})).toBeInTheDocument();
       expect(screen.queryAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(2);
     });
     it('handles equations being deleted', async function () {

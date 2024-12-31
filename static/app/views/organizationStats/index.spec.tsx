@@ -453,7 +453,7 @@ describe('OrganizationStats', function () {
     // Should show Profile Hours option
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should show Profiles (transaction) option
-    expect(screen.queryByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {

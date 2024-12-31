@@ -92,7 +92,7 @@ describe('Discover -> CellAction', function () {
   describe('hover menu button', function () {
     it('shows no menu by default', function () {
       renderComponent({eventView: view});
-      expect(screen.queryByRole('button', {name: 'Actions'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
     });
   });
 

@@ -66,7 +66,7 @@ describe('AutofixRootCause', function () {
       />
     );
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'GitHub'})).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
       'href',
       'https://github.com/test_owner/test_repo/blob/main/src/file.py'

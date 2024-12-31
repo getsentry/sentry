@@ -61,8 +61,6 @@ describe('Relocation Onboarding Container', function () {
       router,
       organization,
     });
-    expect(
-      screen.queryByText("You don't have access to this feature")
-    ).toBeInTheDocument();
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 });

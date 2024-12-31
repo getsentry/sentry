@@ -146,9 +146,7 @@ describe('SampleTable', function () {
         />
       );
       await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
-      expect(
-        container.queryByText('No results found for your query')
-      ).toBeInTheDocument();
+      expect(container.getByText('No results found for your query')).toBeInTheDocument();
     });
   });
 });

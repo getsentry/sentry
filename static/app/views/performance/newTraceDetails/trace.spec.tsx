@@ -1191,7 +1191,7 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{arrowright}');
       await waitFor(() => {
-        expect(screen.queryByText('special-span')).toBeInTheDocument();
+        expect(screen.getByText('special-span')).toBeInTheDocument();
       });
     });
 
@@ -1787,7 +1787,7 @@ describe('trace view', () => {
       });
       expect(
         screen
-          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
           .textContent?.includes('transaction-op-4')
       ).toBeTruthy();
 
@@ -1798,7 +1798,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(
           screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
             .textContent?.includes('transaction-op-6')
         ).toBeTruthy();
       });
@@ -1822,12 +1822,12 @@ describe('trace view', () => {
       });
       expect(
         screen
-          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
           .textContent?.includes('transaction-op-4')
       ).toBeTruthy();
       expect(
         screen
-          .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[2]
           .textContent?.includes('transaction-op-6')
       ).toBeTruthy();
     });
