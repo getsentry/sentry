@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import Literal, TypedDict, overload
+from typing import Literal, NotRequired, TypedDict, overload
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
@@ -339,6 +339,7 @@ class MetricMeta(TypedDict):
     type: MetricType
     operations: Collection[MetricOperationType]
     unit: MetricUnit | None
+    metric_id: NotRequired[int]
     mri: str
     projectIds: Sequence[int]
     blockingStatus: Sequence[BlockedMetric] | None
