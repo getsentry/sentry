@@ -30,7 +30,7 @@ export default function DataSecrecy() {
   const [allowAccess, setAllowAccess] = useState(organization.allowSuperuserAccess);
 
   // state of the data secrecy waiver
-  const [allowData, setAllowDate] = useState<WaiverData>();
+  const [waiver, setWaiver] = useState<WaiverData>();
 
   // state for the allowDateFormData field
   const [allowDateFormData, setAllowDateFormData] = useState<string>('');
@@ -45,7 +45,7 @@ export default function DataSecrecy() {
 
   useEffect(() => {
     if (data?.accessEnd) {
-      setAllowDate(data);
+      setWaiver(data);
       // slice it to yyyy-MM-ddThh:mm format (be aware of the timezone)
       const localDate = moment(data.accessEnd).local();
       setAllowDateFormData(localDate.format('YYYY-MM-DDTHH:mm'));
@@ -62,22 +62,20 @@ export default function DataSecrecy() {
 
       // if the user has allowed access, we need to remove the temporary access window
       // only if there is an existing waiver
-      if (value && allowData) {
+      if (value && waiver) {
         await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
           method: 'DELETE',
         });
         setAllowDateFormData('');
-        setAllowDate(undefined);
-        addSuccessMessage(
-          t('Successfully removed temporary access window and allowed support access.')
-        );
-        // refetch to get the latest waiver data
-        refetch();
-        return;
+        setWaiver(undefined);
       }
       addSuccessMessage(
         value
-          ? t('Successfully allowed support access.')
+          ? waiver
+            ? t(
+                'Successfully removed temporary access window and allowed support access.'
+              )
+            : t('Successfully allowed support access.')
           : t('Successfully removed support access.')
       );
     } catch (error) {
@@ -94,7 +92,7 @@ export default function DataSecrecy() {
         await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
           method: 'DELETE',
         });
-        setAllowDate({accessStart: '', accessEnd: ''});
+        setWaiver({accessStart: '', accessEnd: ''});
         addSuccessMessage(t('Successfully removed temporary access window.'));
       } catch (error) {
         addErrorMessage(t('Unable to remove temporary access window.'));
@@ -115,7 +113,7 @@ export default function DataSecrecy() {
         method: 'PUT',
         data: nextData,
       });
-      setAllowDate(nextData);
+      setWaiver(nextData);
       addSuccessMessage(t('Successfully updated temporary access window.'));
     } catch (error) {
       addErrorMessage(t('Unable to save changes.'));
@@ -172,9 +170,9 @@ export default function DataSecrecy() {
       <PanelBody>
         {!allowAccess && (
           <PanelAlert>
-            {allowData?.accessEnd && moment().isBefore(moment(allowData.accessEnd))
+            {waiver?.accessEnd && moment().isBefore(moment(waiver.accessEnd))
               ? tct(`Sentry employees has access to your organization until [date]`, {
-                  date: formatDateTime(allowData?.accessEnd as string),
+                  date: formatDateTime(waiver?.accessEnd as string),
                 })
               : t('Sentry employees do not have access to your organization')}
           </PanelAlert>
