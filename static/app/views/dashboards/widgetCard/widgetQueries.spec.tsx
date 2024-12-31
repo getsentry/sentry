@@ -727,7 +727,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults![0].seriesName).toEqual(
+    expect(childProps.timeseriesResults![0]!.seriesName).toEqual(
       'this query alias changed : count()'
     );
   });

@@ -31,7 +31,7 @@ describe('ProjectKeyDetails', function () {
         organization={org}
         project={project}
         params={{
-          keyId: projectKeys[0].id,
+          keyId: projectKeys[0]!.id,
           projectId: project.slug,
         }}
       />

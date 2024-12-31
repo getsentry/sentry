@@ -944,7 +944,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[3]).toHaveFocus();
       });
-      expect(rows[3].textContent?.includes('http — request')).toBe(true);
+      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
     });
 
     it('scrolls to parent autogroup node', async () => {
@@ -958,7 +958,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[4]).toHaveFocus();
       });
-      expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
+      expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
     });
     it('scrolls to child of parent autogroup node', async () => {
       mockQueryString('?node=span-redis0&node=txn-1');
@@ -971,7 +971,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[5]).toHaveFocus();
       });
-      expect(rows[5].textContent?.includes('db — redis')).toBe(true);
+      expect(rows[5]!.textContent?.includes('db — redis')).toBe(true);
     });
 
     it('scrolls to sibling autogroup node', async () => {
@@ -985,7 +985,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[5]).toHaveFocus();
       });
-      expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
+      expect(rows[5]!.textContent?.includes('5Autogrouped')).toBe(true);
     });
 
     it('scrolls to child of sibling autogroup node', async () => {
@@ -999,7 +999,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[6]).toHaveFocus();
       });
-      expect(rows[6].textContent?.includes('http — request')).toBe(true);
+      expect(rows[6]!.textContent?.includes('http — request')).toBe(true);
     });
 
     it('scrolls to missing instrumentation node', async () => {
@@ -1013,7 +1013,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
       });
-      expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
+      expect(rows[7]!.textContent?.includes('No Instrumentation')).toBe(true);
     });
 
     it('scrolls to trace error node', async () => {
@@ -1027,7 +1027,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[11]).toHaveFocus();
       });
-      expect(rows[11].textContent?.includes('error-title')).toBe(true);
+      expect(rows[11]!.textContent?.includes('error-title')).toBe(true);
     });
 
     it('scrolls to event id query param', async () => {
@@ -1049,7 +1049,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(rows[3]).toHaveFocus();
       });
-      expect(rows[3].textContent?.includes('http — request')).toBe(true);
+      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
     });
 
     it.each([
@@ -1787,7 +1787,7 @@ describe('trace view', () => {
       });
       expect(
         screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]!
           .textContent?.includes('transaction-op-4')
       ).toBeTruthy();
 
@@ -1798,7 +1798,7 @@ describe('trace view', () => {
       await waitFor(() => {
         expect(
           screen
-            .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .getAllByTestId(DRAWER_TABS_TEST_ID)[1]!
             .textContent?.includes('transaction-op-6')
         ).toBeTruthy();
       });
@@ -1822,12 +1822,12 @@ describe('trace view', () => {
       });
       expect(
         screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[1]!
           .textContent?.includes('transaction-op-4')
       ).toBeTruthy();
       expect(
         screen
-          .getAllByTestId(DRAWER_TABS_TEST_ID)[2]
+          .getAllByTestId(DRAWER_TABS_TEST_ID)[2]!
           .textContent?.includes('transaction-op-6')
       ).toBeTruthy();
     });

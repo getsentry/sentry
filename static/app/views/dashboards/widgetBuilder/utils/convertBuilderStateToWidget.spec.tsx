@@ -94,9 +94,9 @@ describe('convertBuilderStateToWidget', function () {
 
     const widget = convertBuilderStateToWidget(mockState);
 
-    expect(widget.queries[0].name).toEqual('test');
-    expect(widget.queries[0].conditions).toEqual('transaction.duration:>100');
-    expect(widget.queries[1].name).toEqual('test2');
-    expect(widget.queries[1].conditions).toEqual('transaction.duration:>50');
+    expect(widget.queries[0]!.name).toEqual('test');
+    expect(widget.queries[0]!.conditions).toEqual('transaction.duration:>100');
+    expect(widget.queries[1]!.name).toEqual('test2');
+    expect(widget.queries[1]!.conditions).toEqual('transaction.duration:>50');
   });
 });

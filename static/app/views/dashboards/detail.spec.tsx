@@ -412,7 +412,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext.Provider value={initialData.organization}>
