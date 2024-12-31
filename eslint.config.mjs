@@ -965,7 +965,6 @@ export default typescript.config([
     rules: {
       'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-      'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
   },
   {

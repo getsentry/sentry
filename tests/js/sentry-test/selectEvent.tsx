@@ -23,7 +23,7 @@
 
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {findAllByText, findByText, type Matcher, waitFor} from './reactTestingLibrary';
+import {type Matcher, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 /**
  * Find the react-select container from its input field
@@ -107,7 +107,7 @@ const select = async (
     }
 
     // only consider visible, interactive elements
-    const matchingElements = await findAllByText(container, option, {
+    const matchingElements = await within(container).findAllByText(option, {
       ignore: "[aria-live] *,[style*='visibility: hidden']",
     });
 
@@ -147,7 +147,7 @@ const create = async (
   await select(input, createOptionText, {...config, user});
 
   if (waitForElement) {
-    await findByText(getReactSelectContainerFromInput(input), option);
+    await within(getReactSelectContainerFromInput(input)).findByText(option);
   }
 };
 

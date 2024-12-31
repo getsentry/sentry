@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -19,17 +18,6 @@ def format_timestamp(dt):
     if not isinstance(dt, datetime):
         dt = datetime.fromtimestamp(dt)
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
-
-
-def make_24h_stats(ts, adjust_start=False):
-    ret_val = _make_stats(datetime.fromtimestamp(ts, UTC), 3600, 24)
-
-    if adjust_start:
-        # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
-        # https://www.notion.so/sentry/Metrics-Layer-get_intervals-bug-dce140607d054201a5e6629b070cb969
-        ret_val.insert(0, [ret_val[0][0] - 3600, 0])
-
-    return ret_val
 
 
 class SnubaSessionsTest(TestCase, BaseMetricsTestCase):
