@@ -275,10 +275,7 @@ def has_integrations(organization: Organization, project: Project) -> bool:
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(
-        feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
-        for feature in provider.features
-    )
+    return IntegrationFeatures.ALERT_RULE in provider.features
 
 
 def has_alert_integration(project: Project) -> bool:
