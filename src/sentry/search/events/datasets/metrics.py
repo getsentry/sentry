@@ -1848,9 +1848,38 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
 
+        weights = {
+            vital: Function(
+                "if",
+                [
+                    Function(
+                        "isZeroOrNull",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric(f"measurements.score.{vital}"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                ],
+            )
+            for vital in vitals
+        }
+
         # TODO: Is there a way to sum more than 2 values at once?
         return Function(
-            "plus",
+            "divide",
             [
                 Function(
                     "plus",
@@ -1861,17 +1890,47 @@ class MetricsDatasetConfig(DatasetConfig):
                                 Function(
                                     "plus",
                                     [
-                                        scores["lcp"],
-                                        scores["fcp"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                scores["lcp"],
+                                                scores["fcp"],
+                                            ],
+                                        ),
+                                        scores["cls"],
                                     ],
                                 ),
-                                scores["cls"],
+                                scores["ttfb"],
                             ],
                         ),
-                        scores["ttfb"],
+                        scores["inp"],
                     ],
                 ),
-                scores["inp"],
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                Function(
+                                    "plus",
+                                    [
+                                        Function(
+                                            "plus",
+                                            [
+                                                weights["lcp"],
+                                                weights["fcp"],
+                                            ],
+                                        ),
+                                        weights["cls"],
+                                    ],
+                                ),
+                                weights["ttfb"],
+                            ],
+                        ),
+                        weights["inp"],
+                    ],
+                ),
             ],
             alias,
         )
