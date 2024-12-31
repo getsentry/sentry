@@ -6,6 +6,7 @@ from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.event_examples import GROUP_EVENT
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
 from sentry.utils import json
@@ -37,6 +38,7 @@ class GroupEventJsonView(OrganizationView):
             200: OpenApiTypes.OBJECT,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=[GROUP_EVENT],
     )
     def get(self, request: HttpRequest, organization, group_id, event_id_or_latest) -> HttpResponse:
         """
