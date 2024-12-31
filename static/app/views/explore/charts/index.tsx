@@ -372,7 +372,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                             insufficientSamples: (
                               <Tooltip
                                 title={t(
-                                  'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
+                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
                                 )}
                               >
                                 <InsufficientSamples>
