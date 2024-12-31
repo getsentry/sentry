@@ -11,7 +11,6 @@ import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -65,7 +64,6 @@ type Props = {
   period?: string | null;
   router?: InjectedRouter;
   saveOnZoom?: boolean;
-  showSlider?: boolean;
   start?: DateString;
   usePageDate?: boolean;
   utc?: boolean | null;
@@ -336,7 +334,6 @@ class ChartZoom extends Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
-      showSlider,
       chartZoomOptions,
       ...props
     } = this.props;
@@ -360,18 +357,10 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: showSlider
-        ? [
-            ...DataZoomSlider({xAxisIndex, ...chartZoomOptions}),
-            ...DataZoomInside({
-              xAxisIndex,
-              ...(chartZoomOptions as InsideDataZoomComponentOption),
-            }),
-          ]
-        : DataZoomInside({
-            xAxisIndex,
-            ...(chartZoomOptions as InsideDataZoomComponentOption),
-          }),
+      dataZoom: DataZoomInside({
+        xAxisIndex,
+        ...(chartZoomOptions as InsideDataZoomComponentOption),
+      }),
       showTimeInTooltip: true,
       toolBox: ToolBox(
         {},

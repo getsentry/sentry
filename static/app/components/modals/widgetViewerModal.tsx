@@ -905,7 +905,6 @@ function WidgetViewerModal(props: Props) {
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
-                showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
                 widgetLegendState={widgetLegendState}
@@ -925,7 +924,6 @@ function WidgetViewerModal(props: Props) {
                   selected: widgetLegendState.getWidgetSelectionState(widget),
                 }}
                 expandNumbers
-                showSlider={shouldShowSlider}
                 noPadding
                 chartZoomOptions={chartZoomOptions}
                 widgetLegendState={widgetLegendState}

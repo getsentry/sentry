@@ -9,7 +9,6 @@ import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import DataZoomSlider from 'sentry/components/charts/components/dataZoomSlider';
 import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -54,7 +53,6 @@ interface Props {
    * Will persist zoom state to page filters
    */
   saveOnZoom?: boolean;
-  showSlider?: boolean;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Persists zoom state to query params without updating page filters.
@@ -135,7 +133,6 @@ export function useChartZoom({
   usePageDate,
   saveOnZoom,
   xAxisIndex,
-  showSlider,
   chartZoomOptions,
 }: Omit<Props, 'children'>): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel();
@@ -258,10 +255,8 @@ export function useChartZoom({
       xAxisIndex,
       ...(chartZoomOptions as InsideDataZoomComponentOption),
     });
-    return showSlider
-      ? [...DataZoomSlider({xAxisIndex, ...chartZoomOptions}), ...zoomInside]
-      : zoomInside;
-  }, [chartZoomOptions, showSlider, xAxisIndex]);
+    return zoomInside;
+  }, [chartZoomOptions, xAxisIndex]);
 
   const toolBox = useMemo<ToolboxComponentOption>(
     () =>

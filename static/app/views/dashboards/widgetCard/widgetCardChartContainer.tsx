@@ -53,7 +53,6 @@ type Props = {
   onZoom?: AugmentedEChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
-  showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -72,7 +71,6 @@ export function WidgetCardChartContainer({
   legendOptions,
   expandNumbers,
   onDataFetched,
-  showSlider,
   noPadding,
   chartZoomOptions,
   onWidgetSplitDecision,
@@ -148,7 +146,6 @@ export function WidgetCardChartContainer({
               windowWidth={windowWidth}
               expandNumbers={expandNumbers}
               onZoom={onZoom}
-              showSlider={showSlider}
               timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
               chartZoomOptions={chartZoomOptions}

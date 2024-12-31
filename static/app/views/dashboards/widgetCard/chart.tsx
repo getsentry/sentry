@@ -103,7 +103,6 @@ type WidgetCardChartProps = Pick<
   }>;
   onZoom?: AugmentedEChartDataZoomHandler;
   shouldResize?: boolean;
-  showSlider?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
 };
@@ -292,7 +291,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       widget,
       onZoom,
       legendOptions,
-      showSlider,
       noPadding,
       chartZoomOptions,
       timeseriesResultsTypes,
@@ -393,7 +391,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         left: 0,
         right: 4,
         top: '40px',
-        bottom: showSlider ? SLIDER_HEIGHT : 0,
+        bottom: 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -474,7 +472,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         start={start}
         end={end}
         utc={utc}
-        showSlider={showSlider}
         chartZoomOptions={chartZoomOptions}
       >
         {zoomRenderProps => {
