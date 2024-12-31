@@ -4,8 +4,6 @@ import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  findAllByText,
-  findByText,
   render,
   screen,
   userEvent,
@@ -286,7 +284,7 @@ async function keyboardNavigationTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -343,7 +341,7 @@ async function pageloadTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -401,7 +399,7 @@ async function nestedTransactionsTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -457,7 +455,7 @@ async function searchTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -517,7 +515,7 @@ async function simpleTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -729,7 +727,7 @@ async function completeTestSetup() {
 
   // Awaits for the placeholder rendering rows to be removed
   try {
-    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -937,7 +935,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-span0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -951,7 +949,7 @@ describe('trace view', () => {
       mockQueryString('?node=ag-redis0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -964,7 +962,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-redis0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -978,7 +976,7 @@ describe('trace view', () => {
       mockQueryString('?node=ag-http0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -992,7 +990,7 @@ describe('trace view', () => {
       mockQueryString('?node=span-http0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next tick
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1006,7 +1004,7 @@ describe('trace view', () => {
       mockQueryString('?node=ms-queueprocess0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next ticks
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1020,7 +1018,7 @@ describe('trace view', () => {
       mockQueryString('?node=error-error0&node=txn-1');
 
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       // We need to await a tick because the row is not focused until the next ticks
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1043,7 +1041,7 @@ describe('trace view', () => {
     it('supports expanded node path', async () => {
       mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
       const {virtualizedContainer} = await completeTestSetup();
-      await findAllByText(virtualizedContainer, /Autogrouped/i);
+      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
       const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
@@ -1081,7 +1079,7 @@ describe('trace view', () => {
 
       const {virtualizedContainer} = await completeTestSetup();
 
-      await findAllByText(virtualizedContainer, /process/i);
+      await within(virtualizedContainer).findAllByText(/process/i);
       expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
     });
 
@@ -1091,7 +1089,7 @@ describe('trace view', () => {
 
       const {virtualizedContainer} = await completeTestSetup();
 
-      await findAllByText(virtualizedContainer, /process/i);
+      await within(virtualizedContainer).findAllByText(/process/i);
       expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
     });
 
@@ -1101,7 +1099,7 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await findAllByText(virtualizedContainer, /Autogrouped/i);
+        await within(virtualizedContainer).findAllByText(/Autogrouped/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         await userEvent.click(preferencesDropdownTrigger);
@@ -1126,7 +1124,7 @@ describe('trace view', () => {
         mockQueryString('?node=span-span0&node=txn-1');
 
         const {virtualizedContainer} = await completeTestSetup();
-        await findAllByText(virtualizedContainer, /No Instrumentation/i);
+        await within(virtualizedContainer).findAllByText(/No Instrumentation/i);
 
         const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
         await userEvent.click(preferencesDropdownTrigger);
@@ -1289,7 +1287,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{arrowup}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-99/i)
+        await within(virtualizedContainer).findByText(/transaction-op-99/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1370,7 +1368,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-99/i)
+        await within(virtualizedContainer).findByText(/transaction-op-99/i)
       ).toBeInTheDocument();
       await waitFor(() => {
         rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1391,7 +1389,7 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{Shift>}{arrowdown}{/Shift}');
       expect(
-        await findByText(virtualizedContainer, /transaction-op-99/i)
+        await within(virtualizedContainer).findByText(/transaction-op-99/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1402,7 +1400,7 @@ describe('trace view', () => {
       await userEvent.keyboard('{Shift>}{arrowup}{/Shift}');
 
       expect(
-        await findByText(virtualizedContainer, /transaction-op-0/i)
+        await within(virtualizedContainer).findByText(/transaction-op-0/i)
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -1692,7 +1690,7 @@ describe('trace view', () => {
       const {container} = render(<TraceView />, {router});
 
       // Awaits for the placeholder rendering rows to be removed
-      await findByText(container, /transaction-op-0/i);
+      await within(container).findByText(/transaction-op-0/i);
 
       const searchInput = await screen.findByPlaceholderText('Search in trace');
       await userEvent.type(searchInput, 'op-0');
