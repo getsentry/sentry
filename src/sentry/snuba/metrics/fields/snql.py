@@ -775,16 +775,12 @@ def team_key_transaction_snql(
 
 
 def _resolve_project_threshold_config(project_ids: Sequence[int], org_id: int) -> SelectType:
+    use_case_id = UseCaseID.TRANSACTIONS
     return resolve_project_threshold_config(
-        tag_value_resolver=lambda use_case_id, org_id, value: resolve_tag_value(
-            use_case_id, org_id, value
-        ),
-        column_name_resolver=lambda use_case_id, org_id, value: resolve_tag_key(
-            use_case_id, org_id, value
-        ),
+        tag_value_resolver=lambda org_id, value: resolve_tag_value(use_case_id, org_id, value),
+        column_name_resolver=lambda org_id, value: resolve_tag_key(use_case_id, org_id, value),
         project_ids=project_ids,
         org_id=org_id,
-        use_case_id=UseCaseID.TRANSACTIONS,
     )
 
 
