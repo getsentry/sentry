@@ -60,19 +60,24 @@ export default function ReplayComparisonModal({
                 <IconInfo />
               </Tooltip>
             </Title>
-            <LearnMoreButton />
-            {focusTrap ? (
-              <FeedbackWidgetButton
-                optionOverrides={{
-                  onFormOpen: () => {
-                    focusTrap.pause();
-                  },
-                  onFormClose: () => {
-                    focusTrap.unpause();
-                  },
-                }}
+            <div>
+              <LearnMoreButton
+                onHover={() => focusTrap?.pause()}
+                onBlur={() => focusTrap?.unpause()}
               />
-            ) : null}
+              {focusTrap ? (
+                <FeedbackWidgetButton
+                  optionOverrides={{
+                    onFormOpen: () => {
+                      focusTrap.pause();
+                    },
+                    onFormClose: () => {
+                      focusTrap.unpause();
+                    },
+                  }}
+                />
+              ) : null}
+            </div>
           </ModalHeader>
         </Header>
         <Body>
