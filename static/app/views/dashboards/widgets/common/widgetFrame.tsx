@@ -45,7 +45,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
         : []
       : props.actions) ?? [];
 
-  const shouldShowFullScreenViewButton = Boolean(props.onFullScreenViewClick);
+  const shouldShowFullScreenViewButton =
+    Boolean(props.onFullScreenViewClick) && !props.error;
 
   const hasActions = actions && actions.length > 0;
 

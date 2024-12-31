@@ -205,5 +205,20 @@ describe('WidgetFrame', () => {
 
       expect(onFullScreenViewClick).toHaveBeenCalledTimes(1);
     });
+
+    it('Hides full screen button if the widget has an error', () => {
+      const onFullScreenViewClick = jest.fn();
+
+      render(
+        <WidgetFrame
+          title="count()"
+          onFullScreenViewClick={onFullScreenViewClick}
+          error={new Error('Something went wrong')}
+        />
+      );
+
+      const $button = screen.queryByRole('button', {name: 'Open Full-Screen View'});
+      expect($button).not.toBeInTheDocument();
+    });
   });
 });
