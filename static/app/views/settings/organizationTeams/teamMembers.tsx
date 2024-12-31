@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -6,8 +6,7 @@ import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
-import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
-import type {Client} from 'sentry/api';
+import {joinTeamPromise, leaveTeamPromise} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Flex} from 'sentry/components/container/flex';
@@ -24,14 +23,15 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
-import type {Config} from 'sentry/types/system';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -44,16 +44,31 @@ import TeamMembersRow, {
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getButtonHelpText} from './utils';
+import type {AvatarUser} from 'sentry/types/user';
+import {useUser} from 'sentry/utils/useUser';
 
-type RouteParams = {
-  teamId: string;
-};
-
-interface Props extends RouteComponentProps<RouteParams, {}> {
-  api: Client;
-  config: Config;
-  organization: Organization;
+interface TeamMembersProps {
   team: Team;
+}
+
+function getTeamMembersQueryKey({
+  organization,
+  teamId,
+  location,
+}: {
+  organization: Organization;
+  teamId: string;
+  location: ReturnType<typeof useLocation>;
+}): ApiQueryKey {
+  return [
+    `/teams/${organization.slug}/${teamId}/members/`,
+    {
+      query: {
+        cursor: location.query.cursor,
+        query: location.query.query,
+      },
+    },
+  ];
 }
 
 function AddMemberDropdown({
@@ -62,14 +77,15 @@ function AddMemberDropdown({
   team,
   teamId,
   isTeamAdmin,
+  onAddMember,
 }: {
   isTeamAdmin: boolean;
   organization: Organization;
   team: Team;
   teamId: string;
   teamMembers: TeamMember[];
+  onAddMember: (variables: {orgMember: TeamMember}) => void;
 }) {
-  const api = useApi({persistInFlight: true});
   const [memberQuery, setMemberQuery] = useState('');
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
   const {data: orgMembers = [], isLoading: isOrgMembersLoading} = useApiQuery<Member[]>(
@@ -80,11 +96,9 @@ function AddMemberDropdown({
       },
     ],
     {
-      staleTime: 0,
+      staleTime: 30_000,
     }
   );
-
-  const existingMembers = new Set(teamMembers.map(member => member.id));
 
   // members can add other members to a team if the `Open Membership` setting is enabled
   // otherwise, `org:write` or `team:admin` permissions are required
@@ -94,72 +108,49 @@ function AddMemberDropdown({
   const isDropdownDisabled = team.flags['idp:provisioned'];
 
   const addTeamMember = (selection: Item) => {
+    const orgMember = orgMembers.find(member => member.id === selection.value);
+    if (orgMember === undefined) {
+      return;
+    }
+
     // Reset members list after adding member to team
     setMemberQuery('');
-
-    joinTeam(
-      api,
-      {
-        orgId: organization.slug,
-        teamId,
-        memberId: selection.value,
-      },
-      {
-        success: () => {
-          const orgMember = orgMembers.find(member => member.id === selection.value);
-          if (orgMember === undefined) {
-            return;
-          }
-          // this.setState({
-          //   error: false,
-          //   teamMembers: teamMembers.concat([orgMember as TeamMember]),
-          // });
-          addSuccessMessage(t('Successfully added member to team.'));
-        },
-        error: (resp: RequestError) => {
-          const errorMessage =
-            resp?.responseJSON?.detail || t('Unable to add team member.');
-          addErrorMessage(errorMessage as string);
-        },
-      }
-    );
+    onAddMember({orgMember});
   };
 
   /**
    * We perform an API request to support orgs with > 100 members (since that's the max API returns)
-   *
-   * @param {Event} e React Event when member filter input changes
    */
   const handleMemberFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMemberQuery(e.target.value);
-    // this.setState({dropdownBusy: true});
   };
 
-  const items = (orgMembers || [])
-    .filter(m => !existingMembers.has(m.id))
-    .map(m => ({
-      searchKey: `${m.name} ${m.email}`,
-      value: m.id,
-      label: (
-        <StyledUserListElement>
-          <StyledAvatar user={m} size={24} className="avatar" />
-          <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
-        </StyledUserListElement>
-      ),
-    }));
-
-  const menuHeader = (
-    <StyledMembersLabel>
-      {t('Members')}
-      <StyledCreateMemberLink
-        to=""
-        onClick={() => openInviteMembersModal({source: 'teams'})}
-        data-test-id="invite-member"
-      >
-        {t('Invite Member')}
-      </StyledCreateMemberLink>
-    </StyledMembersLabel>
-  );
+  const items = useMemo(() => {
+    const existingMembers = new Set(teamMembers.map(member => member.id));
+    return (orgMembers || [])
+      .filter(m => !existingMembers.has(m.id))
+      .map(m => ({
+        searchKey: `${m.name} ${m.email}`,
+        value: m.id,
+        label: (
+          <StyledUserListElement>
+            <StyledAvatar
+              user={{
+                id: m.user?.id ?? m.id,
+                name: m.user?.name ?? m.name,
+                email: m.user?.email ?? m.email,
+                avatar: m.user?.avatar ?? undefined,
+                avatarUrl: m.user?.avatarUrl ?? undefined,
+                type: 'user',
+              }}
+              size={24}
+              className="avatar"
+            />
+            <StyledNameOrEmail>{m.name || m.email}</StyledNameOrEmail>
+          </StyledUserListElement>
+        ),
+      }));
+  }, [teamMembers, orgMembers]);
 
   return (
     <DropdownAutoComplete
@@ -176,7 +167,18 @@ function AddMemberDropdown({
                 memberId: selection.value,
               })
       }
-      menuHeader={menuHeader}
+      menuHeader={
+        <StyledMembersLabel>
+          {t('Members')}
+          <StyledCreateMemberLink
+            to=""
+            onClick={() => openInviteMembersModal({source: 'teams'})}
+            data-test-id="invite-member"
+          >
+            {t('Invite Member')}
+          </StyledCreateMemberLink>
+        </StyledMembersLabel>
+      }
       emptyMessage={t('No members')}
       onChange={handleMemberFilterChange}
       onClose={() => setMemberQuery('')}
@@ -198,9 +200,10 @@ function AddMemberDropdown({
   );
 }
 
-function TeamMembers({team}: Props) {
-  const config = useLegacyStore(ConfigStore);
+function TeamMembers({team}: TeamMembersProps) {
+  const user = useUser();
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {teamId} = useParams<{teamId: string}>();
   const location = useLocation();
@@ -212,17 +215,9 @@ function TeamMembers({team}: Props) {
     refetch: refetchTeamMembers,
     getResponseHeader: getTeamMemberResponseHeader,
   } = useApiQuery<TeamMember[]>(
-    [
-      `/teams/${organization.slug}/${teamId}/members/`,
-      {
-        query: {
-          cursor: location.query.cursor,
-          query: location.query.query,
-        },
-      },
-    ],
+    getTeamMembersQueryKey({organization, teamId, location}),
     {
-      staleTime: 0,
+      staleTime: 30_000,
     }
   );
 
@@ -236,52 +231,99 @@ function TeamMembers({team}: Props) {
   const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
   const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
 
-  const removeTeamMember = (member: Member) => {
-    leaveTeam(
-      api,
-      {
+  const {mutate: handleRemoveTeamMember} = useMutation({
+    mutationFn: ({memberId}: {memberId: string}) => {
+      return leaveTeamPromise(api, {
         orgId: organization.slug,
         teamId,
-        memberId: member.id,
-      },
-      {
-        success: () => {
-          // this.setState({
-          //   teamMembers: teamMembers.filter(m => m.id !== member.id),
-          // });
-          addSuccessMessage(t('Successfully removed member from team.'));
-        },
-        error: () =>
-          addErrorMessage(
-            t('There was an error while trying to remove a member from the team.')
-          ),
-      }
-    );
-  };
+        memberId,
+      });
+    },
+    onSuccess: (_data, variables) => {
+      setApiQueryData<TeamMember[]>(
+        queryClient,
+        getTeamMembersQueryKey({organization, teamId, location}),
+        existingData => {
+          if (!existingData) {
+            return existingData;
+          }
+          return existingData.filter(member => member.id !== variables.memberId);
+        }
+      );
+      addSuccessMessage(t('Successfully removed member from team.'));
+    },
+    onError: () => {
+      addErrorMessage(
+        t('There was an error while trying to remove a member from the team.')
+      );
+    },
+  });
 
-  const updateTeamMemberRole = (member: Member, newRole: string) => {
-    const endpoint = `/organizations/${organization.slug}/members/${member.id}/teams/${teamId}/`;
+  const {mutate: updateTeamMemberRole} = useMutation({
+    mutationFn: ({memberId, newRole}: {memberId: string; newRole: string}) => {
+      return api.requestPromise(
+        `/organizations/${organization.slug}/members/${memberId}/teams/${teamId}/`,
+        {
+          method: 'PUT',
+          data: {teamRole: newRole},
+        }
+      );
+    },
+    onSuccess: (_data, variables) => {
+      addSuccessMessage(t('Successfully changed role for team member.'));
+      setApiQueryData<TeamMember[]>(
+        queryClient,
+        getTeamMembersQueryKey({organization, teamId, location}),
+        existingData => {
+          if (!existingData) {
+            return existingData;
+          }
 
-    api.request(endpoint, {
-      method: 'PUT',
-      data: {teamRole: newRole},
-      success: data => {
-        const newTeamMembers = [...teamMembers];
-        const i = newTeamMembers.findIndex(m => m.id === member.id);
-        newTeamMembers[i] = {
-          ...member,
-          teamRole: data.teamRole,
-        };
-        // this.setState({teamMembers});
-        addSuccessMessage(t('Successfully changed role for team member.'));
-      },
-      error: () => {
-        addErrorMessage(
-          t('There was an error while trying to change the roles for a team member.')
-        );
-      },
-    });
-  };
+          return existingData.map(member => {
+            if (member.id === variables.memberId) {
+              return {
+                ...member,
+                teamRole: variables.newRole,
+              };
+            }
+
+            return member;
+          });
+        }
+      );
+    },
+    onError: () => {
+      addErrorMessage(
+        t('There was an error while trying to change the roles for a team member.')
+      );
+    },
+  });
+
+  const {mutate: handleAddTeamMember} = useMutation({
+    mutationFn: ({orgMember}: {orgMember: TeamMember}) => {
+      return joinTeamPromise(api, {
+        orgId: organization.slug,
+        teamId,
+        memberId: orgMember.id,
+      });
+    },
+    onSuccess: (_data, {orgMember}) => {
+      setApiQueryData<TeamMember[]>(
+        queryClient,
+        getTeamMembersQueryKey({organization, teamId, location}),
+        existingData => {
+          if (!existingData) {
+            return existingData;
+          }
+          return existingData.concat([orgMember]);
+        }
+      );
+      addSuccessMessage(t('Successfully added member to team.'));
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to add team member.'));
+    },
+  });
 
   const renderPageTextBlock = () => {
     const {openMembership} = organization;
@@ -313,8 +355,8 @@ function TeamMembers({team}: Props) {
             organization={organization}
             team={team}
             member={member}
-            user={config.user}
-            removeMember={removeTeamMember}
+            user={user}
+            removeMember={handleRemoveTeamMember}
             updateMemberRole={updateTeamMemberRole}
           />
         );
@@ -349,6 +391,7 @@ function TeamMembers({team}: Props) {
               team={team}
               teamId={teamId}
               isTeamAdmin={isTeamAdmin}
+              onAddMember={handleAddTeamMember}
             />
           </Flex>
         </StyledPanelHeader>
@@ -364,6 +407,7 @@ const StyledUserListElement = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(0.5)};
   align-items: center;
+  text-transform: initial;
 `;
 
 const StyledNameOrEmail = styled('div')`
@@ -371,7 +415,7 @@ const StyledNameOrEmail = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const StyledAvatar = styled(props => <UserAvatar {...props} />)`
+const StyledAvatar = styled(UserAvatar)`
   min-width: 1.75em;
   min-height: 1.75em;
   width: 1.5em;
