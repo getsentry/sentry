@@ -167,3 +167,27 @@ class TestNotificationActionMigrationUtils(TestCase):
         actions = build_notification_actions_from_rule_data_actions(action_data)
 
         self.assert_actions_migrated_correctly(actions, action_data)
+
+    def test_msteams_action_migration(self):
+        action_data = [
+            # MsTeams Action will  always include, channel and channel_id
+            # It won't store anything in the data blob
+            {
+                "team": "12345",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+            {
+                "team": "230405",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Sentry FE Non-Prod",
+                "channel_id": "19:c3c894b8d4194fb1aa7f89da84bfcd69@thread.tacv2",
+                "uuid": "4777a764-11fd-418c-b61b-533767424425",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data)
