@@ -959,13 +959,10 @@ export default typescript.config([
     files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      'testing-library/await-async-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-await-sync-events': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-      'testing-library/no-await-sync-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-render-in-lifecycle': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-      'testing-library/no-wait-for-multiple-assertions': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-presence-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-query-by-disappearance': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line

@@ -150,8 +150,8 @@ describe('ReplayList', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Introducing Rage and Dead Clicks')).toBeInTheDocument();
-      expect(screen.queryByTestId('replay-table')).toBeInTheDocument();
     });
+    expect(screen.queryByTestId('replay-table')).toBeInTheDocument();
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 
