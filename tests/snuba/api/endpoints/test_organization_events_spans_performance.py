@@ -118,7 +118,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                 }
             )
         else:
-            assert False, f"Unexpected Op: {op}"
+            raise AssertionError(f"Unexpected Op: {op}")
 
         return results
 
@@ -231,7 +231,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
                 }
             )
         else:
-            assert False, f"Unexpected Op: {op}"
+            raise AssertionError(f"Unexpected Op: {op}")
 
         return results
 
@@ -325,7 +325,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
             }
 
         else:
-            assert False, f"Unexpected Op: {op}"
+            raise AssertionError(f"Unexpected Op: {op}")
 
     def suspect_span_results(self, op, event):
         results = self.span_example_results(op, event)
@@ -381,7 +381,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
             )
 
         else:
-            assert False, f"Unexpected Op: {op}"
+            raise AssertionError(f"Unexpected Op: {op}")
 
         return results
 

@@ -1,7 +1,6 @@
 from functools import cached_property
 
 import responses
-from django.test import RequestFactory
 from pytest import raises
 
 from sentry.exceptions import PluginError
@@ -14,10 +13,6 @@ class PhabricatorPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return PhabricatorPlugin()
-
-    @cached_property
-    def request(self):
-        return RequestFactory()
 
     def test_conf_key(self):
         assert self.plugin.conf_key == "phabricator"

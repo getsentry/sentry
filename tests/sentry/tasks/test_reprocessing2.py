@@ -351,7 +351,7 @@ def test_max_events(
                     != group_id
                 )
             else:
-                raise ValueError(remaining_events)
+                raise AssertionError(remaining_events)
         else:
             assert event is not None
             assert event.group_id != group_id
@@ -367,7 +367,7 @@ def test_max_events(
         assert event.group is not None
         assert event.group.times_seen == 5
     else:
-        raise ValueError(remaining_events)
+        raise AssertionError(remaining_events)
 
     assert is_group_finished(group_id)
 

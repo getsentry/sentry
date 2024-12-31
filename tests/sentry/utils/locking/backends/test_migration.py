@@ -15,7 +15,7 @@ class DummyLockBackend(LockBackend):
 
     def acquire(self, key: str, duration: int, routing_key: str | None = None) -> None:
         if self.locked(key=key, routing_key=routing_key):
-            raise Exception(f"Could not acquire ({key}, {routing_key})")
+            raise AssertionError(f"Could not acquire ({key}, {routing_key})")
         self._locks[(key, routing_key)] = duration
 
     def release(self, key, routing_key=None):
@@ -61,13 +61,13 @@ class TestMigrationLockBackend(TestCase):
         backend.backend_old.acquire(lk, 10)
         assert backend.locked(lk)
 
-        def selector_always_old(key, routing_key, backend_new, backend_old):
-            return backend_old
+        def selector_plzno_call(key, routing_key, backend_new, backend_old):
+            raise AssertionError("should not be called!")
 
         backend = MigrationLockBackend(
             backend_new_config={"path": DummyLockBackend.path},
             backend_old_config={"path": DummyLockBackend.path},
-            selector_func_path=selector_always_old,
+            selector_func_path=selector_plzno_call,
         )
         backend.backend_new.acquire(lk, 10)
         assert backend.locked(lk)

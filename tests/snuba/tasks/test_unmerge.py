@@ -511,8 +511,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
             release = event.get_tag("sentry:release")
-            if not release:
-                return aggregate
+            assert release
             release = GroupRelease.objects.get(
                 group_id=group.id,
                 environment=event.data["environment"],

@@ -726,12 +726,6 @@ dummy_generic_provider_config = {
 class DummyGenericSAML2Provider(GenericSAML2Provider):
     name = "saml2_generic_dummy"
 
-    def get_saml_setup_pipeline(self):
-        return []
-
-    def build_config(self, state):
-        return dummy_provider_config
-
 
 @control_silo_test
 class OrganizationAuthSettingsGenericSAML2Test(AuthProviderTestCase):

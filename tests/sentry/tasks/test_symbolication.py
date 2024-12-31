@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.tasks.store import preprocess_event
-from sentry.tasks.symbolication import submit_symbolicate, symbolicate_event
+from sentry.tasks.symbolication import symbolicate_event
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -36,12 +36,6 @@ def mock_get_symbolication_function_for_platform():
 @pytest.fixture
 def mock_event_processing_store():
     with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_submit_symbolicate():
-    with mock.patch("sentry.tasks.symbolication.submit_symbolicate", wraps=submit_symbolicate) as m:
         yield m
 
 

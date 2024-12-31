@@ -60,10 +60,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         )
 
     def store_transaction(
-        self, name="exampleTransaction", duration=100, tags=None, project_id=None, lcp=None
+        self, name="exampleTransaction", duration=100, project_id=None, lcp=None, *, tags
     ):
-        if tags is None:
-            tags = []
         if project_id is None:
             project_id = self.project.id
         event = load_data("transaction")

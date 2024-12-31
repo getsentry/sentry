@@ -69,12 +69,9 @@ class TimedRetryPolicyTestCase(TestCase):
         retry.clock.sleep = mock.MagicMock()
         retry.clock.time = mock.MagicMock(side_effect=[0, 0.15, 0.25])
 
-        try:
+        with pytest.raises(RetryException) as excinfo:
             retry(callable)
-        except RetryException as exception:
-            assert exception.exception is bomb
-        else:
-            self.fail(f"Expected {RetryException!r}!")
+        assert excinfo.value.exception is bomb
 
         assert callable.call_count == 2
 
