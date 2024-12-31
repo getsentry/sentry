@@ -243,13 +243,9 @@ class ReleaseHealthBackend(Service):
         "get_project_releases_count",
         "get_project_release_stats",
         "get_project_sessions_count",
-        "is_metrics_based",
         "get_num_sessions_per_project",
         "get_project_releases_by_stability",
     )
-
-    def is_metrics_based(self) -> bool:
-        return False
 
     def get_current_and_previous_crash_free_rates(
         self,
