@@ -2,7 +2,6 @@ from typing import Protocol
 
 from snuba_sdk import Column, Condition
 
-from sentry.search.eap.types import EAPResponse
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -38,4 +37,4 @@ class DatasetQuery(Protocol):
         dataset: Dataset = Dataset.Discover,
         fallback_to_transactions: bool = False,
         query_source: QuerySource | None = None,
-    ) -> EventsResponse | EAPResponse: ...
+    ) -> EventsResponse: ...
