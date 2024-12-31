@@ -3125,23 +3125,24 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
             timestamp=self.min_ago,
         )
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "performance_score(measurements.score.total)",
-                ],
-                "query": "",
-                "dataset": "metrics",
-                "per_page": 50,
-            }
-        )
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        data = response.data["data"]
-        meta = response.data["meta"]
-        assert data[0]["performance_score(measurements.score.total)"] == 0.4
-        assert meta["isMetricsData"]
+        with self.feature({"organizations:performance-vitals-handle-missing-webvitals": True}):
+            response = self.do_request(
+                {
+                    "field": [
+                        "transaction",
+                        "performance_score(measurements.score.total)",
+                    ],
+                    "query": "",
+                    "dataset": "metrics",
+                    "per_page": 50,
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert len(response.data["data"]) == 1
+            data = response.data["data"]
+            meta = response.data["meta"]
+            assert data[0]["performance_score(measurements.score.total)"] == 0.4
+            assert meta["isMetricsData"]
 
     def test_count_scores(self):
         self.store_transaction_metric(

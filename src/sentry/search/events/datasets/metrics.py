@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -1906,30 +1907,37 @@ class MetricsDatasetConfig(DatasetConfig):
                         scores["inp"],
                     ],
                 ),
-                Function(
-                    "plus",
-                    [
-                        Function(
-                            "plus",
-                            [
-                                Function(
-                                    "plus",
-                                    [
-                                        Function(
-                                            "plus",
-                                            [
-                                                weights["lcp"],
-                                                weights["fcp"],
-                                            ],
-                                        ),
-                                        weights["cls"],
-                                    ],
-                                ),
-                                weights["ttfb"],
-                            ],
-                        ),
-                        weights["inp"],
-                    ],
+                (
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    Function(
+                                        "plus",
+                                        [
+                                            Function(
+                                                "plus",
+                                                [
+                                                    weights["lcp"],
+                                                    weights["fcp"],
+                                                ],
+                                            ),
+                                            weights["cls"],
+                                        ],
+                                    ),
+                                    weights["ttfb"],
+                                ],
+                            ),
+                            weights["inp"],
+                        ],
+                    )
+                    if features.has(
+                        "organizations:performance-vitals-handle-missing-webvitals",
+                        self.builder.params.organization,
+                    )
+                    else 1
                 ),
             ],
             alias,
