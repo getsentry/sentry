@@ -30,7 +30,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     is_url_auto_monitored_for_project,
 )
 from sentry.utils import metrics
-from sentry.utils.audit import create_audit_entry_from_user
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -226,8 +226,7 @@ def process_candidate_url(
         # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
         project.organization.update_option("sentry:uptime_autodetection", False)
-        create_audit_entry_from_user(
-            user=None,
+        create_system_audit_entry(
             organization=project.organization,
             target_object=uptime_monitor.id,
             event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
