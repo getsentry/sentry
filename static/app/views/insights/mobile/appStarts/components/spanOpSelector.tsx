@@ -105,7 +105,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
       onChange={newValue => {
         trackAnalytics('insight.app_start.spans.filter_by_operation', {
           organization,
-          filter: newValue.value as string,
+          filter: newValue.value as unknown as string,
         });
 
         browserHistory.push({

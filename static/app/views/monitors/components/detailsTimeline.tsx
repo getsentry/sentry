@@ -98,7 +98,7 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
       }
 
       oldMonitorDetails.environments[oldMonitorEnvIdx] = {
-        ...oldMonitorDetails.environments[oldMonitorEnvIdx],
+        ...oldMonitorDetails.environments[oldMonitorEnvIdx]!,
         isMuted,
       };
       return oldMonitorDetails;
