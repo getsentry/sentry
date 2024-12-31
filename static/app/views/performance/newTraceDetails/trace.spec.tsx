@@ -826,14 +826,10 @@ async function assertHighlightedRowAtIndex(
 ) {
   await waitFor(() => {
     expect(virtualizedContainer.querySelectorAll('.TraceRow.Highlight')).toHaveLength(1);
-    const highlighted_row = virtualizedContainer.querySelector(
-      ACTIVE_SEARCH_HIGHLIGHT_ROW
-    );
-    const r = Array.from(
-      virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR)
-    );
-    expect(r.indexOf(highlighted_row!)).toBe(index);
   });
+  const highlighted_row = virtualizedContainer.querySelector(ACTIVE_SEARCH_HIGHLIGHT_ROW);
+  const r = Array.from(virtualizedContainer.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR));
+  expect(r.indexOf(highlighted_row!)).toBe(index);
 }
 
 describe('trace view', () => {
@@ -926,12 +922,12 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next tick
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
-        expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
+      expect(rows[3].textContent?.includes('http — request')).toBe(true);
     });
 
     it('scrolls to parent autogroup node', async () => {
@@ -940,12 +936,12 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next tick
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[4]).toHaveFocus();
-        expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
       });
+      expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
     });
     it('scrolls to child of parent autogroup node', async () => {
       mockQueryString('?node=span-redis0&node=txn-1');
@@ -953,12 +949,12 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next tick
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
-        expect(rows[5].textContent?.includes('db — redis')).toBe(true);
       });
+      expect(rows[5].textContent?.includes('db — redis')).toBe(true);
     });
 
     it('scrolls to sibling autogroup node', async () => {
@@ -966,12 +962,13 @@ describe('trace view', () => {
 
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
+
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next tick
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
-        expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
       });
+      expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
     });
 
     it('scrolls to child of sibling autogroup node', async () => {
@@ -980,12 +977,12 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      // We need to await a tick because the row is not focused until the next tick
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next tick
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[6]).toHaveFocus();
-        expect(rows[6].textContent?.includes('http — request')).toBe(true);
       });
+      expect(rows[6].textContent?.includes('http — request')).toBe(true);
     });
 
     it('scrolls to missing instrumentation node', async () => {
@@ -996,11 +993,10 @@ describe('trace view', () => {
 
       // We need to await a tick because the row is not focused until the next ticks
       const rows = getVirtualizedRows(virtualizedContainer);
-
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
-        expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
       });
+      expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
     });
 
     it('scrolls to trace error node', async () => {
@@ -1009,12 +1005,12 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      // We need to await a tick because the row is not focused until the next ticks
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        // We need to await a tick because the row is not focused until the next ticks
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[11]).toHaveFocus();
-        expect(rows[11].textContent?.includes('error-title')).toBe(true);
       });
+      expect(rows[11].textContent?.includes('error-title')).toBe(true);
     });
 
     it('scrolls to event id query param', async () => {
@@ -1032,11 +1028,11 @@ describe('trace view', () => {
       const {virtualizedContainer} = await completeTestSetup();
       await findAllByText(virtualizedContainer, /Autogrouped/i);
 
+      const rows = getVirtualizedRows(virtualizedContainer);
       await waitFor(() => {
-        const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
-        expect(rows[3].textContent?.includes('http — request')).toBe(true);
       });
+      expect(rows[3].textContent?.includes('http — request')).toBe(true);
     });
 
     it.each([
@@ -1771,22 +1767,22 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
-            .textContent?.includes('transaction-op-4')
-        ).toBeTruthy();
       });
+      expect(
+        screen
+          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .textContent?.includes('transaction-op-4')
+      ).toBeTruthy();
 
       await userEvent.click(rows[7]);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
-            .textContent?.includes('transaction-op-6')
-        ).toBeTruthy();
       });
+      expect(
+        screen
+          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .textContent?.includes('transaction-op-6')
+      ).toBeTruthy();
     });
 
     it('pinning a tab and clicking on a new node spawns a new tab', async () => {
@@ -1804,17 +1800,17 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
-            .textContent?.includes('transaction-op-4')
-        ).toBeTruthy();
-        expect(
-          screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
-            .textContent?.includes('transaction-op-6')
-        ).toBeTruthy();
       });
+      expect(
+        screen
+          .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+          .textContent?.includes('transaction-op-4')
+      ).toBeTruthy();
+      expect(
+        screen
+          .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
+          .textContent?.includes('transaction-op-6')
+      ).toBeTruthy();
     });
 
     it('unpinning a tab removes it', async () => {
@@ -1858,11 +1854,11 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[2]).toHaveAttribute(
-          'aria-selected',
-          'true'
-        );
       });
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[2]).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
       await userEvent.click(rows[5]);
       await waitFor(() => {
@@ -1870,8 +1866,8 @@ describe('trace view', () => {
           'aria-selected',
           'true'
         );
-        expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
       });
+      expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
     });
   });
 });
