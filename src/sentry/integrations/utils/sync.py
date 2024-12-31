@@ -102,6 +102,7 @@ def sync_group_assignee_inbound(
 
         if not assign:
             for group in affected_groups:
+                # XXX: Pass an acting user and make the acting_user mandatory
                 GroupAssignee.objects.deassign(
                     group,
                     assignment_source=AssignmentSource.from_integration(integration),
