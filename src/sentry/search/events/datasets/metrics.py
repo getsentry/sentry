@@ -981,12 +981,8 @@ class MetricsDatasetConfig(DatasetConfig):
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
         return function_aliases.resolve_project_threshold_config(
-            tag_value_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_tag_value(
-                value
-            ),
-            column_name_resolver=lambda _use_case_id, _org_id, value: self.builder.resolve_column_name(
-                value
-            ),
+            tag_value_resolver=lambda _org_id, value: self.builder.resolve_tag_value(value),
+            column_name_resolver=lambda _org_id, value: self.builder.resolve_column_name(value),
             org_id=(
                 self.builder.params.organization.id if self.builder.params.organization else None
             ),
