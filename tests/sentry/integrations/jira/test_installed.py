@@ -75,9 +75,12 @@ class JiraInstalledTest(APITestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @responses.activate
     def test_missing_body(self, mock_record_failure):
+        self.add_response()
+
         self.get_error_response(
-            extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 

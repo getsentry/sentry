@@ -5,7 +5,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
-from sentry.api.exceptions import BadRequest
 from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
@@ -38,7 +37,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             kwargs["lifecycle"].record_failure(
                 ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
             )
-            raise BadRequest()
+            return None
 
         return state
 
@@ -50,6 +49,8 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
         ).capture() as lifecycle:
             self.authenticate(request)
             state = self.unpack_payload(request, lifecycle=lifecycle)
+            if state is None:
+                return self.respond(status=400)
 
             data = JiraIntegrationProvider().build_integration(state)
             integration = ensure_integration(self.provider, data)
