@@ -285,12 +285,14 @@ async function keyboardNavigationTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -340,12 +342,14 @@ async function pageloadTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -396,13 +400,14 @@ async function nestedTransactionsTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
-
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -451,12 +456,14 @@ async function searchTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -509,12 +516,14 @@ async function simpleTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
@@ -719,12 +728,14 @@ async function completeTestSetup() {
   const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
-  await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
-    timeout: 5000,
-  }).catch(e => {
+  try {
+    await findAllByText(virtualizedContainer, /transaction-op-/i, undefined, {
+      timeout: 5000,
+    });
+  } catch (e) {
     printVirtualizedList(virtualizedContainer);
     throw e;
-  });
+  }
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
