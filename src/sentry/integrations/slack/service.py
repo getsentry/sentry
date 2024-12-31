@@ -24,13 +24,7 @@ from sentry.integrations.repository.issue_alert import (
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
 from sentry.integrations.slack.message_builder.types import SlackBlock
-from sentry.integrations.slack.metrics import (
-    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
-    SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-    record_lifecycle_termination_level,
-)
+from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.threads.activity_notifications import (
@@ -58,7 +52,6 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
 
@@ -266,12 +259,6 @@ class SlackService:
         json_blocks = orjson.dumps(payload.get("blocks")).decode()
         payload["blocks"] = json_blocks
 
-        extra = {
-            "channel": channel_id,
-            "thread_ts": parent_notification.message_identifier,
-            "rule_action_uuid": parent_notification.rule_action_uuid,
-        }
-
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
             spec=SlackMessagingSpec(),
@@ -283,20 +270,14 @@ class SlackService:
                     text=notification_to_send,
                     blocks=json_blocks,
                 )
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                metrics.incr(SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
             except SlackApiError as e:
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                self._logger.info(
-                    "failed to post message to slack",
-                    extra={"error": str(e), "blocks": json_blocks, **extra},
+                lifecycle.add_extras(
+                    {
+                        "rule_action_uuid": parent_notification.rule_action_uuid,
+                        "channel_id": channel_id,
+                        "thread_ts": parent_notification.message_identifier,
+                    }
                 )
-                metrics.incr(
-                    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-                )
-                lifecycle.add_extras({"rule_action_uuid": parent_notification.rule_action_uuid})
                 record_lifecycle_termination_level(lifecycle, e)
                 raise
 
@@ -467,17 +448,7 @@ class SlackService:
                     unfurl_media=False,
                     callback_id=str(payload.get("callback_id", "")),
                 )
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                metrics.incr(SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
             except SlackApiError as e:
-                # TODO(iamrajjoshi): Remove this after we validate lifecycle
-                extra = {"error": str(e), **log_params}
-                self._logger.info(log_error_message, extra=extra)
-                metrics.incr(
-                    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-                    sample_rate=1.0,
-                    tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-                )
                 lifecycle.add_extras(
                     {k: str(v) for k, v in log_params.items() if isinstance(v, (int, str))}
                 )
