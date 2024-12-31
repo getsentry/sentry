@@ -97,7 +97,6 @@ class TestNotificationActionMigrationUtils(TestCase):
             self.assert_action_data_blob(action, rule_data)
 
     def test_slack_action_migration(self):
-        # Some examples of action data
         action_data = [
             {
                 "workspace": "1",
@@ -140,6 +139,52 @@ class TestNotificationActionMigrationUtils(TestCase):
                 "notes": "@bufo-are-cool",
                 "channel_id": "C01234567890",
                 "uuid": "i1234567-89ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data)
+
+    def test_discord_action_migration(self):
+        action_data = [
+            {
+                "server": "1",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "1112223334445556677",
+                "tags": "environment",
+                "uuid": "12345678-90ab-cdef-0123-456789abcdef",
+            },
+            {
+                "server": "2",
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "channel_id": "99988877766555444333",
+                "tags": "",
+                "uuid": "22345678-90ab-cdef-0123-456789abcdef",
+            },
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+
+        self.assert_actions_migrated_correctly(actions, action_data)
+
+    def test_msteams_action_migration(self):
+        action_data = [
+            # MsTeams Action will  always include, channel and channel_id
+            # It won't store anything in the data blob
+            {
+                "team": "12345",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Bufo",
+                "channel_id": "1:hksdhfdskfhsdfdhsk@thread.tacv2",
+                "uuid": "10987654-3210-9876-5432-109876543210",
+            },
+            {
+                "team": "230405",
+                "id": "sentry.integrations.msteams.notify_action.MsTeamsNotifyServiceAction",
+                "channel": "Sentry FE Non-Prod",
+                "channel_id": "19:c3c894b8d4194fb1aa7f89da84bfcd69@thread.tacv2",
+                "uuid": "4777a764-11fd-418c-b61b-533767424425",
             },
         ]
 

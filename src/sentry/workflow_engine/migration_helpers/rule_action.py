@@ -9,6 +9,7 @@ from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
     INTEGRATION_ACTION_TYPES,
     RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
+    DiscordDataBlob,
     SlackDataBlob,
 )
 
@@ -26,6 +27,16 @@ def build_slack_data_blob(action: dict[str, Any]) -> SlackDataBlob:
     )
 
 
+def build_discord_data_blob(action: dict[str, Any]) -> DiscordDataBlob:
+    """
+    Builds a DiscordDataBlob from the action data.
+    Only includes the keys that are not None.
+    """
+    return DiscordDataBlob(
+        tags=action.get("tags", ""),
+    )
+
+
 def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
     """
     Pops the keys we don't want to save inside the JSON field of the Action model.
@@ -38,6 +49,8 @@ def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict
     # # If we have a specific blob type, we need to sanitize the action data to the blob type
     if action_type == Action.Type.SLACK:
         return build_slack_data_blob(action).__dict__
+    elif action_type == Action.Type.DISCORD:
+        return build_discord_data_blob(action).__dict__
     # # Otherwise, we can just return the action data as is, removing the keys we don't want to save
     else:
         return {
@@ -78,6 +91,7 @@ def build_notification_actions_from_rule_data_actions(
             )
             continue
 
+        integration_action_type, target_identifier, target_display = None, None, None
         # If the action is an integration, we need to set additional fields
         # TODO(iamrajjoshi): We might need to do this for others as well to make queries easier
         if integration_action_type := (action_type in INTEGRATION_ACTION_TYPES):

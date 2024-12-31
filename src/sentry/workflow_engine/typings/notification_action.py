@@ -124,6 +124,16 @@ class SlackDataBlob(DataBlob):
     notes: str = ""
 
 
+@dataclass
+class DiscordDataBlob(DataBlob):
+    """
+    DiscordDataBlob is a specific type that represents the data blob for a Discord notification action.
+    """
+
+    tags: str = ""
+
+
 ACTION_TYPE_2_BLOB_TYPE: dict[Action.Type, type[DataBlob]] = {
     Action.Type.SLACK: SlackDataBlob,
+    Action.Type.DISCORD: DiscordDataBlob,
 }
