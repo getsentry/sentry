@@ -28,7 +28,6 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
-from sentry.models.eventerror import EventError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -117,24 +116,6 @@ def get_environment_for_deploy(deploy: Deploy | None) -> str:
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
-
-
-def summarize_issues(
-    issues: Iterable[Mapping[str, Mapping[str, Any]]]
-) -> Iterable[Mapping[str, str]]:
-    rv = []
-    for issue in issues:
-        extra_info = None
-        msg_d = dict(issue["data"])
-        msg_d["type"] = issue["type"]
-
-        if "image_path" in issue["data"]:
-            extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
-            if "image_arch" in issue["data"]:
-                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
-
-        rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
-    return rv
 
 
 def get_email_link_extra_params(
