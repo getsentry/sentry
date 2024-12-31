@@ -53,8 +53,8 @@ describe('useDispatchingReducer', () => {
 
       await waitFor(() => {
         expect(reducer).toHaveBeenCalledTimes(1);
-        expect(result.current[0]).toEqual({type: 'action'});
       });
+      expect(result.current[0]).toEqual({type: 'action'});
     });
     it('calls before action with state and action args', () => {
       const initialState = {type: 'initial'};

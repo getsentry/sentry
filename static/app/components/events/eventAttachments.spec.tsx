@@ -188,7 +188,7 @@ describe('EventAttachments', function () {
     // Should make the delete request and remove the attachment optimistically
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
   });
 });

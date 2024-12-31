@@ -295,8 +295,8 @@ describe('Dashboards > Dashboard', () => {
     await userEvent.click(await screen.findByText(/Switch to Transactions/));
     await waitFor(() => {
       expect(mockOnUpdate).toHaveBeenCalled();
-      expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
     });
+    expect(mockHandleUpdateWidgetList).toHaveBeenCalled();
   });
 
   it('handles duplicate widget in view mode', async () => {

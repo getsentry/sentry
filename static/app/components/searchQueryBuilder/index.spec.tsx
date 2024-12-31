@@ -163,18 +163,18 @@ describe('SearchQueryBuilder', function () {
       // Should call onChange and onSearch after enter
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledTimes(1);
-        expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
-        expect(mockOnSearch).toHaveBeenCalledTimes(1);
-        expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
 
       await userEvent.click(document.body);
 
       // Clicking outside activates onBlur
       await waitFor(() => {
         expect(mockOnBlur).toHaveBeenCalledTimes(1);
-        expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
     });
   });
 
@@ -194,8 +194,8 @@ describe('SearchQueryBuilder', function () {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
-        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       });
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})

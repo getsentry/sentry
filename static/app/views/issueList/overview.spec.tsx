@@ -590,16 +590,16 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(router.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/666/',
-            query: {
-              referrer: 'search-bar',
-            },
-            search: '',
-          })
-        );
       });
+      expect(router.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: {
+            referrer: 'search-bar',
+          },
+          search: '',
+        })
+      );
     });
 
     it('unpins a custom query', async function () {
@@ -685,12 +685,12 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/789/',
-          })
-        );
       });
+      expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+        })
+      );
     });
 
     it('pinning search should keep project selected', async function () {
@@ -747,18 +747,18 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(newRouter.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/666/',
-            query: expect.objectContaining({
-              project: ['123'],
-              environment: ['prod'],
-              query: 'assigned:me level:fatal',
-              referrer: 'search-bar',
-            }),
-          })
-        );
       });
+      expect(newRouter.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: expect.objectContaining({
+            project: ['123'],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
+          }),
+        })
+      );
     });
 
     it('unpinning search should keep project selected', async function () {
@@ -816,18 +816,18 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
-        expect(newRouter.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/',
-            query: expect.objectContaining({
-              project: ['123'],
-              environment: ['prod'],
-              query: 'assigned:me level:fatal',
-              referrer: 'search-bar',
-            }),
-          })
-        );
       });
+      expect(newRouter.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/',
+          query: expect.objectContaining({
+            project: ['123'],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
+          }),
+        })
+      );
     });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {

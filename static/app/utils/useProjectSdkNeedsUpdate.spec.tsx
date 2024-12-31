@@ -54,9 +54,11 @@ describe('useProjectSdkNeedsUpdate', () => {
 
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
-      expect(result.current.isFetching).toBeFalsy();
-      expect(result.current.needsUpdate).toBeFalsy();
     });
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
+    expect(result.current.needsUpdate).toBeFalsy();
   });
 
   it('should be updated it the sdk version is too low', async () => {
@@ -77,9 +79,11 @@ describe('useProjectSdkNeedsUpdate', () => {
     });
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
-      expect(result.current.isFetching).toBeFalsy();
-      expect(result.current.needsUpdate).toBeTruthy();
     });
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
+    expect(result.current.needsUpdate).toBeTruthy();
   });
 
   it('should return needsUpdate if multiple projects', async () => {
@@ -105,9 +109,11 @@ describe('useProjectSdkNeedsUpdate', () => {
 
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
-      expect(result.current.isFetching).toBeFalsy();
-      expect(result.current.needsUpdate).toBeTruthy();
     });
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
+    expect(result.current.needsUpdate).toBeTruthy();
   });
 
   it('should not return needsUpdate if some projects meet minSdk', async () => {
@@ -133,8 +139,10 @@ describe('useProjectSdkNeedsUpdate', () => {
 
     await waitFor(() => {
       expect(result.current.isError).toBeFalsy();
-      expect(result.current.isFetching).toBeFalsy();
-      expect(result.current.needsUpdate).toBeFalsy();
     });
+    await waitFor(() => {
+      expect(result.current.isFetching).toBeFalsy();
+    });
+    expect(result.current.needsUpdate).toBeFalsy();
   });
 });

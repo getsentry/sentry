@@ -225,9 +225,9 @@ describe('PageFiltersContainer', function () {
 
     await waitFor(() => {
       expect(globalActions.updateDateTime).not.toHaveBeenCalled();
-      expect(globalActions.updateProjects).not.toHaveBeenCalled();
-      expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
     });
+    expect(globalActions.updateProjects).not.toHaveBeenCalled();
+    expect(globalActions.updateEnvironments).not.toHaveBeenCalled();
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,

@@ -154,8 +154,8 @@ describe('TransactionReplays', () => {
 
     await waitFor(() => {
       expect(replaysMockApi).toHaveBeenCalledTimes(1);
-      expect(screen.getByText('There are no items to display')).toBeInTheDocument();
     });
+    expect(screen.getByText('There are no items to display')).toBeInTheDocument();
   });
 
   it('should show loading indicator when loading replays', async () => {

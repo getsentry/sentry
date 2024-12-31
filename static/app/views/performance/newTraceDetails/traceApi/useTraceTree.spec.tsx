@@ -154,7 +154,7 @@ describe('useTraceTree', () => {
 
     await waitFor(() => {
       expect(result.current.type).toBe('trace');
-      expect(result.current.list).toHaveLength(7);
     });
+    expect(result.current.list).toHaveLength(7);
   });
 });

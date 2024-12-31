@@ -652,11 +652,12 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => {
       const mockCall = spy.mock.calls?.at(-1)?.[0];
       expect(mockCall?.tooltip).toBeDefined();
-      // @ts-expect-error
-      expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
-        '24ms'
-      );
     });
+    const mockCall = spy.mock.calls?.at(-1)?.[0];
+    // @ts-expect-error
+    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
+      '24ms'
+    );
   });
 
   it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
@@ -750,14 +751,14 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => {
       const mockCall = spy.mock.calls?.at(-1)?.[0];
       expect(mockCall?.yAxis).toBeDefined();
-
-      expect(
-        // @ts-expect-error
-        mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
-      ).toEqual('60s');
-      // @ts-expect-error
-      expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
     });
+    const mockCall = spy.mock.calls?.at(-1)?.[0];
+    expect(
+      // @ts-expect-error
+      mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
+    ).toEqual('60s');
+    // @ts-expect-error
+    expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });
 
   it('displays indexed badge in preview mode', async function () {

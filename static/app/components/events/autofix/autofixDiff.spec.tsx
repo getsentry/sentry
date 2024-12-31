@@ -125,8 +125,8 @@ describe('AutofixDiff', function () {
 
     await waitFor(() => {
       expect(screen.queryByTestId('line-added')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('line-removed')).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('line-removed')).not.toBeInTheDocument();
   });
 
   it('shows error message on failed edit', async function () {

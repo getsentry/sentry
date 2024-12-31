@@ -161,10 +161,10 @@ describe('OrganizationGeneralSettings', function () {
           },
         })
       );
-      expect(window.location.replace).toHaveBeenCalledWith(
-        'https://acme.sentry.io/settings/organization/'
-      );
     });
+    expect(window.location.replace).toHaveBeenCalledWith(
+      'https://acme.sentry.io/settings/organization/'
+    );
   });
 
   it('disables the entire form if user does not have write access', function () {
