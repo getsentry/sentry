@@ -1,13 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  findAllByTestId,
-  render,
-  screen,
-  userEvent,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
@@ -165,7 +159,7 @@ describe('Flamegraph', function () {
       {organization: initializeOrg().organization}
     );
 
-    const frames = await findAllByTestId(document.body, 'flamegraph-frame', undefined, {
+    const frames = await screen.findAllByTestId('flamegraph-frame', undefined, {
       timeout: 5000,
     });
 

@@ -4,7 +4,7 @@ import {PluginsFixture} from 'sentry-fixture/plugins';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
-import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import type {Plugin} from 'sentry/types/integrations';
@@ -91,7 +91,7 @@ describe('ProjectPluginsContainer', function () {
     if (!pluginItem) {
       return;
     }
-    const button = getByRole(pluginItem, 'checkbox');
+    const button = within(pluginItem).getByRole('checkbox');
 
     expect(enablePlugin).not.toHaveBeenCalled();
 
@@ -110,7 +110,7 @@ describe('ProjectPluginsContainer', function () {
       return;
     }
 
-    const button = getByRole(pluginItem, 'checkbox');
+    const button = within(pluginItem).getByRole('checkbox');
 
     expect(disablePlugin).not.toHaveBeenCalled();
 
