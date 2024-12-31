@@ -87,7 +87,6 @@ class MessageCommandHaltReason(StrEnum):
     # Team Linking
     LINK_FROM_CHANNEL = "link_from_channel"
     LINK_USER_FIRST = "link_user_first"
-    CHANNEL_ALREADY_LINKED = "channel_already_linked"
     TEAM_NOT_LINKED = "team_not_linked"
     INSUFFICIENT_ROLE = "insufficient_role"
 
