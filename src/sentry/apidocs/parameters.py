@@ -436,6 +436,14 @@ class EventParams:
         description="The ID of the event.",
     )
 
+    EVENT_ID_OR_LATEST = OpenApiParameter(
+        name="event_id_or_latest",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the event or `latest`.",
+    )
+
     FRAME_IDX = OpenApiParameter(
         name="frame_idx",
         location="query",

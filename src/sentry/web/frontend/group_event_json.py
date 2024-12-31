@@ -1,12 +1,13 @@
 from django.http import Http404, HttpRequest, HttpResponse
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 
 from sentry import eventstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.event_examples import GROUP_EVENT
+from sentry.apidocs.parameters import EventParams
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
 from sentry.utils import json
@@ -26,13 +27,7 @@ class GroupEventJsonView(OrganizationView):
         operation_id="Retrieve the JSON object for an Event",
         description="Returns the JSON object for an event.",
         parameters=[
-            OpenApiParameter(
-                name="event_id_or_latest",
-                location=OpenApiParameter.PATH,
-                type=OpenApiTypes.STR,
-                description="The ID of the event to retrieve, or 'latest' for the most recent event.",
-                required=True,
-            ),
+            EventParams.EVENT_ID_OR_LATEST,
         ],
         responses={
             200: OpenApiTypes.OBJECT,
