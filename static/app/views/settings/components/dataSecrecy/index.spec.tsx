@@ -103,4 +103,38 @@ describe('DataSecrecy', function () {
       expect(accessMessage).toBeInTheDocument();
     });
   });
+
+  it('can update permanent access', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-secrecy/`,
+      body: {
+        accessStart: '2023-08-29T01:05:00+00:00',
+        accessEnd: '2024-08-29T01:05:00+00:00',
+      },
+    });
+
+    const mockUpdate = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+    });
+
+    organization.allowSuperuserAccess = false;
+    render(<DataSecrecy />, {organization});
+
+    // Toggle permanent access on
+    const allowAccessToggle = screen.getByRole('checkbox', {
+      name: /Sentry employees will not have access to your data unless granted permission/,
+    });
+    allowAccessToggle.click();
+
+    await waitFor(() => {
+      expect(mockUpdate).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {allowSuperuserAccess: true},
+        })
+      );
+    });
+  });
 });
