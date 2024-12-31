@@ -4,10 +4,6 @@ import orjson
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.slack.metrics import (
-    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
@@ -68,11 +64,6 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             assert blocks[3]["text"]["text"] == self.organization.slug
             assert blocks[4]["text"]["text"] == self.integration.id
 
-        mock_metrics.incr.assert_called_with(
-            SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-            sample_rate=1.0,
-        )
-
     @patch("sentry.integrations.slack.service.metrics")
     def test_no_additional_attachment(self, mock_metrics):
         with self.tasks():
@@ -114,11 +105,6 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})
 
-        mock_metrics.incr.assert_called_with(
-            SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-            sample_rate=1.0,
-        )
-
     @patch("sentry.integrations.slack.service.metrics")
     def test_send_notification_as_slack_error(self, mock_metrics):
         mock_slack_response = SlackResponse(
@@ -143,9 +129,3 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         ):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})
-
-        mock_metrics.incr.assert_called_with(
-            SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"ok": False, "status": 200},
-        )

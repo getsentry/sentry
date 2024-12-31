@@ -10,9 +10,6 @@ from sentry.integrations.utils.metrics import EventLifecycle
 
 SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.success"
 SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.failure"
-SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.metric_alert.failure"
-SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.notify_recipient.success"
-SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.notify_recipient.failure"
 
 # Webhooks
 SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.success"
