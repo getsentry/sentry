@@ -25,6 +25,7 @@ import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -37,6 +38,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
   GRID_TEMPLATE,
@@ -44,8 +46,6 @@ import TeamMembersRow, {
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getButtonHelpText} from './utils';
-import type {AvatarUser} from 'sentry/types/user';
-import {useUser} from 'sentry/utils/useUser';
 
 interface TeamMembersProps {
   team: Team;
@@ -56,9 +56,9 @@ function getTeamMembersQueryKey({
   teamId,
   location,
 }: {
+  location: ReturnType<typeof useLocation>;
   organization: Organization;
   teamId: string;
-  location: ReturnType<typeof useLocation>;
 }): ApiQueryKey {
   return [
     `/teams/${organization.slug}/${teamId}/members/`,
@@ -80,11 +80,11 @@ function AddMemberDropdown({
   onAddMember,
 }: {
   isTeamAdmin: boolean;
+  onAddMember: (variables: {orgMember: TeamMember}) => void;
   organization: Organization;
   team: Team;
   teamId: string;
   teamMembers: TeamMember[];
-  onAddMember: (variables: {orgMember: TeamMember}) => void;
 }) {
   const [memberQuery, setMemberQuery] = useState('');
   const debouncedMemberQuery = useDebouncedValue(memberQuery, 50);
