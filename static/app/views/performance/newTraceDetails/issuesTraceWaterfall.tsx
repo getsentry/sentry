@@ -198,7 +198,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       let start = index;
       while (--start > 0) {
         if (
-          isTraceErrorNode(props.tree.list[start]) ||
+          isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
           node.performance_issues.size > 0
         ) {
@@ -210,7 +210,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       start = index;
       while (++start < props.tree.list.length) {
         if (
-          isTraceErrorNode(props.tree.list[start]) ||
+          isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
           node.performance_issues.size > 0
         ) {

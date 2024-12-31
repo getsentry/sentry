@@ -22,7 +22,7 @@ export function AssetSizeChart({series, isLoading}: Props) {
         aggregateOutputFormat="size"
         data={series}
         loading={isLoading}
-        chartColors={[AVG_COLOR]}
+        chartColors={[AVG_COLOR!]!}
         type={ChartType.LINE}
         definedAxisTicks={4}
         tooltipFormatterOptions={{

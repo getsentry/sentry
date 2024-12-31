@@ -111,12 +111,12 @@ const [
 ]);
 
 const mockItems = {
-  img,
-  fetchNoDataObj,
-  fetchUrlSkipped,
-  fetchBodySkipped,
-  fetchWithHeaders,
-  fetchWithRespBody,
+  img: img!,
+  fetchNoDataObj: fetchNoDataObj!,
+  fetchUrlSkipped: fetchUrlSkipped!,
+  fetchBodySkipped: fetchBodySkipped!,
+  fetchWithHeaders: fetchWithHeaders!,
+  fetchWithRespBody: fetchWithRespBody!,
 };
 
 function basicSectionProps() {

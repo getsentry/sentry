@@ -373,12 +373,12 @@ describe('ProjectsDashboard', function () {
 
       const projectName = screen.getAllByTestId('badge-display-name');
       // check that projects are in the correct order - alphabetical with bookmarked projects in front
-      expect(within(projectName[0]).getByText('a-fave')).toBeInTheDocument();
-      expect(within(projectName[1]).getByText('m-fave')).toBeInTheDocument();
-      expect(within(projectName[2]).getByText('z-fave')).toBeInTheDocument();
-      expect(within(projectName[3]).getByText('a')).toBeInTheDocument();
-      expect(within(projectName[4]).getByText('m')).toBeInTheDocument();
-      expect(within(projectName[5]).getByText('z')).toBeInTheDocument();
+      expect(within(projectName[0]!).getByText('a-fave')).toBeInTheDocument();
+      expect(within(projectName[1]!).getByText('m-fave')).toBeInTheDocument();
+      expect(within(projectName[2]!).getByText('z-fave')).toBeInTheDocument();
+      expect(within(projectName[3]!).getByText('a')).toBeInTheDocument();
+      expect(within(projectName[4]!).getByText('m')).toBeInTheDocument();
+      expect(within(projectName[5]!).getByText('z')).toBeInTheDocument();
     });
   });
 
@@ -429,7 +429,9 @@ describe('ProjectsDashboard', function () {
       ProjectsStore.loadInitialData(projects);
 
       jest.useFakeTimers();
-      ProjectsStatsStore.onStatsLoadSuccess([{...projects[0], stats: [[1517281200, 2]]}]);
+      ProjectsStatsStore.onStatsLoadSuccess([
+        {...projects[0]!, stats: [[1517281200, 2]]},
+      ]);
       const loadStatsSpy = jest.spyOn(projectsActions, 'loadStatsForProject');
       const mock = MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/projects/`,
@@ -459,20 +461,20 @@ describe('ProjectsDashboard', function () {
       const projectSummary = screen.getAllByTestId('summary-links');
       // Has 5 Loading Cards because 1 project has been loaded in store already
       expect(
-        within(projectSummary[0]).getByTestId('loading-placeholder')
+        within(projectSummary[0]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[1]).getByTestId('loading-placeholder')
+        within(projectSummary[1]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[2]).getByTestId('loading-placeholder')
+        within(projectSummary[2]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
       expect(
-        within(projectSummary[3]).getByTestId('loading-placeholder')
+        within(projectSummary[3]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
-      expect(within(projectSummary[4]).getByText('Errors: 2')).toBeInTheDocument();
+      expect(within(projectSummary[4]!).getByText('Errors: 2')).toBeInTheDocument();
       expect(
-        within(projectSummary[5]).getByTestId('loading-placeholder')
+        within(projectSummary[5]!).getByTestId('loading-placeholder')
       ).toBeInTheDocument();
 
       // Advance timers so that batched request fires
@@ -492,13 +494,13 @@ describe('ProjectsDashboard', function () {
 
       // All cards have loaded
       await waitFor(() => {
-        expect(within(projectSummary[0]).getByText('Errors: 3')).toBeInTheDocument();
+        expect(within(projectSummary[0]!).getByText('Errors: 3')).toBeInTheDocument();
       });
-      expect(within(projectSummary[1]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[2]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[3]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[4]).getByText('Errors: 3')).toBeInTheDocument();
-      expect(within(projectSummary[5]).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[1]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[2]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[3]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[4]!).getByText('Errors: 3')).toBeInTheDocument();
+      expect(within(projectSummary[5]!).getByText('Errors: 3')).toBeInTheDocument();
 
       // Resets store when it unmounts
       unmount();

@@ -7,7 +7,7 @@ import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
-  const provider = AuthProvidersFixture()[0];
+  const provider = AuthProvidersFixture()[0]!;
   const org = OrganizationFixture({
     features: [descopeFeatureName(provider.requiredFeature)],
   });

@@ -105,15 +105,15 @@ const [
 
 describe('useNetworkFilters', () => {
   const networkFrames = [
-    SPAN_0_NAVIGATE,
-    SPAN_1_LINK,
-    SPAN_2_SCRIPT,
-    SPAN_3_FETCH,
-    SPAN_4_IMG,
-    SPAN_5_CSS,
-    SPAN_6_PUSH,
-    SPAN_7_FETCH_GET,
-    SPAN_8_FETCH_POST,
+    SPAN_0_NAVIGATE!,
+    SPAN_1_LINK!,
+    SPAN_2_SCRIPT!,
+    SPAN_3_FETCH!,
+    SPAN_4_IMG!,
+    SPAN_5_CSS!,
+    SPAN_6_PUSH!,
+    SPAN_7_FETCH_GET!,
+    SPAN_8_FETCH_POST!,
   ];
 
   beforeEach(() => {
@@ -377,7 +377,7 @@ describe('getMethodTypes', () => {
   });
 
   it('should return a sorted list of method types', () => {
-    const networkFrames = [SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+    const networkFrames = [SPAN_8_FETCH_POST!, SPAN_7_FETCH_GET!];
 
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
@@ -390,7 +390,7 @@ describe('getMethodTypes', () => {
   });
 
   it('should deduplicate BreadcrumbType', () => {
-    const networkFrames = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
+    const networkFrames = [SPAN_2_SCRIPT!, SPAN_3_FETCH!, SPAN_7_FETCH_GET!];
 
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
@@ -416,7 +416,7 @@ describe('getResourceTypes', () => {
   });
 
   it('should return a sorted list of BreadcrumbType', () => {
-    const networkFrames = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT];
+    const networkFrames = [SPAN_0_NAVIGATE!, SPAN_1_LINK!, SPAN_2_SCRIPT!];
 
     const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
@@ -432,11 +432,11 @@ describe('getResourceTypes', () => {
 
   it('should deduplicate BreadcrumbType', () => {
     const networkFrames = [
-      SPAN_0_NAVIGATE,
-      SPAN_1_LINK,
-      SPAN_2_SCRIPT,
-      SPAN_3_FETCH,
-      SPAN_7_FETCH_GET,
+      SPAN_0_NAVIGATE!,
+      SPAN_1_LINK!,
+      SPAN_2_SCRIPT!,
+      SPAN_3_FETCH!,
+      SPAN_7_FETCH_GET!,
     ];
 
     const {result} = renderHook(useNetworkFilters, {
@@ -455,10 +455,10 @@ describe('getResourceTypes', () => {
 describe('getStatusTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
     const networkFrames = [
-      SPAN_0_NAVIGATE,
-      SPAN_1_LINK,
-      SPAN_2_SCRIPT,
-      SPAN_8_FETCH_POST,
+      SPAN_0_NAVIGATE!,
+      SPAN_1_LINK!,
+      SPAN_2_SCRIPT!,
+      SPAN_8_FETCH_POST!,
     ];
 
     const {result} = renderHook(useNetworkFilters, {
@@ -478,12 +478,12 @@ describe('getStatusTypes', () => {
 
   it('should deduplicate BreadcrumbType', () => {
     const networkFrames = [
-      SPAN_0_NAVIGATE,
-      SPAN_1_LINK,
-      SPAN_2_SCRIPT,
-      SPAN_3_FETCH,
-      SPAN_7_FETCH_GET,
-      SPAN_8_FETCH_POST,
+      SPAN_0_NAVIGATE!,
+      SPAN_1_LINK!,
+      SPAN_2_SCRIPT!,
+      SPAN_3_FETCH!,
+      SPAN_7_FETCH_GET!,
+      SPAN_8_FETCH_POST!,
     ];
 
     const {result} = renderHook(useNetworkFilters, {

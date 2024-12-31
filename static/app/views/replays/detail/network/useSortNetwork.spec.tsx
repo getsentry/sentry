@@ -112,15 +112,15 @@ const [
 
 describe('useSortNetwork', () => {
   const items = [
-    SPAN_0_NAVIGATE,
-    SPAN_1_LINK,
-    SPAN_2_SCRIPT,
-    SPAN_3_FETCH,
-    SPAN_4_IMG,
-    SPAN_5_CSS,
-    SPAN_6_PUSH,
-    SPAN_7_FETCH_GET,
-    SPAN_8_FETCH_POST,
+    SPAN_0_NAVIGATE!,
+    SPAN_1_LINK!,
+    SPAN_2_SCRIPT!,
+    SPAN_3_FETCH!,
+    SPAN_4_IMG!,
+    SPAN_5_CSS!,
+    SPAN_6_PUSH!,
+    SPAN_7_FETCH_GET!,
+    SPAN_8_FETCH_POST!,
   ];
 
   it('should the list by timestamp by default', () => {
@@ -134,15 +134,15 @@ describe('useSortNetwork', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      SPAN_5_CSS,
-      SPAN_4_IMG,
-      SPAN_3_FETCH,
-      SPAN_2_SCRIPT,
-      SPAN_1_LINK,
-      SPAN_0_NAVIGATE,
-      SPAN_6_PUSH,
-      SPAN_7_FETCH_GET,
-      SPAN_8_FETCH_POST,
+      SPAN_5_CSS!,
+      SPAN_4_IMG!,
+      SPAN_3_FETCH!,
+      SPAN_2_SCRIPT!,
+      SPAN_1_LINK!,
+      SPAN_0_NAVIGATE!,
+      SPAN_6_PUSH!,
+      SPAN_7_FETCH_GET!,
+      SPAN_8_FETCH_POST!,
     ]);
   });
 
@@ -163,15 +163,15 @@ describe('useSortNetwork', () => {
       getValue: expect.any(Function),
     });
     expect(result.current.items).toStrictEqual([
-      SPAN_8_FETCH_POST,
-      SPAN_7_FETCH_GET,
-      SPAN_6_PUSH,
-      SPAN_5_CSS,
-      SPAN_4_IMG,
-      SPAN_3_FETCH,
-      SPAN_2_SCRIPT,
-      SPAN_1_LINK,
-      SPAN_0_NAVIGATE,
+      SPAN_8_FETCH_POST!,
+      SPAN_7_FETCH_GET!,
+      SPAN_6_PUSH!,
+      SPAN_5_CSS!,
+      SPAN_4_IMG!,
+      SPAN_3_FETCH!,
+      SPAN_2_SCRIPT!,
+      SPAN_1_LINK!,
+      SPAN_0_NAVIGATE!,
     ]);
   });
 
@@ -234,7 +234,7 @@ describe('useSortNetwork', () => {
   });
 
   it('should sort by method, using GET as a default', () => {
-    const mixedItems = [SPAN_6_PUSH, SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
+    const mixedItems = [SPAN_6_PUSH!, SPAN_8_FETCH_POST!, SPAN_7_FETCH_GET!];
     const {result, rerender} = renderHook(useSortNetwork, {
       initialProps: {items: mixedItems},
     });

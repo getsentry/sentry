@@ -163,7 +163,7 @@ function Chart({
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors ?? theme.charts.getColorPalette(4)!;
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||

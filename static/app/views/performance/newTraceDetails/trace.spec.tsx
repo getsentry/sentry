@@ -911,7 +911,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next tick
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
-        expect(rows[3].textContent?.includes('http — request')).toBe(true);
+        expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
       });
     });
 
@@ -925,7 +925,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next tick
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[4]).toHaveFocus();
-        expect(rows[4].textContent?.includes('Autogrouped')).toBe(true);
+        expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
       });
     });
     it('scrolls to child of parent autogroup node', async () => {
@@ -938,7 +938,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next tick
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
-        expect(rows[5].textContent?.includes('db — redis')).toBe(true);
+        expect(rows[5]!.textContent?.includes('db — redis')).toBe(true);
       });
     });
 
@@ -951,7 +951,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next tick
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[5]).toHaveFocus();
-        expect(rows[5].textContent?.includes('5Autogrouped')).toBe(true);
+        expect(rows[5]!.textContent?.includes('5Autogrouped')).toBe(true);
       });
     });
 
@@ -965,7 +965,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next tick
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[6]).toHaveFocus();
-        expect(rows[6].textContent?.includes('http — request')).toBe(true);
+        expect(rows[6]!.textContent?.includes('http — request')).toBe(true);
       });
     });
 
@@ -980,7 +980,7 @@ describe('trace view', () => {
 
       await waitFor(() => {
         expect(rows[7]).toHaveFocus();
-        expect(rows[7].textContent?.includes('No Instrumentation')).toBe(true);
+        expect(rows[7]!.textContent?.includes('No Instrumentation')).toBe(true);
       });
     });
 
@@ -994,7 +994,7 @@ describe('trace view', () => {
         // We need to await a tick because the row is not focused until the next ticks
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[11]).toHaveFocus();
-        expect(rows[11].textContent?.includes('error-title')).toBe(true);
+        expect(rows[11]!.textContent?.includes('error-title')).toBe(true);
       });
     });
 
@@ -1016,7 +1016,7 @@ describe('trace view', () => {
       await waitFor(() => {
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[3]).toHaveFocus();
-        expect(rows[3].textContent?.includes('http — request')).toBe(true);
+        expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
       });
     });
 
@@ -1123,7 +1123,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
 
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
       await userEvent.keyboard('{arrowdown}');
@@ -1134,7 +1134,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
 
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowup}');
@@ -1154,7 +1154,7 @@ describe('trace view', () => {
           ],
         }
       );
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
@@ -1176,7 +1176,7 @@ describe('trace view', () => {
           ],
         }
       );
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowright}');
@@ -1193,7 +1193,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
 
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
       await userEvent.keyboard('{arrowleft}');
@@ -1204,7 +1204,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await nestedTransactionsTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
 
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       await userEvent.keyboard('{arrowleft}');
@@ -1225,7 +1225,7 @@ describe('trace view', () => {
         }
       );
 
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => expect(rows[1]).toHaveFocus());
 
       expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
@@ -1251,7 +1251,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
       await userEvent.keyboard('{arrowup}');
@@ -1270,7 +1270,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
       await waitFor(() => expect(rows[0]).toHaveFocus());
 
       await userEvent.keyboard('{arrowup}');
@@ -1296,7 +1296,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
 
       await waitFor(() => expect(rows[0]).toHaveFocus());
       await userEvent.keyboard('{tab}');
@@ -1311,7 +1311,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = getVirtualizedRows(virtualizedContainer);
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
 
       await waitFor(() => {
         rows = getVirtualizedRows(virtualizedContainer);
@@ -1329,7 +1329,7 @@ describe('trace view', () => {
       const {container, virtualizedContainer} = await keyboardNavigationTestSetup();
 
       let rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
-      await userEvent.click(rows[0]);
+      await userEvent.click(rows[0]!);
 
       await waitFor(() => {
         rows = container.querySelectorAll(VISIBLE_TRACE_ROW_SELECTOR);
@@ -1351,7 +1351,7 @@ describe('trace view', () => {
 
       let rows = getVirtualizedRows(virtualizedContainer);
 
-      await userEvent.click(rows[1]);
+      await userEvent.click(rows[1]!);
       await waitFor(() => {
         rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[1]).toHaveFocus();
@@ -1556,7 +1556,7 @@ describe('trace view', () => {
       );
 
       // Click on a random row in the list that is not a search result
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '-/2'
@@ -1564,7 +1564,7 @@ describe('trace view', () => {
       });
 
       // Click on a the row in the list that is a search result
-      await userEvent.click(rows[2]);
+      await userEvent.click(rows[2]!);
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
           '1/2'
@@ -1674,7 +1674,7 @@ describe('trace view', () => {
       });
 
       const open = await screen.findAllByRole('button', {name: '+'});
-      await userEvent.click(open[0]);
+      await userEvent.click(open[0]!);
 
       await waitFor(() => {
         expect(screen.queryByTestId('trace-search-result-iterator')).toHaveTextContent(
@@ -1735,7 +1735,7 @@ describe('trace view', () => {
       const {virtualizedContainer} = await simpleTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
@@ -1747,23 +1747,23 @@ describe('trace view', () => {
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
         expect(
           screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]!
             .textContent?.includes('transaction-op-4')
         ).toBeTruthy();
       });
 
-      await userEvent.click(rows[7]);
+      await userEvent.click(rows[7]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
         expect(
           screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]!
             .textContent?.includes('transaction-op-6')
         ).toBeTruthy();
       });
@@ -1774,24 +1774,24 @@ describe('trace view', () => {
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
       await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      await userEvent.click(rows[7]!);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
         expect(
           screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[1]!
             .textContent?.includes('transaction-op-4')
         ).toBeTruthy();
         expect(
           screen
-            .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]
+            .queryAllByTestId(DRAWER_TABS_TEST_ID)[2]!
             .textContent?.includes('transaction-op-6')
         ).toBeTruthy();
       });
@@ -1802,13 +1802,13 @@ describe('trace view', () => {
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
       await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      await userEvent.click(rows[7]!);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
@@ -1817,7 +1817,7 @@ describe('trace view', () => {
       const tabButtons = screen.queryAllByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID);
       expect(tabButtons).toHaveLength(2);
 
-      await userEvent.click(tabButtons[0]);
+      await userEvent.click(tabButtons[0]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
@@ -1828,13 +1828,13 @@ describe('trace view', () => {
       const rows = getVirtualizedRows(virtualizedContainer);
       expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(1);
 
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(2);
       });
 
       await userEvent.click(await screen.findByTestId(DRAWER_TABS_PIN_BUTTON_TEST_ID));
-      await userEvent.click(rows[7]);
+      await userEvent.click(rows[7]!);
 
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)).toHaveLength(3);
@@ -1844,7 +1844,7 @@ describe('trace view', () => {
         );
       });
 
-      await userEvent.click(rows[5]);
+      await userEvent.click(rows[5]!);
       await waitFor(() => {
         expect(screen.queryAllByTestId(DRAWER_TABS_TEST_ID)[1]).toHaveAttribute(
           'aria-selected',

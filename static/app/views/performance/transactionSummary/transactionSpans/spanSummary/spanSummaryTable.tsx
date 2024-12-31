@@ -101,7 +101,7 @@ export default function SpanSummaryTable(props: Props) {
   const organization = useOrganization();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
-  const [spanOp, groupId] = spanSlug.split(':');
+  const [spanOp, groupId] = spanSlug!.split(':');
 
   const location = useLocation();
   const {transaction} = location.query;
@@ -194,7 +194,7 @@ export default function SpanSummaryTable(props: Props) {
       const transactionId = row[SpanIndexedField.TRANSACTION_ID];
       const newRow = {
         ...row,
-        'transaction.duration': transactionDurationMap[transactionId],
+        'transaction.duration': transactionDurationMap[transactionId]!,
       };
       return newRow;
     }) ?? [];

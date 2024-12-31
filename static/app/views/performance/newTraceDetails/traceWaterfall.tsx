@@ -209,7 +209,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
-      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
+      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]!) + ' Vitals';
 
       newTabs.push({
         ...VITALS_TAB,
@@ -227,7 +227,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
-        current_tab: traceStateRef?.current?.tabs?.tabs?.[0],
+        current_tab: traceStateRef?.current?.tabs?.tabs?.[0] ?? null,
         tabs: newTabs,
         last_clicked_tab: null,
       },
@@ -558,9 +558,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path) ?? node;
+          node = TraceTree.FindByID(node.head, eventId! ?? path!) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path)) ?? node;
+          node =
+            node.children.find(n => TraceTree.FindByID(n, eventId! ?? path!)) ?? node;
         }
       }
     }
@@ -662,7 +663,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action.type !== 'set search iterator index'
       ) {
         // If the search result index changes, mark the node as focused and scroll it into view
-        const nextNode = props.tree.list[nextSearchResultIndex];
+        const nextNode = props.tree.list[nextSearchResultIndex]!;
         setRowAsFocused(
           nextNode,
           null,

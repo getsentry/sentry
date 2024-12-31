@@ -55,7 +55,7 @@ export function DetailsTimeline({monitor, onStatsLoaded}: Props) {
   });
 
   useEffect(
-    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]),
+    () => monitorStats?.[monitor.id] && onStatsLoaded?.(monitorStats[monitor.id]!),
     [onStatsLoaded, monitorStats, monitor.id]
   );
 

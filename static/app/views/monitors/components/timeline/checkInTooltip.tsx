@@ -23,8 +23,10 @@ export function CheckInTooltip({jobTick, timeWindowConfig, children, ...props}: 
   const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
     capturedEnvs.length === 1 &&
-    Object.values(envMapping[capturedEnvs[0]]).reduce((sum, count) => sum + count, 0) ===
-      1;
+    Object.values(envMapping[capturedEnvs[0]!]!).reduce(
+      (sum, count) => sum + count,
+      0
+    ) === 1;
 
   const tooltipTitle = (
     <Fragment>

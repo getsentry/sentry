@@ -216,9 +216,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ERRORED]: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: colors[12],
+      color: colors[12]!,
       areaStyle: {
-        color: colors[12],
+        color: colors[12]!,
         opacity: 1,
       },
       lineStyle: {
@@ -229,9 +229,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: colors[15],
+      color: colors[15]!,
       areaStyle: {
-        color: colors[15],
+        color: colors[15]!,
         opacity: 1,
       },
       lineStyle: {

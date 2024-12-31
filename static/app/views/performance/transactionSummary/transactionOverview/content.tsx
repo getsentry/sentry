@@ -228,7 +228,7 @@ function SummaryContent({
     return decodeScalar(location.query.query, '');
   }, [location]);
 
-  const totalCount = totalValues === null ? null : totalValues['count()'];
+  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -589,7 +589,7 @@ function getTransactionsListSort(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selected: selectedSort, options: sortOptions};
 }
 

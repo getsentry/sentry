@@ -91,7 +91,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
       .filter(datum => Boolean(datum[SpanMetricsField.SPAN_OP]))
       .map(datum => {
         return {
-          value: datum[SpanMetricsField.SPAN_OP],
+          value: datum[SpanMetricsField.SPAN_OP]!,
           label: datum[SpanMetricsField.SPAN_OP],
         };
       }),

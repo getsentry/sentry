@@ -72,7 +72,7 @@ describe('OrganizationMembersList', function () {
     },
   });
 
-  const currentUser = members[1];
+  const currentUser = members[1]!;
   currentUser.user = UserFixture({
     ...currentUser,
     flags: {newsletter_consent_prompt: true},
@@ -161,7 +161,7 @@ describe('OrganizationMembersList', function () {
 
   it('can remove a member', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0]!.id}/`,
       method: 'DELETE',
     });
 
@@ -169,10 +169,10 @@ describe('OrganizationMembersList', function () {
     renderGlobalModal();
 
     // The organization member row
-    expect(await screen.findByTestId(members[0].email)).toBeInTheDocument();
+    expect(await screen.findByTestId(members[0]!.email)).toBeInTheDocument();
 
     await userEvent.click(
-      within(screen.getByTestId(members[0].email)).getByRole('button', {name: 'Remove'})
+      within(screen.getByTestId(members[0]!.email)).getByRole('button', {name: 'Remove'})
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -185,7 +185,7 @@ describe('OrganizationMembersList', function () {
 
   it('displays error message when failing to remove member', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0]!.id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
@@ -194,10 +194,10 @@ describe('OrganizationMembersList', function () {
     renderGlobalModal();
 
     // The organization member row
-    expect(await screen.findByTestId(members[0].email)).toBeInTheDocument();
+    expect(await screen.findByTestId(members[0]!.email)).toBeInTheDocument();
 
     await userEvent.click(
-      within(screen.getByTestId(members[0].email)).getByRole('button', {name: 'Remove'})
+      within(screen.getByTestId(members[0]!.email)).getByRole('button', {name: 'Remove'})
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -210,7 +210,7 @@ describe('OrganizationMembersList', function () {
 
   it('can leave org', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1]!.id}/`,
       method: 'DELETE',
     });
 
@@ -229,7 +229,7 @@ describe('OrganizationMembersList', function () {
 
   it('can redirect to remaining org after leaving', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1]!.id}/`,
       method: 'DELETE',
     });
     const secondOrg = OrganizationFixture({
@@ -257,7 +257,7 @@ describe('OrganizationMembersList', function () {
 
   it('displays error message when failing to leave org', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1]!.id}/`,
       method: 'DELETE',
       statusCode: 500,
     });
@@ -277,7 +277,7 @@ describe('OrganizationMembersList', function () {
 
   it('can re-send SSO link to member', async function () {
     const inviteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[0].id}/`,
+      url: `/organizations/org-slug/members/${members[0]!.id}/`,
       method: 'PUT',
       body: {
         id: '1234',
@@ -294,7 +294,7 @@ describe('OrganizationMembersList', function () {
 
   it('can re-send invite to member', async function () {
     const inviteMock = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/members/${members[1].id}/`,
+      url: `/organizations/org-slug/members/${members[1]!.id}/`,
       method: 'PUT',
       body: {
         id: '1234',
