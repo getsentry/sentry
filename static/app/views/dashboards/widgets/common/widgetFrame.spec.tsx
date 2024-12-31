@@ -12,6 +12,24 @@ describe('WidgetFrame', () => {
       await userEvent.hover(screen.getByRole('button', {name: 'Widget description'}));
       expect(await screen.findByText('Number of events per second')).toBeInTheDocument();
     });
+
+    it('Catches errors in the visualization', async () => {
+      jest.spyOn(console, 'error').mockImplementation();
+
+      render(
+        <WidgetFrame title="Uh Oh">
+          <UhOh />
+        </WidgetFrame>
+      );
+
+      expect(screen.getByText('Uh Oh')).toBeInTheDocument();
+
+      expect(
+        await screen.findByText('Sorry, something went wrong when rendering this widget.')
+      ).toBeInTheDocument();
+
+      jest.resetAllMocks();
+    });
   });
 
   describe('Warnings', () => {
@@ -257,3 +275,8 @@ describe('WidgetFrame', () => {
     });
   });
 });
+
+function UhOh() {
+  const items: string[] = [];
+  return <div>{items[0].toUpperCase()}</div>;
+}

@@ -4,13 +4,20 @@ import Badge, {type BadgeProps} from 'sentry/components/badge/badge';
 import {Button, LinkButton} from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconExpand, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {ErrorPanel} from './errorPanel';
-import {MIN_HEIGHT, MIN_WIDTH, X_GUTTER, Y_GUTTER} from './settings';
+import {
+  MIN_HEIGHT,
+  MIN_WIDTH,
+  WIDGET_RENDER_ERROR_MESSAGE,
+  X_GUTTER,
+  Y_GUTTER,
+} from './settings';
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import type {StateProps} from './types';
 import {WarningsList} from './warningsList';
@@ -158,7 +165,15 @@ export function WidgetFrame(props: WidgetFrameProps) {
       </Header>
 
       <VisualizationWrapper>
-        {props.error ? <ErrorPanel error={error} /> : props.children}
+        {props.error ? (
+          <ErrorPanel error={error} />
+        ) : (
+          <ErrorBoundary
+            customComponent={<ErrorPanel error={WIDGET_RENDER_ERROR_MESSAGE} />}
+          >
+            {props.children}
+          </ErrorBoundary>
+        )}
       </VisualizationWrapper>
     </Frame>
   );
