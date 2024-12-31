@@ -481,16 +481,6 @@ const reactRules = {
 };
 
 const appRules = {
-  /**
-   * emotion rules for v10
-   *
-   * This probably aren't as necessary anymore, but let's remove when we move to v11
-   */
-  '@emotion/jsx-import': 'off',
-  '@emotion/no-vanilla': 'error',
-  '@emotion/import-from-emotion': 'error',
-  '@emotion/styled-import': 'error',
-
   // no-undef is redundant with typescript as tsc will complain
   // A downside is that we won't get eslint errors about it, but your editors should
   // support tsc errors so....
@@ -790,7 +780,6 @@ export default typescript.config([
     plugins: {
       ...react.configs.flat.plugins,
       ...react.configs.flat['jsx-runtime'].plugins,
-      '@emotion': emotion,
       '@typescript-eslint': typescript.plugin,
       'react-hooks': fixupPluginRules(reactHooks),
       'simple-import-sort': simpleImportSort,
@@ -893,6 +882,20 @@ export default typescript.config([
       ...reactRules,
       ...appRules,
       ...strictRules,
+    },
+  },
+  {
+    name: '@emotion',
+    plugins: {
+      '@emotion': emotion,
+    },
+    rules: {
+      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
+      '@emotion/jsx-import': 'off', // Not needed, handled by babel
+      '@emotion/no-vanilla': 'error',
+      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
+      '@emotion/styled-import': 'error',
+      '@emotion/syntax-preference': ['off', 'string'], // TODO(ryan953): Enable this so `css={css``}` is required
     },
   },
   {
