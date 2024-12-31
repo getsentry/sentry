@@ -24,22 +24,25 @@ export interface DefaultSettings {
   typeDefaults: Record<string, ProviderValue>;
 }
 
+export const NOTIFICATION_SETTINGS_TYPES = [
+  'alerts',
+  'workflow',
+  'deploy',
+  'approval',
+  'quota',
+  'reports',
+  'email',
+  'spikeProtection',
+  'brokenMonitors',
+] as const;
+
 export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'personalActivityNotifications',
   'selfAssignOnResolve',
 ];
 
 // 'alerts' | 'workflow' ...
-type NotificationSettingsType =
-  | 'alerts'
-  | 'workflow'
-  | 'deploy'
-  | 'approval'
-  | 'quota'
-  | 'reports'
-  | 'email'
-  | 'spikeProtection'
-  | 'brokenMonitors';
+type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',
