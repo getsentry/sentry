@@ -741,8 +741,7 @@ export default typescript.config([
     name: 'import',
     ...importPlugin.flatConfigs.recommended,
     rules: {
-      // We override and specifically set all the rules that are in the
-      // recommended, react, and typescript rulesets. No need to bring those in
+      // We override all the rules that are in the recommended, react, and typescript rulesets
 
       // From the recommended ruleset:
       // https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/export.md
