@@ -408,18 +408,32 @@ export class VideoReplayer {
       return;
     }
 
-    // This is the soon-to-be previous video that needs to be hidden
-    // if (this._currentVideo) {
-    //   this._currentVideo.style.display = 'none';
-    //   // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
-    //   if (this._currentVideo.ended) {
-    //     this.setVideoTime(this._currentVideo, 0);
-    //   }
-    // }
+    const isReplaying = this._currentIndex === 0;
+    const prevIndex = isReplaying ? this._videos.size - 2 : (this._currentIndex ?? 0) - 2;
+
+    // On safari, some clips have a ~1 second gap in the beginning so we can't hide the soon-to-be previous video but we can hide the video before that.
+    if (this._currentVideo && prevIndex >= 0) {
+      const prevVideo = this._videos.get(prevIndex);
+      if (prevVideo) {
+        prevVideo.style.display = 'none';
+        // resets the previous video to the beginning if it's ended so it starts from the beginning on restart
+        if (prevVideo.ended) {
+          this.setVideoTime(prevVideo, 0);
+        }
+      }
+    }
+    // However, if the video is replaying, we also need to hide the soon-to-be previous video or else the last video will be displayed instead
+    if (isReplaying && this._currentVideo) {
+      this._currentVideo.style.display = 'none';
+      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+      if (this._currentVideo.ended) {
+        this.setVideoTime(this._currentVideo, 0);
+      }
+    }
+
     nextVideo.style.display = 'block';
 
-    // Update current video so that we can hide it when showing the
-    // next video
+    // Update current video so that we can hide it when showing the next video
     this._currentVideo = nextVideo;
   }
 
