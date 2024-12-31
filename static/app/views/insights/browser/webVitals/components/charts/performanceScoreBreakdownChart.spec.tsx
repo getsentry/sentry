@@ -64,7 +64,7 @@ describe('PerformanceScoreBreakdownChart', function () {
       key: '',
     });
     render(<PerformanceScoreBreakdownChart />, {organization});
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
