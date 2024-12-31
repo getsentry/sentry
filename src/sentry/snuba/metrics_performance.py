@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
-from snuba_sdk import Column
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery
@@ -30,29 +30,32 @@ INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 
 
 def query(
-    selected_columns,
-    query,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    use_aggregate_conditions=False,
-    allow_metric_aggregates=True,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    referrer: str | None = None,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = True,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
-):
+) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
@@ -78,6 +81,8 @@ def query(
                 on_demand_metrics_type=on_demand_metrics_type,
             ),
         )
+        if referrer is None:
+            referrer = ""
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
     with sentry_sdk.start_span(op="mep", name="query.transform_results"):
