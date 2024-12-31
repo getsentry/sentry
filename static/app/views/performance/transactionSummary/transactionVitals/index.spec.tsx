@@ -231,14 +231,11 @@ describe('Performance > Web Vitals', function () {
   describe('renders all vitals cards correctly', function () {
     const {organization, router} = initialize();
 
-    beforeEach(() => {
+    it.each(vitals)('Renders %s', async function (vital) {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
         {router, organization}
       );
-    });
-
-    it.each(vitals)('Renders %s', async function (vital) {
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });

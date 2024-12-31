@@ -24,6 +24,18 @@ describe('ProjectPluginsContainer', function () {
     plugins: Plugin[],
     params: {projectId: string};
 
+  function renderProjectPluginsContainer() {
+    render(
+      <ProjectPluginsContainer
+        {...RouteComponentPropsFixture()}
+        plugins={{plugins, loading: false, error: undefined}}
+        params={params}
+        organization={org}
+        project={project}
+      />
+    );
+  }
+
   beforeEach(function () {
     org = OrganizationFixture();
     project = ProjectFixture();
@@ -63,22 +75,15 @@ describe('ProjectPluginsContainer', function () {
       url: `/projects/${org.slug}/${project.slug}/plugins/github/`,
       method: 'DELETE',
     });
-    render(
-      <ProjectPluginsContainer
-        {...RouteComponentPropsFixture()}
-        plugins={{plugins, loading: false, error: undefined}}
-        params={params}
-        organization={org}
-        project={project}
-      />
-    );
   });
 
   it('calls `fetchPlugins` action creator after mount', function () {
+    renderProjectPluginsContainer();
     expect(fetchPlugins).toHaveBeenCalled();
   });
 
   it('calls `enablePlugin` action creator when enabling plugin', async function () {
+    renderProjectPluginsContainer();
     const amazonSQS = await screen.findByText('Amazon SQS');
 
     const pluginItem = amazonSQS.parentElement?.parentElement?.parentElement;
@@ -96,6 +101,7 @@ describe('ProjectPluginsContainer', function () {
   });
 
   it('calls `disablePlugin` action creator when disabling plugin', async function () {
+    renderProjectPluginsContainer();
     const disabledPlugin = await screen.findByText('Disableable Plugin');
 
     const pluginItem = disabledPlugin.parentElement?.parentElement?.parentElement;

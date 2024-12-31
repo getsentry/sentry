@@ -24,6 +24,20 @@ describe('ProjectKeyDetails', function () {
   let putMock: jest.Mock;
   let projectKeys: ProjectKey[];
 
+  function renderProjectKeyDetails() {
+    render(
+      <ProjectKeyDetails
+        {...routerProps}
+        organization={org}
+        project={project}
+        params={{
+          keyId: projectKeys[0].id,
+          projectId: project.slug,
+        }}
+      />
+    );
+  }
+
   beforeEach(function () {
     org = OrganizationFixture();
     project = ProjectFixture();
@@ -80,26 +94,16 @@ describe('ProjectKeyDetails', function () {
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
       method: 'DELETE',
     });
-
-    render(
-      <ProjectKeyDetails
-        {...routerProps}
-        organization={org}
-        project={project}
-        params={{
-          keyId: projectKeys[0].id,
-          projectId: project.slug,
-        }}
-      />
-    );
   });
 
   it('has stats box', async function () {
+    renderProjectKeyDetails();
     expect(await screen.findByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
   it('changes name', async function () {
+    renderProjectKeyDetails();
     await userEvent.clear(await screen.findByRole('textbox', {name: 'Name'}));
     await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Name');
     await userEvent.tab();
@@ -115,6 +119,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('disable and enables key', async function () {
+    renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
@@ -135,6 +140,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('revokes a key', async function () {
+    renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('button', {name: 'Revoke Key'}));
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('confirm-button'));
