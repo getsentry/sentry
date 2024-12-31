@@ -129,7 +129,7 @@ function NoteInputWithStorage({
       }
 
       // Remove `itemKey` from stored object and save to storage
-      // eslint-disable-next-line no-unused-vars
+
       const {[itemKey]: _oldItem, ...newStorageObj} = storageObj;
       saveToStorage(storageKey, newStorageObj);
     },

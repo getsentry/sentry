@@ -17,6 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';

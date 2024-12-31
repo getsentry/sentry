@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from sentry.utils import metrics
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @unique
-class Referrer(Enum):
+class Referrer(StrEnum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
@@ -530,32 +530,32 @@ class Referrer(Enum):
 
     # Performance Cache Module
     API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
-        "api.performance.cache.landing-cache-throughput-chart",
+        "api.performance.cache.landing-cache-throughput-chart"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
-        "api.performance.cache.landing-cache-transaction-list",
+        "api.performance.cache.landing-cache-transaction-list"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.landing-cache-transaction-duration",
+        "api.performance.cache.landing-cache-transaction-duration"
     )
 
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
-        "api.performance.cache.samples-cache-metrics-ribbon",
+        "api.performance.cache.samples-cache-metrics-ribbon"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
-        "api.performance.cache.samples-cache-transaction-duration-chart",
+        "api.performance.cache.samples-cache-transaction-duration-chart"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-transaction-duration",
+        "api.performance.cache.samples-cache-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
-        "api.performance.cache.samples-cache-span-samples",
+        "api.performance.cache.samples-cache-span-samples"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+        "api.performance.cache.samples-cache-span-samples-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
-        "api.performance.cache.samples-cache-hit-miss-chart",
+        "api.performance.cache.samples-cache-hit-miss-chart"
     )
 
     # Performance Queues Module

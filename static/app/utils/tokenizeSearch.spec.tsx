@@ -197,7 +197,6 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      // eslint-disable-next-line jest/valid-title
       it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
@@ -505,7 +504,6 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      // eslint-disable-next-line jest/valid-title
       it(name, () => expect(object.formatString()).toEqual(string));
     }
   });

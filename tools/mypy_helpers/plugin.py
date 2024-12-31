@@ -122,7 +122,7 @@ class SentryMypyPlugin(Plugin):
 
     def get_base_class_hook(self, fullname: str) -> Callable[[ClassDefContext], None] | None:
         # XXX: this is a hack -- I don't know if there's a better callback to modify a class
-        if fullname == "io.BytesIO":
+        if fullname == "_io.BytesIO":
             return _adjust_http_request_members
         else:
             return None
