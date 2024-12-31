@@ -50,7 +50,7 @@ describe('Relocation Onboarding Container', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('should not render if feature disabled', async function () {
+  it('should not render if feature disabled', function () {
     const {routerProps, router, organization} = initializeOrg({
       router: {
         params: {step: '1'},
@@ -62,7 +62,7 @@ describe('Relocation Onboarding Container', function () {
       organization,
     });
     expect(
-      await screen.queryByText("You don't have access to this feature")
+      screen.queryByText("You don't have access to this feature")
     ).toBeInTheDocument();
   });
 });
