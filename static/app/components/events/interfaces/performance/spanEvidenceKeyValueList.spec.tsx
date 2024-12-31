@@ -457,7 +457,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('/book/[Parameters]');
 
-      expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
 
       const parametersKeyValue = screen.getByTestId(
         'span-evidence-key-value-list.parameters'

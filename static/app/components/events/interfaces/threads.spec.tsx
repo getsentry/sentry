@@ -915,9 +915,9 @@ describe('Threads', function () {
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
-        expect(screen.queryByText('Threads')).toBeInTheDocument();
-        expect(screen.queryByText('Thread State')).toBeInTheDocument();
-        expect(screen.queryByText('Thread Tags')).toBeInTheDocument();
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();

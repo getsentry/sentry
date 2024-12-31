@@ -78,7 +78,7 @@ describe('View Hierarchy', function () {
   it('can expand and collapse by clicking the icon', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
@@ -90,7 +90,7 @@ describe('View Hierarchy', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('can navigate with keyboard shortcuts after a selection', async function () {

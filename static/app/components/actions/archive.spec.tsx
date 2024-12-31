@@ -82,10 +82,10 @@ describe('ArchiveActions', () => {
     render(<ArchiveActions onUpdate={onUpdate} disableArchiveUntilOccurrence={false} />);
     await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
+      screen.getByRole('menuitemradio', {name: 'Until this occurs again\u2026'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('menuitemradio', {
+      screen.getByRole('menuitemradio', {
         name: 'Until this affects an additional\u2026',
       })
     ).toBeInTheDocument();

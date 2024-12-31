@@ -782,7 +782,7 @@ describe('OrganizationMemberDetail', function () {
       expect(orgRoleRadio.at(-1)).toBeChecked();
 
       // Role info box is shown
-      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+      expect(screen.getByTestId('alert-role-overwrite')).toBeInTheDocument();
 
       // Dropdown has correct value set
       within(teamRow).getByText('Team Admin');

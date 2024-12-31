@@ -47,6 +47,6 @@ describe('ApiTokenRow', () => {
 
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={token} canEdit />);
-    expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Token preview')).toBeInTheDocument();
   });
 });

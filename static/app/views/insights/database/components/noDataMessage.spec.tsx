@@ -65,7 +65,7 @@ describe('NoDataMessage', () => {
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+      screen.getByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -86,7 +86,7 @@ describe('NoDataMessage', () => {
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+      screen.getByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
       screen.getByText(

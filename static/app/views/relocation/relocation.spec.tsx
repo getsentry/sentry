@@ -269,8 +269,8 @@ describe('Relocation', function () {
       await waitFor(() =>
         expect(successfulFetchExistingMoonRelocation).toHaveBeenCalledTimes(2)
       );
-      expect(screen.queryByLabelText('org-slugs')).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(screen.getByLabelText('org-slugs')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
   });
 
@@ -350,8 +350,8 @@ describe('Relocation', function () {
       await screen.findByTestId('public-key');
 
       expect(fetchExistingRelocations).toHaveBeenCalledTimes(2);
-      expect(screen.queryByText('key.pub')).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Continue'})).toBeInTheDocument();
+      expect(screen.getByText('key.pub')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
     it('redirects to `get-started` page if expected local storage data is missing', async function () {

@@ -36,10 +36,10 @@ describe('express onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate/))
     ).toBeInTheDocument();
   });
 
@@ -101,10 +101,10 @@ describe('express onboarding docs', function () {
 
     // Should have start and stop profiling calls
     expect(
-      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
     ).toBeInTheDocument();
   });
 });

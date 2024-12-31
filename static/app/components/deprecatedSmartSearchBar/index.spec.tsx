@@ -420,7 +420,7 @@ describe('SmartSearchBar', function () {
     await userEvent.keyboard('{ArrowRight}');
     // Should show "Tags" and "Operator Helpers" but NOT "Values"
     expect(await screen.findByText('Keys')).toBeInTheDocument();
-    expect(screen.queryByText('Operator Helpers')).toBeInTheDocument();
+    expect(screen.getByText('Operator Helpers')).toBeInTheDocument();
     expect(screen.queryByText('Values')).not.toBeInTheDocument();
 
     // Set cursor after the ":"
