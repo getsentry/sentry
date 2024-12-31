@@ -120,7 +120,6 @@ describe('OrganizationMemberRow', function () {
 
     it('has "Resend Invite" button if invite was sent from curr user and feature is on', function () {
       const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
         access: ['member:invite'],
       });
       render(<OrganizationMemberRow {...props} organization={org} />);
@@ -131,7 +130,6 @@ describe('OrganizationMemberRow', function () {
 
     it('does not have "Resend Invite" button if invite was sent from other user and feature is on', function () {
       const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
         access: ['member:invite'],
       });
       render(
@@ -175,7 +173,6 @@ describe('OrganizationMemberRow', function () {
 
     it('has Remove button if invite was sent from curr user and feature is on', function () {
       const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
         access: ['member:invite'],
       });
       render(<OrganizationMemberRow {...props} organization={org} />);
@@ -185,7 +182,6 @@ describe('OrganizationMemberRow', function () {
 
     it('has disabled Remove button if invite was sent from other user and feature is on', function () {
       const org = OrganizationFixture({
-        features: ['members-invite-teammates'],
         access: ['member:invite'],
       });
       render(
