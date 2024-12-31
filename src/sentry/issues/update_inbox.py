@@ -21,7 +21,7 @@ def update_inbox(
     in_inbox: bool,
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User | None,
+    acting_user: User,
     http_referrer: str,
     sender: Any,
 ) -> bool:
