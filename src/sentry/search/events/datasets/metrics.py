@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, MutableMapping
 
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
@@ -980,12 +980,13 @@ class MetricsDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
+        org_id = self.builder.params.organization_id
+        if org_id is None:
+            raise InvalidSearchQuery("Missing organization")
         return function_aliases.resolve_project_threshold_config(
             tag_value_resolver=lambda _org_id, value: self.builder.resolve_tag_value(value),
             column_name_resolver=lambda _org_id, value: self.builder.resolve_column_name(value),
-            org_id=(
-                self.builder.params.organization.id if self.builder.params.organization else None
-            ),
+            org_id=org_id,
             project_ids=self.builder.params.project_ids,
         )
 
@@ -1044,17 +1045,18 @@ class MetricsDatasetConfig(DatasetConfig):
                 return None
 
         if isinstance(value, list):
-            resolved_value = []
+            resolved_values = []
             for item in value:
                 resolved_item = self.builder.resolve_tag_value(item)
                 if resolved_item is None:
                     raise IncompatibleMetricsQuery(f"Transaction value {item} in filter not found")
-                resolved_value.append(resolved_item)
+                resolved_values.append(resolved_item)
+            value = resolved_values
         else:
             resolved_value = self.builder.resolve_tag_value(value)
             if resolved_value is None:
                 raise IncompatibleMetricsQuery(f"Transaction value {value} in filter not found")
-        value = resolved_value
+            value = resolved_value
 
         if search_filter.value.is_wildcard():
             return Condition(
@@ -1231,8 +1233,9 @@ class MetricsDatasetConfig(DatasetConfig):
         buckets"""
         zoom_params = getattr(self.builder, "zoom_params", None)
         num_buckets = getattr(self.builder, "num_buckets", 250)
+        histogram_aliases = getattr(self.builder, "histogram_aliases", [])
+        histogram_aliases.append(alias)
         metric_condition = Function("equals", [Column("metric_id"), args["metric_id"]])
-        self.builder.histogram_aliases.append(alias)
         return Function(
             f"histogramIf({num_buckets})",
             [
@@ -1297,6 +1300,8 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
+        if not isinstance(args["alpha"], float) or not isinstance(args["beta"], float):
+            raise InvalidSearchQuery("Cannot query user_misery with non floating point alpha/beta")
         if args["satisfaction"] is not None:
             raise IncompatibleMetricsQuery(
                 "Cannot query user_misery with a threshold parameter on the metrics dataset"
@@ -1464,9 +1469,13 @@ class MetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         column = args["column"]
         metric_id = args["metric_id"]
-        quality = args["quality"].lower()
+        quality = args["quality"]
 
-        if column not in [
+        if not isinstance(quality, str):
+            raise InvalidSearchQuery(f"Invalid argument quanlity: {quality}")
+        quality = quality.lower()
+
+        if not isinstance(column, str) or column not in [
             "measurements.lcp",
             "measurements.fcp",
             "measurements.fp",
@@ -1520,12 +1529,12 @@ class MetricsDatasetConfig(DatasetConfig):
     def _resolve_web_vital_score_function(
         self,
         args: Mapping[str, str | Column | SelectType | int | float],
-        alias: str,
+        alias: str | None,
     ) -> SelectType:
         column = args["column"]
         metric_id = args["metric_id"]
 
-        if column not in [
+        if not isinstance(column, str) or column not in [
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
@@ -1609,7 +1618,7 @@ class MetricsDatasetConfig(DatasetConfig):
         column = args["column"]
         metric_id = args["metric_id"]
 
-        if column not in [
+        if not isinstance(column, str) or column not in [
             "measurements.score.lcp",
             "measurements.score.fcp",
             "measurements.score.fid",
@@ -1765,7 +1774,7 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_total_score_weights_function(self, column: str, alias: str) -> SelectType:
+    def _resolve_total_score_weights_function(self, column: str, alias: str | None) -> SelectType:
         """Calculates the total sum score weights for a given web vital.
         This must be cached since it runs another query."""
 
@@ -1824,7 +1833,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def _resolve_total_performance_score_function(
         self,
         _: Mapping[str, str | Column | SelectType | int | float],
-        alias: str,
+        alias: str | None,
     ) -> SelectType:
         vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
         scores = {
@@ -1906,6 +1915,8 @@ class MetricsDatasetConfig(DatasetConfig):
     def _resolve_time_spent_percentage(
         self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
     ) -> SelectType:
+        if not isinstance(args["scope"], str):
+            raise InvalidSearchQuery(f"Invalid scope: {args['scope']}")
         total_time = self._resolve_total_transaction_duration(
             constants.TOTAL_TRANSACTION_DURATION_ALIAS, args["scope"]
         )
@@ -1928,7 +1939,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_epm(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: MutableMapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
@@ -1938,7 +1949,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_spm(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: MutableMapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
@@ -1948,7 +1959,7 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _resolve_eps(
         self,
-        args: Mapping[str, str | Column | SelectType | int | float],
+        args: MutableMapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
     ) -> SelectType:
@@ -1962,7 +1973,7 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
         extra_condition: Function | None = None,
-        metric: str | None = "transaction.duration",
+        metric: str = "transaction.duration",
     ) -> SelectType:
         base_condition = Function(
             "equals",
