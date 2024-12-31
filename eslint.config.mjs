@@ -891,9 +891,9 @@ export default typescript.config([
     },
     rules: {
       '@emotion/import-from-emotion': 'error',
-      '@emotion/jsx-import': 'off',
+      '@emotion/jsx-import': 'off', // Not needed, handled by babel
       '@emotion/no-vanilla': 'error',
-      '@emotion/pkg-renaming': 'error',
+      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
       '@emotion/styled-import': 'error',
       '@emotion/syntax-preference': ['off', 'string'], // TODO(ryan953): Enable this so `css={css``}` is required
     },
