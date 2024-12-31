@@ -756,8 +756,9 @@ export default typescript.config([
       'import/no-unresolved': 'off',
 
       // Require a newline after the last import/require in a group
+      // Why doesn't prettier handle this? https://prettier.io/docs/en/rationale.html#empty-lines
       // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md
-      'import/newline-after-import': 'error', // TODO: should be a prettier thing?
+      'import/newline-after-import': 'error',
 
       // do not allow a default import name to match a named export (airbnb: error)
       // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-named-as-default.md
