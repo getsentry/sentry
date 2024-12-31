@@ -99,48 +99,50 @@ export function WidgetFrame(props: WidgetFrameProps) {
               </Tooltip>
             )}
 
-            <TitleActionsWrapper
-              disabled={Boolean(props.actionsDisabled)}
-              disabledMessage={props.actionsMessage ?? ''}
-            >
-              {actions.length === 1 ? (
-                actions[0].to ? (
-                  <LinkButton
-                    size="xs"
-                    disabled={props.actionsDisabled}
-                    onClick={actions[0].onAction}
-                    to={actions[0].to}
-                  >
-                    {actions[0].label}
-                  </LinkButton>
-                ) : (
-                  <Button
-                    size="xs"
-                    disabled={props.actionsDisabled}
-                    onClick={actions[0].onAction}
-                  >
-                    {actions[0].label}
-                  </Button>
-                )
-              ) : null}
+            {shouldShowActions && (
+              <TitleActionsWrapper
+                disabled={Boolean(props.actionsDisabled)}
+                disabledMessage={props.actionsMessage ?? ''}
+              >
+                {actions.length === 1 ? (
+                  actions[0].to ? (
+                    <LinkButton
+                      size="xs"
+                      disabled={props.actionsDisabled}
+                      onClick={actions[0].onAction}
+                      to={actions[0].to}
+                    >
+                      {actions[0].label}
+                    </LinkButton>
+                  ) : (
+                    <Button
+                      size="xs"
+                      disabled={props.actionsDisabled}
+                      onClick={actions[0].onAction}
+                    >
+                      {actions[0].label}
+                    </Button>
+                  )
+                ) : null}
 
-              {actions.length > 1 ? (
-                <DropdownMenu
-                  items={actions}
-                  isDisabled={props.actionsDisabled}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    borderless: true,
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                  }}
-                  position="bottom-end"
-                />
-              ) : null}
-            </TitleActionsWrapper>
+                {actions.length > 1 ? (
+                  <DropdownMenu
+                    items={actions}
+                    isDisabled={props.actionsDisabled}
+                    triggerProps={{
+                      'aria-label': t('Widget actions'),
+                      size: 'xs',
+                      borderless: true,
+                      showChevron: false,
+                      icon: <IconEllipsis direction="down" size="sm" />,
+                    }}
+                    position="bottom-end"
+                  />
+                ) : null}
+              </TitleActionsWrapper>
+            )}
 
-            {props.onFullScreenViewClick && (
+            {shouldShowFullScreenViewButton && (
               <Button
                 aria-label={t('Open Full-Screen View')}
                 borderless
