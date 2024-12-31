@@ -270,7 +270,7 @@ class GroupAssigneeTestCase(TestCase):
 
         with self.feature({"organizations:integrations-issue-sync": True}):
             with self.tasks():
-                GroupAssignee.objects.deassign(self.group)
+                GroupAssignee.objects.deassign(self.group, self.user)
                 mock_sync_assignee_outbound.assert_called_with(
                     external_issue, None, assign=False, assignment_source=None
                 )
