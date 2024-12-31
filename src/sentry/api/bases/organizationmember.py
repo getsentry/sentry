@@ -6,7 +6,6 @@ from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
@@ -44,10 +43,7 @@ class MemberPermission(OrganizationPermission):
         is_role_above_member = "member:admin" in scopes or "member:write" in scopes
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
-        return is_role_above_member or (
-            features.has("organizations:members-invite-teammates", organization)
-            and not organization.flags.disable_member_invite
-        )
+        return is_role_above_member or not organization.flags.disable_member_invite
 
 
 class MemberAndStaffPermission(StaffPermissionMixin, MemberPermission):
