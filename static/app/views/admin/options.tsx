@@ -634,7 +634,7 @@ const disabledReasons = {
 };
 
 export function getOption(option: string): Field {
-  return definitionsMap[option];
+  return definitionsMap[option]!;
 }
 
 export function getOptionDefault(option: string): string | number | false | undefined {

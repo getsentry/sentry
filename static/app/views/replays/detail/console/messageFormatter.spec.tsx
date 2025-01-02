@@ -21,7 +21,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
@@ -39,9 +39,9 @@ describe('MessageFormatter', () => {
     // This is reasonable because the type, at this point, `frame` is of type
     // `BreadcrumbFrame` and not `ConsoleFrame`.
     // When the type is narrowed to `ConsoleFrame` the `data` field is forced to exist.
-    delete frame.data;
+    delete frame!.data;
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('This is only a test')).toBeInTheDocument();
   });
@@ -59,7 +59,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    const {container} = render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('test 1 false')).toBeInTheDocument();
     expect(container).toHaveTextContent('{}');
@@ -78,7 +78,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('1 item')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: '1 item'}));
@@ -97,7 +97,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    const {container} = render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(container).toHaveTextContent('{}');
   });
@@ -122,7 +122,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    const {container} = render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    const {container} = render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     const styledEl = screen.getByText('prev state');
     expect(styledEl).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('test')).toBeInTheDocument();
     expect(screen.getByText('2 items')).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('This is a literal 100%')).toBeInTheDocument();
   });
@@ -187,7 +187,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('Unbound placeholder %s')).toBeInTheDocument();
   });
@@ -205,7 +205,7 @@ describe('MessageFormatter', () => {
       }),
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('Placeholder myPlaceholder with 100%')).toBeInTheDocument();
   });
@@ -220,7 +220,7 @@ describe('MessageFormatter', () => {
       },
     ]);
 
-    render(<MessageFormatter frame={frame} onExpand={() => {}} />);
+    render(<MessageFormatter frame={frame!} onExpand={() => {}} />);
 
     expect(screen.getByText('cypress custom breadcrumb')).toBeInTheDocument();
   });

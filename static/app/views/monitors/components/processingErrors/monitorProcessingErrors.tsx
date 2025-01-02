@@ -82,7 +82,7 @@ export default function MonitorProcessingErrors({
       const project = projects.find(({id}) => id === projectId);
       const projectEntries = Object.values(errorsByType).map((errors, index) => {
         const isExpanded = expanded === `${projectId}:${index}`;
-        const errortype = errors[0].error.type;
+        const errortype = errors[0]!.error.type;
         return (
           <ErrorGroup key={index}>
             <ErrorHeader>

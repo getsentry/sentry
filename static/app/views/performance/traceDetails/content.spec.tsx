@@ -64,17 +64,17 @@ describe('TraceDetailsContent', () => {
 
       const errorList = await screen.findByTestId('trace-view-errors');
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].title)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0]!.title)
       ).toBeInTheDocument();
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].title)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1]!.title)
       ).toBeInTheDocument();
 
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0].level)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[0]!.level)
       ).toBeInTheDocument();
       expect(
-        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1].level)
+        await within(errorList).findByText(SAMPLE_ERROR_DATA.data[1]!.level)
       ).toBeInTheDocument();
     });
 

@@ -41,6 +41,6 @@ const DEFAULT_RETURN_VALUE = {
 
 export const useExperiment: UseExperiment = (...params) => {
   return (
-    HookStore.get('react-hook:use-experiment')[0]?.(...params) ?? DEFAULT_RETURN_VALUE
+    HookStore.get('react-hook:use-experiment')[0]!?.(...params) ?? DEFAULT_RETURN_VALUE
   );
 };

@@ -121,8 +121,8 @@ function mapSearchResults(results: SearchResult[]) {
 
     // The first element should indicate the section.
     if (sectionItems.length > 0) {
-      sectionItems[0].item.sectionHeading = section.name;
-      sectionItems[0].item.sectionCount = sectionItems.length;
+      sectionItems[0]!.item.sectionHeading = section.name;
+      sectionItems[0]!.item.sectionCount = sectionItems.length;
 
       items.push(...sectionItems);
       return;

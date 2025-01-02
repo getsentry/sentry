@@ -91,7 +91,7 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
-    params.projectId,
+    params.projectId!,
     profiles.type === 'resolved' ? getTransactionId(profiles.data) : null
   );
 
@@ -99,14 +99,14 @@ function ProfilesAndTransactionProvider(props: FlamegraphViewProps): React.React
     <ProfilesProvider
       onUpdateProfiles={setProfiles}
       orgSlug={organization.slug}
-      profileId={params.eventId}
-      projectSlug={params.projectId}
+      profileId={params.eventId!}
+      projectSlug={params.projectId!}
     >
       <SetProfileProvider.Provider value={setProfiles}>
         <ProfileTransactionContext.Provider value={profileTransaction}>
           <ProfileHeader
-            eventId={params.eventId}
-            projectId={params.projectId}
+            eventId={params.eventId!}
+            projectId={params.projectId!}
             transaction={
               profileTransaction.type === 'resolved' ? profileTransaction.data : null
             }

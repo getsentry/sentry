@@ -141,7 +141,7 @@ export class VideoReplayer {
     const handleLoadedData = event => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
 
       // Only call this for current segment as we preload multiple
@@ -159,7 +159,7 @@ export class VideoReplayer {
 
     const handlePlay = event => {
       if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
@@ -168,13 +168,13 @@ export class VideoReplayer {
       if (index === this._currentIndex) {
         // Theoretically we could have different orientations and they should
         // only happen in different segments
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
     const handleSeeking = event => {
       // Centers the video when seeking (and video is not playing)
-      this._callbacks.onLoaded(event);
+      this._callbacks.onLoaded!(event);
     };
 
     el.addEventListener('ended', handleEnded);
@@ -284,12 +284,12 @@ export class VideoReplayer {
       this.resumeTimer();
     }
 
-    this._callbacks.onBuffer(isBuffering);
+    this._callbacks.onBuffer!(isBuffering);
   }
 
   private stopReplay() {
     this._timer.stop();
-    this._callbacks.onFinished();
+    this._callbacks.onFinished!();
     this._isPlaying = false;
   }
 

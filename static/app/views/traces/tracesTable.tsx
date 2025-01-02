@@ -165,7 +165,7 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }

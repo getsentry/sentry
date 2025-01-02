@@ -171,11 +171,11 @@ function AddToDashboardModal({
       return;
     }
 
-    let orderby = widget.queries[0].orderby;
-    if (!(DisplayType.AREA && widget.queries[0].columns.length)) {
+    let orderby = widget.queries[0]!.orderby;
+    if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
-    const query = widget.queries[0];
+    const query = widget.queries[0]!;
 
     const title =
       // Metric widgets have their default title derived from the query
@@ -278,7 +278,7 @@ function AddToDashboardModal({
         <MetricsCardinalityProvider organization={organization} location={location}>
           <MetricsDataSwitcher
             organization={organization}
-            eventView={eventViewFromWidget(widget.title, widget.queries[0], selection)}
+            eventView={eventViewFromWidget(widget.title, widget.queries[0]!, selection)}
             location={location}
             hideLoadingIndicator
           >
