@@ -44,6 +44,9 @@ describe('EventNavigation', () => {
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({

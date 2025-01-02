@@ -36,6 +36,9 @@ describe('EventNavigation', () => {
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     Object.assign(navigator, {
@@ -55,6 +58,9 @@ describe('EventNavigation', () => {
   it('does not show jump to sections by default', () => {
     jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {},
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     render(<EventTitle {...defaultProps} />);
