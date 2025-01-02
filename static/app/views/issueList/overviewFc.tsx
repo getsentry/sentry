@@ -762,9 +762,8 @@ function IssueListOverviewFc({
       pollerRef.current?.disable();
       SelectedGroupStore.reset();
       GroupStore.reset();
-      api.clear();
     };
-  }, [api]);
+  }, []);
 
   const allResultsVisible = useCallback(() => {
     if (!pageLinks) {
