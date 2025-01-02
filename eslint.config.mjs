@@ -6,10 +6,10 @@
  * `npx eslint --inspect-config`
  */
 import * as emotion from '@emotion/eslint-plugin';
+import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
-import prettier from 'eslint-plugin-prettier/recommended';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import sentry from 'eslint-plugin-sentry';
@@ -835,7 +835,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'prettier/recommended',
+    name: 'prettier',
     ...prettier,
   },
 ]);
