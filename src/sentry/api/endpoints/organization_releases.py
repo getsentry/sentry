@@ -290,7 +290,7 @@ class OrganizationReleasesEndpoint(
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrganizations", list[ReleaseSerializerResponse]
+                "OrgReleasesGetResponse", list[ReleaseSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -475,8 +475,12 @@ class OrganizationReleasesEndpoint(
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
-            201: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
-            208: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            201: inline_sentry_response_serializer(
+                "OrgReleasesPostResponse", ReleaseSerializerResponse
+            ),
+            208: inline_sentry_response_serializer(
+                "OrgReleasesPostResponse", ReleaseSerializerResponse
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
