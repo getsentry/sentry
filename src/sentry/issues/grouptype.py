@@ -22,10 +22,8 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
-
-import logging
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
