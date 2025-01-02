@@ -24,7 +24,7 @@ import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/we
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
@@ -127,7 +127,7 @@ export function PageOverview() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
 
   const handleTabChange = (value: string) => {
     trackAnalytics('insight.vital.overview.toggle_tab', {
