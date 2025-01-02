@@ -1,6 +1,28 @@
-/* eslint-env node */
+// @ts-check
+/**
+ * Understanding & making changes to this file:
+ *
+ * This is your friend:
+ * `npx eslint --inspect-config`
+ */
+import * as emotion from '@emotion/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
+import jest from 'eslint-plugin-jest';
+import jestDom from 'eslint-plugin-jest-dom';
+import prettier from 'eslint-plugin-prettier/recommended';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import sentry from 'eslint-plugin-sentry';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import testingLibrary from 'eslint-plugin-testing-library';
+import typescriptSortKeys from 'eslint-plugin-typescript-sort-keys';
+import globals from 'globals';
+import invariant from 'invariant';
+// biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
+import {builtinModules} from 'node:module';
+import typescript from 'typescript-eslint';
 
-const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
+invariant(react.configs.flat, 'For typescript');
 
 const baseRules = {
   /**
@@ -187,126 +209,6 @@ const baseRules = {
   ],
 };
 
-const reactReactRules = {
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
-  'react/display-name': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
-  'react/no-multi-comp': [
-    'off',
-    {
-      ignoreStateless: true,
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
-  'react/jsx-fragments': ['error', 'element'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
-  // Ensures that any component or prop methods used to handle events are correctly prefixed.
-  'react/jsx-handler-names': [
-    'off',
-    {
-      eventHandlerPrefix: 'handle',
-      eventHandlerPropPrefix: 'on',
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-key.md
-  'react/jsx-key': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
-  'react/jsx-no-undef': ['error'],
-
-  // Disabled as we use the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
-  'react/jsx-uses-react': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-vars.md
-  'react/jsx-uses-vars': ['error'],
-
-  /**
-   * Deprecation related rules
-   */
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md
-  'react/no-deprecated': ['error'],
-
-  // Prevent usage of the return value of React.render
-  // deprecation: https://facebook.github.io/react/docs/react-dom.html#render
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md
-  'react/no-render-return-value': ['error'],
-
-  // Children should always be actual children, not passed in as a prop.
-  // When using JSX, the children should be nested between the opening and closing tags. When not using JSX, the children should be passed as additional arguments to React.createElement.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-children-prop.md
-  'react/no-children-prop': ['error'],
-
-  // This rule helps prevent problems caused by using children and the dangerouslySetInnerHTML prop at the same time.
-  // React will throw a warning if this rule is ignored.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-danger-with-children.md
-  'react/no-danger-with-children': ['error'],
-
-  // Prevent direct mutation of this.state
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-direct-mutation-state.md
-  'react/no-direct-mutation-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
-  'react/no-did-mount-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
-  'react/no-did-update-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
-  'react/no-redundant-should-component-update': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
-  'react/no-typos': ['error'],
-
-  // Prevent invalid characters from appearing in markup
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
-  'react/no-unescaped-entities': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
-  'react/no-unknown-property': ['error', {ignore: ['css']}],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md
-  // Disabled since this currently fails to correctly detect a lot of
-  // typescript prop type usage.
-  'react/no-unused-prop-types': ['off'],
-
-  // We do not need proptypes since we're using typescript
-  'react/prop-types': ['off'],
-
-  // When writing the render method in a component it is easy to forget to return the JSX content.
-  // This rule will warn if the return statement is missing.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/require-render-return.md
-  'react/require-render-return': ['error'],
-
-  // Disabled as we are using the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
-  'react/react-in-jsx-scope': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
-  'react/self-closing-comp': ['error'],
-
-  // This also causes issues with typescript
-  // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
-  //
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
-  'react/sort-comp': ['warn'],
-
-  // Consistent <Component booleanProp /> (never add ={true})
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
-  'react/jsx-boolean-value': ['error', 'never'],
-
-  // Consistent function component declaration styles
-  // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
-  'react/function-component-definition': [
-    'error',
-    {namedComponents: 'function-declaration'},
-  ],
-};
-
 const reactImportRules = {
   // Not recommended to be enabled with typescript-eslint
   // https://typescript-eslint.io/linting/troubleshooting/performance-troubleshooting/#eslint-plugin-import
@@ -431,44 +333,14 @@ const reactImportRules = {
   ],
 };
 
-const reactJestRules = {
-  'jest/no-disabled-tests': 'error',
-};
-
 const reactRules = {
-  ...reactReactRules,
   ...reactImportRules,
-  ...reactJestRules,
-  /**
-   * React hooks
-   */
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
-  ],
-  // Biome not yet enforcing all parts of this rule https://github.com/biomejs/biome/issues/1984
-  'react-hooks/rules-of-hooks': 'error',
 
   /**
    * Custom
    */
   // highlights literals in JSX components w/o translation tags
   'getsentry/jsx-needs-il8n': ['off'],
-  'testing-library/render-result-naming-convention': 'off',
-  'testing-library/no-unnecessary-act': 'off',
-
-  // Disabled as we have many tests which render as simple validations
-  'jest/expect-expect': 'off',
-
-  // Disabled as we have some comment out tests that cannot be
-  // uncommented due to typescript errors.
-  'jest/no-commented-out-tests': 'off',
-
-  // Disabled as we do sometimes have conditional expects
-  'jest/no-conditional-expect': 'off',
-
-  // Useful for exporting some test utilities
-  'jest/no-export': 'off',
 
   'typescript-sort-keys/interface': [
     'error',
@@ -478,16 +350,6 @@ const reactRules = {
 };
 
 const appRules = {
-  /**
-   * emotion rules for v10
-   *
-   * This probably aren't as necessary anymore, but let's remove when we move to v11
-   */
-  '@emotion/jsx-import': 'off',
-  '@emotion/no-vanilla': 'error',
-  '@emotion/import-from-emotion': 'error',
-  '@emotion/styled-import': 'error',
-
   // no-undef is redundant with typescript as tsc will complain
   // A downside is that we won't get eslint errors about it, but your editors should
   // support tsc errors so....
@@ -602,7 +464,6 @@ const appRules = {
         },
         {
           name: 'sentry/utils/withSentryRouter',
-          importNames: ['withSentryRouter'],
           message:
             "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
         },
@@ -631,8 +492,7 @@ const appRules = {
         ['^\\u0000'],
 
         // Node.js builtins.
-        // biome-ignore lint/correctness/noNodejsModules: Need to get the list of things!
-        [`^(${require('node:module').builtinModules.join('|')})(/|$)`],
+        [`^(${builtinModules.join('|')})(/|$)`],
 
         // Packages. `react` related packages come first.
         ['^react', '^@?\\w'],
@@ -707,162 +567,362 @@ const appRules = {
       format: ['UPPER_CASE'],
     },
   ],
-
-  // Don't allow lookbehind expressions in regexp as they crash safari
-  // We've accidentally used lookbehinds a few times and caused problems.
-  'no-lookahead-lookbehind-regexp/no-lookahead-lookbehind-regexp': [
-    'error',
-    'no-lookbehind',
-    'no-negative-lookbehind',
-  ],
 };
 
 const strictRules = {
   // https://eslint.org/docs/rules/no-console
   'no-console': ['error'],
 
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
-  'react/no-is-mounted': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md
-  // Recommended to use callback refs instead
-  'react/no-find-dom-node': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-string-refs.md
-  // This is now considered legacy, callback refs preferred
-  'react/no-string-refs': ['error'],
-
-  'jest/no-large-snapshots': ['error', {maxSize: 2000}],
-
   'sentry/no-styled-shortcut': ['error'],
 };
 
-const extendsList = [
-  'plugin:jest/recommended',
-  'plugin:jest-dom/recommended',
-  'plugin:import/typescript',
-];
-if (detectDeprecations) {
-  extendsList.push('plugin:deprecation/recommended');
-}
-extendsList.push('prettier'); // From package: `eslint-config-prettier`. Keep this last in the list
+// Used by both: `languageOptions` & `parserOptions`
+const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
 
-module.exports = {
-  root: true,
-  extends: extendsList,
+/**
+ * To get started with this ESLint Configuration list be sure to read at least
+ * these sections of the docs:
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
+ */
 
-  plugins: [
-    'jest-dom',
-    'testing-library',
-    'typescript-sort-keys',
-    'react-hooks',
-    '@typescript-eslint',
-    '@emotion',
-    'import',
-    'react',
-    'sentry',
-    'simple-import-sort',
-    'no-lookahead-lookbehind-regexp',
-  ],
-
-  parser: '@typescript-eslint/parser',
-
-  parserOptions: detectDeprecations
-    ? {
-        warnOnUnsupportedTypeScriptVersion: false,
-        ecmaVersion: 6,
-        sourceType: 'module',
+export default typescript.config([
+  {
+    // Main parser & linter options
+    // Rules are defined below and inherit these properties
+    // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+    name: 'main',
+    languageOptions: {
+      ecmaVersion,
+      sourceType: 'module',
+      globals: {
+        // TODO(ryan953): globals.browser seems to have a bug with trailing whitespace
+        ...Object.fromEntries(
+          Object.keys(globals.browser).map(key => [key.trim(), false])
+        ),
+        ...globals.jest,
+        MockApiClient: true,
+        tick: true,
+      },
+      parser: typescript.parser,
+      parserOptions: {
         ecmaFeatures: {
-          jsx: true,
-          modules: true,
-          legacyDecorators: true,
+          globalReturn: false,
         },
+        ecmaVersion,
+
+        // https://typescript-eslint.io/packages/parser/#emitdecoratormetadata
+        emitDecoratorMetadata: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#experimentaldecorators
+        experimentalDecorators: undefined,
+
+        // https://typescript-eslint.io/packages/parser/#jsdocparsingmode
+        jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
+
+        // https://typescript-eslint.io/packages/parser/#project
         project: './tsconfig.json',
-      }
-    : {
-        warnOnUnsupportedTypeScriptVersion: false,
-        ecmaVersion: 6,
-        sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true,
-          modules: true,
-          legacyDecorators: true,
+
+        // https://typescript-eslint.io/packages/parser/#projectservice
+        // `projectService` is recommended, but slower, with our current tsconfig files.
+        // projectService: true,
+        // tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    linterOptions: {
+      noInlineConfig: false,
+      reportUnusedDisableDirectives: 'error',
+    },
+    // TODO: move these potential overrides and plugin-specific rules into the
+    // corresponding configuration object where the plugin is initially included
+    plugins: {
+      '@typescript-eslint': typescript.plugin,
+      'simple-import-sort': simpleImportSort,
+      'typescript-sort-keys': typescriptSortKeys,
+      sentry,
+    },
+    settings: {
+      react: {
+        version: '18.2.0',
+        defaultVersion: '18.2',
+      },
+      'import/parsers': {
+        '@typescript-eslint/parser': ['.ts', '.tsx'],
+      },
+      'import/resolver': {
+        typescript: {},
+      },
+      'import/extensions': ['.js', '.jsx'],
+    },
+  },
+  {
+    // Default file selection
+    // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+    files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
+  },
+  {
+    // Global ignores
+    // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
+    ignores: [
+      '.devenv/**/*',
+      '.github/**/*',
+      '.mypy_cache/**/*',
+      '.pytest_cache/**/*',
+      '.venv/**/*',
+      '**/*.benchmark.ts',
+      '**/*.d.ts',
+      '**/dist/**/*',
+      '**/tests/**/fixtures/**/*',
+      '**/vendor/**/*',
+      'build-utils/**/*',
+      'config/chartcuterie/config.js', // TODO: see if this file exists
+      'fixtures/artifact_bundle/**/*',
+      'fixtures/artifact_bundle_debug_ids/**/*',
+      'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
+      'fixtures/profiles/embedded.js',
+      'jest.config.ts',
+      'api-docs/**/*',
+      'src/sentry/static/sentry/js/**/*',
+      'src/sentry/templates/sentry/**/*',
+      'stylelint.config.js',
+    ],
+  },
+  /**
+   * Global Rules
+   * Any ruleset that does not include `files` or `ignores` fields
+   *
+   * Plugins are configured within each configuration object.
+   * https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+   *
+   * Rules are grouped by plugin. If you want to override a specific rule inside
+   * the recommended set, then it's recommended to spread the new rule on top
+   * of the predefined ones.
+   *
+   * For example: if you want to enable a new plugin in the codebase and their
+   * recommended rules (or a new rule that's part of an existing plugin)
+   * First you'd setup a configuration object for that plugin:
+   * {
+   *   name: 'my-plugin/recommended',
+   *   ...myPlugin.configs.recommended,
+   * },
+   * Second you'd override the rule you want to deal with, maybe making it a
+   * warning to start:
+   * {
+   *   name: 'my-plugin/recommended',
+   *   ...myPlugin.configs.recommended,
+   *   rules: {
+   *     ...myPlugin.configs.recommended.rules,
+   *     ['the-rule']: 'warning',
+   *   }
+   * },
+   * Finally, once all warnings are fixed, update from 'warning' to 'error', or
+   * remove the override and rely on the recommended rules again.
+   */
+  {
+    name: 'import/recommended',
+    ...importPlugin.flatConfigs.recommended,
+  },
+  {
+    name: 'deprecations',
+    rules: {
+      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
+        ? 'error'
+        : 'off',
+    },
+  },
+  {
+    name: 'react',
+    plugins: {
+      ...react.configs.flat.recommended.plugins,
+      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat['jsx-runtime'].plugins,
+    },
+    rules: {
+      ...react.configs.flat.recommended.rules,
+      ...react.configs.flat['jsx-runtime'].rules,
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
+      'react/display-name': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
+      'react/no-multi-comp': ['off', {ignoreStateless: true}],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
+      'react/jsx-fragments': ['error', 'element'],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
+      // Ensures that any component or prop methods used to handle events are correctly prefixed.
+      'react/jsx-handler-names': [
+        'off',
+        {eventHandlerPrefix: 'handle', eventHandlerPropPrefix: 'on'},
+      ],
+
+      // Disabled as we use the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
+      'react/jsx-uses-react': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
+      'react/no-did-mount-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
+      'react/no-did-update-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
+      'react/no-redundant-should-component-update': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
+      'react/no-typos': 'error',
+
+      // Prevent invalid characters from appearing in markup
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
+      'react/no-unescaped-entities': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
+      'react/no-unknown-property': ['error', {ignore: ['css']}],
+
+      // We do not need proptypes since we're using typescript
+      'react/prop-types': 'off',
+
+      // Disabled as we are using the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
+      'react/react-in-jsx-scope': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
+      'react/self-closing-comp': 'error',
+
+      // This also causes issues with typescript
+      // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
+      //
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
+      'react/sort-comp': 'warn',
+
+      // Consistent <Component booleanProp /> (never add ={true})
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
+      'react/jsx-boolean-value': ['error', 'never'],
+
+      // Consistent function component declaration styles
+      // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
+      'react/function-component-definition': [
+        'error',
+        {namedComponents: 'function-declaration'},
+      ],
+    },
+  },
+  {
+    name: 'react/hooks',
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': [
+        'error',
+        {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+      ],
+    },
+  },
+  {
+    name: 'getsentry/sentry/custom',
+    rules: {
+      ...baseRules,
+      ...reactRules,
+      ...appRules,
+      ...strictRules,
+    },
+  },
+  {
+    name: '@emotion',
+    plugins: {
+      '@emotion': emotion,
+    },
+    rules: {
+      '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
+      '@emotion/jsx-import': 'off', // Not needed, handled by babel
+      '@emotion/no-vanilla': 'error',
+      '@emotion/pkg-renaming': 'off', // Not needed, we have migrated to v11 and the old package names cannot be used anymore
+      '@emotion/styled-import': 'error',
+      '@emotion/syntax-preference': ['off', 'string'], // TODO(ryan953): Enable this so `css={css``}` is required
+    },
+  },
+  {
+    name: 'devtoolbar',
+    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            // @ts-ignore
+            ...appRules['no-restricted-imports'][1].paths,
+            {
+              name: 'sentry/utils/queryClient',
+              message:
+                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+            },
+          ],
         },
-      },
-
-  env: {
-    browser: true,
-    es6: true,
-    jest: true,
+      ],
+    },
   },
+  {
+    name: 'jest',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    plugins: jest.configs['flat/recommended'].plugins,
+    rules: {
+      'jest/no-disabled-tests': 'error',
 
-  globals: {
-    require: false,
-    expect: false,
-    MockApiClient: true,
-    tick: true,
-    jest: true,
-  },
+      // Disabled as we have many tests which render as simple validations
+      'jest/expect-expect': 'off',
 
-  settings: {
-    react: {
-      version: '18.2.0', // React version, can not `detect` because of getsentry
-    },
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.ts', '.tsx'],
-    },
-    'import/resolver': {
-      typescript: {},
-    },
-    'import/extensions': ['.js', '.jsx'],
-  },
+      // Disabled as we have some comment out tests that cannot be
+      // uncommented due to typescript errors.
+      'jest/no-commented-out-tests': 'off',
 
-  rules: {
-    ...baseRules,
-    ...reactRules,
-    ...appRules,
-    ...strictRules,
+      // Disabled as we do sometimes have conditional expects
+      'jest/no-conditional-expect': 'off',
+
+      // Useful for exporting some test utilities
+      'jest/no-export': 'off',
+
+      // We don't recommend snapshots, but if there are any keep it small
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+    },
   },
-  // JSON file formatting is handled by Biome. ESLint should not be linting
-  // and formatting these files.
-  ignorePatterns: ['*.json'],
-  overrides: [
-    {
-      files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-      rules: {
-        'no-restricted-imports': [
-          'error',
-          {
-            paths: [
-              ...appRules['no-restricted-imports'][1].paths,
-              {
-                name: 'sentry/utils/queryClient',
-                message:
-                  'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-              },
-            ],
-          },
-        ],
-      },
+  {
+    name: 'jest-dom',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    plugins: jestDom.configs['flat/recommended'].plugins,
+  },
+  {
+    name: 'testing-library/react',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    ...testingLibrary.configs['flat/react'],
+    rules: {
+      ...testingLibrary.configs['flat/react'].rules,
+      'testing-library/render-result-naming-convention': 'off',
+      'testing-library/no-unnecessary-act': 'off',
     },
-    {
-      files: ['static/**/*.spec.{ts,js}', 'tests/js/**/*.{ts,js}'],
-      extends: ['plugin:testing-library/react', ...extendsList],
-      rules: {
-        ...baseRules,
-        ...reactRules,
-        ...appRules,
-        ...strictRules,
-      },
+  },
+  {
+    name: 'testing-library/react - tsx files',
+    files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
+    ...testingLibrary.configs['flat/react'],
+    rules: {
+      'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
-    {
-      // We specify rules explicitly for the sdk-loader here so we do not have
-      // eslint ignore comments included in the source file, which is consumed
-      // by users.
-      files: ['**/js-sdk-loader.ts'],
-      rules: {
-        'no-console': 'off',
-      },
+  },
+  {
+    // We specify rules explicitly for the sdk-loader here so we do not have
+    // eslint ignore comments included in the source file, which is consumed
+    // by users.
+    name: 'js-sdk-loader.ts',
+    files: ['**/js-sdk-loader.ts'],
+    rules: {
+      'no-console': 'off',
     },
-  ],
-};
+  },
+  {
+    name: 'prettier/recommended',
+    ...prettier,
+  },
+]);

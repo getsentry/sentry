@@ -13,7 +13,7 @@ describe('releases/detail/utils', () => {
     const {created, adopted, unadopted} = releaseMarkLinesLabels;
     const {router} = initializeOrg();
     const release = ReleaseFixture();
-    const project = release.projects[0];
+    const project = release.projects[0]!;
 
     it('generates "Created" markline', () => {
       const marklines = generateReleaseMarkLines(
@@ -65,7 +65,7 @@ describe('releases/detail/utils', () => {
 
     it('does not generate Adoption marklines for non-mobile projects', () => {
       const marklines = generateReleaseMarkLines(
-        {...release, projects: [{...release.projects[0], platform: 'javascript'}]},
+        {...release, projects: [{...release.projects[0]!, platform: 'javascript'}]},
         {...project, platform: 'javascript'},
         lightTheme,
         {

@@ -383,7 +383,7 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
             'release-comparison-performance'
           );
           const {environments} = selection;
-          const performanceType = platformToPerformanceType([project], [project.id]);
+          const performanceType = platformToPerformanceType([project], [project.id])!;
           const {selectedSort, sortOptions} = getTransactionsListSort(location);
           const releaseEventView = this.getReleaseEventView(
             version,
@@ -725,7 +725,7 @@ function getTransactionsListSort(location: Location): {
     location.query.showTransactions,
     TransactionsListOption.FAILURE_COUNT
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
 

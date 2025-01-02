@@ -680,35 +680,30 @@ def post_process_group(
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
-        if not is_reprocessed and event.data.get("received"):
-            duration = time() - event.data["received"]
-            metrics.timing(
-                "events.time-to-post-process",
-                duration,
-                instance=event.data["platform"],
-                tags=metric_tags,
-            )
+        if not is_reprocessed:
+            received_at = event.data.get("received")
+            saved_at = event.data.get("nodestore_insert")
+            post_processed_at = time()
 
-            # We see occasional metrics being recorded with very old data,
-            # temporarily log some information about these groups to help
-            # investigate.
-            if duration and duration > 432_000:  # 5 days (5*24*60*60)
-                logger.warning(
-                    "tasks.post_process.old_time_to_post_process",
-                    extra={
-                        "group_id": group_id,
-                        "project_id": project_id,
-                        "duration": duration,
-                        "received": event.data["received"],
-                        "platform": event.data["platform"],
-                        "reprocessing": json.dumps(
-                            get_path(event.data, "contexts", "reprocessing")
-                        ),
-                        "original_issue_id": json.dumps(
-                            get_path(event.data, "contexts", "reprocessing", "original_issue_id")
-                        ),
-                    },
+            if saved_at:
+                metrics.timing(
+                    "events.saved_to_post_processed",
+                    post_processed_at - saved_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
                 )
+            else:
+                metrics.incr("events.missing_nodestore_insert", tags=metric_tags)
+
+            if received_at:
+                metrics.timing(
+                    "events.time-to-post-process",
+                    post_processed_at - received_at,
+                    instance=event.data["platform"],
+                    tags=metric_tags,
+                )
+            else:
+                metrics.incr("events.missing_received", tags=metric_tags)
 
 
 def run_post_process_job(job: PostProcessJob) -> None:

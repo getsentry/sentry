@@ -4,8 +4,7 @@ import logging
 from collections.abc import Sequence
 
 from django.contrib.auth.models import AnonymousUser
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.event_examples import EventExamples
-from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.exceptions import InvalidParams
@@ -138,14 +137,7 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
-            OpenApiParameter(
-                name="event_id",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.PATH,
-                description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
-                required=True,
-                enum=["latest", "oldest", "recommended"],
-            ),
+            EventParams.EVENT_ID_EXTENDED,
         ],
         responses={
             200: inline_sentry_response_serializer(

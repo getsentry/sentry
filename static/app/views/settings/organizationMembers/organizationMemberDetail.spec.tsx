@@ -233,7 +233,7 @@ describe('OrganizationMemberDetail', function () {
       await userEvent.click(screen.getByText('#new-team'));
 
       // Assign as admin to new team
-      const teamRoleSelect = screen.getAllByText('Contributor')[0];
+      const teamRoleSelect = screen.getAllByText('Contributor')[0]!;
       await selectEvent.select(teamRoleSelect, ['Team Admin']);
 
       // Save Member
@@ -782,7 +782,7 @@ describe('OrganizationMemberDetail', function () {
       expect(orgRoleRadio.at(-1)).toBeChecked();
 
       // Role info box is shown
-      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+      expect(screen.getByTestId('alert-role-overwrite')).toBeInTheDocument();
 
       // Dropdown has correct value set
       within(teamRow).getByText('Team Admin');
