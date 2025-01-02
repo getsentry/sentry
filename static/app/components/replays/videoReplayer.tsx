@@ -43,7 +43,6 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
-  private _currentVideo: HTMLVideoElement | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
@@ -428,7 +427,6 @@ export class VideoReplayer {
     }
 
     nextVideo.style.display = 'block';
-    this._currentVideo = nextVideo;
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
