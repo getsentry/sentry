@@ -13,7 +13,6 @@ import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -24,6 +23,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -62,6 +62,7 @@ export function EventSamplesTable({
   sort,
   footerAlignedPagination = false,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -172,7 +173,7 @@ export function EventSamplesTable({
   const columnSortBy = eventView.getSorts();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [cursorName]: newCursor},
     });
