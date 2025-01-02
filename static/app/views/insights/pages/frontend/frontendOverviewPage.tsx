@@ -59,15 +59,15 @@ const DURATION_TOOLTIP = tct(
 );
 
 export const FRONTEND_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
   {title: 'p50()', tooltip: DURATION_TOOLTIP},
   {title: 'p75()', tooltip: DURATION_TOOLTIP},
   {title: 'p95()', tooltip: DURATION_TOOLTIP},
-  'users',
-  'user misery',
+  {title: 'users'},
+  {title: 'user misery'},
 ];
 
 function FrontendOverviewPage() {

@@ -79,7 +79,7 @@ type Props = {
   projects: Project[];
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
-  columnTitles?: (string | ColumnTitle)[];
+  columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
@@ -419,7 +419,7 @@ class _Table extends Component<Props, State> {
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode | ColumnTitle
+    title: ColumnTitle
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
@@ -451,13 +451,10 @@ class _Table extends Component<Props, State> {
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
 
-    const titleString = isColumnTitle(title) ? title.title : title;
-    const tooltip = isColumnTitle(title) ? title.tooltip : null;
-
     const sortLink = (
       <SortLink
         align={align}
-        title={titleString || field.field}
+        title={title.title || field.field}
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
@@ -472,13 +469,13 @@ class _Table extends Component<Props, State> {
       );
     }
 
-    if (!tooltip) {
+    if (!title.tooltip) {
       return sortLink;
     }
     return (
       <Header>
         {sortLink}
-        <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
+        <QuestionTooltip size="xs" position="top" title={title.tooltip} isHoverable />
       </Header>
     );
   }
@@ -661,10 +658,7 @@ const Header = styled('div')`
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   padding: ${space(1.5)};
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${space(0.5)};
+  grid-column-gap: ${space(0.5)};
 `;
 
 export default Table;
