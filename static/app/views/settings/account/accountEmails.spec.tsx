@@ -32,7 +32,7 @@ describe('AccountEmails', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Remove email'}))[0]
+      (await screen.findAllByRole('button', {name: 'Remove email'}))[0]!
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -57,7 +57,7 @@ describe('AccountEmails', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Set as primary'}))[0]
+      (await screen.findAllByRole('button', {name: 'Set as primary'}))[0]!
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -82,7 +82,7 @@ describe('AccountEmails', function () {
     expect(mock).not.toHaveBeenCalled();
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Resend verification'}))[0]
+      (await screen.findAllByRole('button', {name: 'Resend verification'}))[0]!
     );
 
     expect(mock).toHaveBeenCalledWith(

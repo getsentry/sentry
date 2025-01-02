@@ -59,7 +59,7 @@ function NotificationSettingsByEntity({
     router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
   let organization = organizations.find(({id}) => id === orgId);
   if (!organization) {
-    organization = organizations[0];
+    organization = organizations[0]!;
   }
   const orgSlug = organization.slug;
 
@@ -112,7 +112,7 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType].choices;
+  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType]!.choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(

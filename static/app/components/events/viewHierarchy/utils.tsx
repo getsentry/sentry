@@ -21,7 +21,7 @@ export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]):
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
       const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+        entries[0]!.contentRect ?? entries[0]!.target.getBoundingClientRect();
 
       setCanvasBounds(
         new Rect(
@@ -52,7 +52,7 @@ export function getHierarchyDimensions(
   const nodes: ViewNode[] = [];
   const queue: [Rect | null, ViewHierarchyWindow][] = [];
   for (let i = hierarchies.length - 1; i >= 0; i--) {
-    queue.push([null, hierarchies[i]]);
+    queue.push([null, hierarchies[i]!]);
   }
 
   let maxWidth = Number.MIN_SAFE_INTEGER;
@@ -77,7 +77,7 @@ export function getHierarchyDimensions(
       // output nodes should have early children before later children
       // i.e. we need to pop() off early children before ones that come after
       for (let i = child.children.length - 1; i >= 0; i--) {
-        queue.push([node.rect, child.children[i]]);
+        queue.push([node.rect, child.children[i]!]);
       }
     }
 
@@ -114,8 +114,8 @@ export function getDeepestNodeAtPoint(
   vec2.scale(point, point, scale);
   const transformedPoint = vec2.transformMat3(vec2.create(), point, inverseMatrix);
   for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (node.rect.contains(transformedPoint)) {
+    const node = nodes[i]!;
+    if (node!.rect.contains(transformedPoint)) {
       clickedNode = node;
     }
   }

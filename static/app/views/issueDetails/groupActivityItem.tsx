@@ -326,7 +326,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -350,7 +350,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />

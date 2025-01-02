@@ -163,7 +163,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
-      const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
+      const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
 
       return (
         <TableWrapper key={`table:${result.title}`}>
@@ -209,12 +209,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta?.fields ?? {});
 
-      let field = fields[0];
+      let field = fields[0]!;
       let selectedField = field;
 
-      if (defined(widget.queries[0].selectedAggregate)) {
-        const index = widget.queries[0].selectedAggregate;
-        selectedField = widget.queries[0].aggregates[index];
+      if (defined(widget.queries[0]!.selectedAggregate)) {
+        const index = widget.queries[0]!.selectedAggregate;
+        selectedField = widget.queries[0]!.aggregates[index]!;
         if (fields.includes(selectedField)) {
           field = selectedField;
         }
@@ -268,7 +268,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
 
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]?.columns.length > 0;
+    const stacked = widget.queries[0]!?.columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':
@@ -339,7 +339,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       top: 0,
       selected: getSeriesSelection(location),
       formatter: (seriesName: string) => {
-        seriesName = WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName);
+        seriesName =
+          WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(seriesName)!;
         const arg = getAggregateArg(seriesName);
         if (arg !== null) {
           const slug = getMeasurementSlug(arg);
@@ -361,7 +362,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     // Check to see if all series output types are the same. If not, then default to number.
     const outputType =
       timeseriesResultsTypes && new Set(Object.values(timeseriesResultsTypes)).size === 1
-        ? timeseriesResultsTypes[axisLabel]
+        ? timeseriesResultsTypes[axisLabel]!
         : 'number';
     const isDurationChart = outputType === 'duration';
     const durationUnit = isDurationChart
@@ -383,7 +384,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     const nameFormatter = (name: string) => {
-      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name)!;
     };
 
     const chartOptions = {

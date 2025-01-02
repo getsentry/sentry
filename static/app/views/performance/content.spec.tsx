@@ -415,7 +415,7 @@ describe('Performance > Content', function () {
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    await userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]!);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(router.push).toHaveBeenCalledWith(

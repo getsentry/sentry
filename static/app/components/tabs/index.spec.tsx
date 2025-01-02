@@ -47,11 +47,11 @@ describe('Tabs', () => {
     });
 
     // The first tab item is selected and its content visible
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: TABS[0]!.label})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[0].content)).toBeInTheDocument();
+    expect(screen.getByText(TABS[0]!.content)).toBeInTheDocument();
   });
 
   it('renders tabs list when disabled', () => {
@@ -71,11 +71,11 @@ describe('Tabs', () => {
     );
 
     // The first tab item is selected and its content visible
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: TABS[0]!.label})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[0].content)).toBeInTheDocument();
+    expect(screen.getByText(TABS[0]!.content)).toBeInTheDocument();
 
     // All tabs are marked as disabled
     TABS.forEach(tab => {
@@ -110,7 +110,7 @@ describe('Tabs', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
+    expect(screen.getByText(TABS[1]!.content)).toBeInTheDocument();
   });
 
   it('changes tabs using keyboard navigation', async () => {
@@ -141,7 +141,7 @@ describe('Tabs', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
+    expect(screen.getByText(TABS[1]!.content)).toBeInTheDocument();
   });
 
   it('changes tabs on key press in vertical orientation', async () => {
@@ -172,7 +172,7 @@ describe('Tabs', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
+    expect(screen.getByText(TABS[1]!.content)).toBeInTheDocument();
   });
 
   it('renders disabled tabs', () => {
@@ -230,7 +230,7 @@ describe('Tabs', () => {
     // Command/ctrl/shift-clicking on a tab link doesn't change the tab selection.
     // The expected behavior is that clicking on a tab link will open a new browser
     // tab/window. The current view shouldn't update.
-    const secondTabEl = screen.getByRole('tab', {name: TABS[1].label});
+    const secondTabEl = screen.getByRole('tab', {name: TABS[1]!.label});
     const secondTabLink = within(secondTabEl).getByRole('link', {hidden: true});
 
     const user = userEvent.setup();
@@ -247,7 +247,7 @@ describe('Tabs', () => {
     await user.click(secondTabLink);
     await user.keyboard('[/ShiftLeft]');
 
-    expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: TABS[0]!.label})).toHaveAttribute(
       'aria-selected',
       'true'
     );

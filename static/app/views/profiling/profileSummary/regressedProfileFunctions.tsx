@@ -59,7 +59,7 @@ function findBreakPointIndex(
 
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
-    const value = examples[mid][0];
+    const value = examples[mid]![0];
 
     if (breakpoint === value) {
       return mid;
@@ -93,21 +93,21 @@ function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
     if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.examples[i][0] < trend.breakpoint - STABILITY_WINDOW) {
+    if (trend.examples[i]![0] < trend.breakpoint - STABILITY_WINDOW) {
       break;
     }
 
-    beforeProfile = trend.examples[i][1];
+    beforeProfile = trend.examples[i]![1];
   }
 
   for (let i = breakPointIndex; i < trend.examples.length; i++) {
     if (!defined(trend.examples[i])) {
       continue;
     }
-    if (trend.examples[i][0] > trend.breakpoint + STABILITY_WINDOW) {
+    if (trend.examples[i]![0] > trend.breakpoint + STABILITY_WINDOW) {
       break;
     }
-    afterProfile = trend.examples[i][1];
+    afterProfile = trend.examples[i]![1];
   }
 
   return {
@@ -239,8 +239,8 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
                   aggregate_range_1={fn.aggregate_range_1}
                   aggregate_range_2={fn.aggregate_range_2}
                   breakpoint={fn.breakpoint}
-                  start={fn.stats.data[0][0]}
-                  end={fn.stats.data[fn.stats.data.length - 1][0]}
+                  start={fn.stats.data[0]![0]}
+                  end={fn.stats.data[fn.stats.data.length - 1]![0]}
                 />
               </RegressedFunctionSparklineContainer>
             </RegressedFunctionRow>

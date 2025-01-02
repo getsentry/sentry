@@ -560,7 +560,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    const entry = entries[0];
+    const entry = entries[0]!;
     const {width} = entry.contentRect;
     const actionCount = this.props.actionBarItems?.length ?? 0;
 
@@ -649,11 +649,11 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     if (this.searchInput.current && filterTokens.length > 0) {
       maybeFocusInput(this.searchInput.current);
 
-      let offset = filterTokens[0].location.end.offset;
+      let offset = filterTokens[0]!.location.end.offset;
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
-          offset = filterTokens[tokenIndex + 1].location.end.offset;
+          offset = filterTokens[tokenIndex + 1]!.location.end.offset;
         }
       }
 
@@ -958,12 +958,12 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
             : 0;
 
       // Clear previous selection
-      const prevItem = flatSearchItems[currIndex];
+      const prevItem = flatSearchItems[currIndex]!;
       searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, prevItem, false);
 
       // Set new selection
       const activeItem = flatSearchItems[nextActiveSearchItem];
-      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem, true);
+      searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem!, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
@@ -1055,7 +1055,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     if (isSelectingDropdownItems) {
       searchGroups = getSearchGroupWithItemMarkedActive(
         searchGroups,
-        flatSearchItems[activeSearchItem],
+        flatSearchItems[activeSearchItem]!,
         false
       );
     }
@@ -1203,13 +1203,13 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const innerStart = cursorPosition - cursorToken.location.start.offset;
 
     let tokenStart = innerStart;
-    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1])) {
+    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1]!)) {
       tokenStart--;
     }
     let tokenEnd = innerStart;
     while (
       tokenEnd < cursorToken.text.length &&
-      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd])
+      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd]!)
     ) {
       tokenEnd++;
     }
