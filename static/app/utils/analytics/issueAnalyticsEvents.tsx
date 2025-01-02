@@ -29,6 +29,10 @@ type SourceMapWizardParam = {
 
 interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
+interface StreamlineGroupEventParams extends GroupEventParams {
+  streamline: boolean;
+}
+
 interface EventDropdownParams {
   event_id: string;
   from_event_type: string;
@@ -95,7 +99,8 @@ export type IssueEventParameters = {
   'issue_details.comment_created': {streamline: boolean};
   'issue_details.comment_deleted': {streamline: boolean};
   'issue_details.comment_updated': {streamline: boolean};
-  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
   'issue_details.escalating_feedback_received': {
     group_id: string;
     is_high_priority: boolean;
@@ -458,6 +463,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.copy_event_id_clicked': 'Issue Details: Copy Event ID Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
