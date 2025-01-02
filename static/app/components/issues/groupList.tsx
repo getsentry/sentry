@@ -215,12 +215,12 @@ class GroupList extends Component<Props, State> {
     return queryParams;
   }
 
-  handleCursorChange(
+  handleCursorChange = (
     cursor: string | undefined,
     path: string,
     query: Record<string, any>,
     pageDiff: number
-  ) {
+  ) => {
     const queryPageInt = parseInt(query.page, 10);
     let nextPage: number | undefined = isNaN(queryPageInt)
       ? pageDiff
@@ -238,7 +238,7 @@ class GroupList extends Component<Props, State> {
       pathname: path,
       query: {...query, cursor, page: nextPage},
     });
-  }
+  };
 
   onGroupChange() {
     const groups = GroupStore.getAllItems() as Group[];
