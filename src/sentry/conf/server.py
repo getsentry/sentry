@@ -1232,8 +1232,8 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "weekly-escalating-forecast": {
         "task": "sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
-        # Run every 6 hours
-        "schedule": crontab(minute="0", hour="*/6"),
+        # Run once a day at 00:00
+        "schedule": crontab(minute="0", hour="0"),
         "options": {"expires": 60 * 60 * 3},
     },
     "schedule_auto_transition_to_ongoing": {
@@ -3394,7 +3394,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-integrations",
     "sentry-api-0-group-integration-details",
     "sentry-api-0-group-current-release",
-    "sentry-api-0-group-participants",
     "sentry-api-0-shared-group-details",
     # Unscoped profiling URLs
     "sentry-api-0-profiling-project-profile",

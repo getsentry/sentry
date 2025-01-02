@@ -373,7 +373,7 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
       continue;
     }
 
-    const lastInterval = merged[merged.length - 1];
+    const lastInterval = merged[merged.length - 1]!;
     const lastIntervalEnd = lastInterval[1];
 
     const [currentIntervalStart, currentIntervalEnd] = currentInterval;

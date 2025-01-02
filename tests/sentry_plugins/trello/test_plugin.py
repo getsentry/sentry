@@ -3,7 +3,6 @@ from urllib.parse import parse_qsl, urlparse
 
 import orjson
 import responses
-from django.test import RequestFactory
 
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.trello.plugin import TrelloPlugin
@@ -13,10 +12,6 @@ class TrelloPluginTestBase(PluginTestCase):
     @cached_property
     def plugin(self):
         return TrelloPlugin()
-
-    @cached_property
-    def request(self):
-        return RequestFactory()
 
 
 class TrelloPluginTest(TrelloPluginTestBase):

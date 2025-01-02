@@ -59,7 +59,7 @@ function MriField({aggregate, project, onChange}: Props) {
         onChange(
           MRIToField(
             newSelection.mri,
-            filterAndSortAggregations(newSelection.operations)[0]
+            filterAndSortAggregations(newSelection.operations)[0]!
           ),
           {}
         );

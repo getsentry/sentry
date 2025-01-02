@@ -31,6 +31,7 @@ import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView as TraceViewModel} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
 import type {TraceReducerState} from './traceState';
@@ -133,11 +134,24 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     [organization, projects, traceDispatch]
   );
 
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit
+      );
+    }
+
     // Construct the visual representation of the tree
     props.tree.build();
 
@@ -198,7 +212,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       let start = index;
       while (--start > 0) {
         if (
-          isTraceErrorNode(props.tree.list[start]) ||
+          isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
           node.performance_issues.size > 0
         ) {
@@ -210,7 +224,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       start = index;
       while (++start < props.tree.list.length) {
         if (
-          isTraceErrorNode(props.tree.list[start]) ||
+          isTraceErrorNode(props.tree.list[start]!) ||
           node.errors.size > 0 ||
           node.performance_issues.size > 0
         ) {
@@ -265,6 +279,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.tree,
     props.organization,
     props.event,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
   ]);
 
   useTraceTimelineChangeSync({

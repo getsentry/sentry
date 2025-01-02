@@ -22,7 +22,7 @@ jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 
 describe('WidgetBuilderSlideout', () => {
-  let organization;
+  let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
@@ -197,9 +197,9 @@ describe('WidgetBuilderSlideout', () => {
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(
-        screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
-      ).not.toBeInTheDocument();
     });
+    expect(
+      screen.queryByText('You have unsaved changes. Are you sure you want to leave?')
+    ).not.toBeInTheDocument();
   });
 });

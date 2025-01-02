@@ -1,8 +1,8 @@
 import dataclasses
 import logging
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import cast
 
 import urllib3
 from arroyo import Topic as ArroyoTopic
@@ -93,7 +93,7 @@ def bulk_send_snapshot_values(
     if group_ids is None and groups is None:
         raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
-    group_list: list[Group | GroupValues] = cast(list[Group | GroupValues], groups) or []
+    group_list: list[Group | GroupValues] = [*(groups or [])]
     if group_ids:
         group_list.extend(_bulk_retrieve_group_values(group_ids))
 
@@ -126,10 +126,6 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
         _attribute_snapshot_producer.produce(
             ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
         )
-
-
-def _retrieve_group_values(group_id: int) -> GroupValues:
-    return _bulk_retrieve_group_values([group_id])[0]
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
@@ -167,7 +163,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
 
 
 def _bulk_retrieve_snapshot_values(
-    group_values_list: list[Group | GroupValues], group_deleted: bool = False
+    group_values_list: Iterable[Group | GroupValues], group_deleted: bool = False
 ) -> list[GroupAttributesSnapshot]:
     group_assignee_map = {
         ga["group_id"]: ga

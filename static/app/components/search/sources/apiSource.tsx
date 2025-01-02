@@ -425,16 +425,16 @@ class ApiSource extends Component<Props, State> {
 
     const [searchResults, directResults] = await Promise.all([
       this.getSearchableResults([
-        organizations,
-        projects,
-        teams,
-        members,
-        plugins,
-        integrations,
-        sentryApps,
-        docIntegrations,
+        organizations!,
+        projects!,
+        teams!,
+        members!,
+        plugins!,
+        integrations!,
+        sentryApps!,
+        docIntegrations!,
       ]),
-      this.getDirectResults([shortIdLookup, eventIdLookup]),
+      this.getDirectResults([shortIdLookup!, eventIdLookup!]),
     ]);
 
     // TODO(XXX): Might consider adding logic to maintain consistent ordering
@@ -468,14 +468,14 @@ class ApiSource extends Component<Props, State> {
       docIntegrations,
     ] = requests;
     const searchResults = await Promise.all([
-      createOrganizationResults(organizations),
-      createProjectResults(projects, orgId),
-      createTeamResults(teams, orgId),
-      createMemberResults(members, orgId),
-      createIntegrationResults(integrations, orgId),
-      createPluginResults(plugins, orgId),
-      createSentryAppResults(sentryApps, orgId),
-      createDocIntegrationResults(docIntegrations, orgId),
+      createOrganizationResults(organizations!),
+      createProjectResults(projects!, orgId),
+      createTeamResults(teams!, orgId),
+      createMemberResults(members!, orgId),
+      createIntegrationResults(integrations!, orgId),
+      createPluginResults(plugins!, orgId),
+      createSentryAppResults(sentryApps!, orgId),
+      createDocIntegrationResults(docIntegrations!, orgId),
     ]);
 
     return searchResults.flat();
@@ -488,8 +488,8 @@ class ApiSource extends Component<Props, State> {
 
     const directResults = (
       await Promise.all([
-        createShortIdLookupResult(shortIdLookup),
-        createEventIdLookupResult(eventIdLookup),
+        createShortIdLookupResult(shortIdLookup!),
+        createEventIdLookupResult(eventIdLookup!),
       ])
     ).filter(defined);
 
