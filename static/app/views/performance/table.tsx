@@ -62,15 +62,9 @@ type ColumnTitle = {
   tooltip?: string | ReactNode;
 };
 
-function isColumnTitle(
-  maybeTitleObject: React.ReactNode | ColumnTitle
-): maybeTitleObject is ColumnTitle {
-  return (
-    maybeTitleObject !== null &&
-    typeof maybeTitleObject === 'object' &&
-    maybeTitleObject.hasOwnProperty('title')
-  );
-}
+const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
+  return {title};
+});
 
 type Props = {
   eventView: EventView;
@@ -481,7 +475,7 @@ class _Table extends Component<Props, State> {
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
+    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES_OPTIONAL_TOOLTIP;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
       this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
@@ -505,7 +499,9 @@ class _Table extends Component<Props, State> {
               />
             </TeamKeyTransactionWrapper>
           );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+          return [
+            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
+          ];
         }
         return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
