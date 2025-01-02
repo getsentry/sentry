@@ -93,6 +93,11 @@ client.addHooks(new Sentry.OpenFeatureIntegrationHook());
 // Evaluating flags will record the result on the Sentry client.
 const result = client.getBooleanValue('my-flag', false);`,
   },
+  [IntegrationOptions.UNLEASH]: {
+    importStatement: `TODO`,
+    integration: 'TODO',
+    sdkInit: `TODO`,
+  },
   [IntegrationOptions.GENERIC]: {
     importStatement: ``,
     integration: 'featureFlagsIntegration()',

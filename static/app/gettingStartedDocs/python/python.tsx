@@ -31,6 +31,10 @@ const FLAG_OPTION_TO_IMPORT: Record<IntegrationOptions, FlagImports> = {
     module: 'openfeature',
     integration: 'OpenFeatureIntegration',
   },
+  [IntegrationOptions.UNLEASH]: {
+    module: 'unleash',
+    integration: 'UnleashIntegration',
+  },
   [IntegrationOptions.GENERIC]: {
     module: 'featureflags',
     integration: 'FeatureFlagsIntegration',
@@ -263,13 +267,34 @@ export const featureFlagOnboarding: OnboardingConfig = {
           code: `
 import sentry-sdk
 from sentry_sdk.integrations.${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].module} import ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}
+${
+  featureFlagOptions.integration === IntegrationOptions.UNLEASH
+    ? `from UnleashClient import UnleashClient
 
+unleash_client = UnleashClient(
+  url="<Unleash server URL>/api/",  # "http://localhost:4242/api/" if you are self-hosting Unleash.
+  app_name="my-app",                # Identifies your app in the Unleash UI.
+  custom_headers={
+      # See https://docs.getunleash.io/how-to/how-to-create-api-tokens
+      "Authorization": os.environ["UNLEASH_CLIENT_API_TOKEN"]
+  }
+)
+
+unleash_integration = UnleashIntegration(unleash_client)
+
+sentry_sdk.init(
+  dsn="${dsn.public}",
+  integrations=[unleash_integration],
+)`
+    : `
 sentry_sdk.init(
   dsn="${dsn.public}",
   integrations=[
     ${FLAG_OPTION_TO_IMPORT[featureFlagOptions.integration].integration}(),
   ]
-)`,
+)`
+}
+`,
         },
       ],
     },

@@ -118,6 +118,7 @@ export default function NewProviderForm({
         name="provider"
         options={[
           {value: 'LaunchDarkly', label: 'LaunchDarkly'},
+          {value: 'Unleash', label: 'Unleash'},
           {value: 'Generic', label: 'Custom'},
         ]}
         help={t(
