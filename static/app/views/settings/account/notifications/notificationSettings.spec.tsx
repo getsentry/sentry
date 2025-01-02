@@ -39,7 +39,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ]) {
       expect(
-        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ]) {
       expect(
-        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        await screen.findByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();

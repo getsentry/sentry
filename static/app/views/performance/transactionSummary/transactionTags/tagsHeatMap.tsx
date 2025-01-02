@@ -131,7 +131,7 @@ function TagsHeatMap(
     : undefined;
   const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
 
-  const rowKey = histogramData && findRowKey(histogramData[0]);
+  const rowKey = histogramData && findRowKey(histogramData[0]!);
 
   // Reverse since e-charts takes the axis labels in the opposite order.
   const columnNames = tagData ? tagData.map(tag => tag.tags_value).reverse() : [];
@@ -154,7 +154,7 @@ function TagsHeatMap(
 
   _data?.sort((a, b) => {
     const i = b[0] === a[0] ? 1 : 0;
-    return b[i] - a[i];
+    return b[i]! - a[i]!;
   });
 
   // TODO(k-fish): Cleanup options
@@ -252,7 +252,7 @@ function TagsHeatMap(
     if (histogramBucketInfo && histogramData) {
       const row = histogramData[bucket.dataIndex];
       const currentBucketStart = parseInt(
-        `${row[histogramBucketInfo.histogramField]}`,
+        `${row![histogramBucketInfo.histogramField]}`,
         10
       );
       const currentBucketEnd = currentBucketStart + histogramBucketInfo.bucketSize;
@@ -354,9 +354,9 @@ function TagsHeatMap(
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
                       const target = generateLinkToEventInTraceView({
                         eventId: row.id,
-                        traceSlug: row.trace?.toString(),
-                        projectSlug: (row.project || row['project.name']).toString(),
-                        timestamp: row.timestamp,
+                        traceSlug: row.trace?.toString()!,
+                        projectSlug: (row.project || row['project.name'])!.toString(),
+                        timestamp: row.timestamp!,
                         location: {
                           ...location,
                           query: {
@@ -401,7 +401,8 @@ function TagsHeatMap(
       </PositionWrapper>
     );
 
-  const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]);
+  const histogramBucketInfo =
+    histogramData && parseHistogramBucketInfo(histogramData[0]!);
 
   return (
     <StyledPanel>

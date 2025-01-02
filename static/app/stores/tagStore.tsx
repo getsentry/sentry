@@ -35,7 +35,7 @@ const storeConfig: TagStoreDefinition = {
     const newState: TagCollection = {};
 
     for (let i = 0; i < data.length; i++) {
-      const tag = data[i];
+      const tag = data[i]!;
       newState[tag.key] = {
         values: [],
         ...tag,
@@ -64,7 +64,7 @@ const storeConfig: TagStoreDefinition = {
         continue;
       }
       // Else override the tag with the previous tag
-      newState[tagKey] = this.state[tagKey];
+      newState[tagKey] = this.state[tagKey]!;
       carriedOver++;
     }
 

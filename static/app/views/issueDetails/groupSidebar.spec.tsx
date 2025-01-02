@@ -238,7 +238,7 @@ describe('GroupSidebar', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Expand Participants'})[0]
+      screen.getAllByRole('button', {name: 'Expand Participants'})[0]!
     );
 
     await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());

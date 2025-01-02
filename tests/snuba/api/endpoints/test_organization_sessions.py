@@ -6,7 +6,6 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry import release_health
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.snuba.metrics import to_intervals
@@ -359,15 +358,10 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             )
             assert response.status_code == 200, response.content
 
-            if release_health.backend.is_metrics_based():
-                # With the metrics backend, we should get exactly what we asked for,
-                # 6 intervals with 10 second length. However, since we add both the
-                # starting and ending interval we get 7 intervals.
-                assert len(response.data["intervals"]) == 7
-            else:
-                # With the sessions backend, the resolution will be 1m and will include starting and ending
-                # minute so 2 intervals
-                assert len(response.data["intervals"]) == 2
+            # With the metrics backend, we should get exactly what we asked for,
+            # 6 intervals with 10 second length. However, since we add both the
+            # starting and ending interval we get 7 intervals.
+            assert len(response.data["intervals"]) == 7
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_projects(self):
@@ -400,36 +394,26 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
         response = req()
         assert response.status_code == 200
 
-        if release_health.backend.is_metrics_based():
-            # Both these fields are supported by the metrics backend
-            assert response.data["groups"] == [
-                {
-                    "by": {},
-                    "totals": {"anr_rate()": 0.0, "crash_free_rate(user)": 1.0},
-                    "series": {"anr_rate()": [None, 0.0], "crash_free_rate(user)": [None, 1.0]},
-                }
-            ]
-        else:
-            # Both these fields are not supported by the sessions backend
-            assert response.data["groups"] == []
+        # Both these fields are supported by the metrics backend
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"anr_rate()": 0.0, "crash_free_rate(user)": 1.0},
+                "series": {"anr_rate()": [None, 0.0], "crash_free_rate(user)": [None, 1.0]},
+            }
+        ]
 
         response = req(field=["anr_rate()", "sum(session)"])
         assert response.status_code == 200
 
-        if release_health.backend.is_metrics_based():
-            # Both these fields are supported by the metrics backend
-            assert response.data["groups"] == [
-                {
-                    "by": {},
-                    "totals": {"anr_rate()": 0.0, "sum(session)": 9},
-                    "series": {"anr_rate()": [None, 0.0], "sum(session)": [0, 9]},
-                }
-            ]
-        else:
-            # Only sum(session) is supported by the sessions backend
-            assert response.data["groups"] == [
-                {"by": {}, "totals": {"sum(session)": 9}, "series": {"sum(session)": [0, 9]}}
-            ]
+        # Both these fields are supported by the metrics backend
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"anr_rate()": 0.0, "sum(session)": 9},
+                "series": {"anr_rate()": [None, 0.0], "sum(session)": [0, 9]},
+            }
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_filter_environment(self):

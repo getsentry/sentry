@@ -236,7 +236,7 @@ function duplicateView(
 ) {
   const idx = state.views.findIndex(tb => tb.key === tabListState?.selectedKey);
   if (idx !== -1) {
-    const duplicatedTab = state.views[idx];
+    const duplicatedTab = state.views[idx]!;
     const newTabs: IssueView[] = [
       ...state.views.slice(0, idx + 1),
       {
@@ -291,7 +291,7 @@ function setTempView(state: IssueViewsState, action: SetTempViewAction) {
 }
 
 function discardTempView(state: IssueViewsState, tabListState: TabListState<any>) {
-  tabListState?.setSelectedKey(state.views[0].key);
+  tabListState?.setSelectedKey(state.views[0]!.key);
   return {...state, tempView: undefined};
 }
 

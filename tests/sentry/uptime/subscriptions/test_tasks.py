@@ -90,11 +90,8 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
         pass
 
     def create_subscription(
-        self, status: UptimeSubscription.Status | None = None, subscription_id: str | None = None
+        self, status: UptimeSubscription.Status, subscription_id: str | None = None
     ):
-        if status is None:
-            status = self.expected_status
-
         return UptimeSubscription.objects.create(
             status=status.value,
             type="something",

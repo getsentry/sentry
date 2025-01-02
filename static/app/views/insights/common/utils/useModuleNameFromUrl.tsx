@@ -16,7 +16,7 @@ export function useModuleNameFromUrl(): ModuleName | null {
   });
 
   if (moduleKey) {
-    return urlToModuleNameMap[moduleKey];
+    return urlToModuleNameMap[moduleKey]!;
   }
 
   return null;

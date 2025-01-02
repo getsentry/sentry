@@ -89,7 +89,7 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
     query: 'event.type:transaction transaction:/api*',
-    project: [Number(data.projects[0].id), Number(data.projects[1].id)],
+    project: [Number(data.projects[0]!.id), Number(data.projects[1]!.id)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',
@@ -213,8 +213,8 @@ describe('Performance > Table', function () {
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
-      const transactionCells = within(rows[0]).getAllByTestId('grid-body-cell');
-      const transactionCell = transactionCells[1];
+      const transactionCells = within(rows[0]!).getAllByTestId('grid-body-cell');
+      const transactionCell = transactionCells[1]!;
       const link = within(transactionCell).getByRole('link', {name: '/apple/cart'});
       expect(link).toHaveAttribute(
         'href',
@@ -225,7 +225,7 @@ describe('Performance > Table', function () {
       expect(cellActionContainers).toHaveLength(27); // 9 cols x 3 rows
       const cellActionTriggers = screen.getAllByRole('button', {name: 'Actions'});
       expect(cellActionTriggers[8]).toBeInTheDocument();
-      await userEvent.click(cellActionTriggers[8]);
+      await userEvent.click(cellActionTriggers[8]!);
 
       expect(
         screen.getByRole('menuitemradio', {name: 'Show values greater than'})
@@ -236,7 +236,7 @@ describe('Performance > Table', function () {
 
       await userEvent.keyboard('{Escape}'); // Close actions menu
 
-      const transactionCellTrigger = cellActionTriggers[0]; // Transaction name
+      const transactionCellTrigger = cellActionTriggers[0]!; // Transaction name
       expect(transactionCellTrigger).toBeInTheDocument();
       await userEvent.click(transactionCellTrigger);
 

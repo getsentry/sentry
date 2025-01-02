@@ -1,5 +1,4 @@
 import datetime
-import logging
 
 import pytest
 import sentry_sdk
@@ -13,7 +12,7 @@ from sentry.utils import json
 
 
 def do_things() -> None:
-    logging.info("Ran do_things")
+    raise NotImplementedError
 
 
 @pytest.fixture
@@ -168,7 +167,7 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
 def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
-        pass
+        raise NotImplementedError
 
     activation = with_parameters.create_activation("one", 22, org_id=99)
     params = json.loads(activation.parameters)
@@ -180,7 +179,7 @@ def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
 def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
-        pass
+        raise NotImplementedError
 
     with sentry_sdk.start_transaction(op="test.task"):
         activation = with_parameters.create_activation("one", 22, org_id=99)

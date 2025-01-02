@@ -312,7 +312,7 @@ const storeConfig: GroupingStoreDefinition = {
             newItems.push(newItem);
           }
 
-          const newItem = newItemsMap[item.id];
+          const newItem = newItemsMap[item.id]!;
           const {childId, childLabel, eventCount, lastSeen, latestEvent} = item;
 
           if (eventCount) {
@@ -350,7 +350,7 @@ const storeConfig: GroupingStoreDefinition = {
           .map(scoreKey => [scoreKey, scoreMap[scoreKey]])
           .reduce((acc, [scoreKey, score]) => {
             // v1 layout: '<interface>:...'
-            const [interfaceName] = String(scoreKey).split(':');
+            const [interfaceName] = String(scoreKey).split(':') as [string];
 
             if (!acc[interfaceName]) {
               acc[interfaceName] = [];
@@ -458,7 +458,7 @@ const storeConfig: GroupingStoreDefinition = {
     this.state = {...this.state, unmergeList: newUnmergeList};
 
     // Update "checked" state for row
-    this.setStateForId('unmergeState', fingerprint, {checked});
+    this.setStateForId('unmergeState', fingerprint!, {checked});
 
     // Unmerge should be disabled if 0 or all items are selected, or if there's
     // only one item to select
