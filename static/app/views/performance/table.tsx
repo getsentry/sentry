@@ -472,14 +472,13 @@ class _Table extends Component<Props, State> {
       );
     }
 
-    return tooltip ? (
-      <Header>
+    if (!tooltip) {
+       return sortLink
+    }
+    return (<Header>
         {sortLink}
         <StyledQuestionTooltip size="xs" position="top" title={tooltip} isHoverable />
-      </Header>
-    ) : (
-      sortLink
-    );
+      </Header>)
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
