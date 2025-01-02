@@ -14,7 +14,6 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -23,6 +22,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
@@ -65,6 +65,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const moduleUrl = useModuleURL(ModuleName.VITAL);
@@ -289,7 +290,7 @@ export function PagePerformanceTable() {
       query: newQuery,
       source: ModuleName.VITAL,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
