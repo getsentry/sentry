@@ -38,27 +38,8 @@ class DatabaseBackedLogService(LogService):
 
             # Relief hatch for audit logs with known bad states. This allows us
             # to clear backlogged outboxes with invalid data.
-            skip_list = self._get_invalid_event_id_pass_list()
-            if event.event_id not in skip_list:
+            if not self._should_skip_invalid_event(event):
                 raise
-
-    def _get_invalid_event_id_pass_list(self) -> list[int]:
-        pass_list = options.get(self.event_id_skip_list_option)
-        list_valid = isinstance(pass_list, list)
-
-        if list_valid:
-            for item in pass_list:
-                if not isinstance(item, int):
-                    list_valid = False
-                    break
-
-        if not list_valid:
-            sentry_sdk.capture_message(
-                f"Invalid audit_log skip list. Verify that the '{self.event_id_skip_list_option}' option is a list of ints."
-            )
-            return []
-
-        return pass_list
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
         UserIP.objects.create_or_update(
@@ -99,6 +80,28 @@ class DatabaseBackedLogService(LogService):
             return None
 
         return last_entry.as_event()
+
+    def _should_skip_invalid_event(self, event: AuditLogEvent) -> bool:
+        event_id_pass_list = self._get_invalid_event_id_pass_list()
+        return event.event_id in event_id_pass_list
+
+    def _get_invalid_event_id_pass_list(self) -> list[int]:
+        pass_list = options.get(self.event_id_skip_list_option)
+        list_valid = isinstance(pass_list, list)
+
+        if list_valid:
+            for item in pass_list:
+                if not isinstance(item, int):
+                    list_valid = False
+                    break
+
+        if not list_valid:
+            sentry_sdk.capture_message(
+                f"Invalid audit_log skip list. Verify that the '{self.event_id_skip_list_option}' option is a list of ints."
+            )
+            return []
+
+        return pass_list
 
 
 class OutboxBackedLogService(LogService):

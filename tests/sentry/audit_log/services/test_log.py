@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_service
@@ -126,13 +128,37 @@ def test_user_ip_event() -> None:
 
 
 @django_db_all
-@control_silo_test
+@control_silo_test(include_monolith_run=True)
 def test_skip_list_when_invalid_data_passed() -> None:
     with pytest.raises(AssertionError):
         log_service.record_audit_log(event=AuditLogEvent(event_id=100))
 
     with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": [100]}):
         log_service.record_audit_log(event=AuditLogEvent(event_id=100))
+
+
+@django_db_all
+@control_silo_test(include_monolith_run=True)
+@mock.patch("sentry_sdk.capture_message")
+def test_invalid_skip_list(mock_capture_message) -> None:
+    with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": [100, "foo"]}):
+        with pytest.raises(AssertionError):
+            log_service.record_audit_log(event=AuditLogEvent(event_id=100))
+
+    mock_capture_message.assert_called_once()
+    mock_capture_message.assert_called_with(
+        "Invalid audit_log skip list. Verify that the 'hybrid_cloud.audit_log_event_id_invalid_pass_list' option is a list of ints."
+    )
+    mock_capture_message.reset_mock()
+
+    with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": None}):
+        with pytest.raises(AssertionError):
+            log_service.record_audit_log(event=AuditLogEvent(event_id=100))
+
+    mock_capture_message.assert_called_once()
+    mock_capture_message.assert_called_with(
+        "Invalid audit_log skip list. Verify that the 'hybrid_cloud.audit_log_event_id_invalid_pass_list' option is a list of ints."
+    )
 
 
 @django_db_all
