@@ -6,6 +6,7 @@ from typing import Any, Protocol, TypedDict, TypeVar
 
 from django.http.request import HttpHeaders
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 
 from sentry.flags.models import (
     ACTION_MAP,
@@ -79,6 +80,8 @@ def get_provider(
             return LaunchDarklyProvider(organization_id, signature=headers.get("X-LD-Signature"))
         case "generic":
             return GenericProvider(organization_id, signature=headers.get("X-Sentry-Signature"))
+        case "unleash":
+            return UnleashProvider(organization_id, signature=headers.get("Authorization"))
         case _:
             return None
 
@@ -148,7 +151,7 @@ class LaunchDarklyProvider:
         ]
 
     def validate(self, message_bytes: bytes) -> bool:
-        validator = SecretValidator(
+        validator = PayloadSignatureValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
@@ -229,13 +232,122 @@ class GenericProvider:
         return result
 
     def validate(self, message_bytes: bytes) -> bool:
-        validator = SecretValidator(
+        validator = PayloadSignatureValidator(
             self.organization_id,
             self.provider_name,
             message_bytes,
             self.signature,
         )
         return validator.validate()
+
+
+"""Unleash provider."""
+
+SUPPORTED_UNLEASH_ACTIONS = {
+    "feature-created",
+    "feature-archived",
+    "feature-revived",
+    "feature-updated",
+    "feature-strategy-update",
+    "feature-strategy-add",
+    "feature-strategy-remove",
+    "feature-stale-on",
+    "feature-stale-off",
+    "feature-completed",
+    "feature-environment-enabled",
+    "feature-environment-disabled",
+}
+
+
+class UnleashItemSerializer(serializers.Serializer):
+    # Technically featureName is not required by Unleash, but for all the actions we care about, it should exist.
+    featureName = serializers.CharField(max_length=100, required=True)
+    createdAt = serializers.DateTimeField(
+        required=True,
+        input_formats=["iso-8601"],
+        format=None,
+        default_timezone=datetime.UTC,
+    )
+    createdBy = serializers.CharField(required=True)
+    createdByUserId = serializers.IntegerField(required=False, allow_null=True)
+    type = serializers.CharField(allow_blank=True, required=True)
+    tags = serializers.ListField(
+        child=serializers.DictField(child=serializers.CharField()), required=False, allow_null=True
+    )
+    project = serializers.CharField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)
+
+
+def _get_user(validated_event: dict[str, Any]) -> tuple[str, int]:
+    """If the email is not valid, default to the user ID sent by Unleash."""
+    created_by = validated_event["createdBy"]
+    try:
+        serializers.EmailField().run_validation(created_by)
+        return created_by, CREATED_BY_TYPE_MAP["email"]
+    except ValidationError:
+        pass
+
+    if "createdByUserId" in validated_event:
+        return validated_event["createdByUserId"], CREATED_BY_TYPE_MAP["id"]
+    return created_by, CREATED_BY_TYPE_MAP["name"]
+
+
+class UnleashProvider:
+    provider_name = "unleash"
+
+    def __init__(self, organization_id: int, signature: str | None) -> None:
+        self.organization_id = organization_id
+        self.signature = signature
+
+    def handle(self, message: dict[str, Any]) -> list[FlagAuditLogRow]:
+        serializer = UnleashItemSerializer(data=message)
+        if not serializer.is_valid():
+            raise DeserializationError(serializer.errors)
+
+        result = serializer.validated_data
+        action = result["type"]
+
+        if action not in SUPPORTED_UNLEASH_ACTIONS:
+            return []
+
+        created_by, created_by_type = _get_user(result)
+        unleash_tags = result.get("tags") or []
+        tags = {tag["type"]: tag["value"] for tag in unleash_tags}
+
+        if result.get("project"):
+            tags["project"] = result.get("project")
+
+        if result.get("environment"):
+            tags["environment"] = result.get("environment")
+
+        return [
+            {
+                "action": _handle_unleash_actions(action),
+                "created_at": result["createdAt"],
+                "created_by": created_by,
+                "created_by_type": created_by_type,
+                "flag": result["featureName"],
+                "organization_id": self.organization_id,
+                "tags": tags,
+            }
+        ]
+
+    def validate(self, message_bytes: bytes) -> bool:
+        validator = AuthTokenValidator(
+            self.organization_id,
+            self.provider_name,
+            self.signature,
+        )
+        return validator.validate()
+
+
+def _handle_unleash_actions(action: str) -> int:
+    if action == "feature-created":
+        return ACTION_MAP["created"]
+    if action == "feature-archived":
+        return ACTION_MAP["deleted"]
+    else:
+        return ACTION_MAP["updated"]
 
 
 """Flagpole provider."""
@@ -271,7 +383,37 @@ def handle_flag_pole_event_internal(items: list[FlagAuditLogItem], organization_
 """Helpers."""
 
 
-class SecretValidator:
+class AuthTokenValidator:
+    """Abstract payload validator.
+
+    Similar to the SecretValidator class below, except we do not need
+    to validate the authorization string.
+    """
+
+    def __init__(
+        self,
+        organization_id: int,
+        provider: str,
+        signature: str | None,
+        secret_finder: Callable[[int, str], Iterator[str]] | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.provider = provider
+        self.signature = signature
+        self.secret_finder = secret_finder or _query_signing_secrets
+
+    def validate(self) -> bool:
+        if self.signature is None:
+            return False
+
+        for secret in self.secret_finder(self.organization_id, self.provider):
+            if secret == self.signature:
+                return True
+
+        return False
+
+
+class PayloadSignatureValidator:
     """Abstract payload validator.
 
     Allows us to inject dependencies for differing use cases. Specifically

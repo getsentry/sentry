@@ -77,6 +77,18 @@ class OrganizationFlagsWebHookSigningSecretsEndpointTestCase(APITestCase):
         assert len(models) == 1
         assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
 
+    def test_post_unleash(self):
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"secret": "41271af8b9804cd99a4c787a28274991", "provider": "unleash"},
+            )
+            assert response.status_code == 201, response.content
+
+        models = FlagWebHookSigningSecretModel.objects.filter(provider="unleash").all()
+        assert len(models) == 1
+        assert models[0].secret == "41271af8b9804cd99a4c787a28274991"
+
     def test_post_disabled(self):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404, response.content
