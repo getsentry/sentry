@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,7 +60,7 @@ function ReplayPreview({
   orgSlug,
   replaySlug,
 }: Props) {
-  const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
+  const {fetching, replay, replayRecord, fetchError, replayId} = useLoadReplayReader({
     orgSlug,
     replaySlug,
   });

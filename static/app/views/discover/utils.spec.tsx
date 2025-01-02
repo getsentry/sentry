@@ -4,7 +4,6 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -113,10 +112,10 @@ describe('decodeColumnOrder', function () {
     });
 
     results = decodeColumnOrder([{field: 'p75()', width: 123}]);
-    expect(results[0].type).toEqual('duration');
+    expect(results[0]!.type).toEqual('duration');
 
     results = decodeColumnOrder([{field: 'p99()', width: 123}]);
-    expect(results[0].type).toEqual('duration');
+    expect(results[0]!.type).toEqual('duration');
   });
 
   it('can decode elements with aggregate functions with arguments', function () {
@@ -252,14 +251,16 @@ describe('pushEventViewToLocation', function () {
   });
 
   it('correct query string object pushed to history', function () {
+    const navigate = jest.fn();
     const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView: eventView,
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(navigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           id: '1234',
@@ -280,9 +281,11 @@ describe('pushEventViewToLocation', function () {
   });
 
   it('extra query params', function () {
+    const navigate = jest.fn();
     const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
+      navigate,
       location,
       nextEventView: eventView,
       extraQuery: {
@@ -290,7 +293,7 @@ describe('pushEventViewToLocation', function () {
       },
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(navigate).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           id: '1234',

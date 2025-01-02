@@ -11,7 +11,6 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
@@ -21,6 +20,7 @@ import type {TraceTree} from '../traceModels/traceTree';
 import {TraceShape} from '../traceModels/traceTree';
 
 import {TraceWarningComponents} from './styles';
+import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
 type ErrorOnlyWarningsProps = {
@@ -126,59 +126,23 @@ function PerformanceSetupBanner({
   );
 }
 
-type Subscription = {
-  categories:
-    | {
-        transactions: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        spans: {
-          usageExceeded: boolean;
-        };
-      };
-  planDetails: {
-    billingInterval: 'monthly' | 'annual';
-  };
-  planTier: string;
-  onDemandBudgets?: {
-    enabled: boolean;
-  };
-};
-
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   const {data: performanceUsageStats} = usePerformanceUsageStats({
     organization: props.organization,
     tree: props.tree,
   });
 
-  const {data: subscription} = useApiQuery<Subscription>(
-    [`/subscriptions/${props.organization.slug}/`],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {
+    data: {hasExceededPerformanceUsageLimit, subscription},
+  } = usePerformanceSubscriptionDetails();
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  // Check if the organization still has transaction quota maxed out.
-  const dataCategories = subscription?.categories;
-  let hasExceededTransactionLimit = false;
-
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.transactions.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.spans.usageExceeded || false;
-    }
-  }
-
   const hideBanner =
     droppedTransactionsCount === 0 ||
     !props.organization.features.includes('trace-view-quota-exceeded-banner') ||
-    !hasExceededTransactionLimit;
+    !hasExceededPerformanceUsageLimit;
 
   useEffect(() => {
     if (hideBanner) {
@@ -235,7 +199,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         });
       }}
       docsRoute={getDocsLinkForEventType(
-        dataCategories && 'spans' in dataCategories ? 'span' : 'transaction'
+        subscription?.categories && 'spans' in subscription.categories
+          ? 'span'
+          : 'transaction'
       )}
       primaryButtonText={ctaText}
     />

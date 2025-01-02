@@ -153,8 +153,8 @@ function useBreadcrumbFilters({frames}: Options): Return {
       )
         .sort()
         .map(value => ({
-          value,
-          label: typeToLabel(value),
+          value: value!,
+          label: typeToLabel(value!),
         })),
     [frames, type]
   );

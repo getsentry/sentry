@@ -1,5 +1,4 @@
-import {type CSSProperties, Fragment, useCallback, useRef} from 'react';
-import {findDOMNode} from 'react-dom';
+import {type CSSProperties, Fragment, useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
@@ -29,22 +28,16 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
 
   const user = name && email && !isSameNameAndEmail ? `${name} <${email}>` : nameOrEmail;
 
-  const userNodeRef = useRef<HTMLInputElement>(null);
+  const userNodeId = useId();
 
   const handleSelectText = useCallback(() => {
-    if (!userNodeRef.current) {
-      return;
-    }
-
-    // We use findDOMNode here because `this.userNodeRef` is not a dom node,
-    // it's a ref to AutoSelectText
-    const node = findDOMNode(userNodeRef.current); // eslint-disable-line react/no-find-dom-node
-    if (!node || !(node instanceof HTMLElement)) {
+    const node = document.getElementById(userNodeId);
+    if (!node) {
       return;
     }
 
     selectText(node);
-  }, []);
+  }, [userNodeId]);
 
   const {onClick: handleCopyToClipboard} = useCopyToClipboard({
     text: user ?? '',
@@ -65,6 +58,7 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
     <Flex align="center" gap={space(1)} className={className} style={style}>
       <Tooltip title={t('Click to copy')} containerDisplayMode="flex">
         <Flex
+          id={userNodeId}
           align="center"
           wrap="wrap"
           gap={space(0.5)}
@@ -72,7 +66,6 @@ export default function FeedbackItemUsername({className, feedbackIssue, style}: 
             handleSelectText();
             handleCopyToClipboard();
           }}
-          ref={userNodeRef}
         >
           {isSameNameAndEmail ? (
             <strong>{name ?? email}</strong>

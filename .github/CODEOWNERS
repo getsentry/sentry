@@ -122,8 +122,7 @@ pyproject.toml                                           @getsentry/owners-pytho
 babel.config.*                                           @getsentry/owners-js-build
 biome.json                                               @getsentry/owners-js-build
 build-utils/                                             @getsentry/owners-js-build
-eslint.config.js                                         @getsentry/owners-js-build
-eslintrc.js                                              @getsentry/owners-js-build
+eslint.config.mjs                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 webpack.config.*                                         @getsentry/owners-js-build
@@ -359,10 +358,12 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 ## End of DevToolbar
 
 
-## Misc Replay
-/static/app/components/analyticsArea.tsx       @getsentry/replay-frontend
-/static/app/components/analyticsArea.spec.tsx  @getsentry/replay-frontend
-## End of Misc Replay
+## Frontend
+/static/app/components/analyticsArea.spec.tsx  @getsentry/app-frontend
+/static/app/components/analyticsArea.tsx       @getsentry/app-frontend
+/static/app/components/events/interfaces/      @getsentry/app-frontend
+/static/app/components/forms/                  @getsentry/app-frontend
+## End of Frontend
 
 
 ## Integrations

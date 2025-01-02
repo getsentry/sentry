@@ -1,7 +1,10 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, tagstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -9,25 +12,64 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.tags_examples import TagsExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.tagstore.types import TagValueSerializerResponse
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ISSUES
 
+    @extend_schema(
+        operation_id="List a Tag's Values for an Issue",
+        description="Returns a list of values associated with this key for an issue.\nReturns at most 1000 values when paginated.",
+        parameters=[
+            IssueParams.ISSUE_ID,
+            IssueParams.ISSUES_OR_GROUPS,
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="key",
+                location=OpenApiParameter.PATH,
+                type=OpenApiTypes.STR,
+                description="The tag key to look the values up for.",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="sort",
+                location="query",
+                required=False,
+                type=str,
+                description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
+                enum=["id", "date", "age", "count"],
+            ),
+            GlobalParams.ENVIRONMENT,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "TagKeyValuesDict", list[TagValueSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=[TagsExamples.GROUP_TAGKEY_VALUES],
+    )
     def get(self, request: Request, group, key) -> Response:
         """
         List a Tag's Values
-        ```````````````````
-
-        Return a list of values associated with this key for an issue.
-        When paginated can return at most 1000 values.
-
-        :pparam string issue_id: the ID of the issue to retrieve.
-        :pparam string key: the tag key to look the values up for.
-        :auth: required
         """
         analytics.record(
             "eventuser_endpoint.request",

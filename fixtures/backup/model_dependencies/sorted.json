@@ -18,7 +18,6 @@
   "sentry.identityprovider",
   "sentry.integration",
   "sentry.integrationfeature",
-  "sentry.metricskeyindexer",
   "sentry.monitorlocation",
   "sentry.option",
   "sentry.organization",

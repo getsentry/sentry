@@ -20,7 +20,7 @@ import WidgetQueries, {
 describe('Dashboards > WidgetQueries', function () {
   const initialData = initializeOrg();
 
-  const renderWithProviders = component =>
+  const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MetricsResultsMetaProvider>
         <DashboardsMEPProvider>
@@ -332,8 +332,8 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    await waitFor(() => expect(childProps?.tableResults?.[0].data).toHaveLength(1));
-    expect(childProps?.tableResults?.[0].meta).toBeDefined();
+    await waitFor(() => expect(childProps?.tableResults?.[0]!.data).toHaveLength(1));
+    expect(childProps?.tableResults?.[0]!.meta).toBeDefined();
   });
 
   it('can send multiple table queries', async function () {
@@ -399,8 +399,8 @@ describe('Dashboards > WidgetQueries', function () {
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
     await waitFor(() => expect(childProps?.tableResults).toHaveLength(2));
-    expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
-    expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
+    expect(childProps?.tableResults?.[0]!.data[0]!['sdk.name']).toBeDefined();
+    expect(childProps?.tableResults?.[1]!.data[0]!.title).toBeDefined();
   });
 
   it('can send big number result queries', async function () {
@@ -674,7 +674,7 @@ describe('Dashboards > WidgetQueries', function () {
       displayType: DisplayType.LINE,
       interval: '5m',
     };
-    let childProps;
+    let childProps!: GenericWidgetQueriesChildrenProps;
     const {rerender} = renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -727,7 +727,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults[0].seriesName).toEqual(
+    expect(childProps.timeseriesResults![0]!.seriesName).toEqual(
       'this query alias changed : count()'
     );
   });

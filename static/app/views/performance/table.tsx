@@ -87,7 +87,7 @@ function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
   return '>30d';
 }
 
-function _TrackHasDataAnalytics({
+function TrackHasDataAnalytics({
   children,
   isLoading,
   tableData,
@@ -180,7 +180,7 @@ class _Table extends Component<Props, State> {
       });
 
       if (action === Actions.EDIT_THRESHOLD) {
-        const project_threshold = dataRow.project_threshold_config;
+        const project_threshold = dataRow.project_threshold_config!;
         const transactionName = dataRow.transaction as string;
         const projectID = getProjectID(dataRow, projects);
 
@@ -557,7 +557,7 @@ class _Table extends Component<Props, State> {
                   queryExtras={getMEPQueryParams(value)}
                 >
                   {({pageLinks, isLoading, tableData}) => (
-                    <_TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
                       <VisuallyCompleteWithData
                         id="PerformanceTable"
                         hasData={
@@ -588,7 +588,7 @@ class _Table extends Component<Props, State> {
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </_TrackHasDataAnalytics>
+                    </TrackHasDataAnalytics>
                   )}
                 </DiscoverQuery>
               );

@@ -202,7 +202,7 @@ export function getAlertTimeWindow(period: string | undefined): TimeWindow | und
     .sort((a, b) => a - b);
 
   for (let index = 0; index < timeWindows.length; index++) {
-    const timeWindow = timeWindows[index];
+    const timeWindow = timeWindows[index]!;
     if (periodMinutes <= timeWindow) {
       return timeWindow;
     }
@@ -235,7 +235,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
     timeWindow: getAlertTimeWindow(eventView.interval) ?? defaultRule.timeWindow,
-    environment: eventView.environment.length ? eventView.environment[0] : null,
+    environment: eventView.environment.length ? eventView.environment[0]! : null,
   };
 }
 

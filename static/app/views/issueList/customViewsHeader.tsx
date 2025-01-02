@@ -193,14 +193,14 @@ function CustomViewsIssueListHeaderTabsContent({
           ...location,
           query: {
             ...queryParamsWithPageFilters,
-            query: draggableTabs[0].query,
-            sort: draggableTabs[0].querySort,
-            viewId: draggableTabs[0].id,
+            query: draggableTabs[0]!.query,
+            sort: draggableTabs[0]!.querySort,
+            viewId: draggableTabs[0]!.id,
           },
         }),
         {replace: true}
       );
-      tabListState?.setSelectedKey(draggableTabs[0].key);
+      tabListState?.setSelectedKey(draggableTabs[0]!.key);
       return;
     }
     // if a viewId is present, check if it exists in the existing views.
@@ -267,17 +267,12 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
-        dispatch({type: 'SET_TEMP_VIEW', query, sort});
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              viewId: undefined,
-            },
-          }),
-          {replace: true}
-        );
+        dispatch({
+          type: 'SET_TEMP_VIEW',
+          query,
+          sort,
+          updateQueryParams: {newQueryParams: {viewId: undefined}, replace: true},
+        });
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         return;
       }
@@ -331,7 +326,7 @@ function CustomViewsIssueListHeaderTabsContent({
       ? draggableTabs.find(tab => tab.id === viewId)!.key
       : query
         ? TEMPORARY_TAB_KEY
-        : draggableTabs[0].key;
+        : draggableTabs[0]!.key;
 
   return (
     // TODO(msun): look into possibly folding the DraggableTabBar component into this component
