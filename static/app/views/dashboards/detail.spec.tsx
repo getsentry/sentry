@@ -636,7 +636,6 @@ describe('Dashboards > Detail', function () {
 
     it('hides add widget option', async function () {
       // @ts-expect-error this is assigning to readonly property...
-      // eslint-disable-next-line import/namespace
       types.MAX_WIDGETS = 1;
 
       render(

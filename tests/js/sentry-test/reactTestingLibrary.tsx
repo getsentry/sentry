@@ -210,13 +210,15 @@ function waitForDrawerToHide(ariaLabel: string) {
  */
 instrumentUserEvent();
 
-// eslint-disable-next-line no-restricted-imports
+// eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
 export {
+  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   userEvent,
+  // eslint-disable-next-line import/export
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,
