@@ -169,7 +169,8 @@ function getReleasesSortBy(
   }
 
   // We could give a visual feedback to the user, saying that the sort by is invalid but
-  // since this UI will be refactored, maybe we just don't do anything now
+  // since this UI will be refactored, maybe we just don't do anything now.
+  // This is the same fallback as the one used in static/app/views/insights/common/queries/useReleases.tsx.
   return ReleasesSortOption.DATE;
 }
 
