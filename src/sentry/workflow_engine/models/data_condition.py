@@ -20,6 +20,7 @@ class Condition(models.TextChoices):
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_EQUAL = "ne"
+    EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
     EVERY_EVENT = "every_event"
