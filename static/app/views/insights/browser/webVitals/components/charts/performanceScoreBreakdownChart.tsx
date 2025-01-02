@@ -5,6 +5,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
@@ -49,6 +50,7 @@ export function PerformanceScoreBreakdownChart({
   browserTypes,
   subregions,
 }: Props) {
+  const organization = useOrganization();
   const theme = useTheme();
   const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
@@ -61,7 +63,10 @@ export function PerformanceScoreBreakdownChart({
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
-  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(
+    organization,
+    timeseriesData
+  );
 
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
     weightedTimeseriesData,

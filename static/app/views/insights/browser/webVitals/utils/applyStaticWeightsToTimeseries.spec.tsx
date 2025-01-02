@@ -1,7 +1,10 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 
 describe('applyStaticWeightsToTimeseries', function () {
   it('updates timeseries scores with static weighing', function () {
+    const organization = OrganizationFixture();
     const timeseriesData = {
       lcp: [
         {name: '2024-07-01T00:00:00.000Z', value: 90},
@@ -28,7 +31,7 @@ describe('applyStaticWeightsToTimeseries', function () {
         {name: '2024-07-02T00:00:00.000Z', value: 50},
       ],
     };
-    const result = applyStaticWeightsToTimeseries(timeseriesData);
+    const result = applyStaticWeightsToTimeseries(organization, timeseriesData);
     expect(result).toEqual({
       lcp: [
         {name: '2024-07-01T00:00:00.000Z', value: 90 * 0.3},

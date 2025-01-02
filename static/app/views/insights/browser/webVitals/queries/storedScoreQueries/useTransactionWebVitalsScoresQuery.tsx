@@ -6,7 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   RowWithScoreAndOpportunity,
@@ -124,7 +124,7 @@ export const useTransactionWebVitalsScoresQuery = ({
               row['performance_score(measurements.score.total)'];
           }
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
-            calculatePerformanceScoreFromStoredTableDataRow(row);
+            getWebVitalScoresFromTableDataRow(row);
           return {
             transaction: row.transaction!?.toString(),
             project: row.project!?.toString(),
