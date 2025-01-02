@@ -447,7 +447,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
-                    node={props.trace.root.children[0]}
+                    node={props.trace.root.children[0]!}
                     rootEventResults={props.rootEventResults}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
@@ -505,7 +505,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         onClick={() => {
           if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
             traceAnalytics.trackTabView(node, organization);
-            props.onTabScrollToNode(root);
+            props.onTabScrollToNode(root!);
           }
           props.traceDispatch({type: 'activate tab', payload: props.index});
         }}
@@ -515,7 +515,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
-            backgroundColor={makeTraceNodeBarColor(props.theme, root)}
+            backgroundColor={makeTraceNodeBarColor(props.theme, root!)}
           />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
@@ -642,6 +642,8 @@ const StyledIconClose = styled(IconClose)`
 const CloseButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  height: 100%;
+  border-bottom: 2px solid transparent;
   &:hover {
     color: ${p => p.theme.textColor};
   }
@@ -791,6 +793,7 @@ const TabLayoutControlItem = styled('li')`
   position: relative;
   z-index: 10;
   background-color: ${p => p.theme.background};
+  height: 100%;
 `;
 
 const Tab = styled('li')`

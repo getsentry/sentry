@@ -230,7 +230,7 @@ class TrendsContent extends Component<Props, State> {
                     organization={organization}
                     eventView={trendView}
                     onSearch={this.handleSearch}
-                    query={this.getFreeTextFromQuery(query)}
+                    query={this.getFreeTextFromQuery(query)!}
                   />
                 ) : (
                   <StyledSearchBar

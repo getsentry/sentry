@@ -186,7 +186,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         mock_send_invite_email.assert_called_once_with()
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_reinvite_pending_member(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
@@ -220,7 +219,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_can_only_reinvite(self, mock_send_invite_email):
         foo = self.create_team(organization=self.organization, name="Team Foo")
         self.login_as(self.curr_user)
@@ -253,7 +251,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_reinvite_non_pending_members(self, mock_send_invite_email):
         self.login_as(self.curr_user)
 
@@ -340,7 +337,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
         assert not mock_send_invite_email.mock_calls
 
     @patch("sentry.models.OrganizationMember.send_invite_email")
-    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_regenerate_pending_invite(self, mock_send_invite_email):
         member_om = self.create_member(
             organization=self.organization, email="foo@example.com", role="member"
@@ -1023,7 +1019,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(self.organization.slug, member_om.id, status_code=403)
 
-    @with_feature("organizations:members-invite-teammates")
     def test_member_delete_pending_invite(self):
         curr_invite = self.create_member(
             organization=self.organization,
@@ -1052,7 +1047,6 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_success_response(self.organization.slug, curr_invite.id)
         self.get_error_response(self.organization.slug, other_invite.id, status_code=400)
 
-    @with_feature("organizations:members-invite-teammates")
     def test_member_cannot_delete_members(self):
         self.login_as(self.curr_user)
 

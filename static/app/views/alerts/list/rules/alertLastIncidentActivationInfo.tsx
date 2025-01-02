@@ -53,7 +53,7 @@ function LastMetricAlertIncident({rule}: {rule: MetricAlert}) {
     return (
       <div>
         {t('Last activated ')}
-        <TimeSince date={rule.activations[0].dateCreated} />
+        <TimeSince date={rule.activations[0]!.dateCreated} />
       </div>
     );
   }

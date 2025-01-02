@@ -11,7 +11,10 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import (
+    OrganizationEndpoint,
+    OrganizationFlagWebHookSigningSecretPermission,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.flags.models import FlagWebHookSigningSecretModel
@@ -39,14 +42,16 @@ class FlagWebhookSigningSecretSerializer(Serializer):
 
 
 class FlagWebhookSigningSecretValidator(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=["launchdarkly", "generic"], required=True)
+    provider = serializers.ChoiceField(
+        choices=["launchdarkly", "generic", "unleash"], required=True
+    )
     secret = serializers.CharField(required=True, max_length=32, min_length=32)
 
 
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
-    permission_classes = (OrgAuthTokenPermission,)
+    permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -95,7 +100,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
 @region_silo_endpoint
 class OrganizationFlagsWebHookSigningSecretEndpoint(OrganizationEndpoint):
     owner = ApiOwner.REPLAY
-    permission_classes = (OrgAuthTokenPermission,)
+    permission_classes = (OrganizationFlagWebHookSigningSecretPermission,)
     publish_status = {"DELETE": ApiPublishStatus.PRIVATE}
 
     def delete(

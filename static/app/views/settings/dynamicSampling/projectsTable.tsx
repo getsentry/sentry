@@ -72,7 +72,7 @@ export function ProjectsTable({
           {t('Accepted Spans')}
           <IconArrow direction={tableSort === 'desc' ? 'down' : 'up'} size="xs" />
         </SortableHeader>,
-        period === '24h' ? t('Stored Spans per day') : t('Stored Spans per month'),
+        period === '24h' ? t('Stored Spans (24h)') : t('Stored Spans (30d)'),
         rateHeader,
       ]}
     >

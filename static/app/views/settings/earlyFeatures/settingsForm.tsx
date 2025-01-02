@@ -39,7 +39,7 @@ export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   const initialData: Record<string, boolean> = {};
   for (const flag in featureFlags) {
     if (featureFlags.hasOwnProperty(flag)) {
-      const obj = featureFlags[flag];
+      const obj = featureFlags[flag]!;
       initialData[flag] = obj.value;
     }
   }

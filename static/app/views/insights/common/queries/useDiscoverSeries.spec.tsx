@@ -196,6 +196,14 @@ describe('useSpanMetricsSeries', () => {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/minute',
+          },
+        },
       },
     });
 
@@ -217,6 +225,14 @@ describe('useSpanMetricsSeries', () => {
           {name: '2023-11-13T20:35:00+00:00', value: 7810.2},
           {name: '2023-11-13T20:40:00+00:00', value: 1216.8},
         ],
+        meta: {
+          fields: {
+            'spm()': 'rate',
+          },
+          units: {
+            'spm()': '1/minute',
+          },
+        },
         seriesName: 'spm()',
       },
     });
@@ -232,12 +248,28 @@ describe('useSpanMetricsSeries', () => {
             [1699907700, [{count: 10.1}]],
             [1699908000, [{count: 11.2}]],
           ],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'rate',
+            },
+            units: {
+              'http_response_rate(3)': '1/minute',
+            },
+          },
         },
         'http_response_rate(4)': {
           data: [
             [1699907700, [{count: 12.6}]],
             [1699908000, [{count: 13.8}]],
           ],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'rate',
+            },
+            units: {
+              'http_response_rate(4)': '1/minute',
+            },
+          },
         },
       },
     });
@@ -263,6 +295,14 @@ describe('useSpanMetricsSeries', () => {
           {name: '2023-11-13T20:35:00+00:00', value: 10.1},
           {name: '2023-11-13T20:40:00+00:00', value: 11.2},
         ],
+        meta: {
+          fields: {
+            'http_response_rate(3)': 'rate',
+          },
+          units: {
+            'http_response_rate(3)': '1/minute',
+          },
+        },
         seriesName: 'http_response_rate(3)',
       },
       'http_response_rate(4)': {
@@ -270,6 +310,50 @@ describe('useSpanMetricsSeries', () => {
           {name: '2023-11-13T20:35:00+00:00', value: 12.6},
           {name: '2023-11-13T20:40:00+00:00', value: 13.8},
         ],
+        meta: {
+          fields: {
+            'http_response_rate(4)': 'rate',
+          },
+          units: {
+            'http_response_rate(4)': '1/minute',
+          },
+        },
+        seriesName: 'http_response_rate(4)',
+      },
+    });
+  });
+
+  it('returns a series for all requested yAxis even without data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = renderHook(
+      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: [
+            'http_response_rate(3)',
+            'http_response_rate(4)',
+          ] as SpanMetricsProperty[],
+        },
+      }
+    );
+
+    await waitFor(() => expect(result.current.isPending).toEqual(false));
+
+    expect(result.current.data).toEqual({
+      'http_response_rate(3)': {
+        data: [],
+        meta: undefined,
+        seriesName: 'http_response_rate(3)',
+      },
+      'http_response_rate(4)': {
+        data: [],
+        meta: undefined,
         seriesName: 'http_response_rate(4)',
       },
     });

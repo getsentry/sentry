@@ -15,7 +15,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0802_remove_grouping_auto_update_option
+sentry: 0804_delete_metrics_key_indexer_pt2
 
 social_auth: 0002_default_auto_field
 
@@ -23,4 +23,4 @@ tempest: 0001_create_tempest_credentials_model
 
 uptime: 0021_drop_region_table_col
 
-workflow_engine: 0018_rm_data_condition_condition
+workflow_engine: 0019_drop_dataconditions_condition

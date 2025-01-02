@@ -7,9 +7,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useProjects from 'sentry/utils/useProjects';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Options = {
@@ -77,7 +77,6 @@ function useReplayData({
   segmentsPerPage = 100,
 }: Options): Result {
   const hasFetchedAttachments = useRef(false);
-  const projects = useProjects();
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -98,12 +97,7 @@ function useReplayData({
     [replayData?.data]
   );
 
-  const projectSlug = useMemo(() => {
-    if (!replayRecord) {
-      return null;
-    }
-    return projects.projects.find(p => p.id === replayRecord.project_id)?.slug ?? null;
-  }, [replayRecord, projects.projects]);
+  const projectSlug = useReplayProjectSlug({replayRecord});
 
   const getAttachmentsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {

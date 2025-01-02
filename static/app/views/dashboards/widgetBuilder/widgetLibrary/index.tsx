@@ -55,7 +55,7 @@ export function WidgetLibrary({
         {defaultWidgets.map((widget, index) => {
           const iconColor = theme.charts.getColorPalette(defaultWidgets.length - 2)[
             index
-          ];
+          ]!;
 
           const displayType =
             widget.displayType === DisplayType.TOP_N

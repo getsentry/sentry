@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime
@@ -21,7 +21,7 @@ def timestamp(d):
     return t - (t % 3600)
 
 
-def has_shape(data, shape, allow_empty=False):
+def has_shape(data, shape):
     """
     Determine if a data object has the provided shape
 
@@ -33,18 +33,16 @@ def has_shape(data, shape, allow_empty=False):
     A tuple is the same shape if it has the same length as `shape` and all the
     values have the same shape as the corresponding value in `shape`
     Any other object simply has to have the same type.
-    If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
     """
-    if not isinstance(data, type(shape)):
-        return False
+    assert isinstance(data, type(shape))
     if isinstance(data, dict):
         return (
-            (allow_empty or len(data) > 0)
+            len(data) > 0
             and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
             and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
-        return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)
+        return len(data) > 0 and all(has_shape(v, shape[0]) for v in data)
     elif isinstance(data, tuple):
         return len(data) == len(shape) and all(
             has_shape(data[i], shape[i]) for i in range(len(data))
@@ -85,7 +83,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "fingerprint": [["group-1"], ["group-2"]][
                         (r // 600) % 2
                     ],  # Switch every 10 mins
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
@@ -142,7 +140,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",

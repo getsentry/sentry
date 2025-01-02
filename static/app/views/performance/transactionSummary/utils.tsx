@@ -165,9 +165,9 @@ export function generateTransactionIdLink(transactionName?: string, view?: Domai
   ): LocationDescriptor => {
     return generateLinkToEventInTraceView({
       eventId: tableRow.id,
-      timestamp: tableRow.timestamp,
-      traceSlug: tableRow.trace?.toString(),
-      projectSlug: tableRow['project.name']?.toString(),
+      timestamp: tableRow.timestamp!,
+      traceSlug: tableRow.trace?.toString()!,
+      projectSlug: tableRow['project.name']?.toString()!,
       location,
       organization,
       spanId,
