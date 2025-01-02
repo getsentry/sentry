@@ -6,16 +6,12 @@ from sentry import ratelimits, tsdb
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.plugins.base import Plugin
-from sentry.plugins.base.configuration import react_plugin_config
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger(__name__)
 
 
 class DataForwardingPlugin(Plugin):
-    def configure(self, project, request):
-        return react_plugin_config(self, project, request)
-
     def has_project_conf(self):
         return True
 
