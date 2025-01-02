@@ -28,7 +28,7 @@ import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 import {
   type SectionConfig,
   SectionKey,
-  useEventDetails,
+  useIssueDetails,
 } from 'sentry/views/issueDetails/streamline/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
 
@@ -64,7 +64,7 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
     const organization = useOrganization();
     const theme = useTheme();
 
-    const {sectionData} = useEventDetails();
+    const {sectionData} = useIssueDetails();
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
       config => sectionLabels[config.key]
     );

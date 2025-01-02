@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -76,7 +76,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
   const environments = useEnvironmentsFromUrl();
   const eventView = useIssueDetailsEventView({group});
-  const {eventCount} = useEventDetails();
+  const {eventCount} = useIssueDetails();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   const hideDropdownButton =
