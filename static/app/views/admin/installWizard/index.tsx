@@ -42,7 +42,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     const options = this.state.data!;
 
     let missingOptions = new Set(
-      Object.keys(options).filter(option => !options[option].field.isSet)
+      Object.keys(options).filter(option => !options[option]!.field.isSet)
     );
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
@@ -57,7 +57,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     const fields: Record<string, React.ReactNode> = {};
 
     for (const key of missingOptions) {
-      const option = options[key];
+      const option = options[key]!;
       if (option.field.disabled) {
         continue;
       }
@@ -71,7 +71,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     const options = this.state.data!;
     const data = {};
     Object.keys(options).forEach(optionName => {
-      const option = options[optionName];
+      const option = options[optionName]!;
       if (option.field.disabled) {
         return;
       }
@@ -135,7 +135,7 @@ export default class InstallWizard extends DeprecatedAsyncView<
     return (
       <ApiForm
         apiMethod="PUT"
-        apiEndpoint={this.getEndpoints()[0][1]}
+        apiEndpoint={this.getEndpoints()[0]![1]!}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
         onSubmitSuccess={this.props.onConfigured}

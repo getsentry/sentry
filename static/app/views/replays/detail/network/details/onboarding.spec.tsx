@@ -30,7 +30,7 @@ describe('Setup', () => {
     it('should render the full snippet when no setup is done yet', () => {
       render(
         <Setup
-          item={MOCK_ITEM}
+          item={MOCK_ITEM!}
           projectId="0"
           showSnippet={Output.SETUP}
           visibleTab="details"
@@ -65,7 +65,7 @@ describe('Setup', () => {
     it('should render a note on the Details tab to allow this url', () => {
       render(
         <Setup
-          item={MOCK_ITEM}
+          item={MOCK_ITEM!}
           projectId="0"
           showSnippet={Output.URL_SKIPPED}
           visibleTab="details"
@@ -88,7 +88,7 @@ describe('Setup', () => {
     it('should render a note on the Requst & Response tabs to allow this url and enable capturing bodies', () => {
       render(
         <Setup
-          item={MOCK_ITEM}
+          item={MOCK_ITEM!}
           projectId="0"
           showSnippet={Output.URL_SKIPPED}
           visibleTab="request"
@@ -111,7 +111,7 @@ describe('Setup', () => {
     it('should render a note on the Requst & Response tabs to enable capturing bodies', () => {
       render(
         <Setup
-          item={MOCK_ITEM}
+          item={MOCK_ITEM!}
           projectId="0"
           showSnippet={Output.BODY_SKIPPED}
           visibleTab="request"
@@ -134,7 +134,7 @@ describe('Setup', () => {
     it('should render a short message reminding you to configure custom headers', () => {
       render(
         <Setup
-          item={MOCK_ITEM}
+          item={MOCK_ITEM!}
           projectId="0"
           showSnippet={Output.DATA}
           visibleTab="details"

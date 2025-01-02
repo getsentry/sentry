@@ -181,7 +181,7 @@ function OnboardingContent({
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
   const backendPlatform =
     currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
@@ -215,7 +215,7 @@ function OnboardingContent({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions()[0]
+          replayJsFrameworkOptions()[0]!
         : currentPlatform,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
@@ -226,7 +226,7 @@ function OnboardingContent({
   const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform:
       replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions()[0],
+      replayJsFrameworkOptions()[0]!,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
     productType: 'replay',
