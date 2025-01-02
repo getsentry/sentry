@@ -1,8 +1,8 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -10,6 +10,7 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 const {RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 
 function RenderBlockingSelector({value}: {value?: string}) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -29,7 +30,7 @@ function RenderBlockingSelector({value}: {value?: string}) {
           organization,
           filter: newValue?.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
