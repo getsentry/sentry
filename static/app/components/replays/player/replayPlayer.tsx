@@ -6,13 +6,13 @@ import {
   baseReplayerCss,
   sentryReplayerCss,
 } from 'sentry/components/replays/player/styles';
-import {useReplayPlayerEvents} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {useReplayPlayerPlugins} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {
   useReplayPlayerStateDispatch,
   useReplayUserAction,
 } from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 function useReplayerInstance() {
   // The div that is emitted from react, where we will attach the replayer to
@@ -26,7 +26,7 @@ function useReplayerInstance() {
   const [prefs] = useReplayPrefs();
   const initialPrefsRef = useRef(prefs); // don't re-mount the player when prefs change, instead there's a useEffect
   const getPlugins = useReplayPlayerPlugins();
-  const events = useReplayPlayerEvents();
+  const replay = useReplayReader();
 
   // Hooks to sync this Replayer state up and out of this component
   const dispatch = useReplayPlayerStateDispatch();
@@ -39,7 +39,9 @@ function useReplayerInstance() {
       return () => {};
     }
 
-    const replayer = new Replayer(events, {
+    const webFrames = replay.getRRWebFrames();
+
+    const replayer = new Replayer(webFrames, {
       root,
       blockClass: 'sentry-block',
       mouseTail: {
@@ -48,7 +50,7 @@ function useReplayerInstance() {
         lineWidth: 2,
         strokeStyle: theme.purple200,
       },
-      plugins: getPlugins(events),
+      plugins: getPlugins(webFrames),
       skipInactive: initialPrefsRef.current.isSkippingInactive,
       speed: initialPrefsRef.current.playbackSpeed,
     });
@@ -56,7 +58,7 @@ function useReplayerInstance() {
     replayerRef.current = replayer;
     dispatch({type: 'didMountPlayer', replayer, dispatch});
     return () => dispatch({type: 'didUnmountPlayer', replayer});
-  }, [dispatch, events, getPlugins, theme]);
+  }, [dispatch, getPlugins, replay, theme]);
 
   useEffect(() => {
     if (!replayerRef.current) {

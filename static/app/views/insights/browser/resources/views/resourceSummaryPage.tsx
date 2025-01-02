@@ -54,7 +54,7 @@ function ResourceSummary() {
       <SampleList
         transactionRoute={webVitalsModuleURL}
         subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-        groupId={groupId}
+        groupId={groupId!}
         moduleName={ModuleName.RESOURCE}
         transactionName={transaction as string}
         referrer={TraceViewSources.ASSETS_MODULE}
@@ -149,11 +149,14 @@ function ResourceSummary() {
 
               {isImage && (
                 <ModuleLayout.Full>
-                  <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                  <SampleImages
+                    groupId={groupId!}
+                    projectId={data?.[0]?.['project.id']}
+                  />
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId} />
+              <ResourceSummaryCharts groupId={groupId!} />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />

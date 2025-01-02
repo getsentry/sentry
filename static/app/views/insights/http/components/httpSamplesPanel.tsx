@@ -41,7 +41,7 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
 import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
@@ -348,7 +348,7 @@ export function HTTPSamplesPanel() {
                 value={domainTransactionMetrics?.[0]?.['sum(span.self_time)']}
                 unit={DurationUnit.MILLISECOND}
                 tooltip={getTimeSpentExplanation(
-                  domainTransactionMetrics?.[0]?.['time_spent_percentage()'],
+                  domainTransactionMetrics?.[0]!?.['time_spent_percentage()'],
                   'http.client'
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
@@ -385,7 +385,7 @@ export function HTTPSamplesPanel() {
           {query.panel === 'duration' && (
             <Fragment>
               <ModuleLayout.Full>
-                <DurationChart
+                <DurationChartWithSamples
                   series={[
                     {
                       ...durationData[`avg(span.self_time)`],

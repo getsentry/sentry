@@ -41,7 +41,7 @@ function useAnalyticsParams(organizations: Organization[] | undefined) {
   // otherwise we don't know which org the user is in
   return useMemo(
     () => ({
-      organization: organizations?.length === 1 ? organizations[0] : null,
+      organization: organizations?.length === 1 ? organizations[0]! : null,
       project_platform: projectPlatform,
     }),
     [organizations, projectPlatform]
@@ -147,7 +147,7 @@ function ProjectSelection({hash, organizations = []}: Omit<Props, 'allowSelectio
   const isSearchStale = search !== debouncedSearch;
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() => {
     if (organizations.length === 1) {
-      return organizations[0].id;
+      return organizations[0]!.id;
     }
 
     const urlParams = new URLSearchParams(location.search);

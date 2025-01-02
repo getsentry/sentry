@@ -22,6 +22,7 @@ import type {
 } from 'sentry/types/echarts';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 const getDate = date =>
@@ -242,7 +243,7 @@ class ChartZoom extends Component<Props> {
       return;
     }
 
-    this.setPeriod(this.history[0]);
+    this.setPeriod(this.history[0]!);
 
     // reset history
     this.history = [];

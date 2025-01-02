@@ -24,7 +24,7 @@ import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {DurationChartWithSamples} from 'sentry/views/insights/http/components/charts/durationChartWithSamples';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
@@ -278,7 +278,7 @@ export function MessageSpanSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <DurationChart
+            <DurationChartWithSamples
               series={[
                 {
                   ...durationData[`avg(span.duration)`],

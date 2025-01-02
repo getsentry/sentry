@@ -37,7 +37,7 @@ describe('javascript-nuxt onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry-example-page/))
+      screen.getByText(textWithMarkupMatcher(/sentry-example-page/))
     ).toBeInTheDocument();
   });
 });
