@@ -230,7 +230,7 @@ function WidgetViewerModal(props: Props) {
     if (location.action === 'POP') {
       setModalSelection(locationPageFilter);
     }
-  }, [end, location, locationPageFilter, start]);
+  }, [location, locationPageFilter]);
 
   const [totalResults, setTotalResults] = useState<string | undefined>();
 
