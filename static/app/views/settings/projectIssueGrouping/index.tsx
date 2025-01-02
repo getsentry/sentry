@@ -92,13 +92,13 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
         <JsonForm
           {...jsonFormProps}
           title={t('Fingerprint Rules')}
-          fields={[fields.fingerprintingRules]}
+          fields={[fields.fingerprintingRules!]}
         />
 
         <JsonForm
           {...jsonFormProps}
           title={t('Stack Trace Rules')}
-          fields={[fields.groupingEnhancements]}
+          fields={[fields.groupingEnhancements!]}
         />
       </Form>
     </SentryDocumentTitle>

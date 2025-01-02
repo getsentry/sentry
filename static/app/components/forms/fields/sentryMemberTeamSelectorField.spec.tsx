@@ -50,7 +50,7 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Select Owner'}),
-      `#${mockTeams[0].slug}`
+      `#${mockTeams[0]!.slug}`
     );
 
     expect(mock).toHaveBeenCalledWith('team:1', expect.anything());
@@ -92,7 +92,7 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Select Owner'}),
-      mockUsers[0].name
+      mockUsers[0]!.name
     );
 
     expect(mock).toHaveBeenCalledWith('user:1', expect.anything());
@@ -114,11 +114,11 @@ describe('SentryMemberTeamSelectorField', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Select Owner'}),
-      mockUsers[0].name
+      mockUsers[0]!.name
     );
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Select Owner'}),
-      `#${mockTeams[0].slug}`
+      `#${mockTeams[0]!.slug}`
     );
 
     expect(mock).toHaveBeenCalledWith(['user:1', 'team:1'], expect.anything());

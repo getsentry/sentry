@@ -163,7 +163,7 @@ describe('IssueList', function () {
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
       selection: {
-        projects: [parseInt(projects[0].id, 10)],
+        projects: [parseInt(projects[0]!.id, 10)],
         environments: [],
         datetime: {period: '14d'},
       },
@@ -214,7 +214,7 @@ describe('IssueList', function () {
       render(<IssueListWithStores {...routerProps} />, {router});
 
       // Loading saved searches
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
       await screen.findByRole('grid', {name: 'Create a search query'});
@@ -481,7 +481,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await userEvent.click(screen.getByRole('button', {name: /custom search/i}));
       await userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
@@ -512,7 +512,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
@@ -552,7 +552,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
@@ -628,7 +628,7 @@ describe('IssueList', function () {
         router: routerWithSavedSearch,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
 
@@ -677,7 +677,7 @@ describe('IssueList', function () {
         router: routerWithSavedSearch,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
 
@@ -728,7 +728,7 @@ describe('IssueList', function () {
         {router: newRouter}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -810,7 +810,7 @@ describe('IssueList', function () {
         {router: newRouter}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await userEvent.click(screen.getByLabelText(/Remove Default/i));
 
@@ -835,7 +835,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
 
@@ -1159,7 +1159,7 @@ describe('IssueList', function () {
       };
       render(<IssueListOverview {...defaultProps} />, {router});
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {

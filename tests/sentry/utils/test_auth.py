@@ -135,13 +135,11 @@ class GetLoginRedirectTest(TestCase):
 
 @control_silo_test
 class LoginTest(TestCase):
-    def _make_request(self, next=None):
+    def _make_request(self):
         request = HttpRequest()
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.session = self.session
         request.user = AnonymousUser()
-        if next:
-            request.session["_next"] = next
         return request
 
     def test_simple(self):

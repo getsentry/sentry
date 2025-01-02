@@ -102,7 +102,7 @@ function getMockReplayWithCrumbFrame(
     attachments,
   });
 
-  invariant(isHydrationErrorFrame(hydrationErrorFrame), '');
+  invariant(isHydrationErrorFrame(hydrationErrorFrame!), '');
   return {hydrationErrorFrame, replay};
 }
 

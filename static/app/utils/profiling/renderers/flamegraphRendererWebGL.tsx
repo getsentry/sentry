@@ -115,7 +115,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
     this.searchResults = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
-      const frame = this.frames[index];
+      const frame = this.frames[index]!;
 
       const x1 = frame.start;
       const x2 = frame.end;
@@ -288,7 +288,7 @@ export class FlamegraphRendererWebGL extends FlamegraphRenderer {
 
     for (let i = 0; i < this.frames.length; i++) {
       this.searchResults.set(
-        searchResults.has(getFlamegraphFrameSearchId(this.frames[i]))
+        searchResults.has(getFlamegraphFrameSearchId(this.frames[i]!))
           ? MATCHED_SEARCH_FRAME_ATTRIBUTES
           : UNMATCHED_SEARCH_FRAME_ATTRIBUTES,
         i * 6

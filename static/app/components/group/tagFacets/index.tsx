@@ -51,8 +51,8 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
   Object.keys(tagsData).forEach(tagKey => {
     if (tagKey === 'release') {
       transformedTagsData[tagKey] = {
-        ...tagsData[tagKey],
-        topValues: tagsData[tagKey].topValues.map(topValue => {
+        ...tagsData[tagKey]!,
+        topValues: tagsData[tagKey]!.topValues.map(topValue => {
           return {
             ...topValue,
             name: formatVersion(topValue.name),
@@ -61,8 +61,8 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
       };
     } else if (tagKey === 'device') {
       transformedTagsData[tagKey] = {
-        ...tagsData[tagKey],
-        topValues: tagsData[tagKey].topValues.map(topValue => {
+        ...tagsData[tagKey]!,
+        topValues: tagsData[tagKey]!.topValues.map(topValue => {
           return {
             ...topValue,
             name: topValue.readable ?? topValue.name,
@@ -70,7 +70,7 @@ export function TAGS_FORMATTER(tagsData: Record<string, GroupTag>) {
         }),
       };
     } else {
-      transformedTagsData[tagKey] = tagsData[tagKey];
+      transformedTagsData[tagKey] = tagsData[tagKey]!;
     }
   });
 

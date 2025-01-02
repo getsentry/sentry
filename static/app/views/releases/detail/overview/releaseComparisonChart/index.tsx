@@ -31,7 +31,6 @@ import {
 } from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -39,6 +38,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import type {Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   displaySessionStatusPercent,
   getReleaseBounds,
@@ -105,6 +105,7 @@ function ReleaseComparisonChart({
   organization,
   hasHealthData,
 }: Props) {
+  const navigate = useNavigate();
   const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
   const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -824,7 +825,7 @@ function ReleaseComparisonChart({
       organization,
       chartType,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -890,8 +891,8 @@ function ReleaseComparisonChart({
   let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);
 
   if (!chart) {
-    chart = charts[0];
-    activeChart = charts[0].type;
+    chart = charts[0]!;
+    activeChart = charts[0]!.type;
   }
 
   const showPlaceholders = loading || eventsLoading;

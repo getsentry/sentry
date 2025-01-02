@@ -205,7 +205,7 @@ function processDiscoverTimeseriesResult(
   }
 
   const firstYAxis =
-    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0]!;
 
   if (result.data) {
     // Result data only returned one series. This means there was only only one yAxis requested, and no sub-series. Iterate the data, and return the result

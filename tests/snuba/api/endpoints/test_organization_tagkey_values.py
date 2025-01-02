@@ -38,10 +38,6 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
     def project(self):
         return self.create_project(organization=self.org, teams=[self.team])
 
-    @cached_property
-    def group(self):
-        return self.create_group(project=self.project)
-
 
 class OrganizationTagKeyValuesTest(OrganizationTagKeyTestCase):
     def test_simple(self):

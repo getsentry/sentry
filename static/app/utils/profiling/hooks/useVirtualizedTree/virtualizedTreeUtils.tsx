@@ -237,7 +237,7 @@ export function findRenderedItems<T extends TreeLike>({
         key: indexPointer,
         ref: null,
         styles: {position: 'absolute', top: elementTop},
-        item: items[indexPointer],
+        item: items[indexPointer]!,
       };
 
       visibleItemIndex++;
