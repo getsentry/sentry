@@ -243,7 +243,6 @@ describe('WidgetBuilderSlideout', () => {
         }),
       }
     );
-    renderGlobalModal();
 
     await userEvent.click(await screen.findByText('Add Widget'));
 
