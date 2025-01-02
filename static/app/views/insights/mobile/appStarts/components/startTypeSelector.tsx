@@ -1,9 +1,9 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {SpanMetricsField} from 'sentry/views/insights/types';
@@ -12,6 +12,7 @@ export const COLD_START_TYPE = 'cold';
 export const WARM_START_TYPE = 'warm';
 
 export function StartTypeSelector() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -33,7 +34,7 @@ export function StartTypeSelector() {
           organization,
           type: newValue.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
