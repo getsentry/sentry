@@ -12,10 +12,10 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 type Props = {
@@ -25,6 +25,8 @@ type Props = {
 };
 
 function StatusBreakdown({eventView, location, organization}: Props) {
+  const navigate = useNavigate();
+
   const breakdownView = eventView
     .withColumns([
       {kind: 'function', function: ['count', '', '', undefined]},
@@ -74,7 +76,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
                 .setFilterValues('transaction.status', [
                   row['transaction.status'] as string,
                 ]);
-              browserHistory.push({
+              navigate({
                 pathname: location.pathname,
                 query: {
                   ...location.query,
