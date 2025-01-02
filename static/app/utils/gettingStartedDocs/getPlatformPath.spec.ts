@@ -26,6 +26,18 @@ describe('getPlatformPath', () => {
     expect(getPlatformPath(platform)).toEqual('python/python');
   });
 
+  it('returns the correct path for the multi-word framework', () => {
+    const platform: PlatformIntegration = {
+      type: 'framework',
+      id: 'java-spring-boot',
+      language: 'java',
+      link: 'link',
+      name: 'name',
+    };
+
+    expect(getPlatformPath(platform)).toEqual('java/spring-boot');
+  });
+
   it('handles special cases', () => {
     function getFrameworkPlatformWithId(id: PlatformKey): PlatformIntegration {
       return {
