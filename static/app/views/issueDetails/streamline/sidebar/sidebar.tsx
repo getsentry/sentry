@@ -107,4 +107,7 @@ export const SidebarSectionTitle = styled(SidebarSection.Title)`
 const Side = styled(Layout.Side)`
   position: relative;
   padding: ${space(1.5)} ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
+    border-top: 1px solid ${p => p.theme.border};
+  }
 `;

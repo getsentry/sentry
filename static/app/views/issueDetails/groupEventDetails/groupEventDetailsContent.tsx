@@ -90,7 +90,7 @@ export function EventDetailsContent({
   group,
   event,
   project,
-}: Required<EventDetailsContentProps>) {
+}: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
   const location = useLocation();
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -463,6 +463,10 @@ export default function GroupEventDetailsContent({
 }: EventDetailsContentProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
+  if (hasStreamlinedUI) {
+    return <EventDetails event={event} group={group} project={project} />;
+  }
+
   if (!event) {
     return (
       <NotFoundMessage>
@@ -471,11 +475,7 @@ export default function GroupEventDetailsContent({
     );
   }
 
-  return hasStreamlinedUI ? (
-    <EventDetails event={event} group={group} project={project} />
-  ) : (
-    <EventDetailsContent group={group} event={event} project={project} />
-  );
+  return <EventDetailsContent group={group} event={event} project={project} />;
 }
 
 /**

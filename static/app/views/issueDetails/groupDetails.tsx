@@ -41,7 +41,6 @@ import useApi from 'sentry/utils/useApi';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -223,8 +222,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const organization = useOrganization();
   const router = useRouter();
   const params = router.params;
-  const navigate = useNavigate();
-  const defaultIssueEvent = useDefaultIssueEvent();
 
   const [allProjectChanged, setAllProjectChanged] = useState<boolean>(false);
 
@@ -236,7 +233,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const {
     data: event,
     isPending: loadingEvent,
-    isError: isEventError,
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
@@ -251,27 +247,6 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     error: groupError,
     refetch: refetchGroupCall,
   } = useGroup({groupId});
-
-  useEffect(() => {
-    const eventIdUrl = params.eventId ?? defaultIssueEvent;
-    const isLatestOrRecommendedEvent =
-      eventIdUrl === 'latest' || eventIdUrl === 'recommended';
-
-    if (isLatestOrRecommendedEvent && isEventError && router.location.query.query) {
-      // If we get an error from the helpful event endpoint, it probably means
-      // the query failed validation. We should remove the query to try again.
-      navigate(
-        {
-          ...router.location,
-          query: {
-            ...router.location.query,
-            query: undefined,
-          },
-        },
-        {replace: true}
-      );
-    }
-  }, [defaultIssueEvent, isEventError, navigate, router.location, params.eventId]);
 
   /**
    * Allows the GroupEventHeader to display the previous event while the new event is loading.
