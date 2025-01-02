@@ -275,7 +275,11 @@ class SlackService:
                     {
                         "rule_action_uuid": parent_notification.rule_action_uuid,
                         "channel_id": channel_id,
-                        "thread_ts": parent_notification.message_identifier,
+                        "thread_ts": (
+                            str(parent_notification.message_identifier)
+                            if parent_notification.message_identifier
+                            else ""
+                        ),
                     }
                 )
                 record_lifecycle_termination_level(lifecycle, e)
