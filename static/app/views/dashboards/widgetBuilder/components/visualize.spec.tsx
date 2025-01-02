@@ -17,8 +17,8 @@ jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
-  let organization;
-  let mockNavigate;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -92,7 +92,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeEnabled();
-    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]);
+    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]!);
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });
@@ -525,6 +525,34 @@ describe('Visualize', () => {
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toBeDisabled();
+  });
+
+  it('does not show the legend alias input for chart widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p90(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('transaction.duration');
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('p90');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
   });
 
   describe('spans', () => {

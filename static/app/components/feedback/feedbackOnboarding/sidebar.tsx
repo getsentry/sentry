@@ -163,7 +163,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
   const defaultTab = 'npm';
   const location = useLocation();
@@ -195,7 +195,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const jsFrameworkPlatform =
     replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-    replayJsFrameworkOptions()[0];
+    replayJsFrameworkOptions()[0]!;
 
   const {
     isLoading,

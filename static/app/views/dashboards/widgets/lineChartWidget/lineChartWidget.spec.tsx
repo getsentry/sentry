@@ -11,14 +11,6 @@ describe('LineChartWidget', () => {
           title="eps()"
           description="Number of events per second"
           timeseries={[sampleDurationTimeSeries]}
-          meta={{
-            fields: {
-              'eps()': 'rate',
-            },
-            units: {
-              'eps()': '1/second',
-            },
-          }}
         />
       );
     });

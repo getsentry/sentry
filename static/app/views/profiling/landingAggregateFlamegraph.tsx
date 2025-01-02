@@ -706,6 +706,11 @@ const AggregateFlamegraphFunctionName = styled('button')`
   border: none;
   background: none;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: left;
 `;
 
 const AggregateFlamegraphFunctionBreakdownContainer = styled('div')`

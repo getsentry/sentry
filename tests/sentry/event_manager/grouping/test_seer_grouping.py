@@ -67,7 +67,7 @@ class SeerEventManagerGroupingTest(TestCase):
                 return_value=[seer_result_data],
             ),
             patch(
-                "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
+                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=True,
             ),
         ):

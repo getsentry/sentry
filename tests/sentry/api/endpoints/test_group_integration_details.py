@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from django.db.utils import IntegrityError
@@ -44,6 +45,18 @@ class GroupIntegrationDetailsTest(APITestCase):
             default_event_type=EventType.DEFAULT,
         )
         self.group = self.event.group
+
+    def assert_metric_recorded(
+        self, mock_metric_method, expected_exc: type[Exception], exc_args: Any | None = None
+    ):
+
+        assert mock_metric_method.call_count == 1
+        mock_metric_method.assert_called_with(mock.ANY)
+        call_arg = mock_metric_method.call_args_list[0][0][0]
+        assert isinstance(call_arg, expected_exc)
+
+        if exc_args:
+            assert call_arg.args == (exc_args,)
 
     def test_simple_get_link(self):
         self.login_as(user=self.user)
@@ -317,21 +330,18 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
             assert response.status_code == 400
 
-            mock_record_halt.assert_called_once_with(mock.ANY)
-
-            call_arg = mock_record_halt.call_args_list[0][0][0]
-            assert isinstance(call_arg, IntegrationFormError)
-            assert call_arg.field_errors == {"foo": "Invalid foo provided"}
+            self.assert_metric_recorded(
+                mock_record_halt, IntegrationFormError, str({"foo": "Invalid foo provided"})
+            )
 
             # Test with IntegrationError
             mock_after_link_issue.side_effect = raise_integration_error
             response = self.client.put(path, data={"externalIssue": "APP-123"})
             assert response.status_code == 400
 
-            mock_record_failure.assert_called_once_with(mock.ANY)
-            call_arg = mock_record_failure.call_args_list[0][0][0]
-            assert isinstance(call_arg, IntegrationError)
-            assert call_arg.args == ("The whole operation was invalid",)
+            self.assert_metric_recorded(
+                mock_record_failure, IntegrationError, "The whole operation was invalid"
+            )
 
     def test_put_feature_disabled(self):
         self.login_as(user=self.user)
@@ -353,7 +363,8 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
-    def test_simple_post(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_simple_post(self, mock_record_event):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
@@ -402,6 +413,42 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "label": "display name: APP-123",
                 "new": True,
             }
+
+            mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None)
+
+    @mock.patch.object(ExampleIntegration, "create_issue")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_post_raises_issue_creation_exception(
+        self, mock_record_failure, mock_record_halt, mock_create_issue
+    ):
+        self.login_as(user=self.user)
+        org = self.organization
+        group = self.create_group()
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
+
+        path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
+        with self.feature("organizations:integrations-issue-basic"):
+            mock_create_issue.side_effect = raise_integration_error
+            response = self.client.post(path, data={})
+            assert response.status_code == 400
+
+            assert mock_record_failure.call_count == 1
+
+            self.assert_metric_recorded(
+                mock_record_failure, IntegrationError, "The whole operation was invalid"
+            )
+
+            mock_create_issue.side_effect = raise_integration_form_error
+
+            response = self.client.post(path, data={})
+            assert response.status_code == 400
+
+            self.assert_metric_recorded(
+                mock_record_halt, IntegrationFormError, str({"foo": "Invalid foo provided"})
+            )
 
     def test_post_feature_disabled(self):
         self.login_as(user=self.user)

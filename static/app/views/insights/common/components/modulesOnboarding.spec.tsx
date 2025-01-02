@@ -18,7 +18,7 @@ describe('ModulesOnboarding', () => {
     jest.resetAllMocks();
   });
 
-  it('renders children correctly', async () => {
+  it('renders children correctly', () => {
     const project = ProjectFixture({hasInsightsCaches: true});
     project.firstTransactionEvent = true;
     project.hasInsightsCaches = true;
@@ -59,7 +59,7 @@ describe('ModulesOnboarding', () => {
       </ModulesOnboarding>
     );
 
-    await screen.getByText('Module Content');
+    screen.getByText('Module Content');
   });
 
   it('renders onboarding content correctly', async () => {

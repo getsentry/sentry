@@ -203,8 +203,8 @@ function Visualize() {
 
           let matchingAggregate;
           if (
-            fields[index].kind === FieldValueKind.FUNCTION &&
-            FieldValueKind.FUNCTION in fields[index]
+            fields[index]!.kind === FieldValueKind.FUNCTION &&
+            FieldValueKind.FUNCTION in fields[index]!
           ) {
             matchingAggregate = aggregates.find(
               option =>
@@ -274,7 +274,7 @@ function Visualize() {
                           'aria-label': t('Column Selection'),
                         }}
                         disabled={
-                          fields[index].kind === FieldValueKind.FUNCTION &&
+                          fields[index]!.kind === FieldValueKind.FUNCTION &&
                           matchingAggregate?.value.meta.parameters.length === 0
                         }
                       />
@@ -285,7 +285,7 @@ function Visualize() {
                         onChange={aggregateSelection => {
                           const isNone = aggregateSelection.value === NONE;
                           const newFields = cloneDeep(fields);
-                          const currentField = newFields[index];
+                          const currentField = newFields[index]!;
                           const newAggregate = aggregates.find(
                             option => option.value.meta.name === aggregateSelection.value
                           );
@@ -306,7 +306,7 @@ function Visualize() {
                                 } else {
                                   currentField.function[1] =
                                     (currentField.function[1] ||
-                                      newAggregate.value.meta.parameters[0]
+                                      newAggregate.value.meta.parameters[0]!
                                         .defaultValue) ??
                                     '';
                                   // Set the remaining parameters for the new aggregate
@@ -317,7 +317,7 @@ function Visualize() {
                                   ) {
                                     // Increment by 1 to skip past the aggregate name
                                     currentField.function[i + 1] =
-                                      newAggregate.value.meta.parameters[i].defaultValue;
+                                      newAggregate.value.meta.parameters[i]!.defaultValue;
                                   }
                                 }
 
@@ -378,7 +378,7 @@ function Visualize() {
                               field:
                                 'function' in currentField
                                   ? (currentField.function[1] as string) ??
-                                    columnOptions[0].value
+                                    columnOptions[0]!.value
                                   : '',
                             };
                           }
@@ -408,10 +408,12 @@ function Visualize() {
                                 currentValue={currentValue}
                                 onChange={value => {
                                   const newFields = cloneDeep(fields);
-                                  if (newFields[index].kind !== FieldValueKind.FUNCTION) {
+                                  if (
+                                    newFields[index]!.kind !== FieldValueKind.FUNCTION
+                                  ) {
                                     return;
                                   }
-                                  newFields[index].function[parameterIndex + 2] = value;
+                                  newFields[index]!.function[parameterIndex + 2] = value;
                                   dispatch({
                                     type: updateAction,
                                     payload: newFields,
@@ -425,13 +427,23 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras>
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  placeholder={t('Add Alias')}
-                  onChange={() => {}}
-                />
+              <FieldExtras isChartWidget={isChartWidget}>
+                {!isChartWidget && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    placeholder={t('Add Alias')}
+                    value={field.alias}
+                    onChange={e => {
+                      const newFields = cloneDeep(fields);
+                      newFields[index]!.alias = e.target.value;
+                      dispatch({
+                        type: updateAction,
+                        payload: newFields,
+                      });
+                    }}
+                  />
+                )}
                 <StyledDeleteButton
                   borderless
                   icon={<IconDelete />}
@@ -458,18 +470,11 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [
-                ...(fields ?? []),
-                // TODO: Define a default aggregate/field for the datasets?
-                {
-                  function: ['count', '', undefined, undefined],
-                  kind: FieldValueKind.FUNCTION,
-                },
-              ],
+              payload: [...(fields ?? []), datasetConfig.defaultField],
             })
           }
         >
-          {t('+ Add Series')}
+          {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
         {datasetConfig.enableEquations && (
           <AddButton
@@ -628,11 +633,11 @@ const FieldRow = styled('div')`
 
 const StyledDeleteButton = styled(Button)``;
 
-const FieldExtras = styled('div')`
+const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: 1;
+  flex: ${p => (p.isChartWidget ? '0' : '1')};
 `;
 
 const AddButton = styled(Button)`

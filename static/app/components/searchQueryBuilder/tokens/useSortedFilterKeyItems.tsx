@@ -180,7 +180,7 @@ export function useSortedFilterKeyItems({
       .map(({item}) => item)
       .filter(item => item.type === 'key' && filterKeys[item.item.key])
       .map(({item}) => {
-        return createItem(filterKeys[item.key], getFieldDefinition(item.key));
+        return createItem(filterKeys[item.key]!, getFieldDefinition(item.key));
       });
 
     if (includeSuggestions) {

@@ -45,10 +45,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
+   * Default field to add to the widget query when adding a new field.
+   */
+  defaultField: QueryFieldValue;
+  /**
    * Default query to display when dataset is selected in the
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Whether or not the current dataset supports adding equations.
+   */
   enableEquations: boolean;
   /**
    * Field options to display in the Column selectors for

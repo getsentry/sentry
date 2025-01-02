@@ -178,7 +178,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(openFeatureProviderOptions[0]);
+  }>(openFeatureProviderOptions[0]!);
 
   // Second dropdown: other SDK providers
   const sdkProviderOptions = sdkProviders.map(provider => {
@@ -198,7 +198,7 @@ function OnboardingContent({
     value: string;
     label?: ReactNode;
     textValue?: string;
-  }>(sdkProviderOptions[0]);
+  }>(sdkProviderOptions[0]!);
 
   const defaultTab: string = 'openFeature';
   const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -48,160 +48,144 @@ type Props = {
   rules?: any[] | null;
 };
 
-type State = {
-  commitsExpanded: boolean;
-  rulesExpanded: boolean;
-};
+function SuggestedOwnerHovercard(props: Props) {
+  const [commitsExpanded, setCommitsExpanded] = useState<boolean>(false);
+  const [rulesExpanded, setRulesExpanded] = useState<boolean>(false);
 
-class SuggestedOwnerHovercard extends Component<Props, State> {
-  state: State = {
-    commitsExpanded: false,
-    rulesExpanded: false,
+  const {organization, actor, commits, rules, release, projectId} = props;
+  const modalData = {
+    initialData: [
+      {
+        emails: actor.email ? new Set([actor.email]) : new Set([]),
+      },
+    ],
+    source: 'suggested_assignees',
   };
 
-  render() {
-    const {organization, actor, commits, rules, release, projectId, ...props} =
-      this.props;
-    const {commitsExpanded, rulesExpanded} = this.state;
-    const modalData = {
-      initialData: [
-        {
-          emails: actor.email ? new Set([actor.email]) : new Set([]),
-        },
-      ],
-      source: 'suggested_assignees',
-    };
-
-    return (
-      <StyledHovercard
-        skipWrapper
-        header={
-          <Fragment>
-            <HovercardHeader>
-              <ActorAvatar size={20} hasTooltip={false} actor={actor} />
-              {actor.name || actor.email}
-            </HovercardHeader>
-            {actor.id === undefined && (
-              <EmailAlert type="warning" showIcon>
-                {tct(
-                  'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
-                  {
-                    actorEmail: <strong>{actor.email}</strong>,
-                    accountSettings: <Link to="/settings/account/emails/" />,
-                    inviteUser: <a onClick={() => openInviteMembersModal(modalData)} />,
-                  }
-                )}
-              </EmailAlert>
-            )}
-          </Fragment>
-        }
-        body={
-          <HovercardBody>
-            {commits !== undefined && !release && (
-              <Fragment>
-                <Divider>
-                  <h6>{t('Commits')}</h6>
-                </Divider>
-                <div>
-                  {commits
-                    .slice(0, commitsExpanded ? commits.length : 3)
-                    .map(({message, dateCreated}, i) => (
-                      <CommitReasonItem key={i}>
-                        <CommitIcon />
-                        <CommitMessage
-                          message={message ?? undefined}
-                          date={dateCreated}
-                        />
-                      </CommitReasonItem>
-                    ))}
-                </div>
-                {commits.length > 3 && !commitsExpanded ? (
-                  <ViewMoreButton
-                    priority="link"
-                    size="zero"
-                    onClick={() => this.setState({commitsExpanded: true})}
-                  >
-                    {t('View more')}
-                  </ViewMoreButton>
-                ) : null}
-              </Fragment>
-            )}
-            {commits !== undefined && release && (
-              <Fragment>
-                <Divider>
-                  <h6>{t('Suspect Release')}</h6>
-                </Divider>
-                <div>
-                  <CommitReasonItem>
-                    <OwnershipTag tagType="release" />
-                    <ReleaseValue>
-                      {tct('[actor] [verb] [commits] in [release]', {
-                        actor: actor.name,
-                        verb: commits.length > 1 ? t('made') : t('last committed'),
-                        commits:
-                          commits.length > 1 ? (
-                            // Link to release commits
-                            <Link
-                              to={{
-                                pathname: `/organizations/${
-                                  organization?.slug
-                                }/releases/${encodeURIComponent(
-                                  release.version
-                                )}/commits/`,
-                                query: {project: projectId},
-                              }}
-                            >
-                              {t('%s commits', commits.length)}
-                            </Link>
-                          ) : (
-                            <CommitLink
-                              inline
-                              showIcon={false}
-                              commitId={commits[0].id}
-                              repository={commits[0].repository}
-                            />
-                          ),
-                        release: (
-                          <Version version={release.version} projectId={projectId} />
+  return (
+    <StyledHovercard
+      skipWrapper
+      header={
+        <Fragment>
+          <HovercardHeader>
+            <ActorAvatar size={20} hasTooltip={false} actor={actor} />
+            {actor.name || actor.email}
+          </HovercardHeader>
+          {actor.id === undefined && (
+            <EmailAlert type="warning" showIcon>
+              {tct(
+                'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
+                {
+                  actorEmail: <strong>{actor.email}</strong>,
+                  accountSettings: <Link to="/settings/account/emails/" />,
+                  inviteUser: <a onClick={() => openInviteMembersModal(modalData)} />,
+                }
+              )}
+            </EmailAlert>
+          )}
+        </Fragment>
+      }
+      body={
+        <HovercardBody>
+          {commits !== undefined && !release && (
+            <Fragment>
+              <Divider>
+                <h6>{t('Commits')}</h6>
+              </Divider>
+              <div>
+                {commits
+                  .slice(0, commitsExpanded ? commits.length : 3)
+                  .map(({message, dateCreated}, i) => (
+                    <CommitReasonItem key={i}>
+                      <CommitIcon />
+                      <CommitMessage message={message ?? undefined} date={dateCreated} />
+                    </CommitReasonItem>
+                  ))}
+              </div>
+              {commits.length > 3 && !commitsExpanded ? (
+                <ViewMoreButton
+                  priority="link"
+                  size="zero"
+                  onClick={() => setCommitsExpanded(true)}
+                >
+                  {t('View more')}
+                </ViewMoreButton>
+              ) : null}
+            </Fragment>
+          )}
+          {commits !== undefined && release && (
+            <Fragment>
+              <Divider>
+                <h6>{t('Suspect Release')}</h6>
+              </Divider>
+              <div>
+                <CommitReasonItem>
+                  <OwnershipTag tagType="release" />
+                  <ReleaseValue>
+                    {tct('[actor] [verb] [commits] in [release]', {
+                      actor: actor.name,
+                      verb: commits.length > 1 ? t('made') : t('last committed'),
+                      commits:
+                        commits.length > 1 ? (
+                          // Link to release commits
+                          <Link
+                            to={{
+                              pathname: `/organizations/${
+                                organization?.slug
+                              }/releases/${encodeURIComponent(release.version)}/commits/`,
+                              query: {project: projectId},
+                            }}
+                          >
+                            {t('%s commits', commits.length)}
+                          </Link>
+                        ) : (
+                          <CommitLink
+                            inline
+                            showIcon={false}
+                            commitId={commits[0]!.id}
+                            repository={commits[0]!.repository}
+                          />
                         ),
-                      })}
-                    </ReleaseValue>
-                  </CommitReasonItem>
-                </div>
-              </Fragment>
-            )}
-            {defined(rules) && (
-              <Fragment>
-                <Divider>
-                  <h6>{t('Matching Ownership Rules')}</h6>
-                </Divider>
-                <div>
-                  {rules
-                    .slice(0, rulesExpanded ? rules.length : 3)
-                    .map(([type, matched], i) => (
-                      <RuleReasonItem key={i}>
-                        <OwnershipTag tagType={type} />
-                        <OwnershipValue>{matched}</OwnershipValue>
-                      </RuleReasonItem>
-                    ))}
-                </div>
-                {rules.length > 3 && !rulesExpanded ? (
-                  <ViewMoreButton
-                    priority="link"
-                    size="zero"
-                    onClick={() => this.setState({rulesExpanded: true})}
-                  >
-                    {t('View more')}
-                  </ViewMoreButton>
-                ) : null}
-              </Fragment>
-            )}
-          </HovercardBody>
-        }
-        {...props}
-      />
-    );
-  }
+                      release: (
+                        <Version version={release.version} projectId={projectId} />
+                      ),
+                    })}
+                  </ReleaseValue>
+                </CommitReasonItem>
+              </div>
+            </Fragment>
+          )}
+          {defined(rules) && (
+            <Fragment>
+              <Divider>
+                <h6>{t('Matching Ownership Rules')}</h6>
+              </Divider>
+              <div>
+                {rules
+                  .slice(0, rulesExpanded ? rules.length : 3)
+                  .map(([type, matched], i) => (
+                    <RuleReasonItem key={i}>
+                      <OwnershipTag tagType={type} />
+                      <OwnershipValue>{matched}</OwnershipValue>
+                    </RuleReasonItem>
+                  ))}
+              </div>
+              {rules.length > 3 && !rulesExpanded ? (
+                <ViewMoreButton
+                  priority="link"
+                  size="zero"
+                  onClick={() => setRulesExpanded(true)}
+                >
+                  {t('View more')}
+                </ViewMoreButton>
+              ) : null}
+            </Fragment>
+          )}
+        </HovercardBody>
+      }
+      {...props}
+    />
+  );
 }
 
 const tagColors = {

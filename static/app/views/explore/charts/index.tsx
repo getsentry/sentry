@@ -246,7 +246,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index], chartType};
+      newVisualizes[index] = {...newVisualizes[index]!, chartType};
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -334,10 +334,14 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '8px',
+                  top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
+                legendOptions={{
+                  itemGap: 24,
+                  top: '4px',
+                }}
                 data={data}
                 error={error}
                 loading={loading}
@@ -355,19 +359,29 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                   {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
                     ? t('* Extrapolated from \u2026')
                     : resultConfidence === 'low'
-                      ? tct('* Extrapolated from [insufficientSamples]', {
-                          insufficientSamples: (
-                            <Tooltip
-                              title={t(
-                                'Boost accuracy by shortening the date range, increasing the time interval or removing extra filters.'
-                              )}
-                            >
-                              <InsufficientSamples>
-                                {t('insufficient samples')}
-                              </InsufficientSamples>
-                            </Tooltip>
-                          ),
-                        })
+                      ? tct(
+                          '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
+                          {
+                            sampleCount: (
+                              <Count
+                                value={
+                                  extrapolationMetaResults.data?.[0]?.['count_sample()']
+                                }
+                              />
+                            ),
+                            insufficientSamples: (
+                              <Tooltip
+                                title={t(
+                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
+                                )}
+                              >
+                                <InsufficientSamples>
+                                  {t('insufficient for accuracy')}
+                                </InsufficientSamples>
+                              </Tooltip>
+                            ),
+                          }
+                        )
                       : tct('* Extrapolated from [sampleCount] samples', {
                           sampleCount: (
                             <Count

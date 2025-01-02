@@ -1,7 +1,6 @@
 import {type ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {
   CompactSelect,
   type SelectOption,
@@ -64,12 +63,7 @@ export default function SubregionSelector({size}: Props) {
       size={size}
       searchable
       triggerProps={{
-        prefix: (
-          <Fragment>
-            <StyledFeatureBadge type="new" />
-            {t('Geo region')}
-          </Fragment>
-        ),
+        prefix: t('Geo region'),
       }}
       multiple
       loading={isPending}
@@ -102,10 +96,6 @@ export default function SubregionSelector({size}: Props) {
     />
   );
 }
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-right: ${space(1)};
-`;
 
 const MenuTitleContainer = styled('div')`
   display: flex;

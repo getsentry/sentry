@@ -97,7 +97,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        const targetType = RULE_TARGET_MAP[type];
+        const targetType = RULE_TARGET_MAP[type!];
 
         return {targetType, targetIdentifier: Number(id)};
       });

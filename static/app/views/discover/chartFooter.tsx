@@ -83,7 +83,7 @@ export default function ChartFooter({
         {TOP_EVENT_MODES.includes(displayMode) ? (
           <OptionSelector
             title={t('Y-Axis')}
-            selected={yAxisValue[0]}
+            selected={yAxisValue[0]!}
             options={yAxisOptions}
             onChange={yAxis => onAxisChange([yAxis])}
           />

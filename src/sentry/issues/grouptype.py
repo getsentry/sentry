@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
@@ -21,11 +22,8 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.users.models.user import User
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
     from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
-
-import logging
+    from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
 
@@ -192,13 +190,6 @@ class GroupType:
         valid_categories = [category.value for category in GroupCategory]
         if self.category not in valid_categories:
             raise ValueError(f"Category must be one of {valid_categories} from GroupCategory.")
-
-    @classmethod
-    def is_visible(cls, organization: Organization, user: User | None = None) -> bool:
-        if cls.released:
-            return True
-
-        return features.has(cls.build_visible_feature_name(), organization, actor=user)
 
     @classmethod
     def allow_ingest(cls, organization: Organization) -> bool:

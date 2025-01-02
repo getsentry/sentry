@@ -26,6 +26,8 @@ class FingerprintVariantMetadata(TypedDict):
 
 
 class BaseVariant(ABC):
+    variant_name: str | None = None
+
     @property
     def contributes(self) -> bool:
         return True
@@ -146,6 +148,7 @@ class ComponentVariant(BaseVariant):
         self.component = component
         self.config = strategy_config
         self.contributing_component = contributing_component
+        self.variant_name = self.component.id  # "app", "system", or "default"
 
     @property
     def description(self) -> str:
