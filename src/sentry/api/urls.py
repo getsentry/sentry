@@ -412,6 +412,7 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.internal_ea_features import InternalEAFeaturesEndpoint
+from .endpoints.internal_register_trusted_relay import InternalRegisterTrustedRelayEndpoint
 from .endpoints.notification_defaults import NotificationDefaultsEndpoints
 from .endpoints.notifications import (
     NotificationActionsAvailableEndpoint,
@@ -3042,6 +3043,11 @@ INTERNAL_URLS = [
         r"^feature-flags/ea-feature-flags$",
         InternalEAFeaturesEndpoint.as_view(),
         name="sentry-api-0-internal-ea-features",
+    ),
+    re_path(
+        r"^register-trusted-relay/$",
+        InternalRegisterTrustedRelayEndpoint.as_view(),
+        name="sentry-api-0-internal-register-trusted-relay",
     ),
 ]
 
