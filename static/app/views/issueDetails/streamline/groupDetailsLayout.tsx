@@ -8,7 +8,6 @@ import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   EventDetailsContext,
   useEventDetailsReducer,
@@ -34,9 +33,8 @@ export function GroupDetailsLayout({
   children,
 }: GroupDetailsLayoutProps) {
   const {eventDetails, dispatch} = useEventDetailsReducer();
-  const [sidebarOpen] = useSyncedLocalStorageState('issue-details-sidebar-open', true);
   const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.large})`);
-  const shouldDisplaySidebar = sidebarOpen || isScreenSmall;
+  const shouldDisplaySidebar = eventDetails.isSidebarOpen || isScreenSmall;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -48,7 +46,10 @@ export function GroupDetailsLayout({
         project={project}
         groupReprocessingStatus={groupReprocessingStatus}
       />
-      <StyledLayoutBody data-test-id="group-event-details" sidebarOpen={sidebarOpen}>
+      <StyledLayoutBody
+        data-test-id="group-event-details"
+        sidebarOpen={eventDetails.isSidebarOpen}
+      >
         <div>
           <EventDetailsHeader event={event} group={group} project={project} />
           <GroupContent>

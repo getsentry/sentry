@@ -51,12 +51,11 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
     if (!nav) {
       return;
     }
-
     const navHeight = nav.offsetHeight ?? 0;
     const sidebarHeight = isScreenMedium ? theme.sidebar.mobileHeightNumber : 0;
     dispatch({
-      type: 'UPDATE_DETAILS',
-      state: {navScrollMargin: navHeight + sidebarHeight},
+      type: 'UPDATE_NAV_SCROLL_MARGIN',
+      margin: navHeight + sidebarHeight,
     });
   }, [nav, isScreenMedium, dispatch, theme.sidebar.mobileHeightNumber]);
 

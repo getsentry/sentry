@@ -92,6 +92,7 @@ export interface EventDetailsContextType extends EventDetailsState {
 
 export const EventDetailsContext = createContext<EventDetailsContextType>({
   sectionData: {},
+  isSidebarOpen: true,
   navScrollMargin: 0,
   eventCount: 0,
   dispatch: () => {},
@@ -102,33 +103,52 @@ export function useEventDetails() {
 }
 
 export interface EventDetailsState {
+  /**
+   * Controls the state of each section.
+   */
   sectionData: {
     [key in SectionKey]?: SectionConfig;
   };
-  eventCount?: number;
-  navScrollMargin?: number;
+  /**
+   * Controls whether the sidebar is open.
+   */
+  isSidebarOpen: boolean;
+  /**
+   * Allows updating the event count based on the date/time/environment filters.
+   */
+  eventCount: number;
+  /**
+   * The margin to add to the 'Jump To' nav (accounts for the main app sidebar on small screen sizes).
+   */
+  navScrollMargin: number;
 }
 
 type UpdateSectionAction = {
-  key: SectionKey;
   type: 'UPDATE_SECTION';
+  key: SectionKey;
   config?: Partial<SectionConfig>;
 };
 
-type UpdateDetailsAction = {
-  type: 'UPDATE_DETAILS';
-  state?: Omit<EventDetailsState, 'sectionData'>;
+type UpdateNavScrollMarginAction = {
+  type: 'UPDATE_NAV_SCROLL_MARGIN';
+  margin: number;
 };
 
 type UpdateEventCountAction = {
-  count: number;
   type: 'UPDATE_EVENT_COUNT';
+  count: number;
+};
+
+type UpdateSidebarAction = {
+  type: 'UPDATE_SIDEBAR_STATE';
+  isOpen: boolean;
 };
 
 export type EventDetailsActions =
   | UpdateSectionAction
-  | UpdateDetailsAction
-  | UpdateEventCountAction;
+  | UpdateNavScrollMarginAction
+  | UpdateEventCountAction
+  | UpdateSidebarAction;
 
 function updateSection(
   state: EventDetailsState,
@@ -153,6 +173,9 @@ function updateSection(
 export function useEventDetailsReducer() {
   const initialState: EventDetailsState = {
     sectionData: {},
+    isSidebarOpen: true,
+    eventCount: 0,
+    navScrollMargin: 0,
   };
 
   const reducer: Reducer<EventDetailsState, EventDetailsActions> = useCallback(
@@ -160,10 +183,12 @@ export function useEventDetailsReducer() {
       switch (action.type) {
         case 'UPDATE_SECTION':
           return updateSection(state, action.key, action.config ?? {});
-        case 'UPDATE_DETAILS':
-          return {...state, ...action.state};
+        case 'UPDATE_NAV_SCROLL_MARGIN':
+          return {...state, navScrollMargin: action.margin};
         case 'UPDATE_EVENT_COUNT':
           return {...state, eventCount: action.count};
+        case 'UPDATE_SIDEBAR_STATE':
+          return {...state, isSidebarOpen: action.isOpen};
         default:
           return state;
       }
