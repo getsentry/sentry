@@ -127,5 +127,5 @@ export enum IntegrationOptions {
 export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string | undefined> = {
   [ProviderOptions.LAUNCHDARKLY]:
     'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
-  [ProviderOptions.GENERIC]: undefined,
+  [ProviderOptions.GENERIC]: 'DOCS LINK TODO',
 };
