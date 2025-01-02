@@ -35,12 +35,12 @@ function TextCopyInput({
   const textNodeId = useId();
 
   const handleSelectText = useCallback(() => {
-    const node = document.getElementById(textNodeId);
+    const node = document.getElementById(textNodeId) as HTMLInputElement | null;
     if (!node) {
       return;
     }
 
-    if (rtl && node instanceof HTMLInputElement) {
+    if (rtl) {
       // we don't want to select the first character - \u202A, nor the last - \u202C
       node.setSelectionRange(1, node.value.length - 1);
     } else {
