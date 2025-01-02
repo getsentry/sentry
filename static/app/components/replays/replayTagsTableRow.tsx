@@ -6,9 +6,9 @@ import type {LocationDescriptor} from 'history';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
+import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {space} from 'sentry/styles/space';
 
 interface Props {
@@ -23,7 +23,11 @@ const expandedViewKeys = [
 ];
 
 function renderValueList(values: ReactNode[]) {
+  if (typeof values[0] === 'string') {
+    return values[0];
+  }
   const valueItems = values[0] as Array<string>;
+
   if (!valueItems.length) {
     return undefined;
   }
@@ -46,7 +50,11 @@ function ReplayTagsTableRow({name, values, generateUrl}: Props) {
         </Fragment>
       ));
     }
-    if (expandedViewKeys.includes(name) && renderValueList(values)) {
+    if (
+      expandedViewKeys.includes(name) &&
+      renderValueList(values) &&
+      typeof renderValueList(values) !== 'string'
+    ) {
       return (
         <CollapsibleValue openTag="[" closeTag="]" path="$" noBasePadding>
           {renderValueList(values)}

@@ -12,8 +12,8 @@ interface Props {
   closeTag: string;
   openTag: string;
   path: string;
-  prefix?: ReactNode;
   noBasePadding?: boolean;
+  prefix?: ReactNode;
 }
 
 export function CollapsibleValue({
