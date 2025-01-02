@@ -162,8 +162,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
               <Button
                 size="sm"
                 icon={<IconSiren />}
-                disabled={!alertItems[0].onAction || !hasFeature}
-                onClick={alertItems[0].onAction}
+                disabled={!alertItems[0]!.onAction || !hasFeature}
+                onClick={alertItems[0]!.onAction}
               >
                 {t('Create Alert')}
               </Button>

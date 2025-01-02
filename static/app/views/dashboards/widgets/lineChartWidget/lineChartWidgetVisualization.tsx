@@ -94,7 +94,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   // TODO: There's a TypeScript indexing error here. This _could_ in theory be
   // `undefined`. We need to guard against this in the parent component, and
   // show an error.
-  const firstSeries = props.timeseries[0];
+  const firstSeries = props.timeseries[0]!;
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;

@@ -362,7 +362,7 @@ function OrganizationMembersList() {
                   key={member.id}
                   organization={organization}
                   member={member}
-                  status={invited[member.id]}
+                  status={invited[member.id]!}
                   memberCanLeave={
                     !(
                       isOnlyOwner ||

@@ -107,8 +107,8 @@ const getFields = ({
   if (authenticator.id === 'sms') {
     // Ideally we would have greater flexibility when rendering footer
     return [
-      {...form[0], disabled: sendingCode || hasSentCode},
-      ...(hasSentCode ? [{...form[1], required: true}] : []),
+      {...form[0]!, disabled: sendingCode || hasSentCode},
+      ...(hasSentCode ? [{...form[1]!, required: true}] : []),
       () => (
         <Actions key="sms-footer">
           <ButtonBar gap={1}>
@@ -361,7 +361,7 @@ class AccountSecurityEnroll extends DeprecatedAsyncView<Props, State> {
       return org.links.organizationUrl === new URL(window.location.href).origin;
     });
     if (!isAlreadyInOrgSubDomain) {
-      window.location.assign(generateOrgSlugUrl(orgs[0].slug));
+      window.location.assign(generateOrgSlugUrl(orgs[0]!.slug));
     }
   }
 

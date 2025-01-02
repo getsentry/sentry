@@ -201,7 +201,7 @@ export function EventSamplesTable({
               Object.keys(columnNameMap).includes(col.name)
             )
             .map((col: TableColumn<React.ReactText>) => {
-              return {...col, name: columnNameMap[col.key]};
+              return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}
           grid={{

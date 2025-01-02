@@ -107,7 +107,7 @@ describe('useMembers', function () {
     MemberListStore.loadInitialData(mockUsers);
 
     const {result} = renderHook(useMembers, {
-      initialProps: {emails: [mockUsers[0].email]},
+      initialProps: {emails: [mockUsers[0]!.email]},
     });
 
     const {members, initiallyLoaded} = result.current;

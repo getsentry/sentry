@@ -233,11 +233,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
             <ScreensBarChart
               chartOptions={[
                 {
-                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]]),
-                  yAxis: YAXIS_COLUMNS[yAxes[0]],
+                  title: t('%s by Top Screen', CHART_TITLES[yAxes[0]!]!),
+                  yAxis: YAXIS_COLUMNS[yAxes[0]!],
                   xAxisLabel: topTransactions,
                   series: Object.values(
-                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]]]
+                    transformedReleaseEvents[YAXIS_COLUMNS[yAxes[0]!]!]!
                   ),
                   subtitle: primaryRelease
                     ? t(
@@ -265,11 +265,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
               <ScreensBarChart
                 chartOptions={[
                   {
-                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]]),
-                    yAxis: YAXIS_COLUMNS[yAxes[1]],
+                    title: t('%s by Top Screen', CHART_TITLES[yAxes[1]!]!),
+                    yAxis: YAXIS_COLUMNS[yAxes[1]!],
                     xAxisLabel: topTransactions,
                     series: Object.values(
-                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]]]
+                      transformedReleaseEvents[YAXIS_COLUMNS[yAxes[1]!]!]!
                     ),
                     subtitle: primaryRelease
                       ? t(
@@ -306,7 +306,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
           });
         }}
         organization={organization}
-        query={getFreeTextFromQuery(derivedQuery)}
+        query={getFreeTextFromQuery(derivedQuery)!}
         placeholder={t('Search for Screens')}
         additionalConditions={
           new MutableSearch(

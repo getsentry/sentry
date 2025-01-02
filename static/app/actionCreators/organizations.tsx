@@ -45,7 +45,7 @@ export function redirectToRemainingOrganization({
   }
 
   // Let's be smart and select the best org to redirect to
-  const firstRemainingOrg = allOrgs[0];
+  const firstRemainingOrg = allOrgs[0]!;
 
   const route = `/organizations/${firstRemainingOrg.slug}/issues/`;
   if (USING_CUSTOMER_DOMAIN) {

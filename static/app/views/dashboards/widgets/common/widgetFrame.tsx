@@ -112,22 +112,22 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 disabledMessage={props.actionsMessage ?? ''}
               >
                 {actions.length === 1 ? (
-                  actions[0].to ? (
+                  actions[0]!.to ? (
                     <LinkButton
                       size="xs"
                       disabled={props.actionsDisabled}
-                      onClick={actions[0].onAction}
-                      to={actions[0].to}
+                      onClick={actions[0]!.onAction}
+                      to={actions[0]!.to}
                     >
-                      {actions[0].label}
+                      {actions[0]!.label}
                     </LinkButton>
                   ) : (
                     <Button
                       size="xs"
                       disabled={props.actionsDisabled}
-                      onClick={actions[0].onAction}
+                      onClick={actions[0]!.onAction}
                     >
-                      {actions[0].label}
+                      {actions[0]!.label}
                     </Button>
                   )
                 ) : null}

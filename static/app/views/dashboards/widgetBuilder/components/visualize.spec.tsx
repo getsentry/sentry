@@ -92,7 +92,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeEnabled();
-    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]);
+    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]!);
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });

@@ -120,7 +120,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const field = props.fields[0];
+  const field = props.fields[0]!;
   const {setPageError} = usePageAlert();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
@@ -132,7 +132,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: sortField,
+        fields: sortField!,
         component: provided => {
           const _eventView = provided.eventView.clone();
 
@@ -140,7 +140,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             field: propField,
           }));
 
-          _eventView.sorts = [{kind: 'desc', field: sortField}];
+          _eventView.sorts = [{kind: 'desc', field: sortField!}];
           if (canUseMetricsData(organization)) {
             _eventView.additionalConditions.setFilterValues('!transaction', [
               UNPARAMETERIZED_TRANSACTION,
@@ -203,7 +203,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <EventsRequest
               {...requestProps}
               limit={1}
-              currentSeriesNames={[sortField]}
+              currentSeriesNames={[sortField!]}
               includePrevious={false}
               partial={false}
               includeTransformedData
@@ -261,7 +261,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       const initialConditions = new MutableSearch(_eventView.query);
       initialConditions.addFilterValues('transaction', [transaction]);
 
-      const vital = settingToVital[props.chartSetting];
+      const vital = settingToVital[props.chartSetting]!;
 
       _eventView.query = initialConditions.formatString();
 
@@ -282,7 +282,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         : transactionTarget;
 
       const data = {
-        [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+        [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
           listItem,
           vital,
           false
@@ -297,7 +297,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <VitalBarCell>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
+              vital={settingToVital[props.chartSetting]!}
               data={data}
               showBar
               showDurationDetail={false}
@@ -310,7 +310,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <ListClose
               setSelectListIndex={setSelectListIndex}
               onClick={() =>
-                excludeTransaction(listItem.transaction, {
+                excludeTransaction(listItem.transaction!, {
                   eventView: props.eventView,
                   location,
                 })
@@ -379,10 +379,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return <Subtitle />;
         }
 
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
 
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+          [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
             listItem,
             vital,
             false
@@ -393,7 +393,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <Subtitle>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
+              vital={settingToVital[props.chartSetting]!}
               data={data}
               showBar={false}
               showDurationDetail={false}
@@ -404,7 +404,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       }}
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
         const target = vitalDetailRouteWithQuery({
           orgSlug: organization.slug,
           query: eventView.generateQueryStringObject(),

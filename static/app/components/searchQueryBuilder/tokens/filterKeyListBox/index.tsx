@@ -151,7 +151,7 @@ function useHighlightFirstOptionOnSectionChange({
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }
-    const options = state.collection.getChildren?.(selectedSection ?? sections[0].value);
+    const options = state.collection.getChildren?.(selectedSection ?? sections[0]!.value);
     return [...(options ?? [])].filter(option => !hiddenOptions.has(option.key));
   }, [state.collection, selectedSection, sections, hiddenOptions]);
 
@@ -195,7 +195,7 @@ function useSwitchToValidSection({
 
     const section = sections.find(s => s.value === selectedSection);
     if (!section) {
-      setSelectedSection(sections[0].value);
+      setSelectedSection(sections[0]!.value);
     }
   }, [sections, selectedSection, setSelectedSection]);
 }

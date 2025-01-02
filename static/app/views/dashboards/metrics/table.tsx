@@ -66,7 +66,7 @@ export function MetricTable({
   function renderRow(row: Row, index: number) {
     return data.headers.map((column, columnIndex) => {
       const key = `${index}-${columnIndex}:${column.name}`;
-      const value = row[column.name].formattedValue ?? row[column.name].value;
+      const value = row[column.name]!.formattedValue ?? row[column.name]!.value;
       if (!value) {
         return (
           <TableCell type={column.type} key={key} noValue>
@@ -162,8 +162,8 @@ export function getTableData(
   const tags = [...new Set(queries.flatMap(query => query.groupBy ?? []))];
 
   const normalizedResults = shownExpressions.map((expression, index) => {
-    const expressionResults = data.data[index];
-    const meta = data.meta[index];
+    const expressionResults = data.data[index]!;
+    const meta = data.meta[index]!;
     const lastMetaEntry = data.meta[index]?.[meta.length - 1];
     const metaUnit =
       (lastMetaEntry && 'unit' in lastMetaEntry && lastMetaEntry.unit) || 'none';

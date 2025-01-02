@@ -427,7 +427,7 @@ describe('Discover > QueryList', function () {
     });
     const yAxis = ['count()', 'failure_count()'];
     const savedQueryWithMultiYAxis = {
-      ...savedQueries.slice(1)[0],
+      ...savedQueries.slice(1)[0]!,
       yAxis,
     };
 

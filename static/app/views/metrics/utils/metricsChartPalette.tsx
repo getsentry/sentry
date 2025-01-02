@@ -15,7 +15,7 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
 
   return uniqueSeriesNames.reduce(
     (palette, seriesName, i) => {
-      palette[seriesName] = chartColors[i % chartColors.length];
+      palette[seriesName] = chartColors[i % chartColors.length]!;
       return palette;
     },
     {} as Record<string, string>
@@ -41,7 +41,7 @@ export function getCachedChartPalette(
   // We search in reverse to get the most recent palettes first
   let cacheIndex = -1;
   for (let i = cache.length - 1; i >= 0; i--) {
-    const palette = cache[i];
+    const palette = cache[i]!;
     if (seriesNames.every(seriesName => seriesName in palette)) {
       cacheIndex = i;
       break;
@@ -49,7 +49,7 @@ export function getCachedChartPalette(
   }
 
   if (cacheIndex > -1) {
-    const cachedPalette = cache[cacheIndex];
+    const cachedPalette = cache[cacheIndex]!;
 
     if (cacheIndex !== cache.length - 1) {
       // Move the cached palette to the end of the cache, so it is the most recent one

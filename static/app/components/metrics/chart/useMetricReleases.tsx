@@ -86,7 +86,7 @@ export function useReleases() {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
-          queryObj.cursor = paginationObject.next.cursor;
+          queryObj.cursor = paginationObject.next!.cursor;
         } else {
           hasMore = false;
         }

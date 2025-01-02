@@ -176,8 +176,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     const sortControl = screen.getByRole('button', {
@@ -189,8 +189,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
 
     await userEvent.click(sortControl);
@@ -199,8 +199,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be preceding webVitalsFlag, A-Z sort by default
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_PRECEDING);
 
     await userEvent.click(sortControl);
@@ -209,8 +209,8 @@ describe('EventFeatureFlagList', function () {
     // expect enableReplay to be following webVitalsFlag
     expect(
       screen
-        .getByText(webVitalsFlag.flag)
-        .compareDocumentPosition(screen.getByText(enableReplay.flag))
+        .getByText(webVitalsFlag!.flag)
+        .compareDocumentPosition(screen.getByText(enableReplay!.flag))
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 

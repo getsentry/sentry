@@ -40,6 +40,6 @@ describe('HTTPSnippet', function () {
 
     // XXX(epurkhiser): Using toHaveTextContent would be nice here, but it
     // loses the newlines.
-    expect(container.getElementsByTagName('code')[0].innerHTML).toBe(expected);
+    expect(container.getElementsByTagName('code')[0]!.innerHTML).toBe(expected);
   });
 });

@@ -103,12 +103,12 @@ export function useReplayTraces({
         const parsedData = data
           .filter(row => row.trace) // Filter out items where trace is not truthy
           .map(row => ({
-            traceSlug: row.trace.toString(),
+            traceSlug: row.trace!.toString(),
             timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
           }));
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
-        cursor = parseLinkHeader(pageLinks)?.next;
+        cursor = parseLinkHeader(pageLinks)?.next!;
         const indexComplete = !cursor.results;
         setState(prev => ({
           ...prev,

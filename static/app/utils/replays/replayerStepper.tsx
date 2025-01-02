@@ -97,6 +97,6 @@ export default function replayerStepper<
     };
 
     replayer.on('pause', handlePause);
-    considerFrame(nextFrame());
+    considerFrame(nextFrame()!);
   });
 }

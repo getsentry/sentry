@@ -66,7 +66,7 @@ describe('ReleaseActions', function () {
     render(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -116,7 +116,7 @@ describe('ReleaseActions', function () {
       <ReleaseActions
         {...RouteComponentPropsFixture()}
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={{...release, status: ReleaseStatus.ARCHIVED}}
         refetchData={refetchDataMock}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -160,7 +160,7 @@ describe('ReleaseActions', function () {
     const {rerender} = render(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
@@ -189,7 +189,7 @@ describe('ReleaseActions', function () {
     rerender(
       <ReleaseActions
         organization={organization}
-        projectSlug={release.projects[0].slug}
+        projectSlug={release.projects[0]!.slug}
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}

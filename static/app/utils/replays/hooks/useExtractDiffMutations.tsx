@@ -102,8 +102,8 @@ async function extractDiffMutations({
 
         const item = collection.get(lastFrame);
         if (item) {
-          item[lastFrame.timestamp].adds = adds;
-          item[lastFrame.timestamp].attributes = attributes;
+          item[lastFrame.timestamp]!.adds = adds;
+          item[lastFrame.timestamp]!.attributes = attributes;
         }
       }
 

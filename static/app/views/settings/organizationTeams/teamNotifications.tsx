@@ -134,7 +134,7 @@ class TeamNotificationSettings extends DeprecatedAsyncView<Props, State> {
             <div>
               <NotDisabledText>
                 {toTitleCase(externalTeam.provider)}:
-                {integrationsById[externalTeam.integrationId].name}
+                {integrationsById[externalTeam.integrationId]!.name}
               </NotDisabledText>
               <NotDisabledSubText>
                 {tct('Unlink this channel in Slack with [code]. [link].', {

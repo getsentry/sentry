@@ -218,7 +218,7 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
@@ -268,7 +268,7 @@ describe('Threads', function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -287,7 +287,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('line')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -896,7 +896,7 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
         projectSlug: project.slug,
@@ -1013,7 +1013,7 @@ describe('Threads', function () {
 
       it('maps android vm states to java vm states', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {
@@ -1089,7 +1089,7 @@ describe('Threads', function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1115,7 +1115,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText('UIKit')
         ).toBeInTheDocument();
 
         // Switch back to recent first
@@ -1124,7 +1124,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1159,7 +1159,7 @@ describe('Threads', function () {
 
         // Function name is not verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
@@ -1169,14 +1169,14 @@ describe('Threads', function () {
 
         // Function name is now verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
         // Address is not absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
@@ -1184,7 +1184,7 @@ describe('Threads', function () {
 
         // Address is now absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         MockApiClient.addMockResponse({
@@ -1215,7 +1215,7 @@ describe('Threads', function () {
 
       it('uses thread label in selector if name not available', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {

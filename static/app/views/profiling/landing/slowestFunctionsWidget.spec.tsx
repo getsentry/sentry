@@ -246,9 +246,9 @@ describe('SlowestFunctionsWidget', function () {
     const items = screen.getAllByRole('listitem', {});
     expect(items.length).toEqual(2);
 
-    const buttons = within(items[0]).getAllByRole('button');
+    const buttons = within(items[0]!).getAllByRole('button');
     expect(buttons.length).toEqual(2);
-    await userEvent.click(buttons[1]);
+    await userEvent.click(buttons[1]!);
 
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();
     expect(screen.getByText('2'.repeat(8))).toBeInTheDocument();

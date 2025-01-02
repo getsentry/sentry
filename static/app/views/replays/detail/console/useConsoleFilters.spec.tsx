@@ -237,7 +237,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should return a sorted list of BreadcrumbLevelType', () => {
-      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_WARN, CRUMB_ERROR];
+      const simpleCrumbs = [CRUMB_LOG_1!, CRUMB_WARN!, CRUMB_ERROR!];
 
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
@@ -250,7 +250,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should deduplicate BreadcrumbLevelType', () => {
-      const simpleCrumbs = [CRUMB_LOG_1, CRUMB_LOG_2];
+      const simpleCrumbs = [CRUMB_LOG_1!, CRUMB_LOG_2!];
 
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
@@ -259,7 +259,7 @@ describe('useConsoleFilters', () => {
     });
 
     it('should inject extra BreadcrumbLevelType values', () => {
-      const simpleCrumbs = [CRUMB_WARN, CRUMB_ERROR];
+      const simpleCrumbs = [CRUMB_WARN!, CRUMB_ERROR!];
 
       mockUseLocation.mockReturnValue({
         pathname: '/',

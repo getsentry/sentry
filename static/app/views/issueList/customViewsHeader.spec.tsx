@@ -43,7 +43,7 @@ describe('CustomViewsHeader', () => {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         query: 'is:unresolved',
-        viewId: getRequestViews[0].id,
+        viewId: getRequestViews[0]!.id,
       },
     }),
   });
@@ -99,9 +99,9 @@ describe('CustomViewsHeader', () => {
       expect(defaultRouter.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            query: getRequestViews[0].query,
-            viewId: getRequestViews[0].id,
-            sort: getRequestViews[0].querySort,
+            query: getRequestViews[0]!.query,
+            viewId: getRequestViews[0]!.id,
+            sort: getRequestViews[0]!.querySort,
           }),
         })
       );
@@ -180,7 +180,7 @@ describe('CustomViewsHeader', () => {
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            viewId: getRequestViews[1].id,
+            viewId: getRequestViews[1]!.id,
           },
         }),
       });
@@ -198,9 +198,9 @@ describe('CustomViewsHeader', () => {
       expect(specificTabRouter.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            viewId: getRequestViews[1].id,
-            query: getRequestViews[1].query,
-            sort: getRequestViews[1].querySort,
+            viewId: getRequestViews[1]!.id,
+            query: getRequestViews[1]!.query,
+            sort: getRequestViews[1]!.querySort,
           }),
         })
       );
@@ -346,9 +346,9 @@ describe('CustomViewsHeader', () => {
       expect(defaultRouter.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            query: getRequestViews[1].query,
-            viewId: getRequestViews[1].id,
-            sort: getRequestViews[1].querySort,
+            query: getRequestViews[1]!.query,
+            viewId: getRequestViews[1]!.id,
+            sort: getRequestViews[1]!.querySort,
           }),
         })
       );
@@ -377,7 +377,7 @@ describe('CustomViewsHeader', () => {
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            viewId: getRequestViews[1].id,
+            viewId: getRequestViews[1]!.id,
             query: 'is:unresolved',
           },
         }),
@@ -401,9 +401,9 @@ describe('CustomViewsHeader', () => {
       expect(goodViewIdChangedQueryRouter.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            viewId: getRequestViews[1].id,
+            viewId: getRequestViews[1]!.id,
             query: 'is:unresolved',
-            sort: getRequestViews[1].querySort,
+            sort: getRequestViews[1]!.querySort,
           }),
         })
       );
@@ -414,7 +414,7 @@ describe('CustomViewsHeader', () => {
         location: LocationFixture({
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            viewId: getRequestViews[1].id,
+            viewId: getRequestViews[1]!.id,
             sort: IssueSortOptions.FREQ,
           },
         }),
@@ -438,8 +438,8 @@ describe('CustomViewsHeader', () => {
       expect(goodViewIdChangedSortRouter.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
-            viewId: getRequestViews[1].id,
-            query: getRequestViews[1].query,
+            viewId: getRequestViews[1]!.id,
+            query: getRequestViews[1]!.query,
             sort: IssueSortOptions.FREQ,
           }),
         })
@@ -584,10 +584,10 @@ describe('CustomViewsHeader', () => {
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              id: getRequestViews[0].id,
+              id: getRequestViews[0]!.id,
               name: 'New Name',
-              query: getRequestViews[0].query,
-              querySort: getRequestViews[0].querySort,
+              query: getRequestViews[0]!.query,
+              querySort: getRequestViews[0]!.querySort,
             }),
           ])
         );
@@ -627,13 +627,13 @@ describe('CustomViewsHeader', () => {
           expect.arrayContaining([
             expect.objectContaining({
               name: 'High Priority',
-              query: getRequestViews[0].query,
-              querySort: getRequestViews[0].querySort,
+              query: getRequestViews[0]!.query,
+              querySort: getRequestViews[0]!.querySort,
             }),
             expect.objectContaining({
               name: 'High Priority (Copy)',
-              query: getRequestViews[0].query,
-              querySort: getRequestViews[0].querySort,
+              query: getRequestViews[0]!.query,
+              querySort: getRequestViews[0]!.querySort,
             }),
           ])
         );
@@ -643,8 +643,8 @@ describe('CustomViewsHeader', () => {
           expect.objectContaining({
             query: expect.objectContaining({
               viewId: expect.stringContaining('_'),
-              query: getRequestViews[0].query,
-              sort: getRequestViews[0].querySort,
+              query: getRequestViews[0]!.query,
+              sort: getRequestViews[0]!.querySort,
             }),
           })
         );
@@ -671,16 +671,16 @@ describe('CustomViewsHeader', () => {
         const putRequestViews = mockPutRequest.mock.calls[0][1].data.views;
         expect(putRequestViews).toHaveLength(2);
         expect(putRequestViews.every).not.toEqual(
-          expect.objectContaining({id: getRequestViews[0].id})
+          expect.objectContaining({id: getRequestViews[0]!.id})
         );
 
         // Make sure the new first tab is selected
         expect(defaultRouter.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: getRequestViews[1].query,
-              viewId: getRequestViews[1].id,
-              sort: getRequestViews[1].querySort,
+              query: getRequestViews[1]!.query,
+              viewId: getRequestViews[1]!.id,
+              sort: getRequestViews[1]!.querySort,
             }),
           })
         );
@@ -714,10 +714,10 @@ describe('CustomViewsHeader', () => {
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              id: getRequestViews[0].id,
+              id: getRequestViews[0]!.id,
               name: 'High Priority',
               query: 'is:unresolved',
-              querySort: getRequestViews[0].querySort,
+              querySort: getRequestViews[0]!.querySort,
             }),
           ])
         );
@@ -747,10 +747,10 @@ describe('CustomViewsHeader', () => {
         expect(putRequestViews).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              id: getRequestViews[0].id,
+              id: getRequestViews[0]!.id,
               name: 'High Priority',
               query: 'is:unresolved',
-              querySort: getRequestViews[0].querySort,
+              querySort: getRequestViews[0]!.querySort,
             }),
           ])
         );
@@ -785,9 +785,9 @@ describe('CustomViewsHeader', () => {
         expect(unsavedTabRouter.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
-              query: getRequestViews[0].query,
-              viewId: getRequestViews[0].id,
-              sort: getRequestViews[0].querySort,
+              query: getRequestViews[0]!.query,
+              viewId: getRequestViews[0]!.id,
+              sort: getRequestViews[0]!.querySort,
             }),
           })
         );

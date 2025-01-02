@@ -72,7 +72,7 @@ export function ScreenDetailsPage() {
   const getTabKeyFromQuery = () => {
     const queryTab = decodeScalar(location?.query?.tab);
     const selectedTab = tabs.find((tab: Tab) => tab.key === queryTab);
-    return selectedTab?.key ?? tabs[0].key;
+    return selectedTab?.key ?? tabs[0]!.key;
   };
 
   const [selectedTabKey, setSelectedTabKey] = useState(getTabKeyFromQuery());

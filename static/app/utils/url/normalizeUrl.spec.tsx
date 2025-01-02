@@ -111,35 +111,35 @@ describe('normalizeUrl', function () {
       ],
     ];
     for (const [input, expected] of cases) {
-      result = normalizeUrl(input);
+      result = normalizeUrl(input!);
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location);
+      result = normalizeUrl(input!, location);
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, {forceCustomerDomain: false});
+      result = normalizeUrl(input!, {forceCustomerDomain: false});
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location, {forceCustomerDomain: false});
+      result = normalizeUrl(input!, location, {forceCustomerDomain: false});
       expect(result).toEqual(expected);
     }
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
     ConfigStore.set('customerDomain', null);
     for (const [input, expected] of cases) {
-      result = normalizeUrl(input, {forceCustomerDomain: true});
+      result = normalizeUrl(input!, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
 
-      result = normalizeUrl(input, location, {forceCustomerDomain: true});
+      result = normalizeUrl(input!, location, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
     }
 
     ConfigStore.set('customerDomain', null);
     for (const [input, _expected] of cases) {
-      result = normalizeUrl(input);
+      result = normalizeUrl(input!);
       expect(result).toEqual(input);
 
-      result = normalizeUrl(input, location);
+      result = normalizeUrl(input!, location);
       expect(result).toEqual(input);
     }
   });

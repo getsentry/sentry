@@ -58,7 +58,7 @@ export abstract class UIFramesRenderer {
     const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
 
     for (let i = 0; i < end; i++) {
-      const frame = this.uiFrames.frames[i];
+      const frame = this.uiFrames.frames[i]!;
       if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
         overlaps.push(frame);
       }

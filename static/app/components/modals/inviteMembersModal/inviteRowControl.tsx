@@ -96,7 +96,7 @@ function InviteRowControl({
         value={emails}
         components={{
           MultiValue: (props: MultiValueProps<SelectOption>) => (
-            <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+            <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
           ),
           DropdownIndicator: () => null,
         }}

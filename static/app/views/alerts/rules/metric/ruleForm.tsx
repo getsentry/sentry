@@ -482,8 +482,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       );
       const warningTriggerIndex = criticalTriggerIndex ^ 1;
       const triggersCopy = [...triggers];
-      const criticalTrigger = triggersCopy[criticalTriggerIndex];
-      const warningTrigger = triggersCopy[warningTriggerIndex];
+      const criticalTrigger = triggersCopy[criticalTriggerIndex]!;
+      const warningTrigger = triggersCopy[warningTriggerIndex]!;
       criticalTrigger.alertThreshold = 0;
       warningTrigger.alertThreshold = ''; // we need to set this to empty
       this.setState({triggers: triggersCopy});
@@ -524,8 +524,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ({label}) => label === AlertRuleTriggerType.CRITICAL
     );
     const warningTriggerIndex = criticalTriggerIndex ^ 1;
-    const criticalTrigger = triggers[criticalTriggerIndex];
-    const warningTrigger = triggers[warningTriggerIndex];
+    const criticalTrigger = triggers[criticalTriggerIndex]!;
+    const warningTrigger = triggers[warningTriggerIndex]!;
 
     const isEmptyWarningThreshold = isEmpty(warningTrigger.alertThreshold);
     const warningThreshold = warningTrigger.alertThreshold ?? 0;

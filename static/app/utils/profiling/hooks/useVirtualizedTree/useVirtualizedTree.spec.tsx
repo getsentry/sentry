@@ -95,8 +95,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -104,7 +104,7 @@ describe('useVirtualizedTree', () => {
     });
 
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i}`);
+      expect(result.current.items[i]!.item.node.id).toEqual(`child-${i}`);
     }
     expect(result.current.items.length).toBe(10);
   });
@@ -126,8 +126,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -139,7 +139,7 @@ describe('useVirtualizedTree', () => {
       expect(result.current.items.length).toBe(10);
     });
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i + 5}`);
+      expect(result.current.items[i]!.item.node.id).toEqual(`child-${i + 5}`);
     }
     expect(result.current.items.length).toBe(10);
   });
@@ -161,8 +161,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -174,7 +174,7 @@ describe('useVirtualizedTree', () => {
       expect(result.current.items.length).toBe(10);
     });
     for (let i = 0; i < 10; i++) {
-      expect(result.current.items[i].item.node.id).toEqual(`child-${i + 10}`);
+      expect(result.current.items[i]!.item.node.id).toEqual(`child-${i + 10}`);
     }
     expect(result.current.items.length).toBe(10);
   });
@@ -196,8 +196,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -207,7 +207,7 @@ describe('useVirtualizedTree', () => {
 
     for (let i = 3; i < 17; i++) {
       // Should display nodes 5-15, but since we use overscroll, it should display nodes 3-17
-      expect(result.current.items[i - 3].item.node.id).toEqual(`child-${i}`);
+      expect(result.current.items[i - 3]!.item.node.id).toEqual(`child-${i}`);
     }
     expect(result.current.items.length).toBe(14);
   });
@@ -229,8 +229,8 @@ describe('useVirtualizedTree', () => {
 
     act(() => {
       result.current.handleExpandTreeNode(
-        result.current.tree.roots[0],
-        !result.current.tree.roots[0].expanded,
+        result.current.tree.roots[0]!,
+        !result.current.tree.roots[0]!.expanded,
         {
           expandChildren: true,
         }
@@ -246,12 +246,12 @@ describe('useVirtualizedTree', () => {
 
     // First 9 items should be the same, the last item should be different
     for (let i = 1; i < stableKeys.length; i++) {
-      expect(stableKeys[i]).toBe(result.current.items[i - 1].key);
+      expect(stableKeys[i]!).toBe(result.current.items[i - 1]!.key);
     }
 
     // Last item should be different
-    expect(result.current.items[result.current.items.length - 1].key).toBe(
-      stableKeys[stableKeys.length - 1] + 1
+    expect(result.current.items[result.current.items.length - 1]!.key).toBe(
+      stableKeys[stableKeys.length - 1]! + 1
     );
   });
 });

@@ -126,9 +126,9 @@ export const useTransactionWebVitalsScoresQuery = ({
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
-            transaction: row.transaction?.toString(),
-            project: row.project?.toString(),
-            'project.id': parseInt(row['project.id'].toString(), 10),
+            transaction: row.transaction!?.toString(),
+            project: row.project!?.toString(),
+            'project.id': parseInt(row['project.id']!.toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,

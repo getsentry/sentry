@@ -163,7 +163,7 @@ describe('IssueList', function () {
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
       selection: {
-        projects: [parseInt(projects[0].id, 10)],
+        projects: [parseInt(projects[0]!.id, 10)],
         environments: [],
         datetime: {period: '14d'},
       },

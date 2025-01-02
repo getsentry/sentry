@@ -515,8 +515,8 @@ async function fetchProjects(
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
       paginationObject &&
-      (paginationObject.next.results || paginationObject.previous.results);
-    nextCursor = paginationObject.next.cursor;
+      (paginationObject.next!.results || paginationObject.previous!.results);
+    nextCursor = paginationObject.next!.cursor;
   }
 
   // populate the projects store if all projects were fetched

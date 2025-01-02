@@ -72,7 +72,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
         return;
       }
       setNewViewActive(false);
-      const {label, query, saveQueryToView} = newViews[0];
+      const {label, query, saveQueryToView} = newViews[0]!;
       const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
         const newId = generateTempViewId();
         const viewToTab: IssueView = {
@@ -128,7 +128,7 @@ export function DraggableTabBar({initialTabKey, router}: DraggableTabBarProps) {
     dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
-    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0].key);
+    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0]!.key);
   };
 
   const handleDuplicateView = (tab: IssueView) => {

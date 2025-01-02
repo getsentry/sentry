@@ -397,8 +397,8 @@ describe('SentrySampledProfile', () => {
       {type: 'flamegraph'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(2);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(2);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 
   it('filters frames', () => {
@@ -443,8 +443,8 @@ describe('SentrySampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toEqual('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
-    expect(profile.callTree.children[0].children).toHaveLength(0);
+    expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });
 });

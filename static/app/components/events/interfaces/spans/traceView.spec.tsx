@@ -202,7 +202,7 @@ describe('TraceView', () => {
 
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
-      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0]!;
       await userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
@@ -210,7 +210,7 @@ describe('TraceView', () => {
       await userEvent.click(secondGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
-      const firstRegroup = screen.queryAllByText('Regroup')[0];
+      const firstRegroup = screen.queryAllByText('Regroup')[0]!;
       await userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 

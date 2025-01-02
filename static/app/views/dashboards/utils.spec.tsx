@@ -125,9 +125,9 @@ describe('Dashboards util', () => {
       };
     });
     it('handles sorts in function format', () => {
-      const query = {...widget.queries[0], orderby: '-count()'};
+      const query = {...widget.queries[0]!, orderby: '-count()'};
       const eventView = eventViewFromWidget(widget.title, query, selection);
-      expect(eventView.fields[0].field).toEqual('count()');
+      expect(eventView.fields[0]!.field).toEqual('count()');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
     });
   });

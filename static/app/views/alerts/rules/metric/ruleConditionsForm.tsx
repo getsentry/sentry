@@ -191,7 +191,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     const tagsWithKind = Object.keys(tags).reduce<Record<string, Tag>>((acc, key) => {
       acc[key] = {
-        ...tags[key],
+        ...tags[key]!,
         kind: FieldKind.TAG,
       };
       return acc;
@@ -474,7 +474,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  model.setValue('owner', `team:${nextSelectedProject.teams[0].id}`);
+                  model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
                 }
                 onChange(value, {});
                 onBlur(value, {});

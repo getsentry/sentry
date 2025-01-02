@@ -96,7 +96,7 @@ describe('View Hierarchy', function () {
   it('can navigate with keyboard shortcuts after a selection', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]!);
 
     await userEvent.keyboard('{ArrowDown}');
 
@@ -107,7 +107,7 @@ describe('View Hierarchy', function () {
   it('can expand/collapse with the keyboard', async function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
-    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]!);
 
     await userEvent.keyboard('{Enter}');
 

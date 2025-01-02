@@ -62,9 +62,9 @@ function useOverflowingTabs({state}: {state: TabListState<DraggableTabListItemPr
     const overflowing: Node<DraggableTabListItemProps>[] = [];
 
     for (let i = 0; i < tabsDimensions.length; i++) {
-      totalWidth += tabsDimensions[i].width + 1; // 1 extra pixel for the divider
+      totalWidth += tabsDimensions[i]!.width + 1; // 1 extra pixel for the divider
       if (totalWidth > availableWidth + 1) {
-        overflowing.push(persistentTabs[i]);
+        overflowing.push(persistentTabs[i]!);
       }
     }
 

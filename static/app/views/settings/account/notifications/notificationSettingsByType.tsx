@@ -122,7 +122,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     let defaultValue: string;
     if (!matchedOption) {
       if (defaultSettings) {
-        defaultValue = defaultSettings.typeDefaults[notificationType];
+        defaultValue = defaultSettings.typeDefaults[notificationType]!;
       } else {
         // should never happen
         defaultValue = 'never';
@@ -290,7 +290,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType} = this.props;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS.provider.choices as [SupportedProviders, string][]
+      NOTIFICATION_SETTING_FIELDS.provider!.choices as [SupportedProviders, string][]
     ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
@@ -328,7 +328,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     );
 
     return organizations.filter(organization => {
-      const externalID = integrationExternalIDsByOrganizationID[organization.id];
+      const externalID = integrationExternalIDsByOrganizationID[organization.id]!;
       const identity = identitiesByExternalId[externalID];
       return !!identity;
     });
@@ -401,7 +401,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     const {notificationType, organizations} = this.props;
     const {notificationOptions} = this.state;
     const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
-    let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
     // TODO(isabella): Once GA, remove this
     if (
       notificationType === 'quota' &&
