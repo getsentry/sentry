@@ -171,7 +171,7 @@ function yieldingRafFrameSearch(
 
   const searchFramesFunction = isRegExpSearch ? searchFrameRegExp : searchFrameFzf;
   const searchSpansFunction = isRegExpSearch ? searchSpanRegExp : searchSpanFzf;
-  const searchQuery = isRegExpSearch ? lookup : lowercaseQuery;
+  const searchQuery = isRegExpSearch ? lookup! : lowercaseQuery;
 
   function searchFramesAndSpans() {
     const start = performance.now();

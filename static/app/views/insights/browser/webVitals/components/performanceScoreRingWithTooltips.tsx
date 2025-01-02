@@ -197,7 +197,7 @@ function PerformanceScoreRingWithTooltips({
           <TooltipRow>
             <span>
               <Dot
-                color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]}
+                color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
               />
               {webVitalTooltip.toUpperCase()} {t('Opportunity')}
             </span>
@@ -207,7 +207,9 @@ function PerformanceScoreRingWithTooltips({
           </TooltipRow>
           <TooltipRow>
             <span>
-              <Dot color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]} />
+              <Dot
+                color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
+              />
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
@@ -322,8 +324,8 @@ function calculateLabelCoordinates(
   Object.keys(weights).forEach((key, index) => {
     results[key] = {
       // Padding hack for now since ttfb label is longer than the others
-      x: coordinates[index].x + (key === 'ttfb' ? -12 : 0),
-      y: coordinates[index].y,
+      x: coordinates[index]!.x + (key === 'ttfb' ? -12 : 0),
+      y: coordinates[index]!.y,
     };
   });
   return results;

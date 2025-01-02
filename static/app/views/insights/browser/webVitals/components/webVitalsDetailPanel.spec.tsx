@@ -61,7 +61,7 @@ describe('WebVitalsDetailPanel', function () {
     render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />, {
       organization,
     });
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,

@@ -104,8 +104,8 @@ class SourceField extends Component<Props, State> {
   }
 
   getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
-    const lastFieldValue = fieldValues[fieldValues.length - 1];
-    const penultimateFieldValue = fieldValues[fieldValues.length - 2];
+    const lastFieldValue = fieldValues[fieldValues.length - 1]!;
+    const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;
 
     if (Array.isArray(lastFieldValue)) {
       // recursion
@@ -172,8 +172,8 @@ class SourceField extends Component<Props, State> {
     const splittedValue = newValue.split(' ');
 
     for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex];
-      const lastFieldValue = fieldValues[fieldValues.length - 1];
+      const value = splittedValue[splittedValueIndex]!;
+      const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
       if (
         lastFieldValue &&
@@ -185,18 +185,18 @@ class SourceField extends Component<Props, State> {
       }
 
       if (value.includes('!') && !!value.split('!')[1]) {
-        const valueAfterUnaryOperator = value.split('!')[1];
+        const valueAfterUnaryOperator = value.split('!')[1]!;
         const selector = this.getAllSuggestions().find(
           s => s.value === valueAfterUnaryOperator
         );
         if (!selector) {
           fieldValues.push([
-            unarySuggestions[0],
+            unarySuggestions[0]!,
             {type: SourceSuggestionType.STRING, value: valueAfterUnaryOperator},
           ]);
           continue;
         }
-        fieldValues.push([unarySuggestions[0], selector]);
+        fieldValues.push([unarySuggestions[0]!, selector]);
         continue;
       }
 
@@ -221,7 +221,7 @@ class SourceField extends Component<Props, State> {
   scrollToSuggestion() {
     const {activeSuggestion, hideCaret} = this.state;
 
-    this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
+    this.suggestionList?.current?.children[activeSuggestion]!.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
@@ -240,7 +240,7 @@ class SourceField extends Component<Props, State> {
     const newValue: Array<string> = [];
 
     for (const index in fieldValues) {
-      const fieldValue = fieldValues[index];
+      const fieldValue = fieldValues[index]!;
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);
@@ -256,15 +256,15 @@ class SourceField extends Component<Props, State> {
   getNewFieldValues(
     suggestion: SourceSuggestion
   ): Array<SourceSuggestion | Array<SourceSuggestion>> {
-    const fieldValues = [...this.state.fieldValues];
-    const lastFieldValue = fieldValues[fieldValues.length - 1];
+    const fieldValues = [...this.state.fieldValues]!;
+    const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
     if (!defined(lastFieldValue)) {
       return [suggestion];
     }
 
     if (Array.isArray(lastFieldValue)) {
-      fieldValues[fieldValues.length - 1] = [lastFieldValue[0], suggestion];
+      fieldValues[fieldValues.length - 1] = [lastFieldValue[0]!, suggestion];
       return fieldValues;
     }
 
@@ -354,7 +354,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      this.handleClickSuggestionItem(suggestions[activeSuggestion]);
+      this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
       return;
     }
 

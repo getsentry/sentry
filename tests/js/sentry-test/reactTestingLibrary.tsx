@@ -213,11 +213,12 @@ instrumentUserEvent();
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
-// eslint-disable-next-line import/export
 export {
+  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   userEvent,
+  // eslint-disable-next-line import/export
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,

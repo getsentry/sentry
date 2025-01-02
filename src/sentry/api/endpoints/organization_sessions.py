@@ -116,15 +116,10 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        # HACK to prevent front-end crash when release health is sessions-based:
-        query_params = request.GET.copy()
-        if not release_health.backend.is_metrics_based() and request.GET.get("interval") == "10s":
-            query_params["interval"] = "1m"
-
         query_config = release_health.backend.sessions_query_config(organization)
 
         return QueryDefinition(
-            query=query_params,
+            query=request.GET,
             params=params,
             offset=offset,
             limit=limit,

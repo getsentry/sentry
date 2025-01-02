@@ -30,13 +30,13 @@ import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
 function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project
   if (release.projects.length === 1) {
-    return release.projects[0].id;
+    return release.projects[0]!.id;
   }
 
   // if only one project is selected in global header and release has it (second condition will prevent false positives like -1)
   if (
     selection.projects.length === 1 &&
-    release.projects.map(p => p.id).includes(selection.projects[0])
+    release.projects.map(p => p.id).includes(selection.projects[0]!)
   ) {
     return selection.projects[0];
   }

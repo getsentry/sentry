@@ -134,17 +134,17 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
     };
   });
 
-  const flattened = [first];
+  const flattened = [first!];
 
   for (const span of rest) {
     let overlap = false;
     for (const range of flattened) {
-      if (doesOverlap(range, span)) {
+      if (doesOverlap(range!, span)) {
         overlap = true;
-        range.frameCount += 1;
-        range.startTimestamp = Math.min(range.startTimestamp, span.startTimestamp);
-        range.endTimestamp = Math.max(range.endTimestamp, span.endTimestamp);
-        range.duration = range.endTimestamp - range.startTimestamp;
+        range!.frameCount += 1;
+        range!.startTimestamp = Math.min(range!.startTimestamp, span.startTimestamp);
+        range!.endTimestamp = Math.max(range!.endTimestamp, span.endTimestamp);
+        range!.duration = range!.endTimestamp - range!.startTimestamp;
         break;
       }
     }
@@ -178,11 +178,11 @@ export function findVideoSegmentIndex(
 
   const mid = Math.floor((start + end) / 2);
 
-  const [ts, index] = trackList[mid];
+  const [ts, index] = trackList[mid]!;
   const segment = segments[index];
 
   // Segment match found
-  if (targetTimestamp >= ts && targetTimestamp <= ts + segment.duration) {
+  if (targetTimestamp >= ts && targetTimestamp <= ts + segment!.duration) {
     return index;
   }
 

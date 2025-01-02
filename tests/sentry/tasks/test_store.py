@@ -87,12 +87,6 @@ def mock_refund():
         yield m
 
 
-@pytest.fixture
-def mock_metrics_timing():
-    with mock.patch("sentry.tasks.store.metrics.timing") as m:
-        yield m
-
-
 @django_db_all
 def test_move_to_process_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
@@ -242,7 +236,7 @@ def options_model(request, default_organization, default_project):
     elif request.param == "project":
         return default_project
     else:
-        raise ValueError(request.param)
+        raise AssertionError(request.param)
 
 
 @django_db_all
@@ -278,7 +272,7 @@ def test_scrubbing_after_processing(
             "sentry:relay_pii_config", '{"applications": {"extra.ooo": ["@anything:replace"]}}'
         )
     else:
-        raise ValueError(setting_method)
+        raise AssertionError(setting_method)
 
     data = {
         "project": default_project.id,

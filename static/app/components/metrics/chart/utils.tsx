@@ -53,8 +53,8 @@ export function getValueRect(chartRef?: RefObject<ReactEchartsRef>): ValueRect {
 
   const xMin = moment(topLeft[0]).valueOf();
   const xMax = moment(bottomRight[0]).valueOf();
-  const yMin = Math.max(0, bottomRight[1]);
-  const yMax = topLeft[1];
+  const yMin = Math.max(0, bottomRight[1]!);
+  const yMax = topLeft[1]!;
 
   return {
     xMin,
