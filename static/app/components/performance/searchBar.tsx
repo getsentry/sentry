@@ -8,13 +8,12 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -45,6 +44,7 @@ function SearchBar(props: SearchBarProps) {
     additionalConditions,
   } = props;
 
+  const navigate = useNavigate();
   const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
   const transactionCount = searchResults[0]?.children?.length || 0;
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
@@ -238,7 +238,7 @@ function SearchBar(props: SearchBarProps) {
       query,
     });
 
-    browserHistory.push(normalizeUrl(next));
+    navigate(next);
   };
   const logDocsOpenedEvent = () => {
     trackAnalytics('search.docs_opened', {
