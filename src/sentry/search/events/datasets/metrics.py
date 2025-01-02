@@ -1532,6 +1532,12 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the normalized score (0.0-1.0) for a given web vital.
+        This function exists because we don't store a metric for the normalized score.
+        The normalized score is calculated by dividing the sum of measurements.score.* by the sum of measurements.score.weight.*
+
+        To calculate the total performance score, see _resolve_total_performance_score_function.
+        """
         column = args["column"]
         metric_id = args["metric_id"]
 
@@ -1836,6 +1842,14 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the total performance score based on a page/site's web vitals.
+        This function is calculated by:
+        the summation of (normalized_vital_score * weight) for each vital, divided by the sum of all weights
+        - normalized_vital_score is the 0.0-1.0 score for each individual vital
+        - weight is the 0.0-1.0 weight for each individual vital (this is a constant value stored in constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS)
+        - if all webvitals have data, then the sum of all weights is 1
+        - normalized_vital_score is obtained through _resolve_web_vital_score_function (see docstring on that function for more details)
+        """
         vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
         scores = {
             vital: Function(
