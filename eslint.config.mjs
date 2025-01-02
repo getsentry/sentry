@@ -149,12 +149,8 @@ export default typescript.config([
         version: '18.2.0',
         defaultVersion: '18.2',
       },
-      'import/parsers': {
-        '@typescript-eslint/parser': ['.ts', '.tsx'],
-      },
-      'import/resolver': {
-        typescript: {},
-      },
+      'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
+      'import/resolver': {typescript: {}},
       'import/extensions': ['.js', '.jsx'],
     },
   },
@@ -226,9 +222,6 @@ export default typescript.config([
   {
     name: 'eslint/rules',
     rules: {
-      /**
-       * Strict mode
-       */
       // https://eslint.org/docs/rules/strict
       strict: ['error', 'global'],
 
@@ -236,7 +229,7 @@ export default typescript.config([
        * Variables
        */
       // https://eslint.org/docs/rules/no-shadow-restricted-names
-      'no-shadow-restricted-names': ['error'],
+      'no-shadow-restricted-names': 'error',
 
       /**
        * Possible errors
@@ -245,156 +238,151 @@ export default typescript.config([
       'no-cond-assign': ['error', 'always'],
 
       // https://eslint.org/docs/rules/no-alert
-      'no-alert': ['error'],
+      'no-alert': 'error',
 
       // https://eslint.org/docs/rules/no-constant-condition
-      'no-constant-condition': ['warn'],
+      'no-constant-condition': 'warn',
 
       // https://eslint.org/docs/rules/no-empty
-      'no-empty': ['error'],
+      'no-empty': 'error',
 
       // https://eslint.org/docs/rules/no-ex-assign
-      'no-ex-assign': ['error'],
+      'no-ex-assign': 'error',
 
       // https://eslint.org/docs/rules/no-extra-boolean-cast
-      'no-extra-boolean-cast': ['error'],
+      'no-extra-boolean-cast': 'error',
 
       // https://eslint.org/docs/rules/no-func-assign
-      'no-func-assign': ['error'],
+      'no-func-assign': 'error',
 
       // https://eslint.org/docs/rules/no-inner-declarations
-      'no-inner-declarations': ['error'],
+      'no-inner-declarations': 'error',
 
       // https://eslint.org/docs/rules/no-invalid-regexp
-      'no-invalid-regexp': ['error'],
+      'no-invalid-regexp': 'error',
 
       // https://eslint.org/docs/rules/no-irregular-whitespace
-      'no-irregular-whitespace': ['error'],
+      'no-irregular-whitespace': 'error',
 
       // https://eslint.org/docs/rules/no-obj-calls
-      'no-obj-calls': ['error'],
+      'no-obj-calls': 'error',
 
       // https://eslint.org/docs/rules/no-sparse-arrays
-      'no-sparse-arrays': ['error'],
+      'no-sparse-arrays': 'error',
 
       // https://eslint.org/docs/rules/block-scoped-var
-      'block-scoped-var': ['error'],
+      'block-scoped-var': 'error',
 
       /**
        * Best practices
        */
       // https://eslint.org/docs/rules/consistent-return
-      'consistent-return': ['error'],
+      'consistent-return': 'error',
 
       // https://eslint.org/docs/rules/default-case
-      'default-case': ['error'],
+      'default-case': 'error',
 
       // https://eslint.org/docs/rules/dot-notation
-      'dot-notation': [
-        'error',
-        {
-          allowKeywords: true,
-        },
-      ],
+      'dot-notation': ['error', {allowKeywords: true}],
 
       // https://eslint.org/docs/rules/guard-for-in [REVISIT ME]
-      'guard-for-in': ['off'],
+      'guard-for-in': 'off',
 
       // https://eslint.org/docs/rules/no-caller
-      'no-caller': ['error'],
+      'no-caller': 'error',
 
       // https://eslint.org/docs/rules/no-eval
-      'no-eval': ['error'],
+      'no-eval': 'error',
 
       // https://eslint.org/docs/rules/no-extend-native
-      'no-extend-native': ['error'],
+      'no-extend-native': 'error',
 
       // https://eslint.org/docs/rules/no-extra-bind
-      'no-extra-bind': ['error'],
+      'no-extra-bind': 'error',
 
       // https://eslint.org/docs/rules/no-fallthrough
-      'no-fallthrough': ['error'],
+      'no-fallthrough': 'error',
 
       // https://eslint.org/docs/rules/no-floating-decimal
-      'no-floating-decimal': ['error'],
+      'no-floating-decimal': 'error',
 
       // https://eslint.org/docs/rules/no-implied-eval
-      'no-implied-eval': ['error'],
+      'no-implied-eval': 'error',
 
       // https://eslint.org/docs/rules/no-lone-blocks
-      'no-lone-blocks': ['error'],
+      'no-lone-blocks': 'error',
 
       // https://eslint.org/docs/rules/no-loop-func
-      'no-loop-func': ['error'],
+      'no-loop-func': 'error',
 
       // https://eslint.org/docs/rules/no-multi-str
-      'no-multi-str': ['error'],
+      'no-multi-str': 'error',
 
       // https://eslint.org/docs/rules/no-native-reassign
-      'no-native-reassign': ['error'],
+      'no-native-reassign': 'error',
 
       // https://eslint.org/docs/rules/no-new
-      'no-new': ['error'],
+      'no-new': 'error',
 
       // https://eslint.org/docs/rules/no-new-func
-      'no-new-func': ['error'],
+      'no-new-func': 'error',
 
       // https://eslint.org/docs/rules/no-new-wrappers
-      'no-new-wrappers': ['error'],
+      'no-new-wrappers': 'error',
 
       // https://eslint.org/docs/rules/no-octal
-      'no-octal': ['error'],
+      'no-octal': 'error',
 
       // https://eslint.org/docs/rules/no-octal-escape
-      'no-octal-escape': ['error'],
+      'no-octal-escape': 'error',
 
       // https://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
-      'no-param-reassign': ['off'],
+      'no-param-reassign': 'off',
 
       // https://eslint.org/docs/rules/no-proto
-      'no-proto': ['error'],
+      'no-proto': 'error',
 
       // https://eslint.org/docs/rules/no-return-assign
-      'no-return-assign': ['error'],
+      'no-return-assign': 'error',
 
       // https://eslint.org/docs/rules/no-script-url
-      'no-script-url': ['error'],
+      'no-script-url': 'error',
 
       // https://eslint.org/docs/rules/no-self-compare
-      'no-self-compare': ['error'],
+      'no-self-compare': 'error',
 
       // https://eslint.org/docs/rules/no-sequences
-      'no-sequences': ['error'],
+      'no-sequences': 'error',
 
       // https://eslint.org/docs/rules/no-throw-literal
-      'no-throw-literal': ['error'],
+      'no-throw-literal': 'error',
 
       // https://eslint.org/docs/rules/no-with
-      'no-with': ['error'],
+      'no-with': 'error',
 
       // https://eslint.org/docs/rules/radix
-      radix: ['error'],
+      radix: 'error',
 
       // https://eslint.org/docs/rules/object-shorthand
       'object-shorthand': ['error', 'properties'],
 
       // https://eslint.org/docs/rules/vars-on-top
-      'vars-on-top': ['off'],
+      'vars-on-top': 'off',
 
       // https://eslint.org/docs/rules/wrap-iife
       'wrap-iife': ['error', 'any'],
 
       // https://eslint.org/docs/rules/array-callback-return
-      'array-callback-return': ['error'],
+      'array-callback-return': 'error',
 
       // https://eslint.org/docs/rules/yoda
-      yoda: ['error'],
+      yoda: 'error',
 
       // https://eslint.org/docs/rules/no-else-return
       'no-else-return': ['error', {allowElseIf: false}],
 
       // https://eslint.org/docs/rules/require-await
-      'require-await': ['error'],
+      'require-await': 'error',
 
       // https://eslint.org/docs/rules/multiline-comment-style
       'multiline-comment-style': ['error', 'separate-lines'],
@@ -436,7 +424,7 @@ export default typescript.config([
       ],
 
       // https://eslint.org/docs/rules/no-console
-      'no-console': ['error'],
+      'no-console': 'error',
     },
   },
   {
@@ -500,6 +488,7 @@ export default typescript.config([
     },
     rules: {
       ...react.configs.flat.recommended.rules,
+      // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].rules,
 
       // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
@@ -571,9 +560,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/react-hooks',
-    plugins: {
-      'react-hooks': reactHooks,
-    },
+    plugins: {'react-hooks': reactHooks},
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': [
@@ -584,9 +571,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/@typescript-eslint',
-    plugins: {
-      '@typescript-eslint': typescript.plugin,
-    },
+    plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
       // no-undef is redundant with typescript as tsc will complain
       // A downside is that we won't get eslint errors about it, but your editors should
@@ -683,9 +668,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/typescript-sort-keys',
-    plugins: {
-      'typescript-sort-keys': typescriptSortKeys,
-    },
+    plugins: {'typescript-sort-keys': typescriptSortKeys},
     rules: {
       'typescript-sort-keys/interface': [
         'error',
@@ -696,9 +679,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/simple-import-sort',
-    plugins: {
-      'simple-import-sort': simpleImportSort,
-    },
+    plugins: {'simple-import-sort': simpleImportSort},
     rules: {
       /**
        * Better import sorting
@@ -745,9 +726,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/sentry',
-    plugins: {
-      sentry,
-    },
+    plugins: {sentry},
     rules: {
       'sentry/no-digits-in-tn': 'error',
       'sentry/no-dynamic-translations': 'error',
@@ -756,9 +735,7 @@ export default typescript.config([
   },
   {
     name: 'plugin/@emotion',
-    plugins: {
-      '@emotion': emotion,
-    },
+    plugins: {'@emotion': emotion},
     rules: {
       '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
       '@emotion/jsx-import': 'off', // Not needed, handled by babel
