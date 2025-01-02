@@ -1023,8 +1023,6 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
         )
 
     def test_with_other_metrics(self):
-        if not self.backend.is_metrics_based():
-            return
         assert isinstance(self, BaseMetricsTestCase)
 
         # Test no errors when no session data
