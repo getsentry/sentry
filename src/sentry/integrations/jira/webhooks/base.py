@@ -57,7 +57,7 @@ class JiraWebhookBase(Generic[T, U], IntegrationWebhookEndpoint[T, U], ABC):
         ):
             logger.info(
                 "Atlassian Connect Security Request Tester tried disallowed method",
-                extra=self.log_extra,
+                extra={"path": request.path, "method": request.method},
             )
             return self.respond(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 

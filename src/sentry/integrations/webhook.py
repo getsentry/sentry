@@ -45,9 +45,7 @@ class IntegrationWebhookEndpoint(Endpoint, Generic[T, U], ABC):
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         response = super().dispatch(request, *args, **kwargs)
-        self.log_extra.update(
-            {"request_method": self.request.method, "request_path": self.request.path}
-        )
+        self.log_extra = {"request_method": self.request.method, "request_path": self.request.path}
         return response
 
     @abstractmethod
