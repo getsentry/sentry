@@ -10,10 +10,10 @@ import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResourcesQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {
@@ -77,6 +77,7 @@ type Props = {
 };
 
 function ResourceTable({sort, defaultResourceTypes}: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -187,7 +188,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   };
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: newCursor},
     });
