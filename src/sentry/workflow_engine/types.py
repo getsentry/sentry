@@ -39,7 +39,7 @@ class WorkflowJob(EventJob, total=False):
     has_reappeared: bool
     has_alert: bool
     has_escalated: bool
-    workflow: Workflow | None
+    workflow: Workflow
 
 
 class ActionHandler:
