@@ -226,14 +226,14 @@ function IssueListOverviewFc({
     []
   );
 
-  const getQuery = useCallback((): string => {
+  const query = useMemo((): string => {
     return getQueryFromSavedSearchOrLocation({
       savedSearch,
       location,
     });
   }, [getQueryFromSavedSearchOrLocation, savedSearch, location]);
 
-  const getSort = useCallback((): string => {
+  const sort = useMemo((): string => {
     return getSortFromSavedSearchOrLocation({
       savedSearch,
       location,
@@ -257,7 +257,7 @@ function IssueListOverviewFc({
     const params: EndpointParams = {
       project: selection.projects,
       environment: selection.environments,
-      query: getQuery(),
+      query,
       ...selection.datetime,
     };
 
@@ -272,7 +272,6 @@ function IssueListOverviewFc({
       params.start = getUtcDateString(params.start);
     }
 
-    const sort = getSort();
     if (sort !== DEFAULT_ISSUE_STREAM_SORT) {
       params.sort = sort;
     }
@@ -288,7 +287,7 @@ function IssueListOverviewFc({
 
     // only include defined values.
     return pickBy(params, v => defined(v)) as EndpointParams;
-  }, [selection, location, getQuery, getSort, getGroupStatsPeriod]);
+  }, [selection, location, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
     // Used for Issue Stream Performance project, enabled means we are doing saved search look up in the backend
@@ -390,17 +389,17 @@ function IssueListOverviewFc({
         organization,
         tab: tab?.analyticsName,
         page: page ? parseInt(page, 10) : 0,
-        query: getQuery(),
+        query,
         num_perf_issues: numPerfIssues,
         num_old_issues: numOldIssues,
         num_new_issues: numNewIssues,
         num_issues: data.length,
         total_issues_count: numHits,
         issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
-        sort: getSort(),
+        sort,
       });
     },
-    [organization, location, getEndpointParams, getQuery, getSort]
+    [organization, location, getEndpointParams, query, sort]
   );
 
   const fetchCounts = useCallback(
@@ -522,8 +521,6 @@ function IssueListOverviewFc({
 
   const fetchData = useCallback(
     (fetchAllCounts = false) => {
-      const query = getQuery();
-
       if (realtimeActive || (!actionTakenRef.current && !undoRef.current)) {
         GroupStore.loadInitialData([]);
 
@@ -533,7 +530,7 @@ function IssueListOverviewFc({
       }
 
       const span = getCurrentSentryReactRootSpan();
-      span?.setAttribute('query.sort', getSort());
+      span?.setAttribute('query.sort', sort);
 
       setError(null);
 
@@ -649,8 +646,8 @@ function IssueListOverviewFc({
       api,
       fetchCounts,
       fetchStats,
-      getQuery,
-      getSort,
+      query,
+      sort,
       location.query,
       organization,
       realtimeActive,
@@ -821,7 +818,7 @@ function IssueListOverviewFc({
     newParams: Partial<EndpointParams> = {},
     newSavedSearch: (SavedSearch & {projectId?: number}) | null = savedSearch
   ) => {
-    const query = {
+    const queryData = {
       ...omit(location.query, ['page', 'cursor']),
       referrer: 'issue-list',
       ...getEndpointParams(),
@@ -833,53 +830,53 @@ function IssueListOverviewFc({
       path = `/organizations/${organization.slug}/issues/searches/${newSavedSearch.id}/`;
 
       // Remove the query as saved searches bring their own query string.
-      delete query.query;
+      delete queryData.query;
 
       // If we aren't going to another page in the same search
       // drop the query and replace the current project, with the saved search search project
       // if available.
-      if (!query.cursor && newSavedSearch.projectId) {
-        query.project = [newSavedSearch.projectId];
+      if (!queryData.cursor && newSavedSearch.projectId) {
+        queryData.project = [newSavedSearch.projectId];
       }
-      if (!query.cursor && !newParams.sort && newSavedSearch.sort) {
-        query.sort = newSavedSearch.sort;
+      if (!queryData.cursor && !newParams.sort && newSavedSearch.sort) {
+        queryData.sort = newSavedSearch.sort;
       }
     } else {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
     if (
-      query.sort === IssueSortOptions.INBOX &&
-      !FOR_REVIEW_QUERIES.includes(query.query || '')
+      queryData.sort === IssueSortOptions.INBOX &&
+      !FOR_REVIEW_QUERIES.includes(queryData.query || '')
     ) {
-      delete query.sort;
+      delete queryData.sort;
     }
 
     if (path !== location.pathname || !isEqual(query, location.query)) {
       browserHistory.push({
         pathname: normalizeUrl(path),
-        query,
+        query: queryData,
       });
       setIssuesLoading(true);
     }
   };
 
-  const onSearch = (query: string) => {
-    if (query === getQuery()) {
+  const onSearch = (newQuery: string) => {
+    if (newQuery === query) {
       // if query is the same, just re-fetch data
       fetchData();
     } else {
       // Clear the saved search as the user wants something else.
-      transitionTo({query}, null);
+      transitionTo({query: newQuery}, null);
     }
   };
 
-  const onSortChange = (sort: string) => {
+  const onSortChange = (newSort: string) => {
     trackAnalytics('issues_stream.sort_changed', {
       organization,
-      sort,
+      sort: newSort,
     });
-    transitionTo({sort});
+    transitionTo({sort: newSort});
   };
 
   const onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -915,8 +912,6 @@ function IssueListOverviewFc({
     data: IssueUpdateData;
     groupItems: BaseGroup[];
   }) => {
-    const query = getQuery();
-
     const projectIds = selection?.projects?.map(p => p.toString());
     const endpoint = `/organizations/${organization.slug}/issues/`;
 
@@ -1011,7 +1006,6 @@ function IssueListOverviewFc({
       return;
     }
 
-    const query = getQuery();
     const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {
@@ -1096,8 +1090,6 @@ function IssueListOverviewFc({
     }, 0);
   };
 
-  const query = getQuery();
-
   const modifiedQueryCount = Math.max(queryCount, 0);
 
   // TODO: these two might still be in use for reprocessing2
@@ -1123,7 +1115,7 @@ function IssueListOverviewFc({
           <IssueListHeader
             organization={organization}
             query={query}
-            sort={getSort()}
+            sort={sort}
             queryCount={queryCount}
             queryCounts={queryCounts}
             realtimeActive={realtimeActive}
@@ -1139,7 +1131,7 @@ function IssueListOverviewFc({
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}
-              sort={getSort()}
+              sort={sort}
               onSortChange={onSortChange}
               onSearch={onSearch}
             />
@@ -1154,7 +1146,7 @@ function IssueListOverviewFc({
               groupIds={groupIds}
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
-              sort={getSort()}
+              sort={sort}
               onSortChange={onSortChange}
               memberList={memberList}
               selectedProjectIds={selection.projects}
@@ -1191,7 +1183,7 @@ function IssueListOverviewFc({
           <SavedIssueSearches
             {...{organization, query}}
             onSavedSearchSelect={onSavedSearchSelect}
-            sort={getSort()}
+            sort={sort}
           />
         </StyledBody>
       </Layout.Page>
