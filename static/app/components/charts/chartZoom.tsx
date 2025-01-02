@@ -6,7 +6,7 @@ import type {
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
-import moment from 'moment-timezone';
+import moment, {type MomentInput} from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
@@ -25,7 +25,7 @@ import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-const getDate = date =>
+const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
 type Period = {

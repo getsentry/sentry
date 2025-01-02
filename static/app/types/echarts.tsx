@@ -1,6 +1,6 @@
 import type {
   AxisPointerComponentOption,
-  ECharts,
+  ECharts as EChartsType,
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
@@ -143,3 +143,5 @@ export type EChartBrushSelectedHandler = EChartEventHandler<{
   brushId: string;
   type: 'brushselected';
 }>;
+
+export type ECharts = EChartsType;

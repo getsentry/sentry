@@ -1,12 +1,15 @@
 import type {Location} from 'history';
 
 import type {ModalTypes} from 'sentry/components/globalModal';
+import type {AddToDashboardModalProps as CreateDashboardFromMetricsModalProps} from 'sentry/components/modals/createDashboardFromMetricsModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
+import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
@@ -245,7 +248,7 @@ export async function openWidgetBuilderOverwriteModal(
   });
 }
 
-export async function openAddToDashboardModal(options) {
+export async function openAddToDashboardModal(options: AddToDashboardModalProps) {
   const mod = await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
   const {default: Modal, modalCss} = mod;
 
@@ -255,7 +258,9 @@ export async function openAddToDashboardModal(options) {
   });
 }
 
-export async function openImportDashboardFromFileModal(options) {
+export async function openImportDashboardFromFileModal(
+  options: ImportDashboardFromFileModalProps
+) {
   const mod = await import('sentry/components/modals/importDashboardFromFileModal');
   const {default: Modal, modalCss} = mod;
 
@@ -265,7 +270,9 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
-export async function openCreateDashboardFromMetrics(options) {
+export async function openCreateDashboardFromMetrics(
+  options: CreateDashboardFromMetricsModalProps
+) {
   const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
