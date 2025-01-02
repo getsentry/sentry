@@ -4,10 +4,10 @@ import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
-  const {isSidebarOpen, dispatch} = useEventDetails();
+  const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
   return (
     <ToggleContainer

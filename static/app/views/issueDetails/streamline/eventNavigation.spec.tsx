@@ -8,7 +8,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useMedia from 'sentry/utils/useMedia';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
@@ -38,7 +38,7 @@ describe('EventNavigation', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(useEventDetails).mockReturnValue({
+    jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
         tags: {key: SectionKey.TAGS},

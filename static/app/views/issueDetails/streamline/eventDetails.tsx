@@ -13,7 +13,7 @@ import {
   EventDetailsContent,
   type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
@@ -45,7 +45,7 @@ function StickyEventNav({event, group}: {event: Event; group: Group}) {
   const [nav, setNav] = useState<HTMLDivElement | null>(null);
   const isStuck = useIsStuck(nav);
   const isScreenMedium = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const {dispatch} = useEventDetails();
+  const {dispatch} = useIssueDetails();
 
   useLayoutEffect(() => {
     if (!nav) {
