@@ -15,7 +15,6 @@ import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/memb
 import type {Client, Request} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -300,22 +299,16 @@ function IssueListOverviewFc({
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: organization.features.includes('issue-stream-performance')
-        ? savedSearchLoading
-          ? savedSearchLookupEnabled
-          : savedSearchLookupDisabled
+      savedSearch: savedSearchLoading
+        ? savedSearchLookupEnabled
         : savedSearchLookupDisabled,
     };
 
-    if (organization.features.includes('issue-stream-performance') && selectedSearchId) {
+    if (selectedSearchId) {
       params.searchId = selectedSearchId;
     }
 
-    if (
-      organization.features.includes('issue-stream-performance') &&
-      savedSearchLoading &&
-      !defined(location.query.query)
-    ) {
+    if (savedSearchLoading && !defined(location.query.query)) {
       delete params.query;
     }
 
@@ -333,13 +326,7 @@ function IssueListOverviewFc({
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [
-    getEndpointParams,
-    location.query,
-    organization.features,
-    savedSearchLoading,
-    selectedSearchId,
-  ]);
+  }, [getEndpointParams, location.query, savedSearchLoading, selectedSearchId]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -688,19 +675,11 @@ function IssueListOverviewFc({
 
   // Fetch data on mount if necessary
   useEffect(() => {
-    // Wait for saved searches to load so if the user is on a saved search
-    // or they have a pinned search we load the correct data the first time.
-    // But if searches are already there, we can go right to fetching issues
-    if (
-      !savedSearchLoading ||
-      organization.features.includes('issue-stream-performance')
-    ) {
-      const loadedFromCache = loadFromCache();
-      if (!loadedFromCache) {
-        // It's possible the projects query parameter is not yet ready and this
-        // request will be repeated in componentDidUpdate
-        fetchData();
-      }
+    const loadedFromCache = loadFromCache();
+    if (!loadedFromCache) {
+      // It's possible the projects query parameter is not yet ready and this
+      // request will be repeated in componentDidUpdate
+      fetchData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -722,22 +701,7 @@ function IssueListOverviewFc({
       return;
     }
 
-    if (
-      previousSavedSearchLoading &&
-      !savedSearchLoading &&
-      organization.features.includes('issue-stream-performance')
-    ) {
-      return;
-    }
-
-    if (
-      savedSearchLoading &&
-      !organization.features.includes('issue-stream-performance')
-    ) {
-      const loadedFromCache = loadFromCache();
-      if (!loadedFromCache) {
-        fetchData();
-      }
+    if (previousSavedSearchLoading && !savedSearchLoading) {
       return;
     }
 
@@ -1142,14 +1106,6 @@ function IssueListOverviewFc({
   const displayReprocessingActions = showReprocessingTab && query === Query.REPROCESSING;
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
-
-  if (savedSearchLoading && !organization.features.includes('issue-stream-performance')) {
-    return (
-      <Layout.Page withPadding>
-        <LoadingIndicator />
-      </Layout.Page>
-    );
-  }
 
   return (
     <NewTabContextProvider>
