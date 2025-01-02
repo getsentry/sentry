@@ -209,59 +209,9 @@ const baseRules = {
   ],
 };
 
-const reactRules = {
-  'typescript-sort-keys/interface': [
-    'error',
-    'asc',
-    {caseSensitive: true, natural: false, requiredFirst: true},
-  ],
-};
-
 const appRules = {
-  // no-undef is redundant with typescript as tsc will complain
-  // A downside is that we won't get eslint errors about it, but your editors should
-  // support tsc errors so....
-  // https://eslint.org/docs/rules/no-undef
-  'no-undef': 'off',
-
   // Let formatter handle this
   'arrow-body-style': 'off',
-
-  /**
-   * Need to use typescript version of these rules
-   * https://eslint.org/docs/rules/no-shadow
-   */
-  'no-shadow': 'off',
-  '@typescript-eslint/no-shadow': 'error',
-
-  // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
-  // fix them all, so we'll have to incrementally update.
-  // https://eslint.org/docs/rules/no-unused-vars
-  'no-unused-vars': 'off',
-  '@typescript-eslint/no-unused-vars': [
-    'error',
-    {
-      vars: 'all',
-      args: 'all',
-      // TODO(scttcper): We could enable this to enforce catch (error)
-      // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-      caughtErrors: 'none',
-
-      // Ignore vars that start with an underscore
-      // e.g. if you want to omit a property using object spread:
-      //
-      //   const {name: _name, ...props} = this.props;
-      //
-      varsIgnorePattern: '^_',
-      argsIgnorePattern: '^_',
-      destructuredArrayIgnorePattern: '^_',
-    },
-  ],
-
-  // https://eslint.org/docs/rules/no-use-before-define
-  'no-use-before-define': 'off',
-  // This seems to have been turned on while previously it had been off
-  '@typescript-eslint/no-use-before-define': ['off'],
 
   /**
    * Restricted imports, e.g. deprecated libraries, etc
@@ -346,48 +296,6 @@ const appRules = {
       ],
     },
   ],
-
-  // https://github.com/xojs/eslint-config-xo-typescript/blob/9791a067d6a119a21a4db72c02f1da95e25ffbb6/index.js#L95
-  '@typescript-eslint/no-restricted-types': [
-    'error',
-    {
-      types: {
-        // TODO(scttcper): Turn object on to make our types more strict
-        // object: {
-        //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-        //   fixWith: 'Record<string, unknown>'
-        // },
-        Buffer: {
-          message:
-            'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
-          suggest: ['Uint8Array'],
-        },
-        '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
-        '[[]]':
-          "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
-        '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
-      },
-    },
-  ],
-  // TODO(scttcper): Turn no-empty-object-type on to make our types more strict
-  // '@typescript-eslint/no-empty-object-type': 'error',
-  // TODO(scttcper): Turn no-function on to make our types more strict
-  // '@typescript-eslint/no-unsafe-function-type': 'error',
-  '@typescript-eslint/no-wrapper-object-types': 'error',
-
-  // Naming convention enforcements
-  '@typescript-eslint/naming-convention': [
-    'error',
-    {
-      selector: 'typeLike',
-      format: ['PascalCase'],
-      leadingUnderscore: 'allow',
-    },
-    {
-      selector: 'enumMember',
-      format: ['UPPER_CASE'],
-    },
-  ],
 };
 
 const strictRules = {
@@ -451,12 +359,6 @@ export default typescript.config([
     linterOptions: {
       noInlineConfig: false,
       reportUnusedDisableDirectives: 'error',
-    },
-    // TODO: move these potential overrides and plugin-specific rules into the
-    // corresponding configuration object where the plugin is initially included
-    plugins: {
-      '@typescript-eslint': typescript.plugin,
-      'typescript-sort-keys': typescriptSortKeys,
     },
     settings: {
       react: {
@@ -690,9 +592,112 @@ export default typescript.config([
     name: 'getsentry/sentry/custom',
     rules: {
       ...baseRules,
-      ...reactRules,
       ...appRules,
       ...strictRules,
+    },
+  },
+  {
+    name: '@typescript-eslint',
+    plugins: {
+      '@typescript-eslint': typescript.plugin,
+    },
+    rules: {
+      // no-undef is redundant with typescript as tsc will complain
+      // A downside is that we won't get eslint errors about it, but your editors should
+      // support tsc errors so....
+      // https://eslint.org/docs/rules/no-undef
+      'no-undef': 'off',
+
+      /**
+       * Need to use typescript version of these rules
+       * https://eslint.org/docs/rules/no-shadow
+       */
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+
+      // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
+      // fix them all, so we'll have to incrementally update.
+      // https://eslint.org/docs/rules/no-unused-vars
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          args: 'all',
+          // TODO(scttcper): We could enable this to enforce catch (error)
+          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
+          caughtErrors: 'none',
+
+          // Ignore vars that start with an underscore
+          // e.g. if you want to omit a property using object spread:
+          //
+          //   const {name: _name, ...props} = this.props;
+          //
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+
+      // https://eslint.org/docs/rules/no-use-before-define
+      'no-use-before-define': 'off',
+      // This seems to have been turned on while previously it had been off
+      '@typescript-eslint/no-use-before-define': 'off',
+
+      // https://github.com/xojs/eslint-config-xo-typescript/blob/9791a067d6a119a21a4db72c02f1da95e25ffbb6/index.js#L95
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            // TODO(scttcper): Turn object on to make our types more strict
+            // object: {
+            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+            //   fixWith: 'Record<string, unknown>'
+            // },
+            Buffer: {
+              message:
+                'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
+              suggest: ['Uint8Array'],
+            },
+            '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+            '[[]]':
+              "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+            '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
+          },
+        },
+      ],
+      // TODO(scttcper): Turn no-empty-object-type on to make our types more strict
+      // '@typescript-eslint/no-empty-object-type': 'error',
+      // TODO(scttcper): Turn no-function on to make our types more strict
+      // '@typescript-eslint/no-unsafe-function-type': 'error',
+      '@typescript-eslint/no-wrapper-object-types': 'error',
+
+      // Naming convention enforcements
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'enumMember',
+          format: ['UPPER_CASE'],
+        },
+      ],
+    },
+  },
+  {
+    name: 'typescript-sort-keys',
+    plugins: {
+      'typescript-sort-keys': typescriptSortKeys,
+    },
+    rules: {
+      'typescript-sort-keys/interface': [
+        'error',
+        'asc',
+        {caseSensitive: true, natural: false, requiredFirst: true},
+      ],
     },
   },
   {
