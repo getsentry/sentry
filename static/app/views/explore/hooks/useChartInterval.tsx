@@ -58,7 +58,8 @@ function useChartIntervalImpl({
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : intervalOptions[0].value;
+      : // Default to the second option so we're not defaulting to the smallest option
+        intervalOptions[1]!.value;
   }, [location.query.interval, intervalOptions]);
 
   const setInterval = useCallback(

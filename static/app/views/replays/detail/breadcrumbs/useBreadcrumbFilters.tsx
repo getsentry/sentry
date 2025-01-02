@@ -50,6 +50,7 @@ const TYPE_TO_LABEL: Record<string, string> = {
   keydown: 'KeyDown',
   input: 'Input',
   tap: 'User Tap',
+  swipe: 'User Swipe',
   device: 'Device',
   app: 'App',
   custom: 'Custom',
@@ -75,6 +76,7 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'web-vital': 'webVital',
   'ui.click': 'click',
   'ui.tap': 'tap',
+  'ui.swipe': 'swipe',
   'ui.keyDown': 'keydown',
   'ui.input': 'input',
   feedback: 'feedback',
@@ -151,8 +153,8 @@ function useBreadcrumbFilters({frames}: Options): Return {
       )
         .sort()
         .map(value => ({
-          value,
-          label: typeToLabel(value),
+          value: value!,
+          label: typeToLabel(value!),
         })),
     [frames, type]
   );

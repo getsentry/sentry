@@ -36,7 +36,7 @@ export function AutogroupNodeDetails(
   }
 
   return (
-    <TraceDrawerComponents.DetailContainer hasNewTraceUi={hasTraceNewUi}>
+    <TraceDrawerComponents.DetailContainer>
       <TraceDrawerComponents.HeaderContainer>
         <TraceDrawerComponents.Title>
           <TraceDrawerComponents.LegacyTitleText>
@@ -54,20 +54,22 @@ export function AutogroupNodeDetails(
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceDrawerComponents.HeaderContainer>
-      <TextBlock>
-        {t(
-          'This block represents autogrouped spans. We do this to reduce noise whenever it fits one of the following criteria:'
-        )}
-      </TextBlock>
-      <BulletList>
-        <li>{t('5 or more siblings with the same operation and description')}</li>
-        <li>{t('2 or more descendants with the same operation')}</li>
-      </BulletList>
-      <TextBlock>
-        {t(
-          'You can either open this autogroup using the chevron on the span or turn this functionality off using the settings dropdown above.'
-        )}
-      </TextBlock>
+      <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
+        <TextBlock>
+          {t(
+            'This block represents autogrouped spans. We do this to reduce noise whenever it fits one of the following criteria:'
+          )}
+        </TextBlock>
+        <BulletList>
+          <li>{t('5 or more siblings with the same operation and description')}</li>
+          <li>{t('2 or more descendants with the same operation')}</li>
+        </BulletList>
+        <TextBlock>
+          {t(
+            'You can either open this autogroup using the chevron on the span or turn this functionality off using the settings dropdown above.'
+          )}
+        </TextBlock>
+      </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );
 }

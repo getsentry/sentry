@@ -19,6 +19,8 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
+  exception_group_height: number;
+  exception_group_width: number;
   has_commit: boolean;
   has_exception_group: boolean;
   has_local_variables: boolean;
@@ -145,8 +147,6 @@ export type TeamInsightsEventParameters = {
   };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
-    created_integration_notification: boolean;
-    has_onboarding_feature_flag: boolean;
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;

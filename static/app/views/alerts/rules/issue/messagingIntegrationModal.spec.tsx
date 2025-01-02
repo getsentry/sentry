@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/globalModal/components';
 import {t} from 'sentry/locale';
 import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messagingIntegrationModal';
+import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -31,12 +32,13 @@ describe('MessagingIntegrationModal', function () {
       providers={providers}
       CloseButton={makeCloseButton(() => {})}
       Footer={ModalFooter}
+      analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
       {...props}
     />
   );
 
   it('renders', async function () {
-    render(getComponent(), {organization: organization});
+    render(getComponent(), {organization});
 
     const heading = await screen.findByRole('heading', {
       name: /connect with a messaging tool/i,

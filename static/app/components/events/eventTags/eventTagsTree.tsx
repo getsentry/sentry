@@ -100,7 +100,7 @@ function getTagTreeRows({
     const branchRows = getTagTreeRows({
       ...props,
       tagKey: tag,
-      content: content.subtree[tag],
+      content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
       // Encoding the trunk index with the branch index ensures uniqueness for the key
@@ -154,7 +154,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project: project, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, ...props})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(

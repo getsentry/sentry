@@ -6,7 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -14,7 +14,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
 
     def test_simple(self):
         user = self.create_user()
@@ -331,8 +331,8 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         self.login_as(user=user)
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            start = iso_format(before_now(minutes=10))
-            end = iso_format(before_now(minutes=5))
+            start = before_now(minutes=10).isoformat()
+            end = before_now(minutes=5).isoformat()
             url = reverse(
                 "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
             )
@@ -343,8 +343,8 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
             # 5 minutes later, cache_key should be different
-            start = iso_format(before_now(minutes=5))
-            end = iso_format(before_now(minutes=0))
+            start = before_now(minutes=5).isoformat()
+            end = before_now(minutes=0).isoformat()
             response = self.client.get(
                 url, {"use_cache": "1", "start": start, "end": end}, format="json"
             )
@@ -359,9 +359,9 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            start = iso_format(before_now(minutes=10))
-            middle = iso_format(before_now(minutes=5))
-            end = iso_format(before_now(minutes=0))
+            start = before_now(minutes=10).isoformat()
+            middle = before_now(minutes=5).isoformat()
+            end = before_now(minutes=0).isoformat()
             # Throw an event in the middle of the time window, since end might get rounded down a bit
             self.store_event(
                 data={"event_id": "a" * 32, "tags": {"fruit": "apple"}, "timestamp": middle},

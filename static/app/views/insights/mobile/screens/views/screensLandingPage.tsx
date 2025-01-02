@@ -265,7 +265,7 @@ export function ScreensLandingPage() {
       item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
 
     if (dataset.data) {
-      const row = dataset.data.data[0];
+      const row = dataset.data.data[0]!;
       const units = dataset.data.meta?.units;
       const fieldTypes = dataset.data.meta?.fields;
 
@@ -275,8 +275,8 @@ export function ScreensLandingPage() {
 
       return {
         type: fieldType,
-        unit: unit,
-        value: value,
+        unit,
+        value,
       };
     }
 
@@ -324,7 +324,7 @@ export function ScreensLandingPage() {
                             onClick={() => {
                               setState({
                                 vital: item,
-                                status: status,
+                                status,
                               });
                             }}
                             key={item.field}

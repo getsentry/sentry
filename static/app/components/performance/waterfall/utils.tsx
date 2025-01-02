@@ -238,13 +238,13 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
+const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17]![key]);
 
 export const barColors = {
-  default: CHART_PALETTE[17][4],
-  transaction: CHART_PALETTE[17][8],
-  http: CHART_PALETTE[17][10],
-  db: CHART_PALETTE[17][17],
+  default: CHART_PALETTE[17]![4],
+  transaction: CHART_PALETTE[17]![8],
+  http: CHART_PALETTE[17]![10],
+  db: CHART_PALETTE[17]![17],
 };
 
 export const pickBarColor = (input: string | undefined): string => {
@@ -252,17 +252,17 @@ export const pickBarColor = (input: string | undefined): string => {
   // That way colors stay consistent between transactions.
 
   if (!input || input.length < 3) {
-    return CHART_PALETTE[17][4];
+    return CHART_PALETTE[17]![4]!;
   }
 
   if (barColors[input]) {
     return barColors[input];
   }
 
-  const letterIndex1 = getLetterIndex(input[0]);
-  const letterIndex2 = getLetterIndex(input[1]);
-  const letterIndex3 = getLetterIndex(input[2]);
-  const letterIndex4 = getLetterIndex(input[3]);
+  const letterIndex1 = getLetterIndex(input[0]!);
+  const letterIndex2 = getLetterIndex(input[1]!);
+  const letterIndex3 = getLetterIndex(input[2]!);
+  const letterIndex4 = getLetterIndex(input[3]!);
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length

@@ -126,7 +126,7 @@ describe('OrganizationAuditLog', function () {
       router,
     });
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // rule.edit -> issue-alert.edit
     expect(screen.getByText('issue-alert.edit')).toBeInTheDocument();

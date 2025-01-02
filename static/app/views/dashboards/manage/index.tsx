@@ -60,6 +60,7 @@ import TemplateCard from './templateCard';
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Dashboards'), value: 'mydashboards'},
   {label: t('Dashboard Name (A-Z)'), value: 'title'},
+  {label: t('Dashboard Name (Z-A)'), value: '-title'},
   {label: t('Date Created (Newest)'), value: '-dateCreated'},
   {label: t('Date Created (Oldest)'), value: 'dateCreated'},
   {label: t('Most Popular'), value: 'mostPopular'},
@@ -119,7 +120,7 @@ function ManageDashboards() {
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
-          sort: getActiveSort().value,
+          sort: getActiveSort()!.value,
           ...(organization.features.includes('dashboards-favourite')
             ? {pin: 'favorites'}
             : {}),
@@ -167,7 +168,7 @@ function ManageDashboards() {
           const paginationObject = parseLinkHeader(dashboardsPageLinks);
           if (
             dashboards?.length &&
-            paginationObject.next.results &&
+            paginationObject.next!.results &&
             rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
@@ -284,7 +285,7 @@ function ManageDashboards() {
         </Feature>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
-          value={activeSort.value}
+          value={activeSort!.value}
           options={SORT_OPTIONS}
           onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"

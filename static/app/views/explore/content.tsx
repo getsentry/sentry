@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -114,13 +115,6 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </Layout.HeaderActions>
           </Layout.Header>
           <Body>
-            {confidence === 'low' && (
-              <ConfidenceAlert type="warning" showIcon>
-                {t(
-                  'Your low sample count may impact the accuracy of this extrapolation. Edit your query or increase your sample rate.'
-                )}
-              </ConfidenceAlert>
-            )}
             <TopSection>
               <StyledPageFilterBar condensed>
                 <ProjectPageFilter />
@@ -203,6 +197,8 @@ function ExploreTagsProvider({children}) {
 }
 
 export function ExploreContent(props: ExploreContentProps) {
+  Sentry.setTag('explore.visited', 'yes');
+
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
@@ -223,11 +219,6 @@ const Body = styled(Layout.Body)`
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: 400px minmax(100px, auto);
   }
-`;
-
-const ConfidenceAlert = styled(Alert)`
-  grid-column: 1/3;
-  margin: 0;
 `;
 
 const TopSection = styled('div')`

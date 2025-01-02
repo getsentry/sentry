@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
@@ -110,9 +110,9 @@ export function SuspectFunctionsTable({
     return sortedMetrics.slice(pagination.start, pagination.end);
   }, [sortedMetrics, pagination]);
 
-  const {tableStyles} = useTableStyles({
-    items: COLUMNS,
-  });
+  const fields = COLUMNS.map(column => column.value);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles} = useTableStyles(fields, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -139,7 +139,7 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </TableHeader>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {COLUMNS.map((column, i) => {

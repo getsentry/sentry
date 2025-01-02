@@ -304,19 +304,37 @@ def proguard_file_bug(project):
 
 
 @django_db_all
+def test_normalize_sample_v1_profile(organization, sample_v1_profile):
+    sample_v1_profile["transaction_tags"] = {"device.class": "1"}
+
+    _normalize(profile=sample_v1_profile, organization=organization)
+
+    assert sample_v1_profile.get("os", {}).get("build_number")
+    assert sample_v1_profile.get("device", {}).get("classification")
+    assert sample_v1_profile["device"]["classification"] == "low"
+
+
+@django_db_all
 def test_normalize_ios_profile(organization, ios_profile):
+    ios_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=ios_profile, organization=organization)
     for k in ["device_os_build_number", "device_classification"]:
         assert k in ios_profile
 
+    assert ios_profile["device_classification"] == "low"
+
 
 @django_db_all
 def test_normalize_android_profile(organization, android_profile):
+    android_profile["transaction_tags"] = {"device.class": "1"}
+
     _normalize(profile=android_profile, organization=organization)
     for k in ["android_api_level", "device_classification"]:
         assert k in android_profile
 
     assert isinstance(android_profile["android_api_level"], int)
+    assert android_profile["device_classification"] == "low"
 
 
 def test_process_symbolicator_results_for_sample():

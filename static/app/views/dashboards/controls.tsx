@@ -164,10 +164,10 @@ function Controls({
 
   return (
     <StyledButtonBar gap={1} key="controls">
+      <FeedbackWidgetButton />
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <FeedbackWidgetButton />
             <Feature features="dashboards-import">
               <Button
                 data-test-id="dashboard-export"

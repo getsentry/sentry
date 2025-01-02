@@ -16,7 +16,7 @@ from sentry.search.utils import tokenize_query
 class EventAttachmentsEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> Response:

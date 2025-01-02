@@ -1,15 +1,16 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {LocationDescriptor} from 'history';
 
 import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,6 +39,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
+      'trace context height': 150,
     },
     layoutOptions: [],
   },
@@ -112,6 +114,21 @@ function EventTraceViewInner({event, organization, traceId}: EventTraceViewInner
   );
 }
 
+function getHrefFromTraceTarget(traceTarget: LocationDescriptor) {
+  if (typeof traceTarget === 'string') {
+    return traceTarget;
+  }
+
+  const searchParams = new URLSearchParams();
+  for (const key in traceTarget.query) {
+    if (defined(traceTarget.query[key])) {
+      searchParams.append(key, traceTarget.query[key]);
+    }
+  }
+
+  return `${traceTarget.pathname}?${searchParams.toString()}`;
+}
+
 function IssuesTraceOverlay({event}: {event: Event}) {
   const location = useLocation();
   const organization = useOrganization();
@@ -134,7 +151,8 @@ function IssuesTraceOverlay({event}: {event: Event}) {
       <LinkButton
         size="sm"
         icon={<IconOpen />}
-        to={traceTarget}
+        href={getHrefFromTraceTarget(traceTarget)}
+        external
         analyticsEventName="Issue Details: View Full Trace"
         analyticsEventKey="issue_details.view_full_trace"
       >
@@ -188,9 +206,19 @@ const IssuesTraceOverlayContainer = styled('div')`
   z-index: 10;
 
   a {
+    display: none;
     position: absolute;
-    top: ${space(1)};
-    right: ${space(1)};
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  &:hover {
+    background-color: rgba(128, 128, 128, 0.4);
+
+    a {
+      display: block;
+    }
   }
 `;
 

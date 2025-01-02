@@ -99,7 +99,7 @@ export function getMetricQueries(
   const indizesWithoutId: number[] = [];
 
   const queries = widget.queries.map((query, index): DashboardMetricsQuery | null => {
-    if (query.aggregates[0].startsWith('equation|')) {
+    if (query.aggregates[0]!.startsWith('equation|')) {
       return null;
     }
 
@@ -110,7 +110,7 @@ export function getMetricQueries(
       usedIds.add(id);
     }
 
-    const parsed = parseField(query.aggregates[0]);
+    const parsed = parseField(query.aggregates[0]!);
     if (!parsed) {
       return null;
     }
@@ -129,11 +129,11 @@ export function getMetricQueries(
 
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
-      id: id,
+      id,
       type: MetricExpressionType.QUERY,
-      condition: condition,
-      mri: mri,
-      aggregation: aggregation,
+      condition,
+      mri,
+      aggregation,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
@@ -153,7 +153,7 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
   const equations = widget.queries.map(
     (query, index): DashboardMetricsEquation | null => {
-      if (!query.aggregates[0].startsWith('equation|')) {
+      if (!query.aggregates[0]!.startsWith('equation|')) {
         return null;
       }
 
@@ -165,9 +165,9 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
       }
 
       return {
-        id: id,
+        id,
         type: MetricExpressionType.EQUATION,
-        formula: query.aggregates[0].slice(9),
+        formula: query.aggregates[0]!.slice(9),
         isHidden: !!query.isHidden,
         alias: query.fieldAliases?.[0],
       } satisfies DashboardMetricsEquation;
@@ -266,7 +266,7 @@ export function expressionsToWidget(
   return {
     title,
     interval,
-    displayType: displayType,
+    displayType,
     widgetType: WidgetType.METRICS,
     limit: 10,
     queries: expressions.map(e => {

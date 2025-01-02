@@ -3,8 +3,6 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 
 import {findVideoSegmentIndex} from './utils';
 
-type RootElem = HTMLDivElement | null;
-
 // The number of segments to load on either side of the requested segment (around 15 seconds)
 // Also the number of segments we load initially
 const PRELOAD_BUFFER = 3;
@@ -19,7 +17,7 @@ interface VideoReplayerOptions {
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   start: number;
   videoApiPrefix: string;
   clipWindow?: ClipWindow;
@@ -92,9 +90,8 @@ export class VideoReplayer {
     this.config = config;
 
     this.wrapper = document.createElement('div');
-    if (root) {
-      root.appendChild(this.wrapper);
-    }
+    this.wrapper.className = 'video-replayer-wrapper';
+    root.appendChild(this.wrapper);
 
     this._trackList = this._attachments.map(({timestamp}, i) => [timestamp, i]);
 
@@ -144,7 +141,7 @@ export class VideoReplayer {
     const handleLoadedData = event => {
       // Used to correctly set the dimensions of the first frame
       if (index === 0) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
 
       // Only call this for current segment as we preload multiple
@@ -162,7 +159,7 @@ export class VideoReplayer {
 
     const handlePlay = event => {
       if (index === this._currentIndex) {
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
@@ -171,13 +168,13 @@ export class VideoReplayer {
       if (index === this._currentIndex) {
         // Theoretically we could have different orientations and they should
         // only happen in different segments
-        this._callbacks.onLoaded(event);
+        this._callbacks.onLoaded!(event);
       }
     };
 
     const handleSeeking = event => {
       // Centers the video when seeking (and video is not playing)
-      this._callbacks.onLoaded(event);
+      this._callbacks.onLoaded!(event);
     };
 
     el.addEventListener('ended', handleEnded);
@@ -287,12 +284,12 @@ export class VideoReplayer {
       this.resumeTimer();
     }
 
-    this._callbacks.onBuffer(isBuffering);
+    this._callbacks.onBuffer!(isBuffering);
   }
 
   private stopReplay() {
     this._timer.stop();
-    this._callbacks.onFinished();
+    this._callbacks.onFinished!();
     this._isPlaying = false;
   }
 

@@ -221,7 +221,7 @@ describe('EventTagsAndScreenshot', function () {
       const allTags = applicationTags.concat(customTags);
       const testEvent = EventFixture({tags: allTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('EventTagsAndScreenshot', function () {
       ];
       const testEvent = EventFixture({tags: applicationTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -311,7 +311,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
 
       // Display help text when hovering question element
@@ -354,7 +354,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(await screen.findByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
 
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
@@ -403,7 +403,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1]!.id}/?download`
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
@@ -415,7 +415,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2]!.id}/?download`
       );
     });
 
@@ -473,7 +473,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
     });
   });

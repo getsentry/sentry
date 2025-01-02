@@ -1,8 +1,9 @@
 import type {Dispatch, SetStateAction} from 'react';
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
@@ -26,6 +27,7 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
@@ -35,6 +37,7 @@ import {
   useExploreGroupBys,
   useExploreQuery,
   useExploreSortBys,
+  useExploreTitle,
   useExploreVisualizes,
   useSetExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
@@ -55,6 +58,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
+  const title = useExploreTitle();
   const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
   const visualizes = useExploreVisualizes();
@@ -130,16 +134,11 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
     columns: groupBys,
     userQuery: query,
     confidence,
+    title,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef);
 
   const meta = result.meta ?? {};
 
@@ -148,7 +147,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
 
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {fields.map((field, i) => {
@@ -179,26 +178,33 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
               }
 
               return (
-                <StyledTableHeadCell
-                  align={align}
-                  key={i}
-                  isFirst={i === 0}
-                  onClick={updateSort}
-                >
-                  <span>{label}</span>
-                  {defined(direction) && (
-                    <IconArrow
-                      size="xs"
-                      direction={
-                        direction === 'desc'
-                          ? 'down'
-                          : direction === 'asc'
-                            ? 'up'
-                            : undefined
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{label}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== fields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
                       }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
                     />
                   )}
-                </StyledTableHeadCell>
+                </TableHeadCell>
               );
             })}
           </TableRow>
@@ -222,7 +228,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
                         <TopResultsIndicator index={i} />
                       )}
                       <FieldRenderer
-                        column={columns[j]}
+                        column={columns[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -255,10 +261,6 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
   }};
-`;
-
-const StyledTableHeadCell = styled(TableHeadCell)`
-  cursor: pointer;
 `;

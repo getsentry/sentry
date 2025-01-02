@@ -489,6 +489,8 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         data, "contexts", "os", "raw_description"
     )
     os_version = get_path(data, "contexts", "os", "version")
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/
+    is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
 
     if os_version:
         os_version = os_version.split(".", 1)[0]
@@ -497,19 +499,25 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=neither,
-            tags={"availability": "neither", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "neither",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
-    # TODO: This seems to just be wrong
-    # We want mutual exclusion here, since we don't want to double count. E.g., an event has both symbols, so we
-    # count it both in `both` and `old` or `symx` which makes it impossible for us to know the percentage of events
-    # that matched both.
     if both := apple_symbol_stats.get("both"):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=both,
-            tags={"availability": "both", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "both",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -517,7 +525,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=old,
-            tags={"availability": "old", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "old",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 
@@ -525,7 +538,12 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         metrics.incr(
             "apple_symbol_availability_v2",
             amount=symx,
-            tags={"availability": "symx", "os_name": os_name, "os_version": os_version},
+            tags={
+                "availability": "symx",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
             sample_rate=1.0,
         )
 

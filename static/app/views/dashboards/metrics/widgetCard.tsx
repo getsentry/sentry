@@ -65,7 +65,7 @@ export function getWidgetTitle(expressions: DashboardMetricsExpression[]) {
   const filteredExpressions = expressions.filter(query => !query.isQueryOnly);
 
   if (filteredExpressions.length === 1) {
-    const firstQuery = filteredExpressions[0];
+    const firstQuery = filteredExpressions[0]!;
     if (isMetricsEquation(firstQuery)) {
       return (
         <Fragment>

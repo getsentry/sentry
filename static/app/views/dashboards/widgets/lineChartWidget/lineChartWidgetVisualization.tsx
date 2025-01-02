@@ -19,17 +19,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
+import {formatTooltipValue} from '../common/formatTooltipValue';
+import {formatYAxisValue} from '../common/formatYAxisValue';
 import {ReleaseSeries} from '../common/releaseSeries';
-import type {Meta, Release, TimeseriesData} from '../common/types';
+import type {Aliases, Release, TimeseriesData} from '../common/types';
 
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatYAxisValue} from './formatYAxisValue';
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 export interface LineChartWidgetVisualizationProps {
   timeseries: TimeseriesData[];
+  aliases?: Aliases;
   dataCompletenessDelay?: number;
-  meta?: Meta;
   releases?: Release[];
 }
 
@@ -39,7 +39,6 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
-  const {meta} = props;
 
   const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
 
@@ -61,6 +60,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
 
     releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
   }
+
+  const formatSeriesName: (string) => string = name => {
+    return props.aliases?.[name] ?? name;
+  };
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
@@ -91,14 +94,14 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
   // TODO: There's a TypeScript indexing error here. This _could_ in theory be
   // `undefined`. We need to guard against this in the parent component, and
   // show an error.
-  const firstSeries = props.timeseries[0];
+  const firstSeries = props.timeseries[0]!;
 
   // TODO: Raise error if attempting to plot series of different types or units
   const firstSeriesField = firstSeries?.field;
-  const type = meta?.fields?.[firstSeriesField] ?? 'number';
-  const unit = meta?.units?.[firstSeriesField] ?? undefined;
+  const type = firstSeries?.meta?.fields?.[firstSeriesField] ?? 'number';
+  const unit = firstSeries?.meta?.units?.[firstSeriesField] ?? undefined;
 
-  const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
+  const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
   ) => {
@@ -138,6 +141,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
       valueFormatter: value => {
         return formatTooltipValue(value, type, unit);
       },
+      nameFormatter: formatSeriesName,
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -204,6 +208,9 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
           ? {
               top: 0,
               left: 0,
+              formatter(name: string) {
+                return formatSeriesName(name);
+              },
             }
           : undefined
       }
@@ -212,9 +219,10 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         axisPointer: {
           type: 'cross',
         },
-        formatter,
+        formatter: formatTooltip,
       }}
       xAxis={{
+        animation: false,
         axisLabel: {
           padding: [0, 10, 0, 10],
           width: 60,
@@ -222,6 +230,7 @@ export function LineChartWidgetVisualization(props: LineChartWidgetVisualization
         splitNumber: 0,
       }}
       yAxis={{
+        animation: false,
         axisLabel: {
           formatter(value: number) {
             return formatYAxisValue(value, type, unit);

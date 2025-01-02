@@ -6,7 +6,7 @@ describe('rerender', () => {
   // Taken from https://testing-library.com/docs/example-update-props/
   let idCounter = 1;
 
-  function NumberDisplay({number}) {
+  function NumberDisplay({number}: {number: number}) {
     const id = useRef(idCounter++); // to ensure we don't remount a different instance
 
     return (

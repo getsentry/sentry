@@ -1,10 +1,11 @@
 ---
-created: '2024-12-06T19:38:51.652327+00:00'
+created: '2024-12-17T22:47:19.084434+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "1a11687556cf74559f0ae90b1c87e2fd"
+  contributing component: threads
   component:
     app*
       threads*
@@ -17,6 +18,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: null
+  contributing component: null
   component:
     system (threads of app take precedence)
       threads (ignored because hash matches app variant)

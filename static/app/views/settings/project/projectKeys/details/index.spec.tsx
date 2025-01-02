@@ -24,6 +24,20 @@ describe('ProjectKeyDetails', function () {
   let putMock: jest.Mock;
   let projectKeys: ProjectKey[];
 
+  function renderProjectKeyDetails() {
+    render(
+      <ProjectKeyDetails
+        {...routerProps}
+        organization={org}
+        project={project}
+        params={{
+          keyId: projectKeys[0]!.id,
+          projectId: project.slug,
+        }}
+      />
+    );
+  }
+
   beforeEach(function () {
     org = OrganizationFixture();
     project = ProjectFixture();
@@ -31,16 +45,16 @@ describe('ProjectKeyDetails', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'GET',
       body: projectKeys[0],
     });
     putMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'PUT',
     });
     statsMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/stats/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/stats/`,
       method: 'GET',
       body: [
         {filtered: 0, accepted: 0, total: 0, ts: 1517270400, dropped: 0},
@@ -77,35 +91,25 @@ describe('ProjectKeyDetails', function () {
       ],
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'DELETE',
     });
-
-    render(
-      <ProjectKeyDetails
-        {...routerProps}
-        organization={org}
-        project={project}
-        params={{
-          keyId: projectKeys[0].id,
-          projectId: project.slug,
-        }}
-      />
-    );
   });
 
   it('has stats box', async function () {
+    renderProjectKeyDetails();
     expect(await screen.findByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });
 
   it('changes name', async function () {
+    renderProjectKeyDetails();
     await userEvent.clear(await screen.findByRole('textbox', {name: 'Name'}));
     await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Name');
     await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {
           name: 'New Name',
@@ -115,10 +119,11 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('disable and enables key', async function () {
+    renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {isActive: false},
       })
@@ -127,7 +132,7 @@ describe('ProjectKeyDetails', function () {
     await userEvent.click(await screen.findByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {isActive: false},
       })
@@ -135,6 +140,7 @@ describe('ProjectKeyDetails', function () {
   });
 
   it('revokes a key', async function () {
+    renderProjectKeyDetails();
     await userEvent.click(await screen.findByRole('button', {name: 'Revoke Key'}));
     renderGlobalModal();
     await userEvent.click(await screen.findByTestId('confirm-button'));

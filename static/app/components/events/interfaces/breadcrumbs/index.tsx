@@ -148,24 +148,24 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
       const foundFilterType = filterTypes.findIndex(
-        f => f.value === `type-${breadcrumb.type}`
+        f => f.value === `type-${breadcrumb!.type}`
       );
 
       if (foundFilterType === -1) {
         filterTypes.push({
-          value: `type-${breadcrumb.type}`,
-          leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
-          label: breadcrumb.description,
-          levels: breadcrumb?.level ? [breadcrumb.level] : [],
+          value: `type-${breadcrumb!.type}`,
+          leadingItems: <Type type={breadcrumb!.type} color={breadcrumb!.color} />,
+          label: breadcrumb!.description,
+          levels: breadcrumb!.level ? [breadcrumb!.level] : [],
         });
         continue;
       }
 
       if (
         breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
+        !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType].levels?.push(breadcrumb.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb!.level);
       }
     }
 
@@ -176,8 +176,8 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     const filterLevels: SelectOption<string>[] = [];
 
     for (const indexType in types) {
-      for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels?.[indexLevel];
+      for (const indexLevel in types[indexType]!.levels) {
+        const level = types[indexType]!.levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;

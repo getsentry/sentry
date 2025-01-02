@@ -141,7 +141,7 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
         is_expired = (
-            bool(expires_at) and datetime.strptime(cast(str, expires_at), "%Y-%m-%dT%H:%M:%S") < now
+            bool(expires_at) and datetime.fromisoformat(expires_at).replace(tzinfo=None) < now
         )
         should_refresh = not access_token or not expires_at or is_expired
 
@@ -586,10 +586,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
                 logger.info("Page %s: %s", page_number, next_link)
                 page_number += 1
             return output
-
-    def get_issues(self, repo: str) -> Sequence[Any]:
-        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
-        return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """

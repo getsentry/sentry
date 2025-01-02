@@ -447,7 +447,6 @@
   "sentry.lostpasswordhash": [
     "sentry.user"
   ],
-  "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
     "sentry.project",
@@ -857,6 +856,10 @@
   "social_auth.usersocialauth": [
     "sentry.user"
   ],
+  "tempest.tempestcredentials": [
+    "sentry.project",
+    "sentry.user"
+  ],
   "uptime.projectuptimesubscription": [
     "sentry.environment",
     "sentry.project",
@@ -865,6 +868,9 @@
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": [],
+  "uptime.uptimesubscriptionregion": [
+    "uptime.uptimesubscription"
+  ],
   "workflow_engine.action": [
     "sentry.integration"
   ],

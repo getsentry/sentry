@@ -172,7 +172,7 @@ class TransactionDetail extends Component<Props> {
             key={measurement}
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
-            {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
+            {`${Number(measurements[measurement]!.value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}
       </Fragment>

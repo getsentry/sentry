@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -17,6 +16,7 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
@@ -27,15 +27,11 @@ from tests.sentry.grouping import (
     with_grouping_inputs,
 )
 
-
-class DummyProject:
-    id: int = 11211231
-
-
-dummy_project = cast(Project, DummyProject())
+dummy_project = Mock(id=11211231)
 
 
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
+@override_options({"grouping.experiments.parameterization.uniq_id": 0})
 @pytest.mark.parametrize(
     "config_name",
     set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG},
@@ -55,7 +51,7 @@ def test_hash_basis_with_legacy_configs(
     event = grouping_input.create_event(config_name, use_full_ingest_pipeline=False)
 
     # This ensures we won't try to touch the DB when getting event variants
-    event.project = None  # type: ignore[assignment]
+    event.project = dummy_project
 
     _assert_and_snapshot_results(event, config_name, grouping_input.filename, insta_snapshot)
 
@@ -120,7 +116,7 @@ def test_unknown_hash_basis(
     with patch.object(
         event,
         "get_grouping_variants",
-        new=MagicMock(return_value={"dogs": ComponentVariant(component, StrategyConfiguration())}),
+        return_value={"dogs": ComponentVariant(component, None, StrategyConfiguration())},
     ):
         # Overrride the input filename since there isn't a real input which will generate the mock
         # variants above, but we still want the snapshot.

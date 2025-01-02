@@ -162,7 +162,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     return endpoints;
   }
 
-  getRetentionPrioritiesData(...data) {
+  getRetentionPrioritiesData(...data: any) {
     return {
       dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
         id: key,
@@ -943,10 +943,13 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             saveOnBlur
             allowUndo
             initialData={
-              project.dynamicSamplingBiases?.reduce((acc, bias) => {
-                acc[bias.id] = bias.active;
-                return acc;
-              }, {}) ?? {}
+              project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
+                (acc, bias) => {
+                  acc[bias.id] = bias.active;
+                  return acc;
+                },
+                {}
+              ) ?? {}
             }
             onSubmitSuccess={(response, _instance, id, change) => {
               ProjectsStore.onUpdateSuccess(response);
@@ -1045,7 +1048,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             apiEndpoint={performanceIssuesEndpoint}
             saveOnBlur
             onSubmitSuccess={(option: {[key: string]: number}) => {
-              const [threshold_key, threshold_value] = Object.entries(option)[0];
+              const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
               trackAnalytics(
                 'performance_views.project_issue_detection_threshold_changed',

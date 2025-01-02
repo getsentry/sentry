@@ -14,7 +14,6 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import {useEffect} from 'react';
-import FeatureObserver from 'sentry/utils/featureObserver';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -61,17 +60,18 @@ function getSentryIntegrations() {
       depth: 6,
     }),
     Sentry.reactRouterV6BrowserTracingIntegration({
-      useEffect: useEffect,
-      useLocation: useLocation,
-      useNavigationType: useNavigationType,
-      createRoutesFromChildren: createRoutesFromChildren,
-      matchRoutes: matchRoutes,
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
     }),
     Sentry.browserProfilingIntegration(),
     Sentry.thirdPartyErrorFilterIntegration({
       filterKeys: ['sentry-spa'],
       behaviour: 'apply-tag-if-contains-third-party-frames',
     }),
+    Sentry.featureFlagsIntegration(),
   ];
 
   return integrations;
@@ -179,14 +179,7 @@ export function initializeSdk(config: Config) {
 
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
-
       lastEventId = event.event_id || hint.event_id;
-
-      // attach feature flags to the event context
-      if (event.contexts) {
-        const flags = FeatureObserver.singleton({}).getFeatureFlags();
-        event.contexts.flags = flags;
-      }
 
       return event;
     },
@@ -224,7 +217,7 @@ export function initializeSdk(config: Config) {
         images.push({
           type: 'sourcemap',
           code_file: filename,
-          debug_id: debugIdMap[filename],
+          debug_id: debugIdMap[filename]!,
         });
       });
     } catch (e) {
@@ -317,7 +310,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
   const causeErrorIsURBE = causeError?.type === 'UndefinedResponseBodyError';
 
   if (mainErrorIsURBE || causeErrorIsURBE) {
-    mainError.type = 'UndefinedResponseBodyError';
+    mainError!.type = 'UndefinedResponseBodyError';
     event.tags = {...event.tags, undefinedResponseBody: true};
     event.fingerprint = mainErrorIsURBE
       ? ['UndefinedResponseBodyError as main error']
@@ -326,7 +319,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
 }
 
 export function addEndpointTagToRequestError(event: Event): void {
-  const errorMessage = event.exception?.values?.[0].value || '';
+  const errorMessage = event.exception?.values?.[0]!.value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
   const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');

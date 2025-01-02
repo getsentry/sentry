@@ -163,7 +163,7 @@ export function PageOverview() {
                 }}
                 size="sm"
               >
-                {t('View Transaction Summary')}
+                {t('View Summary')}
               </LinkButton>
             )
           }

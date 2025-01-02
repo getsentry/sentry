@@ -162,10 +162,6 @@ function CreateProject() {
           project_id: projectData.id,
           platform: selectedPlatform.key,
           rule_ids: ruleIds,
-          has_onboarding_feature_flag: organization.features.includes(
-            'messaging-integration-onboarding-project-creation'
-          ),
-          created_integration_notification: shouldCreateRule ?? false,
         });
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
@@ -296,7 +292,6 @@ function CreateProject() {
   const isMissingAlertThreshold =
     shouldCreateCustomRule && !conditions?.every?.(condition => condition.value);
   const isMissingMessagingIntegrationChannel =
-    organization.features.includes('messaging-integration-onboarding-project-creation') &&
     shouldCreateRule &&
     notificationProps.actions?.some(
       action => action === MultipleCheckboxOptions.INTEGRATION
@@ -346,14 +341,14 @@ function CreateProject() {
     }
 
     if (
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
         alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
-        interval: String(alertRules?.[0].conditions?.[0].interval),
-        threshold: String(alertRules?.[0].conditions?.[0].value),
-        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+        interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
+        threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
+        metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
           ? MetricValues.ERRORS
           : MetricValues.USERS,
       };
