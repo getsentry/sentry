@@ -908,7 +908,6 @@ export default typescript.config([
     files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
   },
