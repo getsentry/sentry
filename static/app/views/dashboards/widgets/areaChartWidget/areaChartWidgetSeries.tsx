@@ -7,7 +7,7 @@ export function AreaChartWidgetSeries(timeserie: TimeseriesData, complete?: bool
     ? LineSeries({
         name: timeserie.field,
         color: timeserie.color,
-        stack: 'area',
+        stack: 'complete',
         animation: false,
         areaStyle: {
           color: timeserie.color,
@@ -20,7 +20,7 @@ export function AreaChartWidgetSeries(timeserie: TimeseriesData, complete?: bool
     : LineSeries({
         name: timeserie.field,
         color: timeserie.color,
-        stack: 'area',
+        stack: 'incomplete',
         animation: false,
         data: timeserie.data.map(datum => {
           return [datum.timestamp, datum.value];
