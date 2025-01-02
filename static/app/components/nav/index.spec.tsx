@@ -8,7 +8,7 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-import {getAllByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 
@@ -54,10 +54,9 @@ describe('Nav', function () {
 
     it('renders expected primary nav items', function () {
       renderNav();
-      const links = getAllByRole(
-        screen.getByRole('navigation', {name: 'Primary Navigation'}),
-        'link'
-      );
+      const links = within(
+        screen.getByRole('navigation', {name: 'Primary Navigation'})
+      ).getAllByRole('link');
       expect(links).toHaveLength(8);
 
       [
@@ -98,7 +97,7 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = getAllByRole(container, 'link');
+      const links = within(container).getAllByRole('link');
       expect(links).toHaveLength(6);
 
       ['All', 'Error & Outage', 'Trend', 'Craftsmanship', 'Security', 'Feedback'].forEach(
@@ -131,7 +130,7 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = getAllByRole(container, 'link');
+      const links = within(container).getAllByRole('link');
       expect(links).toHaveLength(4);
       ['Frontend', 'Backend', 'Mobile', 'AI'].forEach((title, index) => {
         expect(links[index]).toHaveAccessibleName(title);
@@ -159,7 +158,7 @@ describe('Nav', function () {
     it('includes expected submenu items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const links = getAllByRole(container, 'link');
+      const links = within(container).getAllByRole('link');
       expect(links).toHaveLength(7);
       [
         'Traces',

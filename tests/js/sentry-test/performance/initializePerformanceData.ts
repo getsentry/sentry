@@ -232,11 +232,11 @@ export function generateSampleSpan(
     data: {},
   };
 
-  if (!Array.isArray(event.entries[0].data)) {
+  if (!Array.isArray(event.entries[0]!.data)) {
     throw new Error('Event entries data is not an array');
   }
 
-  const data = event.entries[0].data as RawSpanType[];
+  const data = event.entries[0]!.data as RawSpanType[];
   data.push(span);
   return span;
 }

@@ -383,7 +383,7 @@ function AutofixRootCauseDisplay({
   rootCauseSelection,
   repos,
 }: AutofixRootCauseProps) {
-  const [selectedId, setSelectedId] = useState(() => causes[0].id);
+  const [selectedId, setSelectedId] = useState(() => causes[0]!.id);
   const {isPending, mutate: handleSelectFix} = useSelectCause({groupId, runId});
 
   if (rootCauseSelection) {

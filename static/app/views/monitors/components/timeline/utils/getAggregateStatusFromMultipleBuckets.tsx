@@ -17,8 +17,8 @@ export function getAggregateStatusFromMultipleBuckets(
     .map(getAggregateStatus)
     .reduce(
       (aggregateStatus, currentStatus) =>
-        CHECKIN_STATUS_PRECEDENT.indexOf(currentStatus) >
-        CHECKIN_STATUS_PRECEDENT.indexOf(aggregateStatus)
+        CHECKIN_STATUS_PRECEDENT.indexOf(currentStatus!) >
+        CHECKIN_STATUS_PRECEDENT.indexOf(aggregateStatus!)
           ? currentStatus
           : aggregateStatus,
       CHECKIN_STATUS_PRECEDENT[0]
@@ -34,8 +34,8 @@ export function getAggregateStatusFromMultipleStatsBuckets(statsArr: StatsBucket
     .map(getAggregateStatusFromStatsBucket)
     .reduce(
       (aggregateStatus, currentStatus) =>
-        CHECKIN_STATUS_PRECEDENT.indexOf(currentStatus) >
-        CHECKIN_STATUS_PRECEDENT.indexOf(aggregateStatus)
+        CHECKIN_STATUS_PRECEDENT.indexOf(currentStatus!) >
+        CHECKIN_STATUS_PRECEDENT.indexOf(aggregateStatus!)
           ? currentStatus
           : aggregateStatus,
       CHECKIN_STATUS_PRECEDENT[0]

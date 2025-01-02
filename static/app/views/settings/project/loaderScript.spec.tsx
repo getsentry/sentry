@@ -64,7 +64,7 @@ describe('LoaderScript', function () {
 
   it('renders for single project', async function () {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeysFixture()[0];
+    const projectKey = ProjectKeysFixture()[0]!;
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -79,7 +79,7 @@ describe('LoaderScript', function () {
       name: 'Loader Script',
     }) as HTMLInputElement;
     const loaderScriptValue = loaderScript.value;
-    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0].dsn.cdn));
+    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0]!.dsn.cdn));
   });
 
   it('renders multiple keys', async function () {
@@ -132,8 +132,8 @@ describe('LoaderScript', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText(`Client Key: ${projectKeys[0].name}`)).toBeInTheDocument();
-    expect(screen.getByText(`Client Key: ${projectKeys[1].name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[0]!.name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[1]!.name}`)).toBeInTheDocument();
 
     const allLoaderScripts = screen.getAllByRole('textbox', {
       name: 'Loader Script',
@@ -144,7 +144,7 @@ describe('LoaderScript', function () {
 
   it('allows to update key settings', async function () {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeysFixture()[0];
+    const baseKey = ProjectKeysFixture()[0]!;
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {
@@ -267,12 +267,12 @@ describe('LoaderScript', function () {
 
     mockApi({organization, project, projectKeys});
     const mockPut = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       method: 'PUT',
       body: {
         ...projectKey,
         dynamicSdkLoaderOptions: {
-          ...projectKey.dynamicSdkLoaderOptions,
+          ...projectKey!.dynamicSdkLoaderOptions,
           hasPerformance: true,
         },
       },
@@ -305,7 +305,7 @@ describe('LoaderScript', function () {
     await userEvent.click(
       screen.getAllByRole('checkbox', {
         name: 'Enable Performance Monitoring',
-      })[1]
+      })[1]!
     );
 
     expect(
@@ -335,11 +335,11 @@ describe('LoaderScript', function () {
     ).toHaveLength(2);
 
     expect(mockPut).toHaveBeenCalledWith(
-      `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           dynamicSdkLoaderOptions: {
-            ...projectKey.dynamicSdkLoaderOptions,
+            ...projectKey!.dynamicSdkLoaderOptions,
             hasPerformance: true,
           },
         }),

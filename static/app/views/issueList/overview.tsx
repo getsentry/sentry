@@ -163,7 +163,7 @@ class IssueListOverview extends Component<Props, State> {
   componentDidMount() {
     this._performanceObserver = makeIssuesINPObserver();
     this._poller = new CursorPoller({
-      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous?.href,
+      linkPreviousHref: parseLinkHeader(this.state.pageLinks)?.previous!?.href,
       success: this.onRealtimePoll,
     });
 
@@ -735,7 +735,7 @@ class IssueListOverview extends Component<Props, State> {
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(this.state.pageLinks);
-    if (links && !links.previous.results && this.state.realtimeActive) {
+    if (links && !links.previous!.results && this.state.realtimeActive) {
       this._poller.setEndpoint(links?.previous?.href);
       this._poller.enable();
     }
@@ -883,7 +883,7 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     const links = parseLinkHeader(this.state.pageLinks);
-    return links && !links.previous.results && !links.next.results;
+    return links && !links.previous!.results && !links.next!.results;
   }
 
   transitionTo = (
@@ -1121,7 +1121,7 @@ class IssueListOverview extends Component<Props, State> {
       // If we run out of issues on the last page, navigate back a page to
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
-      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
       this.fetchCounts(queryCount, true);
     } else {
       this.fetchData(true);
