@@ -825,14 +825,6 @@ export default typescript.config([
     },
   },
   {
-    name: 'testing-library/react - tsx files',
-    files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
-    ...testingLibrary.configs['flat/react'],
-    rules: {
-      'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-    },
-  },
-  {
     // We specify rules explicitly for the sdk-loader here so we do not have
     // eslint ignore comments included in the source file, which is consumed
     // by users.
