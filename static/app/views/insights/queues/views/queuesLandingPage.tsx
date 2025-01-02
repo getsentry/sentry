@@ -7,11 +7,11 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -40,6 +40,7 @@ const DEFAULT_SORT = {
 };
 
 function QueuesLandingPage() {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -61,7 +62,7 @@ function QueuesLandingPage() {
       query: newDestination,
       source: ModuleName.QUEUE,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
