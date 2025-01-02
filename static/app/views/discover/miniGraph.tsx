@@ -191,7 +191,7 @@ class MiniGraph extends Component<Props> {
               ? display
               : this.getChartType({
                   showDaily,
-                  yAxis: Array.isArray(yAxis) ? yAxis[0] : yAxis,
+                  yAxis: Array.isArray(yAxis) ? yAxis[0]! : yAxis,
                   timeseriesData: allSeries,
                 });
           const data = allSeries.map(series => ({

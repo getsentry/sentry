@@ -49,6 +49,34 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             assert response.status_code == 200, response.content
             assert FlagAuditLogModel.objects.count() == 1
 
+    def test_unleash_post_create(self):
+        request_data = {
+            "id": 28,
+            "tags": [{"type": "simple", "value": "testvalue"}],
+            "type": "feature-environment-enabled",
+            "project": "default",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "admin",
+            "environment": "development",
+            "createdByUserId": 1,
+            "featureName": "test-flag",
+        }
+        signature = "testing12345abcdaslkflsldkfkdlks"
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization,
+            provider="unleash",
+            secret="testing12345abcdaslkflsldkfkdlks",
+        )
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "unleash")),
+                request_data,
+                headers={"Authorization": signature},
+            )
+            assert response.status_code == 200, response.content
+            assert FlagAuditLogModel.objects.count() == 1
+
     def test_launchdarkly_post_create(self):
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())

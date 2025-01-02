@@ -772,9 +772,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           ...singleQueryWidget,
           queries: [
             {
-              ...singleQueryWidget.queries[0],
+              ...singleQueryWidget.queries[0]!,
               name: 'New Legend Alias',
-              fields: [...singleQueryWidget.queries[0].fields, ''],
+              fields: [...singleQueryWidget.queries[0]!.fields, ''],
             },
           ],
         }}

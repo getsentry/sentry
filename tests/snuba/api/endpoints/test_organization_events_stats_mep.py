@@ -6,7 +6,6 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from rest_framework.response import Response
 
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -1282,17 +1281,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "organizations:on-demand-metrics-extraction-widgets": True,
             "organizations:on-demand-metrics-extraction": True,
         }
-
-    def _make_on_demand_request(
-        self, params: dict[str, Any], extra_features: dict[str, bool] | None = None
-    ) -> Response:
-        """Ensures that the required parameters for an on-demand request are included."""
-        # Expected parameters for this helper function
-        params["dataset"] = "metricsEnhanced"
-        params["useOnDemandMetrics"] = "true"
-        params["onDemandType"] = "dynamic_query"
-        _features = {**self.features, **(extra_features or {})}
-        return self.do_request(params, features=_features)
 
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"

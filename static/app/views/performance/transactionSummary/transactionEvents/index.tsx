@@ -88,7 +88,7 @@ function EventsContentWrapper(props: ChildProps) {
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = new MutableSearch(filteredEventView.query);
-      filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
+      filter.query.forEach(item => query.setFilterValues(item[0]!, [item[1]!]));
       filteredEventView.query = query.formatString();
     }
     return filteredEventView;

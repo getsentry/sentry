@@ -890,8 +890,8 @@ function ReleaseComparisonChart({
   let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);
 
   if (!chart) {
-    chart = charts[0];
-    activeChart = charts[0].type;
+    chart = charts[0]!;
+    activeChart = charts[0]!.type;
   }
 
   const showPlaceholders = loading || eventsLoading;

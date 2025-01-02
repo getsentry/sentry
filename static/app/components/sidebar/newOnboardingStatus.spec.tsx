@@ -63,11 +63,11 @@ describe('Onboarding Status', function () {
     expect(screen.getByTestId('pending-seen-indicator')).toBeInTheDocument();
 
     // By hovering over the button, we should refetch the data
-    userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
+    await userEvent.hover(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
 
     // Open the panel
-    userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
     await waitFor(() => expect(postOnboardingTasksMock).toHaveBeenCalled());
     expect(handleShowPanel).toHaveBeenCalled();
@@ -116,7 +116,7 @@ describe('Onboarding Status', function () {
     expect(getOnboardingTasksMock).toHaveBeenCalled();
 
     // Hide Panel
-    userEvent.click(screen.getByLabelText('Close Panel'));
+    await userEvent.click(screen.getByLabelText('Close Panel'));
     await waitFor(() => expect(handleHidePanel).toHaveBeenCalled());
   });
 });

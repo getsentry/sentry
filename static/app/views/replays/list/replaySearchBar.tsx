@@ -2,9 +2,9 @@ import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import type SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import type SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
@@ -62,7 +62,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
         .map(key => [
           key,
           {
-            ...supportedTags[key],
+            ...supportedTags[key]!,
             kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
           },
         ])

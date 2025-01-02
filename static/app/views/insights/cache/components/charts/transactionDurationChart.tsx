@@ -65,7 +65,7 @@ export function TransactionDurationChart({
     const highlightedDataPoints = event.batch.map(batch => {
       const {seriesIndex, dataIndex} = batch;
 
-      const highlightedSeries = allSeries?.[seriesIndex];
+      const highlightedSeries = allSeries?.[seriesIndex]!;
       const highlightedDataPoint = highlightedSeries.data?.[dataIndex];
 
       return {series: highlightedSeries, dataPoint: highlightedDataPoint};

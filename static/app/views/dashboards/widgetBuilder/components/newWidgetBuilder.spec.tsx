@@ -200,9 +200,9 @@ describe('NewWidgetBuiler', function () {
     // see if alias field and add button are not there
     await waitFor(() => {
       expect(screen.queryByPlaceholderText('Legend Alias')).not.toBeInTheDocument();
-      expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
     });
+    expect(screen.queryByText('Add Filter')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Remove this filter')).not.toBeInTheDocument();
   });
 
   it('renders the group by field on chart widgets', async function () {

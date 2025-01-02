@@ -53,7 +53,7 @@ export function computeCollapsedBarSpace(
     return [];
   }
 
-  const first = nodes[0];
+  const first = nodes[0]!;
 
   const segments: [number, number][] = [];
 
@@ -62,7 +62,7 @@ export function computeCollapsedBarSpace(
   let i = 1;
 
   while (i < nodes.length) {
-    const next = nodes[i];
+    const next = nodes[i]!;
 
     if (next.space[0] > end) {
       segments.push([start, end - start]);

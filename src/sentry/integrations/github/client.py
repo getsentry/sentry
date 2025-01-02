@@ -587,10 +587,6 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient)
                 page_number += 1
             return output
 
-    def get_issues(self, repo: str) -> Sequence[Any]:
-        issues: Sequence[Any] = self.get(f"/repos/{repo}/issues")
-        return issues
-
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
         """
         https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
