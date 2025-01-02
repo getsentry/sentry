@@ -113,7 +113,7 @@ export function transformDeviceClassEvents({
 
   if (defined(data)) {
     data.data?.forEach(row => {
-      const deviceClass = row['device.class'];
+      const deviceClass = row['device.class']!;
       const index = deviceClassIndex[deviceClass];
 
       const release = row.release;
@@ -124,7 +124,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
+              color: isPrimary ? CHART_PALETTE[3]![0]! : CHART_PALETTE[3]![1]!,
             },
           } as SeriesDataUnit;
         }

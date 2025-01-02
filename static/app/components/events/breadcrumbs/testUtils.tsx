@@ -49,7 +49,7 @@ export const MOCK_BREADCRUMBS = [
     type: BreadcrumbType.DEFAULT,
     timestamp: oneMinuteBeforeEventFixture,
   },
-];
+] as const;
 const MOCK_BREADCRUMB_ENTRY = {
   type: EntryType.BREADCRUMBS,
   data: {

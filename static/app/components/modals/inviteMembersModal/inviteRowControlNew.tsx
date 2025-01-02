@@ -94,7 +94,7 @@ function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           value={emails}
           components={{
             MultiValue: (props: MultiValueProps<SelectOption>) => (
-              <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+              <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
             ),
             DropdownIndicator: () => null,
           }}

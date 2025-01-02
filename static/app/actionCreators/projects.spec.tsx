@@ -14,7 +14,7 @@ describe('Projects ActionCreators', function () {
     expect(mock).not.toHaveBeenCalled();
 
     _debouncedLoadStats(api, new Set([...Array(50)].map((_, i) => String(i))), {
-      projectId: project.id,
+      projectId: project!.id,
       orgId: organization.slug,
     });
 
@@ -38,7 +38,7 @@ describe('Projects ActionCreators', function () {
     expect(mock).not.toHaveBeenCalled();
 
     _debouncedLoadStats(api, new Set(['1', '2', '3']), {
-      projectId: project.id,
+      projectId: project!.id,
       orgId: organization.slug,
       query: {transactionStats: '1'},
     });

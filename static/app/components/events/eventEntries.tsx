@@ -195,12 +195,12 @@ export function Entries({
   return (
     <Fragment>
       {!hideBeforeReplayEntries &&
-        beforeReplayEntries.map((entry, entryIdx) => (
+        beforeReplayEntries!.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
       {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
-      {afterReplayEntries.map((entry, entryIdx) => {
+      {afterReplayEntries!.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {
           return null;
         }

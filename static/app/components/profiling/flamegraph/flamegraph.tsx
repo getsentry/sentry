@@ -132,7 +132,7 @@ function convertProfileMeasurementsToUIFrames(
   };
 
   for (let i = 0; i < measurement.values.length; i++) {
-    const value = measurement.values[i];
+    const value = measurement.values[i]!;
 
     measurements.values.push({
       elapsed: value.elapsed_since_start_ns,
@@ -173,7 +173,7 @@ function findLongestMatchingFrame(
     }
 
     for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+      frames.push(frame.children[i]!);
     }
   }
 
@@ -449,7 +449,7 @@ function Flamegraph(): ReactElement {
         const values: ProfileSeriesMeasurement['values'] = [];
 
         for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
+          const value = measurements.values[i]!;
           values.push({
             value: value.value,
             elapsed: value.elapsed_since_start_ns,
@@ -478,7 +478,7 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (let i = 0; i < memory_footprint.values.length; i++) {
-        const value = memory_footprint.values[i];
+        const value = memory_footprint.values[i]!;
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
@@ -497,7 +497,7 @@ function Flamegraph(): ReactElement {
       const values: ProfileSeriesMeasurement['values'] = [];
 
       for (let i = 0; i < native_memory_footprint.values.length; i++) {
-        const value = native_memory_footprint.values[i];
+        const value = native_memory_footprint.values[i]!;
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
