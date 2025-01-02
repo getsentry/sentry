@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -31,7 +31,6 @@ type Props = {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
-  chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -72,7 +71,6 @@ export function WidgetCardChartContainer({
   expandNumbers,
   onDataFetched,
   noPadding,
-  chartZoomOptions,
   onWidgetSplitDecision,
   chartGroup,
   shouldResize,
@@ -148,7 +146,6 @@ export function WidgetCardChartContainer({
               onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
-              chartZoomOptions={chartZoomOptions}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
               onLegendSelectChanged={

@@ -2,7 +2,6 @@ import {Component} from 'react';
 import type {
   DataZoomComponentOption,
   ECharts,
-  InsideDataZoomComponentOption,
   ToolboxComponentOption,
   XAXisComponentOption,
 } from 'echarts';
@@ -53,7 +52,6 @@ export interface ZoomRenderProps extends Pick<Props, ZoomPropKeys> {
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  chartZoomOptions?: DataZoomComponentOption;
   disabled?: boolean;
   end?: DateString;
   onChartReady?: EChartChartReadyHandler;
@@ -334,7 +332,6 @@ class ChartZoom extends Component<Props> {
       onChartReady: _onChartReady,
       onDataZoom: _onDataZoom,
       onFinished: _onFinished,
-      chartZoomOptions,
       ...props
     } = this.props;
 
@@ -359,7 +356,6 @@ class ChartZoom extends Component<Props> {
       end,
       dataZoom: DataZoomInside({
         xAxisIndex,
-        ...(chartZoomOptions as InsideDataZoomComponentOption),
       }),
       showTimeInTooltip: true,
       toolBox: ToolBox(

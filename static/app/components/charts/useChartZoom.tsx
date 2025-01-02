@@ -1,10 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import type {
-  DataZoomComponentOption,
-  ECharts,
-  InsideDataZoomComponentOption,
-  ToolboxComponentOption,
-} from 'echarts';
+import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 import * as qs from 'query-string';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
@@ -42,7 +37,6 @@ interface ZoomRenderProps {
 
 interface Props {
   children: (props: ZoomRenderProps) => React.ReactNode;
-  chartZoomOptions?: DataZoomComponentOption;
   /**
    * Disables saving changes to the current period
    */
@@ -133,7 +127,6 @@ export function useChartZoom({
   usePageDate,
   saveOnZoom,
   xAxisIndex,
-  chartZoomOptions,
 }: Omit<Props, 'children'>): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel();
   const location = useLocation();
@@ -253,10 +246,9 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     const zoomInside = DataZoomInside({
       xAxisIndex,
-      ...(chartZoomOptions as InsideDataZoomComponentOption),
     });
     return zoomInside;
-  }, [chartZoomOptions, xAxisIndex]);
+  }, [xAxisIndex]);
 
   const toolBox = useMemo<ToolboxComponentOption>(
     () =>

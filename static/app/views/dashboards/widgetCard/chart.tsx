@@ -3,7 +3,7 @@ import {Component} from 'react';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -65,7 +65,6 @@ import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
-export const SLIDER_HEIGHT = 60;
 
 export type AugmentedEChartDataZoomHandler = (
   params: Parameters<EChartDataZoomHandler>[0] & {
@@ -91,7 +90,6 @@ type WidgetCardChartProps = Pick<
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
-  chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
@@ -292,7 +290,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       onZoom,
       legendOptions,
       noPadding,
-      chartZoomOptions,
       timeseriesResultsTypes,
       shouldResize,
     } = this.props;
@@ -467,13 +464,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     return (
-      <ChartZoom
-        period={period}
-        start={start}
-        end={end}
-        utc={utc}
-        chartZoomOptions={chartZoomOptions}
-      >
+      <ChartZoom period={period} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
           if (errorMessage) {
             return (
