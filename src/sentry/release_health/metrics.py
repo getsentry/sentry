@@ -173,9 +173,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             result_groups=result_groups
         )
 
-    def is_metrics_based(self) -> bool:
-        return True
-
     def get_current_and_previous_crash_free_rates(
         self,
         project_ids: Sequence[int],
