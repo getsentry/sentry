@@ -102,7 +102,7 @@ export default typescript.config([
     // Main parser & linter options
     // Rules are defined below and inherit these properties
     // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
-    name: 'main',
+    name: 'eslint/global/languageOptions',
     languageOptions: {
       ecmaVersion,
       sourceType: 'module',
@@ -159,11 +159,13 @@ export default typescript.config([
     },
   },
   {
+    name: 'eslint/global/files',
     // Default file selection
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
     files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   {
+    name: 'eslint/global/ignores',
     // Global ignores
     // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
     ignores: [
@@ -222,7 +224,7 @@ export default typescript.config([
    * remove the override and rely on the recommended rules again.
    */
   {
-    name: 'eslint/base',
+    name: 'eslint/rules',
     rules: {
       /**
        * Strict mode
@@ -438,8 +440,8 @@ export default typescript.config([
     },
   },
   {
-    name: 'import',
     ...importPlugin.flatConfigs.recommended,
+    name: 'plugin/import',
     rules: {
       // We override all the rules that are in the recommended, react, and typescript rulesets
 
@@ -490,15 +492,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'deprecations',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
-    },
-  },
-  {
-    name: 'react',
+    name: 'plugin/react',
     plugins: {
       ...react.configs.flat.recommended.plugins,
       // @ts-ignore noUncheckedIndexedAccess
@@ -576,7 +570,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'react/hooks',
+    name: 'plugin/react-hooks',
     plugins: {
       'react-hooks': reactHooks,
     },
@@ -589,7 +583,7 @@ export default typescript.config([
     },
   },
   {
-    name: '@typescript-eslint',
+    name: 'plugin/@typescript-eslint',
     plugins: {
       '@typescript-eslint': typescript.plugin,
     },
@@ -680,7 +674,15 @@ export default typescript.config([
     },
   },
   {
-    name: 'typescript-sort-keys',
+    name: 'plugin/@typescript-eslint && process.env.SENTRY_DETECT_DEPRECATIONS',
+    rules: {
+      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
+        ? 'error'
+        : 'off',
+    },
+  },
+  {
+    name: 'plugin/typescript-sort-keys',
     plugins: {
       'typescript-sort-keys': typescriptSortKeys,
     },
@@ -693,7 +695,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'import sort order',
+    name: 'plugin/simple-import-sort',
     plugins: {
       'simple-import-sort': simpleImportSort,
     },
@@ -742,7 +744,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'sentry',
+    name: 'plugin/sentry',
     plugins: {
       sentry,
     },
@@ -753,7 +755,7 @@ export default typescript.config([
     },
   },
   {
-    name: '@emotion',
+    name: 'plugin/@emotion',
     plugins: {
       '@emotion': emotion,
     },
@@ -767,26 +769,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'devtoolbar',
-    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            ...restrictedImportPaths,
-            {
-              name: 'sentry/utils/queryClient',
-              message:
-                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
-            },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    name: 'jest',
+    name: 'plugin/jest',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     plugins: jest.configs['flat/recommended'].plugins,
     rules: {
@@ -810,12 +793,12 @@ export default typescript.config([
     },
   },
   {
-    name: 'jest-dom',
+    name: 'plugin/jest-dom',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     plugins: jestDom.configs['flat/recommended'].plugins,
   },
   {
-    name: 'testing-library/react',
+    name: 'plugin/testing-library',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
@@ -825,17 +808,36 @@ export default typescript.config([
     },
   },
   {
+    name: 'plugin/prettier',
+    ...prettier,
+  },
+  {
+    name: 'files/devtoolbar',
+    files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            ...restrictedImportPaths,
+            {
+              name: 'sentry/utils/queryClient',
+              message:
+                'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // We specify rules explicitly for the sdk-loader here so we do not have
     // eslint ignore comments included in the source file, which is consumed
     // by users.
-    name: 'js-sdk-loader.ts',
+    name: 'files/js-sdk-loader.ts',
     files: ['**/js-sdk-loader.ts'],
     rules: {
       'no-console': 'off',
     },
-  },
-  {
-    name: 'prettier',
-    ...prettier,
   },
 ]);
