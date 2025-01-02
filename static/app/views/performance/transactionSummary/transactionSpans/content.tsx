@@ -15,12 +15,12 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 
@@ -62,6 +62,7 @@ type Props = {
 
 function SpansContent(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
 
   const handleChange = useCallback(
@@ -81,13 +82,13 @@ function SpansContent(props: Props) {
         }
         const searchQueryParams = omit(queryParams, toOmit);
 
-        browserHistory.push({
+        navigate({
           ...location,
           query: searchQueryParams,
         });
       };
     },
-    [location, organization]
+    [location, navigate, organization]
   );
 
   const spanOp = decodeScalar(location.query.spanOp);
@@ -196,6 +197,7 @@ function SpansContent(props: Props) {
 // TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
 function SpansContentV2(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
   const spansQuery = decodeScalar(location.query.spansQuery, '');
@@ -217,13 +219,13 @@ function SpansContentV2(props: Props) {
         }
         const searchQueryParams = omit(queryParams, toOmit);
 
-        browserHistory.push({
+        navigate({
           ...location,
           query: searchQueryParams,
         });
       };
     },
-    [location, organization]
+    [location, navigate, organization]
   );
 
   const onSearch = useMemo(() => handleChange('spansQuery'), [handleChange]);
