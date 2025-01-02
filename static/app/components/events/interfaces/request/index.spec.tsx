@@ -459,8 +459,10 @@ describe('Request entry', function () {
           <Request event={event} data={event.entries[0]!.data} />
         );
 
+        // eslint-disable-next-line testing-library/no-container
         expect(container.querySelector('.line-highlight')).toBeInTheDocument();
         expect(
+          // eslint-disable-next-line testing-library/no-container
           container.querySelector('.line-highlight')?.getAttribute('data-start')
         ).toBe('1');
         expect(

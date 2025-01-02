@@ -28,7 +28,7 @@ describe('Setup', () => {
 
   describe('Setup is not complete', () => {
     it('should render the full snippet when no setup is done yet', () => {
-      const {container} = render(
+      render(
         <Setup
           item={MOCK_ITEM!}
           projectId="0"
@@ -41,9 +41,23 @@ describe('Setup', () => {
         screen.getByText('Capture Request and Response Headers and Bodies')
       ).toBeInTheDocument();
 
-      expect(container.querySelector('code')).toHaveTextContent(
-        `networkRequestHeaders: ['X-Custom-Header'],`
+      const expectedSnippet = [
+        `Sentry.init({`,
+        `  integrations: [`,
+        `    Sentry.replayIntegration({`,
+        `      networkDetailAllowUrls: ['/api/0/issues/1234'],`,
+        `      networkRequestHeaders: ['X-Custom-Header'],`,
+        `      networkResponseHeaders: ['X-Custom-Header'],`,
+        `    }),`,
+        `  ],`,
+        `})`,
+      ].join('\n');
+      const snippetElem = screen.getByText(
+        `networkRequestHeaders: ['X-Custom-Header'],`,
+        {exact: false}
       );
+      // Using toHaveTextContent would be nice here, but it loses the newlines.
+      expect(snippetElem.innerHTML).toBe(expectedSnippet);
     });
   });
 

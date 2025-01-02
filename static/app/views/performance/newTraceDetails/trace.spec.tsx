@@ -1757,6 +1757,7 @@ describe('trace view', () => {
       await userEvent.clear(searchInput);
       await userEvent.type(searchInput, 'transaction-op-none');
       await searchToResolve();
+      // eslint-disable-next-line testing-library/no-container
       expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
     });
   });
