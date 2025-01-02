@@ -34,7 +34,6 @@ describe('EventNavigation', () => {
   const defaultProps: React.ComponentProps<typeof IssueEventNavigation> = {
     event: testEvent,
     group,
-    query: undefined,
   };
 
   beforeEach(() => {
@@ -187,9 +186,7 @@ describe('EventNavigation', () => {
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 0'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Events 327k'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Events 0'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Replays 0'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Feedback 0'})).toBeInTheDocument();
     });

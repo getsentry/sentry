@@ -13,31 +13,30 @@ import {
   EventDetailsContent,
   type EventDetailsContentProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {
-  EventDetailsContext,
-  useEventDetails,
-  useEventDetailsReducer,
-} from 'sentry/views/issueDetails/streamline/context';
+import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
 
-export function EventDetails({
-  group,
-  event,
-  project,
-}: Required<EventDetailsContentProps>) {
-  const {eventDetails, dispatch} = useEventDetailsReducer();
+export function EventDetails({group, event, project}: EventDetailsContentProps) {
+  if (!event) {
+    return (
+      <GroupContent role="main">
+        <BannerPadding>
+          <EventMissingBanner />
+        </BannerPadding>
+      </GroupContent>
+    );
+  }
 
   return (
-    <EventDetailsContext.Provider value={{...eventDetails, dispatch}}>
-      <PageErrorBoundary mini message={t('There was an error loading the event content')}>
-        <GroupContent role="main">
-          <StickyEventNav event={event} group={group} />
-          <ContentPadding>
-            <EventDetailsContent group={group} event={event} project={project} />
-          </ContentPadding>
-        </GroupContent>
-      </PageErrorBoundary>
-    </EventDetailsContext.Provider>
+    <PageErrorBoundary mini message={t('There was an error loading the event content')}>
+      <GroupContent role="main">
+        <StickyEventNav event={event} group={group} />
+        <ContentPadding>
+          <EventDetailsContent group={group} event={event} project={project} />
+        </ContentPadding>
+      </GroupContent>
+    </PageErrorBoundary>
   );
 }
 
@@ -95,6 +94,10 @@ const GroupContent = styled('div')`
 
 const ContentPadding = styled('div')`
   padding: ${space(1)} ${space(1.5)};
+`;
+
+const BannerPadding = styled('div')`
+  padding: 40px;
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
