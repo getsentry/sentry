@@ -47,8 +47,8 @@ export function EventMissingBanner() {
 
   return (
     <Flex align="center" justify="center">
-      <CompassContainer>
-        <img src={compassImage} alt="Compass illustration" height={125} />
+      <Flex align="center" gap={36}>
+        <img src={compassImage} alt="Compass illustration" height={122} />
         <Flex justify="center" column gap={space(1)}>
           <MainText>
             {tct("We couldn't track down [prep] event", {
@@ -67,16 +67,10 @@ export function EventMissingBanner() {
             </ul>
           </SubText>
         </Flex>
-      </CompassContainer>
+      </Flex>
     </Flex>
   );
 }
-
-const CompassContainer = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${space(4)};
-`;
 
 const MainText = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};

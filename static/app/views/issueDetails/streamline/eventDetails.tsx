@@ -97,7 +97,7 @@ const ContentPadding = styled('div')`
 `;
 
 const BannerPadding = styled('div')`
-  padding: ${space(3)} ${space(4)};
+  padding: 40px;
 `;
 
 const PageErrorBoundary = styled(ErrorBoundary)`
