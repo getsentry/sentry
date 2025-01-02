@@ -49,7 +49,7 @@ function PickProjectToContinue({
 
   // if the project in URL is missing, but this release belongs to only one project, redirect there
   if (projects.length === 1) {
-    router.replace(path + projects[0].id);
+    router.replace(path + projects[0]!.id);
     return null;
   }
 

@@ -284,6 +284,14 @@ class SCIMParams:
 
 
 class IssueParams:
+    KEY = OpenApiParameter(
+        name="key",
+        location=OpenApiParameter.PATH,
+        type=OpenApiTypes.STR,
+        description="The tag key to look the values up for.",
+        required=True,
+    )
+
     ISSUES_OR_GROUPS = OpenApiParameter(
         name="var",
         location="path",
@@ -297,6 +305,15 @@ class IssueParams:
         required=True,
         type=int,
         description="The ID of the issue you'd like to query.",
+    )
+
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
+        enum=["id", "date", "age", "count"],
     )
 
 
@@ -450,6 +467,41 @@ class EventParams:
         required=True,
         type=int,
         description="Index of the exception that should be used for source map resolution.",
+    )
+
+    EVENT_ID_EXTENDED = OpenApiParameter(
+        name="event_id",
+        type=OpenApiTypes.STR,
+        location=OpenApiParameter.PATH,
+        description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
+        required=True,
+        enum=["latest", "oldest", "recommended"],
+    )
+
+    FULL_PAYLOAD = OpenApiParameter(
+        name="full",
+        type=OpenApiTypes.BOOL,
+        location=OpenApiParameter.QUERY,
+        description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+        required=False,
+        default=False,
+    )
+
+    SAMPLE = OpenApiParameter(
+        name="sample",
+        type=OpenApiTypes.BOOL,
+        location=OpenApiParameter.QUERY,
+        description="Return events in pseudo-random order. This is deterministic so an identical query will always return the same events in the same order.",
+        required=False,
+        default=False,
+    )
+
+    QUERY = OpenApiParameter(
+        name="query",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        description="An optional search query for filtering events.",
+        required=False,
     )
 
 

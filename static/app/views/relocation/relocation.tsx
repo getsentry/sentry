@@ -225,7 +225,7 @@ function RelocationOnboarding(props: Props) {
   const goNextStep = useCallback(
     (step: StepDescriptor) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1];
+      const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
       if (step.cornerVariant !== nextStep.cornerVariant) {
         cornerVariantControl.start('none');
@@ -237,7 +237,7 @@ function RelocationOnboarding(props: Props) {
   );
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
+    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;
   }
 
   const headerView =
@@ -249,7 +249,7 @@ function RelocationOnboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
-              goToStep(onboardingSteps[i]);
+              goToStep(onboardingSteps[i]!);
             }}
           />
         )}
@@ -259,7 +259,7 @@ function RelocationOnboarding(props: Props) {
   const backButtonView =
     stepId === 'in-progress' ? null : (
       <Back
-        onClick={() => goToStep(onboardingSteps[stepIndex - 1])}
+        onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
         animate={stepIndex > 0 ? 'visible' : 'hidden'}
       />
     );

@@ -455,11 +455,11 @@ describe('SpanTreeModel', () => {
     );
 
     fullWaterfallExpected[0] = {
-      ...fullWaterfallExpected[0],
+      ...fullWaterfallExpected[0]!,
     };
-    assert(fullWaterfallExpected[0].type === 'span');
-    fullWaterfallExpected[0].numOfSpanChildren += 1;
-    fullWaterfallExpected[0].showEmbeddedChildren = true;
+    assert(fullWaterfallExpected[0]!.type === 'span');
+    fullWaterfallExpected[0]!.numOfSpanChildren += 1;
+    fullWaterfallExpected[0]!.showEmbeddedChildren = true;
 
     expect(spans).toEqual(fullWaterfallExpected);
 
@@ -559,11 +559,11 @@ describe('SpanTreeModel', () => {
       },
     };
 
-    if (!Array.isArray(event2.entries[0].data)) {
+    if (!Array.isArray(event2.entries[0]!.data)) {
       throw new Error('event2.entries[0].data is not an array');
     }
 
-    const data = event2.entries[0].data as RawSpanType[];
+    const data = event2.entries[0]!.data as RawSpanType[];
     for (let i = 0; i < 5; i++) {
       data.push(spanTemplate);
     }
@@ -603,11 +603,11 @@ describe('SpanTreeModel', () => {
     });
 
     expect(spans.length).toEqual(2);
-    expect(spans[1].type).toEqual('span_group_siblings');
+    expect(spans[1]!.type).toEqual('span_group_siblings');
 
     // If statement here is required to avoid TS linting issues
-    if (spans[1].type === 'span_group_siblings') {
-      expect(spans[1].spanSiblingGrouping!.length).toEqual(5);
+    if (spans[1]!.type === 'span_group_siblings') {
+      expect(spans[1]!.spanSiblingGrouping!.length).toEqual(5);
     }
   });
 
@@ -641,11 +641,11 @@ describe('SpanTreeModel', () => {
       },
     };
 
-    if (!Array.isArray(event2.entries[0].data)) {
+    if (!Array.isArray(event2.entries[0]!.data)) {
       throw new Error('event2.entries[0].data is not an array');
     }
 
-    const data = event2.entries[0].data as RawSpanType[];
+    const data = event2.entries[0]!.data as RawSpanType[];
     for (let i = 0; i < 4; i++) {
       data.push(spanTemplate);
     }
@@ -737,11 +737,11 @@ describe('SpanTreeModel', () => {
       },
     };
 
-    if (!Array.isArray(event2.entries[0].data)) {
+    if (!Array.isArray(event2.entries[0]!.data)) {
       throw new Error('event2.entries[0].data is not an array');
     }
 
-    const data = event2.entries[0].data as RawSpanType[];
+    const data = event2.entries[0]!.data as RawSpanType[];
     for (let i = 0; i < 7; i++) {
       data.push(groupableSpanTemplate);
     }
@@ -788,8 +788,8 @@ describe('SpanTreeModel', () => {
     });
 
     expect(spans.length).toEqual(4);
-    expect(spans[1].type).toEqual('span_group_siblings');
-    expect(spans[2].type).toEqual('span');
-    expect(spans[3].type).toEqual('span_group_siblings');
+    expect(spans[1]!.type).toEqual('span_group_siblings');
+    expect(spans[2]!.type).toEqual('span');
+    expect(spans[3]!.type).toEqual('span_group_siblings');
   });
 });

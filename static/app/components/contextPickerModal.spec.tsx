@@ -103,8 +103,8 @@ describe('ContextPickerModal', function () {
 
     await waitFor(() => {
       expect(fetchProjectsForOrg).toHaveBeenCalled();
-      expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
     });
+    expect(onFinish).toHaveBeenLastCalledWith('/test/org2/path/project2/');
   });
 
   it('selects an org and calls `onFinish` with URL with organization slug', async function () {
@@ -166,7 +166,7 @@ describe('ContextPickerModal', function () {
     ];
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org2.slug}/projects/`,
-      body: organizations[1].projects,
+      body: organizations[1]!.projects,
     });
 
     OrganizationsStore.load(organizations);

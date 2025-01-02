@@ -96,7 +96,7 @@ describe('ProjectTeams', function () {
 
     expect(mock1).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
 
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('ProjectTeams', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
     await userEvent.click(screen.getByText('Remove Team'));
     await waitFor(() => {
       expect(mock2).toHaveBeenCalledWith(
@@ -151,7 +151,7 @@ describe('ProjectTeams', function () {
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Remove first team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
     renderGlobalModal();
     await userEvent.click(screen.getByText('Remove Team'));
     await waitFor(() => {
@@ -165,7 +165,7 @@ describe('ProjectTeams', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove third team, but button should be disabled
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[1]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[1]!);
     expect(mock3).not.toHaveBeenCalled();
   });
 
@@ -201,7 +201,7 @@ describe('ProjectTeams', function () {
     expect(mock1).not.toHaveBeenCalled();
 
     // Remove first team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
     renderGlobalModal();
     await userEvent.click(screen.getByText('Remove Team'));
     await waitFor(() => {
@@ -215,7 +215,7 @@ describe('ProjectTeams', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
 
     // Modal opens because this is the last team in project
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -248,7 +248,7 @@ describe('ProjectTeams', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Add a team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
     await userEvent.click(screen.getByText('#team-slug-2'));
 
     await waitFor(() => {
@@ -285,7 +285,7 @@ describe('ProjectTeams', function () {
     expect(await screen.findByText('Project Teams for project-slug')).toBeInTheDocument();
 
     // Add new team
-    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]!);
 
     // XXX(epurkhiser): Create Team should really be a button
     await userEvent.click(screen.getByRole('link', {name: 'Create Team'}));

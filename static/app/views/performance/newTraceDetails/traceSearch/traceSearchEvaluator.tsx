@@ -65,8 +65,8 @@ export function searchInTraceTreeTokens(
     return handle;
   }
 
-  if (postfix.length === 1 && postfix[0].type === Token.FREE_TEXT) {
-    return searchInTraceTreeText(tree, postfix[0].value, previousNode, cb);
+  if (postfix.length === 1 && postfix[0]!.type === Token.FREE_TEXT) {
+    return searchInTraceTreeText(tree, postfix[0]!.value, previousNode, cb);
   }
 
   let i = 0;
@@ -77,8 +77,8 @@ export function searchInTraceTreeTokens(
   function searchSingleToken() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i];
-      if (evaluateTokenForValue(postfix[0], resolveValueFromKey(node, postfix[0]))) {
+      const node = tree.list[i]!;
+      if (evaluateTokenForValue(postfix[0]!, resolveValueFromKey(node, postfix[0]!))) {
         resultsForSingleToken.push({index: i, value: node});
         resultLookup.set(node, matchCount);
 
@@ -100,7 +100,7 @@ export function searchInTraceTreeTokens(
     }
   }
 
-  if (postfix.length <= 1 && postfix[0].type === Token.FILTER) {
+  if (postfix.length <= 1 && postfix[0]!.type === Token.FILTER) {
     handle.id = requestAnimationFrame(searchSingleToken);
     return handle;
   }
@@ -130,7 +130,7 @@ export function searchInTraceTreeTokens(
     const ts = performance.now();
     if (!bool) {
       while (ti < postfix.length) {
-        const token = postfix[ti];
+        const token = postfix[ti]!;
         if (token.type === Token.LOGIC_BOOLEAN) {
           bool = token;
           if (stack.length < 2) {
@@ -169,7 +169,7 @@ export function searchInTraceTreeTokens(
 
     if (li < count && !(leftToken instanceof Map)) {
       while (li < count && performance.now() - ts < 12) {
-        const node = tree.list[li];
+        const node = tree.list[li]!;
         if (evaluateTokenForValue(leftToken, resolveValueFromKey(node, leftToken))) {
           left.set(node, li);
         }
@@ -178,7 +178,7 @@ export function searchInTraceTreeTokens(
       handle.id = requestAnimationFrame(search);
     } else if (ri < count && !(rightToken instanceof Map)) {
       while (ri < count && performance.now() - ts < 12) {
-        const node = tree.list[ri];
+        const node = tree.list[ri]!;
         if (evaluateTokenForValue(rightToken, resolveValueFromKey(node, rightToken))) {
           right.set(node, ri);
         }
@@ -265,7 +265,7 @@ export function searchInTraceTreeText(
   function search() {
     const ts = performance.now();
     while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i];
+      const node = tree.list[i]!;
 
       if (evaluateNodeFreeText(query, node)) {
         results.push({index: i, value: node});

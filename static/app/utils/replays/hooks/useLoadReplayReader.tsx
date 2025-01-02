@@ -88,10 +88,10 @@ export default function useLoadReplayReader({
 function parseReplayId(replaySlug: string) {
   const maybeProjectSlugAndReplayId = replaySlug.split(':');
   if (maybeProjectSlugAndReplayId.length === 2) {
-    return maybeProjectSlugAndReplayId[1];
+    return maybeProjectSlugAndReplayId[1]!;
   }
 
   // if there is no projectSlug then we assume we just have the replayId
   // all other cases would be a malformed url
-  return maybeProjectSlugAndReplayId[0];
+  return maybeProjectSlugAndReplayId[0]!;
 }

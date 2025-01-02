@@ -1048,7 +1048,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             apiEndpoint={performanceIssuesEndpoint}
             saveOnBlur
             onSubmitSuccess={(option: {[key: string]: number}) => {
-              const [threshold_key, threshold_value] = Object.entries(option)[0];
+              const [threshold_key, threshold_value] = Object.entries(option)[0]!;
 
               trackAnalytics(
                 'performance_views.project_issue_detection_threshold_changed',

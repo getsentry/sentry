@@ -214,7 +214,7 @@ describe('Incident Rules Form', () => {
       );
 
       // Set thresholdPeriod
-      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0]!, 'For 10 minutes');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -492,7 +492,7 @@ describe('Incident Rules Form', () => {
       );
 
       // Set thresholdPeriod
-      await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
+      await selectEvent.select(screen.getAllByText('For 1 minute')[0]!, 'For 10 minutes');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 

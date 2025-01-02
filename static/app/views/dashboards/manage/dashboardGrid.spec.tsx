@@ -190,7 +190,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-delete'));
 
     expect(deleteMock).not.toHaveBeenCalled();
@@ -201,8 +203,8 @@ describe('Dashboards - DashboardGrid', function () {
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('cannot delete last dashboard', async function () {
@@ -246,7 +248,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     expect(createMock).not.toHaveBeenCalled();
@@ -257,8 +261,8 @@ describe('Dashboards - DashboardGrid', function () {
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('does not throw an error if the POST fails during duplication', async function () {
@@ -280,7 +284,9 @@ describe('Dashboards - DashboardGrid', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: /dashboard actions/i})[1]!
+    );
     await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     expect(postMock).not.toHaveBeenCalled();
@@ -291,9 +297,9 @@ describe('Dashboards - DashboardGrid', function () {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
-      // Should not update, and not throw error
-      expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
   it('renders favorite and unfavorite buttons on cards', function () {
@@ -373,7 +379,7 @@ describe('Dashboards - DashboardGrid', function () {
     );
 
     expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
-    const favoriteButton = screen.queryAllByLabelText('Favorite')[0];
+    const favoriteButton = screen.queryAllByLabelText('Favorite')[0]!;
     await userEvent.click(favoriteButton);
 
     await waitFor(() => {
