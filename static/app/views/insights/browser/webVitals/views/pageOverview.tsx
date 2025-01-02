@@ -11,9 +11,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -66,6 +66,7 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
+  const navigate = useNavigate();
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
@@ -133,7 +134,7 @@ export function PageOverview() {
       organization,
       tab: value,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
