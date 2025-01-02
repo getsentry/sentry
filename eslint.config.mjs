@@ -6,7 +6,6 @@
  * `npx eslint --inspect-config`
  */
 import * as emotion from '@emotion/eslint-plugin';
-import {fixupPluginRules} from '@eslint/compat';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -210,126 +209,6 @@ const baseRules = {
   ],
 };
 
-const reactReactRules = {
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
-  'react/display-name': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
-  'react/no-multi-comp': [
-    'off',
-    {
-      ignoreStateless: true,
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
-  'react/jsx-fragments': ['error', 'element'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
-  // Ensures that any component or prop methods used to handle events are correctly prefixed.
-  'react/jsx-handler-names': [
-    'off',
-    {
-      eventHandlerPrefix: 'handle',
-      eventHandlerPropPrefix: 'on',
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-key.md
-  'react/jsx-key': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
-  'react/jsx-no-undef': ['error'],
-
-  // Disabled as we use the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
-  'react/jsx-uses-react': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-vars.md
-  'react/jsx-uses-vars': ['error'],
-
-  /**
-   * Deprecation related rules
-   */
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md
-  'react/no-deprecated': ['error'],
-
-  // Prevent usage of the return value of React.render
-  // deprecation: https://facebook.github.io/react/docs/react-dom.html#render
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md
-  'react/no-render-return-value': ['error'],
-
-  // Children should always be actual children, not passed in as a prop.
-  // When using JSX, the children should be nested between the opening and closing tags. When not using JSX, the children should be passed as additional arguments to React.createElement.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-children-prop.md
-  'react/no-children-prop': ['error'],
-
-  // This rule helps prevent problems caused by using children and the dangerouslySetInnerHTML prop at the same time.
-  // React will throw a warning if this rule is ignored.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-danger-with-children.md
-  'react/no-danger-with-children': ['error'],
-
-  // Prevent direct mutation of this.state
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-direct-mutation-state.md
-  'react/no-direct-mutation-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
-  'react/no-did-mount-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
-  'react/no-did-update-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
-  'react/no-redundant-should-component-update': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
-  'react/no-typos': ['error'],
-
-  // Prevent invalid characters from appearing in markup
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
-  'react/no-unescaped-entities': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
-  'react/no-unknown-property': ['error', {ignore: ['css']}],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md
-  // Disabled since this currently fails to correctly detect a lot of
-  // typescript prop type usage.
-  'react/no-unused-prop-types': ['off'],
-
-  // We do not need proptypes since we're using typescript
-  'react/prop-types': ['off'],
-
-  // When writing the render method in a component it is easy to forget to return the JSX content.
-  // This rule will warn if the return statement is missing.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/require-render-return.md
-  'react/require-render-return': ['error'],
-
-  // Disabled as we are using the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
-  'react/react-in-jsx-scope': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
-  'react/self-closing-comp': ['error'],
-
-  // This also causes issues with typescript
-  // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
-  //
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
-  'react/sort-comp': ['warn'],
-
-  // Consistent <Component booleanProp /> (never add ={true})
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
-  'react/jsx-boolean-value': ['error', 'never'],
-
-  // Consistent function component declaration styles
-  // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
-  'react/function-component-definition': [
-    'error',
-    {namedComponents: 'function-declaration'},
-  ],
-};
-
 const reactImportRules = {
   // Not recommended to be enabled with typescript-eslint
   // https://typescript-eslint.io/linting/troubleshooting/performance-troubleshooting/#eslint-plugin-import
@@ -455,17 +334,7 @@ const reactImportRules = {
 };
 
 const reactRules = {
-  ...reactReactRules,
   ...reactImportRules,
-  /**
-   * React hooks
-   */
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
-  ],
-  // Biome not yet enforcing all parts of this rule https://github.com/biomejs/biome/issues/1984
-  'react-hooks/rules-of-hooks': 'error',
 
   /**
    * Custom
@@ -704,17 +573,6 @@ const strictRules = {
   // https://eslint.org/docs/rules/no-console
   'no-console': ['error'],
 
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
-  'react/no-is-mounted': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md
-  // Recommended to use callback refs instead
-  'react/no-find-dom-node': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-string-refs.md
-  // This is now considered legacy, callback refs preferred
-  'react/no-string-refs': ['error'],
-
   'sentry/no-styled-shortcut': ['error'],
 };
 
@@ -778,11 +636,7 @@ export default typescript.config([
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
     plugins: {
-      ...react.configs.flat.plugins,
-      // @ts-ignore noUncheckedIndexedAccess
-      ...react.configs.flat['jsx-runtime'].plugins,
       '@typescript-eslint': typescript.plugin,
-      'react-hooks': fixupPluginRules(reactHooks),
       'simple-import-sort': simpleImportSort,
       'typescript-sort-keys': typescriptSortKeys,
       sentry,
@@ -874,6 +728,97 @@ export default typescript.config([
       '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
         ? 'error'
         : 'off',
+    },
+  },
+  {
+    name: 'react',
+    plugins: {
+      ...react.configs.flat.recommended.plugins,
+      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat['jsx-runtime'].plugins,
+    },
+    rules: {
+      ...react.configs.flat.recommended.rules,
+      ...react.configs.flat['jsx-runtime'].rules,
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
+      'react/display-name': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
+      'react/no-multi-comp': ['off', {ignoreStateless: true}],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
+      'react/jsx-fragments': ['error', 'element'],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
+      // Ensures that any component or prop methods used to handle events are correctly prefixed.
+      'react/jsx-handler-names': [
+        'off',
+        {eventHandlerPrefix: 'handle', eventHandlerPropPrefix: 'on'},
+      ],
+
+      // Disabled as we use the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
+      'react/jsx-uses-react': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
+      'react/no-did-mount-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
+      'react/no-did-update-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
+      'react/no-redundant-should-component-update': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
+      'react/no-typos': 'error',
+
+      // Prevent invalid characters from appearing in markup
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
+      'react/no-unescaped-entities': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
+      'react/no-unknown-property': ['error', {ignore: ['css']}],
+
+      // We do not need proptypes since we're using typescript
+      'react/prop-types': 'off',
+
+      // Disabled as we are using the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
+      'react/react-in-jsx-scope': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
+      'react/self-closing-comp': 'error',
+
+      // This also causes issues with typescript
+      // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
+      //
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
+      'react/sort-comp': 'warn',
+
+      // Consistent <Component booleanProp /> (never add ={true})
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
+      'react/jsx-boolean-value': ['error', 'never'],
+
+      // Consistent function component declaration styles
+      // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
+      'react/function-component-definition': [
+        'error',
+        {namedComponents: 'function-declaration'},
+      ],
+    },
+  },
+  {
+    name: 'react/hooks',
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': [
+        'error',
+        {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+      ],
     },
   },
   {
