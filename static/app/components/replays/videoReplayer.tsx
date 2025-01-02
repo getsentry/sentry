@@ -399,8 +399,7 @@ export class VideoReplayer {
 
   /**
    * Shows the video -- it is assumed that it is preloaded. Also
-   * hides the previous video, there should not be a reason we show
-   * a video and not hide the previous video, otherwise there will
+   * hides all other videos, otherwise there will
    * be multiple video elements stacked on top of each other.
    */
   protected showVideo(nextVideo: HTMLVideoElement | undefined): void {
@@ -408,32 +407,27 @@ export class VideoReplayer {
       return;
     }
 
-    const isReplaying = this._currentIndex === 0;
-    const prevIndex = isReplaying ? this._videos.size - 2 : (this._currentIndex ?? 0) - 2;
-
-    // On safari, some clips have a ~1 second gap in the beginning so we can't hide the soon-to-be previous video but we can hide the video before that.
-    if (this._currentVideo && prevIndex >= 0) {
-      const prevVideo = this._videos.get(prevIndex);
-      if (prevVideo) {
-        prevVideo.style.display = 'none';
-        // resets the previous video to the beginning if it's ended so it starts from the beginning on restart
-        if (prevVideo.ended) {
-          this.setVideoTime(prevVideo, 0);
+    for (const video of this._videos) {
+      // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
+      if (video[0] === (this._currentIndex || 0) - 1) {
+        if (video[1].duration) {
+          // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
+          // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
+          this.setVideoTime(video[1], video[1].duration * 1000 - 1);
         }
+        video[1].style.display = 'block';
       }
-    }
-    // However, if the video is replaying, we also need to hide the soon-to-be previous video or else the last video will be displayed instead
-    if (isReplaying && this._currentVideo) {
-      this._currentVideo.style.display = 'none';
-      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
-      if (this._currentVideo.ended) {
-        this.setVideoTime(this._currentVideo, 0);
+      // hides all videos because videos have a different z-index depending on their index
+      else {
+        video[1].style.display = 'none';
+        // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
+        if (video[1].ended) {
+          this.setVideoTime(video[1], 0);
+        }
       }
     }
 
     nextVideo.style.display = 'block';
-
-    // Update current video so that we can hide it when showing the next video
     this._currentVideo = nextVideo;
   }
 
