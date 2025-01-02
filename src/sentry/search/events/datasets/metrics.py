@@ -5,6 +5,7 @@ from collections.abc import Callable, Mapping, MutableMapping
 from django.utils.functional import cached_property
 from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
@@ -1531,6 +1532,12 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the normalized score (0.0-1.0) for a given web vital.
+        This function exists because we don't store a metric for the normalized score.
+        The normalized score is calculated by dividing the sum of measurements.score.* by the sum of measurements.score.weight.*
+
+        To calculate the total performance score, see _resolve_total_performance_score_function.
+        """
         column = args["column"]
         metric_id = args["metric_id"]
 
@@ -1835,6 +1842,14 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        """Returns the total performance score based on a page/site's web vitals.
+        This function is calculated by:
+        the summation of (normalized_vital_score * weight) for each vital, divided by the sum of all weights
+        - normalized_vital_score is the 0.0-1.0 score for each individual vital
+        - weight is the 0.0-1.0 weight for each individual vital (this is a constant value stored in constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS)
+        - if all webvitals have data, then the sum of all weights is 1
+        - normalized_vital_score is obtained through _resolve_web_vital_score_function (see docstring on that function for more details)
+        """
         vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
         scores = {
             vital: Function(
@@ -1853,9 +1868,38 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
 
+        weights = {
+            vital: Function(
+                "if",
+                [
+                    Function(
+                        "isZeroOrNull",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric(f"measurements.score.{vital}"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                ],
+            )
+            for vital in vitals
+        }
+
         # TODO: Is there a way to sum more than 2 values at once?
         return Function(
-            "plus",
+            "divide",
             [
                 Function(
                     "plus",
@@ -1866,17 +1910,54 @@ class MetricsDatasetConfig(DatasetConfig):
                                 Function(
                                     "plus",
                                     [
-                                        scores["lcp"],
-                                        scores["fcp"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                scores["lcp"],
+                                                scores["fcp"],
+                                            ],
+                                        ),
+                                        scores["cls"],
                                     ],
                                 ),
-                                scores["cls"],
+                                scores["ttfb"],
                             ],
                         ),
-                        scores["ttfb"],
+                        scores["inp"],
                     ],
                 ),
-                scores["inp"],
+                (
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    Function(
+                                        "plus",
+                                        [
+                                            Function(
+                                                "plus",
+                                                [
+                                                    weights["lcp"],
+                                                    weights["fcp"],
+                                                ],
+                                            ),
+                                            weights["cls"],
+                                        ],
+                                    ),
+                                    weights["ttfb"],
+                                ],
+                            ),
+                            weights["inp"],
+                        ],
+                    )
+                    if features.has(
+                        "organizations:performance-vitals-handle-missing-webvitals",
+                        self.builder.params.organization,
+                    )
+                    else 1
+                ),
             ],
             alias,
         )
