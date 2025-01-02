@@ -74,6 +74,7 @@ def create_workflow(
         when_condition_group=data_condition_group,
         enabled=True,
         created_by_id=user.id if user else None,
+        config={},
     )
 
 
