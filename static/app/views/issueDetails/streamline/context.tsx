@@ -196,10 +196,10 @@ export function useIssueDetailsReducer() {
     []
   );
 
-  const [eventDetails, dispatch] = useReducer(reducer, initialState);
+  const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
   return {
-    eventDetails,
+    issueDetails,
     dispatch,
   };
 }
