@@ -1121,7 +1121,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         ).exists()
 
         # ensure we're not erroring on second creation
-        event = self.make_release_event("1.0", project_id)
+        self.make_release_event("1.0", project_id)
 
     def test_group_release_with_env(self) -> None:
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
@@ -1891,9 +1891,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(
-                            self.project.id, cache_key=cache_key, has_attachments=True
-                        )
+                        manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 

@@ -173,8 +173,8 @@ describe('SavedIssueSearches', function () {
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalledTimes(1);
-      expect(screen.queryByText(orgSearch.name)).not.toBeInTheDocument();
     });
+    expect(screen.queryByText(orgSearch.name)).not.toBeInTheDocument();
   });
 
   it('can edit an org saved search with correct permissions', async function () {
@@ -219,8 +219,8 @@ describe('SavedIssueSearches', function () {
           }),
         })
       );
-      expect(screen.getByText('new name')).toBeInTheDocument();
     });
+    expect(screen.getByText('new name')).toBeInTheDocument();
   });
 
   it('cannot delete or edit a saved search without correct permissions', async function () {

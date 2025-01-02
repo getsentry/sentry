@@ -163,18 +163,18 @@ describe('SearchQueryBuilder', function () {
       // Should call onChange and onSearch after enter
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledTimes(1);
-        expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
-        expect(mockOnSearch).toHaveBeenCalledTimes(1);
-        expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnChange).toHaveBeenCalledWith('ab', expectedQueryState);
+      expect(mockOnSearch).toHaveBeenCalledTimes(1);
+      expect(mockOnSearch).toHaveBeenCalledWith('ab', expectedQueryState);
 
       await userEvent.click(document.body);
 
       // Clicking outside activates onBlur
       await waitFor(() => {
         expect(mockOnBlur).toHaveBeenCalledTimes(1);
-        expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
       });
+      expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
     });
   });
 
@@ -194,8 +194,8 @@ describe('SearchQueryBuilder', function () {
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith('', expect.anything());
-        expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
       });
+      expect(mockOnSearch).toHaveBeenCalledWith('', expect.anything());
 
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
@@ -518,6 +518,35 @@ describe('SearchQueryBuilder', function () {
         expect(
           screen.getByRole('option', {name: 'some recent query'})
         ).toBeInTheDocument();
+      });
+
+      it('switches to keys menu when recent searches no longer exist', async function () {
+        const {rerender} = render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            recentSearches={SavedSearchType.ISSUE}
+            initialQuery=""
+          />
+        );
+
+        await userEvent.click(getLastInput());
+
+        // Recent should be selected
+        expect(screen.getByRole('button', {name: 'Recent'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+
+        // Rerender without recent searches
+        rerender(<SearchQueryBuilder {...defaultProps} />);
+
+        // Recent should not exist anymore
+        expect(screen.queryByRole('button', {name: 'Recent'})).not.toBeInTheDocument();
+        // All should be selected
+        expect(screen.getByRole('button', {name: 'All'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
       });
 
       it('when selecting a recent search, should reset query and call onSearch', async function () {

@@ -57,7 +57,6 @@ function findBreakPointIndex(
   let mid = 0;
   let bestMatch: number = examples.length;
 
-  // eslint-disable-next-line
   while (low <= high) {
     mid = Math.floor((low + high) / 2);
     const value = examples[mid][0];

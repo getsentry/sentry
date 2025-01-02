@@ -291,7 +291,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         });
     });
     return cleaned;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorDataList]);
 
   return (
