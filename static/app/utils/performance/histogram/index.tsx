@@ -39,7 +39,7 @@ function Histogram(props: Props) {
   const getActiveFilter = () => {
     const dataFilter = location.query.dataFilter
       ? decodeScalar(location.query.dataFilter)
-      : FILTER_OPTIONS[0].value;
+      : FILTER_OPTIONS[0]!.value;
     return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
   };
 
@@ -56,7 +56,7 @@ function Histogram(props: Props) {
   const childrenProps = {
     isZoomed: isZoomed(),
     handleResetView,
-    activeFilter: getActiveFilter(),
+    activeFilter: getActiveFilter()!,
     handleFilterChange,
     filterOptions: FILTER_OPTIONS,
   };

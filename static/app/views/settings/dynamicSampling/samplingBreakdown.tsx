@@ -13,7 +13,7 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 const ITEMS_TO_SHOW = 5;
-const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1];
+const palette = CHART_PALETTE[ITEMS_TO_SHOW - 1]!;
 
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   sampleCounts: ProjectSampleCount[];

@@ -192,7 +192,7 @@ export class MutableSearch {
    */
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
-    this.addFilterValues(key, [value], shouldEscape);
+    this.addFilterValues(key!, [value!], shouldEscape);
     return this;
   }
 
@@ -217,7 +217,7 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i], shouldEscape);
+      this.addFilterValue(key, values[i]!, shouldEscape);
     }
     this.addOp(')');
     return this;
@@ -272,7 +272,7 @@ export class MutableSearch {
         }
 
         for (let i = 0; i < this.tokens.length; i++) {
-          const token = this.tokens[i];
+          const token = this.tokens[i]!;
           const prev = this.tokens[i - 1];
           const next = this.tokens[i + 1];
           if (isOp(token) && isBooleanOp(token.value)) {
@@ -313,14 +313,14 @@ export class MutableSearch {
       parensToDelete = [];
 
       for (let i = 0; i < this.tokens.length; i++) {
-        const token = this.tokens[i];
+        const token = this.tokens[i]!;
         if (!isOp(token) || token.value !== '(') {
           continue;
         }
 
         let alreadySeen = false;
         for (let j = i + 1; j < this.tokens.length; j++) {
-          const nextToken = this.tokens[j];
+          const nextToken = this.tokens[j]!;
           if (isOp(nextToken) && nextToken.value === '(') {
             // Continue down to the nested parens. We can skip i forward since we know
             // everything between i and j is NOT an open paren.
@@ -415,8 +415,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteEnclosed = false;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
-    const char = queryChars[idx];
-    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
+    const char = queryChars[idx]!;
+    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {

@@ -265,7 +265,7 @@ export function ScreensLandingPage() {
       item.dataset === DiscoverDatasets.METRICS ? metricsResult : spanMetricsResult;
 
     if (dataset.data) {
-      const row = dataset.data.data[0];
+      const row = dataset.data.data[0]!;
       const units = dataset.data.meta?.units;
       const fieldTypes = dataset.data.meta?.fields;
 

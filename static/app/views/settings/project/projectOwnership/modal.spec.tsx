@@ -52,7 +52,7 @@ describe('Project Ownership', () => {
       },
     });
     // Set one frame to in-app
-    stacktrace.data.frames![0].inApp = true;
+    stacktrace.data.frames![0]!.inApp = true;
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       body: MembersFixture(),

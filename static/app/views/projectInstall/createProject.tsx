@@ -341,14 +341,14 @@ function CreateProject() {
     }
 
     if (
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
         alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
-        interval: String(alertRules?.[0].conditions?.[0].interval),
-        threshold: String(alertRules?.[0].conditions?.[0].value),
-        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+        interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
+        threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
+        metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
           ? MetricValues.ERRORS
           : MetricValues.USERS,
       };

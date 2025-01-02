@@ -329,7 +329,7 @@ export class NewTraceDetailsSpanBar extends Component<
     return (
       <Fragment>
         {Array.from(spanMeasurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -573,7 +573,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
-      this.setState({isIntersecting: entry.isIntersecting}, () => {
+      this.setState({isIntersecting: entry!.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
         // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.

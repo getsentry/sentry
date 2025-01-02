@@ -87,7 +87,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   }
 
   if (!linkLastItem) {
-    const lastCrumb = crumbs[crumbs.length - 1];
+    const lastCrumb = crumbs[crumbs.length - 1]!;
     if (!isCrumbDropdown(lastCrumb)) {
       lastCrumb.to = null;
     }

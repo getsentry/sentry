@@ -25,7 +25,7 @@ function ProfileDragDropImport({
       evt.preventDefault();
       evt.stopPropagation();
 
-      const file = evt.dataTransfer.items[0].getAsFile();
+      const file = evt.dataTransfer.items[0]!.getAsFile();
 
       if (file) {
         setDropState('processing');

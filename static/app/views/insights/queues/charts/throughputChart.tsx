@@ -48,7 +48,7 @@ export function ThroughputChart({error, destination, referrer}: Props) {
         ]}
         loading={isPublishDataLoading || isProcessDataLoading}
         error={error}
-        chartColors={CHART_PALETTE[2].slice(1, 3)}
+        chartColors={CHART_PALETTE[2]!.slice(1, 3)}
         type={ChartType.LINE}
         aggregateOutputFormat="rate"
         rateUnit={RateUnit.PER_MINUTE}

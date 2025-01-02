@@ -35,7 +35,7 @@ export function sanitizePath(path: string) {
   return (
     path
       // Remove any querystring
-      .split('?')[0]
+      .split('?')[0]!
       .replace(
         /(?<start>.*?\/)(?<type>organizations|issues|groups|customers|subscriptions|projects|teams|users)\/(?<second>[^/]+)\/(?<third>[^/]+\/)?(?<fourth>[^/]+\/)?(?<fifth>[^/]+\/)?(?<sixth>[^/]+\/)?(?<seventh>[^/]+\/)?(?<end>.*)/,
         function (...args) {

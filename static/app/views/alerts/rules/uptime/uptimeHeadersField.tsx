@@ -52,16 +52,20 @@ function UptimHeadersControl(props) {
   function handleNameChange(index: number, newName: string) {
     setItems(currentItems =>
       currentItems.toSpliced(index, 1, [
-        items[index][0],
+        items[index]![0],
         newName.replaceAll(INVALID_NAME_HEADER_REGEX, ''),
-        items[index][2],
+        items[index]![2],
       ])
     );
   }
 
   function handleValueChange(index: number, newHeaderValue: string) {
     setItems(currentItems =>
-      currentItems.toSpliced(index, 1, [items[index][0], items[index][1], newHeaderValue])
+      currentItems.toSpliced(index, 1, [
+        items[index]![0],
+        items[index]![1],
+        newHeaderValue,
+      ])
     );
   }
 
@@ -70,7 +74,7 @@ function UptimHeadersControl(props) {
    * the end of the name in the order they were added.
    */
   function disambiguateHeaderName(index: number) {
-    const headerName = items[index][1];
+    const headerName = items[index]![1];
     const matchingIndexes = items
       .map((item, idx) => [idx, item[1]])
       .filter(([_, itemName]) => itemName === headerName)

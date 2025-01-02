@@ -7,7 +7,7 @@ export function replayJsFrameworkOptions(): PlatformIntegration[] {
   // at the front so that it shows up by default in the onboarding.
   const frameworks = platforms.filter(p => replayFrontendPlatforms.includes(p.id));
   const jsPlatformIdx = frameworks.findIndex(p => p.id === 'javascript');
-  const jsPlatform = frameworks[jsPlatformIdx];
+  const jsPlatform = frameworks[jsPlatformIdx]!;
 
   // move javascript to the front
   frameworks.splice(jsPlatformIdx, 1);

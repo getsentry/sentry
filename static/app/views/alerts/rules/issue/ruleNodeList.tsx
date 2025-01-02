@@ -184,7 +184,7 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx];
+    const item = items[itemIdx]!;
 
     let changeAlertNode: IssueAlertGenericConditionConfig = {
       ...(node as IssueAlertGenericConditionConfig),

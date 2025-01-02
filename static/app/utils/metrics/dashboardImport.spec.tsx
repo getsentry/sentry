@@ -269,7 +269,7 @@ describe('parseDashboard', () => {
     const {report, widgets} = result;
 
     expect(report.length).toEqual(2);
-    expect(report[0].outcome).toEqual('success');
+    expect(report[0]!.outcome).toEqual('success');
     expect(widgets.length).toEqual(2);
   });
 
@@ -297,7 +297,7 @@ describe('parseDashboard', () => {
     const {report, widgets} = result;
 
     expect(report.length).toEqual(2);
-    expect(report[0].outcome).toEqual('success');
+    expect(report[0]!.outcome).toEqual('success');
     expect(widgets.length).toEqual(2);
   });
 
@@ -333,10 +333,10 @@ describe('parseDashboard', () => {
     expect(report.length).toEqual(1);
     expect(widgets.length).toEqual(1);
 
-    const queries = widgets[0].queries;
+    const queries = widgets[0]!.queries;
     expect(queries.length).toEqual(5);
-    expect(queries[2].aggregates[0]).toEqual('equation|2 * $b');
-    expect(queries[3].aggregates[0]).toEqual('equation|$a + $b');
-    expect(queries[4].aggregates[0]).toEqual('equation|($b + $b) - $a');
+    expect(queries[2]!.aggregates[0]).toEqual('equation|2 * $b');
+    expect(queries[3]!.aggregates[0]).toEqual('equation|$a + $b');
+    expect(queries[4]!.aggregates[0]).toEqual('equation|($b + $b) - $a');
   });
 });

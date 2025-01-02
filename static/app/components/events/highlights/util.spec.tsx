@@ -29,14 +29,14 @@ describe('getHighlightContextData', function () {
       location: {query: {}} as Location,
     });
     expect(highlightCtxData).toHaveLength(1);
-    expect(highlightCtxData[0].alias).toBe('keyboard');
-    expect(highlightCtxData[0].type).toBe('default');
-    expect(highlightCtxData[0].data).toHaveLength(highlightContext.keyboard.length);
-    const highlightCtxDataKeys = new Set(highlightCtxData[0].data.map(({key}) => key));
+    expect(highlightCtxData[0]!.alias).toBe('keyboard');
+    expect(highlightCtxData[0]!.type).toBe('default');
+    expect(highlightCtxData[0]!.data).toHaveLength(highlightContext.keyboard.length);
+    const highlightCtxDataKeys = new Set(highlightCtxData[0]!.data.map(({key}) => key));
     for (const ctxKey of highlightContext.keyboard) {
       expect(highlightCtxDataKeys.has(ctxKey)).toBe(true);
     }
-    const missingCtxHighlightFromEvent = highlightCtxData[0].data?.find(
+    const missingCtxHighlightFromEvent = highlightCtxData[0]!.data?.find(
       d => d.key === missingContextKey
     );
     expect(missingCtxHighlightFromEvent?.value).toBe(EMPTY_HIGHLIGHT_DEFAULT);
@@ -59,7 +59,7 @@ describe('getHighlightContextData', function () {
       location: {query: {}} as Location,
     });
     expect(highlightCtxData).toHaveLength(1);
-    expect(highlightCtxData[0].type).toBe('os');
+    expect(highlightCtxData[0]!.type).toBe('os');
   });
 });
 

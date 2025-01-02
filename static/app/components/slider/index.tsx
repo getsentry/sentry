@@ -125,14 +125,14 @@ function BaseSlider(
       onChange: indexValue =>
         onChange?.(
           Array.isArray(indexValue)
-            ? indexValue.map(i => allowedValues[i])
-            : allowedValues[indexValue]
+            ? indexValue.map(i => allowedValues[i]!)
+            : allowedValues[indexValue]!
         ),
       onChangeEnd: indexValue =>
         onChangeEnd?.(
           Array.isArray(indexValue)
-            ? indexValue.map(i => allowedValues[i])
-            : allowedValues[indexValue]
+            ? indexValue.map(i => allowedValues[i]!)
+            : allowedValues[indexValue]!
         ),
     }),
   };
@@ -176,7 +176,7 @@ function BaseSlider(
     if (nThumbs > 1) {
       return refs.current;
     }
-    return refs.current[0];
+    return refs.current[0]!;
   }, [nThumbs]);
 
   const getFormattedValue = useCallback(
@@ -185,8 +185,8 @@ function BaseSlider(
       // like an index for `allowedValues`.
       if (allowedValues) {
         return formatLabel
-          ? formatLabel(allowedValues[val])
-          : state.getFormattedValue(allowedValues[val]);
+          ? formatLabel(allowedValues[val]!)
+          : state.getFormattedValue(allowedValues[val]!);
       }
 
       return formatLabel ? formatLabel(val) : state.getFormattedValue(val);
@@ -214,10 +214,10 @@ function BaseSlider(
             <SliderLabel {...labelProps}>{label}</SliderLabel>
             <SliderLabelOutput {...outputProps}>
               {nThumbs > 1
-                ? `${getFormattedValue(selectedRange[0])}–${getFormattedValue(
-                    selectedRange[1]
+                ? `${getFormattedValue(selectedRange[0]!)}–${getFormattedValue(
+                    selectedRange[1]!
                   )}`
-                : getFormattedValue(selectedRange[1])}
+                : getFormattedValue(selectedRange[1]!)}
             </SliderLabelOutput>
           </SliderLabelWrapper>
         )}
@@ -234,8 +234,8 @@ function BaseSlider(
             disabled={disabled}
             error={error}
             style={{
-              left: `${state.getValuePercent(selectedRange[0]) * 100}%`,
-              right: `${100 - state.getValuePercent(selectedRange[1]) * 100}%`,
+              left: `${state.getValuePercent(selectedRange[0]!) * 100}%`,
+              right: `${100 - state.getValuePercent(selectedRange[1]!) * 100}%`,
             }}
           />
 
@@ -245,7 +245,9 @@ function BaseSlider(
               aria-hidden
               error={error}
               disabled={disabled}
-              inSelection={tickValue >= selectedRange[0] && tickValue <= selectedRange[1]}
+              inSelection={
+                tickValue >= selectedRange[0]! && tickValue <= selectedRange[1]!
+              }
               style={{left: `${(state.getValuePercent(tickValue) * 100).toFixed(2)}%`}}
               justifyContent={
                 index === 0

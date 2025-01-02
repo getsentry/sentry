@@ -226,7 +226,7 @@ type InteractionsChartProps = {
 function InteractionsChart({data}: InteractionsChartProps) {
   const elementInteractionsSeries: LineChartSeries[] = Object.keys(data).map(
     (key: string) => {
-      const seriesData = data[key].map(point => ({
+      const seriesData = data[key]!.map(point => ({
         value: point[1],
         name: point[0] * 1000,
       }));

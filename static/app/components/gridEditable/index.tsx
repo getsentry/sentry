@@ -178,7 +178,7 @@ class GridEditable<
 
   clearWindowLifecycleEvents() {
     Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
-      this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
+      this.resizeWindowLifecycleEvents[e]!.forEach(c => window.removeEventListener(e, c));
       this.resizeWindowLifecycleEvents[e] = [];
     });
   }
@@ -188,7 +188,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[i] = {
-      ...nextColumnOrder[i],
+      ...nextColumnOrder[i]!,
       width: COL_WIDTH_UNDEFINED,
     };
     this.setGridTemplateColumns(nextColumnOrder);
@@ -196,7 +196,7 @@ class GridEditable<
     const onResizeColumn = this.props.grid.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
-        ...nextColumnOrder[i],
+        ...nextColumnOrder[i]!,
         width: COL_WIDTH_UNDEFINED,
       });
     }
@@ -224,10 +224,10 @@ class GridEditable<
     };
 
     window.addEventListener('mousemove', this.onResizeMouseMove);
-    this.resizeWindowLifecycleEvents.mousemove.push(this.onResizeMouseMove);
+    this.resizeWindowLifecycleEvents.mousemove!.push(this.onResizeMouseMove);
 
     window.addEventListener('mouseup', this.onResizeMouseUp);
-    this.resizeWindowLifecycleEvents.mouseup.push(this.onResizeMouseUp);
+    this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
   };
 
   onResizeMouseUp = (e: MouseEvent) => {
@@ -239,7 +239,7 @@ class GridEditable<
       const widthChange = e.clientX - metadata.cursorX;
 
       onResizeColumn(metadata.columnIndex, {
-        ...columnOrder[metadata.columnIndex],
+        ...columnOrder[metadata.columnIndex]!,
         width: metadata.columnWidth + widthChange,
       });
     }
@@ -267,7 +267,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
-      ...nextColumnOrder[metadata.columnIndex],
+      ...nextColumnOrder[metadata.columnIndex]!,
       width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 

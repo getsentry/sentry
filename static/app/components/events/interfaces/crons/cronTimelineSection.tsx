@@ -120,7 +120,7 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </EventLineLabel>
             <FadeInContainer>
               <CheckInTimeline
-                bucketedData={monitorStats[monitorId]}
+                bucketedData={monitorStats[monitorId]!}
                 timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}
               />

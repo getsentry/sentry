@@ -149,23 +149,23 @@ class ReleaseSessionsChart extends Component<Props> {
     const colors = theme.charts.getColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
-        return [colors[0]];
+        return [colors[0]!];
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
         return [theme.green300];
       case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
-        return [colors[15]];
+        return [colors[15]!];
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
-        return [colors[12]];
+        return [colors[12]!];
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
         return [theme.red300];
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
-        return [colors[6]];
+        return [colors[6]!];
       case ReleaseComparisonChartType.HEALTHY_USERS:
         return [theme.green300];
       case ReleaseComparisonChartType.ABNORMAL_USERS:
-        return [colors[15]];
+        return [colors[15]!];
       case ReleaseComparisonChartType.ERRORED_USERS:
-        return [colors[12]];
+        return [colors[12]!];
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:

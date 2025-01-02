@@ -131,7 +131,7 @@ function removeQueryTokensFromQuery(
   }
 
   return removeExcessWhitespaceFromParts(
-    query.substring(0, tokens[0].location.start.offset),
+    query.substring(0, tokens[0]!.location.start.offset),
     query.substring(tokens.at(-1)!.location.end.offset)
   );
 }
@@ -243,7 +243,7 @@ function replaceQueryTokens(
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return start + value + end;
@@ -296,7 +296,7 @@ export function replaceTokensWithPadding(
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return removeExcessWhitespaceFromParts(start, value, end);
@@ -367,7 +367,7 @@ function updateFilterMultipleValues(
   const newValue =
     uniqNonEmptyValues.length > 1
       ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0];
+      : uniqNonEmptyValues[0]!;
 
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }

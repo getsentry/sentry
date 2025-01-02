@@ -48,7 +48,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
     if (PROVIDER_POPULARITY[a.key] === PROVIDER_POPULARITY[b.key]) {
       return 0;
     }
-    return PROVIDER_POPULARITY[a.key] > PROVIDER_POPULARITY[b.key] ? 1 : -1;
+    return PROVIDER_POPULARITY[a.key]! > PROVIDER_POPULARITY[b.key]! ? 1 : -1;
   });
 
   const list = sortedByPopularity.sort((a, b) => {

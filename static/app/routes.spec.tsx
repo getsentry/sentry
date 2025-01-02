@@ -28,7 +28,7 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   const routes = new Set<string>();
 
   // A queue of routes we need to visit
-  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: rootRoute[0]}];
+  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: rootRoute[0]!}];
   while (visitQueue.length > 0) {
     const current = visitQueue.pop();
     if (!current) {

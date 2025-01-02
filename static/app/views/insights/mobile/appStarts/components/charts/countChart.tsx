@@ -41,7 +41,7 @@ function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
           data[release]?.data?.map(datum => {
             return {
               name: datum[0] * 1000,
-              value: datum[1][0].count,
+              value: datum[1]![0]!.count,
             };
           }) ?? [],
         ...(primaryRelease === release

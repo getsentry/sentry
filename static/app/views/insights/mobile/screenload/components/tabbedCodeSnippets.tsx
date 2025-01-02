@@ -20,8 +20,8 @@ interface TabbedCodeSnippetProps {
 }
 
 export function TabbedCodeSnippet({tabs}: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0].value);
-  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0];
+  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0]!.value);
+  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0]!;
   const {code, language, filename} = selectedTab;
 
   return (

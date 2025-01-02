@@ -98,19 +98,19 @@ const getSearchConfigFromCustomPerformanceMetrics = (
     numericKeys: [...defaultConfig.numericKeys],
   };
   Object.keys(customPerformanceMetrics).forEach(metricName => {
-    const {fieldType} = customPerformanceMetrics[metricName];
+    const {fieldType} = customPerformanceMetrics[metricName]!;
     switch (fieldType) {
       case 'size':
-        searchConfigMap.sizeKeys.push(metricName);
+        searchConfigMap.sizeKeys!.push(metricName);
         break;
       case 'duration':
-        searchConfigMap.durationKeys.push(metricName);
+        searchConfigMap.durationKeys!.push(metricName);
         break;
       case 'percentage':
-        searchConfigMap.percentageKeys.push(metricName);
+        searchConfigMap.percentageKeys!.push(metricName);
         break;
       default:
-        searchConfigMap.numericKeys.push(metricName);
+        searchConfigMap.numericKeys!.push(metricName);
     }
   });
   const searchConfig = {

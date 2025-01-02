@@ -256,7 +256,7 @@ function MiniBarChart({
       : [theme.gray200, theme.purple300, theme.purple300];
 
     for (let i = 0; i < series.length; i++) {
-      const original = series[i];
+      const original = series[i]!;
       const updated: BarChartSeries = {
         ...original,
         cursor: 'normal',

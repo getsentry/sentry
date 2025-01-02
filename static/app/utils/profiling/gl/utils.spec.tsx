@@ -67,8 +67,8 @@ describe('upperBound', () => {
     const view = new Rect(4, 0, 2, 0);
 
     expect(upperBound(view.right, frames)).toBe(6);
-    expect(frames[6].start).toBeGreaterThanOrEqual(view.right);
-    expect(frames[6].end).toBeGreaterThanOrEqual(view.right);
+    expect(frames[6]!.start).toBeGreaterThanOrEqual(view.right);
+    expect(frames[6]!.end).toBeGreaterThanOrEqual(view.right);
   });
 });
 
@@ -93,8 +93,8 @@ describe('lowerBound', () => {
     const view = new Rect(4, 0, 2, 0);
 
     expect(lowerBound(view.left, frames)).toBe(3);
-    expect(frames[3].start).toBeLessThanOrEqual(view.left);
-    expect(frames[3].end).toBeLessThanOrEqual(view.left);
+    expect(frames[3]!.start).toBeLessThanOrEqual(view.left);
+    expect(frames[3]!.end).toBeLessThanOrEqual(view.left);
   });
 });
 

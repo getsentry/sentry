@@ -99,7 +99,7 @@ function DestinationSummaryPage() {
                         value={data[0]?.['sum(span.duration)']}
                         unit={DurationUnit.MILLISECOND}
                         tooltip={getTimeSpentExplanation(
-                          data[0]?.['time_spent_percentage(app,span.duration)']
+                          data[0]!?.['time_spent_percentage(app,span.duration)']
                         )}
                         isLoading={isPending}
                       />

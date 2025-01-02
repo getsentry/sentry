@@ -28,8 +28,8 @@ export function usePerformanceUsageStats({
 }) {
   const traceNode = tree.root.children[0];
 
-  const traceStartDate = new Date(traceNode?.space?.[0]);
-  const traceEndDate = new Date(traceNode?.space?.[0] + traceNode?.space?.[1]);
+  const traceStartDate = new Date(traceNode?.space?.[0]!);
+  const traceEndDate = new Date(traceNode?.space?.[0]! + traceNode?.space?.[1]!);
 
   // Add 1 hour buffer to the trace start and end date.
   const start = traceNode

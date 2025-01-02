@@ -65,7 +65,7 @@ export default function ScreenshotModal({
       if (attachments.length) {
         const newIndex = currentAttachmentIndex + delta;
         if (newIndex >= 0 && newIndex < attachments.length) {
-          setCurrentAttachment(attachments[newIndex]);
+          setCurrentAttachment(attachments[newIndex]!);
         }
       }
     },

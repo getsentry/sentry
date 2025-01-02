@@ -484,7 +484,7 @@ class FormModel {
     }
 
     this.snapshots.shift();
-    this.fields.replace(this.snapshots[0]);
+    this.fields.replace(this.snapshots[0]!);
 
     return true;
   }

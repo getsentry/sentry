@@ -72,6 +72,7 @@ export function AssigneeAvatar({
   }
 
   if (suggestedActors.length > 0) {
+    const firstActor = suggestedActors[0]!;
     return (
       <SuggestedAvatarStack
         size={26}
@@ -82,15 +83,13 @@ export function AssigneeAvatar({
             <div>
               {tct('Suggestion: [name]', {
                 name:
-                  suggestedActors[0].type === 'team'
-                    ? `#${suggestedActors[0].name}`
-                    : suggestedActors[0].name,
+                  firstActor.type === 'team' ? `#${firstActor.name}` : firstActor.name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
             </div>
             <TooltipSubtext>
-              {suggestedReasons[suggestedActors[0].suggestedReason]}
+              {suggestedReasons[firstActor.suggestedReason]}
             </TooltipSubtext>
           </TooltipWrapper>
         }

@@ -34,8 +34,8 @@ describe('jsSelfProfile', () => {
     expect(profile.duration).toBe(1000);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
-    expect(profile.callTree.children[0].frame.name).toBe('ReactDOM.render');
-    expect(profile.callTree.children[0].frame.resource).toBe('app.js');
+    expect(profile.callTree.children[0]!.frame.name).toBe('ReactDOM.render');
+    expect(profile.callTree.children[0]!.frame.resource).toBe('app.js');
   });
 
   it('tracks discarded samples', () => {
@@ -228,13 +228,13 @@ describe('jsSelfProfile', () => {
     expect(openSpy).toHaveBeenCalledTimes(2);
     expect(closeSpy).toHaveBeenCalledTimes(2);
 
-    const root = firstCallee(profile.callTree);
+    const root = firstCallee(profile.callTree)!;
 
     expect(root.totalWeight).toEqual(1000);
-    expect(firstCallee(root).totalWeight).toEqual(1000);
+    expect(firstCallee(root)!.totalWeight).toEqual(1000);
 
     expect(root.selfWeight).toEqual(0);
-    expect(firstCallee(root).selfWeight).toEqual(1000);
+    expect(firstCallee(root)!.selfWeight).toEqual(1000);
   });
 
   it('marks direct recursion', () => {
@@ -260,7 +260,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)!)!.recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -293,7 +293,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree)!)!)!.recursive).toBe(
       true
     );
   });
@@ -416,7 +416,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 });

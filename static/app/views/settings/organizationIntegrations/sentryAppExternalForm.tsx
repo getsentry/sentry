@@ -148,7 +148,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         });
         // if ready to load, trigger a field change to trigger the api request to load options
         if (isReadyToLoad) {
-          this.handleFieldChange(field.depends_on[0]);
+          this.handleFieldChange(field.depends_on[0]!);
         }
       }
     });

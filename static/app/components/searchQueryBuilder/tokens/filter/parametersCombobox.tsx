@@ -44,9 +44,9 @@ function getParameterAtCursorPosition(
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
-    characterCount += items[i].length + 1;
+    characterCount += items[i]!.length + 1;
     if (characterCount > cursorPosition) {
-      return {parameterIndex: i, textValue: items[i].trim()};
+      return {parameterIndex: i, textValue: items[i]!.trim()};
     }
   }
 
@@ -58,7 +58,7 @@ function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number)
   const charactersBefore =
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
-  return charactersBefore + items[parameterIndex].length;
+  return charactersBefore + items[parameterIndex]!.length;
 }
 
 function useSelectionIndex({

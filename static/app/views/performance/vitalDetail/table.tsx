@@ -226,7 +226,7 @@ class Table extends Component<Props, State> {
       : undefined;
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
+        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key]!;
       });
     }
 

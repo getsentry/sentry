@@ -161,7 +161,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
           )
         )
         .join(SERIES_LIST_DELIMITER)
@@ -177,7 +177,7 @@ class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
+      const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
         acc[
           decodeURIComponent(

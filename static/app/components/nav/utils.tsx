@@ -165,7 +165,7 @@ export function resolveNavItemTo(
     return undefined;
   }
   if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {
-    return item.submenu[0].to;
+    return item.submenu[0]!.to;
   }
   return undefined;
 }

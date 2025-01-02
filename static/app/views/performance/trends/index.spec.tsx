@@ -93,7 +93,7 @@ function _initializeData(
     newSettings.selectedProject = selectedProject.id;
   }
 
-  newSettings.selectedProject = settings.selectedProject ?? newSettings.projects[0].id;
+  newSettings.selectedProject = settings.selectedProject ?? newSettings.projects[0]!.id;
   const data = initializeData(newSettings);
 
   // Modify page filters store to stop rerendering due to the test harness.
@@ -108,7 +108,7 @@ function _initializeData(
   PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
   if (!options?.selectedProjectId) {
     PageFiltersStore.updateProjects(
-      settings.selectedProject ? [Number(newSettings.projects[0].id)] : [],
+      settings.selectedProject ? [Number(newSettings.projects[0]!.id)] : [],
       []
     );
   }
@@ -321,7 +321,7 @@ describe('Performance > Trends', function () {
 
     const transactions = await screen.findAllByTestId('trends-list-item-improved');
     expect(transactions).toHaveLength(2);
-    const firstTransaction = transactions[0];
+    const firstTransaction = transactions[0]!;
 
     const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
 
@@ -345,7 +345,7 @@ describe('Performance > Trends', function () {
 
     const transactions = await screen.findAllByTestId('trends-list-item-improved');
     expect(transactions).toHaveLength(2);
-    const firstTransaction = transactions[0];
+    const firstTransaction = transactions[0]!;
 
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
@@ -355,7 +355,7 @@ describe('Performance > Trends', function () {
       expect(menuActions).toHaveLength(3);
     });
 
-    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[2];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[2]!;
     await clickEl(menuAction);
 
     expect(data.router.push).toHaveBeenCalledWith({
@@ -409,7 +409,7 @@ describe('Performance > Trends', function () {
 
     const transactions = await screen.findAllByTestId('trends-list-item-improved');
     expect(transactions).toHaveLength(2);
-    const firstTransaction = transactions[0];
+    const firstTransaction = transactions[0]!;
 
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
@@ -419,7 +419,7 @@ describe('Performance > Trends', function () {
       expect(menuActions).toHaveLength(3);
     });
 
-    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[0];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[0]!;
     await clickEl(menuAction);
 
     expect(data.router.push).toHaveBeenCalledWith({
@@ -445,7 +445,7 @@ describe('Performance > Trends', function () {
 
     const transactions = await screen.findAllByTestId('trends-list-item-improved');
     expect(transactions).toHaveLength(2);
-    const firstTransaction = transactions[0];
+    const firstTransaction = transactions[0]!;
 
     await userEvent.click(
       within(firstTransaction).getByRole('button', {name: 'Actions'})
@@ -455,7 +455,7 @@ describe('Performance > Trends', function () {
       expect(menuActions).toHaveLength(3);
     });
 
-    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[1];
+    const menuAction = within(firstTransaction).getAllByRole('menuitemradio')[1]!;
     await clickEl(menuAction);
 
     expect(data.router.push).toHaveBeenCalledWith({

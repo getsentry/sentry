@@ -14,8 +14,8 @@ export function getRelaysByPublicKey(
       relaysByPublicKey[publicKey] = {name, description, created, activities: []};
     }
 
-    if (!relaysByPublicKey[publicKey].activities.length) {
-      relaysByPublicKey[publicKey].activities = relayActivities.filter(
+    if (!relaysByPublicKey[publicKey]!.activities.length) {
+      relaysByPublicKey[publicKey]!.activities = relayActivities.filter(
         activity => activity.publicKey === publicKey
       );
     }

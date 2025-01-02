@@ -13,7 +13,7 @@ export function parseCursor(
   }
   if (Array.isArray(cursor)) {
     if (cursor.length > 0) {
-      cursor = cursor[0];
+      cursor = cursor[0]!;
     } else {
       return undefined;
     }
@@ -25,8 +25,8 @@ export function parseCursor(
   }
 
   try {
-    const value = parseInt(bits[0], 10);
-    const offset = parseInt(bits[1], 10);
+    const value = parseInt(bits[0]!, 10);
+    const offset = parseInt(bits[1]!, 10);
     const isPrev = bits[2] === '1';
     return {isPrev, offset, value};
   } catch (e) {

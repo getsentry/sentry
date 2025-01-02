@@ -61,7 +61,7 @@ function getFuzzyHighlightContext(
     };
   }
 
-  const highlightContextKeys = highlightContextSets[highlightKey];
+  const highlightContextKeys = highlightContextSets[highlightKey]!;
   const highlightItems: KeyValueListData = data.filter(
     ({key, subject}) =>
       // We match on key (e.g. 'trace_id') and subject (e.g. 'Trace ID')

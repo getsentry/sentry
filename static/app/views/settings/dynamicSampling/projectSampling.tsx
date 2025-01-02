@@ -200,7 +200,7 @@ function ScrollIntoViewButton({
 
     const observer = new IntersectionObserver(
       observerEntries => {
-        const entry = observerEntries[0];
+        const entry = observerEntries[0]!;
         setIsVisible(!entry.isIntersecting);
       },
       {

@@ -188,12 +188,12 @@ describe('InviteMissingMembersModal', function () {
     const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
 
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
-    await selectEvent.select(roleInputs[0], 'Admin', {
+    await selectEvent.select(roleInputs[0]!, 'Admin', {
       container: document.body,
     });
 
     await userEvent.click(screen.getByLabelText('Select abcd@sentry.io'));
-    await selectEvent.select(teamInputs[1], '#team-slug', {
+    await selectEvent.select(teamInputs[1]!, '#team-slug', {
       container: document.body,
     });
 

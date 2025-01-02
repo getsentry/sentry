@@ -264,7 +264,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               ? props.profileTransaction.data
               : null
           }
-          projectId={params.projectId}
+          projectId={params.projectId!}
           profileGroup={props.profileGroup}
         />
       ) : null}

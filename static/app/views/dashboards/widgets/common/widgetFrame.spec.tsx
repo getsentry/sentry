@@ -278,5 +278,5 @@ describe('WidgetFrame', () => {
 
 function UhOh() {
   const items: string[] = [];
-  return <div>{items[0].toUpperCase()}</div>;
+  return <div>{items[0]!.toUpperCase()}</div>;
 }

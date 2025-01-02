@@ -267,7 +267,7 @@ export function Trace({
         traceDispatch({
           type: 'set roving index',
           index: nextIndex,
-          node: treeRef.current.list[nextIndex],
+          node: treeRef.current.list[nextIndex]!,
           action_source: 'keyboard',
         });
       }

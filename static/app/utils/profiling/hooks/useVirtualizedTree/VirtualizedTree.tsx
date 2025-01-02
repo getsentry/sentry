@@ -60,7 +60,7 @@ export class VirtualizedTree<T extends TreeLike> {
     }
 
     for (let i = 0; i < items.length; i++) {
-      toTreeNode(items[i], null, roots, 0);
+      toTreeNode(items[i]!, null, roots, 0);
     }
 
     return new VirtualizedTree<T>(roots, undefined);
@@ -80,12 +80,12 @@ export class VirtualizedTree<T extends TreeLike> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
+        visit(node.children[i]!);
       }
     }
 
     for (let i = 0; i < nodes.length; i++) {
-      visit(nodes[i]);
+      visit(nodes[i]!);
     }
 
     return list;
@@ -102,7 +102,7 @@ export class VirtualizedTree<T extends TreeLike> {
       }
 
       for (let i = 0; i < candidate.children.length; i++) {
-        queue.push(candidate.children[i]);
+        queue.push(candidate.children[i]!);
       }
     }
 
@@ -163,13 +163,13 @@ export class VirtualizedTree<T extends TreeLike> {
     function visit(node: VirtualizedTreeNode<T>) {
       const sortedChildren = node.children.sort(sortFn);
       for (let i = 0; i < sortedChildren.length; i++) {
-        visit(sortedChildren[i]);
+        visit(sortedChildren[i]!);
       }
     }
 
     const sortedRoots = this.roots.sort(sortFn);
     for (let i = 0; i < sortedRoots.length; i++) {
-      visit(sortedRoots[i]);
+      visit(sortedRoots[i]!);
     }
 
     this.flattened = VirtualizedTree.toExpandedList(this.roots);
@@ -184,12 +184,12 @@ export class VirtualizedTree<T extends TreeLike> {
       }
 
       for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
+        visit(node.children[i]!);
       }
     }
 
     for (let i = 0; i < this.roots.length; i++) {
-      visit(this.roots[i]);
+      visit(this.roots[i]!);
     }
 
     return expandedNodes;

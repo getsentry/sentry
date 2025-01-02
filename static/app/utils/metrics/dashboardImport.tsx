@@ -205,7 +205,7 @@ export class WidgetParser {
 
     return convertToDashboardWidget(
       [...nonEmptyQueries, ...metricsEquations],
-      parsedRequests[0].displayType,
+      parsedRequests[0]!.displayType,
       title
     );
   }

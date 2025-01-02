@@ -92,7 +92,7 @@ function getSuggestedReason(owner: IssueOwner) {
   }
 
   if (owner.rules?.length) {
-    const firstRule = owner.rules[0];
+    const firstRule = owner.rules[0]!;
     return `${toTitleCase(firstRule[0])}:${firstRule[1]}`;
   }
 

@@ -779,6 +779,7 @@ export default typescript.config([
     // corresponding configuration object where the plugin is initially included
     plugins: {
       ...react.configs.flat.plugins,
+      // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].plugins,
       '@typescript-eslint': typescript.plugin,
       'react-hooks': fixupPluginRules(reactHooks),

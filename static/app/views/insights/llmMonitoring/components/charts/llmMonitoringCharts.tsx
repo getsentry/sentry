@@ -43,7 +43,7 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][0]]}
+        chartColors={[CHART_PALETTE[2]![0]!]}
       />
     </ChartPanel>
   );
@@ -78,7 +78,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][0]]}
+        chartColors={[CHART_PALETTE[2]![0]!]}
       />
     </ChartPanel>
   );
@@ -118,7 +118,7 @@ export function EAPNumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][1]]}
+        chartColors={[CHART_PALETTE[2]![1]!]}
       />
     </ChartPanel>
   );
@@ -152,7 +152,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][1]]}
+        chartColors={[CHART_PALETTE[2]![1]!]}
       />
     </ChartPanel>
   );
@@ -191,7 +191,7 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][2]]}
+        chartColors={[CHART_PALETTE[2]![2]!]}
       />
     </ChartPanel>
   );
@@ -225,7 +225,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
         loading={isPending}
         error={error}
         type={ChartType.LINE}
-        chartColors={[CHART_PALETTE[2][2]]}
+        chartColors={[CHART_PALETTE[2]![2]!]}
       />
     </ChartPanel>
   );

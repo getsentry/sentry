@@ -52,7 +52,7 @@ describe('Add Modal', function () {
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[0]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[0]!);
     expect(await screen.findByText('What to do')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
@@ -67,7 +67,7 @@ describe('Add Modal', function () {
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[1]!);
     expect(
       await screen.findByText(
         'What to look for. Use an existing pattern or define your own using regular expressions.'
@@ -91,7 +91,7 @@ describe('Add Modal', function () {
     // Source Field
     screen.getByRole('textbox', {name: 'Source'});
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[2]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[2]!);
 
     expect(
       await screen.findByText(
@@ -132,7 +132,7 @@ describe('Add Modal', function () {
 
     expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[1]!);
 
     expect(
       await screen.findByText('It will replace the default placeholder [Filtered]')
@@ -168,7 +168,7 @@ describe('Add Modal', function () {
 
     expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getAllByTestId('more-information')[2]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[2]!);
 
     expect(
       await screen.findByText('Custom regular expression (see documentation)')

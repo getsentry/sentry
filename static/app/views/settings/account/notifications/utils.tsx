@@ -23,7 +23,7 @@ export const groupByOrganization = (
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug].projects.push(project);
+      acc[orgSlug]!.projects.push(project);
     } else {
       acc[orgSlug] = {
         organization: project.organization,

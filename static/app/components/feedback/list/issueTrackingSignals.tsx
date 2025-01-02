@@ -69,7 +69,7 @@ export default function IssueTrackingSignals({group}: Props) {
     );
   }
 
-  const issue = linkedIssues[0];
+  const issue = linkedIssues[0]!;
   const {name, icon} = {
     'plugin-issue': getPluginNames,
     'plugin-actions': getPluginNames,

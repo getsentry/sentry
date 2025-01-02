@@ -52,7 +52,7 @@ export function ensureQuotedTextFilters(
   }
 
   for (let i = 0; i < parsedSearch.length; i++) {
-    const token = parsedSearch[i];
+    const token = parsedSearch[i]!;
     if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
       // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of its value
       if (!token.value.quoted) {

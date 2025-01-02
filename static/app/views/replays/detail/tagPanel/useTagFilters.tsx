@@ -50,7 +50,7 @@ function useTagFilters({tags}: Options): Return {
   const items: Record<string, string[]> = {};
   Object.values(filteredItems).forEach(item => {
     for (const key in item) {
-      items[key] = item[key];
+      items[key] = item[key]!;
     }
   });
 

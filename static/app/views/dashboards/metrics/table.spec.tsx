@@ -138,13 +138,13 @@ describe('getTableSeries', () => {
     ]);
 
     expect(result.rows.length).toEqual(7);
-    const ingestRow = result.rows[2];
+    const ingestRow = result.rows[2]!;
 
-    expect(ingestRow.a.value).toBeDefined();
-    expect(ingestRow.b.value).toBeUndefined();
+    expect(ingestRow.a!.value).toBeDefined();
+    expect(ingestRow.b!.value).toBeUndefined();
 
-    const defaultRow = result.rows[5];
-    expect(defaultRow.a.value).toBeDefined();
-    expect(defaultRow.b.value).toBeDefined();
+    const defaultRow = result.rows[5]!;
+    expect(defaultRow.a!.value).toBeDefined();
+    expect(defaultRow.b!.value).toBeDefined();
   });
 });

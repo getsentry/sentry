@@ -61,7 +61,7 @@ describe('utils.escapeDoubleQuotes', function () {
 
     for (const testCase of cases) {
       const [input, expected] = testCase;
-      expect(escapeDoubleQuotes(input)).toBe(expected);
+      expect(escapeDoubleQuotes(input!)).toBe(expected);
     }
 
     // should return the same input as the output

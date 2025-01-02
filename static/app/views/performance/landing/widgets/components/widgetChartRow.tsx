@@ -32,7 +32,7 @@ function getInitialChartSettings(
   return new Array(chartCount)
     .fill(0)
     .map((_, index) =>
-      getChartSetting(index, chartHeight, performanceType, allowedCharts[index])
+      getChartSetting(index, chartHeight, performanceType, allowedCharts[index]!)
     );
 }
 
@@ -40,7 +40,7 @@ function ChartRow(props: ChartRowProps) {
   const {chartCount, chartHeight, allowedCharts} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
-  const palette = theme.charts.getColorPalette(chartCount);
+  const palette = theme.charts.getColorPalette(chartCount)!;
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)
@@ -58,8 +58,8 @@ function ChartRow(props: ChartRowProps) {
           key={index}
           index={index}
           chartHeight={chartHeight}
-          chartColor={palette[index]}
-          defaultChartSetting={allowedCharts[index]}
+          chartColor={palette[index]!}
+          defaultChartSetting={allowedCharts[index]!}
           rowChartSettings={chartSettings}
           setRowChartSettings={setChartSettings}
         />

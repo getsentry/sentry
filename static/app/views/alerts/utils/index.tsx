@@ -28,9 +28,9 @@ import {AlertRuleStatus, CombinedAlertType} from '../types';
  * Gets start and end date query parameters from stats
  */
 export function getStartEndFromStats(stats: IncidentStats) {
-  const start = getUtcDateString(stats.eventStats.data[0][0] * 1000);
+  const start = getUtcDateString(stats.eventStats.data[0]![0] * 1000);
   const end = getUtcDateString(
-    stats.eventStats.data[stats.eventStats.data.length - 1][0] * 1000
+    stats.eventStats.data[stats.eventStats.data.length - 1]![0] * 1000
   );
 
   return {start, end};
@@ -115,9 +115,9 @@ export function getQueryDatasource(
   }
 
   match = query.match(/(^|\s)event\.type:(error|default|transaction)/i);
-  if (match && Datasource[match[2].toUpperCase()]) {
+  if (match && Datasource[match[2]!.toUpperCase()]) {
     return {
-      source: Datasource[match[2].toUpperCase()],
+      source: Datasource[match[2]!.toUpperCase()],
       query: query.replace(match[0], '').trim(),
     };
   }

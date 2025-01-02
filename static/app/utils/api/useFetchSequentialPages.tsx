@@ -138,7 +138,7 @@ export default function useFetchSequentialPages<Data>({
           parsedHeader = parseLinkHeader(pageLinks)?.next;
         }
       } catch (error) {
-        responsePages.current.set(parsedHeader?.cursor, {
+        responsePages.current.set(parsedHeader?.cursor!, {
           data: undefined,
           error,
           getResponseHeader: undefined,

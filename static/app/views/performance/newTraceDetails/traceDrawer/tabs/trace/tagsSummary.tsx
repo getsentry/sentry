@@ -99,7 +99,7 @@ function TagRow(props: TagProps) {
   // endpoint and the totals endpoint
   const maxTotalValues =
     segments.length > 0
-      ? Math.max(Number(props.totalValues), segments[0].count)
+      ? Math.max(Number(props.totalValues), segments[0]!.count)
       : props.totalValues;
   return (
     <li key={props.tag.key} aria-label={props.tag.key}>

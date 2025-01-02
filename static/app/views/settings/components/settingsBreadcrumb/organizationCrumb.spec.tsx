@@ -33,7 +33,7 @@ describe('OrganizationCrumb', function () {
 
   const switchOrganization = async () => {
     await userEvent.hover(screen.getByRole('link'));
-    await userEvent.click(screen.getAllByRole('option')[1]);
+    await userEvent.click(screen.getAllByRole('option')[1]!);
   };
 
   const renderComponent = (

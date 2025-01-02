@@ -41,7 +41,7 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
   if (!maybe || maybe.length === 0) {
     return false;
   }
-  return (maybe as GroupedOptionsType<OptionType>)[0].options !== undefined;
+  return (maybe as GroupedOptionsType<OptionType>)[0]!.options !== undefined;
 }
 
 function ClearIndicator(

@@ -222,7 +222,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     expect(await screen.findByText('foo')).toBeInTheDocument();
-    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[1]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -301,7 +301,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spend notifications off
-    await selectEvent.select(screen.getAllByText('On')[0], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[0]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -349,7 +349,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[4], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[4]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -439,7 +439,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[3], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[3]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(

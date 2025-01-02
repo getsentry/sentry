@@ -26,7 +26,7 @@ function ArrayValue(props: Props) {
           .map((item, i) => (
             <ArrayItem key={`${i}:${item}`}>{nullableValue(item)}</ArrayItem>
           ))}
-      <ArrayItem>{nullableValue(value.slice(-1)[0])}</ArrayItem>
+      <ArrayItem>{nullableValue(value.slice(-1)[0]!)}</ArrayItem>
       {value.length > 1 ? (
         <ButtonContainer>
           <button onClick={handleToggle}>

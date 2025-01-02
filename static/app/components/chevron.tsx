@@ -34,7 +34,7 @@ function getPath(direction: NonNullable<ChevronProps['direction']>) {
     [3.5, 5.5],
     [7, 9],
     [10.5, 5.5],
-  ];
+  ] as const;
 
   switch (direction) {
     case 'right':

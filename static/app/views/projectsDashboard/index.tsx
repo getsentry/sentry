@@ -119,7 +119,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     project.slug.includes(projectQuery)
   );
 
-  const showResources = projects.length === 1 && !projects[0].firstEvent;
+  const showResources = projects.length === 1 && !projects[0]!.firstEvent;
 
   function handleSearch(searchQuery: string) {
     setProjectQuery(searchQuery);

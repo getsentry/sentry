@@ -231,7 +231,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   const project = projects.find(p => p.id === String(func['project.id']));
 
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
-  const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
+  const palette = new Array(BARS).fill([CHART_PALETTE[0]![0]!]);
 
   const frame = useMemo(() => {
     return new Frame(
@@ -265,7 +265,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         const timestamp = (
           <TimeSince
             unitStyle="extraShort"
-            date={timestamps[i] * 1000}
+            date={timestamps[i]! * 1000}
             tooltipShowSeconds
           />
         );
@@ -377,7 +377,7 @@ function FunctionChart<F extends BreakdownFunction>({
         data: timestamps.map((timestamp, i) => {
           return {
             name: timestamp * 1000,
-            value: rawData.values[i],
+            value: rawData.values[i]!,
           };
         }),
         seriesName: breakdownFunction,

@@ -48,7 +48,7 @@ export default function MessageFormatter({frame, expandPaths, onExpand}: Props) 
   if (args && isSerializedError(frame)) {
     // Sometimes message can include stacktrace
     const splitMessage = frame.message.split('\n');
-    const errorMessagePiece = splitMessage[0].trim();
+    const errorMessagePiece = splitMessage[0]!.trim();
     // Error.prototype.toString() will prepend the error type meaning it will
     // not be the same as `message` property. We want message only when
     // creating a new Error instance, otherwise the type will repeat.

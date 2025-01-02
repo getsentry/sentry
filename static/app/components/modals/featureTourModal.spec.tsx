@@ -71,13 +71,13 @@ describe('FeatureTourModal', function () {
     await clickModal();
 
     // Should start on the first step.
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[0]!.title);
 
     // Advance to the next step.
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Should move to next step.
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[1].title);
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[1]!.title);
     expect(onAdvance).toHaveBeenCalled();
   });
 
@@ -87,7 +87,7 @@ describe('FeatureTourModal', function () {
     await clickModal();
 
     // Should show title, image and actions
-    expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
+    expect(screen.getByRole('heading')).toHaveTextContent(steps[0]!.title);
     expect(screen.getByTestId('step-image')).toBeInTheDocument();
     expect(screen.getByTestId('step-action')).toBeInTheDocument();
     expect(screen.getByText('1 of 2')).toBeInTheDocument();

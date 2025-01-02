@@ -243,12 +243,12 @@ describe('TraceDataSection', () => {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
-        group_id: issuePlatformBody.data[0]['issue.id'],
+        group_id: issuePlatformBody.data[0]!['issue.id'],
         organization,
       }
     );
     expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
-      group_id: issuePlatformBody.data[0]['issue.id'],
+      group_id: issuePlatformBody.data[0]!['issue.id'],
       organization,
       area: 'issue_details',
     });

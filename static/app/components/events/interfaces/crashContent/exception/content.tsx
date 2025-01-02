@@ -151,7 +151,7 @@ export function Content({
 
     const frameSourceMapDebuggerData = sourceMapDebuggerData?.exceptions[
       excIdx
-    ].frames.map(debuggerFrame =>
+    ]!.frames.map(debuggerFrame =>
       prepareSourceMapDebuggerFrameInformation(
         sourceMapDebuggerData,
         debuggerFrame,

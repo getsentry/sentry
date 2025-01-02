@@ -572,7 +572,7 @@ describe('AssigneeSelectorDropdown', () => {
 
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('AB');
-    await userEvent.click(options[0]);
+    await userEvent.click(options[0]!);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(

@@ -89,7 +89,7 @@ export default function AdminSettings() {
   const fields = {};
   for (const key of optionsAvailable) {
     // TODO(dcramer): we should not be mutating options
-    const option = data[key] ?? {field: {}, value: undefined};
+    const option = data[key]! ?? {field: {}, value: undefined};
 
     if (option.value === undefined || option.value === '') {
       const defn = getOption(key);

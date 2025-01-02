@@ -245,7 +245,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           });
 
       const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+      const rightValue = listItem[displayedField]!;
 
       return (
         <Fragment key={i}>

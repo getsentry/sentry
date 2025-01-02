@@ -425,7 +425,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     return (
       <Fragment>
         {Array.from(measurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 

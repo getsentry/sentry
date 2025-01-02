@@ -21,7 +21,7 @@ const initializeData = () => {
 describe('SuspectSpansTable', () => {
   it('should not calculate frequency percentages above 100%', async () => {
     const initialData = initializeData();
-    const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]);
+    const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]!);
     suspectSpan.frequency = 120;
 
     render(

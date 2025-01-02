@@ -87,7 +87,7 @@ describe('useTeamsById', function () {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(useTeamsById, {
-      initialProps: {slugs: [mockTeams[0].slug]},
+      initialProps: {slugs: [mockTeams[0]!.slug]},
       wrapper,
     });
 
@@ -125,7 +125,7 @@ describe('useTeamsById', function () {
     TeamStore.loadInitialData(mockTeams);
 
     const {result} = renderHook(useTeamsById, {
-      initialProps: {ids: [mockTeams[0].id]},
+      initialProps: {ids: [mockTeams[0]!.id]},
       wrapper,
     });
 

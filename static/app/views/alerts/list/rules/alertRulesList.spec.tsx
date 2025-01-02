@@ -128,8 +128,8 @@ describe('AlertRulesList', () => {
   it('displays team dropdown context if unassigned', async () => {
     const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {router, organization});
-    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = within(assignee).getAllByRole('button')[0];
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0]!;
+    const btn = within(assignee).getAllByRole('button')[0]!;
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
@@ -149,8 +149,8 @@ describe('AlertRulesList', () => {
     const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {router, organization});
 
-    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = within(assignee).getAllByRole('button')[0];
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0]!;
+    const btn = within(assignee).getAllByRole('button')[0]!;
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('AlertRulesList', () => {
   it('displays dropdown context menu with actions', async () => {
     const {router, organization} = initializeOrg({organization: defaultOrg});
     render(<AlertRulesList />, {router, organization});
-    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
 
     await userEvent.click(actions);
@@ -202,7 +202,7 @@ describe('AlertRulesList', () => {
       body: {},
     });
 
-    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
 
     // Add a new response to the mock with no rules
     const emptyListMock = MockApiClient.addMockResponse({
@@ -243,7 +243,7 @@ describe('AlertRulesList', () => {
       body: {},
     });
 
-    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
 
     // Add a new response to the mock with no rules
     const emptyListMock = MockApiClient.addMockResponse({
@@ -267,7 +267,7 @@ describe('AlertRulesList', () => {
       organization: defaultOrg,
     });
     render(<AlertRulesList />, {router, organization});
-    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
     expect(actions).toBeInTheDocument();
 
     await userEvent.click(actions);
@@ -362,7 +362,7 @@ describe('AlertRulesList', () => {
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');
-    await userEvent.click(myTeams[1]);
+    await userEvent.click(myTeams[1]!);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -651,7 +651,7 @@ describe('AlertRulesList', () => {
       body: {},
     });
 
-    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0]!;
 
     // Add a new response to the mock with no rules
     const emptyListMock = MockApiClient.addMockResponse({

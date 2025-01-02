@@ -87,7 +87,7 @@ export function validateInterval(
   return isPeriod && currentIntervalValues.includes(interval)
     ? interval
     : // Take the 2nd most granular option if available
-      enabledOptions[1]?.value ?? enabledOptions[0].value;
+      enabledOptions[1]?.value ?? enabledOptions[0]!.value;
 }
 
 export function useMetricsIntervalParam() {

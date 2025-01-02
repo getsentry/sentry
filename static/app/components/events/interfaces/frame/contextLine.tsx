@@ -30,7 +30,7 @@ function ContextLine({line, isActive, children, coverage = ''}: Props) {
   let lineWs = '';
   let lineCode = '';
   if (typeof line[1] === 'string') {
-    [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)!;
+    [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m)! as [string, string, string];
   }
 
   return (

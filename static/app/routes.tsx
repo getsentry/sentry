@@ -1515,7 +1515,7 @@ function buildRoutes() {
           <Redirect
             key={moduleBaseURL}
             from={`${moduleBaseURL}/*`}
-            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL])}${moduleBaseURL}/:splat`}
+            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`}
           />
         )
     )

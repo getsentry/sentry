@@ -103,7 +103,7 @@ function ReleaseCardProjectRow({
   const adoptionStage =
     showReleaseAdoptionStages &&
     adoptionStages?.[project.slug] &&
-    adoptionStages?.[project.slug].stage;
+    adoptionStages?.[project.slug]!.stage;
 
   const adoptionStageLabel =
     get24hCountByProject && adoptionStage && isMobileRelease(project.platform)

@@ -151,7 +151,7 @@ function HighlightsData({
 
   // find the replayId from either context or tags, if it exists
   const contextReplayItem = highlightContextDataItems.find(
-    e => e.data.length && e.data[0].key === 'replay_id'
+    e => e.data.length && e.data[0]!.key === 'replay_id'
   );
   const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 

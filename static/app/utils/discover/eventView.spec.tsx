@@ -2134,8 +2134,8 @@ describe('EventView.withResizedColumn()', function () {
 
   it('updates a column that exists', function () {
     const newView = view.withResizedColumn(0, 99);
-    expect(view.fields[0].width).toBeUndefined();
-    expect(newView.fields[0].width).toEqual(99);
+    expect(view.fields[0]!.width).toBeUndefined();
+    expect(newView.fields[0]!.width).toEqual(99);
   });
 
   it('ignores columns that do not exist', function () {
@@ -2490,7 +2490,7 @@ describe('EventView.withDeletedColumn()', function () {
     it('sorted column occurs at least twice', function () {
       const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
-        fields: [...state.fields, state.fields[0]],
+        fields: [...state.fields, state.fields[0]!],
       };
 
       const eventView = new EventView(modifiedState);
@@ -2677,7 +2677,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[1];
+    const field = state.fields[1]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
     expect(eventView2 === eventView).toBe(true);
@@ -2687,7 +2687,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[0];
+    const field = state.fields[0]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
 
@@ -2705,7 +2705,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[0];
+    const field = state.fields[0]!;
 
     const eventView2 = eventView.sortOnField(field, meta, 'asc');
     expect(eventView2).toMatchObject({
@@ -2751,7 +2751,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(modifiedState);
     expect(eventView).toMatchObject(modifiedState);
 
-    const field = modifiedState.fields[2];
+    const field = modifiedState.fields[2]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
 
@@ -2792,7 +2792,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(modifiedState);
     expect(eventView).toMatchObject(modifiedState);
 
-    const field = modifiedState.fields[2];
+    const field = modifiedState.fields[2]!;
 
     let sortedEventView = eventView.sortOnField(field, meta, undefined, true);
     expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'asc'}]);
@@ -3404,8 +3404,8 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[1].value).toEqual('previous');
-    expect(options[1].disabled).toBeTruthy();
+    expect(options[1]!.value).toEqual('previous');
+    expect(options[1]!.disabled).toBeTruthy();
   });
 
   it('should disable top 5 period/daily if no aggregates present', function () {
@@ -3414,10 +3414,10 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[2].value).toEqual('top5');
-    expect(options[2].disabled).toBeTruthy();
-    expect(options[4].value).toEqual('dailytop5');
-    expect(options[4].disabled).toBeTruthy();
+    expect(options[2]!.value).toEqual('top5');
+    expect(options[2]!.disabled).toBeTruthy();
+    expect(options[4]!.value).toEqual('dailytop5');
+    expect(options[4]!.disabled).toBeTruthy();
   });
 });
 

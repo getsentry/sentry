@@ -24,10 +24,10 @@ export default function parseLinkHeader(header: string | null): Result {
     const [, href, rel, results, cursor] = match;
     const hasResults = results === 'true' ? true : results === 'false' ? false : null;
 
-    links[rel] = {
-      href,
+    links[rel!] = {
+      href: href!,
       results: hasResults,
-      cursor,
+      cursor: cursor!,
     };
   });
 

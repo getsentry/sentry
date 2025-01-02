@@ -73,7 +73,7 @@ export function GroupBySelector({
 
   const hasOnlySingleColumnWithValue =
     columns.length === 1 &&
-    columns[0].kind === FieldValueKind.FIELD &&
+    columns[0]!.kind === FieldValueKind.FIELD &&
     columns[0]?.field !== '';
 
   const canDrag = columns.length > 1;
@@ -86,9 +86,9 @@ export function GroupBySelector({
       filteredFieldOptions: FieldOptions;
     }>(
       (acc, key) => {
-        const value = fieldOptions[key];
+        const value = fieldOptions[key]!;
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
+          column => column === value!.value.meta.name
         );
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
@@ -149,7 +149,7 @@ export function GroupBySelector({
                 {columns.map((column, index) => (
                   <SortableQueryField
                     key={items[index]}
-                    dragId={items[index]}
+                    dragId={items[index]!}
                     value={column}
                     fieldOptions={{
                       ...filteredFieldOptions,
@@ -173,7 +173,7 @@ export function GroupBySelector({
               {activeId ? (
                 <Ghost>
                   <QueryField
-                    value={columns[Number(activeId)]}
+                    value={columns[Number(activeId)]!}
                     fieldOptions={{
                       ...filteredFieldOptions,
                       ...columnsAsFieldOptions[Number(activeId)],

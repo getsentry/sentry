@@ -131,7 +131,7 @@ class VitalsPanel extends Component<Props> {
                       error,
                       data,
                       histogram,
-                      [colors[index]],
+                      [colors[index]!],
                       parseBound(start, precision),
                       parseBound(end, precision),
                       precision

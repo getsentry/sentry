@@ -31,7 +31,7 @@ export default class Registry {
       }
     }
     console.info(
-      '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}'
+      '[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id]!.name + '}'
     );
     callback(this.get(data));
   }

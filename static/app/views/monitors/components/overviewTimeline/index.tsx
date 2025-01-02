@@ -54,7 +54,7 @@ export function OverviewTimeline({monitorList}: Props) {
         return oldMonitorList;
       }
 
-      const oldMonitor = oldMonitorList[oldMonitorIdx];
+      const oldMonitor = oldMonitorList[oldMonitorIdx]!;
       const newEnvList = oldMonitor.environments.filter(e => e.name !== env);
       const updatedMonitor = {
         ...oldMonitor,
@@ -109,7 +109,7 @@ export function OverviewTimeline({monitorList}: Props) {
     const queryKey = makeMonitorListQueryKey(organization, location.query);
     setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
       const monitorIdx = oldMonitorList.findIndex(m => m.slug === monitor.slug);
-      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx], status: resp.status};
+      oldMonitorList[monitorIdx] = {...oldMonitorList[monitorIdx]!, status: resp.status};
 
       return oldMonitorList;
     });

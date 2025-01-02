@@ -76,7 +76,7 @@ function TransactionsTable(props: Props) {
     const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index];
+      const column = columnOrder[index]!;
       const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
@@ -163,7 +163,7 @@ function TransactionsTable(props: Props) {
       } else if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
-            <ViewReplayLink replayId={row.replayId} to={target}>
+            <ViewReplayLink replayId={row.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           );

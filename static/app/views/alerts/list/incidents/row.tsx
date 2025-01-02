@@ -28,7 +28,7 @@ type Props = {
 };
 
 function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
-  const slug = incident.projects[0];
+  const slug = incident.projects[0]!;
   const started = moment(incident.dateStarted);
   const duration = moment
     .duration(moment(incident.dateClosed || new Date()).diff(started))

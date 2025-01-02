@@ -58,7 +58,7 @@ export function CodeLocations({mri, ...rangeOpts}: CodeLocationsProps) {
     );
   }
 
-  const codeLocations = data[0].frames ?? [];
+  const codeLocations = data[0]!.frames ?? [];
 
   // We only want to show the first 5 code locations
   const codeLocationsToShow = codeLocations.slice(0, 5);

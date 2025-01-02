@@ -172,7 +172,7 @@ describe('Request entry', function () {
       },
     });
 
-    render(<Request event={event} data={event.entries[0].data} />, {
+    render(<Request event={event} data={event.entries[0]!.data} />, {
       organization: {
         relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },
@@ -186,7 +186,7 @@ describe('Request entry', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(
@@ -221,7 +221,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -255,7 +255,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -289,7 +289,7 @@ describe('Request entry', function () {
         ],
       });
 
-      render(<Request event={event} data={event.entries[0].data} />, {
+      render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
           relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
         },
@@ -325,7 +325,7 @@ describe('Request entry', function () {
       });
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />, {
+        render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
             relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
@@ -357,7 +357,7 @@ describe('Request entry', function () {
         ],
       });
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />, {
+        render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
             relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
@@ -388,7 +388,7 @@ describe('Request entry', function () {
       });
 
       expect(() =>
-        render(<Request event={event} data={event.entries[0].data} />, {
+        render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
             relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
           },
@@ -418,7 +418,7 @@ describe('Request entry', function () {
           ],
         });
 
-        render(<Request event={event} data={event.entries[0].data} />);
+        render(<Request event={event} data={event.entries[0]!.data} />);
 
         expect(screen.getByText('query Test { test }')).toBeInTheDocument();
         expect(screen.getByRole('row', {name: 'operationName Test'})).toBeInTheDocument();
@@ -456,7 +456,7 @@ describe('Request entry', function () {
         });
 
         const {container} = render(
-          <Request event={event} data={event.entries[0].data} />
+          <Request event={event} data={event.entries[0]!.data} />
         );
 
         expect(container.querySelector('.line-highlight')).toBeInTheDocument();

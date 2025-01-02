@@ -228,7 +228,7 @@ export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
                         <TopResultsIndicator index={i} />
                       )}
                       <FieldRenderer
-                        column={columns[j]}
+                        column={columns[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -261,6 +261,6 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
   }};
 `;

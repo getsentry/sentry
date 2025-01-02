@@ -267,7 +267,7 @@ export class TagExplorer extends Component<Props> {
     columns: TagColumn[]
   ) => {
     return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
+      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {

@@ -52,9 +52,9 @@ export function locationDescriptorToTo(path: LocationDescriptor): To {
     to.pathname = pathname;
 
     if (query) {
-      query = {...query, ...qs.parse(search)};
+      query = {...query, ...qs.parse(search!)};
     } else {
-      query = qs.parse(search);
+      query = qs.parse(search!);
     }
   }
 

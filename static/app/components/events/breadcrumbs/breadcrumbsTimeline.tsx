@@ -70,7 +70,7 @@ export default function BreadcrumbsTimeline({
   const virtualItems = virtualizer.getVirtualItems();
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
-      breadcrumbs[virtualizedRow.index];
+      breadcrumbs[virtualizedRow.index]!;
     const isVirtualCrumb = !defined(raw);
 
     const timeDate = new Date(breadcrumb.timestamp ?? '');

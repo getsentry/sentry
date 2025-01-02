@@ -34,7 +34,7 @@ describe('DiscoverQuery', function () {
           if (isLoading) {
             return 'loading';
           }
-          return <p>{tableData?.data[0].transaction}</p>;
+          return <p>{tableData?.data[0]!.transaction}</p>;
         }}
       </DiscoverQuery>
     );
@@ -64,7 +64,7 @@ describe('DiscoverQuery', function () {
           if (isLoading) {
             return 'loading';
           }
-          return <p>{tableData?.data[0].transaction}</p>;
+          return <p>{tableData?.data[0]!.transaction}</p>;
         }}
       </DiscoverQuery>
     );

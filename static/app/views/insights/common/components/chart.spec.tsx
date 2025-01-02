@@ -56,10 +56,10 @@ describe('Chart', function () {
       },
     ];
     render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />);
-    expect(jest.mocked(BaseChart).mock.calls[0][0].series?.[0]).toHaveProperty(
+    expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[0]).toHaveProperty(
       'markLine'
     );
-    expect(jest.mocked(BaseChart).mock.calls[0][0].series?.[1]).not.toHaveProperty(
+    expect(jest.mocked(BaseChart).mock.calls[0]![0].series?.[1]).not.toHaveProperty(
       'markLine'
     );
   });

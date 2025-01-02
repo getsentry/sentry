@@ -293,7 +293,7 @@ function TableView(props: TableViewProps) {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
     let titleText = isEquationAlias(column.name)
-      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]!
       : column.name;
 
     if (column.name.toLowerCase() === 'replayid') {
@@ -378,8 +378,8 @@ function TableView(props: TableViewProps) {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
-          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
-          timestamp: dataRow.timestamp,
+          projectSlug: (dataRow.project || dataRow['project.name']!).toString(),
+          timestamp: dataRow.timestamp!,
           organization,
           isHomepage,
           location,

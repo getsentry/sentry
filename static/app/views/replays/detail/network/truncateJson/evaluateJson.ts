@@ -26,9 +26,9 @@ export function evaluateJson(json: string): JsonToken[] {
 }
 
 function _evaluateJsonPos(stack: JsonToken[], json: string, pos: number): void {
-  const curStep = stack[stack.length - 1];
+  const curStep = stack[stack.length - 1]!;
 
-  const char = json[pos];
+  const char = json[pos]!;
 
   const whitespaceRegex = /\s/;
 

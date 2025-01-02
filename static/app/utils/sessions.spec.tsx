@@ -140,7 +140,7 @@ const sessionsApiResponse = {
 
 describe('utils/sessions', () => {
   describe('getCount', () => {
-    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    const groups = [sessionsApiResponse.groups[1]!, sessionsApiResponse.groups[2]!];
     it('returns sessions count', () => {
       expect(getCount(groups, SessionFieldWithOperation.SESSIONS)).toBe(1942);
     });
@@ -150,7 +150,7 @@ describe('utils/sessions', () => {
   });
 
   describe('getCountAtIndex', () => {
-    const groups = [sessionsApiResponse.groups[1], sessionsApiResponse.groups[2]];
+    const groups = [sessionsApiResponse.groups[1]!, sessionsApiResponse.groups[2]!];
     it('returns sessions count', () => {
       expect(getCountAtIndex(groups, SessionFieldWithOperation.SESSIONS, 1)).toBe(35);
     });

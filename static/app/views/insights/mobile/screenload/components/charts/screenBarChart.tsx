@@ -89,8 +89,8 @@ export function ScreensBarChart({
             )}
           </ChartLabel>
         </Header>
-        {chartOptions[selectedDisplay].subtitle && (
-          <Subtitle>{chartOptions[selectedDisplay].subtitle}</Subtitle>
+        {chartOptions[selectedDisplay]!.subtitle && (
+          <Subtitle>{chartOptions[selectedDisplay]!.subtitle}</Subtitle>
         )}
       </HeaderContainer>
       <TransitionChart
@@ -108,7 +108,7 @@ export function ScreensBarChart({
             {...chartProps}
             height={chartHeight ?? 180}
             series={
-              chartOptions[selectedDisplay].series?.map(series => ({
+              chartOptions[selectedDisplay]!.series?.map(series => ({
                 ...series,
                 name: formatVersion(series.seriesName),
               })) ?? []
@@ -123,7 +123,7 @@ export function ScreensBarChart({
             xAxis={{
               type: 'category',
               axisTick: {show: true},
-              data: chartOptions[selectedDisplay].xAxisLabel,
+              data: chartOptions[selectedDisplay]!.xAxisLabel,
               truncate: 14,
               axisLabel: {
                 interval: 0,
@@ -134,9 +134,9 @@ export function ScreensBarChart({
                 formatter(value: number) {
                   return axisLabelFormatter(
                     value,
-                    aggregateOutputType(chartOptions[selectedDisplay].yAxis),
+                    aggregateOutputType(chartOptions[selectedDisplay]!.yAxis),
                     undefined,
-                    getDurationUnit(chartOptions[selectedDisplay].series ?? [])
+                    getDurationUnit(chartOptions[selectedDisplay]!.series ?? [])
                   );
                 },
               },
@@ -145,7 +145,7 @@ export function ScreensBarChart({
               valueFormatter: (value, _seriesName) => {
                 return tooltipFormatter(
                   value,
-                  aggregateOutputType(chartOptions[selectedDisplay].yAxis)
+                  aggregateOutputType(chartOptions[selectedDisplay]!.yAxis)
                 );
               },
             }}

@@ -135,7 +135,7 @@ export function ExternalIssueList({group, event, project}: ExternalIssueListProp
                         title={
                           integration.disabled ? integration.disabledText : undefined
                         }
-                        onClick={integration.actions[0].onClick}
+                        onClick={integration.actions[0]!.onClick}
                       />
                     </ErrorBoundary>
                   );

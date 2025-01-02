@@ -60,7 +60,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
           >
             <JobTick
               style={{left, width: tickWidth}}
-              status={getAggregateStatus(envMapping)}
+              status={getAggregateStatus(envMapping)!}
               roundedLeft={roundedLeft}
               roundedRight={roundedRight}
               data-test-id="monitor-checkin-tick"

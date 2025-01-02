@@ -69,9 +69,9 @@ export function CustomMeasurementsProvider({
           acc[customMeasurement] = {
             key: customMeasurement,
             name: customMeasurement,
-            functions: response[customMeasurement].functions,
-            unit: response[customMeasurement].unit,
-            fieldType: getFieldTypeFromUnit(response[customMeasurement].unit),
+            functions: response[customMeasurement]!.functions,
+            unit: response[customMeasurement]!.unit,
+            fieldType: getFieldTypeFromUnit(response[customMeasurement]!.unit),
           };
           return acc;
         }, {});

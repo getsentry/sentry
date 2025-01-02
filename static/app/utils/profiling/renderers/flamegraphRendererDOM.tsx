@@ -13,8 +13,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
-  return `rgba(${Math.floor(color[0] * 255)}, ${Math.floor(color[1] * 255)}, ${Math.floor(
-    color[2] * 255
+  return `rgba(${Math.floor(color[0]! * 255)}, ${Math.floor(color[1]! * 255)}, ${Math.floor(
+    color[2]! * 255
   )}, ${color[3] ?? 1})`;
 }
 

@@ -123,12 +123,12 @@ function formatHoursToInterval(hours: number): [number, IntervalUnits] {
 
 function getIntervalOption(rangeHours: number): IntervalOption {
   for (const index in INTERVAL_OPTIONS) {
-    const currentOption = INTERVAL_OPTIONS[index];
+    const currentOption = INTERVAL_OPTIONS[index]!;
     if (currentOption.rangeStart <= rangeHours) {
       return currentOption;
     }
   }
-  return INTERVAL_OPTIONS[0];
+  return INTERVAL_OPTIONS[0]!;
 }
 
 function bindInterval(
@@ -196,7 +196,7 @@ export default function IntervalSelector({
         makeItem(
           amount,
           unit,
-          SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label,
+          SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label,
           results.length + 1
         )
       );

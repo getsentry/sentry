@@ -98,7 +98,7 @@ function PerformanceScoreRing({
           circumference={circumference}
           cx={cx}
           cy={cx}
-          color={backgroundColors[index]}
+          color={backgroundColors[index]!}
           rotate={rotate}
           onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
@@ -112,7 +112,7 @@ function PerformanceScoreRing({
           barWidth={barWidth}
           cx={cx}
           cy={cx}
-          color={segmentColors[index]}
+          color={segmentColors[index]!}
           rotate={rotate}
           onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}

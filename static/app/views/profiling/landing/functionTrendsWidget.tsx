@@ -244,7 +244,7 @@ function FunctionTrendsEntry({
     const beforeTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      reference: beforeExamples[beforeExamples.length - 2][1],
+      reference: beforeExamples[beforeExamples.length - 2]![1],
       frameName: func.function as string,
       framePackage: func.package as string,
     });
@@ -258,7 +258,7 @@ function FunctionTrendsEntry({
     const afterTarget = generateProfileRouteFromProfileReference({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      reference: afterExamples[afterExamples.length - 2][1],
+      reference: afterExamples[afterExamples.length - 2]![1],
       frameName: func.function as string,
       framePackage: func.package as string,
     });
@@ -331,9 +331,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       color: getTrendLineColor(func.change, theme),
     };
 
-    const seriesStart = func.stats.data[0][0] * 1e3;
+    const seriesStart = func.stats.data[0]![0] * 1e3;
     const seriesMid = func.breakpoint * 1e3;
-    const seriesEnd = func.stats.data[func.stats.data.length - 1][0] * 1e3;
+    const seriesEnd = func.stats.data[func.stats.data.length - 1]![0] * 1e3;
 
     const dividingLine = {
       data: [],

@@ -97,7 +97,7 @@ function useFocusedSeries({
   const setSeriesVisibility = useCallback(
     (series: FocusedMetricsSeries) => {
       onChange?.();
-      if (focusedSeries?.length === 1 && focusedSeries[0].id === series.id) {
+      if (focusedSeries?.length === 1 && focusedSeries[0]!.id === series.id) {
         setFocusedSeries([]);
         return;
       }

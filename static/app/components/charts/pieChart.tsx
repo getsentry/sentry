@@ -77,7 +77,7 @@ class PieChart extends Component<Props> {
       .reduce(
         (acc, [name, value]) => ({
           ...acc,
-          [name]: value,
+          [name!]: value,
         }),
         {}
       );
@@ -95,7 +95,7 @@ class PieChart extends Component<Props> {
 
     // Note, we only take the first series unit!
     const [firstSeries] = series;
-    const seriesPercentages = this.getSeriesPercentages(firstSeries);
+    const seriesPercentages = this.getSeriesPercentages(firstSeries!);
 
     return (
       <BaseChart
@@ -108,7 +108,7 @@ class PieChart extends Component<Props> {
           if (
             !this.isInitialSelected ||
             !name ||
-            firstSeries.data[this.selected].name === name
+            firstSeries!.data[this.selected]!.name === name
           ) {
             return;
           }
@@ -159,8 +159,8 @@ class PieChart extends Component<Props> {
         }}
         series={[
           PieSeries({
-            name: firstSeries.seriesName,
-            data: firstSeries.data,
+            name: firstSeries!.seriesName,
+            data: firstSeries!.data,
             avoidLabelOverlap: false,
             label: {
               formatter: ({name, percent}) => `${name}\n${percent}%`,

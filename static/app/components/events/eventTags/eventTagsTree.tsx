@@ -100,7 +100,7 @@ function getTagTreeRows({
     const branchRows = getTagTreeRows({
       ...props,
       tagKey: tag,
-      content: content.subtree[tag],
+      content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
       // Encoding the trunk index with the branch index ensures uniqueness for the key

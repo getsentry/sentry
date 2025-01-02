@@ -178,7 +178,7 @@ describe('IntegrationExternalMappings', function () {
     expect(onCreateMock).toHaveBeenCalled();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Remove user mapping'})[0]
+      screen.getAllByRole('button', {name: 'Remove user mapping'})[0]!
     );
     await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();

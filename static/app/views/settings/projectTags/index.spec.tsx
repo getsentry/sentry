@@ -72,7 +72,7 @@ describe('ProjectTags', function () {
     expect(tagCount).toBe(5);
 
     // Remove the first tag
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]!);
 
     // Press confirm in modal
     renderGlobalModal();

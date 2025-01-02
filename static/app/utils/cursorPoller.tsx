@@ -94,7 +94,7 @@ class CursorPoller {
         const hitsHeader = resp?.getResponseHeader('X-Hits') ?? null;
         const queryCount = defined(hitsHeader) ? parseInt(hitsHeader, 10) || 0 : 0;
         const links = parseLinkHeader(linksHeader);
-        this.setEndpoint(links.previous.href);
+        this.setEndpoint(links.previous!.href);
 
         this.options.success(data, {queryCount});
       },

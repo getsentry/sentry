@@ -45,13 +45,17 @@ function ProjectExpectCtReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
+        title={routeTitleGen(
+          t('Certificate Transparency (Expect-CT)'),
+          projectId!,
+          false
+        )}
       />
       <SettingsPageHeader title={t('Certificate Transparency')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

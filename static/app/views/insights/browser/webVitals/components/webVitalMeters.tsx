@@ -87,7 +87,7 @@ export default function WebVitalMeters({
           showTooltip={showTooltip}
           score={score}
           meterValue={meterValue}
-          color={colors[index]}
+          color={colors[index]!}
           onClick={onClick}
         />
       );

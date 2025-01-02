@@ -146,7 +146,7 @@ export function ScreensTable({
         columnOrder={columnOrder.map(columnKey => {
           return {
             key: columnKey,
-            name: columnNameMap[columnKey],
+            name: columnNameMap[columnKey]!,
             width: COL_WIDTH_UNDEFINED,
           };
         })}

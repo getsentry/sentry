@@ -69,9 +69,9 @@ export function traceSearchReducer(
       }
       return {
         ...state,
-        node: state.results[0].value,
+        node: state.results[0]!.value,
         resultIteratorIndex: 0,
-        resultIndex: state.results[0].index,
+        resultIndex: state.results[0]!.index,
       };
     }
     case 'go to last match': {
@@ -81,8 +81,8 @@ export function traceSearchReducer(
       return {
         ...state,
         resultIteratorIndex: state.results.length - 1,
-        resultIndex: state.results[state.results.length - 1].index,
-        node: state.results[state.results.length - 1].value,
+        resultIndex: state.results[state.results.length - 1]!.index,
+        node: state.results[state.results.length - 1]!.value,
       };
     }
     case 'go to next match': {
@@ -93,8 +93,8 @@ export function traceSearchReducer(
         return {
           ...state,
           resultIteratorIndex: 0,
-          resultIndex: state.results[0].index,
-          node: state.results[0].value,
+          resultIndex: state.results[0]!.index,
+          node: state.results[0]!.value,
         };
       }
       if (!state.results) {
@@ -110,8 +110,8 @@ export function traceSearchReducer(
       return {
         ...state,
         resultIteratorIndex: next,
-        resultIndex: state.results[next].index,
-        node: state.results[next].value,
+        resultIndex: state.results[next]!.index,
+        node: state.results[next]!.value,
       };
     }
     case 'go to previous match': {
@@ -122,8 +122,8 @@ export function traceSearchReducer(
         return {
           ...state,
           resultIteratorIndex: state.results.length - 1,
-          resultIndex: state.results[state.results.length - 1].index,
-          node: state.results[state.results.length - 1].value,
+          resultIndex: state.results[state.results.length - 1]!.index,
+          node: state.results[state.results.length - 1]!.value,
         };
       }
       if (!state.results) {
@@ -139,8 +139,8 @@ export function traceSearchReducer(
       return {
         ...state,
         resultIteratorIndex: previous,
-        resultIndex: state.results[previous].index,
-        node: state.results[previous].value,
+        resultIndex: state.results[previous]!.index,
+        node: state.results[previous]!.value,
       };
     }
     case 'set results': {

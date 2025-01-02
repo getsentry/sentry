@@ -53,7 +53,7 @@ export default function MessagingIntegrationAlertRule({
             options={providerOptions}
             onChange={p => {
               setProvider(p.value);
-              setIntegration(providersToIntegrations[p.value][0]);
+              setIntegration(providersToIntegrations[p.value]![0]!);
               setChannel('');
             }}
           />

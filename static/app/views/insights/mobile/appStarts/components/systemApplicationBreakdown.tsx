@@ -51,9 +51,9 @@ function aggregateSystemApplicationBreakdown(data: TableDataRow[]) {
       type = 'application';
     }
 
-    acc[row.release] = {
-      ...acc[row.release],
-      [type]: (acc[row.release]?.[type] ?? 0) + (row['sum(span.self_time)'] ?? 0),
+    acc[row.release!] = {
+      ...acc[row.release!],
+      [type]: (acc[row.release!]?.[type] ?? 0) + (row['sum(span.self_time)'] ?? 0),
     };
 
     return acc;

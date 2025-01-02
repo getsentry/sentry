@@ -82,7 +82,7 @@ export function PerformanceScoreBreakdownChart({
     chartSeriesOrder
   );
 
-  const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
+  const weightsSeries = weightedTimeseries[0]!.data.map(({name}) => {
     const value = PERFORMANCE_SCORE_WEIGHTS;
     return {name, value};
   });

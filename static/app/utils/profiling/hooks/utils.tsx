@@ -61,7 +61,7 @@ export function transformStatsResponse<F extends string>(
   }
 
   if (yAxes.length === 1) {
-    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0], rawData);
+    const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0]!, rawData);
     return {
       data: [series],
       meta,

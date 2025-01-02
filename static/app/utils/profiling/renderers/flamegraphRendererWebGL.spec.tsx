@@ -153,14 +153,14 @@ describe('flamegraphRendererWebGL', () => {
       theme
     );
 
-    expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
+    expect(renderer.getColorForFrame(flamegraph.frames[0]!)).toEqual([
       0.9625, 0.7125, 0.7125,
     ]);
     expect(
       renderer.getColorForFrame({
         key: 20,
-        frame: flamegraph.frames[0].frame,
-        node: flamegraph.frames[0].node,
+        frame: flamegraph.frames[0]!.frame,
+        node: flamegraph.frames[0]!.node,
         parent: null,
         children: [],
         depth: 0,

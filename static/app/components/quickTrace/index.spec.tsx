@@ -411,7 +411,7 @@ describe('Quick Trace', function () {
         makeTransactionHref('p4', 'e4', 't4'),
         makeTransactionHref('p5', 'e5', 't5'),
       ].forEach((target, i) => {
-        const linkNode = nodes[i].children[0];
+        const linkNode = nodes[i]!.children[0];
         if (target) {
           expect(linkNode).toHaveAttribute('href', target);
         } else {

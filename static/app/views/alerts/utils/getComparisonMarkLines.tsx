@@ -31,9 +31,9 @@ export const getComparisonMarkLines = (
 
     if (triggers.some(({alertThreshold}) => typeof alertThreshold === 'number')) {
       const lastPointLimit =
-        (baseData[changeData.length - 1].name as number) - timeWindow * MINUTE;
+        (baseData[changeData.length - 1]!.name as number) - timeWindow * MINUTE;
       changeData.forEach(({name, value: comparisonValue}, idx) => {
-        const baseValue = baseData[idx].value;
+        const baseValue = baseData[idx]!.value;
         const comparisonPercentage =
           comparisonValue === 0
             ? baseValue === 0
@@ -44,7 +44,7 @@ export const getComparisonMarkLines = (
         if (
           idx === 0 ||
           idx === changeData.length - 1 ||
-          status !== changeStatuses[changeStatuses.length - 1].status
+          status !== changeStatuses[changeStatuses.length - 1]!.status
         ) {
           changeStatuses.push({name, status});
         }
@@ -70,7 +70,7 @@ export const getComparisonMarkLines = (
               {coord: [name, 0]},
               {
                 coord: [
-                  Math.min(changeStatuses[idx + 1].name as number, lastPointLimit),
+                  Math.min(changeStatuses[idx + 1]!.name as number, lastPointLimit),
                   0,
                 ],
               },

@@ -34,7 +34,7 @@ function List({relays, relayActivities, onRefresh, onDelete, onEdit, disabled}: 
     <div>
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
         const {name, description, created, activities} =
-          relaysByPublicKey[relayByPublicKey];
+          relaysByPublicKey[relayByPublicKey]!;
         return (
           <div key={relayByPublicKey}>
             <CardHeader

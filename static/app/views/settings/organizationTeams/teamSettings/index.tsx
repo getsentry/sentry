@@ -73,7 +73,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
       help: `The unique identifier for this team. It cannot be modified.`,
     };
 
-    formsConfig[0].fields = [...formsConfig[0].fields, teamIdField];
+    formsConfig[0]!.fields = [...formsConfig[0]!.fields, teamIdField];
 
     return formsConfig;
   }, [team]);

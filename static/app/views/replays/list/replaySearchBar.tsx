@@ -62,7 +62,7 @@ function getReplayFilterKeys(supportedTags: TagCollection): TagCollection {
         .map(key => [
           key,
           {
-            ...supportedTags[key],
+            ...supportedTags[key]!,
             kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
           },
         ])

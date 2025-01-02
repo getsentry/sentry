@@ -89,7 +89,7 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
           ) : fileList.length ? (
             <Fragment>
               {reposToRender.map(repoName => {
-                const repoData = filesByRepository[repoName];
+                const repoData = filesByRepository[repoName]!;
                 const files = Object.keys(repoData);
                 const fileCount = files.length;
                 return (

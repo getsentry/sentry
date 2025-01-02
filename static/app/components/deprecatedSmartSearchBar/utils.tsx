@@ -428,7 +428,7 @@ export const getTagItemsFromKeys = (
 
     const definition =
       supportedTags[key]?.kind === FieldKind.FUNCTION
-        ? fieldDefinitionGetter(key.split('(')[0])
+        ? fieldDefinitionGetter(key.split('(')[0]!)
         : fieldDefinitionGetter(key);
     const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 

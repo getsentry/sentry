@@ -47,7 +47,7 @@ function renderComponent({
   return render(
     <CellAction
       dataRow={data}
-      column={eventView.getColumns()[columnIndex]}
+      column={eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
     >
       <strong>some content</strong>

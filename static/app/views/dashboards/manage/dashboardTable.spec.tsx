@@ -191,7 +191,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]!);
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -241,7 +241,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -272,7 +272,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -310,7 +310,7 @@ describe('Dashboards - DashboardTable', function () {
 
     expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]);
+    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
   });
 
@@ -348,7 +348,7 @@ describe('Dashboards - DashboardTable', function () {
     expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
     expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
 
-    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]);
+    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]!);
     expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
   });
 });

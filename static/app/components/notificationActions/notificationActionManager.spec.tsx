@@ -97,7 +97,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[0]]}
+        actions={[notificationActions[0]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -163,14 +163,14 @@ describe('Adds, deletes, and updates notification actions', function () {
 
   it('Removes a Sentry notification action', async function () {
     const mockDELETE = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[0].id}/`,
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[0]!.id}/`,
       method: 'DELETE',
       body: [],
     });
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[0]]}
+        actions={[notificationActions[0]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -237,14 +237,14 @@ describe('Adds, deletes, and updates notification actions', function () {
 
   it('Removes a Slack action', async function () {
     const mockDELETE = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1].id}/`,
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1]!.id}/`,
       method: 'DELETE',
       body: [],
     });
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[1]]}
+        actions={[notificationActions[1]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -262,7 +262,7 @@ describe('Adds, deletes, and updates notification actions', function () {
 
   it('Edits a Slack action', async function () {
     const mockPUT = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1].id}/`,
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[1]!.id}/`,
       method: 'PUT',
       body: [
         {
@@ -282,7 +282,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[1]]}
+        actions={[notificationActions[1]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -306,7 +306,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Save'));
 
     expect(mockPUT).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/notifications/actions/${notificationActions[1].id}/`,
+      `/organizations/${organization.slug}/notifications/actions/${notificationActions[1]!.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           id: 3,
@@ -373,7 +373,7 @@ describe('Adds, deletes, and updates notification actions', function () {
 
   it('Edits a Pagerduty action', async function () {
     const mockPUT = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[2].id}/`,
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[2]!.id}/`,
       method: 'PUT',
       body: [
         {
@@ -393,7 +393,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[2]]}
+        actions={[notificationActions[2]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -410,7 +410,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Save'));
 
     expect(mockPUT).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/notifications/actions/${notificationActions[2].id}/`,
+      `/organizations/${organization.slug}/notifications/actions/${notificationActions[2]!.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           id: 4,
@@ -478,7 +478,7 @@ describe('Adds, deletes, and updates notification actions', function () {
 
   it('Edits an Opsgenie Action', async function () {
     const mockPUT = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[3].id}/`,
+      url: `/organizations/${organization.slug}/notifications/actions/${notificationActions[3]!.id}/`,
       method: 'PUT',
       body: [
         {
@@ -498,7 +498,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     render(
       <NotificationActionManager
         updateAlertCount={jest.fn()}
-        actions={[notificationActions[3]]}
+        actions={[notificationActions[3]!]}
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
@@ -515,7 +515,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     await userEvent.click(screen.getByText('Save'));
 
     expect(mockPUT).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/notifications/actions/${notificationActions[3].id}/`,
+      `/organizations/${organization.slug}/notifications/actions/${notificationActions[3]!.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           id: 5,

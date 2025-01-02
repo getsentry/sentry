@@ -104,7 +104,7 @@ export class TagValueTable extends Component<Props, State> {
     columns: TagsTableColumn[]
   ) => {
     return (column: TableColumn<TagsTableColumnKeys>, index: number): React.ReactNode =>
-      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
+      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]!);
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {

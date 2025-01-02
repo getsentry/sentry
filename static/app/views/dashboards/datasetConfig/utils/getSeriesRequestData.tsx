@@ -25,7 +25,7 @@ export function getSeriesRequestData(
   dataset: DiscoverDatasets,
   referrer?: string
 ): EventsStatsOptions<true> {
-  const widgetQuery = widget.queries[queryIndex];
+  const widgetQuery = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;

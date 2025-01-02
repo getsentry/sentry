@@ -15,7 +15,7 @@ export function getPointerPosition(
 ): number {
   const actual = isReactEvent(event) ? event.nativeEvent : event;
   if (window.TouchEvent && actual instanceof TouchEvent) {
-    return actual.targetTouches[0][property];
+    return actual.targetTouches[0]![property];
   }
   if (actual instanceof MouseEvent) {
     return actual[property];

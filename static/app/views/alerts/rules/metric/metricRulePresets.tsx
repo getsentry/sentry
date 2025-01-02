@@ -60,7 +60,7 @@ export function makeDefaultCta({
         rule,
         orgSlug,
         period: timePeriod.period,
-        projectId: projects[0].id,
+        projectId: projects[0]!.id,
       }),
     };
   }

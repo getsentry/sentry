@@ -182,7 +182,7 @@ function FrontendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>

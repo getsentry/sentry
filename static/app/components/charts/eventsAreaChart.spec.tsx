@@ -52,6 +52,6 @@ describe('EventsChart with legend', function () {
       />
     );
     expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
-    expect(jest.mocked(BaseChart).mock.calls[0][0].legend).toHaveProperty('data');
+    expect(jest.mocked(BaseChart).mock.calls[0]![0].legend).toHaveProperty('data');
   });
 });

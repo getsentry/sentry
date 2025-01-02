@@ -270,8 +270,8 @@ function BaseGroupRow({
     }
 
     return group.filtered
-      ? group.filtered.stats?.[statsPeriod]
-      : group.stats?.[statsPeriod];
+      ? group.filtered.stats?.[statsPeriod]!
+      : group.stats?.[statsPeriod]!;
   }, [group, statsPeriod]);
 
   const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
@@ -279,7 +279,7 @@ function BaseGroupRow({
       return [];
     }
 
-    return group.filtered ? group.stats?.[statsPeriod] : [];
+    return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
   if (!group) {

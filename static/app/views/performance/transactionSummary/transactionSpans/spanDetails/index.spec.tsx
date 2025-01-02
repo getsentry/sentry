@@ -144,7 +144,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 
       // just want to get one span in the response
       const badExamples = [generateSuspectSpansResponse({examplesOnly: true})[0]];
-      for (const example of badExamples[0].examples) {
+      for (const example of badExamples[0]!.examples) {
         // make sure that the spans array is empty
         example.spans = [];
       }

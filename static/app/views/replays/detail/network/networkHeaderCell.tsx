@@ -58,7 +58,7 @@ export const COLUMN_COUNT = COLUMNS.length;
 
 const NetworkHeaderCell = forwardRef<HTMLButtonElement, Props>(
   ({handleSort, index, sortConfig, style}: Props, ref) => {
-    const {field, label, tooltipTitle} = COLUMNS[index];
+    const {field, label, tooltipTitle} = COLUMNS[index]!;
     return (
       <HeaderCell
         ref={ref}
