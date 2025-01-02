@@ -19,7 +19,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
-import {getFieldOrBackup} from '../display/utils';
+
+import {getFieldOrBackup} from './utils';
 
 type Props = {
   eventView: EventView;
