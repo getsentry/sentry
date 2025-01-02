@@ -310,7 +310,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: tct(
-        "Make sure your Sentry Android SDK version is at least 7.12.0 [TODO]. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
+        "Make sure your Sentry Android SDK version is at least 7.20.0. The easiest way to update through the Sentry Android Gradle plugin to your app module's [code:build.gradle] file.",
         {code: <code />}
       ),
       configurations: [

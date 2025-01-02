@@ -657,7 +657,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.31.1 [TODO]. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {

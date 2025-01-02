@@ -409,7 +409,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry React Native SDK version is at least 5.26.0 [TODO]. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
