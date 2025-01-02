@@ -772,7 +772,7 @@ export default typescript.config([
   {
     name: 'plugin/jest-dom',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
-    plugins: jestDom.configs['flat/recommended'].plugins,
+    ...jestDom.configs['flat/recommended'],
   },
   {
     name: 'plugin/testing-library',
