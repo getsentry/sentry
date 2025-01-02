@@ -198,3 +198,12 @@ class TestFirstSeenEventCondition(ConditionTestCase):
         self.job["group_state"]["is_new"] = False
         self.job["group_state"]["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
+
+    def test_dual_write(self):
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison is True
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
