@@ -1,5 +1,4 @@
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -39,21 +38,8 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             IssueParams.ISSUE_ID,
             IssueParams.ISSUES_OR_GROUPS,
             GlobalParams.ORG_ID_OR_SLUG,
-            OpenApiParameter(
-                name="key",
-                location=OpenApiParameter.PATH,
-                type=OpenApiTypes.STR,
-                description="The tag key to look the values up for.",
-                required=True,
-            ),
-            OpenApiParameter(
-                name="sort",
-                location="query",
-                required=False,
-                type=str,
-                description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
-                enum=["id", "date", "age", "count"],
-            ),
+            IssueParams.KEY,
+            IssueParams.SORT,
             GlobalParams.ENVIRONMENT,
         ],
         responses={
