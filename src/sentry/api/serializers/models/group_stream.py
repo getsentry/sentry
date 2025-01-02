@@ -541,18 +541,28 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             start=self.start,
             end=self.end,
         )
+        partial_execute_seen_stats_query_no_env = functools.partial(
+            seen_stats_func,
+            item_list=error_issue_list,
+            start=self.start,
+            end=self.end,
+        )
         time_range_result = self._parse_seen_stats_results(
-            partial_execute_seen_stats_query(),
-            error_issue_list,
-            self.start or self.end or self.conditions,
-            self.environment_ids,
+            result=partial_execute_seen_stats_query(),
+            result_without_env=partial_execute_seen_stats_query_no_env(),
+            item_list=error_issue_list,
+            use_result_first_seen_times_seen=self.start or self.end or self.conditions,
+            environment_ids=self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
-                partial_execute_seen_stats_query(conditions=self.conditions),
-                error_issue_list,
-                self.start or self.end or self.conditions,
-                self.environment_ids,
+                result=partial_execute_seen_stats_query(conditions=self.conditions),
+                result_without_env=partial_execute_seen_stats_query_no_env(
+                    conditions=self.conditions
+                ),
+                item_list=error_issue_list,
+                use_result_first_seen_times_seen=self.start or self.end or self.conditions,
+                environment_ids=self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
             else None
