@@ -11,7 +11,6 @@ import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -51,7 +50,7 @@ class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
     addSuccessMessage('Saved changes');
 
     // Go back to API list
-    browserHistory.push(
+    this.props.router.push(
       recreateRoute('', {
         stepBack: -1,
         routes: this.props.routes,
@@ -65,7 +64,7 @@ class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
   };
 
   renderBody() {
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     return (
       <div>
         <SettingsPageHeader title={t('Edit API Key')} />
@@ -79,7 +78,7 @@ class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
             onSubmitSuccess={this.handleSubmitSuccess}
             onSubmitError={this.handleSubmitError}
             onCancel={() =>
-              browserHistory.push(
+              router.push(
                 recreateRoute('', {
                   stepBack: -1,
                   routes: this.props.routes,
