@@ -6,7 +6,6 @@
  * `npx eslint --inspect-config`
  */
 import * as emotion from '@emotion/eslint-plugin';
-import {fixupPluginRules} from '@eslint/compat';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
@@ -210,263 +209,7 @@ const baseRules = {
   ],
 };
 
-const reactReactRules = {
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
-  'react/display-name': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
-  'react/no-multi-comp': [
-    'off',
-    {
-      ignoreStateless: true,
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
-  'react/jsx-fragments': ['error', 'element'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
-  // Ensures that any component or prop methods used to handle events are correctly prefixed.
-  'react/jsx-handler-names': [
-    'off',
-    {
-      eventHandlerPrefix: 'handle',
-      eventHandlerPropPrefix: 'on',
-    },
-  ],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-key.md
-  'react/jsx-key': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-no-undef.md
-  'react/jsx-no-undef': ['error'],
-
-  // Disabled as we use the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
-  'react/jsx-uses-react': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-vars.md
-  'react/jsx-uses-vars': ['error'],
-
-  /**
-   * Deprecation related rules
-   */
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-deprecated.md
-  'react/no-deprecated': ['error'],
-
-  // Prevent usage of the return value of React.render
-  // deprecation: https://facebook.github.io/react/docs/react-dom.html#render
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-render-return-value.md
-  'react/no-render-return-value': ['error'],
-
-  // Children should always be actual children, not passed in as a prop.
-  // When using JSX, the children should be nested between the opening and closing tags. When not using JSX, the children should be passed as additional arguments to React.createElement.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-children-prop.md
-  'react/no-children-prop': ['error'],
-
-  // This rule helps prevent problems caused by using children and the dangerouslySetInnerHTML prop at the same time.
-  // React will throw a warning if this rule is ignored.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-danger-with-children.md
-  'react/no-danger-with-children': ['error'],
-
-  // Prevent direct mutation of this.state
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-direct-mutation-state.md
-  'react/no-direct-mutation-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
-  'react/no-did-mount-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
-  'react/no-did-update-set-state': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
-  'react/no-redundant-should-component-update': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
-  'react/no-typos': ['error'],
-
-  // Prevent invalid characters from appearing in markup
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
-  'react/no-unescaped-entities': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
-  'react/no-unknown-property': ['error', {ignore: ['css']}],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unused-prop-types.md
-  // Disabled since this currently fails to correctly detect a lot of
-  // typescript prop type usage.
-  'react/no-unused-prop-types': ['off'],
-
-  // We do not need proptypes since we're using typescript
-  'react/prop-types': ['off'],
-
-  // When writing the render method in a component it is easy to forget to return the JSX content.
-  // This rule will warn if the return statement is missing.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/require-render-return.md
-  'react/require-render-return': ['error'],
-
-  // Disabled as we are using the newer JSX transform babel plugin.
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
-  'react/react-in-jsx-scope': ['off'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
-  'react/self-closing-comp': ['error'],
-
-  // This also causes issues with typescript
-  // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
-  //
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
-  'react/sort-comp': ['warn'],
-
-  // Consistent <Component booleanProp /> (never add ={true})
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
-  'react/jsx-boolean-value': ['error', 'never'],
-
-  // Consistent function component declaration styles
-  // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
-  'react/function-component-definition': [
-    'error',
-    {namedComponents: 'function-declaration'},
-  ],
-};
-
-const reactImportRules = {
-  // Not recommended to be enabled with typescript-eslint
-  // https://typescript-eslint.io/linting/troubleshooting/performance-troubleshooting/#eslint-plugin-import
-  'import/no-unresolved': ['off'],
-  'import/named': ['off'],
-  'import/default': ['off'],
-  'import/export': ['off'],
-  'import/no-named-as-default-member': ['off'],
-
-  // Redflags
-  // do not allow a default import name to match a named export (airbnb: error)
-  // Issue with `DefaultIssuePlugin` and `app/plugins/index`
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-named-as-default.md
-  'import/no-named-as-default': ['off'],
-
-  // disallow use of jsdoc-marked-deprecated imports
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-deprecated.md
-  'import/no-deprecated': ['off'],
-
-  // Forbid mutable exports (airbnb: error)
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-mutable-exports.md
-  // TODO: enable?
-  'import/no-mutable-exports': ['off'],
-
-  // disallow require()
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-commonjs.md
-  'import/no-commonjs': ['off'],
-
-  // disallow AMD require/define
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-amd.md
-  'import/no-amd': ['error'],
-
-  // disallow duplicate imports
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-duplicates.md
-  'import/no-duplicates': ['error'],
-
-  // disallow namespace imports
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-namespace.md
-  'import/no-namespace': ['off'],
-
-  // Ensure consistent use of file extension within the import path
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/extensions.md
-  // TODO this fucks up getsentry
-  'import/extensions': [
-    'off',
-    'always',
-    {
-      js: 'never',
-      jsx: 'never',
-    },
-  ],
-
-  // Require a newline after the last import/require in a group
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/newline-after-import.md
-  'import/newline-after-import': ['error'],
-
-  // Require modules with a single export to use a default export (airbnb: error)
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/prefer-default-export.md
-  'import/prefer-default-export': ['off'],
-
-  // Restrict which files can be imported in a given folder
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-restricted-paths.md
-  'import/no-restricted-paths': ['off'],
-
-  // Forbid modules to have too many dependencies
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/max-dependencies.md
-  'import/max-dependencies': ['off', {max: 10}],
-
-  // Forbid import of modules using absolute paths
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-absolute-path.md
-  'import/no-absolute-path': ['error'],
-
-  // Forbid require() calls with expressions (airbnb: error)
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-dynamic-require.md
-  'import/no-dynamic-require': ['off'],
-
-  // Use webpack default chunk names
-  'import/dynamic-import-chunkname': ['off'],
-
-  // prevent importing the submodules of other modules
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-internal-modules.md
-  'import/no-internal-modules': [
-    'off',
-    {
-      allow: [],
-    },
-  ],
-
-  // Warn if a module could be mistakenly parsed as a script by a consumer
-  // leveraging Unambiguous JavaScript Grammar
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/unambiguous.md
-  // this should not be enabled until this proposal has at least been *presented* to TC39.
-  // At the moment, it"s not a thing.
-  'import/unambiguous': ['off'],
-
-  // Forbid Webpack loader syntax in imports
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-webpack-loader-syntax.md
-  'import/no-webpack-loader-syntax': ['error'],
-
-  // Prevent unassigned imports
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-unassigned-import.md
-  // importing for side effects is perfectly acceptable, if you need side effects.
-  'import/no-unassigned-import': ['off'],
-
-  // Prevent importing the default as if it were named
-  // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/no-named-default.md
-  'import/no-named-default': ['error'],
-
-  // Reports if a module"s default export is unnamed
-  // https://github.com/benmosher/eslint-plugin-import/blob/d9b712ac7fd1fddc391f7b234827925c160d956f/docs/rules/no-anonymous-default-export.md
-  'import/no-anonymous-default-export': [
-    'error',
-    {
-      allowArray: false,
-      allowArrowFunction: false,
-      allowAnonymousClass: false,
-      allowAnonymousFunction: false,
-      allowCallExpression: true,
-      allowLiteral: false,
-      allowObject: false,
-    },
-  ],
-};
-
 const reactRules = {
-  ...reactReactRules,
-  ...reactImportRules,
-  /**
-   * React hooks
-   */
-  'react-hooks/exhaustive-deps': [
-    'error',
-    {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
-  ],
-  // Biome not yet enforcing all parts of this rule https://github.com/biomejs/biome/issues/1984
-  'react-hooks/rules-of-hooks': 'error',
-
   /**
    * Custom
    */
@@ -614,7 +357,6 @@ const appRules = {
    * Better import sorting
    */
   'sort-imports': 'off',
-  'import/order': 'off',
   'simple-import-sort/imports': [
     'error',
     {
@@ -704,17 +446,6 @@ const strictRules = {
   // https://eslint.org/docs/rules/no-console
   'no-console': ['error'],
 
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-is-mounted.md
-  'react/no-is-mounted': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-find-dom-node.md
-  // Recommended to use callback refs instead
-  'react/no-find-dom-node': ['error'],
-
-  // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-string-refs.md
-  // This is now considered legacy, callback refs preferred
-  'react/no-string-refs': ['error'],
-
   'sentry/no-styled-shortcut': ['error'],
 };
 
@@ -763,7 +494,7 @@ export default typescript.config([
         jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
-        project: './tsconfig.json',
+        project: process.env.SENTRY_DETECT_DEPRECATIONS ? './tsconfig.json' : false,
 
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
@@ -778,10 +509,7 @@ export default typescript.config([
     // TODO: move these potential overrides and plugin-specific rules into the
     // corresponding configuration object where the plugin is initially included
     plugins: {
-      ...react.configs.flat.plugins,
-      ...react.configs.flat['jsx-runtime'].plugins,
       '@typescript-eslint': typescript.plugin,
-      'react-hooks': fixupPluginRules(reactHooks),
       'simple-import-sort': simpleImportSort,
       'typescript-sort-keys': typescriptSortKeys,
       sentry,
@@ -857,15 +585,63 @@ export default typescript.config([
    *   ...myPlugin.configs.recommended,
    *   rules: {
    *     ...myPlugin.configs.recommended.rules,
-   *     ['the-rule']: 'warning',
+   *     ['the-rule']: 'warn',
    *   }
    * },
    * Finally, once all warnings are fixed, update from 'warning' to 'error', or
    * remove the override and rely on the recommended rules again.
    */
   {
-    name: 'import/recommended',
+    name: 'import',
     ...importPlugin.flatConfigs.recommended,
+    rules: {
+      // We override all the rules that are in the recommended, react, and typescript rulesets
+
+      // From the recommended ruleset:
+      // https://github.com/import-js/eslint-plugin-import/blob/main/docs/rules/export.md
+      'import/export': 'error',
+
+      // 5 rules not recommended to be enabled with typescript-eslint
+      // https://typescript-eslint.io/troubleshooting/typed-linting/performance/#slow-eslint-rules
+      'import/named': 'off',
+      'import/namespace': 'off',
+      'import/default': 'off',
+      'import/no-named-as-default-member': 'off',
+      'import/no-unresolved': 'off',
+
+      // Require a newline after the last import/require in a group
+      // Why doesn't prettier handle this? https://prettier.io/docs/en/rationale.html#empty-lines
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/newline-after-import.md
+      'import/newline-after-import': 'error',
+
+      // do not allow a default import name to match a named export (airbnb: error)
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-named-as-default.md
+      'import/no-named-as-default': 'off',
+
+      // Prevent importing the default as if it were named
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-named-default.md
+      'import/no-named-default': 'error',
+
+      // disallow AMD require/define
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-amd.md
+      'import/no-amd': 'error',
+
+      // disallow duplicate imports
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-duplicates.md
+      'import/no-duplicates': 'error',
+
+      // Forbid import of modules using absolute paths
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-absolute-path.md
+      'import/no-absolute-path': 'error',
+
+      // Forbid Webpack loader syntax in imports
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-webpack-loader-syntax.md
+      'import/no-webpack-loader-syntax': 'error',
+
+      // Reports if a module"s default export is unnamed
+      // https://github.com/benmosher/eslint-plugin-import/blob/main/docs/rules/no-anonymous-default-export.md
+      'import/no-anonymous-default-export': 'error',
+    },
   },
   {
     name: 'deprecations',
@@ -873,6 +649,97 @@ export default typescript.config([
       '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
         ? 'error'
         : 'off',
+    },
+  },
+  {
+    name: 'react',
+    plugins: {
+      ...react.configs.flat.recommended.plugins,
+      // @ts-ignore noUncheckedIndexedAccess
+      ...react.configs.flat['jsx-runtime'].plugins,
+    },
+    rules: {
+      ...react.configs.flat.recommended.rules,
+      ...react.configs.flat['jsx-runtime'].rules,
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
+      'react/display-name': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-multi-comp.md
+      'react/no-multi-comp': ['off', {ignoreStateless: true}],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-fragments.md
+      'react/jsx-fragments': ['error', 'element'],
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-handler-names.md
+      // Ensures that any component or prop methods used to handle events are correctly prefixed.
+      'react/jsx-handler-names': [
+        'off',
+        {eventHandlerPrefix: 'handle', eventHandlerPropPrefix: 'on'},
+      ],
+
+      // Disabled as we use the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-uses-react.md
+      'react/jsx-uses-react': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-mount-set-state.md
+      'react/no-did-mount-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-did-update-set-state.md"
+      'react/no-did-update-set-state': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-redundant-should-component-update.md
+      'react/no-redundant-should-component-update': 'error',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-typos.md
+      'react/no-typos': 'error',
+
+      // Prevent invalid characters from appearing in markup
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unescaped-entities.md
+      'react/no-unescaped-entities': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/no-unknown-property.md
+      'react/no-unknown-property': ['error', {ignore: ['css']}],
+
+      // We do not need proptypes since we're using typescript
+      'react/prop-types': 'off',
+
+      // Disabled as we are using the newer JSX transform babel plugin.
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/react-in-jsx-scope.md
+      'react/react-in-jsx-scope': 'off',
+
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/self-closing-comp.md
+      'react/self-closing-comp': 'error',
+
+      // This also causes issues with typescript
+      // See: https://github.com/yannickcr/eslint-plugin-react/issues/2066
+      //
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/sort-comp.md
+      'react/sort-comp': 'warn',
+
+      // Consistent <Component booleanProp /> (never add ={true})
+      // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/jsx-boolean-value.md
+      'react/jsx-boolean-value': ['error', 'never'],
+
+      // Consistent function component declaration styles
+      // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/docs/rules/function-component-definition.md
+      'react/function-component-definition': [
+        'error',
+        {namedComponents: 'function-declaration'},
+      ],
+    },
+  },
+  {
+    name: 'react/hooks',
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': [
+        'error',
+        {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
+      ],
     },
   },
   {
@@ -962,9 +829,7 @@ export default typescript.config([
     files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
     ...testingLibrary.configs['flat/react'],
     rules: {
-      'testing-library/no-container': 'warn', // TODO(ryan953): Fix the violations, then delete this line
       'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
-      'testing-library/prefer-screen-queries': 'warn', // TODO(ryan953): Fix the violations, then delete this line
     },
   },
   {

@@ -64,7 +64,7 @@ function WidgetBuilderTypeSelector() {
           ) {
             dispatch({
               type: BuilderStateAction.SET_QUERY,
-              payload: [state.query[0]],
+              payload: [state.query[0]!],
             });
           }
         }}

@@ -15,7 +15,7 @@ export function convertRelayPiiConfig(relayPiiConfig?: string | null): Rule[] {
   const convertedRules: Array<Rule> = [];
 
   for (const application in applications) {
-    for (const rule of applications[application]) {
+    for (const rule of applications[application]!) {
       const resolvedRule = rules[rule];
       const id = convertedRules.length;
       const source = application;

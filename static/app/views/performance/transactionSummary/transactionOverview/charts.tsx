@@ -135,11 +135,11 @@ function TransactionSummaryCharts({
   let display = decodeScalar(location.query.display, DisplayModes.DURATION);
   let trendFunction = decodeScalar(
     location.query.trendFunction,
-    TREND_FUNCTIONS_OPTIONS[0].value
+    TREND_FUNCTIONS_OPTIONS[0]!.value
   ) as TrendFunctionField;
   let trendParameter = decodeScalar(
     location.query.trendParameter,
-    TREND_PARAMETERS_OPTIONS[0].value
+    TREND_PARAMETERS_OPTIONS[0]!.value
   );
 
   if (!Object.values(DisplayModes).includes(display as DisplayModes)) {

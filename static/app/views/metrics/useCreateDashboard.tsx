@@ -59,7 +59,7 @@ export function useCreateDashboard(
       const queryIdsInArray = new Set<number>();
       const widgetsWithDependencies = widgets.reduce<MetricsWidget[]>((acc, widget) => {
         if (isMetricsEquationWidget(widget)) {
-          const {dependencies, isError} = formulaDependencies[widget.id];
+          const {dependencies, isError} = formulaDependencies[widget.id]!;
           if (isError) {
             return acc;
           }
@@ -81,7 +81,7 @@ export function useCreateDashboard(
         queryIdsInArray.add(widget.id);
         return [...acc, widget];
       }, []);
-      return [convertWidget(widgetsWithDependencies, widgets[0].displayType)];
+      return [convertWidget(widgetsWithDependencies, widgets[0]!.displayType)];
     }
 
     return widgets
@@ -90,7 +90,7 @@ export function useCreateDashboard(
           return convertWidget([widget], widget.displayType);
         }
 
-        const {dependencies, isError} = formulaDependencies[widget.id];
+        const {dependencies, isError} = formulaDependencies[widget.id]!;
 
         if (isError) {
           return null;

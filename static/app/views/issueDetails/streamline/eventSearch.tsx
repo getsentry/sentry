@@ -41,7 +41,7 @@ interface EventSearchProps {
   queryBuilderProps?: Partial<SearchQueryBuilderProps>;
 }
 
-export function useEventQuery({group}: {group: Group}): string {
+export function useEventQuery({groupId}: {groupId: string}): string {
   const {selection} = usePageFilters();
   const location = useLocation();
   const environments = selection.environments;
@@ -55,7 +55,7 @@ export function useEventQuery({group}: {group: Group}): string {
   }
 
   const {data = []} = useGroupTags({
-    groupId: group.id,
+    groupId,
     environment: environments,
   });
   const filterKeys = useEventSearchFilterKeys(data);

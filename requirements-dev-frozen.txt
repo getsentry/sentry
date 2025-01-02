@@ -37,7 +37,7 @@ cryptography==43.0.1
 cssselect==1.0.3
 cssutils==2.9.0
 datadog==0.49.1
-devservices==1.0.7
+devservices==1.0.8
 distlib==0.3.8
 distro==1.8.0
 django==5.1.4
@@ -181,7 +181,7 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.19.7
+sentry-arroyo==2.19.9
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
 sentry-devenv==1.14.2

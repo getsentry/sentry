@@ -120,7 +120,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
         ['text-transform', 'textTransform'],
         ['writing-mode', 'writingMode'],
       ]
-        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr)])
+        .map(([attr, reactAttr]) => [reactAttr, tempEl.style.getPropertyValue(attr!)])
         .filter(([, val]) => !!val)
     );
 

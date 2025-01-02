@@ -412,7 +412,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext.Provider value={initialData.organization}>
@@ -436,10 +436,10 @@ describe('Dashboards > Detail', function () {
 
       // Remove the second and third widgets
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
 
       // Save changes
@@ -551,7 +551,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors',
@@ -589,7 +589,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors and Transactions',
@@ -636,7 +636,6 @@ describe('Dashboards > Detail', function () {
 
     it('hides add widget option', async function () {
       // @ts-expect-error this is assigning to readonly property...
-      // eslint-disable-next-line import/namespace
       types.MAX_WIDGETS = 1;
 
       render(
@@ -1227,7 +1226,7 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getAllByText('Clear')[0]);
+      await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
@@ -1666,7 +1665,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2], 's');
+      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2]!, 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears

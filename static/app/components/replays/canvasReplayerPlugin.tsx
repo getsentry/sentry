@@ -51,7 +51,7 @@ function findIndex(
   const mid = Math.floor((start + end) / 2);
 
   // Search lower half
-  if (event.timestamp <= arr[mid].timestamp) {
+  if (event.timestamp <= arr[mid]!.timestamp) {
     return findIndex(arr, event, start, mid - 1);
   }
 
@@ -106,7 +106,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     while (eventsToPrune.length) {
       // Peek top of queue and see if event should be pruned, otherwise we can break out of the loop
       if (
-        Math.abs(event.timestamp - eventsToPrune[0].timestamp) <= BUFFER_TIME &&
+        Math.abs(event.timestamp - eventsToPrune[0]!.timestamp) <= BUFFER_TIME &&
         eventsToPrune.length <= PRELOAD_SIZE
       ) {
         break;

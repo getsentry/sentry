@@ -72,9 +72,9 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -84,10 +84,10 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
     );
 
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
     expect(createMock).toHaveBeenCalled();
     expect(screen.getAllByTestId('add-member-menu')[0]).toBeVisible();
   });
@@ -97,9 +97,9 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -109,9 +109,9 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -121,9 +121,9 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
     );
-    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]!);
 
     expect(openTeamAccessRequestModal).toHaveBeenCalled();
   });
@@ -138,7 +138,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -155,7 +155,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -169,7 +169,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -183,7 +183,7 @@ describe('TeamMembers', function () {
     render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
-      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]
+      (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
     );
     await userEvent.click(screen.getByTestId('invite-member'));
 
@@ -192,7 +192,7 @@ describe('TeamMembers', function () {
 
   it('can remove member from team', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
+      url: `/organizations/${organization.slug}/members/${members[0]!.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
     render(<TeamMembers team={team} />, {router, organization});
@@ -200,7 +200,7 @@ describe('TeamMembers', function () {
     await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]!);
 
     expect(deleteMock).toHaveBeenCalled();
   });
