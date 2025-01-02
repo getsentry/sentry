@@ -10,7 +10,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-function Resource({
+export function Resource({
   title,
   subtitle,
   link,
@@ -100,7 +100,7 @@ export default function ConfigureReplayCard() {
   );
 }
 
-const ButtonContainer = styled('div')`
+export const ButtonContainer = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
