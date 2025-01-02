@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.action import Action
@@ -151,8 +151,23 @@ class OpsgenieDataBlob(DataBlob):
     priority: str = ""
 
 
+@dataclass
+class GitHubDataBlob(DataBlob):
+    """
+    GitHubDataBlob represents the data blob for a GitHub ticket creation action.
+    """
+
+    repo: str
+    assignee: str = ""  # Optional field, defaults to empty string
+    labels: list[str] = field(default_factory=list)  # Optional field, defaults to empty list
+    # This is dynamic and can whatever customer config the customer setup on GitHub
+    dynamic_form_fields: list[dict] = field(default_factory=list)
+
+
 ACTION_TYPE_2_BLOB_TYPE: dict[Action.Type, type[DataBlob]] = {
     Action.Type.SLACK: SlackDataBlob,
     Action.Type.DISCORD: DiscordDataBlob,
     Action.Type.PAGERDUTY: PagerDutyDataBlob,
+    Action.Type.GITHUB: GitHubDataBlob,
+    Action.Type.GITHUB_ENTERPRISE: GitHubDataBlob,
 }

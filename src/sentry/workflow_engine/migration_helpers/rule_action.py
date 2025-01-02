@@ -10,6 +10,7 @@ from sentry.workflow_engine.typings.notification_action import (
     INTEGRATION_ACTION_TYPES,
     RULE_REGISTRY_ID_2_INTEGRATION_PROVIDER,
     DiscordDataBlob,
+    GitHubDataBlob,
     OpsgenieDataBlob,
     PagerDutyDataBlob,
     SlackDataBlob,
@@ -59,6 +60,19 @@ def build_opsgenie_data_blob(action: dict[str, Any]) -> OpsgenieDataBlob:
     )
 
 
+def build_github_data_blob(action: dict[str, Any]) -> GitHubDataBlob:
+    """
+    Builds a GitHubDataBlob from the action data.
+    Only includes the keys that are not None.
+    """
+    return GitHubDataBlob(
+        repo=action.get("repo", ""),
+        assignee=action.get("assignee", ""),
+        labels=action.get("labels", []),
+        dynamic_form_fields=action.get("dynamic_form_fields", []),
+    )
+
+
 def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict[str, Any]:
     """
     Pops the keys we don't want to save inside the JSON field of the Action model.
@@ -75,6 +89,8 @@ def sanitize_to_action(action: dict[str, Any], action_type: Action.Type) -> dict
         return build_discord_data_blob(action).__dict__
     elif action_type == Action.Type.PAGERDUTY:
         return build_pagerduty_data_blob(action).__dict__
+    elif action_type == Action.Type.GITHUB or action_type == Action.Type.GITHUB_ENTERPRISE:
+        return build_github_data_blob(action).__dict__
 
     # # Otherwise, we can just return the action data as is, removing the keys we don't want to save
     else:
