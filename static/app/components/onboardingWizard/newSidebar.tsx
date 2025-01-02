@@ -1,7 +1,7 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import partition from 'lodash/partition';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
@@ -34,15 +34,11 @@ import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-
-/**
- * How long (in ms) to delay before beginning to mark tasks complete
- */
-const INITIAL_MARK_COMPLETE_TIMEOUT = 600;
 
 const orderedGettingStartedTasks = [
   OnboardingTaskKey.FIRST_PROJECT,
@@ -397,15 +393,6 @@ function ExpandedTaskGroup({
   const api = useApi();
   const organization = useOrganization();
 
-  const markCompletionTimeout = useRef<number | undefined>();
-
-  function completionTimeout(time: number): Promise<void> {
-    window.clearTimeout(markCompletionTimeout.current);
-    return new Promise(resolve => {
-      markCompletionTimeout.current = window.setTimeout(resolve, time);
-    });
-  }
-
   const markTasksAsSeen = useCallback(
     function () {
       const unseenTasks = sortedTasks
@@ -419,26 +406,12 @@ function ExpandedTaskGroup({
     [api, organization, sortedTasks]
   );
 
-  const markSeenOnOpen = useCallback(
-    async function () {
-      // Add a minor delay to marking tasks complete to account for the animation
-      // opening of the group
-      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
-      markTasksAsSeen();
-    },
-    [markTasksAsSeen]
-  );
-
   useEffect(() => {
-    markSeenOnOpen();
-
-    return () => {
-      window.clearTimeout(markCompletionTimeout.current);
-    };
-  }, [markSeenOnOpen]);
+    markTasksAsSeen();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Fragment>
+    <AnimatePresence initial={false}>
       <hr />
       <TaskGroupBody>
         {sortedTasks.map(sortedTask => (
@@ -450,7 +423,7 @@ function ExpandedTaskGroup({
           />
         ))}
       </TaskGroupBody>
-    </Fragment>
+    </AnimatePresence>
   );
 }
 
@@ -667,7 +640,7 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
   }
 `;
 
-const TaskGroupBody = styled(motion.ul)`
+const TaskGroupBody = styled('ul')`
   border-radius: ${p => p.theme.borderRadius};
   list-style-type: none;
   padding: 0;
@@ -680,11 +653,23 @@ const TaskWrapper = styled(motion.li)`
 `;
 
 TaskWrapper.defaultProps = {
+  initial: false,
+  animate: 'animate',
   layout: true,
-  transition: {
-    type: 'tween',
-    duration: 0.8,
-    ease: 'easeInOut',
+  variants: {
+    initial: {
+      opacity: 0,
+      y: 40,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: testableTransition({
+        delay: 0.8,
+        when: 'beforeChildren',
+        staggerChildren: 0.3,
+      }),
+    },
   },
 };
 
