@@ -58,7 +58,7 @@ export function EventMissingBanner() {
               <EventIdText>({eventId})</EventIdText>
             ) : null}
           </MainText>
-          <SubText style={{marginTop: space(1)}}>
+          <SubText>
             {t('If this is unexpected, here are some things to try:')}
             <ul style={{margin: 0}}>
               {tips.map((tip, i) => (
@@ -75,7 +75,6 @@ export function EventMissingBanner() {
 const MainText = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
-  margin-bottom: ${space(1)};
 `;
 
 const SubText = styled('div')`
