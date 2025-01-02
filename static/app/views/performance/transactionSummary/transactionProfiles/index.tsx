@@ -10,12 +10,12 @@ import {TransactionSearchQueryBuilder} from 'sentry/components/performance/trans
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -30,6 +30,7 @@ interface ProfilesProps {
 }
 
 function Profiles({organization, transaction}: ProfilesProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const {projects} = useProjects();
 
@@ -56,7 +57,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -65,7 +66,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const projectIds = useMemo(
