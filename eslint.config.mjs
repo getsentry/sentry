@@ -494,7 +494,7 @@ export default typescript.config([
         jsDocParsingMode: process.env.SENTRY_DETECT_DEPRECATIONS ? 'all' : 'none',
 
         // https://typescript-eslint.io/packages/parser/#project
-        project: './tsconfig.json',
+        project: process.env.SENTRY_DETECT_DEPRECATIONS ? './tsconfig.json' : false,
 
         // https://typescript-eslint.io/packages/parser/#projectservice
         // `projectService` is recommended, but slower, with our current tsconfig files.
