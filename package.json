@@ -198,7 +198,6 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jest": "^28.10.0",
     "eslint-plugin-jest-dom": "^5.5.0",
-    "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.3",
     "eslint-plugin-react-hooks": "5.0.0",
     "eslint-plugin-sentry": "^2.10.0",
