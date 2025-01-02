@@ -1,4 +1,4 @@
-import {type CSSProperties, useMemo, useState} from 'react';
+import {type CSSProperties, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -26,6 +26,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
+import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
@@ -74,6 +75,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   );
   const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
+  const {dispatch} = useEventDetails();
 
   const {
     data: groupStats = {},
@@ -136,6 +138,12 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     }
     return createSeriesAndCount(groupStats['count()']);
   }, [groupStats]);
+
+  // Ensure the dropdown can access the new filtered event count
+  useEffect(() => {
+    dispatch({type: 'UPDATE_EVENT_COUNT', count: eventCount});
+  }, [eventCount, dispatch]);
+
   const {series: unfilteredEventSeries} = useMemo(() => {
     if (!unfilteredGroupStats?.['count()']) {
       return {series: []};
