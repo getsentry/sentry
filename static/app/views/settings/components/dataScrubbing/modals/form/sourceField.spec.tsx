@@ -74,9 +74,9 @@ describe('Source', function () {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0]!.value);
     // ||
-    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1]!.value);
   });
 
   it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', async function () {
@@ -96,7 +96,7 @@ describe('Source', function () {
     // [...defaultSuggestions, ...unaryOperatorSuggestions].length === 18
     expect(suggestions).toHaveLength(18);
     // !
-    expect(suggestions[17]).toHaveTextContent(unarySuggestions[0].value);
+    expect(suggestions[17]).toHaveTextContent(unarySuggestions[0]!.value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async function () {
@@ -116,9 +116,9 @@ describe('Source', function () {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0]!.value);
     // ||
-    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1]!.value);
   });
 
   it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', async () => {
@@ -138,9 +138,9 @@ describe('Source', function () {
     // binaryOperatorSuggestions.length === 2
     expect(suggestions).toHaveLength(2);
     // &&
-    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0].value);
+    expect(suggestions[0]).toHaveTextContent(binarySuggestions[0]!.value);
     // ||
-    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
+    expect(suggestions[1]).toHaveTextContent(binarySuggestions[1]!.value);
   });
 
   it('display defaultSuggestions if penultimateFieldValue has type unary', async () => {
@@ -162,7 +162,7 @@ describe('Source', function () {
 
     // everywhere
     expect(suggestions[0]).toHaveTextContent(
-      `${valueSuggestions[0].value}(${valueSuggestions[0].description})`
+      `${valueSuggestions[0]!.value}(${valueSuggestions[0]!.description})`
     );
   });
 
@@ -182,7 +182,7 @@ describe('Source', function () {
 
     const suggestions = screen.getAllByRole('listitem');
 
-    await userEvent.click(suggestions[1]);
+    await userEvent.click(suggestions[1]!);
 
     expect(handleOnChange).toHaveBeenCalledWith('foo && password');
   });

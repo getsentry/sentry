@@ -22,12 +22,12 @@ describe('BreadcrumbItem', function () {
     const mockMouseLeave = jest.fn();
     render(
       <BreadcrumbItem
-        frame={MOCK_FRAME}
+        frame={MOCK_FRAME!}
         onMouseEnter={mockMouseEnter}
         onMouseLeave={mockMouseLeave}
         onClick={mockClick}
         onInspectorExpanded={() => {}}
-        startTimestampMs={MOCK_FRAME.timestampMs}
+        startTimestampMs={MOCK_FRAME!.timestampMs}
       />,
       {organization}
     );

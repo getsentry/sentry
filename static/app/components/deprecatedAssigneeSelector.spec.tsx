@@ -349,7 +349,7 @@ describe('DeprecatedAssigneeSelector', () => {
 
     const options = screen.getAllByTestId('assignee-option');
     expect(options[5]).toHaveTextContent('JD');
-    await userEvent.click(options[4]);
+    await userEvent.click(options[4]!);
 
     await waitFor(() => {
       expect(addMessageSpy).toHaveBeenCalledWith(
@@ -379,7 +379,7 @@ describe('DeprecatedAssigneeSelector', () => {
     const options = screen.getAllByTestId('assignee-option');
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('JB');
-    await userEvent.click(options[0]);
+    await userEvent.click(options[0]!);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(

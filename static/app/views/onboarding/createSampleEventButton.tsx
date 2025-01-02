@@ -40,7 +40,6 @@ async function latestEventAvailable(
 ): Promise<{eventCreated: boolean; retries: number}> {
   let retries = 0;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (retries > EVENT_POLL_RETRIES) {
       return {eventCreated: false, retries: retries - 1};

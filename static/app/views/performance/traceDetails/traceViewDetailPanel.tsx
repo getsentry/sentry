@@ -235,7 +235,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
               abbreviation
             />
           </Row>

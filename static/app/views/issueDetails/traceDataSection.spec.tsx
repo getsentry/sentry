@@ -243,18 +243,18 @@ describe('TraceDataSection', () => {
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
       {
-        group_id: issuePlatformBody.data[0]['issue.id'],
+        group_id: issuePlatformBody.data[0]!['issue.id'],
         organization,
       }
     );
     expect(trackAnalytics).toHaveBeenCalledWith('one_other_related_trace_issue.clicked', {
-      group_id: issuePlatformBody.data[0]['issue.id'],
+      group_id: issuePlatformBody.data[0]!['issue.id'],
       organization,
       area: 'issue_details',
     });
   });
 
-  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
+  it('skips the timeline and shows NO related issues (only 1 issue)', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
@@ -275,13 +275,13 @@ describe('TraceDataSection', () => {
     render(<TraceDataSection event={event} />, {organization});
 
     // We do not display any related issues because we only have 1 issue
-    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
     expect(
-      await screen.queryByText('AttributeError: Something Failed')
+      screen.queryByText('AttributeError: Something Failed')
     ).not.toBeInTheDocument();
 
     // We do not display the timeline because we only have 1 event
-    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 

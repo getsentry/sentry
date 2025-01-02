@@ -254,7 +254,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete first overlay
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[0]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -269,7 +269,7 @@ describe('ExploreToolbar', function () {
     ]);
 
     // delete second chart
-    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Overlay')[1]!);
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -333,7 +333,7 @@ describe('ExploreToolbar', function () {
     );
     expect(groupBys).toEqual(['span.op', 'span.description']);
 
-    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]);
+    await userEvent.click(within(section).getAllByLabelText('Remove Column')[0]!);
     expect(groupBys).toEqual(['span.description']);
 
     // only 1 left but it's not empty
@@ -381,7 +381,7 @@ describe('ExploreToolbar', function () {
     const fieldOptions = await within(section).findAllByRole('option');
     expect(fieldOptions).toHaveLength(fields.length);
     fieldOptions.forEach((option, i) => {
-      expect(option).toHaveTextContent(fields[i]);
+      expect(option).toHaveTextContent(fields[i]!);
     });
 
     // try changing the field

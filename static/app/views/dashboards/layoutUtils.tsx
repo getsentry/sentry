@@ -144,7 +144,7 @@ export function getNextAvailablePosition(
   // we get the top-most available spot
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
     for (let start = 0; start <= columnDepths.length - DEFAULT_WIDGET_WIDTH; start++) {
-      if (columnDepths[start] > currDepth) {
+      if (columnDepths[start]! > currDepth) {
         // There are potentially widgets in the way here, so skip
         continue;
       }

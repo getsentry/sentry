@@ -139,7 +139,7 @@ export function traceTabsReducer(
         return index !== action.payload;
       });
 
-      const nextTabIsPersistent = typeof newTabs[newTabs.length - 1].node === 'string';
+      const nextTabIsPersistent = typeof newTabs[newTabs.length - 1]!.node === 'string';
       if (nextTabIsPersistent) {
         if (!state.last_clicked_tab && !state.current_tab) {
           throw new Error(
@@ -149,7 +149,7 @@ export function traceTabsReducer(
 
         const nextTab = nextTabIsPersistent
           ? state.last_clicked_tab ?? state.current_tab
-          : newTabs[newTabs.length - 1];
+          : newTabs[newTabs.length - 1]!;
 
         return {
           ...state,
@@ -159,16 +159,16 @@ export function traceTabsReducer(
         };
       }
 
-      if (state.current_tab?.node === state.tabs[action.payload].node) {
+      if (state.current_tab?.node === state.tabs[action.payload]!.node) {
         return {
           ...state,
-          current_tab: newTabs[newTabs.length - 1],
+          current_tab: newTabs[newTabs.length - 1]!,
           last_clicked_tab: state.last_clicked_tab,
           tabs: newTabs,
         };
       }
 
-      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1];
+      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1]!;
 
       return {
         ...state,
@@ -181,8 +181,8 @@ export function traceTabsReducer(
     case 'clear clicked tab': {
       const next =
         state.last_clicked_tab === state.current_tab
-          ? state.tabs[state.tabs.length - 1]
-          : state.current_tab;
+          ? state.tabs[state.tabs.length - 1]!
+          : state.current_tab!;
       return {
         ...state,
         current_tab: next,

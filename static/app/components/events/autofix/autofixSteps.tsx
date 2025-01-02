@@ -136,11 +136,11 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
       if (!steps) {
         return;
       }
-      const step = steps[steps.length - 1];
+      const step = steps[steps.length - 1]!;
       if (step.type !== AutofixStepType.ROOT_CAUSE_ANALYSIS) {
         return;
       }
-      const cause = step.causes[0];
+      const cause = step.causes[0]!;
       const id = cause.id;
       handleSelectFix({causeId: id, instruction: text});
     }
@@ -164,8 +164,8 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsBottomVisible(entry.isIntersecting);
-        if (entry.isIntersecting) {
+        setIsBottomVisible(entry!.isIntersecting);
+        if (entry!.isIntersecting) {
           setHasSeenBottom(true);
         }
       },
@@ -194,7 +194,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
 
     const hasNewSteps =
       currentStepsLength > prevStepsLengthRef.current &&
-      steps[currentStepsLength - 1].type !== AutofixStepType.DEFAULT;
+      steps[currentStepsLength - 1]!.type !== AutofixStepType.DEFAULT;
     const hasNewInsights = currentInsightsCount > prevInsightsCountRef.current;
 
     if (hasNewSteps || hasNewInsights) {
@@ -217,16 +217,18 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   }
 
   const lastStep = steps[steps.length - 1];
-  const logs: AutofixProgressItem[] = lastStep.progress?.filter(isProgressLog) ?? [];
+  const logs: AutofixProgressItem[] = lastStep!.progress?.filter(isProgressLog) ?? [];
   const activeLog =
-    lastStep.completedMessage ?? replaceHeadersWithBold(logs.at(-1)?.message ?? '') ?? '';
+    lastStep!.completedMessage ??
+    replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
+    '';
 
   const isRootCauseSelectionStep =
-    lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-    lastStep.status === 'COMPLETED';
+    lastStep!.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
+    lastStep!.status === 'COMPLETED';
 
   const isChangesStep =
-    lastStep.type === AutofixStepType.CHANGES && lastStep.status === 'COMPLETED';
+    lastStep!.type === AutofixStepType.CHANGES && lastStep!.status === 'COMPLETED';
 
   return (
     <div>
@@ -281,15 +283,15 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             </div>
           );
         })}
-        {lastStep.output_stream && (
-          <AutofixOutputStream stream={lastStep.output_stream} />
+        {lastStep!.output_stream && (
+          <AutofixOutputStream stream={lastStep!.output_stream} />
         )}
       </StepsContainer>
 
       <AutofixMessageBox
         displayText={activeLog ?? ''}
-        step={lastStep}
-        responseRequired={lastStep.status === 'WAITING_FOR_USER_RESPONSE'}
+        step={lastStep!}
+        responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
         onSend={
           !isRootCauseSelectionStep
             ? !isChangesStep
@@ -306,9 +308,9 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
         isChangesStep={isChangesStep}
         scrollIntoView={!hasSeenBottom ? scrollToBottom : null}
         scrollText={
-          lastStep.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+          lastStep!.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
             ? 'View Root Cause'
-            : lastStep.type === AutofixStepType.CHANGES
+            : lastStep!.type === AutofixStepType.CHANGES
               ? 'View Fix'
               : 'New Insight'
         }

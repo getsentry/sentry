@@ -5,7 +5,6 @@ from typing import Any
 from unittest import mock
 
 import pytest
-import urllib3
 from django.utils import timezone
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
@@ -2567,25 +2566,18 @@ class EventsSnubaSearchTest(TestCase, EventsSnubaSearchTestCases):
 @apply_feature_flag_on_cls("organizations:issue-search-group-attributes-side-query")
 class EventsJoinedGroupAttributesSnubaSearchTest(TransactionTestCase, EventsSnubaSearchTestCases):
     def setUp(self):
-        def post_insert(snapshot: GroupAttributesSnapshot):
+        def post_insert(snapshot: GroupAttributesSnapshot) -> None:
             from sentry.utils import snuba
 
-            try:
-                resp = snuba._snuba_pool.urlopen(
-                    "POST",
-                    "/tests/entities/group_attributes/insert",
-                    body=json.dumps([snapshot]),
-                    headers={},
-                )
-                if resp.status != 200:
-                    raise snuba.SnubaError(
-                        f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
-                    )
-                return None
-            except urllib3.exceptions.HTTPError as err:
-                raise snuba.SnubaError(err)
+            resp = snuba._snuba_pool.urlopen(
+                "POST",
+                "/tests/entities/group_attributes/insert",
+                body=json.dumps([snapshot]),
+                headers={},
+            )
+            assert resp.status == 200
 
-        with (mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert),):
+        with mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka", post_insert):
             super().setUp()
 
     @mock.patch("sentry.utils.metrics.timer")
