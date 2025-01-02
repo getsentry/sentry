@@ -5,9 +5,11 @@ __all__ = [
     "ReappearedEventConditionHandler",
     "RegressionEventConditionHandler",
     "ExistingHighPriorityIssueConditionHandler",
+    "EventAttributeConditionHandler",
 ]
 
 from .group_event_handlers import (
+    EventAttributeConditionHandler,
     EventCreatedByDetectorConditionHandler,
     EventSeenCountConditionHandler,
     EveryEventConditionHandler,
