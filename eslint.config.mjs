@@ -834,6 +834,27 @@ export default typescript.config([
     },
   },
   {
+    name: 'sentry-test',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          // @ts-ignore
+          ...appRules['no-restricted-imports'][1],
+          paths: [
+            // @ts-ignore
+            ...appRules['no-restricted-imports'][1].paths,
+            {
+              name: 'sentry/locale',
+              message: 'Translations are not needed in tests',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // We specify rules explicitly for the sdk-loader here so we do not have
     // eslint ignore comments included in the source file, which is consumed
     // by users.
