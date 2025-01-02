@@ -16,13 +16,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {VITAL_GROUPS, ZOOM_KEYS} from './constants';
 import {isMissingVitalsData} from './utils';
@@ -36,6 +36,7 @@ type Props = {
 
 function VitalsContent(props: Props) {
   const {location, organization, eventView} = props;
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
 
   const handleSearch = (newQuery: string) => {
@@ -47,7 +48,7 @@ function VitalsContent(props: Props) {
     // do not propagate pagination when making a new search
     delete queryParams.cursor;
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: queryParams,
     });
