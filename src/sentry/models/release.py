@@ -88,7 +88,7 @@ class ReleaseStatus:
 
     @classmethod
     def as_choices(cls):
-        return [(cls.OPEN, "open"), (cls.ARCHIVED, "archived")]
+        return [(cls.to_string(cls.OPEN), "Open"), (cls.to_string(cls.ARCHIVED), "Archived")]
 
 
 def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:

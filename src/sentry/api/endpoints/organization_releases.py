@@ -162,8 +162,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 @extend_schema_serializer(exclude_fields=["owner", "headCommits"])
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     projects = ListField(
-        child=ProjectField(scope="project:read", id_allowed=True),
-        help_text="The list of project slugs associated with the release.",
+        child=ProjectField(scope="project:releases", id_allowed=True),
+        help_text="The list of project IDs or slugs associated with the release.",
     )
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
@@ -494,7 +494,7 @@ class OrganizationReleasesEndpoint(
         """
         bind_organization_context(organization)
         serializer = ReleaseSerializerWithProjects(
-            data=request.data, context={"organization": organization}
+            data=request.data, context={"organization": organization, "access": request.access}
         )
 
         scope = Scope.get_isolation_scope()
@@ -507,14 +507,13 @@ class OrganizationReleasesEndpoint(
             projects_from_request = self.get_projects(request, organization)
             allowed_projects = {}
             for project in projects_from_request:
-                allowed_projects[project.slug] = project
                 allowed_projects[project.id] = project
 
             projects = []
-            for id_or_slug in result["projects"]:
-                if id_or_slug not in allowed_projects:
+            for project in result["projects"]:
+                if project.id not in allowed_projects:
                     return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
-                projects.append(allowed_projects[id_or_slug])
+                projects.append(allowed_projects[project.id])
 
             new_status = result.get("status")
             owner_id: int | None = None

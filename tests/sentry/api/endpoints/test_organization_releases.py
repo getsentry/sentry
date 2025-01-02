@@ -4,7 +4,6 @@ from functools import cached_property
 from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -1797,7 +1796,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             url, data={"version": "1.2.1", "projects": [project.slug, "banana"]}
         )
         assert response.status_code == 400
-        assert b"Invalid project ids or slugs" in response.content
+        assert b"Invalid project" in response.content
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1844,7 +1843,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 400
-        assert b"Invalid project ids or slugs" in response.content
+        assert b"Insufficient access to project" in response.content
 
         response = self.client.post(url, data={"version": "1.2.1", "projects": [project1.slug]})
 
@@ -2029,6 +2028,8 @@ class OrganizationReleaseCreateTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
         )
+
+        assert response.status_code == 201, response.data
 
         mock_fetch_commits.apply_async.assert_called_with(
             kwargs={
@@ -2506,7 +2507,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         self.projects = ["project_slug", "project2_slug"]
         for slug in self.projects:
             self.create_project(organization=self.organization, name=slug)
-        self.access = access.OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES)
+        self.access = access.OrganizationGlobalAccess(self.organization, ["project:releases"])
 
     def test_simple(self):
         serializer = ReleaseSerializerWithProjects(
