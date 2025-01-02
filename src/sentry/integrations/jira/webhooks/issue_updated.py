@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class JiraIssueUpdatedWebhook(JiraWebhookBase):
+class JiraIssueUpdatedWebhook(JiraWebhookBase[RpcIntegration, dict[str, Any] | None]):
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
     """
@@ -39,7 +39,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         )
         return rpc_integration
 
-    def unpack_payload(self, request: Request, **kwargs) -> Any:
+    def unpack_payload(self, request: Request, **kwargs) -> dict[str, Any] | None:
         data = request.data
         if not data.get("changelog"):
             self.log_extra["integration_id"] = kwargs["rpc_integration"].id

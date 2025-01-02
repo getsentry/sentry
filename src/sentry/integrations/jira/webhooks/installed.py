@@ -18,12 +18,12 @@ from .base import JiraWebhookBase
 
 
 @control_silo_endpoint
-class JiraSentryInstalledWebhook(JiraWebhookBase):
+class JiraSentryInstalledWebhook(JiraWebhookBase[None, dict[str, Any] | None]):
     """
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
 
-    def authenticate(self, request: Request, **kwargs) -> Any:
+    def authenticate(self, request: Request, **kwargs) -> None:
         token = self.get_token(request)
 
         key_id = jwt.peek_header(token).get("kid")
@@ -31,7 +31,7 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             decoded_claims = authenticate_asymmetric_jwt(token, key_id)
             verify_claims(decoded_claims, request.path, request.GET, method="POST")
 
-    def unpack_payload(self, request: Request, **kwargs) -> Any:
+    def unpack_payload(self, request: Request, **kwargs) -> dict[str, Any] | None:
         state = request.data
         if not state:
             kwargs["lifecycle"].record_failure(

@@ -186,7 +186,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
 
-class MockErroringJiraEndpoint(JiraWebhookBase):
+class MockErroringJiraEndpoint(JiraWebhookBase[Any, Any]):
     permission_classes = ()
     dummy_exception = Exception("whoops")
     # In order to be able to use `as_view`'s `initkwargs` (in other words, in order to be able to

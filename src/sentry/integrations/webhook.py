@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Generic, TypeVar
 
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -12,8 +12,11 @@ from sentry.api.base import Endpoint
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
+U = TypeVar("U")
 
-class IntegrationWebhookEndpoint(Endpoint, ABC):
+
+class IntegrationWebhookEndpoint(Endpoint, Generic[T, U], ABC):
     owner = ApiOwner.ECOSYSTEM
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
@@ -32,11 +35,11 @@ class IntegrationWebhookEndpoint(Endpoint, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def unpack_payload(self, request: Request, **kwargs) -> Any:
+    def authenticate(self, request: Request, **kwargs) -> T:
         raise NotImplementedError
 
     @abstractmethod
-    def authenticate(self, request: Request, **kwargs) -> Any:
+    def unpack_payload(self, request: Request, **kwargs) -> U:
         raise NotImplementedError
 
     @csrf_exempt

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from collections.abc import MutableMapping
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Generic, TypeVar
 
 from psycopg2 import OperationalError
 from rest_framework import status
@@ -18,12 +18,15 @@ from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
+T = TypeVar("T")
+U = TypeVar("U")
+
 
 class JiraTokenError(Exception):
     pass
 
 
-class JiraWebhookBase(IntegrationWebhookEndpoint, ABC):
+class JiraWebhookBase(Generic[T, U], IntegrationWebhookEndpoint[T, U], ABC):
     """
     Base class for webhooks used in the Jira integration
     """
@@ -34,7 +37,7 @@ class JiraWebhookBase(IntegrationWebhookEndpoint, ABC):
         self,
         request: Request,
         exc: Exception,
-        handler_context: MutableMapping[str, Any] | None = None,
+        handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> Response:
         handler_context = handler_context or {}

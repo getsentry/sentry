@@ -1,5 +1,3 @@
-from typing import Any
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,17 +8,20 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.integrations.webhook import IntegrationWebhookEndpoint
 
 from .base import JiraWebhookBase
 
 
 @control_silo_endpoint
-class JiraSentryUninstalledWebhook(JiraWebhookBase):
+class JiraSentryUninstalledWebhook(
+    JiraWebhookBase, IntegrationWebhookEndpoint[RpcIntegration, None]
+):
     """
     Webhook hit by Jira whenever someone uninstalls the Sentry integration from their Jira instance.
     """
 
-    def authenticate(self, request: Request, **kwargs) -> Any:
+    def authenticate(self, request: Request, **kwargs) -> RpcIntegration:
         token = self.get_token(request)
         rpc_integration = get_integration_from_jwt(
             token=token,
@@ -31,7 +32,7 @@ class JiraSentryUninstalledWebhook(JiraWebhookBase):
         )
         return rpc_integration
 
-    def unpack_payload(self, request: Request, **kwargs) -> Any:
+    def unpack_payload(self, request: Request, **kwargs) -> None:
         # unused
         return None
 
