@@ -118,16 +118,16 @@ const getInstallReplaySnippet = () => `
 await SentryFlutter.init(
   (options) {
     ...
-    options.replay.sessionSampleRate = 1.0;
-    options.replay.onErrorSampleRate = 1.0;
+    options.experimental.replay.sessionSampleRate = 1.0;
+    options.experimental.replay.onErrorSampleRate = 1.0;
   },
   appRunner: () => runApp(MyApp()),
 );
 `;
 
 const getConfigureReplaySnippet = () => `
-options.replay.maskAllText = true;
-options.replay.maskAllImages = true;`;
+options.experimental.replay.maskAllText = true;
+options.experimental.replay.maskAllImages = true;`;
 
 const metricsOnboarding: OnboardingConfig = {
   install: (params: DocsParams) => [
@@ -375,7 +375,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Make sure your Sentry Flutter SDK version is at least 8.9.0 [TODO], which is required for Session Replay. You can update your [code:pubspec.yaml] to the matching version:',
+        'Make sure your Sentry Flutter SDK version is at least 8.9.0, which is required for Session Replay. You can update your [code:pubspec.yaml] to the matching version:',
         {code: <code />}
       ),
       configurations: [
@@ -431,8 +431,10 @@ const replayOnboarding: OnboardingConfig = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName:
+      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };
