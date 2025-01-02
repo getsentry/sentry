@@ -87,7 +87,7 @@ function getValidEventViewForDataset(eventView: EventView, toDataset: DiscoverDa
   const remainingSearchFilter = search.formatString();
 
   for (let index = 0; index < denylistedFields.length; index++) {
-    const element = denylistedFields[index];
+    const element = denylistedFields[index]!;
     if (remainingSearchFilter.includes(element)) {
       search.removeFilter(element);
       modifiedQuery = true;

@@ -82,7 +82,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
         })) ?? [],
     },
   ];
-  const isChartEmpty = series[0].data.every(({value}) => value === 0);
+  const isChartEmpty = series[0]!.data.every(({value}) => value === 0);
 
   const handleMetricBlockToggle = useCallback(() => {
     const operationType = isBlockedMetric ? 'unblockMetric' : 'blockMetric';

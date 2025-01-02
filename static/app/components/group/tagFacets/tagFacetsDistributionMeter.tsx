@@ -67,9 +67,9 @@ function TagFacetsDistributionMeter({
         <Tooltip
           skipWrapper
           delay={TOOLTIP_DELAY}
-          title={topSegments[0].name || t('n/a')}
+          title={topSegments[0]!.name || t('n/a')}
         >
-          <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+          <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
           borderless
@@ -124,12 +124,12 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={colors[colors.length - 1]}
+                  color={colors[colors.length - 1]!}
                 />
               ) : (
                 <Segment
                   aria-label={`${value.value} ${t('segment')}`}
-                  color={colors[index]}
+                  color={colors[index]!}
                   {...segmentProps}
                 >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
@@ -180,7 +180,7 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={colors[segment.isOther ? colors.length - 1 : index]}
+                      color={colors[segment.isOther ? colors.length - 1 : index]!}
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>

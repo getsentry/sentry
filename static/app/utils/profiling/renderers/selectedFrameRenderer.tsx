@@ -25,7 +25,7 @@ class SelectedFrameRenderer {
     context.lineWidth = style.BORDER_WIDTH;
 
     for (let i = 0; i < frames.length; i++) {
-      const frameInPhysicalSpace = frames[i].transformRect(configViewToPhysicalSpace);
+      const frameInPhysicalSpace = frames[i]!.transformRect(configViewToPhysicalSpace);
 
       context.beginPath();
 

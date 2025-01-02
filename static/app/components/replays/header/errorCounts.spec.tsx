@@ -94,11 +94,11 @@ describe('ErrorCounts', () => {
     const pyIcon = await screen.findByTestId('platform-icon-python');
     expect(pyIcon).toBeInTheDocument();
 
-    expect(countNodes[0].parentElement).toHaveAttribute(
+    expect(countNodes[0]!.parentElement).toHaveAttribute(
       'href',
       '/mock-pathname/?f_e_project=my-js-app&t_main=errors'
     );
-    expect(countNodes[1].parentElement).toHaveAttribute(
+    expect(countNodes[1]!.parentElement).toHaveAttribute(
       'href',
       '/mock-pathname/?f_e_project=my-py-backend&t_main=errors'
     );

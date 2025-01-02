@@ -155,7 +155,7 @@ describe('findRangeOfMultiSeries()', () => {
   });
 
   it('should find min and max when series is unordered', () => {
-    const mixedSeries = [series[1], series[0], series[2]];
+    const mixedSeries = [series[1]!, series[0]!, series[2]!];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 50});
   });
 
@@ -169,9 +169,9 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 0},
         ],
       },
-      series[1],
-      series[0],
-      series[2],
+      series[1]!,
+      series[0]!,
+      series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 0});
   });
@@ -186,9 +186,9 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 10},
         ],
       },
-      series[1],
-      series[0],
-      series[2],
+      series[1]!,
+      series[0]!,
+      series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: -10});
   });

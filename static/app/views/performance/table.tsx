@@ -180,7 +180,7 @@ class _Table extends Component<Props, State> {
       });
 
       if (action === Actions.EDIT_THRESHOLD) {
-        const project_threshold = dataRow.project_threshold_config;
+        const project_threshold = dataRow.project_threshold_config!;
         const transactionName = dataRow.transaction as string;
         const projectID = getProjectID(dataRow, projects);
 

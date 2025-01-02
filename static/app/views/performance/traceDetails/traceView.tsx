@@ -236,7 +236,7 @@ export default function TraceView({
             }}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             generateBounds={generateBounds(traceInfo)}
@@ -291,7 +291,7 @@ export default function TraceView({
       const isLastTransaction = index === traces.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
-        !isLastTransaction && traces[index + 1].parent_span_id !== null;
+        !isLastTransaction && traces[index + 1]!.parent_span_id !== null;
 
       const result = renderTransaction(trace, {
         ...acc,
@@ -351,7 +351,7 @@ export default function TraceView({
             generateBounds={generateBounds(traceInfo)}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             continuingDepths={[]}
@@ -369,8 +369,8 @@ export default function TraceView({
 
   const bounds = generateBounds(traceInfo);
   const measurements =
-    traces.length > 0 && Object.keys(traces[0].measurements ?? {}).length > 0
-      ? getMeasurements(traces[0], bounds)
+    traces.length > 0 && Object.keys(traces[0]!.measurements ?? {}).length > 0
+      ? getMeasurements(traces[0]!, bounds)
       : undefined;
 
   const traceView = (

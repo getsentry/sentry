@@ -140,7 +140,7 @@ function SpanSummaryContent(props: ContentProps) {
   const {transactionName, project} = props;
 
   const {spanSlug: spanParam} = useParams();
-  const [spanOp, groupId] = spanParam.split(':');
+  const [spanOp, groupId] = spanParam!.split(':');
 
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,

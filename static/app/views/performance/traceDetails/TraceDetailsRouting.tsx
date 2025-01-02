@@ -48,7 +48,7 @@ function TraceDetailsRouting(props: Props) {
       if (location.hash.includes('span')) {
         const spanHashValue = location.hash
           .split('#')
-          .filter(value => value.includes('span'))[0];
+          .filter(value => value.includes('span'))[0]!;
         const spanId = spanHashValue.split('-')[1];
 
         if (spanId) {
