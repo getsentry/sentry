@@ -39,7 +39,7 @@ export function useReleases(
           sort: activeSort,
           // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
           // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
-          flatten: activeSort === 'date' ? 0 : 1,
+          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
         },
       },
     ],
