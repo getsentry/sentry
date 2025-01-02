@@ -19,7 +19,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
 export function getFoldSectionKey(key: SectionKey) {
   return `'issue-details-fold-section-collapse:${key}`;
@@ -60,7 +60,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   forwardedRef
 ) {
   const organization = useOrganization();
-  const {sectionData, navScrollMargin, dispatch} = useEventDetails();
+  const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
   // Does not control open/close state. Controls what state is persisted to local storage
   const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(sectionKey),
@@ -94,7 +94,11 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
 
   useLayoutEffect(() => {
     if (!sectionData.hasOwnProperty(sectionKey)) {
-      dispatch({type: 'UPDATE_SECTION', key: sectionKey, config: {initialCollapse}});
+      dispatch({
+        type: 'UPDATE_EVENT_SECTION',
+        key: sectionKey,
+        config: {initialCollapse},
+      });
     }
   }, [sectionData, dispatch, sectionKey, initialCollapse]);
 
