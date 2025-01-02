@@ -13,12 +13,12 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -106,6 +106,7 @@ interface Props {
 }
 
 export function QueuesTable({error, destination, sort}: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -116,7 +117,7 @@ export function QueuesTable({error, destination, sort}: Props) {
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
     });
