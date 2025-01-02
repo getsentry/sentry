@@ -40,7 +40,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def config_schema(self) -> dict[str, Any]:
         return {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "$id": "https://example.com/product.schema.json",
             "title": "Workflow Schema",
             "type": "object",
             "properties": {
