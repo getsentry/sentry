@@ -827,7 +827,7 @@ export default typescript.config([
     },
   },
   {
-    name: 'sentry-test',
+    name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     rules: {
       'no-restricted-imports': [
