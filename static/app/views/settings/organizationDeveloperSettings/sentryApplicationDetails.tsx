@@ -41,7 +41,6 @@ import type {SentryApp} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -200,7 +199,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     const type = this.isInternal ? 'internal' : 'public';
     const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
@@ -209,7 +208,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(normalizeUrl(url));
+    router.push(normalizeUrl(url));
   };
 
   handleSubmitError = err => {
