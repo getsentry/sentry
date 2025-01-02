@@ -66,14 +66,6 @@ import type {GenericWidgetQueriesChildrenProps} from './genericWidgetQueries';
 const OTHER = 'Other';
 const PERCENTAGE_DECIMAL_POINTS = 3;
 
-export type AugmentedEChartDataZoomHandler = (
-  params: Parameters<EChartDataZoomHandler>[0] & {
-    seriesEnd: string | number;
-    seriesStart: string | number;
-  },
-  instance: Parameters<EChartDataZoomHandler>[1]
-) => void;
-
 type TableResultProps = Pick<
   GenericWidgetQueriesChildrenProps,
   'errorMessage' | 'loading' | 'tableResults'
@@ -99,7 +91,7 @@ type WidgetCardChartProps = Pick<
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onZoom?: AugmentedEChartDataZoomHandler;
+  onZoom?: EChartDataZoomHandler;
   shouldResize?: boolean;
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   windowWidth?: number;
@@ -507,9 +499,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 .filter(Boolean) // NOTE: `timeseriesResults` is a sparse array! We have to filter out the empty slots after the colors are assigned, since the colors are assigned based on sparse array index
             : [];
 
-          const seriesStart = series[0]?.data[0]?.name;
-          const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
-
           const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
 
           return widgetLegendState.widgetRequiresLegendUnselection(widget) ? (
@@ -542,15 +531,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                           ...zoomRenderProps,
                           ...chartOptions,
                           // Override default datazoom behaviour for updating Global Selection Header
-                          ...(onZoom
-                            ? {
-                                onDataZoom: (evt, chartProps) =>
-                                  // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
-                                  // callback with percentage instead of datetime values. Passing seriesStart
-                                  // and seriesEnd allows calculating datetime values with percentage.
-                                  onZoom({...evt, seriesStart, seriesEnd}, chartProps),
-                              }
-                            : {}),
+                          ...(onZoom ? {onDataZoom: onZoom} : {}),
                           legend,
                           series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                           onLegendSelectChanged,
@@ -572,15 +553,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     ...zoomRenderProps,
                     ...chartOptions,
                     // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom
-                      ? {
-                          onDataZoom: (evt, chartProps) =>
-                            // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
-                            // callback with percentage instead of datetime values. Passing seriesStart
-                            // and seriesEnd allows calculating datetime values with percentage.
-                            onZoom({...evt, seriesStart, seriesEnd}, chartProps),
-                        }
-                      : {}),
+                    ...(onZoom ? {onDataZoom: onZoom} : {}),
                     legend,
                     series,
                     onLegendSelectChanged,

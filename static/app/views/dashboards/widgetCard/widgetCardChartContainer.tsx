@@ -7,7 +7,11 @@ import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  Series,
+} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -18,7 +22,6 @@ import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
-import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
@@ -49,7 +52,7 @@ type Props = {
     type: 'legendselectchanged';
   }>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
-  onZoom?: AugmentedEChartDataZoomHandler;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
   tableItemLimit?: number;
