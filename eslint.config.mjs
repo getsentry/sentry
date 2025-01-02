@@ -24,284 +24,68 @@ import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
 
-const baseRules = {
-  /**
-   * Strict mode
-   */
-  // https://eslint.org/docs/rules/strict
-  strict: ['error', 'global'],
-
-  /**
-   * Variables
-   */
-  // https://eslint.org/docs/rules/no-shadow-restricted-names
-  'no-shadow-restricted-names': ['error'],
-
-  /**
-   * Possible errors
-   */
-  // https://eslint.org/docs/rules/no-cond-assign
-  'no-cond-assign': ['error', 'always'],
-
-  // https://eslint.org/docs/rules/no-alert
-  'no-alert': ['error'],
-
-  // https://eslint.org/docs/rules/no-constant-condition
-  'no-constant-condition': ['warn'],
-
-  // https://eslint.org/docs/rules/no-empty
-  'no-empty': ['error'],
-
-  // https://eslint.org/docs/rules/no-ex-assign
-  'no-ex-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-extra-boolean-cast
-  'no-extra-boolean-cast': ['error'],
-
-  // https://eslint.org/docs/rules/no-func-assign
-  'no-func-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-inner-declarations
-  'no-inner-declarations': ['error'],
-
-  // https://eslint.org/docs/rules/no-invalid-regexp
-  'no-invalid-regexp': ['error'],
-
-  // https://eslint.org/docs/rules/no-irregular-whitespace
-  'no-irregular-whitespace': ['error'],
-
-  // https://eslint.org/docs/rules/no-obj-calls
-  'no-obj-calls': ['error'],
-
-  // https://eslint.org/docs/rules/no-sparse-arrays
-  'no-sparse-arrays': ['error'],
-
-  // https://eslint.org/docs/rules/block-scoped-var
-  'block-scoped-var': ['error'],
-
-  /**
-   * Best practices
-   */
-  // https://eslint.org/docs/rules/consistent-return
-  'consistent-return': ['error'],
-
-  // https://eslint.org/docs/rules/default-case
-  'default-case': ['error'],
-
-  // https://eslint.org/docs/rules/dot-notation
-  'dot-notation': [
-    'error',
-    {
-      allowKeywords: true,
-    },
-  ],
-
-  // https://eslint.org/docs/rules/guard-for-in [REVISIT ME]
-  'guard-for-in': ['off'],
-
-  // https://eslint.org/docs/rules/no-caller
-  'no-caller': ['error'],
-
-  // https://eslint.org/docs/rules/no-eval
-  'no-eval': ['error'],
-
-  // https://eslint.org/docs/rules/no-extend-native
-  'no-extend-native': ['error'],
-
-  // https://eslint.org/docs/rules/no-extra-bind
-  'no-extra-bind': ['error'],
-
-  // https://eslint.org/docs/rules/no-fallthrough
-  'no-fallthrough': ['error'],
-
-  // https://eslint.org/docs/rules/no-floating-decimal
-  'no-floating-decimal': ['error'],
-
-  // https://eslint.org/docs/rules/no-implied-eval
-  'no-implied-eval': ['error'],
-
-  // https://eslint.org/docs/rules/no-lone-blocks
-  'no-lone-blocks': ['error'],
-
-  // https://eslint.org/docs/rules/no-loop-func
-  'no-loop-func': ['error'],
-
-  // https://eslint.org/docs/rules/no-multi-str
-  'no-multi-str': ['error'],
-
-  // https://eslint.org/docs/rules/no-native-reassign
-  'no-native-reassign': ['error'],
-
-  // https://eslint.org/docs/rules/no-new
-  'no-new': ['error'],
-
-  // https://eslint.org/docs/rules/no-new-func
-  'no-new-func': ['error'],
-
-  // https://eslint.org/docs/rules/no-new-wrappers
-  'no-new-wrappers': ['error'],
-
-  // https://eslint.org/docs/rules/no-octal
-  'no-octal': ['error'],
-
-  // https://eslint.org/docs/rules/no-octal-escape
-  'no-octal-escape': ['error'],
-
-  // https://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
-  'no-param-reassign': ['off'],
-
-  // https://eslint.org/docs/rules/no-proto
-  'no-proto': ['error'],
-
-  // https://eslint.org/docs/rules/no-return-assign
-  'no-return-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-script-url
-  'no-script-url': ['error'],
-
-  // https://eslint.org/docs/rules/no-self-compare
-  'no-self-compare': ['error'],
-
-  // https://eslint.org/docs/rules/no-sequences
-  'no-sequences': ['error'],
-
-  // https://eslint.org/docs/rules/no-throw-literal
-  'no-throw-literal': ['error'],
-
-  // https://eslint.org/docs/rules/no-with
-  'no-with': ['error'],
-
-  // https://eslint.org/docs/rules/radix
-  radix: ['error'],
-
-  // https://eslint.org/docs/rules/object-shorthand
-  'object-shorthand': ['error', 'properties'],
-
-  // https://eslint.org/docs/rules/vars-on-top
-  'vars-on-top': ['off'],
-
-  // https://eslint.org/docs/rules/wrap-iife
-  'wrap-iife': ['error', 'any'],
-
-  // https://eslint.org/docs/rules/array-callback-return
-  'array-callback-return': ['error'],
-
-  // https://eslint.org/docs/rules/yoda
-  yoda: ['error'],
-
-  // https://eslint.org/docs/rules/no-else-return
-  'no-else-return': ['error', {allowElseIf: false}],
-
-  // https://eslint.org/docs/rules/require-await
-  'require-await': ['error'],
-
-  // https://eslint.org/docs/rules/multiline-comment-style
-  'multiline-comment-style': ['error', 'separate-lines'],
-
-  // https://eslint.org/docs/rules/spaced-comment
-  'spaced-comment': [
-    'error',
-    'always',
-    {
-      line: {markers: ['/'], exceptions: ['-', '+']},
-      block: {exceptions: ['*'], balanced: true},
-    },
-  ],
-};
-
-const appRules = {
-  // Let formatter handle this
-  'arrow-body-style': 'off',
-
-  /**
-   * Restricted imports, e.g. deprecated libraries, etc
-   *
-   * See: https://eslint.org/docs/rules/no-restricted-imports
-   */
-  'no-restricted-imports': [
-    'error',
-    {
-      patterns: [
-        {
-          group: ['sentry/components/devtoolbar/*'],
-          message: 'Do not depend on toolbar internals',
-        },
-        {
-          group: ['*.spec*'],
-          message:
-            'Do not import from test files. This causes tests to be executed multiple times.',
-        },
-      ],
-      paths: [
-        {
-          name: '@testing-library/react',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@testing-library/react-hooks',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@testing-library/user-event',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@sentry/browser',
-          message:
-            'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
-        },
-        {
-          name: 'marked',
-          message:
-            "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
-        },
-        {
-          name: 'lodash',
-          message:
-            "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
-        },
-        {
-          name: 'lodash/get',
-          message:
-            'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-        },
-        {
-          name: 'sentry/utils/theme',
-          importNames: ['lightColors', 'darkColors'],
-          message:
-            "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-        },
-        {
-          name: 'react-router',
-          importNames: ['withRouter'],
-          message:
-            "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-        },
-        {
-          name: 'sentry/utils/withSentryRouter',
-          message:
-            "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-        },
-        {
-          name: 'qs',
-          message: 'Please use query-string instead of qs',
-        },
-        {
-          name: 'moment',
-          message: 'Please import moment-timezone instead of moment',
-        },
-      ],
-    },
-  ],
-};
-
-const strictRules = {
-  // https://eslint.org/docs/rules/no-console
-  'no-console': ['error'],
-};
+const restrictedImportPaths = [
+  {
+    name: '@testing-library/react',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/react-hooks',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/user-event',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@sentry/browser',
+    message:
+      'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
+  },
+  {
+    name: 'marked',
+    message:
+      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+  },
+  {
+    name: 'lodash',
+    message:
+      "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
+  },
+  {
+    name: 'lodash/get',
+    message:
+      'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
+  },
+  {
+    name: 'sentry/utils/theme',
+    importNames: ['lightColors', 'darkColors'],
+    message:
+      "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
+  },
+  {
+    name: 'react-router',
+    importNames: ['withRouter'],
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'sentry/utils/withSentryRouter',
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'qs',
+    message: 'Please use query-string instead of qs',
+  },
+  {
+    name: 'moment',
+    message: 'Please import moment-timezone instead of moment',
+  },
+];
 
 // Used by both: `languageOptions` & `parserOptions`
 const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
@@ -437,6 +221,222 @@ export default typescript.config([
    * Finally, once all warnings are fixed, update from 'warning' to 'error', or
    * remove the override and rely on the recommended rules again.
    */
+  {
+    name: 'eslint/base',
+    rules: {
+      /**
+       * Strict mode
+       */
+      // https://eslint.org/docs/rules/strict
+      strict: ['error', 'global'],
+
+      /**
+       * Variables
+       */
+      // https://eslint.org/docs/rules/no-shadow-restricted-names
+      'no-shadow-restricted-names': ['error'],
+
+      /**
+       * Possible errors
+       */
+      // https://eslint.org/docs/rules/no-cond-assign
+      'no-cond-assign': ['error', 'always'],
+
+      // https://eslint.org/docs/rules/no-alert
+      'no-alert': ['error'],
+
+      // https://eslint.org/docs/rules/no-constant-condition
+      'no-constant-condition': ['warn'],
+
+      // https://eslint.org/docs/rules/no-empty
+      'no-empty': ['error'],
+
+      // https://eslint.org/docs/rules/no-ex-assign
+      'no-ex-assign': ['error'],
+
+      // https://eslint.org/docs/rules/no-extra-boolean-cast
+      'no-extra-boolean-cast': ['error'],
+
+      // https://eslint.org/docs/rules/no-func-assign
+      'no-func-assign': ['error'],
+
+      // https://eslint.org/docs/rules/no-inner-declarations
+      'no-inner-declarations': ['error'],
+
+      // https://eslint.org/docs/rules/no-invalid-regexp
+      'no-invalid-regexp': ['error'],
+
+      // https://eslint.org/docs/rules/no-irregular-whitespace
+      'no-irregular-whitespace': ['error'],
+
+      // https://eslint.org/docs/rules/no-obj-calls
+      'no-obj-calls': ['error'],
+
+      // https://eslint.org/docs/rules/no-sparse-arrays
+      'no-sparse-arrays': ['error'],
+
+      // https://eslint.org/docs/rules/block-scoped-var
+      'block-scoped-var': ['error'],
+
+      /**
+       * Best practices
+       */
+      // https://eslint.org/docs/rules/consistent-return
+      'consistent-return': ['error'],
+
+      // https://eslint.org/docs/rules/default-case
+      'default-case': ['error'],
+
+      // https://eslint.org/docs/rules/dot-notation
+      'dot-notation': [
+        'error',
+        {
+          allowKeywords: true,
+        },
+      ],
+
+      // https://eslint.org/docs/rules/guard-for-in [REVISIT ME]
+      'guard-for-in': ['off'],
+
+      // https://eslint.org/docs/rules/no-caller
+      'no-caller': ['error'],
+
+      // https://eslint.org/docs/rules/no-eval
+      'no-eval': ['error'],
+
+      // https://eslint.org/docs/rules/no-extend-native
+      'no-extend-native': ['error'],
+
+      // https://eslint.org/docs/rules/no-extra-bind
+      'no-extra-bind': ['error'],
+
+      // https://eslint.org/docs/rules/no-fallthrough
+      'no-fallthrough': ['error'],
+
+      // https://eslint.org/docs/rules/no-floating-decimal
+      'no-floating-decimal': ['error'],
+
+      // https://eslint.org/docs/rules/no-implied-eval
+      'no-implied-eval': ['error'],
+
+      // https://eslint.org/docs/rules/no-lone-blocks
+      'no-lone-blocks': ['error'],
+
+      // https://eslint.org/docs/rules/no-loop-func
+      'no-loop-func': ['error'],
+
+      // https://eslint.org/docs/rules/no-multi-str
+      'no-multi-str': ['error'],
+
+      // https://eslint.org/docs/rules/no-native-reassign
+      'no-native-reassign': ['error'],
+
+      // https://eslint.org/docs/rules/no-new
+      'no-new': ['error'],
+
+      // https://eslint.org/docs/rules/no-new-func
+      'no-new-func': ['error'],
+
+      // https://eslint.org/docs/rules/no-new-wrappers
+      'no-new-wrappers': ['error'],
+
+      // https://eslint.org/docs/rules/no-octal
+      'no-octal': ['error'],
+
+      // https://eslint.org/docs/rules/no-octal-escape
+      'no-octal-escape': ['error'],
+
+      // https://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
+      'no-param-reassign': ['off'],
+
+      // https://eslint.org/docs/rules/no-proto
+      'no-proto': ['error'],
+
+      // https://eslint.org/docs/rules/no-return-assign
+      'no-return-assign': ['error'],
+
+      // https://eslint.org/docs/rules/no-script-url
+      'no-script-url': ['error'],
+
+      // https://eslint.org/docs/rules/no-self-compare
+      'no-self-compare': ['error'],
+
+      // https://eslint.org/docs/rules/no-sequences
+      'no-sequences': ['error'],
+
+      // https://eslint.org/docs/rules/no-throw-literal
+      'no-throw-literal': ['error'],
+
+      // https://eslint.org/docs/rules/no-with
+      'no-with': ['error'],
+
+      // https://eslint.org/docs/rules/radix
+      radix: ['error'],
+
+      // https://eslint.org/docs/rules/object-shorthand
+      'object-shorthand': ['error', 'properties'],
+
+      // https://eslint.org/docs/rules/vars-on-top
+      'vars-on-top': ['off'],
+
+      // https://eslint.org/docs/rules/wrap-iife
+      'wrap-iife': ['error', 'any'],
+
+      // https://eslint.org/docs/rules/array-callback-return
+      'array-callback-return': ['error'],
+
+      // https://eslint.org/docs/rules/yoda
+      yoda: ['error'],
+
+      // https://eslint.org/docs/rules/no-else-return
+      'no-else-return': ['error', {allowElseIf: false}],
+
+      // https://eslint.org/docs/rules/require-await
+      'require-await': ['error'],
+
+      // https://eslint.org/docs/rules/multiline-comment-style
+      'multiline-comment-style': ['error', 'separate-lines'],
+
+      // https://eslint.org/docs/rules/spaced-comment
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          line: {markers: ['/'], exceptions: ['-', '+']},
+          block: {exceptions: ['*'], balanced: true},
+        },
+      ],
+
+      // Let formatter handle this
+      'arrow-body-style': 'off',
+
+      /**
+       * Restricted imports, e.g. deprecated libraries, etc
+       *
+       * See: https://eslint.org/docs/rules/no-restricted-imports
+       */
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['*.spec*'],
+              message:
+                'Do not import from test files. This causes tests to be executed multiple times.',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
+
+      // https://eslint.org/docs/rules/no-console
+      'no-console': ['error'],
+    },
+  },
   {
     name: 'import',
     ...importPlugin.flatConfigs.recommended,
@@ -586,14 +586,6 @@ export default typescript.config([
         'error',
         {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
       ],
-    },
-  },
-  {
-    name: 'getsentry/sentry/custom',
-    rules: {
-      ...baseRules,
-      ...appRules,
-      ...strictRules,
     },
   },
   {
@@ -782,8 +774,7 @@ export default typescript.config([
         'error',
         {
           paths: [
-            // @ts-ignore
-            ...appRules['no-restricted-imports'][1].paths,
+            ...restrictedImportPaths,
             {
               name: 'sentry/utils/queryClient',
               message:
