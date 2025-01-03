@@ -4,17 +4,17 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from 'sentry/components/alert';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ApiForm from 'sentry/components/forms/apiForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import type {Field} from '../options';
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-export type InstallWizardProps = DeprecatedAsyncView['props'] & {
+export type InstallWizardProps = DeprecatedAsyncComponent['props'] & {
   onConfigured: () => void;
 };
 
@@ -26,15 +26,15 @@ export type InstallWizardOptions = Record<
   }
 >;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   data: null | InstallWizardOptions;
 };
 
-export default class InstallWizard extends DeprecatedAsyncView<
+export default class InstallWizard extends DeprecatedAsyncComponent<
   InstallWizardProps,
   State
 > {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 
@@ -95,14 +95,10 @@ export default class InstallWizard extends DeprecatedAsyncView<
     return data;
   }
 
-  getTitle() {
-    return t('Setup Sentry');
-  }
-
   render() {
     const version = ConfigStore.get('version');
     return (
-      <SentryDocumentTitle noSuffix title={this.getTitle()}>
+      <SentryDocumentTitle noSuffix title={t('Setup Sentry')}>
         <Wrapper>
           <Pattern />
           <SetupWizard>
