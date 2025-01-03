@@ -251,6 +251,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
     trackAnalytics('issue_details.event_json_clicked', {
       organization,
       group_id: parseInt(`${event.groupID}`, 10),
+      streamline: false,
     });
   };
 
@@ -264,12 +265,20 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
         organization,
         ...getAnalyticsDataForGroup(group),
         ...getAnalyticsDataForEvent(event),
+        streamline: false,
       }),
   });
 
   const {onClick: copyEventId} = useCopyToClipboard({
     successMessage: t('Event ID copied to clipboard'),
     text: event.id,
+    onCopy: () =>
+      trackAnalytics('issue_details.copy_event_id_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        ...getAnalyticsDataForEvent(event),
+        streamline: false,
+      }),
   });
 
   return (

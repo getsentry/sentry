@@ -65,7 +65,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith('/settings/org-slug2/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
   });
 
   it('switches organizations while on API Keys Details route', async function () {
@@ -86,7 +86,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
   });
 
   it('switches organizations while on API Keys List route', async function () {
@@ -106,7 +106,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
   });
 
   it('switches organizations while in Project Client Keys Details route', async function () {
@@ -128,7 +128,7 @@ describe('OrganizationCrumb', function () {
     });
     await switchOrganization();
 
-    expect(router.push).toHaveBeenCalledWith('/settings/org-slug2/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
   });
 
   it('switches organizations for child route with customer domains', async function () {

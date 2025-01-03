@@ -1,6 +1,6 @@
 import {generateSentryTraceHeader} from '@sentry/utils';
 
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {HTTPSnippet} from './httpSnippet';
 
@@ -11,7 +11,7 @@ jest.mock('@sentry/utils', () => ({
 
 describe('HTTPSnippet', function () {
   it('renders', function () {
-    const {container} = render(
+    render(
       <HTTPSnippet
         url="https://example.com/test?query=value"
         method="POST"
@@ -38,8 +38,9 @@ describe('HTTPSnippet', function () {
       `{"key": "value"}`,
     ].join('\r\n');
 
-    // XXX(epurkhiser): Using toHaveTextContent would be nice here, but it
-    // loses the newlines.
-    expect(container.getElementsByTagName('code')[0]!.innerHTML).toBe(expected);
+    const codeElem = screen.getByText('POST /test?query=value HTTP/1.1', {exact: false});
+
+    // Using toHaveTextContent would be nice here, but it loses the newlines.
+    expect(codeElem.innerHTML).toBe(expected);
   });
 });

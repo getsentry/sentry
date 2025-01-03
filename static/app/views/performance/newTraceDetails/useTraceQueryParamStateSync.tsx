@@ -1,12 +1,13 @@
 import {useEffect, useRef} from 'react';
 import * as qs from 'query-string';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 // Syncs query params with URL state. Only performs a state sync if the query params have changed.
 export function useTraceQueryParamStateSync(query: Record<string, string | undefined>) {
   const previousQueryRef = useRef<Record<string, string | undefined>>(query);
   const syncStateTimeoutRef = useRef<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const keys = Object.keys(query);
@@ -28,13 +29,16 @@ export function useTraceQueryParamStateSync(query: Record<string, string | undef
 
     previousQueryRef.current = query;
     syncStateTimeoutRef.current = window.setTimeout(() => {
-      browserHistory.replace({
-        pathname: location.pathname,
-        query: {
-          ...qs.parse(location.search),
-          ...previousQueryRef.current,
+      navigate(
+        {
+          pathname: location.pathname,
+          query: {
+            ...qs.parse(location.search),
+            ...previousQueryRef.current,
+          },
         },
-      });
+        {replace: true}
+      );
     }, 1000);
-  }, [query]);
+  }, [navigate, query]);
 }
