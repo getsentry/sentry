@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
 import {
@@ -44,6 +44,7 @@ export const BuilderStateAction = {
   SET_SORT: 'SET_SORT',
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
+  SET_ERROR: 'SET_ERROR',
 } as const;
 
 type WidgetAction =
@@ -56,12 +57,14 @@ type WidgetAction =
   | {payload: string[]; type: typeof BuilderStateAction.SET_QUERY}
   | {payload: Sort[]; type: typeof BuilderStateAction.SET_SORT}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
-  | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS};
+  | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
+  | {payload: Record<string, any>; type: typeof BuilderStateAction.SET_ERROR};
 
 export interface WidgetBuilderState {
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
+  error?: Record<string, any>;
   fields?: Column[];
   legendAlias?: string[];
   limit?: number;
@@ -118,6 +121,7 @@ function useWidgetBuilderState(): {
     fieldName: 'legendAlias',
     decoder: decodeList,
   });
+  const [error, setError] = useState<Record<string, any>>({});
 
   const state = useMemo(
     () => ({
@@ -131,6 +135,7 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      error,
     }),
     [
       title,
@@ -143,6 +148,7 @@ function useWidgetBuilderState(): {
       sort,
       limit,
       legendAlias,
+      error,
     ]
   );
 
@@ -221,6 +227,9 @@ function useWidgetBuilderState(): {
         case BuilderStateAction.SET_LEGEND_ALIAS:
           setLegendAlias(action.payload);
           break;
+        case BuilderStateAction.SET_ERROR:
+          setError(action.payload);
+          break;
         default:
           break;
       }
@@ -236,6 +245,7 @@ function useWidgetBuilderState(): {
       setSort,
       setLimit,
       setLegendAlias,
+      setError,
       fields,
       yAxis,
       displayType,
