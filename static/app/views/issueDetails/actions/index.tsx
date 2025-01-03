@@ -1,13 +1,11 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import type {Query} from 'history';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archive';
@@ -29,10 +27,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import type {Organization, SavedQueryVersions} from 'sentry/types/organization';
+import type {SavedQueryVersions} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -41,10 +38,10 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -63,36 +60,31 @@ const isResolutionStatus = (data: UpdateData): data is GroupStatusResolution => 
   return (data as GroupStatusResolution).status !== undefined;
 };
 
-type Props = {
-  api: Client;
+interface GroupActionsProps {
   disabled: boolean;
   event: Event | null;
   group: Group;
-  organization: Organization;
   project: Project;
-  query?: Query;
-};
+}
 
-export function Actions(props: Props) {
-  const {api, group, project, organization, disabled, event, query = {}} = props;
-  const {status, isBookmarked} = group;
+export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const bookmarkKey = isBookmarked ? 'unbookmark' : 'bookmark';
-  const bookmarkTitle = isBookmarked ? t('Remove bookmark') : t('Bookmark');
+  const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
+  const bookmarkTitle = group.isBookmarked ? t('Remove bookmark') : t('Bookmark');
   const hasRelease = !!project.features?.includes('releases');
-  const isResolved = status === 'resolved';
+  const isResolved = group.status === 'resolved';
   const isAutoResolved =
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
-  const isIgnored = status === 'ignored';
+  const isIgnored = group.status === 'ignored';
 
   const hasDeleteAccess = organization.access.includes('event:admin');
 
   const config = useMemo(() => getConfigForIssueType(group, project), [group, project]);
-
-  const hasStreamlinedUI = useHasStreamlinedUI();
-
-  const org = useOrganization();
-  const hasIssuePlatformDeletionUI = org.features.includes('issue-platform-deletion-ui');
 
   const {
     actions: {
@@ -106,6 +98,9 @@ export function Actions(props: Props) {
   } = config;
 
   // Update the deleteCap to be enabled if the feature flag is present
+  const hasIssuePlatformDeletionUI = organization.features.includes(
+    'issue-platform-deletion-ui'
+  );
   const updatedDeleteCap = {
     ...deleteCap,
     enabled: hasIssuePlatformDeletionUI || deleteCap.enabled,
@@ -148,7 +143,7 @@ export function Actions(props: Props) {
     substatus?: GroupSubstatus | null,
     statusDetailsKey?: string
   ) => {
-    const {alert_date, alert_rule_id, alert_type} = query;
+    const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
       action_type: action,
@@ -178,12 +173,10 @@ export function Actions(props: Props) {
         complete: () => {
           clearIndicators();
 
-          browserHistory.push(
-            normalizeUrl({
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {project: project.id},
-            })
-          );
+          navigate({
+            pathname: `/organizations/${organization.slug}/issues/`,
+            query: {project: project.id},
+          });
         },
       }
     );
@@ -256,12 +249,10 @@ export function Actions(props: Props) {
       data: {discard: true},
       success: response => {
         GroupStore.onDiscardSuccess(id, group.id, response);
-        browserHistory.push(
-          normalizeUrl({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          })
-        );
+        navigate({
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {project: project.id},
+        });
       },
       error: error => {
         GroupStore.onDiscardError(id, group.id, error);
@@ -620,5 +611,3 @@ const ResolvedActionWapper = styled('div')`
   gap: ${space(1)};
   align-items: center;
 `;
-
-export default withApi(withOrganization(Actions));
