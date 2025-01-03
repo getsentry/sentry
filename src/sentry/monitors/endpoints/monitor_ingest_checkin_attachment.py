@@ -139,7 +139,6 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         # validate that the slug matches the org of the monitors project
 
         # We only raise if the organization_id_or_slug was set and it doesn't match.
-        # We don't check the api.id-or-slug-enabled option here because slug and id are unique
         if (
             organization_id_or_slug
             and project.organization.slug != organization_id_or_slug
