@@ -703,6 +703,70 @@ describe('useWidgetBuilderState', () => {
 
       expect(result.current.state.yAxis).toEqual([]);
     });
+
+    it('resets the sort when the display type is switched and the sort is not in the new fields', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['testField', 'testField2'],
+            sort: ['-project.name'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'project.name', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'testField',
+          kind: 'desc',
+        },
+      ]);
+    });
+
+    it('keeps sort when the sort is in the new fields', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            field: ['testField', 'testField2'],
+            sort: ['-testField'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([
+        {
+          field: 'testField',
+          kind: 'desc',
+        },
+      ]);
+    });
   });
 
   describe('fields', () => {
