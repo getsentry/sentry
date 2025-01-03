@@ -28,7 +28,7 @@ type Props = {
   orgSlug: string;
 };
 
-function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 

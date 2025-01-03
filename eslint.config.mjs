@@ -6,10 +6,10 @@
  * `npx eslint --inspect-config`
  */
 import * as emotion from '@emotion/eslint-plugin';
+import prettier from 'eslint-config-prettier';
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
-import prettier from 'eslint-plugin-prettier/recommended';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import sentry from 'eslint-plugin-sentry';
@@ -24,430 +24,75 @@ import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
 
-const baseRules = {
-  /**
-   * Strict mode
-   */
-  // https://eslint.org/docs/rules/strict
-  strict: ['error', 'global'],
-
-  /**
-   * Variables
-   */
-  // https://eslint.org/docs/rules/no-shadow-restricted-names
-  'no-shadow-restricted-names': ['error'],
-
-  /**
-   * Possible errors
-   */
-  // https://eslint.org/docs/rules/no-cond-assign
-  'no-cond-assign': ['error', 'always'],
-
-  // https://eslint.org/docs/rules/no-alert
-  'no-alert': ['error'],
-
-  // https://eslint.org/docs/rules/no-constant-condition
-  'no-constant-condition': ['warn'],
-
-  // https://eslint.org/docs/rules/no-empty
-  'no-empty': ['error'],
-
-  // https://eslint.org/docs/rules/no-ex-assign
-  'no-ex-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-extra-boolean-cast
-  'no-extra-boolean-cast': ['error'],
-
-  // https://eslint.org/docs/rules/no-func-assign
-  'no-func-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-inner-declarations
-  'no-inner-declarations': ['error'],
-
-  // https://eslint.org/docs/rules/no-invalid-regexp
-  'no-invalid-regexp': ['error'],
-
-  // https://eslint.org/docs/rules/no-irregular-whitespace
-  'no-irregular-whitespace': ['error'],
-
-  // https://eslint.org/docs/rules/no-obj-calls
-  'no-obj-calls': ['error'],
-
-  // https://eslint.org/docs/rules/no-sparse-arrays
-  'no-sparse-arrays': ['error'],
-
-  // https://eslint.org/docs/rules/block-scoped-var
-  'block-scoped-var': ['error'],
-
-  /**
-   * Best practices
-   */
-  // https://eslint.org/docs/rules/consistent-return
-  'consistent-return': ['error'],
-
-  // https://eslint.org/docs/rules/default-case
-  'default-case': ['error'],
-
-  // https://eslint.org/docs/rules/dot-notation
-  'dot-notation': [
-    'error',
-    {
-      allowKeywords: true,
-    },
-  ],
-
-  // https://eslint.org/docs/rules/guard-for-in [REVISIT ME]
-  'guard-for-in': ['off'],
-
-  // https://eslint.org/docs/rules/no-caller
-  'no-caller': ['error'],
-
-  // https://eslint.org/docs/rules/no-eval
-  'no-eval': ['error'],
-
-  // https://eslint.org/docs/rules/no-extend-native
-  'no-extend-native': ['error'],
-
-  // https://eslint.org/docs/rules/no-extra-bind
-  'no-extra-bind': ['error'],
-
-  // https://eslint.org/docs/rules/no-fallthrough
-  'no-fallthrough': ['error'],
-
-  // https://eslint.org/docs/rules/no-floating-decimal
-  'no-floating-decimal': ['error'],
-
-  // https://eslint.org/docs/rules/no-implied-eval
-  'no-implied-eval': ['error'],
-
-  // https://eslint.org/docs/rules/no-lone-blocks
-  'no-lone-blocks': ['error'],
-
-  // https://eslint.org/docs/rules/no-loop-func
-  'no-loop-func': ['error'],
-
-  // https://eslint.org/docs/rules/no-multi-str
-  'no-multi-str': ['error'],
-
-  // https://eslint.org/docs/rules/no-native-reassign
-  'no-native-reassign': ['error'],
-
-  // https://eslint.org/docs/rules/no-new
-  'no-new': ['error'],
-
-  // https://eslint.org/docs/rules/no-new-func
-  'no-new-func': ['error'],
-
-  // https://eslint.org/docs/rules/no-new-wrappers
-  'no-new-wrappers': ['error'],
-
-  // https://eslint.org/docs/rules/no-octal
-  'no-octal': ['error'],
-
-  // https://eslint.org/docs/rules/no-octal-escape
-  'no-octal-escape': ['error'],
-
-  // https://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
-  'no-param-reassign': ['off'],
-
-  // https://eslint.org/docs/rules/no-proto
-  'no-proto': ['error'],
-
-  // https://eslint.org/docs/rules/no-return-assign
-  'no-return-assign': ['error'],
-
-  // https://eslint.org/docs/rules/no-script-url
-  'no-script-url': ['error'],
-
-  // https://eslint.org/docs/rules/no-self-compare
-  'no-self-compare': ['error'],
-
-  // https://eslint.org/docs/rules/no-sequences
-  'no-sequences': ['error'],
-
-  // https://eslint.org/docs/rules/no-throw-literal
-  'no-throw-literal': ['error'],
-
-  // https://eslint.org/docs/rules/no-with
-  'no-with': ['error'],
-
-  // https://eslint.org/docs/rules/radix
-  radix: ['error'],
-
-  // https://eslint.org/docs/rules/object-shorthand
-  'object-shorthand': ['error', 'properties'],
-
-  // https://eslint.org/docs/rules/vars-on-top
-  'vars-on-top': ['off'],
-
-  // https://eslint.org/docs/rules/wrap-iife
-  'wrap-iife': ['error', 'any'],
-
-  // https://eslint.org/docs/rules/array-callback-return
-  'array-callback-return': ['error'],
-
-  // https://eslint.org/docs/rules/yoda
-  yoda: ['error'],
-
-  // https://eslint.org/docs/rules/no-else-return
-  'no-else-return': ['error', {allowElseIf: false}],
-
-  // https://eslint.org/docs/rules/require-await
-  'require-await': ['error'],
-
-  // https://eslint.org/docs/rules/multiline-comment-style
-  'multiline-comment-style': ['error', 'separate-lines'],
-
-  // https://eslint.org/docs/rules/spaced-comment
-  'spaced-comment': [
-    'error',
-    'always',
-    {
-      line: {markers: ['/'], exceptions: ['-', '+']},
-      block: {exceptions: ['*'], balanced: true},
-    },
-  ],
-};
-
-const reactRules = {
-  /**
-   * Custom
-   */
-  // highlights literals in JSX components w/o translation tags
-  'getsentry/jsx-needs-il8n': ['off'],
-
-  'typescript-sort-keys/interface': [
-    'error',
-    'asc',
-    {caseSensitive: true, natural: false, requiredFirst: true},
-  ],
-};
-
-const appRules = {
-  // no-undef is redundant with typescript as tsc will complain
-  // A downside is that we won't get eslint errors about it, but your editors should
-  // support tsc errors so....
-  // https://eslint.org/docs/rules/no-undef
-  'no-undef': 'off',
-
-  // Let formatter handle this
-  'arrow-body-style': 'off',
-
-  /**
-   * Need to use typescript version of these rules
-   * https://eslint.org/docs/rules/no-shadow
-   */
-  'no-shadow': 'off',
-  '@typescript-eslint/no-shadow': 'error',
-
-  // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
-  // fix them all, so we'll have to incrementally update.
-  // https://eslint.org/docs/rules/no-unused-vars
-  'no-unused-vars': 'off',
-  '@typescript-eslint/no-unused-vars': [
-    'error',
-    {
-      vars: 'all',
-      args: 'all',
-      // TODO(scttcper): We could enable this to enforce catch (error)
-      // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
-      caughtErrors: 'none',
-
-      // Ignore vars that start with an underscore
-      // e.g. if you want to omit a property using object spread:
-      //
-      //   const {name: _name, ...props} = this.props;
-      //
-      varsIgnorePattern: '^_',
-      argsIgnorePattern: '^_',
-      destructuredArrayIgnorePattern: '^_',
-    },
-  ],
-
-  // https://eslint.org/docs/rules/no-use-before-define
-  'no-use-before-define': 'off',
-  // This seems to have been turned on while previously it had been off
-  '@typescript-eslint/no-use-before-define': ['off'],
-
-  /**
-   * Restricted imports, e.g. deprecated libraries, etc
-   *
-   * See: https://eslint.org/docs/rules/no-restricted-imports
-   */
-  'no-restricted-imports': [
-    'error',
-    {
-      patterns: [
-        {
-          group: ['sentry/components/devtoolbar/*'],
-          message: 'Do not depend on toolbar internals',
-        },
-        {
-          group: ['*.spec*'],
-          message:
-            'Do not import from test files. This causes tests to be executed multiple times.',
-        },
-      ],
-      paths: [
-        {
-          name: '@testing-library/react',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@testing-library/react-hooks',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@testing-library/user-event',
-          message:
-            'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
-        },
-        {
-          name: '@sentry/browser',
-          message:
-            'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
-        },
-        {
-          name: 'marked',
-          message:
-            "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
-        },
-        {
-          name: 'lodash',
-          message:
-            "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
-        },
-        {
-          name: 'lodash/get',
-          message:
-            'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
-        },
-        {
-          name: 'sentry/utils/theme',
-          importNames: ['lightColors', 'darkColors'],
-          message:
-            "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-        },
-        {
-          name: 'react-router',
-          importNames: ['withRouter'],
-          message:
-            "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-        },
-        {
-          name: 'sentry/utils/withSentryRouter',
-          message:
-            "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-        },
-        {
-          name: 'qs',
-          message: 'Please use query-string instead of qs',
-        },
-        {
-          name: 'moment',
-          message: 'Please import moment-timezone instead of moment',
-        },
-      ],
-    },
-  ],
-
-  /**
-   * Better import sorting
-   */
-  'sort-imports': 'off',
-  'simple-import-sort/imports': [
-    'error',
-    {
-      groups: [
-        // Side effect imports.
-        ['^\\u0000'],
-
-        // Node.js builtins.
-        [`^(${builtinModules.join('|')})(/|$)`],
-
-        // Packages. `react` related packages come first.
-        ['^react', '^@?\\w'],
-
-        // Test should be separate from the app
-        ['^(sentry-test|getsentry-test)(/.*|$)'],
-
-        // Internal packages.
-        ['^(sentry-locale|sentry-images)(/.*|$)'],
-
-        ['^(getsentry-images)(/.*|$)'],
-
-        ['^(app|sentry)(/.*|$)'],
-
-        // Getsentry packages.
-        ['^(admin|getsentry)(/.*|$)'],
-
-        // Style imports.
-        ['^.+\\.less$'],
-
-        // Parent imports. Put `..` last.
-        ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
-
-        // Other relative imports. Put same-folder imports and `.` last.
-        ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
-      ],
-    },
-  ],
-
-  'sentry/no-digits-in-tn': ['error'],
-
-  'sentry/no-dynamic-translations': ['error'],
-
-  // https://github.com/xojs/eslint-config-xo-typescript/blob/9791a067d6a119a21a4db72c02f1da95e25ffbb6/index.js#L95
-  '@typescript-eslint/no-restricted-types': [
-    'error',
-    {
-      types: {
-        // TODO(scttcper): Turn object on to make our types more strict
-        // object: {
-        //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
-        //   fixWith: 'Record<string, unknown>'
-        // },
-        Buffer: {
-          message:
-            'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
-          suggest: ['Uint8Array'],
-        },
-        '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
-        '[[]]':
-          "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
-        '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
-      },
-    },
-  ],
-  // TODO(scttcper): Turn no-empty-object-type on to make our types more strict
-  // '@typescript-eslint/no-empty-object-type': 'error',
-  // TODO(scttcper): Turn no-function on to make our types more strict
-  // '@typescript-eslint/no-unsafe-function-type': 'error',
-  '@typescript-eslint/no-wrapper-object-types': 'error',
-
-  // Naming convention enforcements
-  '@typescript-eslint/naming-convention': [
-    'error',
-    {
-      selector: 'typeLike',
-      format: ['PascalCase'],
-      leadingUnderscore: 'allow',
-    },
-    {
-      selector: 'enumMember',
-      format: ['UPPER_CASE'],
-    },
-  ],
-};
-
-const strictRules = {
-  // https://eslint.org/docs/rules/no-console
-  'no-console': ['error'],
-
-  'sentry/no-styled-shortcut': ['error'],
-};
+const restrictedImportPatterns = [
+  {
+    group: ['sentry/components/devtoolbar/*'],
+    message: 'Do not depend on toolbar internals',
+  },
+];
+
+const restrictedImportPaths = [
+  {
+    name: '@testing-library/react',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/react-hooks',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@testing-library/user-event',
+    message:
+      'Please import from `sentry-test/reactTestingLibrary` instead so that we can ensure consistency throughout the codebase',
+  },
+  {
+    name: '@sentry/browser',
+    message:
+      'Please import from `@sentry/react` to ensure consistency throughout the codebase.',
+  },
+  {
+    name: 'marked',
+    message:
+      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+  },
+  {
+    name: 'lodash',
+    message:
+      "Please import lodash utilities individually. e.g. `import isEqual from 'lodash/isEqual';`. See https://github.com/getsentry/frontend-handbook#lodash from for information",
+  },
+  {
+    name: 'lodash/get',
+    message:
+      'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
+  },
+  {
+    name: 'sentry/utils/theme',
+    importNames: ['lightColors', 'darkColors'],
+    message:
+      "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
+  },
+  {
+    name: 'react-router',
+    importNames: ['withRouter'],
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'sentry/utils/withSentryRouter',
+    message:
+      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
+  },
+  {
+    name: 'qs',
+    message: 'Please use query-string instead of qs',
+  },
+  {
+    name: 'moment',
+    message: 'Please import moment-timezone instead of moment',
+  },
+];
 
 // Used by both: `languageOptions` & `parserOptions`
 const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
@@ -464,7 +109,7 @@ export default typescript.config([
     // Main parser & linter options
     // Rules are defined below and inherit these properties
     // https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
-    name: 'main',
+    name: 'eslint/global/languageOptions',
     languageOptions: {
       ecmaVersion,
       sourceType: 'module',
@@ -506,34 +151,24 @@ export default typescript.config([
       noInlineConfig: false,
       reportUnusedDisableDirectives: 'error',
     },
-    // TODO: move these potential overrides and plugin-specific rules into the
-    // corresponding configuration object where the plugin is initially included
-    plugins: {
-      '@typescript-eslint': typescript.plugin,
-      'simple-import-sort': simpleImportSort,
-      'typescript-sort-keys': typescriptSortKeys,
-      sentry,
-    },
     settings: {
       react: {
         version: '18.2.0',
         defaultVersion: '18.2',
       },
-      'import/parsers': {
-        '@typescript-eslint/parser': ['.ts', '.tsx'],
-      },
-      'import/resolver': {
-        typescript: {},
-      },
+      'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
+      'import/resolver': {typescript: {}},
       'import/extensions': ['.js', '.jsx'],
     },
   },
   {
+    name: 'eslint/global/files',
     // Default file selection
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
     files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
   {
+    name: 'eslint/global/ignores',
     // Global ignores
     // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
     ignores: [
@@ -592,8 +227,206 @@ export default typescript.config([
    * remove the override and rely on the recommended rules again.
    */
   {
-    name: 'import',
+    name: 'eslint/rules',
+    rules: {
+      // https://eslint.org/docs/rules/strict
+      strict: ['error', 'global'],
+
+      /**
+       * Variables
+       */
+      // https://eslint.org/docs/rules/no-shadow-restricted-names
+      'no-shadow-restricted-names': 'error',
+
+      /**
+       * Possible errors
+       */
+      // https://eslint.org/docs/rules/no-cond-assign
+      'no-cond-assign': ['error', 'always'],
+
+      // https://eslint.org/docs/rules/no-alert
+      'no-alert': 'error',
+
+      // https://eslint.org/docs/rules/no-constant-condition
+      'no-constant-condition': 'warn',
+
+      // https://eslint.org/docs/rules/no-empty
+      'no-empty': 'error',
+
+      // https://eslint.org/docs/rules/no-ex-assign
+      'no-ex-assign': 'error',
+
+      // https://eslint.org/docs/rules/no-extra-boolean-cast
+      'no-extra-boolean-cast': 'error',
+
+      // https://eslint.org/docs/rules/no-func-assign
+      'no-func-assign': 'error',
+
+      // https://eslint.org/docs/rules/no-inner-declarations
+      'no-inner-declarations': 'error',
+
+      // https://eslint.org/docs/rules/no-invalid-regexp
+      'no-invalid-regexp': 'error',
+
+      // https://eslint.org/docs/rules/no-irregular-whitespace
+      'no-irregular-whitespace': 'error',
+
+      // https://eslint.org/docs/rules/no-obj-calls
+      'no-obj-calls': 'error',
+
+      // https://eslint.org/docs/rules/no-sparse-arrays
+      'no-sparse-arrays': 'error',
+
+      // https://eslint.org/docs/rules/block-scoped-var
+      'block-scoped-var': 'error',
+
+      /**
+       * Best practices
+       */
+      // https://eslint.org/docs/rules/consistent-return
+      'consistent-return': 'error',
+
+      // https://eslint.org/docs/rules/default-case
+      'default-case': 'error',
+
+      // https://eslint.org/docs/rules/dot-notation
+      'dot-notation': ['error', {allowKeywords: true}],
+
+      // https://eslint.org/docs/rules/guard-for-in [REVISIT ME]
+      'guard-for-in': 'off',
+
+      // https://eslint.org/docs/rules/no-caller
+      'no-caller': 'error',
+
+      // https://eslint.org/docs/rules/no-eval
+      'no-eval': 'error',
+
+      // https://eslint.org/docs/rules/no-extend-native
+      'no-extend-native': 'error',
+
+      // https://eslint.org/docs/rules/no-extra-bind
+      'no-extra-bind': 'error',
+
+      // https://eslint.org/docs/rules/no-fallthrough
+      'no-fallthrough': 'error',
+
+      // https://eslint.org/docs/rules/no-floating-decimal
+      'no-floating-decimal': 'error',
+
+      // https://eslint.org/docs/rules/no-implied-eval
+      'no-implied-eval': 'error',
+
+      // https://eslint.org/docs/rules/no-lone-blocks
+      'no-lone-blocks': 'error',
+
+      // https://eslint.org/docs/rules/no-loop-func
+      'no-loop-func': 'error',
+
+      // https://eslint.org/docs/rules/no-multi-str
+      'no-multi-str': 'error',
+
+      // https://eslint.org/docs/rules/no-native-reassign
+      'no-native-reassign': 'error',
+
+      // https://eslint.org/docs/rules/no-new
+      'no-new': 'error',
+
+      // https://eslint.org/docs/rules/no-new-func
+      'no-new-func': 'error',
+
+      // https://eslint.org/docs/rules/no-new-wrappers
+      'no-new-wrappers': 'error',
+
+      // https://eslint.org/docs/rules/no-octal
+      'no-octal': 'error',
+
+      // https://eslint.org/docs/rules/no-octal-escape
+      'no-octal-escape': 'error',
+
+      // https://eslint.org/docs/rules/no-param-reassign [REVISIT ME]
+      'no-param-reassign': 'off',
+
+      // https://eslint.org/docs/rules/no-proto
+      'no-proto': 'error',
+
+      // https://eslint.org/docs/rules/no-return-assign
+      'no-return-assign': 'error',
+
+      // https://eslint.org/docs/rules/no-script-url
+      'no-script-url': 'error',
+
+      // https://eslint.org/docs/rules/no-self-compare
+      'no-self-compare': 'error',
+
+      // https://eslint.org/docs/rules/no-sequences
+      'no-sequences': 'error',
+
+      // https://eslint.org/docs/rules/no-throw-literal
+      'no-throw-literal': 'error',
+
+      // https://eslint.org/docs/rules/no-with
+      'no-with': 'error',
+
+      // https://eslint.org/docs/rules/radix
+      radix: 'error',
+
+      // https://eslint.org/docs/rules/object-shorthand
+      'object-shorthand': ['error', 'properties'],
+
+      // https://eslint.org/docs/rules/vars-on-top
+      'vars-on-top': 'off',
+
+      // https://eslint.org/docs/rules/wrap-iife
+      'wrap-iife': ['error', 'any'],
+
+      // https://eslint.org/docs/rules/array-callback-return
+      'array-callback-return': 'error',
+
+      // https://eslint.org/docs/rules/yoda
+      yoda: 'error',
+
+      // https://eslint.org/docs/rules/no-else-return
+      'no-else-return': ['error', {allowElseIf: false}],
+
+      // https://eslint.org/docs/rules/require-await
+      'require-await': 'error',
+
+      // https://eslint.org/docs/rules/multiline-comment-style
+      'multiline-comment-style': ['error', 'separate-lines'],
+
+      // https://eslint.org/docs/rules/spaced-comment
+      'spaced-comment': [
+        'error',
+        'always',
+        {
+          line: {markers: ['/'], exceptions: ['-', '+']},
+          block: {exceptions: ['*'], balanced: true},
+        },
+      ],
+
+      // Let formatter handle this
+      'arrow-body-style': 'off',
+
+      /**
+       * Restricted imports, e.g. deprecated libraries, etc
+       *
+       * See: https://eslint.org/docs/rules/no-restricted-imports
+       */
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: restrictedImportPatterns,
+          paths: restrictedImportPaths,
+        },
+      ],
+
+      // https://eslint.org/docs/rules/no-console
+      'no-console': 'error',
+    },
+  },
+  {
     ...importPlugin.flatConfigs.recommended,
+    name: 'plugin/import',
     rules: {
       // We override all the rules that are in the recommended, react, and typescript rulesets
 
@@ -644,22 +477,15 @@ export default typescript.config([
     },
   },
   {
-    name: 'deprecations',
-    rules: {
-      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
-        ? 'error'
-        : 'off',
-    },
-  },
-  {
-    name: 'react',
+    name: 'plugin/react',
     plugins: {
-      ...react.configs.flat.recommended.plugins,
+      ...(react.configs.flat.recommended?.plugins ?? {}),
       // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].plugins,
     },
     rules: {
-      ...react.configs.flat.recommended.rules,
+      ...(react.configs.flat.recommended?.rules ?? {}),
+      // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].rules,
 
       // https://github.com/yannickcr/eslint-plugin-react/blob/master/docs/rules/display-name.md
@@ -730,10 +556,8 @@ export default typescript.config([
     },
   },
   {
-    name: 'react/hooks',
-    plugins: {
-      'react-hooks': reactHooks,
-    },
+    name: 'plugin/react-hooks',
+    plugins: {'react-hooks': reactHooks},
     rules: {
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': [
@@ -743,19 +567,172 @@ export default typescript.config([
     },
   },
   {
-    name: 'getsentry/sentry/custom',
+    name: 'plugin/@typescript-eslint',
+    plugins: {'@typescript-eslint': typescript.plugin},
     rules: {
-      ...baseRules,
-      ...reactRules,
-      ...appRules,
-      ...strictRules,
+      // no-undef is redundant with typescript as tsc will complain
+      // A downside is that we won't get eslint errors about it, but your editors should
+      // support tsc errors so....
+      // https://eslint.org/docs/rules/no-undef
+      'no-undef': 'off',
+
+      /**
+       * Need to use typescript version of these rules
+       * https://eslint.org/docs/rules/no-shadow
+       */
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+
+      // This only override the `args` rule (which is "none"). There are too many errors and it's difficult to manually
+      // fix them all, so we'll have to incrementally update.
+      // https://eslint.org/docs/rules/no-unused-vars
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          vars: 'all',
+          args: 'all',
+          // TODO(scttcper): We could enable this to enforce catch (error)
+          // https://eslint.org/docs/latest/rules/no-unused-vars#caughterrors
+          caughtErrors: 'none',
+
+          // Ignore vars that start with an underscore
+          // e.g. if you want to omit a property using object spread:
+          //
+          //   const {name: _name, ...props} = this.props;
+          //
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_',
+        },
+      ],
+
+      // https://eslint.org/docs/rules/no-use-before-define
+      'no-use-before-define': 'off',
+      // This seems to have been turned on while previously it had been off
+      '@typescript-eslint/no-use-before-define': 'off',
+
+      // https://github.com/xojs/eslint-config-xo-typescript/blob/9791a067d6a119a21a4db72c02f1da95e25ffbb6/index.js#L95
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            // TODO(scttcper): Turn object on to make our types more strict
+            // object: {
+            //   message: 'The `object` type is hard to use. Use `Record<string, unknown>` instead. See: https://github.com/typescript-eslint/typescript-eslint/pull/848',
+            //   fixWith: 'Record<string, unknown>'
+            // },
+            Buffer: {
+              message:
+                'Use Uint8Array instead. See: https://sindresorhus.com/blog/goodbye-nodejs-buffer',
+              suggest: ['Uint8Array'],
+            },
+            '[]': "Don't use the empty array type `[]`. It only allows empty arrays. Use `SomeType[]` instead.",
+            '[[]]':
+              "Don't use `[[]]`. It only allows an array with a single element which is an empty array. Use `SomeType[][]` instead.",
+            '[[[]]]': "Don't use `[[[]]]`. Use `SomeType[][][]` instead.",
+          },
+        },
+      ],
+      // TODO(scttcper): Turn no-empty-object-type on to make our types more strict
+      // '@typescript-eslint/no-empty-object-type': 'error',
+      // TODO(scttcper): Turn no-function on to make our types more strict
+      // '@typescript-eslint/no-unsafe-function-type': 'error',
+      '@typescript-eslint/no-wrapper-object-types': 'error',
+
+      // Naming convention enforcements
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'enumMember',
+          format: ['UPPER_CASE'],
+        },
+      ],
     },
   },
   {
-    name: '@emotion',
-    plugins: {
-      '@emotion': emotion,
+    name: 'plugin/@typescript-eslint && process.env.SENTRY_DETECT_DEPRECATIONS',
+    rules: {
+      '@typescript-eslint/no-deprecated': process.env.SENTRY_DETECT_DEPRECATIONS
+        ? 'error'
+        : 'off',
     },
+  },
+  {
+    name: 'plugin/typescript-sort-keys',
+    plugins: {'typescript-sort-keys': typescriptSortKeys},
+    rules: {
+      'typescript-sort-keys/interface': [
+        'error',
+        'asc',
+        {caseSensitive: true, natural: false, requiredFirst: true},
+      ],
+    },
+  },
+  {
+    name: 'plugin/simple-import-sort',
+    plugins: {'simple-import-sort': simpleImportSort},
+    rules: {
+      /**
+       * Better import sorting
+       */
+      'sort-imports': 'off',
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: [
+            // Side effect imports.
+            ['^\\u0000'],
+
+            // Node.js builtins.
+            [`^(${builtinModules.join('|')})(/|$)`],
+
+            // Packages. `react` related packages come first.
+            ['^react', '^@?\\w'],
+
+            // Test should be separate from the app
+            ['^(sentry-test|getsentry-test)(/.*|$)'],
+
+            // Internal packages.
+            ['^(sentry-locale|sentry-images)(/.*|$)'],
+
+            ['^(getsentry-images)(/.*|$)'],
+
+            ['^(app|sentry)(/.*|$)'],
+
+            // Getsentry packages.
+            ['^(admin|getsentry)(/.*|$)'],
+
+            // Style imports.
+            ['^.+\\.less$'],
+
+            // Parent imports. Put `..` last.
+            ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
+
+            // Other relative imports. Put same-folder imports and `.` last.
+            ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'plugin/sentry',
+    plugins: {sentry},
+    rules: {
+      'sentry/no-digits-in-tn': 'error',
+      'sentry/no-dynamic-translations': 'error',
+      'sentry/no-styled-shortcut': 'error',
+    },
+  },
+  {
+    name: 'plugin/@emotion',
+    plugins: {'@emotion': emotion},
     rules: {
       '@emotion/import-from-emotion': 'off', // Not needed, in v11 we import from @emotion/react
       '@emotion/jsx-import': 'off', // Not needed, handled by babel
@@ -766,15 +743,59 @@ export default typescript.config([
     },
   },
   {
-    name: 'devtoolbar',
+    name: 'plugin/jest',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    plugins: jest.configs['flat/recommended'].plugins,
+    rules: {
+      ...jest.configs['flat/recommended'].rules,
+      ...jest.configs['flat/style'].rules,
+
+      // `recommended` set this to warn, we've upgraded to error
+      'jest/no-disabled-tests': 'error',
+
+      // `recommended` set this to warn, we've downgraded to off
+      // Disabled as we have many tests which render as simple validations
+      'jest/expect-expect': 'off',
+
+      // Disabled as we have some comment out tests that cannot be
+      // uncommented due to typescript errors.
+      'jest/no-commented-out-tests': 'off', // TODO(ryan953): Fix violations then delete this line
+
+      // Disabled as we do sometimes have conditional expects
+      'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
+
+      // We don't recommend snapshots, but if there are any keep it small
+      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+    },
+  },
+  {
+    name: 'plugin/jest-dom',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    ...jestDom.configs['flat/recommended'],
+  },
+  {
+    name: 'plugin/testing-library',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    ...testingLibrary.configs['flat/react'],
+    rules: {
+      ...testingLibrary.configs['flat/react'].rules,
+      'testing-library/render-result-naming-convention': 'off',
+      'testing-library/no-unnecessary-act': 'off',
+    },
+  },
+  {
+    name: 'plugin/prettier',
+    ...prettier,
+  },
+  {
+    name: 'files/devtoolbar',
     files: ['static/app/components/devtoolbar/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [
-            // @ts-ignore
-            ...appRules['no-restricted-imports'][1].paths,
+            ...restrictedImportPaths,
             {
               name: 'sentry/utils/queryClient',
               message:
@@ -786,64 +807,32 @@ export default typescript.config([
     },
   },
   {
-    name: 'jest',
+    name: 'files/sentry-test',
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
-    plugins: jest.configs['flat/recommended'].plugins,
     rules: {
-      'jest/no-disabled-tests': 'error',
-
-      // Disabled as we have many tests which render as simple validations
-      'jest/expect-expect': 'off',
-
-      // Disabled as we have some comment out tests that cannot be
-      // uncommented due to typescript errors.
-      'jest/no-commented-out-tests': 'off',
-
-      // Disabled as we do sometimes have conditional expects
-      'jest/no-conditional-expect': 'off',
-
-      // Useful for exporting some test utilities
-      'jest/no-export': 'off',
-
-      // We don't recommend snapshots, but if there are any keep it small
-      'jest/no-large-snapshots': ['error', {maxSize: 2000}],
-    },
-  },
-  {
-    name: 'jest-dom',
-    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
-    plugins: jestDom.configs['flat/recommended'].plugins,
-  },
-  {
-    name: 'testing-library/react',
-    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
-    ...testingLibrary.configs['flat/react'],
-    rules: {
-      ...testingLibrary.configs['flat/react'].rules,
-      'testing-library/render-result-naming-convention': 'off',
-      'testing-library/no-unnecessary-act': 'off',
-    },
-  },
-  {
-    name: 'testing-library/react - tsx files',
-    files: ['**/*.spec.{tsx,jsx}', 'tests/js/**/*.{tsx,jsx}'],
-    ...testingLibrary.configs['flat/react'],
-    rules: {
-      'testing-library/no-node-access': 'warn', // TODO(ryan953): Fix the violations, then delete this line
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: restrictedImportPatterns,
+          paths: [
+            ...restrictedImportPaths,
+            {
+              name: 'sentry/locale',
+              message: 'Translations are not needed in tests.',
+            },
+          ],
+        },
+      ],
     },
   },
   {
     // We specify rules explicitly for the sdk-loader here so we do not have
     // eslint ignore comments included in the source file, which is consumed
     // by users.
-    name: 'js-sdk-loader.ts',
+    name: 'files/js-sdk-loader.ts',
     files: ['**/js-sdk-loader.ts'],
     rules: {
       'no-console': 'off',
     },
-  },
-  {
-    name: 'prettier/recommended',
-    ...prettier,
   },
 ]);

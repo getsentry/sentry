@@ -22,7 +22,7 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.workflow_engine.endpoints.validators import BaseGroupTypeDetectorValidator
+    from sentry.workflow_engine.endpoints.validators.base import BaseGroupTypeDetectorValidator
     from sentry.workflow_engine.handlers.detector import DetectorHandler
 
 logger = logging.getLogger(__name__)
@@ -261,6 +261,8 @@ class ErrorGroupType(GroupType):
     category = GroupCategory.ERROR.value
     default_priority = PriorityLevel.MEDIUM
     released = True
+    # TODO(cathy): add detector validator
+    detector_config_schema = {"type": "object", "additionalProperties": False}  # empty schema
 
 
 # used as an additional superclass for Performance GroupType defaults

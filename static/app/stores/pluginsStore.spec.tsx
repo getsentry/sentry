@@ -154,7 +154,7 @@ describe('PluginsStore', function () {
         name: 'Amazon Sqs',
       });
 
-      expect(PluginsStore.updating.get('amazon-sqs')).toEqual(undefined);
+      expect(PluginsStore.updating.get('amazon-sqs')).toBeUndefined();
     });
 
     it('restores old plugin state when update has an error', function () {
@@ -171,7 +171,7 @@ describe('PluginsStore', function () {
         id: 'amazon-sqs',
         name: 'Amazon SQS',
       });
-      expect(PluginsStore.updating.get('amazon-sqs')).toEqual(undefined);
+      expect(PluginsStore.updating.get('amazon-sqs')).toBeUndefined();
     });
   });
 });

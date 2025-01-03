@@ -321,6 +321,61 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
+    it('does not duplicate fields when switching dataset in line chart then display type to table', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.LINE,
+            dataset: WidgetType.ERRORS,
+            yAxis: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.yAxis).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.fields).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
     it('does not duplicate fields when changing display from table to chart', () => {
       mockedUsedLocation.mockReturnValue(
         LocationFixture({
@@ -374,6 +429,128 @@ describe('useWidgetBuilderState', () => {
           kind: 'function',
         },
       ]);
+    });
+
+    it('does not duplicate fields when switching dataset in big number then display type to table', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.BIG_NUMBER,
+            dataset: WidgetType.ERRORS,
+            field: ['count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DATASET,
+          payload: WidgetType.TRANSACTIONS,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.yAxis).toEqual([]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.TABLE,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+    });
+
+    it('sets the aggregate as fields when switching to big number', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            displayType: DisplayType.TABLE,
+            field: ['event.type', 'count()'],
+            sort: ['-count()'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {field: 'event.type', alias: undefined, kind: 'field'},
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.BIG_NUMBER,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {
+          function: ['count', '', undefined, undefined],
+          alias: undefined,
+          kind: 'function',
+        },
+      ]);
+      expect(result.current.state.sort).toEqual([]);
+    });
+
+    it('selects the first filter when switching to big number', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {
+            field: ['event.type', 'count()', 'count_unique(user)'],
+            query: ['event.type:test', 'event.type:test2'],
+          },
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test', 'event.type:test2']);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.BIG_NUMBER,
+        });
+      });
+
+      expect(result.current.state.query).toEqual(['event.type:test']);
     });
   });
 
@@ -668,7 +845,7 @@ describe('useWidgetBuilderState', () => {
         wrapper: WidgetBuilderProvider,
       });
 
-      expect(result.current.state.limit).toEqual(4);
+      expect(result.current.state.limit).toBe(4);
 
       act(() => {
         result.current.dispatch({
@@ -677,7 +854,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.limit).toEqual(10);
+      expect(result.current.state.limit).toBe(10);
     });
   });
 

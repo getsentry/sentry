@@ -137,7 +137,7 @@ describe('getTableSeries', () => {
       },
     ]);
 
-    expect(result.rows.length).toEqual(7);
+    expect(result.rows).toHaveLength(7);
     const ingestRow = result.rows[2]!;
 
     expect(ingestRow.a!.value).toBeDefined();

@@ -91,14 +91,14 @@ describe('axisLabelFormatter()', () => {
       const axisValues = [40 * SECOND, 50 * SECOND, 60 * SECOND, 70 * SECOND];
       const durationUnit = generateDurationUnit(axisValues);
       const labels = getAxisLabels(axisValues, durationUnit);
-      expect(labels.length).toBe(new Set(labels).size);
+      expect(labels).toHaveLength(new Set(labels).size);
     });
 
     it('should use the same duration unit', () => {
       const axisValues = [50 * MINUTE, 150 * MINUTE, 250 * MINUTE, 350 * MINUTE];
       const durationUnit = generateDurationUnit(axisValues);
       const labels = getAxisLabels(axisValues, durationUnit);
-      expect(labels.length).toBe(labels.filter(label => label.endsWith('hr')).length);
+      expect(labels).toHaveLength(labels.filter(label => label.endsWith('hr')).length);
     });
   });
 });
@@ -219,7 +219,7 @@ describe('findRangeOfMultiSeries()', () => {
     const legend: LegendComponentOption = {
       selected: {'p100()': false, 'p95()': false, 'p50()': false},
     };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual(undefined);
+    expect(findRangeOfMultiSeries(series, legend)).toBeUndefined();
   });
 
   it('should ignore p100 series if not selected', () => {

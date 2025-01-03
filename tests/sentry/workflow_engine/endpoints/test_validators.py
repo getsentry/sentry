@@ -23,7 +23,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.validators import (
+from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     DataSourceCreator,
@@ -195,7 +195,7 @@ class DetectorValidatorTest(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -287,7 +287,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
         validator = MetricAlertsDetectorValidator(
             data=self.valid_data,

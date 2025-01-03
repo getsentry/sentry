@@ -26,7 +26,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
-import {useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
@@ -35,7 +35,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 
-export const enum EventGraphSeries {
+const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -75,7 +75,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   );
   const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
-  const {dispatch} = useEventDetails();
+  const {dispatch} = useIssueDetails();
 
   const {
     data: groupStats = {},
