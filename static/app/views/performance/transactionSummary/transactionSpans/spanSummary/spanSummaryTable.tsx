@@ -253,7 +253,7 @@ export default function SpanSummaryTable(props: Props) {
               }),
             // This is now caught by noUncheckedIndexedAccess, ignoring for now as
             // it seems related to some nasty grid editable generic.
-            // @ts-expect-error
+            // @ts-ignore
             renderBodyCell: renderBodyCell(
               location,
               organization,
