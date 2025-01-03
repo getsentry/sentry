@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
@@ -19,6 +19,7 @@ import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
+import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
@@ -60,6 +61,12 @@ export default function TempestSettings({organization, project}: Props) {
     },
   });
 
+  const credentialErrors = useMemo(() => {
+    return tempestCredentials?.filter(
+      credential => credential.messageType === MessageType.ERROR && credential.message
+    );
+  }, [tempestCredentials]);
+
   if (!hasTempestAccess(organization)) {
     return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
   }
@@ -71,6 +78,19 @@ export default function TempestSettings({organization, project}: Props) {
         title={t('PlayStation')}
         action={addNewCredentials(hasWriteAccess, organization, project)}
       />
+
+      {credentialErrors && credentialErrors?.length > 0 && (
+        <Alert type="error" showIcon>
+          {t('There was a problem with following credentials:')}
+          <ul>
+            {credentialErrors.map(credential => (
+              <li key={credential.id}>
+                {credential.clientId} - {credential.message}
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
 
       <Form
         apiMethod="PUT"
