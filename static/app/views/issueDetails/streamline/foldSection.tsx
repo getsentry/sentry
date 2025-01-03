@@ -176,7 +176,7 @@ export const SectionDivider = styled('hr')`
   }
 `;
 
-export const Section = styled('section')<{scrollMargin: number}>`
+const Section = styled('section')<{scrollMargin: number}>`
   scroll-margin-top: calc(${space(1)} + ${p => p.scrollMargin ?? 0}px);
 `;
 
