@@ -3,6 +3,7 @@ import {css, type Theme} from '@emotion/react';
 // Base styles, to make the Replayer instance work
 export const baseReplayerCss = css`
   .replayer-wrapper {
+    z-index: 1000000;
     user-select: none;
   }
 

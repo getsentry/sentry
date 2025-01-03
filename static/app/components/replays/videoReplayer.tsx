@@ -43,7 +43,6 @@ export class VideoReplayer {
   private _attachments: VideoEvent[];
   private _callbacks: Record<string, (args?: any) => unknown>;
   private _currentIndex: number | undefined;
-  private _currentVideo: HTMLVideoElement | undefined;
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: [ts: number, index: number][];
@@ -196,6 +195,8 @@ export class VideoReplayer {
     const el = document.createElement('video');
     const sourceEl = document.createElement('source');
     el.style.display = 'none';
+    el.style.zIndex = index.toString();
+    el.style.position = 'absolute';
     sourceEl.setAttribute('type', 'video/mp4');
     sourceEl.setAttribute('src', `${this._videoApiPrefix}${segmentData.id}/`);
     el.setAttribute('muted', '');
@@ -397,8 +398,7 @@ export class VideoReplayer {
 
   /**
    * Shows the video -- it is assumed that it is preloaded. Also
-   * hides the previous video, there should not be a reason we show
-   * a video and not hide the previous video, otherwise there will
+   * hides all other videos, otherwise there will
    * be multiple video elements stacked on top of each other.
    */
   protected showVideo(nextVideo: HTMLVideoElement | undefined): void {
@@ -406,20 +406,27 @@ export class VideoReplayer {
       return;
     }
 
-    // This is the soon-to-be previous video that needs to be hidden
-    if (this._currentVideo) {
-      this._currentVideo.style.display = 'none';
-      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
-      if (this._currentVideo.ended) {
-        this.setVideoTime(this._currentVideo, 0);
+    for (const [index, videoElem] of this._videos) {
+      // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
+      if (index === (this._currentIndex || 0) - 1) {
+        if (videoElem.duration) {
+          // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
+          // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
+          this.setVideoTime(videoElem, videoElem.duration * 1000 - 1);
+        }
+        videoElem.style.display = 'block';
+      }
+      // hides all videos because videos have a different z-index depending on their index
+      else {
+        videoElem.style.display = 'none';
+        // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
+        if (videoElem.ended) {
+          this.setVideoTime(videoElem, 0);
+        }
       }
     }
 
     nextVideo.style.display = 'block';
-
-    // Update current video so that we can hide it when showing the
-    // next video
-    this._currentVideo = nextVideo;
   }
 
   protected async playVideo(video: HTMLVideoElement | undefined): Promise<void> {
