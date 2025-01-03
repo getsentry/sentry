@@ -288,15 +288,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# API
-# GA Option for endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # API Tokens
 register(
     "apitoken.auto-add-last-chars",

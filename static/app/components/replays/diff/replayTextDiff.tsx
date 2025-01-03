@@ -28,7 +28,7 @@ export function ReplayTextDiff() {
     <Container>
       {!isLoading && leftBody === rightBody ? <DiffFeedbackBanner /> : null}
       <DiffHeader>
-        <Before>
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs}>
           <CopyToClipboardButton
             text={leftBody ?? ''}
             size="xs"
@@ -37,7 +37,7 @@ export function ReplayTextDiff() {
             aria-label={t('Copy Before')}
           />
         </Before>
-        <After>
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs}>
           <CopyToClipboardButton
             text={rightBody ?? ''}
             size="xs"

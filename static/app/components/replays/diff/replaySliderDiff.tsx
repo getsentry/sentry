@@ -33,8 +33,8 @@ export function ReplaySliderDiff({minHeight = '0px'}: Props) {
   return (
     <Fragment>
       <DiffHeader>
-        <Before />
-        <After />
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
       <WithPadding>
         <Positioned style={{minHeight}} ref={positionedRef}>

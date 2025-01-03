@@ -4,7 +4,6 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.types.actor import Actor
 
 
@@ -19,7 +18,6 @@ class ProjectTeamDetailsTest(APITestCase):
 class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     method = "post"
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_add_team(self):
         project = self.create_project()
         team = self.create_team()
@@ -88,7 +86,6 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     method = "delete"
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_remove_team(self):
         team = self.create_team(members=[self.user])
         another_team = self.create_team(members=[self.user])
