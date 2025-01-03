@@ -1,5 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -89,6 +95,7 @@ describe('NewSidebar', function () {
         collapsed={false}
         gettingStartedTasks={gettingStartedTasks.map(task => ({
           ...task,
+          completionSeen: true,
           status: 'complete',
         }))}
         beyondBasicsTasks={beyondBasicsTasks}
@@ -146,6 +153,14 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('link', {name: 'Join our Discord'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Visit Help Center'})).toBeInTheDocument();
 
+    // Dismiss skip confirmation
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
+    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
+
+    // Click skip task again
+    await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
+    expect(await screen.findByText(/Not sure what to do/)).toBeInTheDocument();
+
     // Click 'Just Skip'
     await userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
     await waitFor(() => {
@@ -159,9 +174,5 @@ describe('NewSidebar', function () {
         })
       );
     });
-
-    // Dismiss skip confirmation
-    await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
-    expect(screen.queryByText(/Not sure what to do/)).not.toBeInTheDocument();
   });
 });
