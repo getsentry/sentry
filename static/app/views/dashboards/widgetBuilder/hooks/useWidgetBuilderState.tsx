@@ -195,7 +195,10 @@ function useWidgetBuilderState(): {
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (nextDisplayType === DisplayType.TABLE) {
+          if (
+            nextDisplayType === DisplayType.TABLE ||
+            nextDisplayType === DisplayType.BIG_NUMBER
+          ) {
             setYAxis([]);
           } else {
             setYAxis(
