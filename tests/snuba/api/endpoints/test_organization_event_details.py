@@ -7,7 +7,6 @@ from sentry.models.group import Group
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -88,7 +87,6 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_simple_with_id(self):
         url = reverse(
             "sentry-api-0-organization-event-details",

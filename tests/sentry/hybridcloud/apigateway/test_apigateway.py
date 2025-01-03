@@ -9,7 +9,6 @@ from rest_framework.response import Response
 
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.helpers.apigateway import ApiGatewayTestCase, verify_request_params
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
@@ -111,7 +110,6 @@ class ApiGatewayTest(ApiGatewayTestCase):
             assert resp.data["proxy"] is False
 
     @responses.activate
-    @override_options({"api.id-or-slug-enabled": True})
     def test_proxy_check_org_id_or_slug_url_with_params(self) -> None:
         """Test the logic of when a request should be proxied"""
         responses.add(
