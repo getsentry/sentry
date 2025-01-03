@@ -14,10 +14,10 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorForm from './components/monitorForm';
 import type {Monitor} from './types';
+import {makeMonitorDetailsQueryKey} from './utils';
 
 export default function EditMonitor() {
   const {monitorSlug, projectId} = useParams<{monitorSlug: string; projectId: string}>();
