@@ -17,13 +17,7 @@ function renderMockRequests(organization: Organization) {
     },
   });
 
-  const postOnboardingTasksMock = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/onboarding-tasks/`,
-    method: 'POST',
-    body: {task: OnboardingTaskKey.FIRST_PROJECT, completionSeen: true},
-  });
-
-  return {getOnboardingTasksMock, postOnboardingTasksMock};
+  return {getOnboardingTasksMock};
 }
 
 describe('Onboarding Status', function () {
@@ -41,8 +35,7 @@ describe('Onboarding Status', function () {
       ],
     });
 
-    const {getOnboardingTasksMock, postOnboardingTasksMock} =
-      renderMockRequests(organization);
+    const {getOnboardingTasksMock} = renderMockRequests(organization);
 
     const handleShowPanel = jest.fn();
 
@@ -69,7 +62,6 @@ describe('Onboarding Status', function () {
     // Open the panel
     await userEvent.click(screen.getByRole('button', {name: 'Onboarding'}));
     await waitFor(() => expect(getOnboardingTasksMock).toHaveBeenCalled());
-    await waitFor(() => expect(postOnboardingTasksMock).toHaveBeenCalled());
     expect(handleShowPanel).toHaveBeenCalled();
   });
 
