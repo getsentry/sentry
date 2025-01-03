@@ -36,6 +36,7 @@ class InternalRegisterTrustedRelayEndpoint(Endpoint):
     def post(self, request: Request) -> Response:
         """
         Register a new trusted relay for an organization.
+        If a relay with the given public key already exists, update it.
         """
         organization_id = getattr(request.auth, "organization_id", None)
         if not organization_id:
@@ -61,36 +62,43 @@ class InternalRegisterTrustedRelayEndpoint(Endpoint):
         # Get existing trusted relays
         option_key = "sentry:trusted-relays"
         try:
-            existing = OrganizationOption.objects.get(organization=organization, key=option_key)
-            existing_public_keys = {val.get("public_key"): val for val in existing.value}
+            existing_option = OrganizationOption.objects.get(
+                organization=organization, key=option_key
+            )
+            existing_relays = existing_option.value
         except OrganizationOption.DoesNotExist:
-            existing_public_keys = {}
-            existing = None
+            existing_option = None
+            existing_relays = []
 
-        timestamp_now = datetime.now(timezone.utc).isoformat()
         relay_data = serializer.validated_data.copy()
         public_key = relay_data.get("public_key")
+        timestamp_now = datetime.now(timezone.utc).isoformat()
 
-        # Check if this public key already exists
-        if public_key in existing_public_keys:
-            return Response(
-                {"public_key": "A relay with this public key already exists"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Find existing relay with this public key
+        existing_relay_index = None
+        for index, relay in enumerate(existing_relays):
+            if relay.get("public_key") == public_key:
+                existing_relay_index = index
+                break
 
-        # Set timestamps
-        relay_data["created"] = timestamp_now
-        relay_data["last_modified"] = timestamp_now
-
-        # Create or update the trusted relay entry
-        if existing is not None:
-            existing_relays = existing.value
+        if existing_relay_index is not None:
+            # Update existing relay
+            relay_data["created"] = existing_relays[existing_relay_index]["created"]
+            relay_data["last_modified"] = timestamp_now
+            existing_relays[existing_relay_index] = relay_data
+        else:
+            # Add new relay
+            relay_data["created"] = timestamp_now
+            relay_data["last_modified"] = timestamp_now
             existing_relays.append(relay_data)
-            existing.value = existing_relays
-            existing.save()
+
+        # Save the updated relay list
+        if existing_option is not None:
+            existing_option.value = existing_relays
+            existing_option.save()
         else:
             OrganizationOption.objects.set_value(
-                organization=organization, key=option_key, value=[relay_data]
+                organization=organization, key=option_key, value=existing_relays
             )
 
         return Response(relay_data, status=status.HTTP_201_CREATED)

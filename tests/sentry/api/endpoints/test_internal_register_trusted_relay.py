@@ -104,7 +104,7 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         """
         # Create an existing relay
         existing_relay = {
-            "public_key": "existing_key",
+            "public_key": "cKxTP2O9y3OLWUHw40xBm8VT3ybchek-MtIbUX-eZ1M",
             "name": "existing_relay",
             "description": "Existing relay",
             "created": datetime.now(timezone.utc).isoformat(),
@@ -129,19 +129,106 @@ class InternalRegisterTrustedRelayTest(APITestCase):
             assert option.value[0]["public_key"] == existing_relay["public_key"]
             assert option.value[1]["public_key"] == self.valid_payload["publicKey"]
 
-    def test_duplicate_public_key(self):
+    def test_successful_update_existing_relay(self):
         """
-        Test that attempting to register a relay with a duplicate public key fails
+        Test successful update of an existing relay
         """
+        # Create an existing relay
+        existing_relay = {
+            "public_key": self.valid_payload["publicKey"],
+            "name": "old_name",
+            "description": "Old description",
+            "created": datetime.now(timezone.utc).isoformat(),
+            "last_modified": datetime.now(timezone.utc).isoformat(),
+        }
+        OrganizationOption.objects.set_value(
+            organization=self.org, key="sentry:trusted-relays", value=[existing_relay]
+        )
+
         with self.feature({"organizations:relay": True}):
+            response = self.client.post(
+                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+            )
+
+            assert response.status_code == 201
+
+            # Verify data was updated correctly
+            option = OrganizationOption.objects.get(
+                organization=self.org, key="sentry:trusted-relays"
+            )
+            assert len(option.value) == 1
+            updated_relay = option.value[0]
+            assert updated_relay["public_key"] == self.valid_payload["publicKey"]
+            assert updated_relay["name"] == self.valid_payload["name"]
+            assert updated_relay["description"] == self.valid_payload["description"]
+            assert (
+                updated_relay["created"] == existing_relay["created"]
+            )  # Should preserve created date
+            assert (
+                updated_relay["last_modified"] != existing_relay["last_modified"]
+            )  # Should be updated
+
+    def test_successful_registration_multiple_relays(self):
+        """
+        Test successful registration and update of multiple relays
+        """
+        # Create two existing relays
+        existing_relays = [
+            {
+                "public_key": "cKxTP2O9y3OLWUHw40xBm8VT3ybchek-MtIbUX-eZ1M",
+                "name": "existing_relay1",
+                "description": "Existing relay 1",
+                "created": datetime.now(timezone.utc).isoformat(),
+                "last_modified": datetime.now(timezone.utc).isoformat(),
+            },
+            {
+                "public_key": "5eWj6p7Boesv4sYipv4k7-MoqqMwtp1F4WN9bGB2P8U",
+                "name": "existing_relay2",
+                "description": "Existing relay 2",
+                "created": datetime.now(timezone.utc).isoformat(),
+                "last_modified": datetime.now(timezone.utc).isoformat(),
+            },
+        ]
+        OrganizationOption.objects.set_value(
+            organization=self.org, key="sentry:trusted-relays", value=existing_relays
+        )
+
+        with self.feature({"organizations:relay": True}):
+            # Add a new relay
             response = self.client.post(
                 self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
             )
             assert response.status_code == 201
 
-            # Attempt duplicate registration
-            response = self.client.post(
-                self.url, self.valid_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+            # Verify all relays are present
+            option = OrganizationOption.objects.get(
+                organization=self.org, key="sentry:trusted-relays"
             )
-            assert response.status_code == 400
-            assert "public_key" in response.data
+            assert len(option.value) == 3
+            assert option.value[0]["public_key"] == "cKxTP2O9y3OLWUHw40xBm8VT3ybchek-MtIbUX-eZ1M"
+            assert option.value[1]["public_key"] == "5eWj6p7Boesv4sYipv4k7-MoqqMwtp1F4WN9bGB2P8U"
+            assert option.value[2]["public_key"] == self.valid_payload["publicKey"]
+
+            # Update an existing relay
+            update_payload = {
+                "publicKey": "cKxTP2O9y3OLWUHw40xBm8VT3ybchek-MtIbUX-eZ1M",
+                "name": "updated_relay1",
+                "description": "Updated relay 1",
+            }
+            response = self.client.post(
+                self.url, update_payload, HTTP_AUTHORIZATION=f"Bearer {self.valid_token_str}"
+            )
+            assert response.status_code == 201
+
+            # Verify the update
+            option = OrganizationOption.objects.get(
+                organization=self.org, key="sentry:trusted-relays"
+            )
+            assert len(option.value) == 3
+            updated_relay = next(
+                r
+                for r in option.value
+                if r["public_key"] == "cKxTP2O9y3OLWUHw40xBm8VT3ybchek-MtIbUX-eZ1M"
+            )
+            assert updated_relay["name"] == "updated_relay1"
+            assert updated_relay["description"] == "Updated relay 1"
