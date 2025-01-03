@@ -72,6 +72,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True
 
+        job["workflow"] = self
         evaluation, _ = evaluate_condition_group(self.when_condition_group, job)
         return evaluation
 
