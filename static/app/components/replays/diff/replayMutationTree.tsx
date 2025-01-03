@@ -2,19 +2,15 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import useExtractDiffMutations from 'sentry/utils/replays/hooks/useExtractDiffMutations';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplayMutationTree() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplayMutationTree({replay, leftOffsetMs, rightOffsetMs}: Props) {
   const {data, isLoading} = useExtractDiffMutations({
     leftOffsetMs,
     replay,
