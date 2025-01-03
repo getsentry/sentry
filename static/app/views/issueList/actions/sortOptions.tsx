@@ -17,7 +17,7 @@ type Props = {
   triggerSize?: DropdownButtonProps['size'];
 };
 
-export function getSortTooltip(key: IssueSortOptions) {
+function getSortTooltip(key: IssueSortOptions) {
   switch (key) {
     case IssueSortOptions.INBOX:
       return t('When issue was flagged for review.');

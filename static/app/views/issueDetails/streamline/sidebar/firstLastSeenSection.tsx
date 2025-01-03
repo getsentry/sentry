@@ -13,7 +13,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
 
-export interface GroupRelease {
+interface GroupRelease {
   firstRelease: Release;
   lastRelease: Release;
 }

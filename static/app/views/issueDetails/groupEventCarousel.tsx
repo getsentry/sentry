@@ -234,7 +234,7 @@ type GroupEventActionsProps = {
   projectSlug: string;
 };
 
-export function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
+function GroupEventActions({event, group, projectSlug}: GroupEventActionsProps) {
   const theme = useTheme();
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
   const organization = useOrganization();

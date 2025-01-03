@@ -43,7 +43,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
   );
 }
 
-export const UserFeedbackButton = styled(LinkButton)`
+const UserFeedbackButton = styled(LinkButton)`
   color: ${p => p.theme.gray300};
   text-decoration: underline;
   text-decoration-style: dotted;
