@@ -10,7 +10,7 @@ interface Props {
   monitor: Monitor;
 }
 
-function MonitorOnboarding({monitor}: Props) {
+export function MonitorOnboarding({monitor}: Props) {
   return (
     <OnboardingPanel noCenter>
       <h3>{t('Instrument your monitor')}</h3>
@@ -28,5 +28,3 @@ function MonitorOnboarding({monitor}: Props) {
     </OnboardingPanel>
   );
 }
-
-export default MonitorOnboarding;
