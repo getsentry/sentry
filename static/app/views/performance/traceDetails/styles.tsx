@@ -2,6 +2,9 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
 import Panel from 'sentry/components/panels/panel';
@@ -9,8 +12,6 @@ import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTag} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import type {
   TraceError,

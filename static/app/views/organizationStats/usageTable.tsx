@@ -1,6 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {DataCategoryInfo} from 'sentry/types/core';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
+
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -14,9 +18,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo} from 'sentry/types/core';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 

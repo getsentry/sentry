@@ -2,6 +2,10 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {Member} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
@@ -10,9 +14,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
-import type {Member} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';

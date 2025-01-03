@@ -1,7 +1,8 @@
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import type {TagCollection} from 'sentry/types/group';
+
+import {openModal} from 'sentry/actionCreators/modal';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 
 const stringTags: TagCollection = {

@@ -5,6 +5,10 @@ import type {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtua
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import Count from 'sentry/components/count';
 import AggregateSpanDetail from 'sentry/components/events/interfaces/spans/aggregateSpanDetail';
 import {
@@ -50,9 +54,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateEventSlug} from 'sentry/utils/discover/urls';

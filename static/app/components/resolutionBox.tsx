@@ -1,14 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import CommitLink from 'sentry/components/commitLink';
-import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
-import TimeSince from 'sentry/components/timeSince';
-import Version from 'sentry/components/version';
-import {IconCheckmark} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   GroupActivity,
   GroupActivitySetByResolvedInNextSemverRelease,
@@ -17,6 +9,15 @@ import type {
 } from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Repository} from 'sentry/types/integrations';
+
+import UserAvatar from 'sentry/components/avatar/userAvatar';
+import CommitLink from 'sentry/components/commitLink';
+import {BannerContainer, BannerSummary} from 'sentry/components/events/styles';
+import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
+import {IconCheckmark} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   projectId: string;

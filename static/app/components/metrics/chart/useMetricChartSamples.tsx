@@ -3,6 +3,9 @@ import {useTheme} from '@emotion/react';
 import type {XAXisOption, YAXisOption} from 'echarts/types/dist/shared';
 import moment from 'moment-timezone';
 
+import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricAggregation} from 'sentry/types/metrics';
+
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import type {
@@ -13,8 +16,6 @@ import type {
 import {fitToValueRect} from 'sentry/components/metrics/chart/utils';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
-import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
-import type {MetricAggregation} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {isCumulativeAggregation} from 'sentry/utils/metrics';

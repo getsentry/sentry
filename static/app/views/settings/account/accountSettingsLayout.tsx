@@ -1,8 +1,9 @@
 import {Component} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
-import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';

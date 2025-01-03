@@ -1,8 +1,9 @@
 import {useContext} from 'react';
 
+import type {Integration} from 'sentry/types/integrations';
+
 import {LinkButton} from 'sentry/components/button';
 import {IconOpen} from 'sentry/icons';
-import type {Integration} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';

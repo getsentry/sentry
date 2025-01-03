@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+
+import {t} from 'sentry/locale';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

@@ -1,11 +1,12 @@
 import {Fragment, lazy} from 'react';
 import memoize from 'lodash/memoize';
 
+import type {HookName} from 'sentry/types/hooks';
+
 import LazyLoad from 'sentry/components/lazyLoad';
 import {EXPERIMENTAL_SPA, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import type {HookName} from 'sentry/types/hooks';
 import errorHandler from 'sentry/utils/errorHandler';
 import retryableImport from 'sentry/utils/retryableImport';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';

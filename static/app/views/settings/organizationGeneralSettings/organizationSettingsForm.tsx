@@ -2,6 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import type {MembershipSettingsProps} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
@@ -18,8 +21,6 @@ import organizationMembershipSettingsFields from 'sentry/data/forms/organization
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MembershipSettingsProps} from 'sentry/types/hooks';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeHideAiFeaturesField} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';

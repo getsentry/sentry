@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import Color from 'color';
 import moment, {type Moment} from 'moment-timezone';
 
+import {StatusPageComponent, type StatuspageIncident} from 'sentry/types/system';
+
 import Alert from 'sentry/components/alert';
 import {Hovercard} from 'sentry/components/hovercard';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconExclamation} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {StatusPageComponent, type StatuspageIncident} from 'sentry/types/system';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
 
 import type {TimeWindowConfig} from './types';

@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Frame} from 'sentry/types/event';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import {FunctionName} from './functionName';

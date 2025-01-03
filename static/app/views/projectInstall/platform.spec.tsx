@@ -4,9 +4,10 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {

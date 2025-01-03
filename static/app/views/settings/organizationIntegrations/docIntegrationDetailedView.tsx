@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {DocIntegration} from 'sentry/types/integrations';
+
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import {Button} from 'sentry/components/button';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -7,7 +9,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DocIntegration} from 'sentry/types/integrations';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';

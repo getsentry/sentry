@@ -3,16 +3,17 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import ChartZoom from 'sentry/components/charts/chartZoom';
-import {LineChart} from 'sentry/components/charts/lineChart';
-import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
-import * as SidebarSection from 'sentry/components/sidebarSection';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {EventsStatsData} from 'sentry/types/organization';
+
+import ChartZoom from 'sentry/components/charts/chartZoom';
+import {LineChart} from 'sentry/components/charts/lineChart';
+import {RELATIVE_DAYS_WINDOW} from 'sentry/components/events/eventStatisticalDetector/consts';
+import * as SidebarSection from 'sentry/components/sidebarSection';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import type {MetaType} from 'sentry/utils/discover/eventView';

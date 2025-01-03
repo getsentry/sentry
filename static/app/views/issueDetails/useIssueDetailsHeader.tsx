@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+
 import {getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

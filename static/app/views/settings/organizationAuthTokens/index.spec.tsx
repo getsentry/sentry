@@ -10,9 +10,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {OrgAuthToken} from 'sentry/types/user';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensIndex} from 'sentry/views/settings/organizationAuthTokens';
 
 describe('OrganizationAuthTokensIndex', function () {

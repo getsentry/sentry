@@ -1,8 +1,9 @@
 import {useState} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import allPlatforms from 'sentry/data/platforms';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

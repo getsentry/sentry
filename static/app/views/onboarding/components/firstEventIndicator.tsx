@@ -2,12 +2,13 @@ import styled from '@emotion/styled';
 import type {HTMLMotionProps, Variants} from 'framer-motion';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import type {Group} from 'sentry/types/group';
+
 import {LinkButton} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventWaiterProps} from 'sentry/utils/eventWaiter';
 import EventWaiter from 'sentry/utils/eventWaiter';

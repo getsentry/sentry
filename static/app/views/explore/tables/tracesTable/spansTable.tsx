@@ -2,13 +2,14 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
+import type {Organization} from 'sentry/types/organization';
+
 import Count from 'sentry/components/count';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';

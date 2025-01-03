@@ -13,6 +13,7 @@ import {
 
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 describe('groupEvents', () => {

@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/project';
+
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 
 import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';

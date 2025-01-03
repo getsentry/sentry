@@ -1,10 +1,11 @@
+import type {EntryRequest} from 'sentry/types/event';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
-import type {EntryRequest} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import getTransformedData from './getTransformedData';

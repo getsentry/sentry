@@ -1,11 +1,12 @@
 import {Component} from 'react';
 import * as qs from 'query-string';
 
+import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 

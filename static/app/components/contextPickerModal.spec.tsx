@@ -6,6 +6,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import {
   makeCloseButton,
@@ -16,8 +19,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 describe('ContextPickerModal', function () {
   let project!: Project;

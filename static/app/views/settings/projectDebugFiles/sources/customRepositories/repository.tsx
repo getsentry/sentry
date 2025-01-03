@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {CustomRepo} from 'sentry/types/debugFiles';
+
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
-import type {CustomRepo} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
 import {customRepoTypeLabel} from './utils';

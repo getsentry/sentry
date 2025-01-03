@@ -1,10 +1,11 @@
 import {Component} from 'react';
 
-import HookStore from 'sentry/stores/hookStore';
 import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
+
+import HookStore from 'sentry/stores/hookStore';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';

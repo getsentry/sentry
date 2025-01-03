@@ -1,7 +1,5 @@
 import omit from 'lodash/omit';
 
-import type {Client} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {
@@ -9,6 +7,9 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
+import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';

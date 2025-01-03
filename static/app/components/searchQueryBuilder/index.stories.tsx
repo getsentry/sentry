@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import type {TagCollection} from 'sentry/types/group';
+
 import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -12,7 +14,6 @@ import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import storyBook from 'sentry/stories/storyBook';
-import type {TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,

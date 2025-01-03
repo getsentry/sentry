@@ -1,12 +1,13 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {IntegrationType} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationType} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 
 import RequestIntegrationModal from './RequestIntegrationModal';
 

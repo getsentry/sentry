@@ -1,3 +1,5 @@
+import type {Integration, Repository} from 'sentry/types/integrations';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import type {Integration, Repository} from 'sentry/types/integrations';
 
 /**
  * Cancel the deletion of a respository

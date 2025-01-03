@@ -1,6 +1,7 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {type ReplayContext, ReplayContextKey} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
 
 export function getReplayContextData({
   data,

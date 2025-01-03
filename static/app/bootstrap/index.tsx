@@ -1,4 +1,5 @@
 import type {Config} from 'sentry/types/system';
+
 import {extractSlug} from 'sentry/utils/extractSlug';
 
 const BOOTSTRAP_URL = '/api/client-config/';

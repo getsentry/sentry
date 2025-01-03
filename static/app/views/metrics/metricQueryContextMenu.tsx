@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
@@ -18,7 +20,6 @@ import {
   IconSiren,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement, isCustomMetric, isVirtualMetric} from 'sentry/utils/metrics';
 import {

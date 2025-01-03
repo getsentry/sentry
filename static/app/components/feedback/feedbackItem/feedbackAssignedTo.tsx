@@ -1,5 +1,8 @@
 import {useEffect} from 'react';
 
+import type {Actor} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import type {EventOwners} from 'sentry/components/group/assignedTo';
@@ -8,8 +11,6 @@ import {
   AssigneeSelector,
   useHandleAssigneeChange,
 } from 'sentry/components/group/assigneeSelector';
-import type {Actor} from 'sentry/types/core';
-import type {Group} from 'sentry/types/group';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

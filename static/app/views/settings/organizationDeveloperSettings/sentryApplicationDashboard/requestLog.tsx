@@ -3,6 +3,12 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import type moment from 'moment-timezone';
 
+import type {
+  SentryApp,
+  SentryAppSchemaIssueLink,
+  SentryAppWebhookRequest,
+} from 'sentry/types/integrations';
+
 import Tag from 'sentry/components/badge/tag';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
@@ -19,11 +25,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  SentryApp,
-  SentryAppSchemaIssueLink,
-  SentryAppWebhookRequest,
-} from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
 const ALL_EVENTS = t('All Events');

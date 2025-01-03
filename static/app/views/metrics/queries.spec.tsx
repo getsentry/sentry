@@ -2,6 +2,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 import {MetricsContextProvider} from 'sentry/views/metrics/context';

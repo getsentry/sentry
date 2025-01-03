@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {CHART_HEIGHT} from 'sentry/views/insights/http/settings';

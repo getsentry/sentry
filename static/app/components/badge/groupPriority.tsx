@@ -5,6 +5,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import type {Activity} from 'sentry/types/group';
+import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+import type {AvatarUser} from 'sentry/types/user';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -19,9 +23,6 @@ import {IconClose} from 'sentry/icons';
 import {IconCellSignal} from 'sentry/icons/iconCellSignal';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Activity} from 'sentry/types/group';
-import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
-import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

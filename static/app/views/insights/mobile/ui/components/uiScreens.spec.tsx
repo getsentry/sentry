@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types/project';
+
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {UIScreens} from 'sentry/views/insights/mobile/ui/components/uiScreens';

@@ -1,6 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
@@ -19,8 +22,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';

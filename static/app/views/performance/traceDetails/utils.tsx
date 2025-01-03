@@ -1,8 +1,9 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+
+import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
   EventLite,

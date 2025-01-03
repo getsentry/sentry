@@ -4,9 +4,10 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import pickBy from 'lodash/pickBy';
 
+import type {PageFilters} from 'sentry/types/core';
+
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import type {PageFilters} from 'sentry/types/core';
 
 /**
  * Make a default page filters object

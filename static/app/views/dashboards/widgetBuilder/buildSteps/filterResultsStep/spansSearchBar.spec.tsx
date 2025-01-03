@@ -4,6 +4,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {TagValue} from 'sentry/types/group';
+
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';

@@ -11,9 +11,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ImageStatus} from 'sentry/types/debugImage';
+
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import ModalStore from 'sentry/stores/modalStore';
-import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('DebugMeta', function () {
   const {organization, project} = initializeOrg();

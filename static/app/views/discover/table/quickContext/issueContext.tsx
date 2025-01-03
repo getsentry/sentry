@@ -1,6 +1,8 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Count from 'sentry/components/count';
 import {getAssignedToDisplayName} from 'sentry/components/group/assignedTo';
@@ -9,7 +11,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconMute, IconNot, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';

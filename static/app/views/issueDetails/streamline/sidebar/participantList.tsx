@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Team} from 'sentry/types/organization';
+import type {AvatarUser, User} from 'sentry/types/user';
+
 import Avatar from 'sentry/components/avatar';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
@@ -10,8 +13,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Team} from 'sentry/types/organization';
-import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 import useOverlay from 'sentry/utils/useOverlay';
 

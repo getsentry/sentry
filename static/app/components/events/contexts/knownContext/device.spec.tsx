@@ -2,9 +2,10 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {DeviceContext} from 'sentry/types/event';
+
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {getDeviceContextData} from 'sentry/components/events/contexts/knownContext/device';
-import type {DeviceContext} from 'sentry/types/event';
 
 const MOCK_DEVICE_CONTEXT: DeviceContext = {
   name: '', // redacted

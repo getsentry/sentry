@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
+
+import {space} from 'sentry/styles/space';
 import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = {

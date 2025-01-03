@@ -1,8 +1,9 @@
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

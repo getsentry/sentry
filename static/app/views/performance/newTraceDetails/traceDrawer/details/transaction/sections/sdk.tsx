@@ -1,6 +1,7 @@
+import type {EventTransaction} from 'sentry/types/event';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';

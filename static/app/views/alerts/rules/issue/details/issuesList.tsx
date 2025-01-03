@@ -2,6 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
@@ -11,9 +15,6 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getDynamicText from 'sentry/utils/getDynamicText';

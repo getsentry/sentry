@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import countBy from 'lodash/countBy';
 
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   getSpanBarColors,
@@ -17,7 +19,6 @@ import {
   getHumanDuration,
 } from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
-import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import toPercent from 'sentry/utils/number/toPercent';
 
 import {SpanGroupBar} from './spanGroupBar';

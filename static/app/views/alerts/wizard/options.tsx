@@ -1,11 +1,12 @@
 import mapValues from 'lodash/mapValues';
 
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {
   FieldKey,
   makeTagCollection,

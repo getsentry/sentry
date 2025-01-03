@@ -3,13 +3,14 @@ import {css} from '@emotion/react';
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import EventTagsValue from 'sentry/components/events/eventTags/eventTagsValue';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconOpen} from 'sentry/icons';
-import type {EventTag} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 

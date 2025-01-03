@@ -1,6 +1,9 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
+
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   featureFlagOnboardingPlatforms,
@@ -8,8 +11,6 @@ import {
   replayPlatforms,
   withPerformanceOnboarding,
 } from 'sentry/data/platformCategories';
-import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 

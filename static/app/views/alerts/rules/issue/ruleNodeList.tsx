@@ -2,9 +2,6 @@ import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   IssueAlertConfiguration,
   IssueAlertGenericConditionConfig,
@@ -16,6 +13,10 @@ import type {
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,

@@ -2,10 +2,11 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+
 import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
 import {IssueViewEllipsisMenu} from 'sentry/views/issueList/groupSearchViewTabs/issueViewEllipsisMenu';

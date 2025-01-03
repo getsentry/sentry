@@ -4,6 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
+
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 

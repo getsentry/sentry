@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+
 import {LinkButton} from 'sentry/components/button';
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {keepPreviousData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

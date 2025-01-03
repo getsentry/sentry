@@ -1,5 +1,6 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation} from 'sentry/types/metrics';
+
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,

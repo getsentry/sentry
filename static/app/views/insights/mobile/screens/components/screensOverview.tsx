@@ -2,11 +2,12 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {NewQuery} from 'sentry/types/organization';
+
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';

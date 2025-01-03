@@ -5,13 +5,14 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {NoteType} from 'sentry/types/alerts';
+
 import {Button} from 'sentry/components/button';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
 import {useMembers} from 'sentry/utils/useMembers';

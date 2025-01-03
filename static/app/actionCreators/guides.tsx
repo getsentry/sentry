@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTourTask, isDemoModeEnabled} from 'sentry/utils/demoMode';
 

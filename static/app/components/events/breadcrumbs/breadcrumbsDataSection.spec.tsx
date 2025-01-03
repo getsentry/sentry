@@ -8,13 +8,14 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {EntryType} from 'sentry/types/event';
+
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {
   MOCK_BREADCRUMBS,
   MOCK_DATA_SECTION_PROPS,
   MOCK_EXCEPTION_ENTRY,
 } from 'sentry/components/events/breadcrumbs/testUtils';
-import {EntryType} from 'sentry/types/event';
 
 // Needed to mock useVirtualizer lists.
 jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({

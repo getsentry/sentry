@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {Event} from 'sentry/types/event';
+import type {Group, KeyValueListDataItem} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
@@ -13,9 +17,6 @@ import {
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import type {Event} from 'sentry/types/event';
-import type {Group, KeyValueListDataItem} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

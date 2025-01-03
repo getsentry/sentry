@@ -1,5 +1,16 @@
 import {useMemo} from 'react';
 
+import {
+  getIssueTitleFromType,
+  IssueCategory,
+  IssueType,
+  PriorityLevel,
+  type Tag,
+  type TagCollection,
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {
   ItemType,
@@ -11,16 +22,6 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {
-  getIssueTitleFromType,
-  IssueCategory,
-  IssueType,
-  PriorityLevel,
-  type Tag,
-  type TagCollection,
-} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   FieldKey,

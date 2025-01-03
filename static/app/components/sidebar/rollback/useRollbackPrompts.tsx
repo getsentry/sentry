@@ -1,6 +1,7 @@
+import type {Organization} from 'sentry/types/organization';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useRollback} from 'sentry/components/sidebar/rollback/useRollback';
-import type {Organization} from 'sentry/types/organization';
 
 export function useRollbackPrompts({
   collapsed,

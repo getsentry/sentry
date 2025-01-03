@@ -13,11 +13,12 @@ import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 import debounce from 'lodash/debounce';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {TabContext, TabsProps} from 'sentry/components/tabs';
 import {tabsShouldForwardProp} from 'sentry/components/tabs/utils';
 import {t} from 'sentry/locale';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

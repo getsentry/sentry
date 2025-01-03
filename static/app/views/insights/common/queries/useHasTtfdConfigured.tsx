@@ -1,4 +1,5 @@
 import type {NewQuery} from 'sentry/types/organization';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

@@ -1,13 +1,14 @@
 import {Fragment, useState} from 'react';
 
+import type {SelectValue} from 'sentry/types/core';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';

@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
+import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {LinkButton} from 'sentry/components/button';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
@@ -24,9 +28,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';

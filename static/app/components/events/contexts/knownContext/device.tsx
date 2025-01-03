@@ -1,3 +1,6 @@
+import {type DeviceContext, DeviceContextKey, type Event} from 'sentry/types/event';
+import type {KeyValueListData} from 'sentry/types/group';
+
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   getContextKeys,
@@ -5,8 +8,6 @@ import {
 } from 'sentry/components/events/contexts/utils';
 import FileSize from 'sentry/components/fileSize';
 import {t} from 'sentry/locale';
-import {type DeviceContext, DeviceContextKey, type Event} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 

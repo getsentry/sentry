@@ -5,6 +5,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EntryType} from 'sentry/types/event';
+
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 

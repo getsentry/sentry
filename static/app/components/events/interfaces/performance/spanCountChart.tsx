@@ -1,14 +1,15 @@
 import {useRef} from 'react';
 import type {Location} from 'history';
 
+import type {EventError, EventTag} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventError, EventTag} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanCountHistogramQuery from 'sentry/utils/performance/histogram/spanCountHistogramQuery';

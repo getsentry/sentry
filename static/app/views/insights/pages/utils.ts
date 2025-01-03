@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {

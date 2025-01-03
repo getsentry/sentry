@@ -1,6 +1,14 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  EntrySpans,
+  Event,
+  EventGroupComponent,
+  EventGroupVariant,
+} from 'sentry/types/event';
+import {EventGroupVariantType} from 'sentry/types/event';
+
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -9,13 +17,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  EntrySpans,
-  Event,
-  EventGroupComponent,
-  EventGroupVariant,
-} from 'sentry/types/event';
-import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import GroupingComponent from './groupingComponent';

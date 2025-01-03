@@ -1,5 +1,6 @@
 import type {DateString} from 'sentry/types/core';
 import type {Group, IssueAttachment} from 'sentry/types/group';
+
 import {
   type ApiQueryKey,
   useApiQuery,

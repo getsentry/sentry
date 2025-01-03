@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {EventGroupComponent} from 'sentry/types/event';
+
+import {space} from 'sentry/styles/space';
 
 import GroupingComponentChildren from './groupingComponentChildren';
 import GroupingComponentStacktrace from './groupingComponentStacktrace';

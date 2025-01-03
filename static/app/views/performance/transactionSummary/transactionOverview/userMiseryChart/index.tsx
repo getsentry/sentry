@@ -1,14 +1,15 @@
 import {Fragment} from 'react';
 import type {Query} from 'history';
 
+import type {Series} from 'sentry/types/echarts';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';

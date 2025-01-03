@@ -1,12 +1,13 @@
 import {useCallback, useMemo} from 'react';
 
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+
 import {fetchSpanFieldValues} from 'sentry/actionCreators/tags';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {

@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {AvatarUser} from 'sentry/types/user';
+
+import {space} from 'sentry/styles/space';
 
 import Link from '../links/link';
 

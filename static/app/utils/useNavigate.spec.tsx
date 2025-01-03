@@ -4,8 +4,9 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
+
+import ConfigStore from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {RouteContext} from 'sentry/views/routeContext';
 

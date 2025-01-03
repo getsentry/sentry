@@ -1,9 +1,10 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Actor} from 'sentry/types/core';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import type {BaseAvatarProps} from 'sentry/components/avatar/baseAvatar';
-import type {Actor} from 'sentry/types/core';
 
 interface Props
   extends BaseAvatarProps,

@@ -1,12 +1,13 @@
 import type {Location} from 'history';
 
+import type {SelectValue} from 'sentry/types/core';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import type {NewQuery, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';

@@ -11,6 +11,11 @@ import type {
 import type {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import type {DateString} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import type {Client} from 'sentry/api';
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -27,10 +32,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,

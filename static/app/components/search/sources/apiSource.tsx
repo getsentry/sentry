@@ -2,10 +2,6 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
-import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import type {ResponseMeta} from 'sentry/api';
-import {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {
@@ -17,6 +13,11 @@ import type {
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {fetchOrganizations} from 'sentry/actionCreators/organizations';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';

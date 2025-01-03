@@ -2,10 +2,11 @@ import {ActorFixture} from 'sentry-fixture/actor';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import GroupStore from 'sentry/stores/groupStore';
 import type {TimeseriesValue} from 'sentry/types/core';
 import type {Group, GroupStats} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+
+import GroupStore from 'sentry/stores/groupStore';
 
 const MOCK_PROJECT = ProjectFixture();
 

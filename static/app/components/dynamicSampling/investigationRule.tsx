@@ -2,6 +2,8 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {BaseButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
@@ -10,7 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

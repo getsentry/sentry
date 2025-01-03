@@ -1,6 +1,11 @@
 import pick from 'lodash/pick';
 import {createStore} from 'reflux';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {mergeGroups} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
@@ -8,10 +13,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 
 import type {StrictStoreDefinition} from './types';

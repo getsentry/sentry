@@ -1,6 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
@@ -8,7 +10,6 @@ import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import KeyValueData from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

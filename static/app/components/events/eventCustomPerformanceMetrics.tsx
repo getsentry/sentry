@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Panel from 'sentry/components/panels/panel';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,

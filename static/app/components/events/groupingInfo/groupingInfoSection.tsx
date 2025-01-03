@@ -1,10 +1,11 @@
 import {lazy, useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

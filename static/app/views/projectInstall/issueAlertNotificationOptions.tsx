@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {type IntegrationAction, IssueAlertActionType} from 'sentry/types/alerts';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';

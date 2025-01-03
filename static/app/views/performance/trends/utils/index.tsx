@@ -2,11 +2,12 @@ import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Project} from 'sentry/types/project';
+
 import {getInterval} from 'sentry/components/charts/utils';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';

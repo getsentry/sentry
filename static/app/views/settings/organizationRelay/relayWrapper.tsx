@@ -1,6 +1,9 @@
 import {useCallback, useState} from 'react';
 import omit from 'lodash/omit';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Relay, RelayActivity} from 'sentry/types/relay';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -10,8 +13,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Relay, RelayActivity} from 'sentry/types/relay';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

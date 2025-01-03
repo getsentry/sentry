@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {UserReport} from 'sentry/types/group';
+
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
 import {Button} from 'sentry/components/button';
@@ -7,7 +9,6 @@ import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 

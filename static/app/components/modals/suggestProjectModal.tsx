@@ -4,6 +4,8 @@ import * as qs from 'query-string';
 
 import bgPattern from 'sentry-images/spot/mobile-hero.jpg';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -20,7 +22,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 

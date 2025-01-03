@@ -4,6 +4,12 @@ import color from 'color';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
+import type {
+  StatuspageIncident,
+  StatusPageIncidentUpdate,
+  StatusPageServiceStatus,
+} from 'sentry/types/system';
+
 import {LinkButton} from 'sentry/components/button';
 import {DateTime} from 'sentry/components/dateTime';
 import List from 'sentry/components/list';
@@ -21,11 +27,6 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  StatuspageIncident,
-  StatusPageIncidentUpdate,
-  StatusPageServiceStatus,
-} from 'sentry/types/system';
 import marked from 'sentry/utils/marked';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 

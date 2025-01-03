@@ -1,4 +1,3 @@
-import {t} from 'sentry/locale';
 import type {
   MetricAggregation,
   MetricType,
@@ -6,6 +5,8 @@ import type {
   ParsedMRI,
   UseCase,
 } from 'sentry/types/metrics';
+
+import {t} from 'sentry/locale';
 import {parseFunction} from 'sentry/utils/discover/fields';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';

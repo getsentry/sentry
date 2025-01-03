@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import type {Location} from 'history';
 
+import type {PageFilters} from 'sentry/types/core';
+
 import {
   FORTY_EIGHT_HOURS,
   getDiffInMinutes,
@@ -11,7 +13,6 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';

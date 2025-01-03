@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {SentryAppComponent} from 'sentry/types/integrations';
+
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import ConfigStore from 'sentry/stores/configStore';
-import type {SentryAppComponent} from 'sentry/types/integrations';
 
 type Props = {
   sentryAppComponent: SentryAppComponent;

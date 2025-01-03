@@ -1,5 +1,6 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+
 import {defined} from 'sentry/utils';
 import {
   getAggregateAlias,

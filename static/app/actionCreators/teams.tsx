@@ -1,8 +1,9 @@
+import type {Team} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team} from 'sentry/types/organization';
 
 type CallbackOptions = {
   error?: Function;

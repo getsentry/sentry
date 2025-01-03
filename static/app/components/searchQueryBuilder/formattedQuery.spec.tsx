@@ -1,11 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {TagCollection} from 'sentry/types/group';
+
 import {
   FormattedQuery,
   type FormattedQueryProps,
 } from 'sentry/components/searchQueryBuilder/formattedQuery';
-import type {TagCollection} from 'sentry/types/group';
 
 const FILTER_KEYS: TagCollection = {
   lastSeen: {

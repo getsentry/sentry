@@ -1,6 +1,9 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
@@ -11,8 +14,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {SavedSearchType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

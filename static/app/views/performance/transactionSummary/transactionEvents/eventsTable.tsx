@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
+import type {IssueAttachment} from 'sentry/types/group';
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import {Client} from 'sentry/api';
 import {LinkButton} from 'sentry/components/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
@@ -15,9 +19,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
-import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';

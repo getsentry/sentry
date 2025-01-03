@@ -1,6 +1,11 @@
 import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease, Release} from 'sentry/types/release';
+
 import AlertLink from 'sentry/components/alertLink';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
@@ -9,10 +14,6 @@ import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {CurrentRelease, Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';

@@ -1,9 +1,10 @@
 import {memo, useEffect, useRef, useState} from 'react';
 import {Observer} from 'mobx-react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 
 import * as CursorGuideHandler from './cursorGuideHandler';

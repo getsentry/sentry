@@ -1,6 +1,7 @@
-import {backend, replayPlatforms} from 'sentry/data/platformCategories';
 import type {Organization} from 'sentry/types/organization';
 import type {MinimalProject} from 'sentry/types/project';
+
+import {backend, replayPlatforms} from 'sentry/data/platformCategories';
 
 /**
  * Are you able to send a Replay into the project?

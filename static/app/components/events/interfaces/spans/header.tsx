@@ -1,6 +1,9 @@
 import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import {
   getDataPoints,
   MIN_DATA_POINTS,
@@ -20,8 +23,6 @@ import {
   rectOfContent,
 } from 'sentry/components/performance/waterfall/utils';
 import {space} from 'sentry/styles/space';
-import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';

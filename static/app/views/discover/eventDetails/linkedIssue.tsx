@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+
 import {Alert} from 'sentry/components/alert';
 import SeenByList from 'sentry/components/avatar/seenByList';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -12,8 +15,6 @@ import ShortId from 'sentry/components/shortId';
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TimeseriesValue} from 'sentry/types/core';
-import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {

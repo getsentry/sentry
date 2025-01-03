@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';

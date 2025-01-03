@@ -2,10 +2,11 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,

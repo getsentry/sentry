@@ -1,8 +1,9 @@
+import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
+
 import {Flex} from 'sentry/components/container/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
-import type {User} from 'sentry/types/user';
 import ParticipantList from 'sentry/views/issueDetails/streamline/sidebar/participantList';
 import {SidebarSectionTitle} from 'sentry/views/issueDetails/streamline/sidebar/sidebar';
 

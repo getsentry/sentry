@@ -10,12 +10,13 @@ import {UserFixture} from 'sentry-fixture/user';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory} from 'sentry/types/group';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {IssueCategory} from 'sentry/types/group';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
 
 const SAMPLE_EVENT_ALERT_TEXT =

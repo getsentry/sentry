@@ -1,5 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+
 import {
   type ApiQueryKey,
   useApiQuery,

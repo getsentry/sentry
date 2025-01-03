@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {DebugFile} from 'sentry/types/debugFiles';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -13,7 +15,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DebugFile} from 'sentry/types/debugFiles';
 import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 

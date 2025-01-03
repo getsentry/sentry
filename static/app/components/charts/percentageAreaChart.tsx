@@ -3,6 +3,7 @@ import type {LineSeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+
 import toArray from 'sentry/utils/array/toArray';
 
 import AreaSeries from './series/areaSeries';

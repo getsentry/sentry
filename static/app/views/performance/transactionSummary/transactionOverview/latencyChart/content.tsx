@@ -1,13 +1,14 @@
 import {useState} from 'react';
 import type {Location} from 'history';
 
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import toArray from 'sentry/utils/array/toArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

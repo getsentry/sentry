@@ -1,6 +1,9 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+
 import Feature from 'sentry/components/acl/feature';
 import {LinkButton} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -12,8 +15,6 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {isVirtualMetric} from 'sentry/utils/metrics';
 import type {FocusedMetricsSeries, MetricsWidget} from 'sentry/utils/metrics/types';

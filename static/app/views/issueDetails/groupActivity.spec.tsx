@@ -14,14 +14,15 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {Group} from 'sentry/types/group';
+import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Group} from 'sentry/types/group';
-import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {

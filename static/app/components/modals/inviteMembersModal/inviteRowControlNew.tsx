@@ -4,6 +4,9 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {SelectValue} from 'sentry/types/core';
+import type {OrgRole} from 'sentry/types/organization';
+
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
@@ -11,8 +14,6 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
-import type {OrgRole} from 'sentry/types/organization';
 
 import EmailValue from './emailValue';
 import type {InviteStatus} from './types';

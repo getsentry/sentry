@@ -2,11 +2,12 @@ import {useMemo} from 'react';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import _Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,

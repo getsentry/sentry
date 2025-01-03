@@ -1,6 +1,9 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import type {Member, Organization} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -11,8 +14,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {AvatarUser} from 'sentry/types/user';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import {capitalize} from 'sentry/utils/string/capitalize';
 

@@ -2,13 +2,14 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';

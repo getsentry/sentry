@@ -1,3 +1,5 @@
+import {GroupStatus} from 'sentry/types/group';
+
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -8,7 +10,6 @@ import type useListItemCheckboxState from 'sentry/components/feedback/list/useLi
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {GroupStatus} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props

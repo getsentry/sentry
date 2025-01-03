@@ -1,4 +1,5 @@
 import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
+
 import {
   formatMRI,
   getUseCaseFromMRI,

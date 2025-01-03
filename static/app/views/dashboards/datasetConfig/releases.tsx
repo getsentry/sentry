@@ -1,16 +1,17 @@
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
-import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
-import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import type {SessionsMeta} from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
+
+import {doReleaseHealthRequest} from 'sentry/actionCreators/metrics';
+import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import type {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';

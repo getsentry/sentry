@@ -1,9 +1,10 @@
 import type {Theme} from '@emotion/react';
 
-import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
-import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {GroupSubstatus} from 'sentry/types/group';
+
+import {GroupStatusTag} from 'sentry/components/group/inboxBadges/groupStatusTag';
+import {t} from 'sentry/locale';
 
 interface SubstatusBadgeProps {
   status: Group['status'];

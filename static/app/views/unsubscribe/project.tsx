@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import Alert from 'sentry/components/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -7,7 +9,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useParams} from 'sentry/utils/useParams';

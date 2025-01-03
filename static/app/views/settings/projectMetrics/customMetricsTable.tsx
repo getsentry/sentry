@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {MetricMeta} from 'sentry/types/metrics';
+import type {Project} from 'sentry/types/project';
+
 import Tag from 'sentry/components/badge/tag';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -11,8 +14,6 @@ import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta} from 'sentry/types/metrics';
-import type {Project} from 'sentry/types/project';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';

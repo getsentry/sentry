@@ -3,10 +3,11 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import ConfigStore from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
+
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import ConfigStore from 'sentry/stores/configStore';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,

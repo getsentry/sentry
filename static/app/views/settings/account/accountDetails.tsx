@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import type {User} from 'sentry/types/user';
+
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -13,7 +15,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

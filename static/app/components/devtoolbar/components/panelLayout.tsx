@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 import type {UrlObject} from 'query-string';
 
+import type {PlatformKey} from 'sentry/types/project';
+
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {buttonCss} from 'sentry/components/devtoolbar/styles/typography';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import type {PlatformKey} from 'sentry/types/project';
 
 import {panelCss, panelHeadingCss, panelSectionCss} from '../styles/panel';
 import {resetDialogCss, resetFlexColumnCss, resetFlexRowCss} from '../styles/reset';

@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import {
   getFieldTypeFromUnit,
   isNotMarkMeasurement,
@@ -8,8 +11,6 @@ import {
 } from 'sentry/components/events/eventCustomPerformanceMetrics';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,

@@ -1,13 +1,14 @@
 import {css} from '@emotion/react';
 
+import type {Actor} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AlertBadge from 'sentry/components/badge/alertBadge';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import type {Actor} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import type {Incident, MetricAlert} from 'sentry/views/alerts/types';
 import {CombinedAlertType} from 'sentry/views/alerts/types';

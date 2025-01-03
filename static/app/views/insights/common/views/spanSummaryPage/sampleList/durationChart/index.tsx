@@ -1,9 +1,10 @@
-import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartHighlightHandler,
   Series,
 } from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';

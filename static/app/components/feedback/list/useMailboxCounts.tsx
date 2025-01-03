@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Organization} from 'sentry/types/organization';
+
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';

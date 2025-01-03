@@ -9,10 +9,11 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import type {PlatformKey, Project} from 'sentry/types/project';
+
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {

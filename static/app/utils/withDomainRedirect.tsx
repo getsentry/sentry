@@ -3,9 +3,10 @@ import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
+import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
-import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 

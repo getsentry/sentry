@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -13,8 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ObjectStatus} from 'sentry/types/core';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';

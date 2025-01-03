@@ -3,6 +3,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+
 import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -14,10 +19,6 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SeriesDataUnit} from 'sentry/types/echarts';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';

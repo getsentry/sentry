@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
+import type {PageFilters} from 'sentry/types/core';
+
 import {
   getDiffInMinutes,
   GranularityLadder,
@@ -12,7 +14,6 @@ import {
 } from 'sentry/components/charts/utils';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useUpdateQuery} from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';

@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
@@ -10,9 +14,6 @@ import AssigneeSelectorDropdown, {
 import {Button} from 'sentry/components/button';
 import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 

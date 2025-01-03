@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {Relay} from 'sentry/types/relay';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -8,7 +10,6 @@ import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Relay} from 'sentry/types/relay';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
 type Values = Record<FormField, string>;

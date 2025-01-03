@@ -4,12 +4,13 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {Team as TeamType} from 'sentry/types/organization';
+import type {User as UserType} from 'sentry/types/user';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Team as TeamType} from 'sentry/types/organization';
-import type {User as UserType} from 'sentry/types/user';
 
 describe('ActorAvatar', function () {
   const user: UserType = {

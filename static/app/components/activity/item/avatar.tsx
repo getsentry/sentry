@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {AvatarUser} from 'sentry/types/user';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSentry} from 'sentry/icons';
-import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   type: 'system' | 'user';

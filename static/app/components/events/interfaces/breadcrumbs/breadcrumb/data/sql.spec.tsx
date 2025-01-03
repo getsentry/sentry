@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
+import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 
 describe('Breadcrumb Data SQL', function () {
   const {organization, router} = initializeOrg({

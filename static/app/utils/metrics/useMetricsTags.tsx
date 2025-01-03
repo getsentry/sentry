@@ -1,6 +1,7 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+
 import {SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';

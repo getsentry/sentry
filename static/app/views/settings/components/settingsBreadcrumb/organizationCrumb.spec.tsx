@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {Config} from 'sentry/types/system';
+
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Config} from 'sentry/types/system';
 
 import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName} from './types';

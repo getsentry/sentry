@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {formattedValue} from 'sentry/utils/measurements/index';
 import {

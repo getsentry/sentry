@@ -703,7 +703,13 @@ export default typescript.config([
 
             ['^(getsentry-images)(/.*|$)'],
 
+            // Types
+            ['^(app|sentry)/types(/.*|$)'],
+
             ['^(app|sentry)(/.*|$)'],
+
+            // Views
+            ['^(app|sentry)/views(/.*|$)'],
 
             // Getsentry packages.
             ['^(admin|getsentry)(/.*|$)'],

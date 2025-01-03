@@ -3,6 +3,11 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -12,10 +17,6 @@ import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/bread
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
-import type {Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

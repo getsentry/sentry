@@ -3,6 +3,7 @@ import {Fragment, useEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';

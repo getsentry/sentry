@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -7,7 +9,6 @@ import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

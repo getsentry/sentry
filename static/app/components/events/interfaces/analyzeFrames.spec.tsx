@@ -1,12 +1,13 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {Event, Frame} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
+
 import {
   analyzeFrameForRootCause,
   analyzeFramesForRootCause,
 } from 'sentry/components/events/interfaces/analyzeFrames';
-import type {Event, Frame} from 'sentry/types/event';
-import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 
 const makeEventWithFrames = (frames: Frame[]): Event => {
   const event: Event = {

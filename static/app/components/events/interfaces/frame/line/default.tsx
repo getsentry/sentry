@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {Frame} from 'sentry/types/event';
+
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
 import DefaultTitle from '../defaultTitle';

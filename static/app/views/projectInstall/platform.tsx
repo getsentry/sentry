@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 
+import type {IssueAlertRule} from 'sentry/types/alerts';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
+
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -20,9 +24,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule} from 'sentry/types/alerts';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';

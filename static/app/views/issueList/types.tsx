@@ -4,6 +4,7 @@ import type {
   PriorityLevel,
   TagValue,
 } from 'sentry/types/group';
+
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export type TagValueLoader = (key: string, search: string) => Promise<TagValue[]>;

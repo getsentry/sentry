@@ -1,5 +1,8 @@
 import {Fragment, useState} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
@@ -8,8 +11,6 @@ import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Release} from 'sentry/types/release';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 
 interface CustomResolutionModalProps extends ModalRenderProps {

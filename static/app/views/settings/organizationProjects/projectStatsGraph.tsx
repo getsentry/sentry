@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import LazyLoad from 'react-lazyload';
 
-import MiniBarChart from 'sentry/components/charts/miniBarChart';
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
+
+import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {t} from 'sentry/locale';
 
 type Props = {
   project: Project;

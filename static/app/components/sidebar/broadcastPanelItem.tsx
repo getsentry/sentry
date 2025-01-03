@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Broadcast} from 'sentry/types/system';
+
 import Tag from 'sentry/components/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Broadcast} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 

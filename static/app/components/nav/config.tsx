@@ -1,3 +1,5 @@
+import type {Organization} from 'sentry/types/organization';
+
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {NavConfig} from 'sentry/components/nav/utils';
 import {
@@ -13,7 +15,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {
   AI_LANDING_SUB_PATH,

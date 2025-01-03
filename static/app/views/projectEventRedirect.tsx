@@ -1,9 +1,10 @@
 import {useEffect, useState} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import DetailedError from 'sentry/components/errors/detailedError';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
 
 type Props = RouteComponentProps<{}, {}>;

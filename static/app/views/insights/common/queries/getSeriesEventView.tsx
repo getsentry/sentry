@@ -1,6 +1,7 @@
 import sortBy from 'lodash/sortBy';
 
 import type {PageFilters} from 'sentry/types/core';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

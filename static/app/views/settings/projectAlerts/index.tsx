@@ -1,9 +1,10 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
-import Access from 'sentry/components/acl/access';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import Access from 'sentry/components/acl/access';
 
 interface Props
   extends RouteComponentProps<{organizationId: string; projectId: string}, {}> {

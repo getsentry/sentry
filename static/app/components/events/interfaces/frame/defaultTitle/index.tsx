@@ -1,6 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Frame} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -10,9 +14,6 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame} from 'sentry/types/event';
-import type {Meta} from 'sentry/types/group';
-import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 

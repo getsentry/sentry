@@ -1,5 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import type {DateString} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -13,9 +17,6 @@ import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';

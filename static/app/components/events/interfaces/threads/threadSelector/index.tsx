@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';

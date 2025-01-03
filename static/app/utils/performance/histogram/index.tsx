@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import type {SelectValue} from 'sentry/types/core';
+
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

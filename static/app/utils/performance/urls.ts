@@ -1,7 +1,8 @@
 import type {LocationDescriptor, Query} from 'history';
 
-import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types/organization';
+
+import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';

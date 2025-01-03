@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {UsageSeries} from './types';

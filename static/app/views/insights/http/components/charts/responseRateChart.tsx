@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   HTTP_RESPONSE_3XX_COLOR,

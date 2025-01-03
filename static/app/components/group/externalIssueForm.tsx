@@ -1,6 +1,10 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
+import type {Group} from 'sentry/types/group';
+import type {Integration, IntegrationExternalIssue} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
@@ -8,9 +12,6 @@ import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstract
 import type {FormProps} from 'sentry/components/forms/form';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Integration, IntegrationExternalIssue} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 

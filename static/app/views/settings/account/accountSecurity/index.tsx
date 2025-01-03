@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {Authenticator} from 'sentry/types/auth';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -17,9 +21,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';

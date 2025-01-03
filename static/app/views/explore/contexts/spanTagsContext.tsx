@@ -1,8 +1,9 @@
 import type React from 'react';
 import {createContext, useContext, useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {Tag, TagCollection} from 'sentry/types/group';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKind} from 'sentry/utils/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';

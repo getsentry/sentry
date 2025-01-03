@@ -1,6 +1,9 @@
 import {Component, createContext} from 'react';
 import isEqual from 'lodash/isEqual';
 
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {TeamKeyTransactions} from 'sentry/actionCreators/performance';
 import {
   fetchTeamKeyTransactions,
@@ -8,8 +11,6 @@ import {
 } from 'sentry/actionCreators/performance';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {Organization, Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
 
 export type TeamSelection = {

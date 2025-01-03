@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {Group} from 'sentry/types/group';
+
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';

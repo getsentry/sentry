@@ -5,6 +5,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Group} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import {putSessionUserFirst} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
@@ -14,10 +19,6 @@ import IndicatorStore from 'sentry/stores/indicatorStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Group} from 'sentry/types/group';
-import type {Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {User} from 'sentry/types/user';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),

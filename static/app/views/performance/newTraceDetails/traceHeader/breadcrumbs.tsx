@@ -1,9 +1,10 @@
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import type {Organization} from 'sentry/types/organization';
+
 import type {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {
   RoutableModuleNames,

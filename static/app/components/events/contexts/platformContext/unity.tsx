@@ -1,7 +1,8 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import {t} from 'sentry/locale';
 import {type UnityContext, UnityContextKey} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {t} from 'sentry/locale';
 
 export function getUnityContextData({data}: {data: UnityContext}): KeyValueListData {
   return getContextKeys({data}).map(ctxKey => {

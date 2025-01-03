@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import Link from 'sentry/components/links/link';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';

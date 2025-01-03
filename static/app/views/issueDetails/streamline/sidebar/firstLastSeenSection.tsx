@@ -1,14 +1,15 @@
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
+
 import {Flex} from 'sentry/components/container/flex';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
-import type {Release} from 'sentry/types/release';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';

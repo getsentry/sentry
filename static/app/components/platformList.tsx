@@ -3,9 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import type {PlatformKey} from 'sentry/types/project';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
-import type {PlatformKey} from 'sentry/types/project';
 import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {

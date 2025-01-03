@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
+import type {SavedSearch} from 'sentry/types/group';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -13,7 +15,6 @@ import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuer
 import {IconClose} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SavedSearch} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import useOrganization from 'sentry/utils/useOrganization';

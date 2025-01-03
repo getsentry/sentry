@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Button, LinkButton} from 'sentry/components/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -10,7 +12,6 @@ import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 

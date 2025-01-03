@@ -1,7 +1,8 @@
+import type {Organization} from 'sentry/types/organization';
+
 import Alert, {type AlertProps} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 export function MetricsBetaEndAlert({

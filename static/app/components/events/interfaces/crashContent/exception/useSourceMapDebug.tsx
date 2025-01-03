@@ -2,6 +2,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useQueries} from 'sentry/utils/queryClient';

@@ -18,6 +18,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -25,7 +27,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';

@@ -1,5 +1,9 @@
 import {useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {EventAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
@@ -12,9 +16,6 @@ import ScreenshotModal, {
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {EventAttachment} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -2,8 +2,9 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {Client} from 'sentry/api';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+
+import {Client} from 'sentry/api';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';

@@ -2,9 +2,10 @@ import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {NewQuery} from 'sentry/types/organization';
+
 import type {Polarity} from 'sentry/components/percentChange';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';

@@ -1,9 +1,10 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import {t} from 'sentry/locale';
 import {type ProfileContext, ProfileContextKey} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 

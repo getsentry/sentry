@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {MRI} from 'sentry/types/metrics';
+
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 

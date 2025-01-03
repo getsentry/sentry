@@ -1,3 +1,9 @@
+import type {DebugFile} from 'sentry/types/debugFiles';
+import type {Image} from 'sentry/types/debugImage';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import type {EventErrorData} from 'sentry/components/events/errorItem';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
@@ -11,11 +17,6 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
-import type {DebugFile} from 'sentry/types/debugFiles';
-import type {Image} from 'sentry/types/debugImage';
-import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';

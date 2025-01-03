@@ -1,12 +1,13 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/avatar';
-import {space, type ValidSize} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {AvatarUser} from 'sentry/types/user';
+
+import Avatar from 'sentry/components/avatar';
+import {space, type ValidSize} from 'sentry/styles/space';
 
 export interface BaseBadgeProps {
   avatarProps?: Record<string, any>;

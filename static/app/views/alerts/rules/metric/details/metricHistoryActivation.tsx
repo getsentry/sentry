@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {
   ActivationConditionType,
   ActivationTrigger,
   type ActivationTriggerActivity,
 } from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
+
+import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {StyledDateTime} from 'sentry/views/alerts/rules/metric/details/styles';
 

@@ -2,16 +2,17 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {
+  RouteComponentProps,
+  RouteContextInterface,
+} from 'sentry/types/legacyReactRouter';
+
 import type {ResponseMeta} from 'sentry/api';
 import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
-import type {
-  RouteComponentProps,
-  RouteContextInterface,
-} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';

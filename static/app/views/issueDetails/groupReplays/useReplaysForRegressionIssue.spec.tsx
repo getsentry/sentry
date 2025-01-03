@@ -7,6 +7,7 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {EventOccurrence} from 'sentry/types/event';
 import {IssueCategory} from 'sentry/types/group';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import useReplaysForRegressionIssue from 'sentry/views/issueDetails/groupReplays/useReplaysForRegressionIssue';
 

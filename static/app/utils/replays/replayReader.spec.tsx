@@ -22,6 +22,7 @@ import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import {fetchTagFacets} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
@@ -16,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

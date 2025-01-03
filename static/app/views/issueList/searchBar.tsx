@@ -1,6 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
@@ -8,8 +11,6 @@ import {
 } from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';

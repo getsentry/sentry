@@ -1,10 +1,11 @@
+import type {Event} from 'sentry/types/event';
+import type {KeyValueListData} from 'sentry/types/group';
+
 import {
   getContextKeys,
   getRelativeTimeFromEventDateCreated,
 } from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 enum AppContextKeys {

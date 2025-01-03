@@ -1,7 +1,8 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
+
+import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 
 describe('ExceptionMechanism', function () {
   describe('basic attributes', function () {

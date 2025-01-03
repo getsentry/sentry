@@ -2,14 +2,15 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import Avatar from 'sentry/components/avatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {Button} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 
 interface ParticipantScrollboxProps {
   teams: Team[];

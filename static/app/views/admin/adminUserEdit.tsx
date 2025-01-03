@@ -1,6 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {User} from 'sentry/types/user';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -12,8 +15,6 @@ import FormModel from 'sentry/components/forms/model';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {User} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 

@@ -1,9 +1,10 @@
 import {Component} from 'react';
 
-import {deviceNameMapper} from 'sentry/components/deviceName';
-import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 import type {Group, TagWithTopValues} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+import {deviceNameMapper} from 'sentry/components/deviceName';
+import TagDistributionMeter from 'sentry/components/tagDistributionMeter';
 
 type Props = {
   group: Group;

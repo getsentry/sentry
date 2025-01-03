@@ -1,8 +1,9 @@
+import type {DateString} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+
 import type {Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {DateString} from 'sentry/types/core';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
 export type DoSessionsRequestOptions = {

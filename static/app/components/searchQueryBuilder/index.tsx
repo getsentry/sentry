@@ -1,6 +1,8 @@
 import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+
 import {Button} from 'sentry/components/button';
 import {inputStyles} from 'sentry/components/input';
 import {
@@ -27,7 +29,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';

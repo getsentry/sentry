@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {Button, LinkButton} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 
 type RollbackBannerProps = {
   organization: Organization;

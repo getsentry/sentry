@@ -5,6 +5,7 @@ import type {
   ExperimentType,
 } from 'sentry/types/experiments';
 import type {Organization} from 'sentry/types/organization';
+
 import {useExperiment} from 'sentry/utils/useExperiment';
 
 type Options<E extends ExperimentKey, L extends boolean> = {

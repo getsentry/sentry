@@ -1,8 +1,9 @@
+import type {OnboardingTask, OnboardingTaskStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+
 import type {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import type {OnboardingTask, OnboardingTaskStatus} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
 
 interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'data'>> {
   task: OnboardingTask['task'];

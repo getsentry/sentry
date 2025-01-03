@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 
+import type {EventTransaction} from 'sentry/types/event';
+
 import type {Tag} from 'sentry/actionCreators/events';
 import type {ApiResult} from 'sentry/api';
-import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
   InfiniteData,

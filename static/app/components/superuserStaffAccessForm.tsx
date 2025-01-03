@@ -1,6 +1,8 @@
 import React, {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {Authenticator} from 'sentry/types/auth';
+
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -14,7 +16,6 @@ import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;

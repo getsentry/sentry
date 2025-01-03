@@ -1,6 +1,7 @@
-import {t} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import {DebugFileFeature, DebugFileType} from 'sentry/types/debugFiles';
+
+import {t} from 'sentry/locale';
 
 const PRETTY_SYMBOL_TYPES = {
   proguard: t('ProGuard mapping'),

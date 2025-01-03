@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {QRCodeCanvas} from 'qrcode.react';
 
+import type {Authenticator} from 'sentry/types/auth';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -28,8 +31,6 @@ import U2fSign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports

@@ -1,4 +1,5 @@
 import type {SelectValue} from 'sentry/types/core';
+
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';

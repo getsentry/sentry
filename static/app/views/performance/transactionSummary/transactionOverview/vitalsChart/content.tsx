@@ -1,6 +1,8 @@
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
+import type {Series} from 'sentry/types/echarts';
+
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
@@ -10,7 +12,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
-import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,

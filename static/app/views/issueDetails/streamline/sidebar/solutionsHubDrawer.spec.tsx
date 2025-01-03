@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
+
 import {SolutionsHubDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
 
 describe('SolutionsHubDrawer', () => {

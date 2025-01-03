@@ -1,4 +1,5 @@
 import type {SavedSearch} from 'sentry/types/group';
+
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

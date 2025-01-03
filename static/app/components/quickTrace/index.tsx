@@ -2,6 +2,8 @@ import {Component, Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Event} from 'sentry/types/event';
+
 import DropdownLink from 'sentry/components/dropdownLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {
@@ -17,7 +19,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatform} from 'sentry/utils/docs';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -35,6 +36,7 @@ const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
 import type {Organization} from 'sentry/types/organization';
+
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 
 import {

@@ -1,11 +1,12 @@
 import isEqual from 'lodash/isEqual';
 
-import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
-import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
+import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,

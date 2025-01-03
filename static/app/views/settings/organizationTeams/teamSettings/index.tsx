@@ -1,6 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Team} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -18,8 +21,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';

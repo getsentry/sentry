@@ -1,7 +1,5 @@
 import pickBy from 'lodash/pickBy';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -9,6 +7,9 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import type {Client} from 'sentry/api';
 import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';

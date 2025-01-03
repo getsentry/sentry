@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

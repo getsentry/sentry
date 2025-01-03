@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Coverage} from 'sentry/types/integrations';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
   isActive: boolean;

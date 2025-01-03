@@ -1,8 +1,9 @@
 import type {MarkLineComponentOption, SeriesOption} from 'echarts';
 
-import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {DateString} from 'sentry/types/core';
 import type {MetricAggregation} from 'sentry/types/metrics';
+
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 
 export type Series = {

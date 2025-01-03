@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
+
 import Tag, {Background} from 'sentry/components/badge/tag';
 import Highlight from 'sentry/components/highlight';
 import {t} from 'sentry/locale';
-import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 
 type Props = {
   level: BreadcrumbLevelType;

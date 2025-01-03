@@ -1,7 +1,8 @@
+import {MonitorType} from 'sentry/types/alerts';
+
 import AlertBadge from 'sentry/components/badge/alertBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {MonitorType} from 'sentry/types/alerts';
 import {UptimeMonitorStatus} from 'sentry/views/alerts/rules/uptime/types';
 import {
   ActivationStatus,

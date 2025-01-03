@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import type {User} from 'sentry/types/user';
+
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
 type Props = {

@@ -1,5 +1,10 @@
 import type {Location} from 'history';
 
+import type {Event, EventTag} from 'sentry/types/event';
+import type {KeyValueListData} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {
   type ContextItem,
   getOrderedContextItems,
@@ -10,10 +15,6 @@ import {
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
 import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import type {Event, EventTag} from 'sentry/types/event';
-import type {KeyValueListData} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
 export type HighlightTags = Required<Project>['highlightTags'];

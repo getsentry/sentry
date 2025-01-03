@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 
+import {GroupStatus} from 'sentry/types/group';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -10,7 +12,6 @@ import type useListItemCheckboxState from 'sentry/components/feedback/list/useLi
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

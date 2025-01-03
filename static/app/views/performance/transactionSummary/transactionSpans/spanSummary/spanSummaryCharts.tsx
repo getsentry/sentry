@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {

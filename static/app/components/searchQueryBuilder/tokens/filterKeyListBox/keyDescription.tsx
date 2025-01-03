@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import type {Tag} from 'sentry/types/group';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types/group';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 

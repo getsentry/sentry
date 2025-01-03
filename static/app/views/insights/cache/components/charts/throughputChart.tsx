@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
 import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';

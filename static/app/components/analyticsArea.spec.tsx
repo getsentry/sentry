@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {Organization} from 'sentry/types/organization';
+
+import AnalyticsArea, {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import * as analytics from 'sentry/utils/analytics';
 
 function TestButton({org}: {org: Organization}) {

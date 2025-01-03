@@ -1,4 +1,5 @@
 import type {MRI} from 'sentry/types/metrics';
+
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {DashboardMetricsExpression} from 'sentry/views/dashboards/metrics/types';
 import type {Widget} from 'sentry/views/dashboards/types';

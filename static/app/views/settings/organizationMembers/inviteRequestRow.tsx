@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Member, Organization, OrgRole} from 'sentry/types/organization';
+
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -13,7 +15,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, OrgRole} from 'sentry/types/organization';
 
 type Props = {
   allRoles: OrgRole[];

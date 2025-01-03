@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {ImageStatus} from 'sentry/types/debugImage';
+
 import Tag from 'sentry/components/badge/tag';
 import {t} from 'sentry/locale';
-import {ImageStatus} from 'sentry/types/debugImage';
 
 type Props = {
   status: ImageStatus;

@@ -1,5 +1,6 @@
-import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import type {MRI} from 'sentry/types/metrics';
+
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import {getDateTimeParams} from 'sentry/utils/metrics';
 import type {MetricMetaCodeLocation} from 'sentry/utils/metrics/types';
 import {useApiQuery} from 'sentry/utils/queryClient';

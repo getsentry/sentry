@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import type {Location} from 'history';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
@@ -10,9 +14,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {getFormattedMQL, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';

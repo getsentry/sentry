@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import omit from 'lodash/omit';
 
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   STATIC_FIELD_TAGS,
@@ -18,7 +20,6 @@ import type {
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';

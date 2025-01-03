@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {Series} from 'sentry/types/echarts';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -8,7 +10,6 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,

@@ -1,9 +1,10 @@
 import {createRoot} from 'react-dom/client';
 import throttle from 'lodash/throttle';
 
-import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
+
+import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';

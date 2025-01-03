@@ -1,10 +1,11 @@
 import type {Query} from 'history';
 
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import EventTagsContent from 'sentry/components/events/eventTags/eventTagContent';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Pill from 'sentry/components/pill';
-import type {EventTag} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   organization: Organization;

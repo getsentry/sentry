@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
+
 import CircleIndicator from 'sentry/components/circleIndicator';
 import {space} from 'sentry/styles/space';
-import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
 
 import {COLORS} from './constants';
 

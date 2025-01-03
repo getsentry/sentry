@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;

@@ -1,5 +1,6 @@
-import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
+
+import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';

@@ -2,6 +2,8 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -12,7 +14,6 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';

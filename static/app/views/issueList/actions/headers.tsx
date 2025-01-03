@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {PageFilters} from 'sentry/types/core';
+
 import IssueStreamHeaderLabel from 'sentry/components/IssueStreamHeaderLabel';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
 import useOrganization from 'sentry/utils/useOrganization';
 import {HeaderDivider} from 'sentry/views/issueList/actions';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';

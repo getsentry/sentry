@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 
+import {GroupStatus} from 'sentry/types/group';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -8,7 +10,6 @@ import {
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import useMutateFeedback from 'sentry/components/feedback/useMutateFeedback';
 import {t} from 'sentry/locale';
-import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';

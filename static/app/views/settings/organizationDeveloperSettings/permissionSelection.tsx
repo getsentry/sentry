@@ -1,14 +1,15 @@
 import {Component, Fragment} from 'react';
 
-import SelectField from 'sentry/components/forms/fields/selectField';
-import FormContext from 'sentry/components/forms/formContext';
-import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
-import {t} from 'sentry/locale';
 import type {
   PermissionResource,
   Permissions,
   PermissionValue,
 } from 'sentry/types/integrations';
+
+import SelectField from 'sentry/components/forms/fields/selectField';
+import FormContext from 'sentry/components/forms/formContext';
+import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
+import {t} from 'sentry/locale';
 
 /**
  * Custom form element that presents API scopes in a resource-centric way. Meaning

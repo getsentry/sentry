@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
 
+import type {SessionApiResponse} from 'sentry/types/organization';
+
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import useFetchApiData from 'sentry/components/devtoolbar/hooks/useFetchApiData';
 import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
-import type {SessionApiResponse} from 'sentry/types/organization';
 
 export default function useReleaseSessions({
   releaseVersion,

@@ -1,7 +1,8 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import type {Group} from 'sentry/types/group';
+
+import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 
 describe('EventOrGroupExtraDetails', function () {
   it('renders last and first seen', function () {

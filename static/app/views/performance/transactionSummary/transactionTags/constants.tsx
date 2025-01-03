@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
+
+import {t} from 'sentry/locale';
 
 import {XAxisOption} from './types';
 

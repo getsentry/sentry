@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
+
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IssueAlertFilterType, type IssueAlertRuleCondition} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackAlertBanner({

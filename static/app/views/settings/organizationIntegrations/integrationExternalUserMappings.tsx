@@ -1,9 +1,5 @@
 import {Fragment} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import {t} from 'sentry/locale';
 import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
@@ -12,6 +8,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization} from 'sentry/types/organization';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {t} from 'sentry/locale';
 import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports

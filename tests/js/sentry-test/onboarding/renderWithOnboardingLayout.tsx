@@ -3,6 +3,9 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+import type {DeepPartial} from 'sentry/types/utils';
+
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
 import type {
   BasePlatformOptions,
@@ -11,8 +14,6 @@ import type {
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import type {Organization} from 'sentry/types/organization';
-import type {DeepPartial} from 'sentry/types/utils';
 
 interface Options<PlatformOptions extends BasePlatformOptions = BasePlatformOptions> {
   releaseRegistry?: DeepPartial<ReleaseRegistrySdk>;

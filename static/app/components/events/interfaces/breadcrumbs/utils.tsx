@@ -1,8 +1,9 @@
-import {t} from 'sentry/locale';
 import type {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 /**

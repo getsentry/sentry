@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {AccessRequest} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
@@ -10,7 +12,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AccessRequest} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

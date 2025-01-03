@@ -1,6 +1,8 @@
 import {useContext, useState} from 'react';
 import {css} from '@emotion/react';
 
+import type {PlatformKey} from 'sentry/types/project';
+
 import {Button} from 'sentry/components/button';
 import AnalyticsProvider, {
   AnalyticsContext,
@@ -10,7 +12,6 @@ import useReplayRecorder from 'sentry/components/devtoolbar/hooks/useReplayRecor
 import {resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {IconPause, IconPlay} from 'sentry/icons';
-import type {PlatformKey} from 'sentry/types/project';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import {panelInsetContentCss, panelSectionCss} from '../../styles/panel';

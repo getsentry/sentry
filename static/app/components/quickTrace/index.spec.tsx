@@ -1,9 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import QuickTrace from 'sentry/components/quickTrace';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+
+import QuickTrace from 'sentry/components/quickTrace';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {

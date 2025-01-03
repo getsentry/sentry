@@ -1,6 +1,7 @@
+import type {PlatformIntegration} from 'sentry/types/project';
+
 import {replayFrontendPlatforms} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import type {PlatformIntegration} from 'sentry/types/project';
 
 export function replayJsFrameworkOptions(): PlatformIntegration[] {
   // the platforms array is sorted alphabetically, but we want javascript to be

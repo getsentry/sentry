@@ -1,4 +1,5 @@
 import type {TagValue} from 'sentry/types/group';
+
 import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 
 import {getTabs} from './utils';

@@ -1,6 +1,8 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -22,7 +24,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

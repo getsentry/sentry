@@ -1,10 +1,11 @@
-import {t} from 'sentry/locale';
 import {
   type Event,
   type EventGroupVariant,
   EventGroupVariantType,
 } from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

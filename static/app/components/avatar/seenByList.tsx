@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import type {AvatarUser, User} from 'sentry/types/user';
+
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {AvatarUser, User} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useUser} from 'sentry/utils/useUser';
 

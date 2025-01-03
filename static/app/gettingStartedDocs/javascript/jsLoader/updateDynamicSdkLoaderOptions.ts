@@ -1,8 +1,9 @@
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
+
 import type {Client} from 'sentry/api';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
 export async function updateDynamicSdkLoaderOptions({

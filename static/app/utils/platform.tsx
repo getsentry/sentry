@@ -1,3 +1,5 @@
+import type {PlatformKey} from 'sentry/types/project';
+
 import {
   backend,
   desktop,
@@ -6,7 +8,6 @@ import {
   PlatformCategory,
   serverless,
 } from 'sentry/data/platformCategories';
-import type {PlatformKey} from 'sentry/types/project';
 
 /**
  *

@@ -1,12 +1,6 @@
 import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
-import type {Client, ResponseMeta} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
@@ -15,6 +9,13 @@ import type {
   MultiSeriesEventsStats,
   Organization,
 } from 'sentry/types/organization';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import type {Client, ResponseMeta} from 'sentry/api';
+import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';

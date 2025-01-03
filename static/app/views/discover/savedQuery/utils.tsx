@@ -1,5 +1,7 @@
 import type {Location} from 'history';
 
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -12,7 +14,6 @@ import {
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';

@@ -2,6 +2,15 @@ import type {ComponentProps, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
@@ -25,14 +34,6 @@ import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
-import type {PlainRoute, RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';

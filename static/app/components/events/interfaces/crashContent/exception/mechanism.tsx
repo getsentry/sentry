@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import forOwn from 'lodash/forOwn';
 
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,7 +13,6 @@ import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
 type Props = {

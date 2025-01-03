@@ -1,12 +1,13 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
+
 import {PanelTable, PanelTableHeader} from 'sentry/components/panels/panelTable';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {isNotQueryOnly, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';

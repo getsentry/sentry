@@ -1,5 +1,6 @@
-import {getGroupReleaseChartMarkers} from 'sentry/components/group/releaseChart';
 import type {TimeseriesValue} from 'sentry/types/core';
+
+import {getGroupReleaseChartMarkers} from 'sentry/components/group/releaseChart';
 import theme from 'sentry/utils/theme';
 
 it('should set marker before first bucket', () => {

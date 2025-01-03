@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+
 import {removeProject} from 'sentry/actionCreators/projects';
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
@@ -20,8 +23,6 @@ import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';

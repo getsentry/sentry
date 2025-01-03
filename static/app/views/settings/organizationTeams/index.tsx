@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {AccessRequest} from 'sentry/types/organization';
+
 import {loadStats} from 'sentry/actionCreators/projects';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {AccessRequest} from 'sentry/types/organization';
 import {
   type ApiQueryKey,
   setApiQueryData,

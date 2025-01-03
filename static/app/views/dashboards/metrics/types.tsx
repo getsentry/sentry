@@ -1,4 +1,5 @@
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+
 import type {MetricExpressionType} from 'sentry/utils/metrics/types';
 
 export type Order = 'asc' | 'desc' | undefined;

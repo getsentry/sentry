@@ -1,12 +1,13 @@
 import type {Theme} from '@emotion/react';
 import type {Location, Query} from 'history';
 
+import type {Series} from 'sentry/types/echarts';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';

@@ -3,6 +3,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import type {Confidence, NewQuery} from 'sentry/types/organization';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import Count from 'sentry/components/count';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -10,7 +12,6 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';

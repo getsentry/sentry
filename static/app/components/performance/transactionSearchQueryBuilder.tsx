@@ -1,5 +1,8 @@
 import {useCallback, useEffect, useMemo} from 'react';
 
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
+
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import {
@@ -11,8 +14,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {
   ALL_INSIGHTS_FILTER_KEY_SECTIONS,

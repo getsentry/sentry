@@ -2,10 +2,11 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
 
+import type {ChallengeData} from 'sentry/types/auth';
+
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ChallengeData} from 'sentry/types/auth';
 
 type TapParams = {
   challenge: string;

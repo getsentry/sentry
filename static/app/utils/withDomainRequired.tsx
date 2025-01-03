@@ -1,8 +1,9 @@
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 /**
  * withDomainRequired is a higher-order component (HOC) meant to be used with <Route /> components within

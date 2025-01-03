@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 import {transformSingleSeries} from 'sentry/utils/profiling/hooks/utils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

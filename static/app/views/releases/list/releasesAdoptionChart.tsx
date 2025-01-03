@@ -6,6 +6,11 @@ import compact from 'lodash/compact';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {EChartClickHandler} from 'sentry/types/echarts';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+
 import type {Client} from 'sentry/api';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -36,10 +41,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {EChartClickHandler} from 'sentry/types/echarts';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

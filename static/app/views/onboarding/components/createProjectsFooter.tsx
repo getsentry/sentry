@@ -4,6 +4,11 @@ import * as Sentry from '@sentry/react';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -17,10 +22,6 @@ import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext'
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {OnboardingProjectStatus} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';

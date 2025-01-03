@@ -1,12 +1,13 @@
 import * as Sentry from '@sentry/react';
 
-import type {RequestCallbacks, RequestOptions} from 'sentry/api';
-import {Client} from 'sentry/api';
-import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
+
+import type {RequestCallbacks, RequestOptions} from 'sentry/api';
+import {Client} from 'sentry/api';
+import GroupStore from 'sentry/stores/groupStore';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';

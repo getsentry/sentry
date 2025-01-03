@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {EventTag} from 'sentry/types/event';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -9,7 +11,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventTag} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
 interface Props {

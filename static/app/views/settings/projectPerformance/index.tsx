@@ -1,7 +1,8 @@
-import Feature from 'sentry/components/acl/feature';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import Feature from 'sentry/components/acl/feature';
 
 import ProjectPerformance from './projectPerformance';
 

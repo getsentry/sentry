@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {Level} from 'sentry/types/event';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Level} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 const DEFAULT_SIZE = '13px';

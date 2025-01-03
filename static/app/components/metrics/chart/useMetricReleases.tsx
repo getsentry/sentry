@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import type {DateString} from 'sentry/types/core';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import type {CombinedMetricChartProps} from 'sentry/components/metrics/chart/types';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getTimeFormat, getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

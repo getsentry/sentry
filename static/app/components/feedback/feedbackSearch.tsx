@@ -1,11 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
+
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types/group';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {

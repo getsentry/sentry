@@ -1,13 +1,14 @@
 import {Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {SavedSearch} from 'sentry/types/group';
+
 import type {IndexedMembersByProject} from 'sentry/actionCreators/members';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import type {PageFilters} from 'sentry/types/core';
-import type {SavedSearch} from 'sentry/types/group';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import IssueListActions from 'sentry/views/issueList/actions';
 import AddViewPage from 'sentry/views/issueList/addViewPage';

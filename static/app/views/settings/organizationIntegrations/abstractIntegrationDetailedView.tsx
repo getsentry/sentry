@@ -2,6 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {
+  IntegrationFeature,
+  IntegrationInstallationStatus,
+  IntegrationType,
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import Access from 'sentry/components/acl/access';
 import type {AlertProps} from 'sentry/components/alert';
 import {Alert} from 'sentry/components/alert';
@@ -15,13 +23,6 @@ import {IconClose, IconDocs, IconGeneric, IconGithub, IconProject} from 'sentry/
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {
-  IntegrationFeature,
-  IntegrationInstallationStatus,
-  IntegrationType,
-} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,

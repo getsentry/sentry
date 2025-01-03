@@ -2,14 +2,15 @@ import {type ReactNode, useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import {Button, LinkButton} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCategories';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';

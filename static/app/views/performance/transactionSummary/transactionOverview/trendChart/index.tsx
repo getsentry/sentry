@@ -2,12 +2,6 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
-import EventsRequest from 'sentry/components/charts/eventsRequest';
-import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import QuestionTooltip from 'sentry/components/questionTooltip';
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
@@ -15,6 +9,13 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import EventsRequest from 'sentry/components/charts/eventsRequest';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
+import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import {t} from 'sentry/locale';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';

@@ -1,6 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {AuthConfig} from 'sentry/types/auth';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
@@ -9,8 +12,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AuthConfig} from 'sentry/types/auth';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import withApi from 'sentry/utils/withApi';
 
 import LoginForm from './loginForm';

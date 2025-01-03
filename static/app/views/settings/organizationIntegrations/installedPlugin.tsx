@@ -1,6 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {PluginNoProject, PluginProjectItem} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -16,9 +20,6 @@ import Switch from 'sentry/components/switchButton';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PluginNoProject, PluginProjectItem} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import withApi from 'sentry/utils/withApi';
 

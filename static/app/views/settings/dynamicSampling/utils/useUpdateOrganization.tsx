@@ -1,5 +1,6 @@
-import OrganizationStore from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
+
+import OrganizationStore from 'sentry/stores/organizationStore';
 import {useMutation, type UseMutationOptions} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

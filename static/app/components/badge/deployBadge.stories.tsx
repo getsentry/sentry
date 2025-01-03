@@ -1,6 +1,7 @@
+import type {Deploy} from 'sentry/types/release';
+
 import DeployBadge from 'sentry/components/badge/deployBadge';
 import storyBook from 'sentry/stories/storyBook';
-import type {Deploy} from 'sentry/types/release';
 
 const deploy: Deploy = {
   name: '85fedddce5a61a58b160fa6b3d6a1a8451e94eb9 to prod',

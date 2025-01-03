@@ -1,8 +1,9 @@
 import {action, computed, makeObservable, observable} from 'mobx';
 
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';
 
 import type {ActiveOperationFilter} from './filter';

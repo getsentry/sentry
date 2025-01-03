@@ -1,9 +1,10 @@
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
+
+import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

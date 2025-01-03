@@ -4,6 +4,11 @@ import type {YAXisComponentOption} from 'echarts';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
+import type {Series} from 'sentry/types/echarts';
+import type {EventError} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
@@ -11,10 +16,6 @@ import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {getInterval} from 'sentry/components/charts/utils';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
-import type {EventError} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {
   findRangeOfMultiSeries,
   getDurationUnit,

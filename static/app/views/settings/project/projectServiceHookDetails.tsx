@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 
+import type {ServiceHook} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -17,8 +20,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import type {ServiceHook} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

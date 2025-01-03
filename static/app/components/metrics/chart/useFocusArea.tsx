@@ -7,6 +7,9 @@ import color from 'color';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
+import type {DateString} from 'sentry/types/core';
+import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
+
 import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import type {
@@ -23,8 +26,6 @@ import {getValueRect} from 'sentry/components/metrics/chart/utils';
 import {IconClose, IconZoom} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types/core';
-import type {EChartBrushEndHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {CHART_HEIGHT} from 'sentry/views/metrics/constants';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';

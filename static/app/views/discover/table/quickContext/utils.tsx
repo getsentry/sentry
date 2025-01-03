@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import type {EventData} from 'sentry/utils/discover/eventView';
 
 export const tenSecondInMs = 10 * 1000;

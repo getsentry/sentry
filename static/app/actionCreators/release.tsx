@@ -1,3 +1,5 @@
+import {ReleaseStatus} from 'sentry/types/release';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -5,7 +7,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {ReleaseStatus} from 'sentry/types/release';
 
 type ParamsGet = {
   orgSlug: string;

@@ -1,6 +1,7 @@
 import {uuid4} from '@sentry/utils';
 
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
+
 import type {
   TracePerformanceIssue,
   TraceSplitResults,

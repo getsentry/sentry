@@ -1,5 +1,8 @@
 import {Component} from 'react';
 
+import type {ServiceHook} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
@@ -9,8 +12,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {ServiceHook} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 

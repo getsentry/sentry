@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';

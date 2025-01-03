@@ -6,10 +6,11 @@ import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixt
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization as TOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
 jest.mock('sentry/actionCreators/plugins', () => ({

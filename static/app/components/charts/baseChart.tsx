@@ -27,8 +27,6 @@ import {AriaComponent} from 'echarts/components';
 import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
   EChartBrushSelectedHandler,
@@ -46,6 +44,9 @@ import type {
   ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
+
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 import Grid from './components/grid';

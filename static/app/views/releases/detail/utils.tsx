@@ -4,10 +4,6 @@ import pick from 'lodash/pick';
 import type {Moment} from 'moment-timezone';
 import moment from 'moment-timezone';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {
   Commit,
@@ -17,6 +13,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
+
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
 import {decodeList} from 'sentry/utils/queryString';
 
 import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';

@@ -4,9 +4,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {EntryType} from 'sentry/types/event';
+
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
-import {EntryType} from 'sentry/types/event';
 
 describe('Actionable Items', () => {
   const organization = OrganizationFixture();

@@ -1,9 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
+
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 describe('actionCreators/onboardingTasks', function () {
   const api = new MockApiClient();

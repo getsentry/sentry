@@ -1,7 +1,8 @@
-import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+
+import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 import useOrganization from 'sentry/utils/useOrganization';

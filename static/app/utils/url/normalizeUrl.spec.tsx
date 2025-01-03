@@ -1,7 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+
+import ConfigStore from 'sentry/stores/configStore';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 describe('normalizeUrl', function () {

@@ -2,6 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {Config} from 'sentry/types/system';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
   openInviteMembersModal,
@@ -26,9 +30,6 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
-import type {Config} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';

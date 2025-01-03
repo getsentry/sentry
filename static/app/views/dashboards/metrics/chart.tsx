@@ -1,11 +1,12 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
+
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import {MetricChart} from 'sentry/components/metrics/chart/chart';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
-import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';

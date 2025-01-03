@@ -3,6 +3,8 @@ import React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
+
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
@@ -11,7 +13,6 @@ import Panel from 'sentry/components/panels/panel';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
 export interface KeyValueDataContentProps {

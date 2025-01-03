@@ -1,7 +1,8 @@
 import type {ReactChild} from 'react';
 
-import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
 import {IssueCategory} from 'sentry/types/group';
+
+import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
 
 import {SpanEvidencePreview} from './spanEvidencePreview';
 import {StackTracePreview} from './stackTracePreview';

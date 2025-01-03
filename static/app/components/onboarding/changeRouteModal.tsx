@@ -1,11 +1,12 @@
 import {Fragment, useCallback} from 'react';
 import type {Location} from 'history';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 type Props = {
   nextLocation: Location;

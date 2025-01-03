@@ -1,8 +1,9 @@
+import type {IssueAttachment} from 'sentry/types/group';
+
 import ImageViewer from 'sentry/components/events/attachmentViewers/imageViewer';
 import JsonViewer from 'sentry/components/events/attachmentViewers/jsonViewer';
 import LogFileViewer from 'sentry/components/events/attachmentViewers/logFileViewer';
 import RRWebJsonViewer from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
-import type {IssueAttachment} from 'sentry/types/group';
 
 export const getInlineAttachmentRenderer = (
   attachment: IssueAttachment

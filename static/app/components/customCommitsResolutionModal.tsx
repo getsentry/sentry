@@ -1,5 +1,8 @@
 import {useState} from 'react';
 
+import type {ResolvedStatusDetails} from 'sentry/types/group';
+import type {Commit} from 'sentry/types/integrations';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
@@ -7,8 +10,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ResolvedStatusDetails} from 'sentry/types/group';
-import type {Commit} from 'sentry/types/integrations';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;

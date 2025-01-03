@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
+import type {Project} from 'sentry/types/project';
+
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 
 const sentryStatusPageLink = 'https://status.sentry.io/';
 

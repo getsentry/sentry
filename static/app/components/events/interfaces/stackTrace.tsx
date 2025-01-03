@@ -1,10 +1,11 @@
-import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
+
+import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
+import {t} from 'sentry/locale';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 

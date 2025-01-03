@@ -1,10 +1,11 @@
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -2,13 +2,14 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
+import type {TagCollection} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
-import type {TagCollection} from 'sentry/types/group';
-import {SavedSearchType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';

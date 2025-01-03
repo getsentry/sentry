@@ -1,5 +1,9 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import {assert} from 'sentry/types/utils';
+
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
 import type {
   EnhancedProcessedSpanType,
@@ -10,9 +14,6 @@ import {
   generateRootSpan,
   parseTrace,
 } from 'sentry/components/events/interfaces/spans/utils';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import {assert} from 'sentry/types/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 
 describe('SpanTreeModel', () => {

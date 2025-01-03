@@ -1,11 +1,12 @@
 import {PlatformIcon} from 'platformicons';
 
+import type {KeyValueListData} from 'sentry/types/group';
+
 import {getLaravelContextData} from 'sentry/components/events/contexts/platformContext/laravel';
 import {getReactContextData} from 'sentry/components/events/contexts/platformContext/react';
 import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
-import type {KeyValueListData} from 'sentry/types/group';
 import type {IconSize} from 'sentry/utils/theme';
 
 export enum PlatformContextKeys {

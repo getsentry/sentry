@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
+
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
@@ -11,8 +14,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Repository} from 'sentry/types/integrations';
-import {RepositoryStatus} from 'sentry/types/integrations';
 
 type Props = {
   api: Client;

@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 
 interface Props {

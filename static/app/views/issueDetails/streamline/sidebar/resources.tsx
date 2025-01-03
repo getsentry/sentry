@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+
+import {LinkButton} from 'sentry/components/button';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';

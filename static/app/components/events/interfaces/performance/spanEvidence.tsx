@@ -1,9 +1,5 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
-import {IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {
   getIssueTypeFromOccurrenceType,
@@ -11,6 +7,11 @@ import {
   isTransactionBased,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+import {LinkButton} from 'sentry/components/button';
+import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
+import {IconSettings} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

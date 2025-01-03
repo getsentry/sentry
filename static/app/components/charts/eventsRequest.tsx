@@ -2,6 +2,15 @@ import {PureComponent} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
+import type {DateString} from 'sentry/types/core';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {
+  EventsStats,
+  EventsStatsData,
+  MultiSeriesEventsStats,
+  OrganizationSummary,
+} from 'sentry/types/organization';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -12,14 +21,6 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  EventsStatsData,
-  MultiSeriesEventsStats,
-  OrganizationSummary,
-} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';

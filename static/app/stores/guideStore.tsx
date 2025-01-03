@@ -1,5 +1,7 @@
 import {createStore} from 'reflux';
 
+import type {Organization} from 'sentry/types/organization';
+
 import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import type {
   Guide,
@@ -9,7 +11,6 @@ import type {
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import type {StrictStoreDefinition} from './types';

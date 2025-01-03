@@ -1,9 +1,10 @@
 import moment from 'moment-timezone';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import Link from 'sentry/components/links/link';
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 type Row = {
   dateJoined: string;

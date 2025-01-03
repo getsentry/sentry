@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
+
 import Tag from 'sentry/components/badge/tag';
 import Panel from 'sentry/components/panels/panel';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -14,8 +17,6 @@ import {
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';

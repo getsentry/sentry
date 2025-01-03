@@ -1,7 +1,8 @@
 import {useTheme} from '@emotion/react';
 
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {AVG_COLOR} from 'sentry/views/insights/colors';
 import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';

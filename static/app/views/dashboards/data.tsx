@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 

@@ -1,6 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Plugin} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -18,8 +21,6 @@ import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {Plugin} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 

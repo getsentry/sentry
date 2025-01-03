@@ -3,6 +3,14 @@ import {forceCheck} from 'react-lazyload';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
+import {ReleaseStatus} from 'sentry/types/release';
+
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
@@ -30,13 +38,6 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Tag} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
-import type {Release} from 'sentry/types/release';
-import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import Projects from 'sentry/utils/projects';

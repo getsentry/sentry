@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {PageFilters} from 'sentry/types/core';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {EventsChartProps} from 'sentry/components/charts/eventsChart';
 import EventsChart from 'sentry/components/charts/eventsChart';
@@ -9,7 +11,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

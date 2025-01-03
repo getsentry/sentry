@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
@@ -8,8 +11,6 @@ import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {

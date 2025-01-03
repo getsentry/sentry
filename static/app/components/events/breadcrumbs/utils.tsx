@@ -1,6 +1,13 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  type RawCrumb,
+} from 'sentry/types/breadcrumbs';
+import {EntryType, type Event} from 'sentry/types/event';
+
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -27,12 +34,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  type RawCrumb,
-} from 'sentry/types/breadcrumbs';
-import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');

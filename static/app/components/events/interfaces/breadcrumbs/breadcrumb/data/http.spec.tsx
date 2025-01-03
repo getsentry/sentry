@@ -5,9 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
 import {Http} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/http';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('Breadcrumb Data Http', function () {
   const project = ProjectFixture({id: '0'});

@@ -2,10 +2,6 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import ClippedBox from 'sentry/components/clippedBox';
-import {IconFlag} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event, Frame} from 'sentry/types/event';
 import type {
   LineCoverage,
@@ -14,6 +10,11 @@ import type {
 } from 'sentry/types/integrations';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
+
+import ClippedBox from 'sentry/components/clippedBox';
+import {IconFlag} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 import type {EventGroupComponent} from 'sentry/types/event';
+
+import {isStacktraceNewestFirst} from 'sentry/components/events/interfaces/utils';
 
 import GroupingComponent from './groupingComponent';
 import GroupingComponentFrames from './groupingComponentFrames';

@@ -1,7 +1,8 @@
-import type {LinkProps} from 'sentry/components/links/link';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import type {LinkProps} from 'sentry/components/links/link';
+import {t} from 'sentry/locale';
 import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getMetricsUrl} from 'sentry/utils/metrics';

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {IssueAttachment} from 'sentry/types/group';
+
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment} from 'sentry/types/group';
 import GroupEventAttachmentsTableRow from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
 
 type Props = {

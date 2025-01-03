@@ -1,6 +1,7 @@
 import {createStore} from 'reflux';
 
 import type {Team} from 'sentry/types/organization';
+
 import {defined} from 'sentry/utils';
 
 import ProjectsStore from './projectsStore';

@@ -3,12 +3,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client, ResponseMeta} from 'sentry/api';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
+import {t} from 'sentry/locale';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';

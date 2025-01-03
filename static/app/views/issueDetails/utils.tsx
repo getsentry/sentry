@@ -1,14 +1,15 @@
 import {useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import type {Event} from 'sentry/types/event';
+import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Event} from 'sentry/types/event';
-import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

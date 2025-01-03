@@ -1,4 +1,5 @@
 import {SessionField} from 'sentry/types/sessions';
+
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
 

@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import type {Project} from 'sentry/types/project';
+
 import BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 
 import NoEvents from './noEvents';

@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import type {Project} from 'sentry/types/project';
+
+import {Tooltip} from 'sentry/components/tooltip';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';

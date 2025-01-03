@@ -1,3 +1,8 @@
+import type {PageFilters} from 'sentry/types/core';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
@@ -5,10 +10,6 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

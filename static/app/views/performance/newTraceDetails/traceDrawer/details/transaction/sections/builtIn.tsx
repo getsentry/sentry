@@ -1,6 +1,7 @@
+import type {EventTransaction} from 'sentry/types/event';
+
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';

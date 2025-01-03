@@ -2,13 +2,14 @@ import type {Dispatch, SetStateAction} from 'react';
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Confidence} from 'sentry/types/organization';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Confidence} from 'sentry/types/organization';
 import {
   useExploreFields,
   useExploreMode,

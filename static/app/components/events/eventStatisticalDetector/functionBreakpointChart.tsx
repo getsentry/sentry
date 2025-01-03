@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {Event} from 'sentry/types/event';
+
 import {ChartType} from 'sentry/chartcuterie/types';
 import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';

@@ -1,6 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Entry, Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {isNotSharedOrganization} from 'sentry/types/utils';
+
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
@@ -10,12 +17,6 @@ import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Entry, Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {isNotSharedOrganization} from 'sentry/types/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {EventContexts} from './contexts';

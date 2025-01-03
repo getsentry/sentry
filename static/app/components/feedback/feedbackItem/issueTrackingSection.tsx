@@ -1,6 +1,10 @@
 import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import AlertLink from 'sentry/components/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
@@ -17,9 +21,6 @@ import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExte
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 

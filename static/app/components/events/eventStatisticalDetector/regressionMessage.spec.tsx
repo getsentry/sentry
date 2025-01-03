@@ -3,8 +3,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {IssueType} from 'sentry/types/group';
+
+import RegressionMessage from 'sentry/components/events/eventStatisticalDetector/regressionMessage';
 import {DAY} from 'sentry/utils/formatters';
 
 const DURATION_REGRESSION_TYPE = 1017;

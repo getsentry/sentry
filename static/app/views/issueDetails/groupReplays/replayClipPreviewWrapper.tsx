@@ -1,6 +1,7 @@
+import type {Group} from 'sentry/types/group';
+
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import type {Group} from 'sentry/types/group';
 import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import type {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';

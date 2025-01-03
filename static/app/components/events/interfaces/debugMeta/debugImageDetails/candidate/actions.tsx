@@ -1,3 +1,8 @@
+import type {ImageCandidate} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus} from 'sentry/types/debugImage';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -6,10 +11,6 @@ import Confirm from 'sentry/components/confirm';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ImageCandidate} from 'sentry/types/debugImage';
-import {CandidateDownloadStatus} from 'sentry/types/debugImage';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 const noPermissionToDownloadDebugFilesInfo = t(
   'You do not have permission to download debug files'

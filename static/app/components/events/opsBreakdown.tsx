@@ -1,6 +1,14 @@
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
+import type {
+  AggregateEventTransaction,
+  EntrySpans,
+  Event,
+  EventTransaction,
+} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {
@@ -12,13 +20,6 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  AggregateEventTransaction,
-  EntrySpans,
-  Event,
-  EventTransaction,
-} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 
 type StartTimestamp = number;
 type EndTimestamp = number;

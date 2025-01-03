@@ -2,6 +2,9 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
+
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
@@ -18,8 +21,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {UserIdentityConfig} from 'sentry/types/auth';
-import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

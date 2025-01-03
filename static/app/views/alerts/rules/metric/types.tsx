@@ -1,9 +1,10 @@
-import {t} from 'sentry/locale';
 import type {
   ActivationConditionType,
   AlertRuleActivation,
   MonitorType,
 } from 'sentry/types/alerts';
+
+import {t} from 'sentry/locale';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 

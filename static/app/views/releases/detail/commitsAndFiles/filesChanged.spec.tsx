@@ -9,6 +9,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import type {CommitFile} from 'sentry/types/integrations';
 import type {ReleaseProject} from 'sentry/types/release';
+
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import FilesChanged from './filesChanged';

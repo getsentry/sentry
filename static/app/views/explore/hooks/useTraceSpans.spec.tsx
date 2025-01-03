@@ -5,9 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResults} from 'sentry/views/explore/hooks/useTraceSpans';

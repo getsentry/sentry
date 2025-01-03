@@ -4,6 +4,12 @@ import {withTheme} from '@emotion/react';
 import type {Location} from 'history';
 import round from 'lodash/round';
 
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
+
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -13,11 +19,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
-import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
-import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {
   getCountSeries,

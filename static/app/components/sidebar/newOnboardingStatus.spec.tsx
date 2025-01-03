@@ -3,10 +3,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
-import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
+
+import {NewOnboardingStatus} from 'sentry/components/sidebar/newOnboardingStatus';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
 function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({

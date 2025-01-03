@@ -1,4 +1,5 @@
 import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
+
 import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 
 describe('getPlatformPath', () => {

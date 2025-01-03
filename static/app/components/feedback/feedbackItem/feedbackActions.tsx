@@ -1,6 +1,9 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+
 import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -10,8 +13,6 @@ import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedb
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 

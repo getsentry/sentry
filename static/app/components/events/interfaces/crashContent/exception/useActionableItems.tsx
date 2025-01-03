@@ -1,4 +1,5 @@
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';

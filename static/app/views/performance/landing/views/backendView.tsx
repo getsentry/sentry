@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,

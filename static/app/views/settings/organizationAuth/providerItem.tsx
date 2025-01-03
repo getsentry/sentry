@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {AuthProvider} from 'sentry/types/auth';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
+
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -10,8 +13,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AuthProvider} from 'sentry/types/auth';
-import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import {descopeFeatureName} from 'sentry/utils';
 
 type RenderInstallButtonProps = {

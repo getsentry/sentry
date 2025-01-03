@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import type {EventErrorData} from 'sentry/components/events/errorItem';
@@ -19,8 +22,6 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';

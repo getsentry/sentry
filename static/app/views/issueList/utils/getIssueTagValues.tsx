@@ -1,4 +1,5 @@
 import type {Tag, TagValue} from 'sentry/types/group';
+
 import {DEVICE_CLASS_TAG_VALUES, isDeviceClass} from 'sentry/utils/fields';
 
 /**

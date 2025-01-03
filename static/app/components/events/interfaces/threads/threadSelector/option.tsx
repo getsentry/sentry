@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Thread} from 'sentry/types/event';
+import type {EntryData} from 'sentry/types/group';
+
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Thread} from 'sentry/types/event';
-import type {EntryData} from 'sentry/types/group';
 
 import {ThreadSelectorGrid} from './styles';
 import type {ThreadStates} from './threadStates';

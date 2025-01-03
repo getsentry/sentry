@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {CommitAuthor} from 'sentry/types/integrations';
+import type {AvatarUser} from 'sentry/types/user';
+
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {ListGroupItem} from 'sentry/components/listGroup';
 import TextOverflow from 'sentry/components/textOverflow';
 import {space} from 'sentry/styles/space';
-import type {CommitAuthor} from 'sentry/types/integrations';
-import type {AvatarUser} from 'sentry/types/user';
 
 import FileIcon from './fileIcon';
 

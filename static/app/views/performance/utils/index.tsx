@@ -1,8 +1,5 @@
 import type {Location} from 'history';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {backend, frontend, mobile} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   NewQuery,
@@ -11,6 +8,10 @@ import type {
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {ReleaseProject} from 'sentry/types/release';
+
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {backend, frontend, mobile} from 'sentry/data/platformCategories';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';

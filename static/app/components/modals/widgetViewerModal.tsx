@@ -10,6 +10,11 @@ import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 import moment from 'moment-timezone';
 
+import type {PageFilters, SelectValue} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -27,10 +32,6 @@ import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';

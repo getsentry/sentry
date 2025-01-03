@@ -3,12 +3,13 @@ import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import type {EventTransaction} from 'sentry/types/event';
+
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import {IconChevron, IconCircleFill, IconClose, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import {

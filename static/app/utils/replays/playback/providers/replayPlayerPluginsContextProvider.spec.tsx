@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
+
 import {
   ReplayPlayerPluginsContextProvider,
   useReplayPlayerPlugins,

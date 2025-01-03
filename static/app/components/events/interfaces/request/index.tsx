@@ -1,6 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {EntryRequest, Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+
 import ClippedBox from 'sentry/components/clippedBox';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,8 +19,6 @@ import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EntryRequest, Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

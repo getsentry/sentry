@@ -4,8 +4,9 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';

@@ -1,9 +1,10 @@
+import type {Group} from 'sentry/types/group';
+import type {GroupIntegration} from 'sentry/types/integrations';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {doOpenExternalIssueModal} from 'sentry/components/group/externalIssuesList/externalIssueActions';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {GroupIntegration} from 'sentry/types/integrations';
 import {
   getIntegrationDisplayName,
   getIntegrationIcon,

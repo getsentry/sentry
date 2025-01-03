@@ -5,8 +5,9 @@ import {SpanFixture} from 'sentry-fixture/span';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 import type {EventTransaction} from 'sentry/types/event';
+
+import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
 
 describe('SpanDetail', function () {
   const organization = OrganizationFixture();

@@ -1,3 +1,7 @@
+import type {IssueOwnership} from 'sentry/types/group';
+import type {CodeOwner} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
@@ -11,9 +15,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {IssueOwnership} from 'sentry/types/group';
-import type {CodeOwner} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 import {
   type ApiQueryKey,
   setApiQueryData,

@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
 
-import type {Client} from 'sentry/api';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
 import {defined} from 'sentry/utils';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';

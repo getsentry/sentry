@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {RollbackBanner} from 'sentry/components/sidebar/rollback/banner';
 import {useRollbackPrompts} from 'sentry/components/sidebar/rollback/useRollbackPrompts';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 
 type DismissableRollbackBannerProps = {collapsed: boolean; organization: Organization};
 

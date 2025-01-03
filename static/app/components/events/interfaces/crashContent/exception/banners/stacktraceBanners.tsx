@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 
+import type {Event, Frame} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import type {Event, Frame} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';

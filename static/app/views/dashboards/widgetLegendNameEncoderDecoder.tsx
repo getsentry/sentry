@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+
 import type {Widget} from 'sentry/views/dashboards/types';
 
 const SERIES_NAME_DELIMITER = ';';

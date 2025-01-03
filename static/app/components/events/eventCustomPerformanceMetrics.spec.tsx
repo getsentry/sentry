@@ -3,8 +3,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 import type {Event} from 'sentry/types/event';
+
+import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
 
 describe('EventCustomPerformanceMetrics', function () {
   it('should not render anything', function () {

@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 
-import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {ImageCandidate} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
+
+import {t} from 'sentry/locale';
 
 import {INTERNAL_SOURCE} from '../utils';
 

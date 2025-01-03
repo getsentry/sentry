@@ -1,11 +1,12 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {PluginWithProjectList} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {PluginWithProjectList} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {

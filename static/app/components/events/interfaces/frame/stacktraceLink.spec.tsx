@@ -9,10 +9,11 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import HookStore from 'sentry/stores/hookStore';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
 import {CodecovStatusCode} from 'sentry/types/integrations';
+
+import HookStore from 'sentry/stores/hookStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 
 import {StacktraceLink} from './stacktraceLink';
