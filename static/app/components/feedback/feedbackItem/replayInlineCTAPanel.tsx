@@ -17,10 +17,11 @@ export default function ReplayInlineCTAPanel() {
       button={
         <ButtonBar gap={1}>
           <Button
+            type="button"
             priority="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
             analyticsEventKey="feedback.replay-onboarding-cta-button-clicked"
-            onClick={activateSidebar}
+            onClick={() => activateSidebar()}
           >
             {t('Set Up Now')}
           </Button>
