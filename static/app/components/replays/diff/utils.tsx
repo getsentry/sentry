@@ -31,47 +31,47 @@ interface BeforeAfterProps {
 
 export function Before({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
-    <Tooltip
-      title={
-        <LeftAligned>
-          {t('The server-rendered page')}
-          <div>
-            <ReplayTooltipTime
-              timestampMs={startTimestampMs + offset}
-              startTimestampMs={startTimestampMs}
-            />
-          </div>
-        </LeftAligned>
-      }
-    >
-      <Label>
+    <Label>
+      <Tooltip
+        title={
+          <LeftAligned>
+            {t('The server-rendered page')}
+            <div>
+              <ReplayTooltipTime
+                timestampMs={startTimestampMs + offset}
+                startTimestampMs={startTimestampMs}
+              />
+            </div>
+          </LeftAligned>
+        }
+      >
         {t('Before')}
-        {children}
-      </Label>
-    </Tooltip>
+      </Tooltip>
+      {children}
+    </Label>
   );
 }
 
 export function After({children, offset, startTimestampMs}: BeforeAfterProps) {
   return (
-    <Tooltip
-      title={
-        <LeftAligned>
-          {t('After React re-rendered the page, and reported a hydration error')}
-          <div>
-            <ReplayTooltipTime
-              timestampMs={startTimestampMs + offset}
-              startTimestampMs={startTimestampMs}
-            />
-          </div>
-        </LeftAligned>
-      }
-    >
-      <Label>
+    <Label>
+      <Tooltip
+        title={
+          <LeftAligned>
+            {t('After React re-rendered the page, and reported a hydration error')}
+            <div>
+              <ReplayTooltipTime
+                timestampMs={startTimestampMs + offset}
+                startTimestampMs={startTimestampMs}
+              />
+            </div>
+          </LeftAligned>
+        }
+      >
         {t('After')}
-        {children}
-      </Label>
-    </Tooltip>
+      </Tooltip>
+      {children}
+    </Label>
   );
 }
 
