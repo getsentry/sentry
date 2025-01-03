@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Flex} from 'sentry/components/container/flex';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -60,7 +61,7 @@ export default function ReplayComparisonModal({
                 <IconInfo />
               </Tooltip>
             </Title>
-            <div>
+            <Flex gap={space(1)}>
               <LearnMoreButton
                 onHover={() => focusTrap?.pause()}
                 onBlur={() => focusTrap?.unpause()}
@@ -77,7 +78,7 @@ export default function ReplayComparisonModal({
                   }}
                 />
               ) : null}
-            </div>
+            </Flex>
           </ModalHeader>
         </Header>
         <Body>
