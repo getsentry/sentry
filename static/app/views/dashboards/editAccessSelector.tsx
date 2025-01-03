@@ -162,10 +162,16 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
+      <StyledBadge
+        key="_all"
+        text={'All'}
+        size={listOnly ? 26 : 20}
+        listOnly={listOnly}
+      />
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
+        listOnly={listOnly}
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
@@ -179,6 +185,7 @@ function EditAccessSelector({
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
         key="avatar-list-many-teams"
+        listOnly={listOnly}
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
@@ -286,7 +293,7 @@ function EditAccessSelector({
               triggerAvatars,
             ]
       }
-      triggerProps={{borderless: listOnly}}
+      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -328,9 +335,9 @@ const StyledDisplayName = styled('div')`
   font-weight: normal;
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  margin-left: 10px;
-  margin-right: -3px;
+const StyledAvatarList = styled(AvatarList)<{listOnly: boolean}>`
+  margin-left: ${p => (p.listOnly ? 6 : 10)}px;
+  margin-right: ${p => (p.listOnly ? 0 : -3)}px;
   font-weight: normal;
 `;
 
@@ -339,10 +346,11 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: 6px;
 `;
 
-const StyledBadge = styled(Badge)<{size: number}>`
+const StyledBadge = styled(Badge)<{listOnly: boolean; size: number}>`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
   padding: 0;
+  ${p => p.listOnly && 'margin-left: 0px;'}
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   display: flex;
