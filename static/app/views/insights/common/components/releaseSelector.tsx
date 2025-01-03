@@ -107,11 +107,18 @@ export function ReleaseSelector({
       value={selectorValue}
       options={[
         {
+          value: '_selected_release',
+          // We do this because the selected/default release might not be sorted,
+          // but instead could have been added to the top of options list.
+          options: options.slice(0, 1),
+        },
+        {
           value: '_releases',
           label: tct('Sorted by [sortBy]', {
             sortBy: SORT_BY_OPTIONS[sortBy].label,
           }),
-          options,
+          // Display other releases sorted by the selected option
+          options: options.slice(1),
         },
       ]}
       onSearch={debounce(val => {
