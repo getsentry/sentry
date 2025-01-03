@@ -12,7 +12,7 @@ import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
-import type {Client, Request} from 'sentry/api';
+import type {Request} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -47,7 +47,6 @@ import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import usePrevious from 'sentry/utils/usePrevious';
-import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
@@ -85,7 +84,6 @@ type Params = {
 };
 
 type Props = {
-  api: Client;
   location: Location;
   organization: Organization;
   params: Params;
@@ -1159,7 +1157,7 @@ function IssueListOverviewFc({
                       start: numPreviousIssues + 1,
                       end: numPreviousIssues + numIssuesOnPage,
                       total: (
-                        <StyledQueryCount
+                        <QueryCount
                           hideParens
                           hideIfEmpty={false}
                           count={modifiedQueryCount}
@@ -1192,10 +1190,8 @@ function IssueListOverviewFc({
 }
 
 export default withRouteAnalytics(
-  withApi(
-    withPageFilters(
-      withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverviewFc)))
-    )
+  withPageFilters(
+    withSavedSearches(withOrganization(Sentry.withProfiler(IssueListOverviewFc)))
   )
 );
 
@@ -1221,8 +1217,4 @@ const StyledMain = styled('section')`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)};
   }
-`;
-
-const StyledQueryCount = styled(QueryCount)`
-  margin-left: 0;
 `;
