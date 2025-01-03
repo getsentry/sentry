@@ -24,6 +24,18 @@ import typescript from 'typescript-eslint';
 
 invariant(react.configs.flat, 'For typescript');
 
+const restrictedImportPatterns = [
+  {
+    group: ['sentry/components/devtoolbar/*'],
+    message: 'Do not depend on toolbar internals',
+  },
+  {
+    group: ['*.spec*'],
+    message:
+      'Do not import from test files. This causes tests to be executed multiple times.',
+  },
+];
+
 const restrictedImportPaths = [
   {
     name: '@testing-library/react',
@@ -408,17 +420,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
-              group: ['*.spec*'],
-              message:
-                'Do not import from test files. This causes tests to be executed multiple times.',
-            },
-          ],
+          patterns: restrictedImportPatterns,
           paths: restrictedImportPaths,
         },
       ],
@@ -801,6 +803,25 @@ export default typescript.config([
               name: 'sentry/utils/queryClient',
               message:
                 'Import from `@tanstack/react-query` and `./hooks/useFetchApiData` or `./hooks/useFetchInfiniteApiData` instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/sentry-test',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: restrictedImportPatterns,
+          paths: [
+            ...restrictedImportPaths,
+            {
+              name: 'sentry/locale',
+              message: 'Translations are not needed in tests.',
             },
           ],
         },
