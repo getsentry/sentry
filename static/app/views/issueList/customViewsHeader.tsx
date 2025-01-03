@@ -267,12 +267,17 @@ function CustomViewsIssueListHeaderTabsContent({
     }
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
-        dispatch({
-          type: 'SET_TEMP_VIEW',
-          query,
-          sort,
-          updateQueryParams: {newQueryParams: {viewId: undefined}, replace: true},
-        });
+        dispatch({type: 'SET_TEMP_VIEW', query, sort});
+        navigate(
+          normalizeUrl({
+            ...location,
+            query: {
+              ...queryParamsWithPageFilters,
+              viewId: undefined,
+            },
+          }),
+          {replace: true}
+        );
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
         return;
       }
