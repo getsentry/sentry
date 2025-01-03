@@ -1,6 +1,7 @@
 import {useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
+import type {LineSeriesOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
@@ -9,7 +10,6 @@ import type EChartsReactCore from 'echarts-for-react/lib/core';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
@@ -20,23 +20,29 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
-import {formatTooltipValue} from '../common/formatTooltipValue';
-import {formatYAxisValue} from '../common/formatYAxisValue';
-import {ReleaseSeries} from '../common/releaseSeries';
 import type {Aliases, Release, TimeseriesData} from '../common/types';
 
-export interface AreaChartWidgetVisualizationProps {
+import {formatTooltipValue} from './formatTooltipValue';
+import {formatYAxisValue} from './formatYAxisValue';
+import {ReleaseSeries} from './releaseSeries';
+import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
+
+export interface TimeSeriesWidgetVisualizationProps {
+  SeriesConstructor: (timeserie: TimeseriesData, complete?: boolean) => LineSeriesOption;
   timeseries: TimeseriesData[];
   aliases?: Aliases;
+  dataCompletenessDelay?: number;
   releases?: Release[];
 }
 
-export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualizationProps) {
+export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
   const chartRef = useRef<EChartsReactCore | null>(null);
   const {register: registerWithWidgetSyncContext} = useWidgetSyncContext();
 
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+
+  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
 
   const theme = useTheme();
   const organization = useOrganization();
@@ -64,6 +70,28 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
+
+  let completeSeries: TimeseriesData[] = props.timeseries;
+  const incompleteSeries: TimeseriesData[] = [];
+
+  if (dataCompletenessDelay > 0) {
+    completeSeries = [];
+
+    props.timeseries.forEach(timeserie => {
+      const [completeSerie, incompleteSerie] = splitSeriesIntoCompleteAndIncomplete(
+        timeserie,
+        dataCompletenessDelay
+      );
+
+      if (completeSerie && completeSerie.data.length > 0) {
+        completeSeries.push(completeSerie);
+      }
+
+      if (incompleteSerie && incompleteSerie.data.length > 0) {
+        incompleteSeries.push(incompleteSerie);
+      }
+    });
+  }
 
   // TODO: There's a TypeScript indexing error here. This _could_ in theory be
   // `undefined`. We need to guard against this in the parent component, and
@@ -139,20 +167,11 @@ export function AreaChartWidgetVisualization(props: AreaChartWidgetVisualization
       }}
       autoHeightResize
       series={[
-        ...props.timeseries.map(timeserie => {
-          return AreaSeries({
-            name: timeserie.field,
-            color: timeserie.color,
-            stack: 'area',
-            animation: false,
-            areaStyle: {
-              color: timeserie.color,
-              opacity: 1.0,
-            },
-            data: timeserie.data.map(datum => {
-              return [datum.timestamp, datum.value];
-            }),
-          });
+        ...completeSeries.map(timeserie => {
+          return props.SeriesConstructor(timeserie, true);
+        }),
+        ...incompleteSeries.map(timeserie => {
+          return props.SeriesConstructor(timeserie, false);
         }),
         releaseSeries &&
           LineSeries({
