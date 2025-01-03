@@ -162,8 +162,7 @@ def test_get_experimental_config_transaction_metrics_exception(
     # wrong type
     default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
 
-    with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(default_project, project_keys=keys)
+    cfg = get_project_config(default_project, project_keys=keys)
 
     config = cfg.to_dict()["config"]
 
@@ -425,12 +424,7 @@ def test_project_config_with_all_biases_enabled(
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @region_silo_test
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
-        }
-    ):
-        project_cfg = get_project_config(default_project)
+    project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -492,12 +486,7 @@ def test_project_config_satisfaction_thresholds(
             threshold=600,
             metric=TransactionMetric.LCP.value,
         )
-    with Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    ):
-        project_cfg = get_project_config(default_project)
+    project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -518,12 +507,7 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
             )
         }
     )
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": feature_flag,
-        }
-    )
-    with feature, options:
+    with options:
         project_config = get_project_config(default_project)
         config = project_config.to_dict()["config"]
         _validate_project_config(config)
@@ -536,18 +520,12 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
 
 @django_db_all
 def test_accept_transaction_names(default_project):
-    feature = Feature(
-        {
-            "organizations:transaction-metrics-extraction": True,
-        }
-    )
-    with feature:
-        config = get_project_config(default_project).to_dict()["config"]
+    config = get_project_config(default_project).to_dict()["config"]
 
-        _validate_project_config(config)
-        transaction_metrics_config = config["transactionMetrics"]
+    _validate_project_config(config)
+    transaction_metrics_config = config["transactionMetrics"]
 
-        assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
+    assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
@@ -662,7 +640,6 @@ def test_with_blocked_metrics(default_project):
 @django_db_all
 def test_alert_metric_extraction_rules_empty(default_project):
     features = {
-        "organizations:transaction-metrics-extraction": True,
         "organizations:on-demand-metrics-extraction": True,
     }
 
@@ -692,7 +669,6 @@ def test_alert_metric_extraction_rules(default_project, factories):
     )
 
     features = {
-        "organizations:transaction-metrics-extraction": True,
         "organizations:on-demand-metrics-extraction": True,
     }
 

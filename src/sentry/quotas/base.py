@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import features, options
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.utils.json import prune_empty_keys
@@ -270,10 +270,8 @@ class SeatAssignmentResult:
             raise ValueError("`reason` must be specified when not assignable")
 
 
-def index_data_category(event_type: str | None, organization) -> DataCategory:
-    if event_type == "transaction" and features.has(
-        "organizations:transaction-metrics-extraction", organization
-    ):
+def index_data_category(event_type: str) -> DataCategory:
+    if event_type == "transaction":
         # TODO: This logic should move into sentry-relay, once the consequences
         # of making `from_event_type` return `TRANSACTION_INDEXED` are clear.
         # https://github.com/getsentry/relay/blob/d77c489292123e53831e10281bd310c6a85c63cc/relay-server/src/envelope.rs#L121
@@ -448,7 +446,7 @@ class Quota(Service):
                 option="project-abuse-quota.transaction-limit",
                 compat_option_org="sentry:project-transaction-limit",
                 compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
+                categories=[index_data_category("transaction")],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(

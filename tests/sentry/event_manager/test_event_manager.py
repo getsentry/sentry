@@ -2068,8 +2068,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature({"organizations:transaction-metrics-extraction": False}):
-                manager.save(self.project.id)
+            manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION
@@ -2106,8 +2105,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
-            with self.feature("organizations:transaction-metrics-extraction"):
-                manager.save(self.project.id)
+            manager.save(self.project.id)
 
         assert_mock_called_once_with_partial(
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
