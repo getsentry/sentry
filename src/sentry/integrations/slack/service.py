@@ -199,24 +199,31 @@ class SlackService:
 
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         for parent_notification in parent_notifications:
-            try:
-                self._handle_parent_notification(
-                    parent_notification=parent_notification,
-                    notification_to_send=notification_to_send,
-                    client=slack_client,
-                )
-            except Exception as err:
-                # TODO(iamrajjoshi): We can probably swallow this error once we audit the lifecycle
-                self._logger.info(
-                    "failed to send notification",
-                    exc_info=err,
-                    extra={
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                lifecycle.add_extras(
+                    {
                         "activity_id": activity.id,
                         "parent_notification_id": parent_notification.id,
                         "notification_to_send": notification_to_send,
                         "integration_id": integration.id,
-                    },
+                        "group_id": activity.group.id,
+                        "project_id": activity.project.id,
+                    }
                 )
+                try:
+                    self._handle_parent_notification(
+                        parent_notification=parent_notification,
+                        notification_to_send=notification_to_send,
+                        client=slack_client,
+                    )
+                except Exception as err:
+                    if isinstance(err, SlackApiError):
+                        record_lifecycle_termination_level(lifecycle, err)
+                    else:
+                        lifecycle.record_failure(err)
 
     def _handle_parent_notification(
         self,
@@ -259,31 +266,12 @@ class SlackService:
         json_blocks = orjson.dumps(payload.get("blocks")).decode()
         payload["blocks"] = json_blocks
 
-        with MessagingInteractionEvent(
-            interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
-            spec=SlackMessagingSpec(),
-        ).capture() as lifecycle:
-            try:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=parent_notification.message_identifier,
-                    text=notification_to_send,
-                    blocks=json_blocks,
-                )
-            except SlackApiError as e:
-                lifecycle.add_extras(
-                    {
-                        "rule_action_uuid": parent_notification.rule_action_uuid,
-                        "channel_id": channel_id,
-                        "thread_ts": (
-                            str(parent_notification.message_identifier)
-                            if parent_notification.message_identifier
-                            else ""
-                        ),
-                    }
-                )
-                record_lifecycle_termination_level(lifecycle, e)
-                raise
+        client.chat_postMessage(
+            channel=channel_id,
+            thread_ts=parent_notification.message_identifier,
+            text=notification_to_send,
+            blocks=json_blocks,
+        )
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
         """
