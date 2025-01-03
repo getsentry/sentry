@@ -18,6 +18,7 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             "location": "Cityville",
             "interests": ["Travel", "Technology"],
         }
+
         self.example_schema = {
             "$id": "https://example.com/user-profile.schema.json",
             "$schema": "https://json-schema.org/draft/2020-12/schema",
