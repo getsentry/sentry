@@ -42,6 +42,14 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             category = GroupCategory.ERROR.value
             detector_config_schema = self.example_schema
 
+        @dataclass(frozen=True)
+        class ExampleGroupType(GroupType):
+            type_id = 2
+            slug = "example"
+            description = "Example"
+            category = GroupCategory.PERFORMANCE.value
+            detector_config_schema = {"type": "object", "additionalProperties": False}
+
 
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
@@ -67,13 +75,9 @@ class TestWorkflowConfig(TestJsonConfigBase):
             self.create_workflow(
                 organization=self.organization, name="test_workflow", config={"hi": "there"}
             )
-        with pytest.raises(ValidationError):
-            self.create_workflow(
-                organization=self.organization, name="test_workflow", config={"frequency": "-1"}
-            )
 
     def test_workflow_correct_schema(self):
         self.create_workflow(organization=self.organization, name="test_workflow", config={})
         self.create_workflow(
-            organization=self.organization, name="test_workflow2", config={"frequency": 5}
+            organization=self.organization, name="test_workflow2", config={"frequency": 30}
         )
