@@ -326,7 +326,7 @@ export default typescript.config([
     name: 'plugin/react',
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     plugins: {
-      ...react.configs.flat.recommended.plugins,
+      ...(react.configs.flat.recommended?.plugins ?? {}),
       // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].plugins,
     },
@@ -343,7 +343,7 @@ export default typescript.config([
       'react/sort-comp': 'error',
 
       // https://github.com/jsx-eslint/eslint-plugin-react/blob/master/index.js
-      ...react.configs.flat.recommended.rules,
+      ...(react.configs.flat.recommended?.rules ?? {}),
       // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].rules,
       'react/display-name': 'off', // TODO(ryan953): Fix violations and delete this line
