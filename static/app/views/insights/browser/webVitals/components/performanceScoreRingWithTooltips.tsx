@@ -164,7 +164,7 @@ function PerformanceScoreRingWithTooltips({
   }
 
   const weights = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   )
     ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
     : PERFORMANCE_SCORE_WEIGHTS;
