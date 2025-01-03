@@ -1,12 +1,11 @@
 import {useContext} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
 import {IssueViewEllipsisMenu} from 'sentry/views/issueList/issueViews/issueViewEllipsisMenu';
 import {
@@ -18,7 +17,6 @@ import {
 interface IssueViewTabProps {
   editingTabKey: string | null;
   initialTabKey: string;
-  router: InjectedRouter;
   setEditingTabKey: (key: string | null) => void;
   view: IssueView;
 }
@@ -26,13 +24,10 @@ interface IssueViewTabProps {
 export function IssueViewTab({
   editingTabKey,
   initialTabKey,
-  router,
   setEditingTabKey,
   view,
 }: IssueViewTabProps) {
-  const navigate = useNavigate();
-
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
+  const [_searchParams, setSearchParams] = useSearchParams();
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
 
@@ -43,14 +38,11 @@ export function IssueViewTab({
       return;
     }
     dispatch({type: 'DUPLICATE_VIEW', newViewId, syncViews: true});
-    navigate({
-      ...location,
-      query: {
-        ...queryParams,
-        query: duplicatedTab.query,
-        sort: duplicatedTab.querySort,
-        viewId: newViewId,
-      },
+    setSearchParams(prev => {
+      prev.set('viewId', newViewId);
+      prev.set('query', duplicatedTab.query);
+      prev.set('sort', duplicatedTab.querySort);
+      return prev;
     });
   };
 
@@ -58,14 +50,11 @@ export function IssueViewTab({
     dispatch({type: 'DISCARD_CHANGES'});
     const originalTab = views.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
-      navigate({
-        ...location,
-        query: {
-          ...queryParams,
-          query: originalTab.query,
-          sort: originalTab.querySort,
-          viewId: originalTab.id,
-        },
+      setSearchParams(prev => {
+        prev.set('query', originalTab.query);
+        prev.set('sort', originalTab.querySort);
+        prev.set('viewId', originalTab.id);
+        return prev;
       });
     }
   };
