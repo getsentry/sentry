@@ -28,7 +28,7 @@ function SaveButton({isEditing, onSave}: SaveButtonProps) {
       await validateWidget(api, organization.slug, widget);
       onSave({index: Number(widgetIndex), widget});
     } catch (error) {
-      addErrorMessage('Unable to save widget');
+      addErrorMessage(t('Unable to save widget'));
     }
   }, [api, onSave, organization.slug, state, widgetIndex]);
 
