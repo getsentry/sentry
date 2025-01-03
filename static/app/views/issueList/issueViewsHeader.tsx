@@ -202,14 +202,14 @@ function IssueViewsIssueListHeaderTabsContent({
           ...location,
           query: {
             ...queryParamsWithPageFilters,
-            query: views[0].query,
-            sort: views[0].querySort,
-            viewId: views[0].id,
+            query: views[0]!.query,
+            sort: views[0]!.querySort,
+            viewId: views[0]!.id,
           },
         }),
         {replace: true}
       );
-      tabListState?.setSelectedKey(views[0].key);
+      tabListState?.setSelectedKey(views[0]!.key);
       return;
     }
     // if a viewId is present, check if it exists in the existing views.
@@ -372,7 +372,7 @@ function IssueViewsIssueListHeaderTabsContent({
       ? views.find(tab => tab.id === viewId)!.key
       : query
         ? TEMPORARY_TAB_KEY
-        : views[0].key;
+        : views[0]!.key;
 
   return (
     <DraggableTabList
