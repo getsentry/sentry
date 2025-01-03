@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
+import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import useExtractDiffMutations from 'sentry/utils/replays/hooks/useExtractDiffMutations';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -32,6 +33,10 @@ export function ReplayMutationTree({replay, leftOffsetMs, rightOffsetMs}: Props)
 
   return (
     <Fragment>
+      <DiffHeader>
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
+      </DiffHeader>
       {!isLoading && Object.keys(timeIndexedMutations).length === 0 ? (
         <DiffFeedbackBanner />
       ) : null}
