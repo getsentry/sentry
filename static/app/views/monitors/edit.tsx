@@ -52,13 +52,6 @@ export default function EditMonitor() {
     );
   }
 
-  function getTitle() {
-    if (monitor) {
-      return `${monitor.name} - Crons - ${organization.slug}`;
-    }
-    return `Crons - ${organization.slug}`;
-  }
-
   if (isPending) {
     return <LoadingIndicator />;
   }
@@ -67,8 +60,12 @@ export default function EditMonitor() {
     return <LoadingError onRetry={refetch} message="Failed to load monitor." />;
   }
 
+  const title = monitor
+    ? t('Editing %s — Crons', monitor.name)
+    : t('Editing Monitor — Crons');
+
   return (
-    <SentryDocumentTitle title={getTitle()}>
+    <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>

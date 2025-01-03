@@ -139,7 +139,7 @@ function MonitorDetails({params, location}: Props) {
   const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
   return (
-    <SentryDocumentTitle title={`Crons — ${monitor.name}`}>
+    <SentryDocumentTitle title={`${monitor.name} — Crons`}>
       <Layout.Page>
         <MonitorHeader
           monitor={monitor}
