@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import fnmatch
 import hashlib
+import re
 from collections import defaultdict
 from typing import Any
 
@@ -18,7 +20,6 @@ from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.utils.glob import glob_match
 
 from ..base import (
     DetectorType,
@@ -117,7 +118,10 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     __slots__ = ("stored_problems",)
 
-    IGNORED_LIST = {"*.nib", "*.plist", "*kblayout_iphone.dat"}
+    IGNORED_LIST = {
+        re.compile(fnmatch.translate(pattern))
+        for pattern in ["*.nib", "*.plist", "*kblayout_iphone.dat"]
+    }
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
@@ -195,7 +199,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             return False
         file_path = (data.get("file.path") or "").lower()
 
-        if any(glob_match(file_path, ignored_pattern) for ignored_pattern in self.IGNORED_LIST):
+        if any(bool(ignored_pattern.match(file_path)) for ignored_pattern in self.IGNORED_LIST):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
