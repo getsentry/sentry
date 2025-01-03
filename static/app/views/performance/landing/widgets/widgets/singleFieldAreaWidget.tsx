@@ -41,7 +41,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: props.fields[0],
+      fields: props.fields[0]!,
       component: provided => (
         <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (
@@ -52,8 +52,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               includePrevious
               includeTransformedData
               partial
-              currentSeriesNames={[field]}
-              previousSeriesNames={[getPreviousSeriesName(field)]}
+              currentSeriesNames={[field!]}
+              previousSeriesNames={[getPreviousSeriesName(field!)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -78,7 +78,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: field,
+      fields: field!,
       component: provided => {
         const eventView = provided.eventView.clone();
 

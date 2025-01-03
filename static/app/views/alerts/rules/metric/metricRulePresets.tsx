@@ -10,7 +10,7 @@ import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {Dataset, type MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {isCustomMetricField} from 'sentry/views/alerts/rules/metric/utils/isCustomMetricField';
-import {getExploreUrl} from 'sentry/views/alerts/rules/utils';
+import {getAlertRuleExploreUrl} from 'sentry/views/alerts/rules/utils';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 
 interface PresetCta {
@@ -56,11 +56,11 @@ export function makeDefaultCta({
   if (rule.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
     return {
       buttonText: t('Open in Explore'),
-      to: getExploreUrl({
+      to: getAlertRuleExploreUrl({
         rule,
         orgSlug,
         period: timePeriod.period,
-        projectId: projects[0].id,
+        projectId: projects[0]!.id,
       }),
     };
   }

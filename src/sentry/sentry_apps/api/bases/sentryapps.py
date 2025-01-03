@@ -120,7 +120,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
     def _get_organization_slug(self, request: Request):
-        organization_slug = request.json_body.get("organization")
+        organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
             raise ValidationError({"organization": to_single_line_str(error_message)})
@@ -179,7 +179,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         objects from URI params, we're applying the same logic for a param in
         the request body.
         """
-        if not request.json_body:
+        if not request.data:
             return (args, kwargs)
 
         context = self._get_org_context(request)

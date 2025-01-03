@@ -2,13 +2,18 @@ import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -68,7 +73,6 @@ describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData([project]);
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
@@ -145,7 +149,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.lcp)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.lcp)'
+          );
         },
       ],
     });
@@ -183,7 +189,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.cls)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.cls)'
+          );
         },
       ],
     });
@@ -224,7 +232,9 @@ describe('Performance > VitalDetail', function () {
     });
 
     // It shows a search bar
-    expect(await screen.findByLabelText('Search events')).toBeInTheDocument();
+    expect(
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
+    ).toBeInTheDocument();
 
     // It shows the vital card
     expect(
@@ -249,13 +259,18 @@ describe('Performance > VitalDetail', function () {
     });
 
     // Fill out the search box, and submit it.
-    await userEvent.click(await screen.findByLabelText('Search events'));
+    await userEvent.click(
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
+    );
     await userEvent.paste('user.email:uhoh*');
     await userEvent.keyboard('{enter}');
 
     // Check the navigation.
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    await waitFor(() => {
+      expect(router.push).toHaveBeenCalledTimes(1);
+    });
+
+    expect(router.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: '1',
@@ -380,8 +395,8 @@ describe('Performance > VitalDetail', function () {
     expect(menuItem).toBeInTheDocument();
     await userEvent.click(menuItem);
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(newRouter.push).toHaveBeenCalledTimes(1);
+    expect(newRouter.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: 1,

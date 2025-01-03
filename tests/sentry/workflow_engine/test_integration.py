@@ -3,6 +3,7 @@ from unittest import mock
 
 from sentry.eventstream.types import EventStreamEventType
 from sentry.incidents.grouptype import MetricAlertFire
+from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
@@ -50,8 +51,7 @@ class BaseWorkflowIntegrationTest(BaseWorkflowTest):
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, self.event)
         assert group_info is not None
 
-        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
-        assert self.group is not None
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
         assert self.group.type == MetricAlertFire.type_id
 
     def call_post_process_group(
@@ -87,7 +87,9 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
+            processed_packets = process_data_sources(
+                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
 
             for packet, detectors in processed_packets:
                 results = process_detectors(packet, detectors)
@@ -116,7 +118,9 @@ class TestWorkflowEngineIntegrationToIssuePlatform(BaseWorkflowIntegrationTest):
         with mock.patch(
             "sentry.workflow_engine.processors.detector.produce_occurrence_to_kafka"
         ) as mock_producer:
-            processed_packets = process_data_sources([self.data_packet], "snuba_query_subscription")
+            processed_packets = process_data_sources(
+                [self.data_packet], DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+            )
 
             assert processed_packets == []
             mock_producer.assert_not_called()
@@ -129,9 +133,6 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         This test ensures that the workflow engine is correctly hooked up to tasks/post_process.py.
         """
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
-
-        if not self.group:
-            assert False, "Group not created"
 
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
@@ -155,10 +156,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
         )
 
         self.occurrence, group_info = save_issue_occurrence(occurrence_data, error_event)
-        self.group = Group.objects.filter(grouphash__hash=self.occurrence.fingerprint[0]).first()
-
-        if not self.group:
-            assert False, "Group not created"
+        self.group = Group.objects.get(grouphash__hash=self.occurrence.fingerprint[0])
 
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"
@@ -171,8 +169,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
     def test_workflow_engine__workflows__no_flag(self):
         self.create_event(self.project.id, datetime.utcnow(), str(self.detector.id))
 
-        if not self.group:
-            assert False, "Group not created"
+        assert self.group
 
         with mock.patch(
             "sentry.workflow_engine.processors.workflow.process_workflows"

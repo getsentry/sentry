@@ -3,9 +3,9 @@ import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
 import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -98,19 +98,19 @@ const getSearchConfigFromCustomPerformanceMetrics = (
     numericKeys: [...defaultConfig.numericKeys],
   };
   Object.keys(customPerformanceMetrics).forEach(metricName => {
-    const {fieldType} = customPerformanceMetrics[metricName];
+    const {fieldType} = customPerformanceMetrics[metricName]!;
     switch (fieldType) {
       case 'size':
-        searchConfigMap.sizeKeys.push(metricName);
+        searchConfigMap.sizeKeys!.push(metricName);
         break;
       case 'duration':
-        searchConfigMap.durationKeys.push(metricName);
+        searchConfigMap.durationKeys!.push(metricName);
         break;
       case 'percentage':
-        searchConfigMap.percentageKeys.push(metricName);
+        searchConfigMap.percentageKeys!.push(metricName);
         break;
       default:
-        searchConfigMap.numericKeys.push(metricName);
+        searchConfigMap.numericKeys!.push(metricName);
     }
   });
   const searchConfig = {
@@ -222,7 +222,7 @@ function SearchBar(props: SearchBarProps) {
               projectIds: projectIdStrings,
               endpointParams,
               // allows searching for tags on transactions as well
-              includeTransactions: includeTransactions,
+              includeTransactions,
               // allows searching for tags on sessions as well
               includeSessions: includeSessionTagsValues,
               dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,

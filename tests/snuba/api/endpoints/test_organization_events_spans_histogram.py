@@ -4,7 +4,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
@@ -32,8 +32,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                    "start_timestamp": (self.min_ago + timedelta(seconds=1)).isoformat(),
+                    "timestamp": (self.min_ago + timedelta(seconds=4)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 3.0,
@@ -44,8 +44,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
                     "same_process_as_parent": True,
                     "parent_span_id": "a" * 16,
                     "span_id": x * 16,
-                    "start_timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=5)),
+                    "start_timestamp": (self.min_ago + timedelta(seconds=4)).isoformat(),
+                    "timestamp": (self.min_ago + timedelta(seconds=5)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 10.0,
@@ -335,8 +335,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
                 "same_process_as_parent": True,
                 "parent_span_id": "a" * 16,
                 "span_id": "e" * 16,
-                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "start_timestamp": (self.min_ago + timedelta(seconds=1)).isoformat(),
+                "timestamp": (self.min_ago + timedelta(seconds=4)).isoformat(),
                 "op": "django.middleware",
                 "description": "middleware span",
                 "exclusive_time": 60.0,
@@ -364,8 +364,8 @@ class OrganizationEventsSpansHistogramEndpointTest(APITestCase, SnubaTestCase):
                 "same_process_as_parent": True,
                 "parent_span_id": "a" * 16,
                 "span_id": "e" * 16,
-                "start_timestamp": iso_format(self.min_ago + timedelta(seconds=1)),
-                "timestamp": iso_format(self.min_ago + timedelta(seconds=4)),
+                "start_timestamp": (self.min_ago + timedelta(seconds=1)).isoformat(),
+                "timestamp": (self.min_ago + timedelta(seconds=4)).isoformat(),
                 "op": "django.middleware",
                 "description": "middleware span",
                 "exclusive_time": 60.0,

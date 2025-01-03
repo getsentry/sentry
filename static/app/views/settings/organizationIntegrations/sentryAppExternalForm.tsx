@@ -148,7 +148,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         });
         // if ready to load, trigger a field change to trigger the api request to load options
         if (isReadyToLoad) {
-          this.handleFieldChange(field.depends_on[0]);
+          this.handleFieldChange(field.depends_on[0]!);
         }
       }
     });
@@ -284,7 +284,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const choiceArray = await Promise.all(
       impactedFields.map(field => {
         // reset all impacted fields first
-        this.model.setValue(field.name || '', '', {quiet: true});
+        const defaultValue = this.getDefaultFieldValue(field);
+        this.model.setValue(field.name || '', defaultValue || '', {quiet: true});
         return this.makeExternalRequest(field, '');
       })
     );

@@ -5,9 +5,9 @@ import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -73,8 +73,9 @@ const browserOptions = [
 ];
 
 export default function BrowserTypeSelector() {
-  const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   const value = decodeList(location.query[SpanIndexedField.BROWSER_NAME]);
 
@@ -93,7 +94,7 @@ export default function BrowserTypeSelector() {
           browsers: selectedOptions.map(v => v.value),
         });
 
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

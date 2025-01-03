@@ -219,7 +219,7 @@ class AvatarUploader extends Component<Props, State> {
 
     // Normalize diff across dimensions so that negative diffs are always making
     // the cropper smaller and positive ones are making the cropper larger
-    const helpers = {
+    const helpers: Record<string, (yDiff: number, xDiff: number) => number> = {
       getDiffNE,
       getDiffNW,
       getDiffSE,

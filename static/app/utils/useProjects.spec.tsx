@@ -92,7 +92,7 @@ describe('useProjects', function () {
     act(() => void ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {
-      initialProps: {slugs: [mockProjects[0].slug]},
+      initialProps: {slugs: [mockProjects[0]!.slug]},
       wrapper: TestContext,
     });
 

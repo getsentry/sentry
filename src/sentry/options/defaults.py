@@ -1222,6 +1222,12 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "project-abuse-quota.attachment-item-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "project-abuse-quota.session-limit",
     type=Int,
     default=0,
@@ -2110,6 +2116,20 @@ register(
 )
 
 register(
+    "statistical_detectors.throughput.threshold.transactions",
+    default=50,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "statistical_detectors.throughput.threshold.functions",
+    default=25,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "options_automator_slack_webhook_enabled",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2284,12 +2304,6 @@ register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "releases_v2.single-tenant",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2494,43 +2508,6 @@ register(
 # Sample rate for double writing to experimental dsn
 register(
     "store.experimental-dsn-double-write.sample-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# killswitch for profiling ddm functions metrics.
-# Enable/Disable the ingestion of function metrics
-# in the generic metrics platform
-register(
-    "profiling.generic_metrics.functions_ingestion.enabled",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# list of org IDs for which we'll write the function
-# metrics to the generic metrics platform
-register(
-    "profiling.generic_metrics.functions_ingestion.allowed_org_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# list of project IDs we want to deny ingesting profiles
-# function metrics into the generic metrics platform
-register(
-    "profiling.generic_metrics.functions_ingestion.denied_proj_ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# rollout rate: % of profiles for which we ingest the extracted profile
-# functions metrics into the generic metrics platform
-register(
-    "profiling.generic_metrics.functions_ingestion.rollout_rate",
-    type=Float,
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

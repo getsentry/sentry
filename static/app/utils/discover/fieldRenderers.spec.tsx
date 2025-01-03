@@ -150,9 +150,7 @@ describe('getFieldRenderer', function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument()
-      );
+      await screen.findByText('Oct 3, 2019 9:13:14 AM PDT');
     });
 
     it('can render date fields using utc when query string has utc set to true', async function () {
@@ -164,9 +162,7 @@ describe('getFieldRenderer', function () {
         }) as React.ReactElement<any, any>
       );
 
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument()
-      );
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
   });
 

@@ -1,25 +1,37 @@
+from __future__ import annotations
+
 import re
+from collections.abc import Iterable, Mapping
 from hashlib import md5
+from re import Match
+from typing import TYPE_CHECKING, Any, Literal
+from uuid import UUID
 
 from django.utils.encoding import force_bytes
 
+from sentry.db.models.fields.node import NodeData
 from sentry.stacktraces.processing import get_crash_frame_from_event_data
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from sentry.grouping.component import ExceptionGroupingComponent
+
 
 _fingerprint_var_re = re.compile(r"\{\{\s*(\S+)\s*\}\}")
 
 
-def parse_fingerprint_var(value):
+def parse_fingerprint_var(value: str) -> str | None:
     match = _fingerprint_var_re.match(value)
     if match is not None and match.end() == len(value):
         return match.group(1)
+    return None
 
 
-def is_default_fingerprint_var(value):
+def is_default_fingerprint_var(value: str) -> bool:
     return parse_fingerprint_var(value) == "default"
 
 
-def hash_from_values(values):
+def hash_from_values(values: Iterable[str | int | UUID | ExceptionGroupingComponent]) -> str:
     """
     Primarily used at the end of the grouping process, to get a final hash value once the all of the
     variants have been constructed, but also used as a hack to compare exception components (by
@@ -31,10 +43,22 @@ def hash_from_values(values):
     return result.hexdigest()
 
 
-def bool_from_string(value):
+def get_fingerprint_type(fingerprint: list[str]) -> Literal["default", "hybrid", "custom"]:
+    return (
+        "default"
+        if len(fingerprint) == 1 and is_default_fingerprint_var(fingerprint[0])
+        else (
+            "hybrid"
+            if any(is_default_fingerprint_var(entry) for entry in fingerprint)
+            else "custom"
+        )
+    )
+
+
+def bool_from_string(value: str) -> bool | None:
     """
     Convert various string representations of boolean values ("1", "yes", "true", "0", "no",
-    "false") into actual booleans.
+    "false") into actual booleans. Return `None` for all other inputs.
     """
     if value:
         value = value.lower()
@@ -43,8 +67,10 @@ def bool_from_string(value):
         elif value in ("0", "no", "false"):
             return False
 
+    return None
 
-def get_fingerprint_value(var, data):
+
+def get_fingerprint_value(var: str, data: NodeData | Mapping[str, Any]) -> str | None:
     if var == "transaction":
         return data.get("transaction") or "<no-transaction>"
     elif var == "message":
@@ -93,10 +119,12 @@ def get_fingerprint_value(var, data):
             if t == tag:
                 return value
         return "<no-value-for-tag-%s>" % tag
+    else:
+        return None
 
 
-def resolve_fingerprint_values(values, event_data):
-    def _get_fingerprint_value(value):
+def resolve_fingerprint_values(values: list[str], event_data: NodeData) -> list[str]:
+    def _get_fingerprint_value(value: str) -> str:
         var = parse_fingerprint_var(value)
         if var is None:
             return value
@@ -108,8 +136,8 @@ def resolve_fingerprint_values(values, event_data):
     return [_get_fingerprint_value(x) for x in values]
 
 
-def expand_title_template(template, event_data):
-    def _handle_match(match):
+def expand_title_template(template: str, event_data: Mapping[str, Any]) -> str:
+    def _handle_match(match: Match[str]) -> str:
         var = match.group(1)
         rv = get_fingerprint_value(var, event_data)
         if rv is not None:

@@ -93,7 +93,7 @@ describe('incremental trace fetch', () => {
       meta: null,
     });
 
-    await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
 
     expect(tree.list.length).toBe(7);
   });
@@ -166,7 +166,7 @@ describe('incremental trace fetch', () => {
       meta: null,
     });
 
-    await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
     tree.build();
 
     expect(tree.list.length).toBe(7);

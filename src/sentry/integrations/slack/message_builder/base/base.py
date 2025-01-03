@@ -40,10 +40,3 @@ class SlackMessageBuilder(ABC):
             title = obj.occurrence.issue_title
 
         return f"[{project_slug}] {title}"
-
-    @property
-    def escape_text(self) -> bool:
-        """
-        Returns True if we need to escape the text in the message.
-        """
-        return False

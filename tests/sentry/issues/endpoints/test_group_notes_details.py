@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -16,7 +16,7 @@ from sentry.types.activity import ActivityType
 
 
 class GroupNotesDetailsTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
@@ -43,10 +43,10 @@ class GroupNotesDetailsTest(APITestCase):
         )
 
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         self.login_as(user=self.user)
 
         url = self.url
@@ -59,7 +59,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
 
-    def test_delete_comment_and_subscription(self):
+    def test_delete_comment_and_subscription(self) -> None:
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -91,7 +91,7 @@ class GroupNotesDetailsTest(APITestCase):
             reason=GroupSubscriptionReason.comment,
         ).exists()
 
-    def test_delete_multiple_comments(self):
+    def test_delete_multiple_comments(self) -> None:
         """Test that if a user has commented multiple times on an issue and deletes one, we don't remove the subscription"""
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -130,7 +130,7 @@ class GroupNotesDetailsTest(APITestCase):
 
     @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     @responses.activate
-    def test_put(self, mock_update_comment):
+    def test_put(self, mock_update_comment: MagicMock) -> None:
         self.login_as(user=self.user)
 
         url = self.url
@@ -154,7 +154,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert mock_update_comment.call_args[0][2] == activity
 
     @responses.activate
-    def test_put_ignore_mentions(self):
+    def test_put_ignore_mentions(self) -> None:
         GroupLink.objects.filter(group_id=self.group.id).delete()
         self.login_as(user=self.user)
 
@@ -179,7 +179,7 @@ class GroupNotesDetailsTest(APITestCase):
         }
 
     @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
-    def test_put_no_external_id(self, mock_update_comment):
+    def test_put_no_external_id(self, mock_update_comment: MagicMock) -> None:
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)

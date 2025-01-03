@@ -16,7 +16,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "GitlabIssueSearchEndpoint",
     "GroupEventsEndpoint",
     "GroupIntegrationsEndpoint",
-    "GroupParticipantsEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupStatsEndpoint",
     "GroupTagsEndpoint",

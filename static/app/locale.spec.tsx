@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+// eslint-disable-next-line no-restricted-imports
 import {tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {

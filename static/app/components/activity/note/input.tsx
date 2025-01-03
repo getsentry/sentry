@@ -132,7 +132,7 @@ function NoteInput({
   );
 
   const handleChange: MentionsInputProps['onChange'] = useCallback(
-    e => {
+    (e: MentionChangeEvent) => {
       setValue(e.target.value);
       onChange?.(e, {updating: existingItem});
     },
@@ -140,7 +140,7 @@ function NoteInput({
   );
 
   const handleKeyDown: MentionsInputProps['onKeyDown'] = useCallback(
-    e => {
+    (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       // Auto submit the form on [meta,ctrl] + Enter
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canSubmit) {
         submitForm();
