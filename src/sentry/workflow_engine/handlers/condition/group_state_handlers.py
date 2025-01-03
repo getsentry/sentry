@@ -40,3 +40,18 @@ class ExistingHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowJob
         has_escalated = job.get("has_escalated", False)
         is_escalating = has_reappeared or has_escalated
         return is_escalating and job["event"].group.priority == PriorityLevel.HIGH
+
+
+@condition_handler_registry.register(Condition.FIRST_SEEN_EVENT)
+class FirstSeenEventConditionHandler(DataConditionHandler[WorkflowJob]):
+    @staticmethod
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        state = job.get("group_state")
+        if state is None:
+            return False
+
+        workflow = job.get("workflow")
+        if workflow is None or workflow.environment_id is None:
+            return state["is_new"]
+
+        return state["is_new_group_environment"]

@@ -8,7 +8,7 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.eventstore.models import GroupEvent
     from sentry.eventstream.base import GroupState
-    from sentry.workflow_engine.models import Action, Detector
+    from sentry.workflow_engine.models import Action, Detector, Workflow
 
 T = TypeVar("T")
 
@@ -39,6 +39,7 @@ class WorkflowJob(EventJob, total=False):
     has_reappeared: bool
     has_alert: bool
     has_escalated: bool
+    workflow: Workflow
 
 
 class ActionHandler:
