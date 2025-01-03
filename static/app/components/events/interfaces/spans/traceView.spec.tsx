@@ -20,14 +20,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
-function initializeData(settings) {
+function initializeData(settings: Parameters<typeof _initializeData>[0]) {
   const data = _initializeData(settings);
   ProjectsStore.loadInitialData(data.projects);
   return data;
 }
 
 describe('TraceView', () => {
-  let data;
+  let data!: ReturnType<typeof initializeData>;
 
   beforeEach(() => {
     data = initializeData({});
@@ -202,7 +202,7 @@ describe('TraceView', () => {
 
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
-      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
+      const firstGroup = screen.queryAllByText('Autogrouped — http —')[0]!;
       await userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
@@ -210,7 +210,7 @@ describe('TraceView', () => {
       await userEvent.click(secondGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
-      const firstRegroup = screen.queryAllByText('Regroup')[0];
+      const firstRegroup = screen.queryAllByText('Regroup')[0]!;
       await userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 

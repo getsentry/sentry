@@ -41,7 +41,7 @@ const useLoadPrismLanguage = (
 const getPrismGrammar = (language: string) => {
   try {
     const fullLanguage = getPrismLanguage(language);
-    return Prism.languages[fullLanguage] ?? null;
+    return Prism.languages[fullLanguage!] ?? null;
   } catch (e) {
     Sentry.captureException(e);
     return null;
@@ -61,11 +61,11 @@ const splitMultipleTokensByLine = (
       continue;
     }
 
-    currentLine.push(...tokenLines[0]);
+    currentLine.push(...tokenLines[0]!);
     if (tokenLines.length > 1) {
       for (let i = 1; i < tokenLines.length; i++) {
         lines.push(currentLine);
-        currentLine = tokenLines[i];
+        currentLine = tokenLines[i]!;
       }
     }
   }

@@ -72,7 +72,7 @@ describe('Issues -> Merged View', function () {
       {router, organization}
     );
 
-    expect(await screen.findByText(mockData.merged[0].id)).toBeInTheDocument();
+    expect(await screen.findByText(mockData.merged[0]!.id)).toBeInTheDocument();
 
     const title = await screen.findByText('Fingerprints included in this issue');
     expect(title.parentElement).toHaveTextContent(

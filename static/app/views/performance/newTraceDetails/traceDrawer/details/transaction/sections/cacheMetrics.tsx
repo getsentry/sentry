@@ -11,8 +11,8 @@ export function CacheMetrics({
 }: {
   cacheMetrics: Pick<SpanMetricsResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>[];
 }) {
-  const itemSize: number | null = cacheMetrics[0]['avg(cache.item_size)'];
-  const missRate: number | null = cacheMetrics[0]['cache_miss_rate()'];
+  const itemSize: number | null = cacheMetrics[0]!['avg(cache.item_size)'];
+  const missRate: number | null = cacheMetrics[0]!['cache_miss_rate()'];
 
   const items: SectionCardKeyValueList = [];
 

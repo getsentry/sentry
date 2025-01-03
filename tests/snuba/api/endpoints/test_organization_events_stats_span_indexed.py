@@ -482,6 +482,48 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 assert result[1][0]["count"] == expected, key
         assert response.data["foo"]["meta"]["dataset"] == self.dataset
 
+    def test_top_events_multi_y_axis(self):
+        # Each of these denotes how many events to create in each minute
+        for transaction in ["foo", "bar", "baz"]:
+            self.store_spans(
+                [
+                    self.create_span(
+                        {"sentry_tags": {"transaction": transaction, "status": "success"}},
+                        start_ts=self.day_ago + timedelta(minutes=1),
+                        duration=2000,
+                    ),
+                ],
+                is_eap=self.is_eap,
+            )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": ["count()", "p50(span.duration)"],
+                "field": ["transaction", "count()", "p50(span.duration)"],
+                "orderby": ["transaction"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+
+        for key in ["Other", "bar", "baz"]:
+            assert key in response.data
+            for y_axis in ["count()", "p50(span.duration)"]:
+                assert y_axis in response.data[key]
+                assert response.data[key][y_axis]["meta"]["dataset"] == self.dataset
+            counts = response.data[key]["count()"]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], counts):
+                assert result[1][0]["count"] == expected, key
+            p50s = response.data[key]["p50(span.duration)"]["data"][0:6]
+            for expected, result in zip([0, 2000, 0, 0, 0, 0], p50s):
+                assert result[1][0]["count"] == expected, key
+
     def test_top_events_with_project(self):
         # Each of these denotes how many events to create in each minute
         projects = [self.create_project(), self.create_project()]

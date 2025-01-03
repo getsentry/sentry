@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import cast
 
 import sentry_sdk
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -30,29 +31,31 @@ logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns,
-    query,
-    snuba_params,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    allow_metric_aggregates=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    sample=None,
-    has_metrics=False,
-    use_metrics_layer=False,
-    skip_tag_resolution=False,
-    on_demand_metrics_enabled=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    referrer: str | None = None,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
+    use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    dataset: Dataset = Dataset.Events,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
 ) -> EventsResponse:
     if not selected_columns:

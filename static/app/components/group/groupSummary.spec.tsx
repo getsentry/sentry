@@ -54,12 +54,12 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-      expect(screen.getByText('In the trace')).toBeInTheDocument();
-      expect(screen.getByText('Test trace')).toBeInTheDocument();
-      expect(screen.getByText('Possible cause')).toBeInTheDocument();
-      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.getByText('In the trace')).toBeInTheDocument();
+    expect(screen.getByText('Test trace')).toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
   it('shows loading state', function () {
@@ -110,11 +110,11 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
-      expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
-      expect(screen.getByText('Possible cause')).toBeInTheDocument();
-      expect(screen.getByText('Test possible cause')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
+    expect(screen.queryByText('In the trace')).not.toBeInTheDocument();
+    expect(screen.getByText('Possible cause')).toBeInTheDocument();
+    expect(screen.getByText('Test possible cause')).toBeInTheDocument();
   });
 
   it('renders in preview mode', async function () {
@@ -131,7 +131,7 @@ describe('GroupSummary', function () {
 
     await waitFor(() => {
       expect(screen.getByText("What's wrong")).toBeInTheDocument();
-      expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
     });
+    expect(screen.getByText('Test whats wrong')).toBeInTheDocument();
   });
 });

@@ -155,13 +155,13 @@ export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.files[
         'bundle.min.js'
-      ].checksums['sha384-base64']) ??
+      ]!.checksums['sha384-base64']) ??
     '';
 
   return {
@@ -242,13 +242,13 @@ export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.files[
         'bundle.min.js'
-      ].checksums['sha384-base64']) ??
+      ]!.checksums['sha384-base64']) ??
     '';
 
   return {

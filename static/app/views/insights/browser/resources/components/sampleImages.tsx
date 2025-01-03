@@ -53,7 +53,7 @@ function SampleImages({groupId, projectId}: Props) {
 
   const filteredResources = imageResources
     .filter(resource => {
-      const fileName = getFileNameFromDescription(resource[SPAN_DESCRIPTION]);
+      const fileName = getFileNameFromDescription(resource[SPAN_DESCRIPTION]!);
       if (uniqueResources.has(fileName)) {
         return false;
       }
@@ -126,11 +126,11 @@ function SampleImagesChartPanelBody(props: {
     <ImageWrapper>
       {images.map(resource => {
         const hasRawDomain = Boolean(resource[RAW_DOMAIN]);
-        const isRelativeUrl = resource[SPAN_DESCRIPTION].startsWith('/');
-        let src = resource[SPAN_DESCRIPTION];
+        const isRelativeUrl = resource[SPAN_DESCRIPTION]!.startsWith('/');
+        let src = resource[SPAN_DESCRIPTION]!;
         if (isRelativeUrl && hasRawDomain) {
           try {
-            const url = new URL(resource[SPAN_DESCRIPTION], resource[RAW_DOMAIN]);
+            const url = new URL(resource[SPAN_DESCRIPTION]!, resource[RAW_DOMAIN]!);
             src = url.href;
           } catch {
             Sentry.setContext('resource', {
@@ -146,7 +146,7 @@ function SampleImagesChartPanelBody(props: {
           <ImageContainer
             src={src}
             showImage={isImagesEnabled}
-            fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
+            fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION]!)}
             size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
             key={resource[SPAN_DESCRIPTION]}
           />

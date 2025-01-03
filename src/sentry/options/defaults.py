@@ -2116,6 +2116,20 @@ register(
 )
 
 register(
+    "statistical_detectors.throughput.threshold.transactions",
+    default=50,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "statistical_detectors.throughput.threshold.functions",
+    default=25,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "options_automator_slack_webhook_enabled",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2290,12 +2304,6 @@ register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "releases_v2.single-tenant",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

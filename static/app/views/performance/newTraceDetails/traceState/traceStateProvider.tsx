@@ -74,7 +74,6 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
     }
     return undefined;
     // We only want to decode on load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(

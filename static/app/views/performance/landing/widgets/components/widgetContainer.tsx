@@ -69,7 +69,7 @@ function trackChartSettingChange(
   });
 }
 
-function _WidgetContainer(props: Props) {
+function WidgetContainerInner(props: Props) {
   const {
     organization,
     index,
@@ -386,6 +386,6 @@ const makeEventViewForWidget = (
   return widgetEventView;
 };
 
-const WidgetContainer = withOrganization(_WidgetContainer);
+const WidgetContainer = withOrganization(WidgetContainerInner);
 
 export default WidgetContainer;
