@@ -279,9 +279,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs = {item: seen_stats.get(item, {}) for item in item_list}
             else:
                 attrs = {item: {} for item in item_list}
-            if len(item_list) > 0 and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            ):
+            if len(item_list) > 0:
                 unhandled_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
                 if unhandled_stats is not None:
