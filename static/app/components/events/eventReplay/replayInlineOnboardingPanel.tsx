@@ -63,7 +63,7 @@ export default function ReplayInlineOnboardingPanel({
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
               analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"
               analyticsParams={{platform}}
-              onClick={activateSidebar}
+              onClick={() => activateSidebar(projectId)}
             >
               {t('Set Up Now')}
             </Button>
