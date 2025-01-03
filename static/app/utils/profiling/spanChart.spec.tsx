@@ -298,7 +298,7 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.spanTrees.length).toBe(2);
+    expect(chart.spanTrees).toHaveLength(2);
   });
 
   it('creates a new tree from orphaned spans', () => {
@@ -329,7 +329,7 @@ describe('spanChart', () => {
     );
 
     const chart = new SpanChart(tree);
-    expect(chart.spanTrees.length).toBe(2);
+    expect(chart.spanTrees).toHaveLength(2);
 
     // Even though they belong to the same root,
     // the spans are offset visually by the tree height

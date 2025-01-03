@@ -10,7 +10,7 @@ describe('useMemoWithPrevious', () => {
 
     const {result} = renderHook(() => useMemoWithPrevious(factory, [dep]));
     expect(factory).toHaveBeenCalledWith(null);
-    expect(result.current).toEqual('foo');
+    expect(result.current).toBe('foo');
   });
 
   it('calls factory with previous value', () => {

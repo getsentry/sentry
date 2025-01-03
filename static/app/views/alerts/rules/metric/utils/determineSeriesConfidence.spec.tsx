@@ -54,7 +54,7 @@ describe('determineSeriesConfidence', () => {
         [200, [{count: 'high'}]],
       ],
     });
-    expect(confidence).toEqual('high');
+    expect(confidence).toBe('high');
   });
 
   it('equal high if all confidence high or null', () => {
@@ -68,7 +68,7 @@ describe('determineSeriesConfidence', () => {
         [200, [{count: null}]],
       ],
     });
-    expect(confidence).toEqual('high');
+    expect(confidence).toBe('high');
   });
 
   it('equal high if <25% is low', () => {
@@ -92,7 +92,7 @@ describe('determineSeriesConfidence', () => {
         [700, [{count: null}]],
       ],
     });
-    expect(confidence).toEqual('high');
+    expect(confidence).toBe('high');
   });
 
   it('equal low if >25% is low', () => {
@@ -112,7 +112,7 @@ describe('determineSeriesConfidence', () => {
         [500, [{count: 'low'}]],
       ],
     });
-    expect(confidence).toEqual('low');
+    expect(confidence).toBe('low');
   });
 
   it('equal low if all low', () => {
@@ -132,7 +132,7 @@ describe('determineSeriesConfidence', () => {
         [500, [{count: 'low'}]],
       ],
     });
-    expect(confidence).toEqual('low');
+    expect(confidence).toBe('low');
   });
 
   it('equals low if any in bucket is low', () => {
@@ -143,7 +143,7 @@ describe('determineSeriesConfidence', () => {
         [200, [{count: null}, {count: 'low'}, {count: 'high'}]],
       ],
     });
-    expect(confidence).toEqual('low');
+    expect(confidence).toBe('low');
   });
 
   it('equals high if no lows in bucket', () => {
@@ -154,6 +154,6 @@ describe('determineSeriesConfidence', () => {
         [200, [{count: null}, {count: null}, {count: 'high'}]],
       ],
     });
-    expect(confidence).toEqual('high');
+    expect(confidence).toBe('high');
   });
 });
