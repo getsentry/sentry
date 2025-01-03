@@ -4,7 +4,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -199,14 +198,14 @@ describe('Screens Landing Page', function () {
       organization.features = [];
       render(<ScreensLandingPage />, {organization});
       expect(
-        await screen.findByText(t("You don't have access to this feature"))
+        await screen.findByText("You don't have access to this feature")
       ).toBeInTheDocument();
     });
 
     it('shows content if permission is there', async function () {
       organization.features = [MODULE_FEATURE];
       render(<ScreensLandingPage />, {organization});
-      expect(await screen.findAllByText(t('Mobile Screens'))).toHaveLength(2);
+      expect(await screen.findAllByText('Mobile Screens')).toHaveLength(2);
     });
   });
 });
