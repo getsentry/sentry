@@ -80,7 +80,7 @@ describe('useCurrentProjectState', () => {
       },
       wrapper: createWrapper(),
     });
-    expect(result.current.currentProject).toBe(undefined);
+    expect(result.current.currentProject).toBeUndefined();
   });
 
   it('should return currentProject=undefined when project url param is present and currentPanel != targetPanel', () => {
@@ -95,7 +95,7 @@ describe('useCurrentProjectState', () => {
       },
       wrapper: createWrapper(angular.id),
     });
-    expect(result.current.currentProject).toBe(undefined);
+    expect(result.current.currentProject).toBeUndefined();
   });
 
   it('should return the currentProject when currentPanel = targetPanel', () => {
@@ -185,7 +185,7 @@ describe('useCurrentProjectState', () => {
       },
       wrapper: createWrapper(),
     });
-    expect(result.current.currentProject).toBe(undefined);
+    expect(result.current.currentProject).toBeUndefined();
   });
 
   it('should override current project if setCurrentProjects is called', () => {

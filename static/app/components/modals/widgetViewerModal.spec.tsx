@@ -502,7 +502,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123ms');
+        expect(yAxisFormatter(123)).toBe('123ms');
       });
 
       it('renders widget chart with default number y axis formatter when seriesResultType has multiple different types', async function () {
@@ -516,7 +516,7 @@ describe('Modals -> WidgetViewerModal', function () {
         const calls = (ReactEchartsCore as jest.Mock).mock.calls;
         const yAxisFormatter =
           calls[calls.length - 1][0].option.yAxis.axisLabel.formatter;
-        expect(yAxisFormatter(123)).toEqual('123');
+        expect(yAxisFormatter(123)).toBe('123');
       });
 
       it('does not allow sorting by transaction name when widget is using metrics', async function () {

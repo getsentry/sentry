@@ -602,12 +602,12 @@ describe('SpanTreeModel', () => {
       directParent: null,
     });
 
-    expect(spans.length).toEqual(2);
-    expect(spans[1]!.type).toEqual('span_group_siblings');
+    expect(spans).toHaveLength(2);
+    expect(spans[1]!.type).toBe('span_group_siblings');
 
     // If statement here is required to avoid TS linting issues
     if (spans[1]!.type === 'span_group_siblings') {
-      expect(spans[1]!.spanSiblingGrouping!.length).toEqual(5);
+      expect(spans[1]!.spanSiblingGrouping!).toHaveLength(5);
     }
   });
 
@@ -684,8 +684,8 @@ describe('SpanTreeModel', () => {
       directParent: null,
     });
 
-    expect(spans.length).toEqual(5);
-    spans.forEach(span => expect(span.type).toEqual('span'));
+    expect(spans).toHaveLength(5);
+    spans.forEach(span => expect(span.type).toBe('span'));
   });
 
   it('properly autogroups similar siblings and leaves other siblings ungrouped', () => {
@@ -787,9 +787,9 @@ describe('SpanTreeModel', () => {
       directParent: null,
     });
 
-    expect(spans.length).toEqual(4);
-    expect(spans[1]!.type).toEqual('span_group_siblings');
-    expect(spans[2]!.type).toEqual('span');
-    expect(spans[3]!.type).toEqual('span_group_siblings');
+    expect(spans).toHaveLength(4);
+    expect(spans[1]!.type).toBe('span_group_siblings');
+    expect(spans[2]!.type).toBe('span');
+    expect(spans[3]!.type).toBe('span_group_siblings');
   });
 });

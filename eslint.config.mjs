@@ -766,11 +766,6 @@ export default typescript.config([
 
       // We don't recommend snapshots, but if there are any keep it small
       'jest/no-large-snapshots': ['error', {maxSize: 2000}],
-
-      'jest/no-alias-methods': 'off', // TODO(ryan953): Fix violations then delete this line
-      'jest/prefer-to-be': 'off', // TODO(ryan953): Fix violations then delete this line
-      'jest/prefer-to-contain': 'off', // TODO(ryan953): Fix violations then delete this line
-      'jest/prefer-to-have-length': 'off', // TODO(ryan953): Fix violations then delete this line
     },
   },
   {

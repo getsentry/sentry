@@ -174,7 +174,7 @@ describe('flamegraph', () => {
         sort: 'call order',
       }
     );
-    expect(flamegraph.frames.length).toBe(1);
+    expect(flamegraph.frames).toHaveLength(1);
     expect(flamegraph.frames.every(f => f.frame.name !== 'f1')).toBe(true);
   });
 

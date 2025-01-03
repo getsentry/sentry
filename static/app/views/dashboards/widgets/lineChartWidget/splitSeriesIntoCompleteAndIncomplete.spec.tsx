@@ -52,7 +52,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       },
     ]);
 
-    expect(incompleteSerie).toEqual(undefined);
+    expect(incompleteSerie).toBeUndefined();
   });
 
   it('Does not split a series with all incomplete data', () => {
@@ -83,7 +83,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
       90
     );
 
-    expect(completeSerie).toEqual(undefined);
+    expect(completeSerie).toBeUndefined();
 
     expect(incompleteSerie?.data).toEqual([
       {
