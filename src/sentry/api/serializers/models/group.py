@@ -12,7 +12,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
@@ -481,13 +481,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
     ):
-        if (
-            self._collapse("unhandled")
-            and len(item_list) > 0
-            and features.has(
-                "organizations:issue-stream-performance", item_list[0].project.organization
-            )
-        ):
+        if self._collapse("unhandled") and len(item_list) > 0:
             return None
         start = self._get_start_from_seen_stats(seen_stats)
         unhandled = {}
