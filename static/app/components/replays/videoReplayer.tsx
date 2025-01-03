@@ -406,22 +406,22 @@ export class VideoReplayer {
       return;
     }
 
-    for (const video of this._videos) {
+    for (const [index, videoElem] of this._videos) {
       // On safari, some clips have a ~1 second gap in the beginning so we also need to show the previous video to hide this gap
-      if (video[0] === (this._currentIndex || 0) - 1) {
-        if (video[1].duration) {
+      if (index === (this._currentIndex || 0) - 1) {
+        if (videoElem.duration) {
           // we need to set the previous video to the end so that it's shown in case the next video has a gap at the beginning
           // setting it to the end of the video causes the 'ended' bug in Chrome so we set it to 1 ms before the video ends
-          this.setVideoTime(video[1], video[1].duration * 1000 - 1);
+          this.setVideoTime(videoElem, videoElem.duration * 1000 - 1);
         }
-        video[1].style.display = 'block';
+        videoElem.style.display = 'block';
       }
       // hides all videos because videos have a different z-index depending on their index
       else {
-        video[1].style.display = 'none';
+        videoElem.style.display = 'none';
         // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
-        if (video[1].ended) {
-          this.setVideoTime(video[1], 0);
+        if (videoElem.ended) {
+          this.setVideoTime(videoElem, 0);
         }
       }
     }
