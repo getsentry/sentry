@@ -433,7 +433,13 @@ export function getFormattedContextData({
     case 'state':
       return getStateContextData({data: contextValue, meta});
     case 'profile':
-      return getProfileContextData({data: contextValue, meta, organization, project});
+      return getProfileContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        project,
+      });
     case 'replay':
       return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':
