@@ -9,7 +9,6 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializer
 
@@ -20,7 +19,7 @@ class MonitorCheckInMixin(BaseEndpointMixin):
         Retrieve a list of check-ins for a monitor
         """
         # we don't allow read permission with DSNs
-        if isinstance(request.auth, ProjectKey):
+        if request.auth is not None and request.auth.kind == "project_key":  # type: ignore[union-attr]
             return self.respond(status=401)
 
         start, end = get_date_range_from_params(request.GET)
