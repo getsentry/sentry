@@ -110,7 +110,7 @@ class ProjectDetectorIndexPostTest(ProjectDetectorIndexBaseTest):
             )
             assert response.data == {"groupType": ["Group type not compatible with detectors"]}
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_valid_creation(self, mock_audit):
         with self.tasks():
             response = self.get_success_response(

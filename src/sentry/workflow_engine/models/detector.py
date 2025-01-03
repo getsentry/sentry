@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import builtins
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
@@ -69,6 +70,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             )
         ]
 
+    error_detector_project_options = {
+        "fingerprinting_rules": "sentry:fingerprinting_rules",
+        "resolve_age": "sentry:resolve_age",
+    }
+
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
         return grouptype.registry.get_by_slug(self.type)
@@ -101,6 +107,14 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
+
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        if not self.project:
+            raise ValueError("Detector must have a project to get options")
+
+        return self.project.get_option(key, default=default, validate=validate)
 
 
 @receiver(pre_save, sender=Detector)
