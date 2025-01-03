@@ -1,11 +1,12 @@
-import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {
   PlatformExternalIssue,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+
+import {useExternalIssues} from 'sentry/components/group/externalIssuesList/useExternalIssues';
+import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';

@@ -1,6 +1,7 @@
 import * as qs from 'query-string';
 
 import type {PageFilters} from 'sentry/types/core';
+
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';

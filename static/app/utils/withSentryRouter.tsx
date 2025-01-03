@@ -1,5 +1,6 @@
-import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+
+import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 
 import useRouter from './useRouter';
 

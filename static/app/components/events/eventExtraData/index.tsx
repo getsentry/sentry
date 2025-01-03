@@ -1,9 +1,10 @@
 import {memo, useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

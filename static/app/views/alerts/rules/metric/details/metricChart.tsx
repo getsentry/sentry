@@ -4,6 +4,13 @@ import color from 'color';
 import type {LineSeriesOption} from 'echarts';
 import moment from 'moment-timezone';
 
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
+import type {DateString} from 'sentry/types/core';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
@@ -35,12 +42,6 @@ import {IconCheckmark, IconClock, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
-import type {DateString} from 'sentry/types/core';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';

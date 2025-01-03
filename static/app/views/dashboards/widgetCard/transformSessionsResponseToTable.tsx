@@ -2,6 +2,7 @@ import omit from 'lodash/omit';
 
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
+
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {

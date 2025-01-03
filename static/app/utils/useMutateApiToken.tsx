@@ -1,4 +1,5 @@
 import type {InternalAppApiToken} from 'sentry/types/user';
+
 import {
   type ApiQueryKey,
   getApiQueryData,

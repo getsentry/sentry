@@ -2,6 +2,8 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {User} from 'sentry/types/user';
+
 import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {Button} from 'sentry/components/button';
@@ -12,7 +14,6 @@ import Link from 'sentry/components/links/link';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {User} from 'sentry/types/user';
 
 interface Props {
   detail: React.ReactNode;

@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -13,7 +15,6 @@ import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries'
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';

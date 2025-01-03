@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
+import type {DateString} from 'sentry/types/core';
+
 import {DateTime} from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import type {DateString} from 'sentry/types/core';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,

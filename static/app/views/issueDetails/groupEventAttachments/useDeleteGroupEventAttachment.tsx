@@ -1,6 +1,7 @@
+import type {IssueAttachment} from 'sentry/types/group';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types/group';
 import {
   getApiQueryData,
   setApiQueryData,

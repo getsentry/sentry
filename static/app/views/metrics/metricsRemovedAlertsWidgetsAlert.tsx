@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import Alert, {type AlertProps} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'metrics-removed-alerts-wizards-info-dismissed';

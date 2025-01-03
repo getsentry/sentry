@@ -2,6 +2,7 @@ import chunk from 'lodash/chunk';
 
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
+
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

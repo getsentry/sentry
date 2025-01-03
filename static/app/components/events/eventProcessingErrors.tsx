@@ -2,6 +2,9 @@ import {useMemo} from 'react';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {getErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {
@@ -11,8 +14,6 @@ import {
 import {useActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import KeyValueData from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';

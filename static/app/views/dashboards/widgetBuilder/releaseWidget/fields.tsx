@@ -8,6 +8,7 @@ import type {
   SessionsOperation,
 } from 'sentry/types/sessions';
 import {SessionField} from 'sentry/types/sessions';
+
 import {defined} from 'sentry/utils';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

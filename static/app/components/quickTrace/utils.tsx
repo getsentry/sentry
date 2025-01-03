@@ -1,9 +1,10 @@
 import type {Location, LocationDescriptor} from 'history';
 
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';

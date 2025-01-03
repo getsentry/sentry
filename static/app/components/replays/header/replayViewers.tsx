@@ -1,6 +1,7 @@
+import type {User} from 'sentry/types/user';
+
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Placeholder from 'sentry/components/placeholder';
-import type {User} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

@@ -1,6 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {css, type SerializedStyles} from '@emotion/react';
 
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+import type {MRI} from 'sentry/types/metrics';
+
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {
@@ -8,8 +11,6 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import type {MRI} from 'sentry/types/metrics';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';

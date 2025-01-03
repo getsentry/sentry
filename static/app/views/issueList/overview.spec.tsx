@@ -20,11 +20,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SavedSearchVisibility} from 'sentry/types/group';
+
 import StreamGroup from 'sentry/components/stream/group';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {SavedSearchVisibility} from 'sentry/types/group';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';

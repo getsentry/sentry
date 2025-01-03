@@ -1,7 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 import {resolveRoute} from './resolveRoute';
 

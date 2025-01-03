@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/react';
 
+import {CustomRepoType} from 'sentry/types/debugFiles';
+
 import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {
@@ -8,7 +10,6 @@ import {
   DEBUG_SOURCE_LAYOUTS,
 } from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
-import {CustomRepoType} from 'sentry/types/debugFiles';
 import {uniqueId} from 'sentry/utils/guid';
 
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {

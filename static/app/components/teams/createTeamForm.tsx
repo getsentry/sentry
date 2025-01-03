@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 type Payload = {

@@ -4,8 +4,9 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
+
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {WidgetType} from 'sentry/views/dashboards/types';

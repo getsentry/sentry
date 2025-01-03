@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';

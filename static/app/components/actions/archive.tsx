@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {GroupStatusResolution} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+
 import {getIgnoreActions} from 'sentry/components/actions/ignore';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -9,8 +12,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {GroupStatusResolution} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;

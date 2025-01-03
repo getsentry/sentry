@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';
 import {AVG_COLOR} from 'sentry/views/insights/colors';

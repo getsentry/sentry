@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {EntryType} from 'sentry/types/event';
+
 import {
   isSpanNode,
   isTraceErrorNode,

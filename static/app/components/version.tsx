@@ -1,11 +1,12 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Organization} from 'sentry/types/organization';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';

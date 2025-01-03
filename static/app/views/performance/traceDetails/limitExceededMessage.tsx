@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {Button} from 'sentry/components/button';
 import DiscoverFeature from 'sentry/components/discover/discoverFeature';
 import Link from 'sentry/components/links/link';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';

@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
-import {t} from 'sentry/locale';
 import {
   IssueAlertActionType,
   IssueAlertConditionType,
   type IssueAlertRule,
 } from 'sentry/types/alerts';
 import type {Member, Team} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {CHANGE_ALERT_PLACEHOLDERS_LABELS} from 'sentry/views/alerts/utils/constants';
 

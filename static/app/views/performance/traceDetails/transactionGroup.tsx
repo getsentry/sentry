@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import type {ScrollbarManagerChildrenProps} from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {withScrollbarManager} from 'sentry/components/events/interfaces/spans/scrollbarManager';
@@ -9,7 +11,6 @@ import type {
   SpanGeneratedBoundsType,
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
-import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError,
   TraceFullDetailed,

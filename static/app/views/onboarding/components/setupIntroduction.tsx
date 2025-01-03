@@ -2,8 +2,9 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
-import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
+
+import {space} from 'sentry/styles/space';
 
 import StepHeading from './stepHeading';
 

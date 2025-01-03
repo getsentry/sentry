@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
+import type {Project} from 'sentry/types/project';
+
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -12,7 +14,6 @@ import {t, tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProject from 'sentry/utils/withProject';

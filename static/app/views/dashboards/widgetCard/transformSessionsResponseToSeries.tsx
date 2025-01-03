@@ -1,7 +1,8 @@
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {SessionApiResponse} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';

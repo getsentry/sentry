@@ -5,6 +5,8 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {NoteType} from 'sentry/types/alerts';
+
 import {mentionStyle} from 'sentry/components/activity/note/mentionStyle';
 import type {
   CreateError,
@@ -15,7 +17,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';

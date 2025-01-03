@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {DeepPartial} from 'sentry/types/utils';
+
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 

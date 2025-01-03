@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types/project';
+
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';

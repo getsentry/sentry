@@ -7,6 +7,7 @@ import type {
   MetricsExtractionRule,
   MRI,
 } from 'sentry/types/metrics';
+
 import type {MetricTag} from 'sentry/utils/metrics/types';
 
 interface ContextType {

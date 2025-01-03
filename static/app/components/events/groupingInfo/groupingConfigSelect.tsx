@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {EventGroupingConfig} from 'sentry/types/event';
+
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingError from 'sentry/components/loadingError';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {EventGroupingConfig} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 

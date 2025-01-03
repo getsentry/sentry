@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 
+import type {BaseGroup} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
+
 import ArchiveActions from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {Button} from 'sentry/components/button';
@@ -9,8 +12,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {BaseGroup} from 'sentry/types/group';
-import {GroupStatus} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';

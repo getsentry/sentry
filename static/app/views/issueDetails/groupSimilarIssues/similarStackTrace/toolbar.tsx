@@ -1,6 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -9,8 +12,6 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {

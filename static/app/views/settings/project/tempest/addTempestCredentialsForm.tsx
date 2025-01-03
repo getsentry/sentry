@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 type Payload = {
   clientId: string;

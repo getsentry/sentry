@@ -1,19 +1,5 @@
 import * as qs from 'query-string';
 
-import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
-import {
-  IconAsana,
-  IconBitbucket,
-  IconCodecov,
-  IconGeneric,
-  IconGithub,
-  IconGitlab,
-  IconJira,
-  IconSentry,
-  IconVsts,
-} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 import type {
   AppOrProviderOrPlugin,
@@ -29,6 +15,21 @@ import type {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types/integrations';
+
+import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import {
+  IconAsana,
+  IconBitbucket,
+  IconCodecov,
+  IconGeneric,
+  IconGithub,
+  IconGitlab,
+  IconJira,
+  IconSentry,
+  IconVsts,
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {capitalize} from 'sentry/utils/string/capitalize';
 

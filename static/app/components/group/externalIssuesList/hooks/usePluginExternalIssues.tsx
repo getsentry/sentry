@@ -1,9 +1,10 @@
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openPluginActionModal} from 'sentry/components/group/pluginActions';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

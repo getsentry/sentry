@@ -1,8 +1,9 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+
+import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 
 const gettingStartedTasks: OnboardingTask[] = [
   {

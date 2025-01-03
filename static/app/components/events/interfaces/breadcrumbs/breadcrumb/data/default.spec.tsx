@@ -6,9 +6,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
 import {Default} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/default';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('Breadcrumb Data Default', function () {
   const project = ProjectFixture({

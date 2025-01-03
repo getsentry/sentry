@@ -2,9 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/indicator');
 

@@ -2,14 +2,15 @@ import {useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackActions from 'sentry/components/feedback/feedbackItem/feedbackActions';
 import FeedbackShortId from 'sentry/components/feedback/feedbackItem/feedbackShortId';
 import IssueTrackingSection from 'sentry/components/feedback/feedbackItem/issueTrackingSection';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

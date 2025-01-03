@@ -2,14 +2,15 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {Event} from 'sentry/types/event';
+import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';

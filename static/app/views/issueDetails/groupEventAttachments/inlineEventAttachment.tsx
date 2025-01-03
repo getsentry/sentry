@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
-import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import type {Event} from 'sentry/types/event';
 import type {IssueAttachment} from 'sentry/types/group';
+
+import {getInlineAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface InlineAttachmentsProps {

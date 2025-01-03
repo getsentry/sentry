@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';

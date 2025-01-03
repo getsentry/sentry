@@ -1,12 +1,13 @@
 import {useCallback, useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+
 import {
   type AutofixData,
   AutofixStatus,
   AutofixStepType,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
-import type {Event} from 'sentry/types/event';
 import {
   type ApiQueryKey,
   setApiQueryData,

@@ -2,13 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {DateTime} from 'sentry/components/dateTime';
-import FileSize from 'sentry/components/fileSize';
-import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   ImageCandidate,
   ImageCandidateInternalOk,
@@ -16,6 +9,14 @@ import type {
   ImageCandidateUnApplied,
 } from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, SymbolType} from 'sentry/types/debugImage';
+
+import {DateTime} from 'sentry/components/dateTime';
+import FileSize from 'sentry/components/fileSize';
+import TimeSince from 'sentry/components/timeSince';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import ProcessingItem from '../../../processing/item';

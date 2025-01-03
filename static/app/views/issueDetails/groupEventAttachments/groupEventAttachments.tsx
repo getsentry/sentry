@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {Group, IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingError from 'sentry/components/loadingError';
@@ -8,8 +11,6 @@ import Pagination from 'sentry/components/pagination';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, IssueAttachment} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useEventQuery} from 'sentry/views/issueDetails/streamline/eventSearch';

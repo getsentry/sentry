@@ -1,4 +1,5 @@
 import type {MRI} from 'sentry/types/metrics';
+
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanBarProps} from './spanBar';

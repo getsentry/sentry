@@ -1,6 +1,7 @@
 import {useContext} from 'react';
 
 import type {Project} from 'sentry/types/project';
+
 import getDisplayName from 'sentry/utils/getDisplayName';
 import {ProjectContext} from 'sentry/views/projects/projectContext';
 

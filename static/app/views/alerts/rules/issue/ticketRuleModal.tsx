@@ -1,5 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import type {Choices} from 'sentry/types/core';
+import type {IssueConfigField} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
@@ -7,10 +12,6 @@ import type {FormProps} from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
-import type {Choices} from 'sentry/types/core';
-import type {IssueConfigField} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];

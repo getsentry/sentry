@@ -2,14 +2,15 @@ import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
 import type {
   Organization,
   SessionApiResponse,
   SessionFieldWithOperation,
 } from 'sentry/types/organization';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import type {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];

@@ -1,9 +1,10 @@
-import type {Client, ResponseMeta} from 'sentry/api';
-import {getInterval} from 'sentry/components/charts/utils';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
 import type {MetricsApiResponse} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client, ResponseMeta} from 'sentry/api';
+import {getInterval} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
 
 export type DoReleaseHealthRequestOptions = {

@@ -2,6 +2,7 @@ import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptio
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 
 import {EntryType} from 'sentry/types/event';
+
 import {
   buildExceptionGroupTree,
   getExceptionGroupHeight,

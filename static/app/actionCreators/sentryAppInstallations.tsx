@@ -1,3 +1,5 @@
+import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -6,7 +8,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {SentryApp, SentryAppInstallation} from 'sentry/types/integrations';
 
 /**
  * Install a sentry application

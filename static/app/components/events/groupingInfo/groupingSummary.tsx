@@ -1,7 +1,8 @@
-import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+
+import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
+import {t} from 'sentry/locale';
 
 export function GroupInfoSummary({
   event,

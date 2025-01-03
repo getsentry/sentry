@@ -4,6 +4,11 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
+import type {Image} from 'sentry/types/debugImage';
+import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {Button} from 'sentry/components/button';
 import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,10 +16,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Image} from 'sentry/types/debugImage';
-import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
 import SearchBarAction from '../../searchBarAction';

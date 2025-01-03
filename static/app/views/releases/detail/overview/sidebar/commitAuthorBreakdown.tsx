@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {Commit} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
+
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
@@ -8,8 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit} from 'sentry/types/integrations';
-import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';

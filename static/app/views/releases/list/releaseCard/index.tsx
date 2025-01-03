@@ -4,6 +4,10 @@ import color from 'color';
 import type {Location} from 'history';
 import partition from 'lodash/partition';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
@@ -16,9 +20,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import type {Release} from 'sentry/types/release';
 
 import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from '../releasesRequest';

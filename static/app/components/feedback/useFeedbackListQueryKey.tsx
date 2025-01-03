@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import type {Organization} from 'sentry/types/organization';
+
+import decodeMailbox from 'sentry/components/feedback/decodeMailbox';
 import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';

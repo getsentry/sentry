@@ -5,9 +5,10 @@ import {TracePerformanceIssueFixture} from 'sentry-fixture/tracePerformanceIssue
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {EntryType} from 'sentry/types/event';
+
 import TraceErrorList from 'sentry/components/events/interfaces/spans/traceErrorList';
 import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
-import {EntryType} from 'sentry/types/event';
 
 describe('TraceErrorList', () => {
   it('aggregates errors by span and level', () => {

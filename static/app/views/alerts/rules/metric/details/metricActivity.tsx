@@ -2,14 +2,15 @@ import {Fragment, type ReactElement} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {ActivationConditionType} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+
 import Duration from 'sentry/components/duration';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {StatusIndicator} from 'sentry/components/statusIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ActivationConditionType} from 'sentry/types/alerts';
-import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {capitalize} from 'sentry/utils/string/capitalize';

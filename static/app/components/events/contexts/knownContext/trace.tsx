@@ -1,11 +1,12 @@
 import type {Location} from 'history';
 
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

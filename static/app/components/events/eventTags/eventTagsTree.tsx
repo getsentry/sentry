@@ -1,6 +1,9 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event, EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventTagsTreeRow, {
   type EventTagsTreeRowProps,
@@ -9,8 +12,6 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 
+import type {Authenticator} from 'sentry/types/auth';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -7,7 +9,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types/auth';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

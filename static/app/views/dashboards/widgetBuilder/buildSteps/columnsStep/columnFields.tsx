@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetType} from 'sentry/views/dashboards/types';

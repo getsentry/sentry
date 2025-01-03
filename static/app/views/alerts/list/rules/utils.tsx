@@ -1,4 +1,5 @@
 import type {Actor} from 'sentry/types/core';
+
 import {
   type CombinedAlerts,
   CombinedAlertType,

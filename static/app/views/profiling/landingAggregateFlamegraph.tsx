@@ -1,6 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {DeepPartial} from 'sentry/types/utils';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
@@ -22,9 +26,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy, IconGithub, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {DeepPartial} from 'sentry/types/utils';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,

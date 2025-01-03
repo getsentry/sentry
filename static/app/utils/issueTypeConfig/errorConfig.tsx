@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Project} from 'sentry/types/project';
+
+import {t, tct} from 'sentry/locale';
 import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,

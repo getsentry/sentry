@@ -3,6 +3,7 @@ import * as qs from 'query-string';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {TraceShape, type TraceTree} from './traceModels/traceTree';

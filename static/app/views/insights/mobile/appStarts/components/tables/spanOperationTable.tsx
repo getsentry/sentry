@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import * as qs from 'query-string';
 
+import type {NewQuery} from 'sentry/types/organization';
+
 import {getInterval} from 'sentry/components/charts/utils';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -9,7 +11,6 @@ import Link from 'sentry/components/links/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';

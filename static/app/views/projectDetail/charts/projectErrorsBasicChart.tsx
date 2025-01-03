@@ -1,6 +1,9 @@
 import type {BarSeriesOption} from 'echarts';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import BaseChart from 'sentry/components/charts/baseChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -8,8 +11,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 

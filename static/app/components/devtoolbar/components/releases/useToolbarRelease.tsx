@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
 import type {Release} from 'sentry/types/release';
+
+import type {ApiEndpointQueryKey} from 'sentry/components/devtoolbar/types';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import useFetchApiData from '../../hooks/useFetchApiData';

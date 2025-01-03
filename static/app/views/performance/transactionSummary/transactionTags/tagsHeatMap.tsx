@@ -10,6 +10,10 @@ import type {VisualMapComponentOption} from 'echarts';
 import type {Location} from 'history';
 import memoize from 'lodash/memoize';
 
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import HeatMapChart from 'sentry/components/charts/heatMapChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -24,9 +28,6 @@ import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles'
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import type EventView from 'sentry/utils/discover/eventView';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

@@ -1,6 +1,8 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import Alert from 'sentry/components/alert';
 import {useDismissable} from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
@@ -8,7 +10,6 @@ import {feedbackClient} from 'sentry/components/featureFeedback/feedbackModal';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import type {Incident} from 'sentry/views/alerts/types';

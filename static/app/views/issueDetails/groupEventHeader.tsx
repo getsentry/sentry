@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import {DataSection} from 'sentry/components/events/styles';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+
+import {DataSection} from 'sentry/components/events/styles';
+import {space} from 'sentry/styles/space';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 type GroupEventHeaderProps = {

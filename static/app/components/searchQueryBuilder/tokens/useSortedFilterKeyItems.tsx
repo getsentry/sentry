@@ -1,6 +1,8 @@
 import {type ReactNode, useMemo} from 'react';
 import type Fuse from 'fuse.js';
 
+import type {Tag} from 'sentry/types/group';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {
   KeySectionItem,
@@ -12,7 +14,6 @@ import {
   createRawSearchItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
-import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {FieldKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';

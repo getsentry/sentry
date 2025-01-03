@@ -3,6 +3,8 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
+import type {TagCollection} from 'sentry/types/group';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -14,7 +16,6 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {classifyTagKey, prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';

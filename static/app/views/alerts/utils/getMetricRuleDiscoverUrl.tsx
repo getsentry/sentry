@@ -1,5 +1,6 @@
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';

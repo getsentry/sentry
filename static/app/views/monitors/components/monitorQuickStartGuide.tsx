@@ -2,10 +2,11 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
+import type {PlatformKey, ProjectKey} from 'sentry/types/project';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {QuickStartProps} from 'sentry/views/monitors/components/quickStartEntries';

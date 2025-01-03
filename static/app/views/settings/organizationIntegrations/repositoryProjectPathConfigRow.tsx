@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -9,8 +12,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
 
 type Props = {
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;

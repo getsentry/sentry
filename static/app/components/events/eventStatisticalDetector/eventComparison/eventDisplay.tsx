@@ -1,6 +1,9 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
@@ -21,8 +24,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';

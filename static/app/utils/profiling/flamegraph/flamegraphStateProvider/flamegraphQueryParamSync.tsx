@@ -3,6 +3,7 @@ import type {Query} from 'history';
 import type * as qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
+
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';

@@ -3,9 +3,6 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
-import type {Client} from 'sentry/api';
-import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PageFilters} from 'sentry/types/core';
 import type {
   EChartDataZoomHandler,
@@ -13,6 +10,10 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';

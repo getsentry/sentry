@@ -2,6 +2,8 @@ import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
+import type {SelectValue} from 'sentry/types/core';
+
 import Alert from 'sentry/components/alert';
 import AlertLink from 'sentry/components/alertLink';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -22,7 +24,6 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';

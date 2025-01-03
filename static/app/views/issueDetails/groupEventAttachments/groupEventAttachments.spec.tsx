@@ -14,11 +14,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {Project} from 'sentry/types/project';
+
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
 
 import GroupEventAttachments from './groupEventAttachments';
 

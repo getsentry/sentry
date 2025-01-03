@@ -2,12 +2,13 @@ import {Fragment, useRef, useState} from 'react';
 import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
+import type {IgnoredStatusDetails} from 'sentry/types/group';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type Props = ModalRenderProps & {
   onSelected: (details: IgnoredStatusDetails) => void;

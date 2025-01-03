@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

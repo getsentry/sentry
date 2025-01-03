@@ -5,8 +5,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
+import {Breadcrumbs} from 'sentry/components/events/interfaces/breadcrumbs';
 import useProjects from 'sentry/utils/useProjects';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');

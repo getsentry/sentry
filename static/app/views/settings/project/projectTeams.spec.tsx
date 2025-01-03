@@ -9,10 +9,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import ModalStore from 'sentry/stores/modalStore';
-import TeamStore from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import ModalStore from 'sentry/stores/modalStore';
+import TeamStore from 'sentry/stores/teamStore';
 import ProjectTeams from 'sentry/views/settings/project/projectTeams';
 
 describe('ProjectTeams', function () {

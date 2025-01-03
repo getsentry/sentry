@@ -1,5 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('ConfigStore', () => {
   let configState: Config;

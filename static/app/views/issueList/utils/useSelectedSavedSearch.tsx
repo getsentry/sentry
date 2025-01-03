@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import {t} from 'sentry/locale';
 import type {SavedSearch} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

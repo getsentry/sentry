@@ -3,6 +3,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {
+  Group,
+  GroupReprocessing,
+  InboxDetails,
+  PriorityLevel,
+} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -31,16 +42,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {TimeseriesValue} from 'sentry/types/core';
-import type {
-  Group,
-  GroupReprocessing,
-  InboxDetails,
-  PriorityLevel,
-} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
-import type {NewQuery, Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';

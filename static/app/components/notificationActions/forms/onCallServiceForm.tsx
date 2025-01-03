@@ -1,6 +1,11 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  AvailableNotificationAction,
+  NotificationAction,
+} from 'sentry/types/notificationActions';
+
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -8,10 +13,6 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  AvailableNotificationAction,
-  NotificationAction,
-} from 'sentry/types/notificationActions';
 
 type OnCallServiceFormProps = {
   /**

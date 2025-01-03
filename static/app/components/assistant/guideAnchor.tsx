@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {
   closeGuide,
   dismissGuide,
@@ -18,7 +20,6 @@ import {t, tct} from 'sentry/locale';
 import type {GuideStoreState} from 'sentry/stores/guideStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   target: string;

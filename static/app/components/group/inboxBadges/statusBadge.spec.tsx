@@ -1,7 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+
+import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 
 describe('GroupStatusBadge', () => {
   it('should display archived until escalating as a tooltip', async () => {

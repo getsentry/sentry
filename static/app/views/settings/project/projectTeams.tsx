@@ -1,3 +1,6 @@
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {
   useAddTeamToProject,
@@ -10,8 +13,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';

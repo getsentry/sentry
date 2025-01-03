@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import Alert from 'sentry/components/alert';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -7,7 +9,6 @@ import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetc
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   crashReportId: string;

@@ -13,8 +13,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import MemberListStore from 'sentry/stores/memberListStore';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
+
+import MemberListStore from 'sentry/stores/memberListStore';
 
 import GroupSidebar from './groupSidebar';
 

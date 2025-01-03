@@ -8,6 +8,9 @@ import {
 } from 'react';
 import styled from '@emotion/styled';
 
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {Project} from 'sentry/types/project';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {Button, LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -15,8 +18,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconInfo, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI} from 'sentry/types/metrics';
-import type {Project} from 'sentry/types/project';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {

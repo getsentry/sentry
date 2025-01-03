@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {
   useDeleteEventAttachmentOptimistic,
   useFetchEventAttachments,
@@ -11,9 +15,6 @@ import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group, IssueAttachment} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InlineEventAttachment} from 'sentry/views/issueDetails/groupEventAttachments/inlineEventAttachment';

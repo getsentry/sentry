@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

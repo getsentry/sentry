@@ -1,7 +1,8 @@
+import type {DataCategoryInfo} from 'sentry/types/core';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {DataCategoryInfo} from 'sentry/types/core';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 

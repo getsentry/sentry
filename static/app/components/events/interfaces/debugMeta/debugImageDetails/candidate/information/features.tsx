@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Tag from 'sentry/components/badge/tag';
 import type {CandidateDownload} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageFeature} from 'sentry/types/debugImage';
+
+import Tag from 'sentry/components/badge/tag';
 
 import {getImageFeatureDescription} from '../utils';
 

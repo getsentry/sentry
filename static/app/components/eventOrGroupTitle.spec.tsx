@@ -2,10 +2,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {BaseGroup} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+
+import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 
 describe('EventOrGroupTitle', function () {
   const data = {

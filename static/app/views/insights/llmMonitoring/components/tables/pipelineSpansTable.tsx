@@ -1,12 +1,13 @@
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';

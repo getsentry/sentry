@@ -1,7 +1,8 @@
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

@@ -1,6 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {EventAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import ImageVisualization from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -9,9 +13,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventAttachment} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 type Props = {
   organization: Organization;

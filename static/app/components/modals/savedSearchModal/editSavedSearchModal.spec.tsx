@@ -3,6 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
+
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -10,7 +12,6 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {SavedSearchType, SavedSearchVisibility} from 'sentry/types/group';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('EditSavedSearchModal', function () {

@@ -1,9 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 

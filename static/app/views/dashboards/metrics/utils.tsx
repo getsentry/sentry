@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {
   getDefaultAggregation,
   isVirtualMetric,

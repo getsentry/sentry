@@ -1,6 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {MonitorType} from 'sentry/types/alerts';
+import type {Actor} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
+
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
@@ -21,9 +25,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MonitorType} from 'sentry/types/alerts';
-import type {Actor} from 'sentry/types/core';
-import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
 import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';

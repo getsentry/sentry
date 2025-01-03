@@ -1,13 +1,14 @@
 import {Component} from 'react';
 import type {Location} from 'history';
 
-import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
-import ToolBox from 'sentry/components/charts/components/toolBox';
 import type {
   EChartChartReadyHandler,
   EChartDataZoomHandler,
   ECharts,
 } from 'sentry/types/echarts';
+
+import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
+import ToolBox from 'sentry/components/charts/components/toolBox';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 type RenderProps = {

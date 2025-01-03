@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {LinkButton} from 'sentry/components/button';
 import PageAlertBar from 'sentry/components/pageAlertBar';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 export default function FinishSetupAlert({

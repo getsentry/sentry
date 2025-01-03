@@ -1,6 +1,7 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
+
 import {appendTagCondition} from 'sentry/utils/queryString';
 
 export function intcomma(x: number): string {

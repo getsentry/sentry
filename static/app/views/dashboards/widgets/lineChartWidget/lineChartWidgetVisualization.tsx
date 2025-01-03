@@ -7,12 +7,13 @@ import type {
 } from 'echarts/types/dist/shared';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 
+import type {Series} from 'sentry/types/echarts';
+
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered} from 'sentry/components/charts/utils';
-import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -2,6 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import type {Actor} from 'sentry/types/core';
+import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
@@ -23,10 +28,6 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
-import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
 import {useUser} from 'sentry/utils/useUser';
 

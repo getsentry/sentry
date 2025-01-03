@@ -1,7 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
+
+import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 
 export default function useSentryAppComponentsStore({
   componentType,

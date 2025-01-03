@@ -1,5 +1,11 @@
 import type {Location} from 'history';
 
+import type {CustomRepoType} from 'sentry/types/debugFiles';
+import type {Event} from 'sentry/types/event';
+import type {Group, IssueOwnership} from 'sentry/types/group';
+import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {AddToDashboardModalProps as CreateDashboardFromMetricsModalProps} from 'sentry/components/modals/createDashboardFromMetricsModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
@@ -14,11 +20,6 @@ import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBui
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {CustomRepoType} from 'sentry/types/debugFiles';
-import type {Event} from 'sentry/types/event';
-import type {Group, IssueOwnership} from 'sentry/types/group';
-import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
 export type ModalOptions = ModalTypes['options'];

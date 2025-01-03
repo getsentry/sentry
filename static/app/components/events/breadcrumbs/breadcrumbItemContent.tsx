@@ -1,11 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
-import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
   BreadcrumbType,
@@ -14,6 +9,12 @@ import {
   type BreadcrumbTypeNavigation,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
+
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import Timeline from 'sentry/components/timeline';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';

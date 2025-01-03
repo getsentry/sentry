@@ -2,10 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {Config} from 'sentry/types/system';
+
 import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {Config} from 'sentry/types/system';
 
 describe('SwitchOrganization', function () {
   let configstate: Config;

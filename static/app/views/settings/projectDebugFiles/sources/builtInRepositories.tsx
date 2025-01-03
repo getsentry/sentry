@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
@@ -9,9 +13,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 const SECTION_TITLE = t('Built-in Repositories');
 

@@ -7,9 +7,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import Relocation from 'sentry/views/relocation/relocation';
 
 jest.mock('sentry/actionCreators/indicator');

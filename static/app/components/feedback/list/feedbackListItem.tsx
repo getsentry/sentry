@@ -1,6 +1,8 @@
 import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
@@ -14,7 +16,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';

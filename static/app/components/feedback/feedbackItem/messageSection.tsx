@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import Tag from 'sentry/components/badge/tag';
 import {Flex} from 'sentry/components/container/flex';
@@ -13,7 +15,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 

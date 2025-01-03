@@ -1,5 +1,6 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
 
 export interface LaravelContext {
   // Any custom keys users may set

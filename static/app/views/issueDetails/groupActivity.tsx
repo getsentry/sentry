@@ -1,5 +1,14 @@
 import {Fragment, useCallback, useMemo} from 'react';
 
+import type {NoteType} from 'sentry/types/alerts';
+import type {
+  Group,
+  GroupActivity as GroupActivityType,
+  GroupActivityNote,
+  GroupActivityReprocess,
+} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
   TContext,
@@ -14,14 +23,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {NoteType} from 'sentry/types/alerts';
-import type {
-  Group,
-  GroupActivity as GroupActivityType,
-  GroupActivityNote,
-  GroupActivityReprocess,
-} from 'sentry/types/group';
-import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

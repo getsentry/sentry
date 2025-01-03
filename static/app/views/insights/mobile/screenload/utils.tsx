@@ -1,8 +1,9 @@
 import Color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
+
+import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {YAxis} from 'sentry/views/insights/mobile/screenload/constants';

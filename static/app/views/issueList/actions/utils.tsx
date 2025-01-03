@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
+import type {IgnoredStatusDetails} from 'sentry/types/group';
+
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct, tn} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import commonTheme from 'sentry/utils/theme';
 

@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
+
 import type {ImportDashboard, ImportWidget} from 'sentry/utils/metrics/dashboardImport';
 import {parseDashboard, WidgetParser} from 'sentry/utils/metrics/dashboardImport';
 import {parseMRI} from 'sentry/utils/metrics/mri';

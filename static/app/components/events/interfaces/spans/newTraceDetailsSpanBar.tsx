@@ -5,6 +5,9 @@ import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
 
+import type {EventTransaction} from 'sentry/types/event';
+import {EventOrGroupType} from 'sentry/types/event';
+
 import Count from 'sentry/components/count';
 import {
   FREQUENCY_BOX_WIDTH,
@@ -47,8 +50,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import {EventOrGroupType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';

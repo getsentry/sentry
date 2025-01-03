@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import localStorage from 'sentry/utils/localStorage';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';

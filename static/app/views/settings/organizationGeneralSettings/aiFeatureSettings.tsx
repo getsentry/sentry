@@ -1,6 +1,7 @@
+import type {Organization} from 'sentry/types/organization';
+
 import type {FieldObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {getRegionDataFromOrganization} from 'sentry/utils/regions';
 
 export const makeHideAiFeaturesField = (organization: Organization): FieldObject => {

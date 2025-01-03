@@ -1,5 +1,6 @@
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
+
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {getDateFilters} from 'sentry/views/insights/common/utils/getDateFilters';
 
 export const getDateConditions = (

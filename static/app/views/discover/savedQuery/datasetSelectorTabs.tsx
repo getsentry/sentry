@@ -1,6 +1,7 @@
+import type {SavedQuery} from 'sentry/types/organization';
+
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import type {SavedQuery} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   ERROR_ONLY_FIELDS,

@@ -1,4 +1,5 @@
 import type {MetricAggregation} from 'sentry/types/metrics';
+
 import {getDefaultAggregation, isMetricsAggregation} from 'sentry/utils/metrics';
 import {DEFAULT_SORT_STATE, NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {isMRI} from 'sentry/utils/metrics/mri';

@@ -1,11 +1,12 @@
 import type {RefObject} from 'react';
 import moment from 'moment-timezone';
 
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+
 import {
   SAMPLES_X_AXIS_ID,
   SAMPLES_Y_AXIS_ID,
 } from 'sentry/components/metrics/chart/useMetricChartSamples';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 export type ValueRect = {
   xMax: number;

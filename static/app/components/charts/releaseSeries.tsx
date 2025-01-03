@@ -6,14 +6,15 @@ import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {Client, ResponseMeta} from 'sentry/api';
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import type {Client, ResponseMeta} from 'sentry/api';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';

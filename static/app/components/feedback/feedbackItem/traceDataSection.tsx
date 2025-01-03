@@ -1,10 +1,11 @@
 import {useEffect} from 'react';
 
+import type {Event} from 'sentry/types/event';
+
 import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TraceDataSection as IssuesTraceDataSection} from 'sentry/views/issueDetails/traceDataSection';

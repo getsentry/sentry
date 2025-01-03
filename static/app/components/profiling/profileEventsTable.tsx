@@ -1,6 +1,9 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import type {GridColumnOrder, GridColumnSortBy} from 'sentry/components/gridEditable';
@@ -11,8 +14,6 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';

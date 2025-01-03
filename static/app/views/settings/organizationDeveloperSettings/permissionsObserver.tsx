@@ -1,12 +1,13 @@
 import {Component, Fragment} from 'react';
 
+import type {Scope} from 'sentry/types/core';
+import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
+
 import {Alert} from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import type {Scope} from 'sentry/types/core';
-import type {Permissions, WebhookEvent} from 'sentry/types/integrations';
 import {
   comparePermissionLevels,
   toResourcePermissions,

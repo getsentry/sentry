@@ -16,9 +16,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import type {Member} from 'sentry/types/organization';
+
 import {updateMember} from 'sentry/actionCreators/members';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Member} from 'sentry/types/organization';
 
 import OrganizationMemberDetail from './organizationMemberDetail';
 

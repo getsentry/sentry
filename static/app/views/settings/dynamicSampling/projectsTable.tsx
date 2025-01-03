@@ -1,6 +1,8 @@
 import {Fragment, memo, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Project} from 'sentry/types/project';
+
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -9,7 +11,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import useOrganization from 'sentry/utils/useOrganization';

@@ -1,9 +1,10 @@
 import {createContext, Fragment, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {OrgAuthToken} from 'sentry/types/user';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

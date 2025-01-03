@@ -10,11 +10,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {EventAttachment} from 'sentry/types/group';
+
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
   const user = {

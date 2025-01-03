@@ -2,6 +2,10 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import type {Actor} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Tag from 'sentry/components/badge/tag';
 import Duration from 'sentry/components/duration';
@@ -12,9 +16,6 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Incident} from 'sentry/views/alerts/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';

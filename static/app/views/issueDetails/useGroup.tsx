@@ -1,4 +1,5 @@
 import type {Group} from 'sentry/types/group';
+
 import {
   type ApiQueryKey,
   useApiQuery,

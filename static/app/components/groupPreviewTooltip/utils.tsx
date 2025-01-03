@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 
 import type {Event} from 'sentry/types/event';
+
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

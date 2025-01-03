@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/react';
 
-import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import ConfigStore from 'sentry/stores/configStore';
 import type {
   EntryException,
   EntryRequest,
@@ -19,6 +17,9 @@ import type {
   GroupTombstoneHelper,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
+
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import ConfigStore from 'sentry/stores/configStore';
 import {defined} from 'sentry/utils';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import {uniq} from 'sentry/utils/array/uniq';

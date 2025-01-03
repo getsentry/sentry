@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
@@ -10,8 +13,6 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
-import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

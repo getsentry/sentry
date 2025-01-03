@@ -1,8 +1,9 @@
+import type {User} from 'sentry/types/user';
+
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
 type Props = {

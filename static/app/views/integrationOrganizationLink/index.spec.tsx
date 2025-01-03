@@ -7,8 +7,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+
+import ConfigStore from 'sentry/stores/configStore';
 import {generateOrgSlugUrl} from 'sentry/utils';
 import IntegrationOrganizationLink from 'sentry/views/integrationOrganizationLink';
 

@@ -7,6 +7,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button, LinkButton} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
@@ -17,7 +19,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Authenticator, AuthenticatorDevice} from 'sentry/types/auth';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';

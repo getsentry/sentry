@@ -2,11 +2,12 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import type {DeepPartial} from 'sentry/types/utils';
+
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ContinuousFlamegraph} from 'sentry/components/profiling/flamegraph/continuousFlamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {DEFAULT_FLAMEGRAPH_STATE} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';

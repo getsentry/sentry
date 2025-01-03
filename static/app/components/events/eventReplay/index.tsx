@@ -1,10 +1,11 @@
 import {lazy} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import LazyLoad from 'sentry/components/lazyLoad';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import useEventCanShowReplayUpsell from 'sentry/utils/event/useEventCanShowReplayUpsell';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';

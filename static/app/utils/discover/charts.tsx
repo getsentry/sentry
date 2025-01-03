@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/react';
 import type {LegendComponentOption} from 'echarts';
 
-import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';

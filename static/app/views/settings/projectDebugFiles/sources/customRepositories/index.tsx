@@ -2,6 +2,11 @@ import {useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
@@ -17,10 +22,6 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 
 import Repository from './repository';

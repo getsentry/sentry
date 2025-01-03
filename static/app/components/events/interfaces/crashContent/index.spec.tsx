@@ -3,9 +3,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import {StackType, StackView} from 'sentry/types/stacktrace';
+
 import {CrashContent} from 'sentry/components/events/interfaces/crashContent';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
-import {StackType, StackView} from 'sentry/types/stacktrace';
 
 function ExceptionWithMeta(params = {}) {
   return {

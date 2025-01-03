@@ -1,4 +1,5 @@
 import type {Measurement} from 'sentry/types/event';
+
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {
   MOBILE_VITAL_DETAILS,

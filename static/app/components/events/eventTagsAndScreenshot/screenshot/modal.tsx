@@ -3,6 +3,9 @@ import {Fragment, useCallback, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {EventAttachment} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -12,8 +15,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import KeyValueData from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventAttachment} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {useHotkeys} from 'sentry/utils/useHotkeys';

@@ -1,8 +1,9 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
 import type {Integration} from 'sentry/types/integrations';
+
+import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
 
 type Props = {
   integration: Integration;

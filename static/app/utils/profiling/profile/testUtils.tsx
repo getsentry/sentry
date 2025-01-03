@@ -1,6 +1,7 @@
 import merge from 'lodash/merge';
 
 import type {DeepPartial} from 'sentry/types/utils';
+
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 

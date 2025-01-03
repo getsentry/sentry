@@ -3,6 +3,19 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
+import {
+  type Organization,
+  type SessionApiResponse,
+  SessionFieldWithOperation,
+  SessionStatus,
+} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {
+  ReleaseComparisonChartType,
+  type ReleaseProject,
+  type ReleaseWithHealth,
+} from 'sentry/types/release';
+
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -17,18 +30,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type Organization,
-  type SessionApiResponse,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
-import {
-  ReleaseComparisonChartType,
-  type ReleaseProject,
-  type ReleaseWithHealth,
-} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

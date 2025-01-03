@@ -8,6 +8,14 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -23,13 +31,6 @@ import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {
-  EChartDataZoomHandler,
-  EChartEventHandler,
-  ReactEchartsRef,
-} from 'sentry/types/echarts';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
   axisLabelFormatter,

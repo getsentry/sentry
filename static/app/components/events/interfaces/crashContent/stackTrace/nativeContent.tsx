@@ -1,13 +1,14 @@
 import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
-import Panel from 'sentry/components/panels/panel';
-import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
+import Panel from 'sentry/components/panels/panel';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 import NativeFrame from '../../nativeFrame';

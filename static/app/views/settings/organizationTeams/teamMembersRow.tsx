@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -7,8 +10,6 @@ import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface Props {

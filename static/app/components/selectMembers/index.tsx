@@ -2,14 +2,15 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import type {Member, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import type {Client} from 'sentry/api';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import withApi from 'sentry/utils/withApi';
 
 const getSearchKeyForUser = (user: User) =>

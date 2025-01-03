@@ -3,10 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import type {

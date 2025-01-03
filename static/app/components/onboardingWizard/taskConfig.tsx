@@ -1,6 +1,15 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {
+  OnboardingSupplementComponentProps,
+  OnboardingTask,
+  OnboardingTaskDescriptor,
+} from 'sentry/types/onboarding';
+import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
@@ -18,14 +27,6 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {
-  OnboardingSupplementComponentProps,
-  OnboardingTask,
-  OnboardingTaskDescriptor,
-} from 'sentry/types/onboarding';
-import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

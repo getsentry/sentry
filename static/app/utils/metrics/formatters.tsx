@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {MetricType} from 'sentry/types/metrics';
+
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';

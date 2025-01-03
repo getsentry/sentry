@@ -9,12 +9,13 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import type {Event} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Event} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();

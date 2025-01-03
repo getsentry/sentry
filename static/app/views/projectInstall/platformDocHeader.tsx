@@ -1,6 +1,8 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Project} from 'sentry/types/project';
+
 import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -10,7 +12,6 @@ import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

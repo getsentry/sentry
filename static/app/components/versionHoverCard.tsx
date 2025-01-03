@@ -1,6 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {Actor} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import AvatarList from 'sentry/components/avatar/avatarList';
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -14,9 +18,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import {useDeploys} from 'sentry/utils/useDeploys';

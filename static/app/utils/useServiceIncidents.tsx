@@ -1,6 +1,7 @@
+import type {StatusPageComponent, StatuspageIncident} from 'sentry/types/system';
+
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {StatusPageComponent, StatuspageIncident} from 'sentry/types/system';
 import {useQuery} from 'sentry/utils/queryClient';
 
 interface UseServiceIncidentsOptions {

@@ -3,6 +3,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import uniqBy from 'lodash/uniqBy';
 
+import type {Actor} from 'sentry/types/core';
+import type {Group, SuggestedOwner, SuggestedOwnerReason} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
@@ -19,10 +24,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {Group, SuggestedOwner, SuggestedOwnerReason} from 'sentry/types/group';
-import type {Organization, Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';

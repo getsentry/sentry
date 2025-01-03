@@ -1,11 +1,12 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {NewQuery} from 'sentry/types/organization';
+
 import Alert from 'sentry/components/alert';
 import SearchBar from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

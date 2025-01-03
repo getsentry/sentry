@@ -1,4 +1,5 @@
 import type {Event} from 'sentry/types/event';
+
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';

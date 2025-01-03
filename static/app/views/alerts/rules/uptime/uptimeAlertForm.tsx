@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
@@ -23,8 +26,6 @@ import Panel from 'sentry/components/panels/panel';
 import Text from 'sentry/components/text';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import getDuration from 'sentry/utils/duration/getDuration';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';

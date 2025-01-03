@@ -3,6 +3,7 @@ import type {
   SavedSearchType,
   SavedSearchVisibility,
 } from 'sentry/types/group';
+
 import type {UseMutationOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';

@@ -1,4 +1,5 @@
 import type {EventTransaction} from 'sentry/types/event';
+
 import type {
   TraceFullDetailed,
   TraceSplitResults,

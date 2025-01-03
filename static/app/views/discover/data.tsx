@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
+
+import {t} from 'sentry/locale';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 

@@ -1,13 +1,14 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {EventsStatsData} from 'sentry/types/organization';
+
 import type {FunctionRegressionPercentileData} from 'sentry/chartcuterie/performance';
 import type {ChartType} from 'sentry/chartcuterie/types';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
 import getBreakpointChartOptionsFromData from 'sentry/components/events/eventStatisticalDetector/breakpointChartOptions';
-import type {PageFilters} from 'sentry/types/core';
-import type {EventsStatsData} from 'sentry/types/organization';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 interface ChartProps {

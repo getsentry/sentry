@@ -5,6 +5,9 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
+import type {ParsedOwnershipRule} from 'sentry/types/group';
+import type {CodeOwner} from 'sentry/types/integrations';
+
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
@@ -16,8 +19,6 @@ import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {ParsedOwnershipRule} from 'sentry/types/group';
-import type {CodeOwner} from 'sentry/types/integrations';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';

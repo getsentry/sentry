@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStatus} from 'sentry/types/group';
+
 import type {EventData} from 'sentry/utils/discover/eventView';
 
 import IssueContext from './issueContext';

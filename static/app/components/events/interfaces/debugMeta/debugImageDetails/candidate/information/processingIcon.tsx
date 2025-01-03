@@ -1,9 +1,10 @@
 import * as Sentry from '@sentry/react';
 
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {CandidateProcessingInfo} from 'sentry/types/debugImage';
 import {CandidateProcessingStatus} from 'sentry/types/debugImage';
+
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 
 type Props = {
   processingInfo: CandidateProcessingInfo;

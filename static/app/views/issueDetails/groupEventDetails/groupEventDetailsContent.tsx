@@ -2,6 +2,12 @@ import {Fragment, lazy, useMemo, useRef} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
@@ -58,11 +64,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Entry, EntryException, Event, EventTransaction} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';

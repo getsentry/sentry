@@ -1,6 +1,7 @@
-import {t} from 'sentry/locale';
 import type {CommitAuthor} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
+
+import {t} from 'sentry/locale';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 

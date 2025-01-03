@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
+
 import {indexMembersByProject} from 'sentry/actionCreators/members';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupListHeader from 'sentry/components/issues/groupListHeader';
@@ -12,8 +15,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group} from 'sentry/types/group';
-import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;

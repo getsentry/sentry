@@ -1,12 +1,13 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Scope} from 'sentry/types/core';
+
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
-import type {Scope} from 'sentry/types/core';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import type {FieldObject, JsonFormObject} from './types';

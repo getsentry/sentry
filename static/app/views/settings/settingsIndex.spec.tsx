@@ -3,9 +3,10 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Organization} from 'sentry/types/organization';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
 
 import {BreadcrumbProvider} from './components/settingsBreadcrumb/context';

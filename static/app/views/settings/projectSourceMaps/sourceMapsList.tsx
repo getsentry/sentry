@@ -1,6 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {KeyValueListData} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {SourceMapsArchive} from 'sentry/types/release';
+import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
+
 import Access from 'sentry/components/acl/access';
 import {Button, type ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -18,12 +25,6 @@ import Version from 'sentry/components/version';
 import {IconDelete, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListData} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {SourceMapsArchive} from 'sentry/types/release';
-import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';

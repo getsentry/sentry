@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
 
-import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
+
+import {getHasTag} from 'sentry/components/events/searchBar';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';

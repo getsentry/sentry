@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
-import * as Layout from 'sentry/components/layouts/thirds';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+
+import * as Layout from 'sentry/components/layouts/thirds';
+import {space} from 'sentry/styles/space';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';

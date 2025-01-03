@@ -2,11 +2,12 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
-import type {FieldValue} from 'sentry/components/forms/types';
-import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+
+import type {FieldValue} from 'sentry/components/forms/types';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {
   aggregateFunctionOutputType,

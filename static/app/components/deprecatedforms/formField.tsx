@@ -2,10 +2,11 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import type {Meta} from 'sentry/types/group';
+
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import type {Meta} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
 type Value = string | number | boolean;

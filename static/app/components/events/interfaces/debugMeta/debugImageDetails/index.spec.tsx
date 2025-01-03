@@ -5,9 +5,10 @@ import {ImageFixture} from 'sentry-fixture/image';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ImageStatus} from 'sentry/types/debugImage';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
-import {ImageStatus} from 'sentry/types/debugImage';
 
 describe('Debug Meta - Image Details', function () {
   const image = ImageFixture();

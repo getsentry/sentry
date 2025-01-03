@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
 import AddTempestCredentialsForm from 'sentry/views/settings/project/tempest/addTempestCredentialsForm';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
 

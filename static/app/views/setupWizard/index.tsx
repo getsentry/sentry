@@ -2,6 +2,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -16,8 +19,6 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,

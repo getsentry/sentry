@@ -7,6 +7,9 @@ import type {
   TooltipComponentOption,
 } from 'echarts';
 
+import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
+
 import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
@@ -19,8 +22,6 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 

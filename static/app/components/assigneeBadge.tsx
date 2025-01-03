@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Actor} from 'sentry/types/core';
+import type {SuggestedOwnerReason} from 'sentry/types/group';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import Tag from 'sentry/components/badge/tag';
 import {Chevron} from 'sentry/components/chevron';
@@ -10,8 +13,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 type AssigneeBadgeProps = {

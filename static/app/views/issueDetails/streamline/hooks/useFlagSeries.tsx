@@ -1,9 +1,10 @@
 import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
+import type {Event} from 'sentry/types/event';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

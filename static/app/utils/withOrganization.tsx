@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 import useOrganization from './useOrganization';

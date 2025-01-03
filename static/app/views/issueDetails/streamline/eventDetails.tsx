@@ -2,11 +2,12 @@ import {useLayoutEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import useMedia from 'sentry/utils/useMedia';
 import {

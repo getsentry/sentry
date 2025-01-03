@@ -1,6 +1,7 @@
 import moment from 'moment-timezone';
 
 import type {Series} from 'sentry/types/echarts';
+
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   type DiscoverQueryProps,

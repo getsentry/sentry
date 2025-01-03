@@ -1,9 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
 import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
-import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 const options: NonNullable<
   React.ComponentProps<typeof SearchBarAction>['filterOptions']

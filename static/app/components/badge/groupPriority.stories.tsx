@@ -1,12 +1,13 @@
 import {useState} from 'react';
 
+import {PriorityLevel} from 'sentry/types/group';
+
 import {
   GroupPriorityBadge,
   GroupPriorityDropdown,
 } from 'sentry/components/badge/groupPriority';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import storyBook from 'sentry/stories/storyBook';
-import {PriorityLevel} from 'sentry/types/group';
 
 const PRIORITIES = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
 

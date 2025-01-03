@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Actor} from 'sentry/types/core';
+import type {SuggestedOwnerReason} from 'sentry/types/group';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Chevron} from 'sentry/components/chevron';
@@ -17,8 +20,6 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface DeprecatedAssigneeSelectorProps

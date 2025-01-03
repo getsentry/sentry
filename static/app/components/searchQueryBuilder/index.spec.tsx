@@ -11,6 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SavedSearchType, type TagCollection} from 'sentry/types/group';
+
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -22,7 +24,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
   FieldKind,

@@ -2,6 +2,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {DetailedTeam} from 'sentry/types/organization';
+
 import {
   defaultInviteProps,
   InviteMembersContext,
@@ -9,7 +11,6 @@ import {
 } from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import InviteRowControlNew from 'sentry/components/modals/inviteMembersModal/inviteRowControlNew';
 import TeamStore from 'sentry/stores/teamStore';
-import type {DetailedTeam} from 'sentry/types/organization';
 
 describe('InviteRowControlNew', function () {
   const teamData = [

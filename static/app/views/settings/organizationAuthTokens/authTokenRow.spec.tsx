@@ -9,8 +9,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
+
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', function () {

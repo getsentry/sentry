@@ -1,6 +1,12 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
@@ -15,11 +21,6 @@ import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
-import type {Team} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';

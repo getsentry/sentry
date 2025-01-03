@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

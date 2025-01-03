@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
@@ -14,7 +16,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

@@ -1,11 +1,12 @@
 import {useContext} from 'react';
 import styled from '@emotion/styled';
 
+import type {Frame} from 'sentry/types/event';
+
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Frame} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 
 import type DebugImage from '../../debugMeta/debugImage';

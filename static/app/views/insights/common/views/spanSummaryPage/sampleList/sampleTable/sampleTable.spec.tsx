@@ -5,8 +5,9 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {PageFilters} from 'sentry/types/core';
+
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 import SampleTable from './sampleTable';

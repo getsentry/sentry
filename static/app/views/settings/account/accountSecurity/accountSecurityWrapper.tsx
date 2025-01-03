@@ -1,13 +1,14 @@
 import {cloneElement, useCallback} from 'react';
 
+import type {Authenticator} from 'sentry/types/auth';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {UserEmail} from 'sentry/types/user';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Authenticator} from 'sentry/types/auth';
-import type {OrganizationSummary} from 'sentry/types/organization';
-import type {UserEmail} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {useApiQuery, useMutation, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

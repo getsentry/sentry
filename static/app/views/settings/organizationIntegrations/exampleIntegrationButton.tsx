@@ -1,8 +1,9 @@
+import type {Organization} from 'sentry/types/organization';
+
 import type {ButtonProps} from 'sentry/components/button';
 import {LinkButton} from 'sentry/components/button';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import type {IntegrationView} from 'sentry/utils/analytics/integrations';
 import {
   platformEventLinkMap,

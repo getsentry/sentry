@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
+import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
+
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventOrGroupType, Level} from 'sentry/types/event';
-import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
 import {eventTypeHasLogLevel, getTitle} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';

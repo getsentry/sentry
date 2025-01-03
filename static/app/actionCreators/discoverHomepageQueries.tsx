@@ -1,5 +1,6 @@
-import type {Client} from 'sentry/api';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
 
 export function fetchHomepageQuery(api: Client, orgId: string): Promise<SavedQuery> {
   return api.requestPromise(`/organizations/${orgId}/discover/homepage/`, {

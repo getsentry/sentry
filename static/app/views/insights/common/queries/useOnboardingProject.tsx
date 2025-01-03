@@ -1,5 +1,6 @@
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Project} from 'sentry/types/project';
+
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 

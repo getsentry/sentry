@@ -4,6 +4,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
+
 import {useParams} from 'sentry/utils/useParams';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import {RouteContext} from 'sentry/views/routeContext';

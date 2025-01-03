@@ -10,6 +10,23 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
 
+import type {
+  IssueAlertConfiguration,
+  IssueAlertRule,
+  IssueAlertRuleAction,
+  IssueAlertRuleActionTemplate,
+  UnsavedIssueAlertRule,
+} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
+} from 'sentry/types/alerts';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -44,22 +61,6 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  IssueAlertConfiguration,
-  IssueAlertRule,
-  IssueAlertRuleAction,
-  IssueAlertRuleActionTemplate,
-  UnsavedIssueAlertRule,
-} from 'sentry/types/alerts';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
-  IssueAlertFilterType,
-} from 'sentry/types/alerts';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
-import type {Member, Organization, Team} from 'sentry/types/organization';
-import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';

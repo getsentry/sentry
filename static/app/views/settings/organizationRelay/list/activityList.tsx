@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {RelayActivity} from 'sentry/types/relay';
+
 import {DateTime} from 'sentry/components/dateTime';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import type {RelayActivity} from 'sentry/types/relay';
 
 type Props = {
   activities: Array<RelayActivity>;

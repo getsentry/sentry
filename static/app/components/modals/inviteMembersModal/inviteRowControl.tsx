@@ -3,6 +3,9 @@ import type {MultiValueProps} from 'react-select';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
+import type {SelectValue} from 'sentry/types/core';
+import type {OrgRole} from 'sentry/types/organization';
+
 import {Button} from 'sentry/components/button';
 import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -10,8 +13,6 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import type {OrgRole} from 'sentry/types/organization';
 
 import EmailValue from './emailValue';
 import type {InviteStatus} from './types';

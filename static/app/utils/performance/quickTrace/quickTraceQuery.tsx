@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Event} from 'sentry/types/event';
+
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';

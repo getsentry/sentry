@@ -1,7 +1,8 @@
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
-import {t} from 'sentry/locale';
 import {type MemoryInfoContext, MemoryInfoContextKey} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {t} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 
 function formatMemory(memoryInBytes: number) {

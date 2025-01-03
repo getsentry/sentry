@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {ImageCandidate} from 'sentry/types/debugImage';
+
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import type {ImageCandidate} from 'sentry/types/debugImage';
 
 import {getStatusTooltipDescription} from '../utils';
 

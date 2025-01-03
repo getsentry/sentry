@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
-import {t, tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
+
+import AvatarList from 'sentry/components/avatar/avatarList';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 type Props = {

@@ -1,10 +1,11 @@
 import {useMemo, useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import * as qs from 'query-string';
 
+import type {Project} from 'sentry/types/project';
+
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
@@ -12,7 +14,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types/project';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';

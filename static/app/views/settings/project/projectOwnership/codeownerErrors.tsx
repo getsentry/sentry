@@ -2,10 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
+import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
+
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 

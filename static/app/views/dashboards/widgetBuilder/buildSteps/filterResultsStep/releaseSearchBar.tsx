@@ -1,12 +1,13 @@
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag, TagValue} from 'sentry/types/group';
+import {SavedSearchType} from 'sentry/types/group';
+
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {Tag, TagValue} from 'sentry/types/group';
-import {SavedSearchType} from 'sentry/types/group';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';

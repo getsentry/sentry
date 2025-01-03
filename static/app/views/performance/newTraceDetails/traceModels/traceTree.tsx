@@ -2,10 +2,11 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {Client} from 'sentry/api';
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,

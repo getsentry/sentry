@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types/integrations';
+
 import * as modal from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
 import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PluginProjectItem, PluginWithProjectList} from 'sentry/types/integrations';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 

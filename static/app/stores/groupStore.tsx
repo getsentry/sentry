@@ -1,9 +1,10 @@
 import {createStore} from 'reflux';
 
+import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
+
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import type {Activity, BaseGroup, Group, GroupStats} from 'sentry/types/group';
 import toArray from 'sentry/utils/array/toArray';
 import type RequestError from 'sentry/utils/requestError/requestError';
 

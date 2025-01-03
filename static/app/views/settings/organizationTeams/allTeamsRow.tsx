@@ -1,6 +1,8 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization, Team} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
@@ -12,7 +14,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Team} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 

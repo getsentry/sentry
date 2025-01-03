@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
+
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -9,7 +11,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t, tn} from 'sentry/locale';
-import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/releases/utils';
 

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   ConnectorBar,
@@ -7,7 +9,6 @@ import {
   TreeConnector,
 } from 'sentry/components/performance/waterfall/treeConnector';
 import {t} from 'sentry/locale';
-import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 

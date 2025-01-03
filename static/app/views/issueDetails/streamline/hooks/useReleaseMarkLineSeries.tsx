@@ -1,8 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import type {Group} from 'sentry/types/group';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
 import {escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useApiQuery} from 'sentry/utils/queryClient';

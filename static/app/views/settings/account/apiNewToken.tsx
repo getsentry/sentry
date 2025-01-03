@@ -1,5 +1,8 @@
 import {useState} from 'react';
 
+import type {Permissions} from 'sentry/types/integrations';
+import type {NewInternalAppApiToken} from 'sentry/types/user';
+
 import ApiForm from 'sentry/components/forms/apiForm';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -9,8 +12,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Permissions} from 'sentry/types/integrations';
-import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

@@ -12,8 +12,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import GlobalModalContainer from 'sentry/components/globalModal';
 import {SavedSearchVisibility} from 'sentry/types/group';
+
+import GlobalModalContainer from 'sentry/components/globalModal';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';

@@ -2,6 +2,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -9,9 +13,6 @@ import Input from 'sentry/components/input';
 import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction} from 'sentry/types/alerts';
-import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
-import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 import IssueAlertNotificationOptions, {
   type IssueAlertNotificationProps,

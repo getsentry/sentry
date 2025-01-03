@@ -1,5 +1,6 @@
-import ConfigStore from 'sentry/stores/configStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 import {demoSignupModal} from '../actionCreators/modal';
 

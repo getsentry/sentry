@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {

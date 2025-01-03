@@ -1,6 +1,7 @@
+import type {BaseRole} from 'sentry/types/organization';
+
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import type {BaseRole} from 'sentry/types/organization';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/';

@@ -1,5 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {InternetProtocol} from 'sentry/types/user';
+
 import ListLink from 'sentry/components/links/listLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,8 +12,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {InternetProtocol} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

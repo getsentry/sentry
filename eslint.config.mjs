@@ -703,6 +703,9 @@ export default typescript.config([
 
             ['^(getsentry-images)(/.*|$)'],
 
+            // Types
+            ['^(app|sentry)/types(/.*|$)'],
+
             ['^(app|sentry)(/.*|$)'],
 
             // Getsentry packages.

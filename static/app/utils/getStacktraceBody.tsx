@@ -1,5 +1,6 @@
-import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {Event} from 'sentry/types/event';
+
+import rawStacktraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 
 export default function getStacktraceBody(
   event: Event,

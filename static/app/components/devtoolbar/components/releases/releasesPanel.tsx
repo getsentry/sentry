@@ -1,5 +1,8 @@
 import {Fragment} from 'react';
 
+import type {SessionApiResponse} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import ReleaseIsssues from 'sentry/components/devtoolbar/components/releases/releaseIssues';
 import useReleaseSessions from 'sentry/components/devtoolbar/components/releases/useReleaseSessions';
@@ -22,8 +25,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons/iconArrow';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {

@@ -1,5 +1,8 @@
 import type {Location} from 'history';
 
+import type {Event} from 'sentry/types/event';
+import type {AvatarProject} from 'sentry/types/project';
+
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -8,8 +11,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {AvatarProject} from 'sentry/types/project';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import type {
   QuickTraceQueryChildrenProps,

@@ -1,6 +1,9 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {OrganizationAuthProvider} from 'sentry/types/auth';
+import type {Member} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -22,8 +25,6 @@ import {IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {OrganizationAuthProvider} from 'sentry/types/auth';
-import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   type ApiQueryKey,

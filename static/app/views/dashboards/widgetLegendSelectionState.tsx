@@ -2,6 +2,7 @@ import type {Location} from 'history';
 
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+
 import {decodeList} from 'sentry/utils/queryString';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 

@@ -11,11 +11,12 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {IssueCategory} from 'sentry/types/group';
+
 import GlobalModal from 'sentry/components/globalModal';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 

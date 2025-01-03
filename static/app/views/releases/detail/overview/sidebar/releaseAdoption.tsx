@@ -1,6 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+
 import Tag from 'sentry/components/badge/tag';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -16,9 +20,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
-import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {getAdoptionSeries, getCount, getCountAtIndex} from 'sentry/utils/sessions';
 import {useLocation} from 'sentry/utils/useLocation';

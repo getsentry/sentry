@@ -1,6 +1,7 @@
 import type {Theme} from '@emotion/react';
 
 import type {EventTag, Measurement} from 'sentry/types/event';
+
 import type {
   DiscoverQueryProps,
   GenericChildrenProps,

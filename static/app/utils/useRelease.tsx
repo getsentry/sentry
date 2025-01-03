@@ -1,4 +1,5 @@
 import type {Release} from 'sentry/types/release';
+
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 
 function getReleaseQueryKey({

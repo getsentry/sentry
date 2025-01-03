@@ -1,8 +1,9 @@
+import type {Series} from 'sentry/types/echarts';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
+
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
-import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';

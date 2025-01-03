@@ -1,3 +1,5 @@
+import {GroupActivityType} from 'sentry/types/group';
+
 import {
   IconAdd,
   IconAsana,
@@ -24,7 +26,6 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {IconCellSignal} from 'sentry/icons/iconCellSignal';
-import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
   Component: React.ComponentType<any> | null;

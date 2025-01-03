@@ -1,12 +1,13 @@
 import {useMemo} from 'react';
 
+import type {RecentSearch, TagCollection} from 'sentry/types/group';
+
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useRecentSearches} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useRecentSearches';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
-import type {RecentSearch, TagCollection} from 'sentry/types/group';
 
 const MAX_RECENT_FILTERS = 3;
 const NO_FILTERS = [];

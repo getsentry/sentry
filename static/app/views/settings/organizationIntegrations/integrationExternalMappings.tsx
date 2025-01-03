@@ -1,6 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  ExternalActorMapping,
+  ExternalActorMappingOrSuggestion,
+  ExternalActorSuggestion,
+  Integration,
+} from 'sentry/types/integrations';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -11,14 +20,6 @@ import {IconAdd, IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {
-  ExternalActorMapping,
-  ExternalActorMappingOrSuggestion,
-  ExternalActorSuggestion,
-  Integration,
-} from 'sentry/types/integrations';
-import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {capitalize} from 'sentry/utils/string/capitalize';
 // eslint-disable-next-line no-restricted-imports

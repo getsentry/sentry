@@ -1,16 +1,17 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
+
 import {Alert} from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  OrganizationIntegration,
-  ServerlessFunction,
-} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   type ApiQueryKey,

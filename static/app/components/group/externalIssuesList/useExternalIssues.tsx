@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import type {Group} from 'sentry/types/group';
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
+
 import {
   type ApiQueryKey,
   setApiQueryData,

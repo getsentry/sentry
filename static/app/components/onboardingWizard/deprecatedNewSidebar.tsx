@@ -6,6 +6,12 @@ import partition from 'lodash/partition';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
+import {
+  type OnboardingTask,
+  OnboardingTaskKey,
+  type OnboardingTaskStatus,
+} from 'sentry/types/onboarding';
+
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {Button} from 'sentry/components/button';
@@ -22,11 +28,6 @@ import {IconCheckmark, IconClose, IconNot, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {
-  type OnboardingTask,
-  OnboardingTaskKey,
-  type OnboardingTaskStatus,
-} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import useApi from 'sentry/utils/useApi';

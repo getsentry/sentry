@@ -2,6 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
@@ -12,8 +15,6 @@ import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
-import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

@@ -2,12 +2,13 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
+import type {Choice} from 'sentry/types/core';
+
 import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
 import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
-import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 
 export const fieldIsRequiredMessage = t('Field is required');

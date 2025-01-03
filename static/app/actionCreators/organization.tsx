@@ -4,6 +4,9 @@ import 'sentry/stores/latestContextStore';
 
 import * as Sentry from '@sentry/react';
 
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
 import type {ResponseMeta} from 'sentry/api';
@@ -12,8 +15,6 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization, Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,

@@ -1,5 +1,7 @@
 import {Fragment, useEffect} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
 import Alert from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
@@ -12,7 +14,6 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';

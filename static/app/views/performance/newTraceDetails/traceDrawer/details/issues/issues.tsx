@@ -2,6 +2,9 @@ import {Fragment, useMemo} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+
 import {AssigneeBadge} from 'sentry/components/assigneeBadge';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
@@ -17,8 +20,6 @@ import {PrimaryCount} from 'sentry/components/stream/group';
 import {IconOpen} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError,
   TraceErrorOrIssue,

@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import {LinkButton} from 'sentry/components/button';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';

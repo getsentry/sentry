@@ -1,12 +1,13 @@
 import {Fragment, useEffect, useRef} from 'react';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Member, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Member, Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';

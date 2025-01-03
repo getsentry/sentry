@@ -2,12 +2,13 @@ import {createContext, useContext, useLayoutEffect, useMemo, useState} from 'rea
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import type {Client} from 'sentry/api';
-import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import type {Client} from 'sentry/api';
+import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

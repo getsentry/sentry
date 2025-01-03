@@ -3,8 +3,9 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import TagStore from 'sentry/stores/tagStore';
 import type {Tag, TagValue} from 'sentry/types/group';
+
+import TagStore from 'sentry/stores/tagStore';
 import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 

@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {AuthConfig} from 'sentry/types/auth';
+
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
@@ -11,7 +13,6 @@ import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {AuthConfig} from 'sentry/types/auth';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<

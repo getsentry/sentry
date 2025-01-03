@@ -2,14 +2,15 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Release} from 'sentry/types/release';
+
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import Count from 'sentry/components/count';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
-import type {TimeseriesValue} from 'sentry/types/core';
-import type {Group} from 'sentry/types/group';
-import type {Release} from 'sentry/types/release';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 

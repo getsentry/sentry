@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';

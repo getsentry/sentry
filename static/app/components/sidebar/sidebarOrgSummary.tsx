@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import {IconWarning} from 'sentry/icons';
 import {tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types/organization';
 
 type Props = {
   organization: OrganizationSummary;

@@ -1,12 +1,13 @@
 import {createContext, type Dispatch, useContext} from 'react';
 
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import type {FieldDefinition, FieldKind} from 'sentry/utils/fields';
 
 export interface SearchQueryBuilderContextData {

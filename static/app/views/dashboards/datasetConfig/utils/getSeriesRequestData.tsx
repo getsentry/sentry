@@ -1,8 +1,9 @@
 import trimStart from 'lodash/trimStart';
 
-import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+
+import type {EventsStatsOptions} from 'sentry/actionCreators/events';
 import {
   getAggregateAlias,
   isEquation,

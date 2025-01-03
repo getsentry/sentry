@@ -7,6 +7,8 @@ import {CanvasRenderer} from 'echarts/renderers';
 import isNil from 'lodash/isNil';
 import omitBy from 'lodash/omitBy';
 
+import type {ReactEchartsRef} from 'sentry/types/echarts';
+
 import {transformToAreaSeries} from 'sentry/components/charts/areaChart';
 import {transformToBarSeries} from 'sentry/components/charts/barChart';
 import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
@@ -26,7 +28,6 @@ import type {UseFocusAreaResult} from 'sentry/components/metrics/chart/useFocusA
 import type {UseMetricSamplesResult} from 'sentry/components/metrics/chart/useMetricChartSamples';
 import type {UseMetricReleasesResult} from 'sentry/components/metrics/chart/useMetricReleases';
 import {t} from 'sentry/locale';
-import type {ReactEchartsRef} from 'sentry/types/echarts';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';

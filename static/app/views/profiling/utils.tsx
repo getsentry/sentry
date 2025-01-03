@@ -1,9 +1,10 @@
 import type {Location} from 'history';
 
+import type {SelectValue} from 'sentry/types/core';
+
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {
   isContinuousProfileReference,

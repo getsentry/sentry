@@ -1,9 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {OrgAuthToken} from 'sentry/types/user';
+
 import * as indicators from 'sentry/actionCreators/indicator';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensNewAuthToken} from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
 
 describe('OrganizationAuthTokensNewAuthToken', function () {

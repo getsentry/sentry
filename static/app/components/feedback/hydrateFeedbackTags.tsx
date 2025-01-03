@@ -1,4 +1,5 @@
 import type {Event} from 'sentry/types/event';
+
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 export default function hydrateFeedbackTags(

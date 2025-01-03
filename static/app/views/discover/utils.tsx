@@ -2,10 +2,6 @@ import {urlEncode} from '@sentry/utils';
 import type {Location, Query} from 'history';
 import * as Papa from 'papaparse';
 
-import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -15,6 +11,11 @@ import type {
   OrganizationSummary,
 } from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {URL_PARAM} from 'sentry/constants/pageFilters';
+import {t} from 'sentry/locale';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventData} from 'sentry/utils/discover/eventView';

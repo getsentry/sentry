@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
+import type {DateString, PageFilters} from 'sentry/types/core';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+
 import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -22,8 +25,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';

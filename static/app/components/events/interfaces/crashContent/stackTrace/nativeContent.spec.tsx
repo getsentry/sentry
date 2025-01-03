@@ -9,12 +9,13 @@ import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProje
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {EventOrGroupType} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import {NativeContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/nativeContent';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
 const project = ProjectFixture();

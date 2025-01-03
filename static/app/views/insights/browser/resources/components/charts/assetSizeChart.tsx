@@ -1,5 +1,6 @@
-import {tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+
+import {tct} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';

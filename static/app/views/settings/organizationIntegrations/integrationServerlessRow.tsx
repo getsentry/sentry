@@ -1,6 +1,11 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {
+  OrganizationIntegration,
+  ServerlessFunction,
+} from 'sentry/types/integrations';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -10,10 +15,6 @@ import {Button} from 'sentry/components/button';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  OrganizationIntegration,
-  ServerlessFunction,
-} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

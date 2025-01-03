@@ -5,9 +5,10 @@ import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
+import type {DataPoint} from 'sentry/types/echarts';
+
 import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import type {DataPoint} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
 

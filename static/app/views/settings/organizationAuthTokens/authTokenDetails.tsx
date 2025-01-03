@@ -1,5 +1,8 @@
 import {useCallback} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+import type {OrgAuthToken} from 'sentry/types/user';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -16,8 +19,6 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   getApiQueryData,

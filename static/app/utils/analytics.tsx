@@ -1,8 +1,9 @@
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
-import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
+
+import HookStore from 'sentry/stores/hookStore';
 import {
   alertsEventMap,
   type AlertsEventParameters,

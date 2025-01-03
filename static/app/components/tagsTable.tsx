@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {Event, EventTag} from 'sentry/types/event';
+
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {KeyValueTable} from 'sentry/components/keyValueTable';
 import TagsTableRow from 'sentry/components/tagsTableRow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTag} from 'sentry/types/event';
 
 type Props = {
   event: Event;

@@ -3,6 +3,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
+
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -19,8 +22,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import type {IconSize} from 'sentry/utils/theme';
 

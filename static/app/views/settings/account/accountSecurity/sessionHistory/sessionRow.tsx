@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {InternetProtocol} from 'sentry/types/user';
+
 import PanelItem from 'sentry/components/panels/panelItem';
 import TimeSince from 'sentry/components/timeSince';
 import {space} from 'sentry/styles/space';
-import type {InternetProtocol} from 'sentry/types/user';
 
 import {tableLayout} from './utils';
 

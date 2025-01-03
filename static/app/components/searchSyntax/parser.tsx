@@ -3,8 +3,9 @@ import merge from 'lodash/merge';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
-import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import {
   isMeasurement,
   isSpanOperationBreakdownField,

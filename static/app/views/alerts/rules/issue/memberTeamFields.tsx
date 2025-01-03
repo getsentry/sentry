@@ -1,14 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
+import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
 import {space} from 'sentry/styles/space';
-import type {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 interface OptionRecord {
   label: string;

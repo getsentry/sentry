@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
 
-import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/project';
+
+import {replayBackendPlatforms} from 'sentry/data/platformCategories';
 import {projectCanUpsellReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';

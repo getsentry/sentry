@@ -1,10 +1,11 @@
 import {useEffect, useState} from 'react';
 
-import type {Client, ResponseMeta} from 'sentry/api';
-import MemberListStore from 'sentry/stores/memberListStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client, ResponseMeta} from 'sentry/api';
+import MemberListStore from 'sentry/stores/memberListStore';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {IssuesConfig} from '../datasetConfig/issues';

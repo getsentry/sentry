@@ -1,6 +1,7 @@
 import {urlEncode} from '@sentry/utils';
 
 import type {PageFilters} from 'sentry/types/core';
+
 import {defined} from 'sentry/utils';
 import {MRIToField} from 'sentry/utils/metrics/mri';
 import type {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics/types';

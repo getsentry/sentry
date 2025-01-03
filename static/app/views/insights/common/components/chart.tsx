@@ -14,6 +14,17 @@ import type {
 import max from 'lodash/max';
 import min from 'lodash/min';
 
+import type {
+  EChartClickHandler,
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  EChartHighlightHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
+
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
@@ -35,16 +46,6 @@ import {
 } from 'sentry/components/metrics/chart/chart';
 import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {IconWarning} from 'sentry/icons';
-import type {
-  EChartClickHandler,
-  EChartDataZoomHandler,
-  EChartEventHandler,
-  EChartHighlightHandler,
-  EChartMouseOutHandler,
-  EChartMouseOverHandler,
-  ReactEchartsRef,
-  Series,
-} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,

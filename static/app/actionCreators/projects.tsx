@@ -3,6 +3,9 @@ import type {Query} from 'history';
 import chunk from 'lodash/chunk';
 import debounce from 'lodash/debounce';
 
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -13,8 +16,6 @@ import {t, tct} from 'sentry/locale';
 import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Team} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';

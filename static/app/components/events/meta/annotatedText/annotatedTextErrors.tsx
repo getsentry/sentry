@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {MetaError} from 'sentry/types/group';
+
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {MetaError} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 function formatErrorKind(kind: string) {

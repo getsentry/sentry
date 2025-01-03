@@ -3,6 +3,7 @@ import type {
   EventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+
 import {defined} from 'sentry/utils';
 
 // Timeseries with more than this ratio of low confidence intervals will be considered low confidence

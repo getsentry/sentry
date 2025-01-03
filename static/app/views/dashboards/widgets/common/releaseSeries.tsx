@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
 
+import type {Series} from 'sentry/types/echarts';
+
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';

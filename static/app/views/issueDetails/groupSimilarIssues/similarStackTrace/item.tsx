@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import type {Location} from 'history';
 
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
@@ -17,9 +21,6 @@ import SimilarScoreCard from 'sentry/components/similarScoreCard';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];

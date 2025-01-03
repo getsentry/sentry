@@ -4,8 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Field} from 'sentry/views/traces/data';
 import {
   ProjectRenderer,

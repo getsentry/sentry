@@ -1,5 +1,6 @@
-import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
   type ApiQueryKey,

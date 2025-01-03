@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {Repository} from 'sentry/types/integrations';
+
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import type {Repository} from 'sentry/types/integrations';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

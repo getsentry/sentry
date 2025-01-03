@@ -4,6 +4,8 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import type {SelectValue} from 'sentry/types/core';
+
 import Tag from 'sentry/components/badge/tag';
 import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -14,7 +16,6 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types/core';
 import type {
   AggregateParameter,
   AggregationKeyWithAlias,

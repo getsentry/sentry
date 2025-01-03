@@ -1,6 +1,7 @@
 import type {Location, Query} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';

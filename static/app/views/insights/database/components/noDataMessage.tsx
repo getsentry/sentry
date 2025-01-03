@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 
+import type {Project} from 'sentry/types/project';
+
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

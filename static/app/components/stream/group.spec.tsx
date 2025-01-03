@@ -13,12 +13,13 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import StreamGroup from 'sentry/components/stream/group';
-import GroupStore from 'sentry/stores/groupStore';
-import GuideStore from 'sentry/stores/guideStore';
 import {EventOrGroupType} from 'sentry/types/event';
 import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
 import {GroupStatus, PriorityLevel} from 'sentry/types/group';
+
+import StreamGroup from 'sentry/components/stream/group';
+import GroupStore from 'sentry/stores/groupStore';
+import GuideStore from 'sentry/stores/guideStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');

@@ -2,15 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import CommitLink from 'sentry/components/commitLink';
-import {DateTime} from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import PullRequestLink from 'sentry/components/pullRequestLink';
-import Version from 'sentry/components/version';
-import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
   GroupActivityAssigned,
@@ -21,6 +12,16 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
+
+import CommitLink from 'sentry/components/commitLink';
+import {DateTime} from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
+import PullRequestLink from 'sentry/components/pullRequestLink';
+import Version from 'sentry/components/version';
+import VersionHoverCard from 'sentry/components/versionHoverCard';
+import {t, tct, tn} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 

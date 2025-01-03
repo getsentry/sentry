@@ -8,10 +8,11 @@ import * as qs from 'query-string';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
-import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
+import GlobalModal from 'sentry/components/globalModal';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';

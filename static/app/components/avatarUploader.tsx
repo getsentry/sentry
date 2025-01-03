@@ -1,12 +1,13 @@
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {AvatarUser} from 'sentry/types/user';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import Well from 'sentry/components/well';
 import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {AvatarUser} from 'sentry/types/user';
 
 const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 

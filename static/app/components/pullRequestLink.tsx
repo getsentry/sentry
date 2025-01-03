@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import type {PullRequest, Repository} from 'sentry/types/integrations';
+
 import {LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {PullRequest, Repository} from 'sentry/types/integrations';
 
 function renderIcon(repo: Repository) {
   if (!repo.provider) {

@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {Plugin} from 'sentry/types/integrations';
+
 import {Button} from 'sentry/components/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -8,7 +10,6 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {Plugin} from 'sentry/types/integrations';
 
 type Props = {
   onEnablePlugin: (plugin: Plugin) => void;

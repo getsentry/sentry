@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import Alert from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import Form from 'sentry/components/deprecatedforms/form';
@@ -8,9 +12,6 @@ import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
-import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {parseRepo} from 'sentry/utils/git/parseRepo';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';

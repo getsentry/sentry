@@ -4,8 +4,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Csp} from 'sentry/components/events/interfaces/csp';
 import {EntryType} from 'sentry/types/event';
+
+import {Csp} from 'sentry/components/events/interfaces/csp';
 
 describe('Csp report entry', function () {
   it('display redacted data', async function () {

@@ -1,6 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
+
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import ButtonBar from 'sentry/components/buttonBar';
 import {
@@ -29,9 +33,6 @@ import KeyValueData, {
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {getShortEventId} from 'sentry/utils/events';
 
 interface FlagDrawerProps {

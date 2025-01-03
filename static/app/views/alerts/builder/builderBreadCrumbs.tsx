@@ -1,7 +1,8 @@
+import type {Organization} from 'sentry/types/organization';
+
 import type {Crumb, CrumbDropdown} from 'sentry/components/breadcrumbs';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   organization: Organization;

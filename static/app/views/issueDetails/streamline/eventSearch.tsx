@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import orderBy from 'lodash/orderBy';
 
+import type {Group, Tag, TagCollection} from 'sentry/types/group';
+
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
@@ -10,7 +12,6 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {joinQuery, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {
   FieldKind,
   getFieldDefinition,

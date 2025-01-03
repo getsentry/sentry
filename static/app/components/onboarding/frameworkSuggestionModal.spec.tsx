@@ -1,6 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -8,7 +10,6 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import platforms from 'sentry/data/platforms';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 
 import {
   FrameworkSuggestionModal,

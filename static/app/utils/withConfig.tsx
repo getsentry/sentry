@@ -1,6 +1,7 @@
+import type {Config} from 'sentry/types/system';
+
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Config} from 'sentry/types/system';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 type InjectedConfigProps = {

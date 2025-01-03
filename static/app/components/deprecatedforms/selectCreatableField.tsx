@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {SelectValue} from 'sentry/types/core';
+
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 

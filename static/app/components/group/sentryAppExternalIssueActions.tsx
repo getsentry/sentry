@@ -1,5 +1,14 @@
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {
+  PlatformExternalIssue,
+  SentryAppComponent,
+  SentryAppInstallation,
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues';
@@ -10,14 +19,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {
-  PlatformExternalIssue,
-  SentryAppComponent,
-  SentryAppInstallation,
-} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';

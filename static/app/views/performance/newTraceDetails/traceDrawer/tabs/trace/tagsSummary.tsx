@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEmpty from 'lodash/isEmpty';
 
+import type {Organization} from 'sentry/types/organization';
+
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import type {ApiResult} from 'sentry/api';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
@@ -10,7 +12,6 @@ import TagFacetsDistributionMeter from 'sentry/components/group/tagFacets/tagFac
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';

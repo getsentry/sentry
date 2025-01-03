@@ -4,6 +4,17 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import type {
+  Deploy,
+  ReleaseMeta,
+  ReleaseProject,
+  ReleaseWithHealth,
+} from 'sentry/types/release';
+
 import {Alert} from 'sentry/components/alert';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,16 +27,6 @@ import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
-import {SessionFieldWithOperation} from 'sentry/types/organization';
-import type {
-  Deploy,
-  ReleaseMeta,
-  ReleaseProject,
-  ReleaseWithHealth,
-} from 'sentry/types/release';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';

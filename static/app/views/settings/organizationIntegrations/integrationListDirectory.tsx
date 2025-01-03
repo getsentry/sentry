@@ -5,6 +5,18 @@ import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
+import type {
+  AppOrProviderOrPlugin,
+  DocIntegration,
+  Integration,
+  IntegrationProvider,
+  PluginWithProjectList,
+  SentryApp,
+  SentryAppInstallation,
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -17,17 +29,6 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  AppOrProviderOrPlugin,
-  DocIntegration,
-  Integration,
-  IntegrationProvider,
-  PluginWithProjectList,
-  SentryApp,
-  SentryAppInstallation,
-} from 'sentry/types/integrations';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';

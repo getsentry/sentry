@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {Group} from 'sentry/types/group';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {ISSUE_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

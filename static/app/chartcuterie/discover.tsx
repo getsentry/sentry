@@ -1,12 +1,13 @@
 import type {SeriesOption} from 'echarts';
 
+import type {EventsStats} from 'sentry/types/organization';
+
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import BarSeries from 'sentry/components/charts/series/barSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {EventsStats} from 'sentry/types/organization';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
 import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';

@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
 
+import type {SelectValue} from 'sentry/types/core';
+import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -11,9 +15,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
-import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 import getDuration from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;

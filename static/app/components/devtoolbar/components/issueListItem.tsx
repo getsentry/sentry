@@ -1,5 +1,7 @@
 import {css} from '@emotion/react';
 
+import type {Group} from 'sentry/types/group';
+
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import AnalyticsProvider from 'sentry/components/devtoolbar/components/analyticsProvider';
 import SentryAppLink from 'sentry/components/devtoolbar/components/sentryAppLink';
@@ -14,7 +16,6 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import type {Group} from 'sentry/types/group';
 
 export default function IssueListItem({item}: {item: Group}) {
   const {projectId} = useConfiguration();

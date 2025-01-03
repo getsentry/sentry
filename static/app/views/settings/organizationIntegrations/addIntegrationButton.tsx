@@ -1,8 +1,9 @@
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
+
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import AddIntegration from './addIntegration';

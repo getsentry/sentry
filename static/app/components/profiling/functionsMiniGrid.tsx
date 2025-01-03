@@ -2,14 +2,15 @@ import type {CSSProperties, SyntheticEvent} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {Flex} from 'sentry/components/container/flex';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
 import type {FunctionsField} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';

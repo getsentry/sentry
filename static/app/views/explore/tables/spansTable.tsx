@@ -1,6 +1,8 @@
 import type {Dispatch, SetStateAction} from 'react';
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 
+import type {Confidence, NewQuery} from 'sentry/types/organization';
+
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,7 +10,6 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';

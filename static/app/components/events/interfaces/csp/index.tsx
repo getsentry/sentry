@@ -1,10 +1,11 @@
 import {useState} from 'react';
 
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 

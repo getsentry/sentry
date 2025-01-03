@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import type {Measurement} from 'sentry/types/event';
+
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Measurement} from 'sentry/types/event';
 import getDuration from 'sentry/utils/duration/getDuration';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {IconSize} from 'sentry/utils/theme';

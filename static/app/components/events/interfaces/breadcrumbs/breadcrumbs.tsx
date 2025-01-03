@@ -3,6 +3,9 @@ import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Organization} from 'sentry/types/organization';
+
 import type {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
@@ -13,8 +16,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';

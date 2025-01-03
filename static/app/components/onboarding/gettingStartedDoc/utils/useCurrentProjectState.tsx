@@ -1,10 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
 import partition from 'lodash/partition';
 
+import type {PlatformKey, Project} from 'sentry/types/project';
+
 import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project} from 'sentry/types/project';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
 

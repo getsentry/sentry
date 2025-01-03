@@ -1,4 +1,5 @@
 import type {EventOrGroupType} from 'sentry/types/event';
+
 import type {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 type SaveQueryParams = {

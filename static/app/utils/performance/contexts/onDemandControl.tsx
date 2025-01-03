@@ -2,10 +2,11 @@ import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 import type {Location} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
+
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';

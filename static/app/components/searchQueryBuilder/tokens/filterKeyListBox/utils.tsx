@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
+
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
@@ -15,7 +17,6 @@ import type {
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {RecentSearch, Tag, TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind} from 'sentry/utils/fields';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';

@@ -1,5 +1,6 @@
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = RouteComponentProps<{}, {}> & {

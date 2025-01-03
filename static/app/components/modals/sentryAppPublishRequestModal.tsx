@@ -2,6 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import intersection from 'lodash/intersection';
 
+import type {Scope} from 'sentry/types/core';
+import type {SentryApp} from 'sentry/types/integrations';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Form from 'sentry/components/forms/form';
@@ -11,8 +14,6 @@ import type {PermissionChoice} from 'sentry/constants';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Scope} from 'sentry/types/core';
-import type {SentryApp} from 'sentry/types/integrations';
 
 /**
  * Given an array of scopes, return the choices the user has picked for each option

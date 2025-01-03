@@ -3,10 +3,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
-import MemberListStore from 'sentry/stores/memberListStore';
 import type {Actor} from 'sentry/types/core';
 import type {ParsedOwnershipRule} from 'sentry/types/group';
+
+import ConfigStore from 'sentry/stores/configStore';
+import MemberListStore from 'sentry/stores/memberListStore';
 
 import {OwnershipRulesTable} from './ownershipRulesTable';
 

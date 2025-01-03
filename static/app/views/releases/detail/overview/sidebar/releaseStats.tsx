@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Release, ReleaseProject} from 'sentry/types/release';
+
 import DeployBadge from 'sentry/components/badge/deployBadge';
 import NotAvailable from 'sentry/components/notAvailable';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import type {Release, ReleaseProject} from 'sentry/types/release';
 
 type Props = {
   organization: Organization;

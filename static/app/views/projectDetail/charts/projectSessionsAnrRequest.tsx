@@ -2,12 +2,13 @@ import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
+import type {Series} from 'sentry/types/echarts';
+import type {SessionApiResponse} from 'sentry/types/organization';
+
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Series} from 'sentry/types/echarts';
-import type {SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';

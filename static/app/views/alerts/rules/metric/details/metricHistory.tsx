@@ -2,11 +2,12 @@ import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
+
 import CollapsePanel from 'sentry/components/collapsePanel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
 // import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';

@@ -2,6 +2,13 @@ import type {Theme} from '@emotion/react';
 import compact from 'lodash/compact';
 import moment from 'moment-timezone';
 
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {
+  SessionApiResponse,
+  SessionFieldWithOperation,
+} from 'sentry/types/organization';
+import {SessionStatus} from 'sentry/types/organization';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
   getDiffInMinutes,
@@ -10,12 +17,6 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import type {SeriesDataUnit} from 'sentry/types/echarts';
-import type {
-  SessionApiResponse,
-  SessionFieldWithOperation,
-} from 'sentry/types/organization';
-import {SessionStatus} from 'sentry/types/organization';
 import {defined, percent} from 'sentry/utils';
 import {getCrashFreePercent, getSessionStatusPercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';

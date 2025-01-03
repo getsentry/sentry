@@ -9,8 +9,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 import type {NotificationAction} from 'sentry/types/notificationActions';
+
+import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();

@@ -3,10 +3,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
-import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function createWrapper(organization: Organization) {

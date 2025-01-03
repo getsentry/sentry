@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import type {Event} from 'sentry/types/event';
+
+import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {

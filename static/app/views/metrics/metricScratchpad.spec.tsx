@@ -3,6 +3,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
+
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
 import {MetricsContextProvider} from 'sentry/views/metrics/context';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';

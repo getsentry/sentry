@@ -1,9 +1,10 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type {Client} from 'sentry/api';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+
+import type {Client} from 'sentry/api';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {IssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/issuesTraceTree';

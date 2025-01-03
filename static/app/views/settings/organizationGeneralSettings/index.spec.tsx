@@ -13,10 +13,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {Config} from 'sentry/types/system';
+
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 

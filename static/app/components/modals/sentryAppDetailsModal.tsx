@@ -1,6 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import Access from 'sentry/components/acl/access';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
@@ -10,8 +13,6 @@ import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
 import {
   getIntegrationFeatureGate,

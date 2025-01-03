@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';

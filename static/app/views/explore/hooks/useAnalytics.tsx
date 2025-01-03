@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 
 import type {Confidence, Organization} from 'sentry/types/organization';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

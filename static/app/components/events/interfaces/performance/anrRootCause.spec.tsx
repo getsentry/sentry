@@ -2,9 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import type {Event, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
+
+import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 
 const makeEventWithThreads = (threads: Thread[]): Event => {
   const event: Event = {

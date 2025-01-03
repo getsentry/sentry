@@ -4,11 +4,12 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
+
 import GlobalModal from 'sentry/components/globalModal';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import ModalStore from 'sentry/stores/modalStore';
-import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
-import {CustomRepoType} from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 function TestComponent({

@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {Event} from 'sentry/types/event';
+
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconDocs} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
 import useOrganization from 'sentry/utils/useOrganization';

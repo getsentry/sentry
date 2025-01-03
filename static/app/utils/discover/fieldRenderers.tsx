@@ -3,6 +3,10 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
 
+import type {IssueAttachment} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {AvatarProject, Project} from 'sentry/types/project';
+
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -22,9 +26,6 @@ import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {IssueAttachment} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
-import type {AvatarProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toArray from 'sentry/utils/array/toArray';

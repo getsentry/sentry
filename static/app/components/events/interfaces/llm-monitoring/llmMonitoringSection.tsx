@@ -1,9 +1,10 @@
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+
 import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {

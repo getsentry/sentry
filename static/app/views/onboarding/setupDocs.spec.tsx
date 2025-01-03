@@ -9,12 +9,13 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];

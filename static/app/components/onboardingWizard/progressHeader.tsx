@@ -1,13 +1,14 @@
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProgressRing from 'sentry/components/progressRing';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {
   OnboardingTaskDescriptor,
   OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
+
+import ProgressRing from 'sentry/components/progressRing';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 
 type Props = {

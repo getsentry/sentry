@@ -1,4 +1,5 @@
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+
 import {
   convertToDashboardWidget,
   getWidgetQuery,

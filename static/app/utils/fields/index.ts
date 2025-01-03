@@ -1,5 +1,6 @@
-import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+
+import {t} from 'sentry/locale';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from '../discover/types';

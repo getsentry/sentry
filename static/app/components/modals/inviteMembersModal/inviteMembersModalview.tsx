@@ -2,6 +2,8 @@ import {Fragment, type ReactNode, useEffect, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {Member} from 'sentry/types/organization';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -18,7 +20,6 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member} from 'sentry/types/organization';
 
 interface Props {
   Footer: ModalRenderProps['Footer'];

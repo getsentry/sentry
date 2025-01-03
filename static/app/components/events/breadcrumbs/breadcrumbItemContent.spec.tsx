@@ -1,6 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import {
   BreadcrumbLevelType,
   BreadcrumbMessageFormat,
@@ -8,6 +7,8 @@ import {
   type BreadcrumbTypeDefault,
   type BreadcrumbTypeHTTP,
 } from 'sentry/types/breadcrumbs';
+
+import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 
 describe('BreadcrumbItemContent', function () {
   it('renders default crumbs with all data', function () {

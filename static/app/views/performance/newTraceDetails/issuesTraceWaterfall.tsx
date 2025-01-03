@@ -13,6 +13,7 @@ import * as Sentry from '@sentry/react';
 
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
+
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

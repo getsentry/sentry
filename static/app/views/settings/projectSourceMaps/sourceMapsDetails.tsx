@@ -1,6 +1,11 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
+import type {Artifact} from 'sentry/types/release';
+import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
+
 import {useRole} from 'sentry/components/acl/useRole';
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -15,10 +20,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Project} from 'sentry/types/project';
-import type {Artifact} from 'sentry/types/release';
-import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';

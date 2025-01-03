@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import {EventOrGroupType} from 'sentry/types/event';
+
+import ConfigStore from 'sentry/stores/configStore';
 
 import EventMessage from './eventMessage';
 

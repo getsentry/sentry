@@ -2,6 +2,9 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
+import type {Event, EventTransaction} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types/organization';
+
 import {LinkButton} from 'sentry/components/button';
 import {DateTime} from 'sentry/components/dateTime';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
@@ -13,8 +16,6 @@ import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, EventTransaction} from 'sentry/types/event';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import getDynamicText from 'sentry/utils/getDynamicText';

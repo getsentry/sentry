@@ -1,9 +1,10 @@
 import forEach from 'lodash/forEach';
 import set from 'lodash/set';
 
-import {t} from 'sentry/locale';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
+
+import {t} from 'sentry/locale';
 
 export const customRepoTypeLabel = {
   [CustomRepoType.HTTP]: 'SymbolServer (HTTP)',

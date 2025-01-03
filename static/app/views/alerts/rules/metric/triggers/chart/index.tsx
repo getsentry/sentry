@@ -5,6 +5,14 @@ import isEqual from 'lodash/isEqual';
 import maxBy from 'lodash/maxBy';
 import minBy from 'lodash/minBy';
 
+import type {Series} from 'sentry/types/echarts';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -27,13 +35,6 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';

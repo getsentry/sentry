@@ -2,15 +2,16 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import Link from 'sentry/components/links/link';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useTraceAverageTransactionDuration} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceAverageTransactionDuration';
 import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';

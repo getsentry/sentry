@@ -1,12 +1,13 @@
 import {Component, Fragment} from 'react';
 
-import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

@@ -1,3 +1,5 @@
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+
 import {
   IconFire,
   IconFix,
@@ -12,7 +14,6 @@ import {
   IconUser,
   IconWarning,
 } from 'sentry/icons';
-import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 type Props = {
   type: BreadcrumbType;

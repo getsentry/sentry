@@ -1,4 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
+
 import EventView from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';

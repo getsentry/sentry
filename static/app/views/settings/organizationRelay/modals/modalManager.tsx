@@ -2,12 +2,13 @@ import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
+import type {Organization} from 'sentry/types/organization';
+import type {Relay} from 'sentry/types/relay';
+
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import type {Relay} from 'sentry/types/relay';
 
 import createTrustedRelaysResponseError from './createTrustedRelaysResponseError';
 import Form from './form';

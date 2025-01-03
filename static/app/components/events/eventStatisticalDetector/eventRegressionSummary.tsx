@@ -1,13 +1,14 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+
+import {LinkButton} from 'sentry/components/button';
+import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';

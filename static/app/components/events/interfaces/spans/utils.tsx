@@ -5,7 +5,6 @@ import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment-timezone';
 
-import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
@@ -15,6 +14,8 @@ import type {
 import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+
+import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {MobileVital, WebVital} from 'sentry/utils/fields';

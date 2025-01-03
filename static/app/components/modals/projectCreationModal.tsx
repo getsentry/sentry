@@ -4,6 +4,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {PlatformIcon} from 'platformicons';
 
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Team} from 'sentry/types/organization';
+
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -22,8 +25,6 @@ import TeamSelector from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Team} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';

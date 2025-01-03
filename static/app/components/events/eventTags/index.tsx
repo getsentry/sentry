@@ -1,11 +1,12 @@
 import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import type {Event, EventTag} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
+
 import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
 import {TagFilter} from 'sentry/components/events/eventTags/util';
-import type {Event, EventTag} from 'sentry/types/event';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';

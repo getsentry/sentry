@@ -1,5 +1,10 @@
 import {Component, Fragment} from 'react';
 
+import type {Group} from 'sentry/types/group';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
@@ -8,10 +13,6 @@ import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import type {Group} from 'sentry/types/group';
-import type {Plugin} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';

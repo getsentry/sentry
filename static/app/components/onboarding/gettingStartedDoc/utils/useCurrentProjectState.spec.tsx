@@ -3,6 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import type {Project} from 'sentry/types/project';
+
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {
@@ -14,7 +16,6 @@ import {
 } from 'sentry/data/platformCategories';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types/project';
 
 function createWrapper(projectSlug?: string) {
   return function Wrapper({children}) {

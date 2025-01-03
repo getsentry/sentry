@@ -2,14 +2,15 @@ import {useEffect, useState} from 'react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import useApi from 'sentry/utils/useApi';

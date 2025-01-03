@@ -2,9 +2,10 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import invariant from 'invariant';
 
+import type {Organization} from 'sentry/types/organization';
+
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
 import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
-import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   children: ReactNode;

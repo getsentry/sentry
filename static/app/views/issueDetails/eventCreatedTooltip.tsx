@@ -2,10 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import type {Event} from 'sentry/types/event';
+
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import {useUser} from 'sentry/utils/useUser';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {

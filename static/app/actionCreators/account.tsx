@@ -1,8 +1,9 @@
+import type {UserIdentityConfig} from 'sentry/types/auth';
+import type {User} from 'sentry/types/user';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
-import type {UserIdentityConfig} from 'sentry/types/auth';
-import type {User} from 'sentry/types/user';
 import type {ChangeAvatarUser} from 'sentry/views/settings/account/accountDetails';
 
 export async function disconnectIdentity(

@@ -1,8 +1,9 @@
 import {createStore} from 'reflux';
 
-import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import type {StrictStoreDefinition} from 'sentry/stores/types';
 
 type State = {
   environment: string | string[] | null;

@@ -1,12 +1,13 @@
 import {useEffect} from 'react';
 import type {Location} from 'history';
 
-import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import LoadingContainer from 'sentry/components/loading/loadingContainer';
-import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+
+import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import LoadingContainer from 'sentry/components/loading/loadingContainer';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';

@@ -4,6 +4,11 @@ import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import type {DataCategoryInfo} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -15,10 +20,6 @@ import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DataCategoryInfo} from 'sentry/types/core';
-import {Outcome} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withProjects from 'sentry/utils/withProjects';
 

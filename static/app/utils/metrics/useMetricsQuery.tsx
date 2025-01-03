@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
+
 import {
   getDateTimeParams,
   getMetricsInterval,

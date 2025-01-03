@@ -2,6 +2,18 @@ import {useCallback, useRef} from 'react';
 import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {
+  MetricAggregation,
+  MetricMeta,
+  MetricsDataIntervalLadder,
+  MetricsQueryApiResponse,
+  MetricsQueryApiResponseLastMeta,
+  MRI,
+  UseCase,
+} from 'sentry/types/metrics';
+
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {
   getDiffInMinutes,
@@ -19,17 +31,6 @@ import {
   parseStatsPeriod,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {
-  MetricAggregation,
-  MetricMeta,
-  MetricsDataIntervalLadder,
-  MetricsQueryApiResponse,
-  MetricsQueryApiResponseLastMeta,
-  MRI,
-  UseCase,
-} from 'sentry/types/metrics';
 import {isMeasurement} from 'sentry/utils/discover/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {DEFAULT_AGGREGATES, SPAN_DURATION_MRI} from 'sentry/utils/metrics/constants';

@@ -5,10 +5,11 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {Request} from 'sentry/components/events/interfaces/request';
-import ConfigStore from 'sentry/stores/configStore';
 import type {EntryRequest} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+
+import {Request} from 'sentry/components/events/interfaces/request';
+import ConfigStore from 'sentry/stores/configStore';
 
 jest.unmock('prismjs');
 

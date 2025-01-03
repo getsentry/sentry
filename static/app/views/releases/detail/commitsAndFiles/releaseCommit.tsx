@@ -2,6 +2,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import type {Commit} from 'sentry/types/integrations';
+
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/button';
@@ -14,7 +16,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit} from 'sentry/types/integrations';
 import {useUser} from 'sentry/utils/useUser';
 
 function formatCommitMessage(message: string | null) {

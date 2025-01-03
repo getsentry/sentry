@@ -1,9 +1,5 @@
 import {useCallback, useMemo} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
-import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
-import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {
   type Group,
@@ -12,6 +8,11 @@ import {
   GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
+import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
+import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';

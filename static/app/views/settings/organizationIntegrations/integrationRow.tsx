@@ -1,6 +1,13 @@
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import type {
+  IntegrationInstallationStatus,
+  PluginWithProjectList,
+  SentryApp,
+} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+
 import {Alert} from 'sentry/components/alert';
 import {LinkButton} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
@@ -8,12 +15,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import type {
-  IntegrationInstallationStatus,
-  PluginWithProjectList,
-  SentryApp,
-} from 'sentry/types/integrations';
-import type {Organization} from 'sentry/types/organization';
 import {
   convertIntegrationTypeToSnakeCase,
   trackIntegrationAnalytics,
