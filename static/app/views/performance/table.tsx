@@ -462,13 +462,12 @@ class _Table extends Component<Props, State> {
             </Tooltip>
           </GuideAnchor>
         );
-      } else {
-        return (
-          <GuideAnchor target="project_transaction_threshold" position="top">
-            {sortLink}
-          </GuideAnchor>
-        );
       }
+      return (
+        <GuideAnchor target="project_transaction_threshold" position="top">
+          {sortLink}
+        </GuideAnchor>
+      );
     }
 
     if (!title.tooltip) {

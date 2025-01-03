@@ -1,9 +1,9 @@
 import type {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {NewQuery, Organization} from 'sentry/types/organization';
