@@ -74,7 +74,7 @@ describe('locale.gettextComponentTemplate', () => {
     );
 
     expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
-    expect(container.innerHTML).toEqual('<div><b>one</b> <b>two</b> <b>three</b></div>');
+    expect(container.innerHTML).toBe('<div><b>one</b> <b>two</b> <b>three</b></div>');
   });
 
   it('should render nested goups', () => {
@@ -90,7 +90,7 @@ describe('locale.gettextComponentTemplate', () => {
     expect(
       screen.getByText(textWithMarkupMatcher('text with another group'))
     ).toBeInTheDocument();
-    expect(container.innerHTML).toEqual(
+    expect(container.innerHTML).toBe(
       '<div><b>text with <a href="/link">another</a> group</b></div>'
     );
   });

@@ -115,7 +115,7 @@ describe('HighlightsDataSection', function () {
     }
 
     const ctxRows = screen.queryAllByTestId('highlight-context-row');
-    expect(ctxRows.length).toBe(Object.values(highlightContext).flat().length);
+    expect(ctxRows).toHaveLength(Object.values(highlightContext).flat().length);
     highlightContextTitles.forEach(title => {
       expect(screen.getByText(title)).toBeInTheDocument();
     });

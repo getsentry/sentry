@@ -5,16 +5,16 @@ describe('getQuerySymbol', () => {
     const cache: Record<string, string>[] = [];
 
     const abcPalette = getCachedChartPalette(cache, ['a', 'b', 'c']);
-    expect(cache.length).toBe(1);
+    expect(cache).toHaveLength(1);
 
     // As a, b is a subset of a, b, c, we should get the same palette
     const baPalette = getCachedChartPalette(cache, ['b', 'a']);
-    expect(cache.length).toBe(1);
+    expect(cache).toHaveLength(1);
     expect(baPalette).toBe(abcPalette);
 
     // As a, b, z is not a subset of a, b, c we should get a new palette
     const azbPalette = getCachedChartPalette(cache, ['a', 'z', 'b']);
-    expect(cache.length).toBe(2);
+    expect(cache).toHaveLength(2);
     // a will still be the same as it is the first entry in both arrays
     expect(azbPalette).not.toBe(abcPalette);
   });
@@ -23,10 +23,10 @@ describe('getQuerySymbol', () => {
     const cache: Record<string, string>[] = [];
 
     const aPalette = getCachedChartPalette(cache, ['a']);
-    expect(cache.length).toBe(0);
+    expect(cache).toHaveLength(0);
 
     const bPalette = getCachedChartPalette(cache, ['b']);
-    expect(cache.length).toBe(0);
+    expect(cache).toHaveLength(0);
 
     expect(aPalette).not.toBe(bPalette);
   });
@@ -38,7 +38,7 @@ describe('getQuerySymbol', () => {
 
     getCachedChartPalette(cache, ['a', 'b', 'c']);
 
-    expect(cache.length).toBe(20);
+    expect(cache).toHaveLength(20);
 
     // Ensure it removes more than 1 cache entry
     const cache2: Record<string, string>[] = Array.from({length: 100}).map(() => ({
@@ -47,6 +47,6 @@ describe('getQuerySymbol', () => {
 
     getCachedChartPalette(cache2, ['a', 'b', 'c']);
 
-    expect(cache2.length).toBe(20);
+    expect(cache2).toHaveLength(20);
   });
 });

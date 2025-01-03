@@ -382,7 +382,7 @@ describe('OrganizationStats', function () {
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getAllByText('proj-1').length).toBe(2);
+    expect(screen.getAllByText('proj-1')).toHaveLength(2);
   });
 
   /**

@@ -164,7 +164,7 @@ describe('Flamegraph', function () {
     });
 
     // 1 for main view and 1 for minimap
-    expect(frames.length).toBe(2);
+    expect(frames).toHaveLength(2);
   });
 
   it('reads preferences from qs', async function () {
