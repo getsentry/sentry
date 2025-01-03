@@ -1050,23 +1050,35 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         jira_user = None
         if user and assign:
+            total_queried_jira_users = 0
+            total_available_jira_emails = 0
             for ue in user.emails:
                 try:
                     possible_users = client.search_users_for_issue(external_issue.key, ue)
                 except (ApiUnauthorized, ApiError):
                     continue
+
+                total_queried_jira_users += len(possible_users)
                 for possible_user in possible_users:
                     email = possible_user.get("emailAddress")
+
+                    if not email:
+                        continue
+
+                    total_available_jira_emails += 1
                     # match on lowercase email
-                    if email and email.lower() == ue.lower():
+                    if email.lower() == ue.lower():
                         jira_user = possible_user
                         break
+
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
                     "jira.assignee-not-found",
                     extra={
                         "integration_id": external_issue.integration_id,
+                        "jira_user_count_match": total_queried_jira_users,
+                        "total_available_jira_emails": total_available_jira_emails,
                         "user_id": user.id,
                         "issue_key": external_issue.key,
                     },
