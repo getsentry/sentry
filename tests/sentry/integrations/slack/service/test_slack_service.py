@@ -359,13 +359,13 @@ class TestHandleParentNotification(TestCase):
             message_identifier="123abc",
         )
         parent_notification = IssueAlertNotificationMessage.from_model(parent_notification_message)
-        with pytest.raises(RuleDataError) as err:
+        with pytest.raises(RuleDataError) as excinfo:
             self.service._handle_parent_notification(
                 parent_notification=parent_notification,
                 notification_to_send="",
                 client=mock.MagicMock(),
             )
-            assert (
-                err.value
-                == f"failed to get channel_id for rule {self.rule.id} and rule action {parent_notification.rule_action_uuid}"
-            )
+        assert (
+            str(excinfo.value)
+            == f"failed to get channel_id for rule {self.rule.id} and rule action {parent_notification.rule_action_uuid}"
+        )
