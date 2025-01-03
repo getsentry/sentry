@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
@@ -36,10 +35,6 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         }
 
     def get_integrations(self) -> list[RpcIntegration]:
-        # The MSTeams tenant limitation does not seem to be true anymore
-        # Test out the integration through FF to contain the exposure
-        if features.has("organizations:integrations-msteams-tenant", self.project.organization):
-            return [a for a in super().get_integrations()]
         # NOTE: We exclude installations of `tenant` type to NOT show up in the team choices dropdown in alert rule actions
         # as currently, there is no way to query the API for users or channels within a `tenant` to send alerts to.
         return [
