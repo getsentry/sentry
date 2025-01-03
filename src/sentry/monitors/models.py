@@ -533,8 +533,6 @@ class MonitorCheckIn(Model):
     that occurred during the check-in.
     """
 
-    attachment_id = BoundedBigIntegerField(null=True)
-
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
 
     class Meta:
