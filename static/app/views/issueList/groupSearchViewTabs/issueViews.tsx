@@ -1,5 +1,13 @@
 import type {Dispatch, Reducer} from 'react';
-import {createContext, useCallback, useMemo, useReducer, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
@@ -16,15 +24,17 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {generateTempViewId} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {
   GroupSearchView,
   UpdateGroupSearchViewPayload,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
 const TEMPORARY_TAB_KEY = 'temporary-tab';
+
+export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 export interface IssueView {
   id: string;
@@ -357,6 +367,7 @@ export function IssueViewsStateProvider({
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
   const [tabListState, setTabListState] = useState<TabListState<any>>();
   const {className: _className, ...restProps} = props;
 
@@ -519,6 +530,70 @@ export function IssueViewsStateProvider({
       });
     }
   };
+
+  const handleNewViewsSaved: NewTabContext['onNewViewsSaved'] = useCallback<
+    NewTabContext['onNewViewsSaved']
+  >(
+    () => (newViews: NewView[]) => {
+      if (newViews.length === 0) {
+        return;
+      }
+      setNewViewActive(false);
+      const {label, query: newQuery, saveQueryToView} = newViews[0];
+      const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
+        const newId = generateTempViewId();
+        const viewToTab: IssueView = {
+          id: newId,
+          key: newId,
+          label: view.label,
+          query: view.query,
+          querySort: IssueSortOptions.DATE,
+          unsavedChanges: view.saveQueryToView
+            ? undefined
+            : [view.query, IssueSortOptions.DATE],
+          isCommitted: true,
+        };
+        return viewToTab;
+      });
+      let updatedTabs: IssueView[] = state.views.map(tab => {
+        if (tab.key === viewId) {
+          return {
+            ...tab,
+            label,
+            query: saveQueryToView ? newQuery : '',
+            querySort: IssueSortOptions.DATE,
+            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+            isCommitted: true,
+          };
+        }
+        return tab;
+      });
+
+      if (remainingNewViews.length > 0) {
+        updatedTabs = [...updatedTabs, ...remainingNewViews];
+      }
+
+      dispatch({type: 'SET_VIEWS', views: updatedTabs, syncViews: true});
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query,
+            sort: IssueSortOptions.DATE,
+          },
+        },
+        {replace: true}
+      );
+    },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location, navigate, setNewViewActive, state.views, viewId]
+  );
+
+  useEffect(() => {
+    setOnNewViewsSaved(handleNewViewsSaved);
+  }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
     <IssueViewsContext.Provider

@@ -4,10 +4,10 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-describe('CustomViewsHeader', () => {
+describe('IssueViewsHeader', () => {
   const organization = OrganizationFixture();
 
   const getRequestViews = [
@@ -76,7 +76,7 @@ describe('CustomViewsHeader', () => {
     });
 
     it('renders all tabs, selects the first one by default, and replaces the query params accordingly', async () => {
-      render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
       expect(await screen.findByRole('tab', {name: 'High Priority'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'Medium Priority'})).toBeInTheDocument();
@@ -121,7 +121,7 @@ describe('CustomViewsHeader', () => {
         ],
       });
 
-      render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
       expect(await screen.findByRole('tab', {name: 'Prioritized'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'Prioritized'})).toHaveAttribute(
@@ -154,7 +154,7 @@ describe('CustomViewsHeader', () => {
         ],
       });
 
-      render(<CustomViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         router: queryOnlyRouter,
       });
 
@@ -185,10 +185,9 @@ describe('CustomViewsHeader', () => {
         }),
       });
 
-      render(
-        <CustomViewsIssueListHeader {...defaultProps} router={specificTabRouter} />,
-        {router: specificTabRouter}
-      );
+      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
+        router: specificTabRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: 'Medium Priority'})).toHaveAttribute(
         'aria-selected',
@@ -207,7 +206,7 @@ describe('CustomViewsHeader', () => {
     });
 
     it('initially selects a temporary tab when only a query is present in the url', async () => {
-      render(<CustomViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         router: queryOnlyRouter,
       });
 
@@ -240,10 +239,9 @@ describe('CustomViewsHeader', () => {
           },
         }),
       });
-      render(
-        <CustomViewsIssueListHeader {...defaultProps} router={specificTabRouter} />,
-        {router: specificTabRouter}
-      );
+      render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
+        router: specificTabRouter,
+      });
 
       expect(await screen.findByRole('tab', {name: 'High Priority'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'Medium Priority'})).toBeInTheDocument();
@@ -291,7 +289,7 @@ describe('CustomViewsHeader', () => {
       });
 
       render(
-        <CustomViewsIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={defaultTabDifferentQueryRouter}
         />,
@@ -325,7 +323,7 @@ describe('CustomViewsHeader', () => {
     });
 
     it('switches tabs when clicked, and updates the query params accordingly', async () => {
-      render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+      render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Medium Priority'}));
 
@@ -356,7 +354,7 @@ describe('CustomViewsHeader', () => {
 
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('retains unsaved changes after switching tabs', async () => {
-      render(<CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
+      render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />, {
         router: unsavedTabRouter,
       });
       expect(await screen.findByTestId('unsaved-changes-indicator')).toBeInTheDocument();
@@ -384,7 +382,7 @@ describe('CustomViewsHeader', () => {
       });
 
       render(
-        <CustomViewsIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedQueryRouter}
         />,
@@ -421,7 +419,7 @@ describe('CustomViewsHeader', () => {
       });
 
       render(
-        <CustomViewsIssueListHeader
+        <IssueViewsIssueListHeader
           {...defaultProps}
           router={goodViewIdChangedSortRouter}
         />,
@@ -464,7 +462,7 @@ describe('CustomViewsHeader', () => {
         body: getRequestViews,
       });
 
-      render(<CustomViewsIssueListHeader {...defaultProps} />);
+      render(<IssueViewsIssueListHeader {...defaultProps} />);
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -495,7 +493,7 @@ describe('CustomViewsHeader', () => {
         body: getRequestViews,
       });
 
-      render(<CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />);
+      render(<IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />);
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -525,7 +523,7 @@ describe('CustomViewsHeader', () => {
         body: [getRequestViews[0]],
       });
 
-      render(<CustomViewsIssueListHeader {...defaultProps} />);
+      render(<IssueViewsIssueListHeader {...defaultProps} />);
 
       await userEvent.click(
         await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -558,7 +556,7 @@ describe('CustomViewsHeader', () => {
           method: 'PUT',
         });
 
-        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -609,7 +607,7 @@ describe('CustomViewsHeader', () => {
           method: 'PUT',
         });
 
-        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -658,7 +656,7 @@ describe('CustomViewsHeader', () => {
           method: 'PUT',
         });
 
-        render(<CustomViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
+        render(<IssueViewsIssueListHeader {...defaultProps} />, {router: defaultRouter});
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'High Priority Ellipsis Menu'})
@@ -695,7 +693,7 @@ describe('CustomViewsHeader', () => {
         });
 
         render(
-          <CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
           {router: unsavedTabRouter}
         );
 
@@ -733,7 +731,7 @@ describe('CustomViewsHeader', () => {
         });
 
         render(
-          <CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
           {router: unsavedTabRouter}
         );
 
@@ -767,7 +765,7 @@ describe('CustomViewsHeader', () => {
         });
 
         render(
-          <CustomViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
+          <IssueViewsIssueListHeader {...defaultProps} router={unsavedTabRouter} />,
           {router: unsavedTabRouter}
         );
 
