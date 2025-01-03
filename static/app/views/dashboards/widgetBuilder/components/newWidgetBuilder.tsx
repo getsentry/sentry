@@ -299,6 +299,16 @@ const fullPageCss = css`
   left: 0;
 `;
 
+const fillAvailableCss = css`
+  height: 100%; /* default */
+  height: -webkit-fill-available; /* Chrome */
+  height: -moz-available; /* Firefox */
+  height: fill-available; /* others */
+  width: -webkit-fill-available; /* Chrome */
+  width: -moz-available; /* Firefox */
+  width: fill-available; /* others */
+`;
+
 const Backdrop = styled('div')`
   ${fullPageCss};
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
@@ -358,11 +368,8 @@ const WidgetBuilderContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100vh;
   position: fixed;
-  width: -webkit-fill-available; /* Chrome */
-  width: -moz-available; /* Firefox */
-  width: fill-available; /* others */
+  ${fillAvailableCss};
 `;
 
 const DroppableGrid = styled('div')`
