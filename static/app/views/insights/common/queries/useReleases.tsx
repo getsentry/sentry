@@ -90,7 +90,7 @@ export function useReleases(
   if (metricsFetched) {
     releaseMetrics.forEach(c =>
       c.data?.data?.forEach(release => {
-        metricsStats[release.release] = {count: release['count()'] as number};
+        metricsStats[release.release!] = {count: release['count()'] as number};
       })
     );
   }

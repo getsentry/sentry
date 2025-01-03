@@ -112,10 +112,10 @@ describe('decodeColumnOrder', function () {
     });
 
     results = decodeColumnOrder([{field: 'p75()', width: 123}]);
-    expect(results[0].type).toEqual('duration');
+    expect(results[0]!.type).toEqual('duration');
 
     results = decodeColumnOrder([{field: 'p99()', width: 123}]);
-    expect(results[0].type).toEqual('duration');
+    expect(results[0]!.type).toEqual('duration');
   });
 
   it('can decode elements with aggregate functions with arguments', function () {

@@ -514,7 +514,7 @@ class ReleasesList extends DeprecatedAsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
-                  key={`${release.projects[0].slug}-${release.version}`}
+                  key={`${release.projects[0]!.slug}-${release.version}`}
                   activeDisplay={activeDisplay}
                   release={release}
                   organization={organization}

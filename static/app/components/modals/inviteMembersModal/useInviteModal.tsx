@@ -163,7 +163,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
   const removeSentInvites = useCallback(() => {
     setState(prev => {
-      const emails = prev.pendingInvites[0].emails;
+      const emails = prev.pendingInvites[0]!.emails;
       const filteredEmails = Array.from(emails).filter(
         email => !prev.inviteStatus[email]?.sent
       );
@@ -171,7 +171,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
         ...prev,
         pendingInvites: [
           {
-            ...prev.pendingInvites[0],
+            ...prev.pendingInvites[0]!,
             emails: new Set(filteredEmails),
           },
         ],
@@ -218,7 +218,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setEmails = useCallback((emails: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
+      pendingInvites[index] = {...pendingInvites[index]!, emails: new Set(emails)};
 
       return {...prev, pendingInvites};
     });
@@ -227,7 +227,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setTeams = useCallback((teams: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
+      pendingInvites[index] = {...pendingInvites[index]!, teams: new Set(teams)};
 
       return {...prev, pendingInvites};
     });
@@ -236,7 +236,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setRole = useCallback((role: string, index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], role};
+      pendingInvites[index] = {...pendingInvites[index]!, role};
 
       return {...prev, pendingInvites};
     });

@@ -1319,7 +1319,6 @@ function Section({section}: {section: TSection}) {
       <Grid style={{gridTemplateColumns: 'repeat(4, 1fr)'}}>
         {section.icons.map(icon => {
           const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-          // eslint-disable-next-line import/namespace
           const Component = Icons[name];
 
           const props = {color: 'gray500', size: 'sm', ...icon.defaultProps};

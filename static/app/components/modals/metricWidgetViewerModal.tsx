@@ -120,7 +120,7 @@ function MetricWidgetViewerModal({
           if (!updatedQuery.alias) {
             updatedQuery.alias = updatedAlias;
           }
-          if (isVirtualAlias(currentQuery.alias) && isVirtualAlias(updatedQuery.alias)) {
+          if (isVirtualAlias(currentQuery!.alias) && isVirtualAlias(updatedQuery.alias)) {
             updatedQuery.alias = updatedAlias;
           }
         }
@@ -182,7 +182,7 @@ function MetricWidgetViewerModal({
             ? curr.map(q => ({...q, isHidden: true}))
             : curr),
           {
-            ...query,
+            ...query!,
             id: generateQueryId(),
           },
         ];
@@ -241,7 +241,7 @@ function MetricWidgetViewerModal({
         updated.splice(index, 1);
         // Make sure the last query is visible for big number widgets
         if (displayType === DisplayType.BIG_NUMBER && filteredEquations.length === 0) {
-          updated[updated.length - 1].isHidden = false;
+          updated[updated.length - 1]!.isHidden = false;
         }
         return updated;
       });
@@ -308,7 +308,7 @@ function MetricWidgetViewerModal({
     closeModal();
   }, [userHasModified, closeModal, organization]);
 
-  const {mri, aggregation, query, condition} = metricQueries[0];
+  const {mri, aggregation, query, condition} = metricQueries[0]!;
 
   if (isLoading) {
     return <LoadingIndicator />;

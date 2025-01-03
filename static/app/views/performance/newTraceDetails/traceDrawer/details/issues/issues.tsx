@@ -278,8 +278,8 @@ function LegacyIssue(
         <GroupStatusChart
           stats={
             props.fetchedIssue.filtered
-              ? props.fetchedIssue.filtered.stats?.['24h']
-              : props.fetchedIssue.stats?.['24h']
+              ? props.fetchedIssue.filtered.stats?.['24h']!
+              : props.fetchedIssue.stats?.['24h']!
           }
           secondaryStats={
             props.fetchedIssue.filtered ? props.fetchedIssue.stats?.['24h'] : []
