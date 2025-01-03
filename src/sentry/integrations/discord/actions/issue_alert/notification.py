@@ -60,18 +60,15 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
                     client.send_message(channel_id, message, notification_uuid=notification_uuid)
                 except Exception as e:
                     # TODO(iamrajjoshi): Update some of these failures to halts
-                    lifecycle.record_failure(e)
-                    # TODO(iamrajjoshi): Remove the logger after we audit lifecycle
-                    self.logger.error(
-                        "discord.notification.message_send_failure",
-                        extra={
-                            "error": str(e),
+                    lifecycle.add_extras(
+                        {
                             "project_id": event.project_id,
                             "event_id": event.event_id,
                             "guild_id": integration.external_id,
                             "channel_id": channel_id,
-                        },
+                        }
                     )
+                    lifecycle.record_failure(e)
 
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)
