@@ -262,7 +262,7 @@ export default typescript.config([
       'no-sequences': 'error',
       'no-throw-literal': 'error',
       'object-shorthand': ['error', 'properties'],
-      'require-await': 'error',
+      'require-await': 'error', // TODO: see also @typescript-eslint/require-await
       'spaced-comment': [
         'error',
         'always',
@@ -404,7 +404,9 @@ export default typescript.config([
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/eslint-recommended-raw.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/recommended.ts
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/strict.ts
+  // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/stylistic.ts
   ...typescript.configs.strict.map(c => ({...c, name: `plugin/${c.name}`})),
+  ...typescript.configs.stylistic.map(c => ({...c, name: `plugin/${c.name}`})),
   {
     name: 'plugin/typescript-eslint/overrides',
     // https://typescript-eslint.io/rules/
@@ -435,6 +437,18 @@ export default typescript.config([
       '@typescript-eslint/no-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/prefer-literal-enum-member': 'off', // TODO(ryan953): Fix violations and delete this line
       '@typescript-eslint/unified-signatures': 'off', // TODO(ryan953): Fix violations and delete this line
+
+      // Stylistic overrides
+      '@typescript-eslint/array-type': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/class-literal-property-style': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/consistent-generic-constructors': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/consistent-indexed-object-style': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/consistent-type-definitions': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-confusing-non-null-assertion': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-empty-function': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/no-inferrable-types': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/prefer-for-of': 'off', // TODO(ryan953): Fix violations and delete this line
+      '@typescript-eslint/prefer-function-type': 'off', // TODO(ryan953): Fix violations and delete this line
 
       // Customization
       '@typescript-eslint/no-unused-vars': [
