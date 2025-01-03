@@ -197,7 +197,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(new MutableSearch(string)).toEqual(object));
+      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -504,7 +504,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(object.formatString()).toEqual(string));
+      it(`${name}`, () => expect(object.formatString()).toEqual(string));
     }
   });
 });

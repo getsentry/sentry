@@ -29,11 +29,6 @@ const restrictedImportPatterns = [
     group: ['sentry/components/devtoolbar/*'],
     message: 'Do not depend on toolbar internals',
   },
-  {
-    group: ['*.spec*'],
-    message:
-      'Do not import from test files. This causes tests to be executed multiple times.',
-  },
 ];
 
 const restrictedImportPaths = [
@@ -752,23 +747,30 @@ export default typescript.config([
     files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
     plugins: jest.configs['flat/recommended'].plugins,
     rules: {
+      ...jest.configs['flat/recommended'].rules,
+      ...jest.configs['flat/style'].rules,
+
+      // `recommended` set this to warn, we've upgraded to error
       'jest/no-disabled-tests': 'error',
 
+      // `recommended` set this to warn, we've downgraded to off
       // Disabled as we have many tests which render as simple validations
       'jest/expect-expect': 'off',
 
       // Disabled as we have some comment out tests that cannot be
       // uncommented due to typescript errors.
-      'jest/no-commented-out-tests': 'off',
+      'jest/no-commented-out-tests': 'off', // TODO(ryan953): Fix violations then delete this line
 
       // Disabled as we do sometimes have conditional expects
-      'jest/no-conditional-expect': 'off',
-
-      // Useful for exporting some test utilities
-      'jest/no-export': 'off',
+      'jest/no-conditional-expect': 'off', // TODO(ryan953): Fix violations then delete this line
 
       // We don't recommend snapshots, but if there are any keep it small
       'jest/no-large-snapshots': ['error', {maxSize: 2000}],
+
+      'jest/no-alias-methods': 'off', // TODO(ryan953): Fix violations then delete this line
+      'jest/prefer-to-be': 'off', // TODO(ryan953): Fix violations then delete this line
+      'jest/prefer-to-contain': 'off', // TODO(ryan953): Fix violations then delete this line
+      'jest/prefer-to-have-length': 'off', // TODO(ryan953): Fix violations then delete this line
     },
   },
   {

@@ -8,7 +8,7 @@ import {
   getBrowserContextData,
 } from 'sentry/components/events/contexts/knownContext/browser';
 
-export const MOCK_BROWSER_CONTEXT: BrowserContext = {
+const MOCK_BROWSER_CONTEXT: BrowserContext = {
   version: '83.0.4103',
   type: 'browser',
   name: '',
@@ -17,7 +17,7 @@ export const MOCK_BROWSER_CONTEXT: BrowserContext = {
   unknown_key: 123,
 };
 
-export const MOCK_REDACTION = {
+const MOCK_REDACTION = {
   name: {
     '': {
       chunks: [

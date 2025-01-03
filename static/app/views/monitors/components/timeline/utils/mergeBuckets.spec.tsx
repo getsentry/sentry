@@ -13,7 +13,7 @@ type StatusCounts = [
   unknown: number,
 ];
 
-export function generateEnvMapping(name: string, counts: StatusCounts) {
+function generateEnvMapping(name: string, counts: StatusCounts) {
   const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
     [name]: {in_progress, ok, missed, timeout, error, unknown},
