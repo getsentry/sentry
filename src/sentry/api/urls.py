@@ -178,7 +178,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -796,11 +795,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/first-last-release/$",
             GroupFirstLastReleaseEndpoint.as_view(),
             name=f"{name_prefix}-group-first-last-release",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/participants/$",
-            GroupParticipantsEndpoint.as_view(),
-            name=f"{name_prefix}-group-participants",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/$",
