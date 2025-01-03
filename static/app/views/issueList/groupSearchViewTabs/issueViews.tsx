@@ -544,9 +544,7 @@ export function IssueViewsStateProvider({
     }
 
     if (action.updateQueryParams) {
-      queueMicrotask(() => {
-        updateQueryParams(action.updateQueryParams!);
-      });
+      updateQueryParams(action.updateQueryParams!);
     }
 
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
