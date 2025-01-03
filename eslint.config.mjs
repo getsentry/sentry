@@ -479,12 +479,12 @@ export default typescript.config([
   {
     name: 'plugin/react',
     plugins: {
-      ...react.configs.flat.recommended.plugins,
+      ...(react.configs.flat.recommended?.plugins ?? {}),
       // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].plugins,
     },
     rules: {
-      ...react.configs.flat.recommended.rules,
+      ...(react.configs.flat.recommended?.rules ?? {}),
       // @ts-ignore noUncheckedIndexedAccess
       ...react.configs.flat['jsx-runtime'].rules,
 
