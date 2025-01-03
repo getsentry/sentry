@@ -243,11 +243,11 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
 
         # This will only pass for new issues
         self.group_event.group.update(priority=PriorityLevel.HIGH)
-        self.job.update({"group_state": {"is_new_group_environment": True}})
+        self.job["group_state"]["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
 
         # These will never pass
-        self.job.update({"group_state": {"is_new_group_environment": False}})
+        self.job["group_state"]["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.MEDIUM)
@@ -261,21 +261,21 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         self.project.save()
 
         self.group_event.group.update(priority=PriorityLevel.HIGH)
-        self.job.update({"group_state": {"is_new_group_environment": True}})
+        self.job["group_state"]["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job.update({"group_state": {"is_new_group_environment": False}})
+        self.job["group_state"]["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.MEDIUM)
-        self.job.update({"group_state": {"is_new_group_environment": True}})
+        self.job["group_state"]["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job.update({"group_state": {"is_new_group_environment": False}})
+        self.job["group_state"]["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.LOW)
-        self.job.update({"group_state": {"is_new_group_environment": True}})
+        self.job["group_state"]["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job.update({"group_state": {"is_new_group_environment": False}})
+        self.job["group_state"]["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_dual_write(self):
