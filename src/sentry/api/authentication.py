@@ -515,7 +515,7 @@ class DSNAuthentication(StandardAuthentication):
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
-        return (AnonymousUser(), key)
+        return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)
