@@ -4,6 +4,7 @@ from typing import Any
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
+from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.utils.registry import Registry
@@ -76,6 +77,18 @@ def create_event_attribute_data_condition(
     return DataCondition.objects.create(
         type=Condition.EVENT_ATTRIBUTE,
         comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(FirstSeenEventCondition.id)
+def create_first_seen_event_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return DataCondition.objects.create(
+        type=Condition.FIRST_SEEN_EVENT,
+        comparison=True,
         condition_result=True,
         condition_group=dcg,
     )
