@@ -160,7 +160,6 @@ module = [
     "sentry.api.paginator",
     "sentry.api.permissions",
     "sentry.api.serializers.models.auth_provider",
-    "sentry.api.serializers.models.dashboard",
     "sentry.api.serializers.models.event",
     "sentry.api.serializers.models.group",
     "sentry.api.serializers.models.group_stream",
