@@ -195,9 +195,16 @@ function useWidgetBuilderState(): {
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (nextDisplayType === DisplayType.TABLE) {
+          if (
+            nextDisplayType === DisplayType.TABLE ||
+            nextDisplayType === DisplayType.BIG_NUMBER
+          ) {
             setYAxis([]);
+            setFields(
+              config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+            );
           } else {
+            setFields([]);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
                 explodeField({field: aggregate})
