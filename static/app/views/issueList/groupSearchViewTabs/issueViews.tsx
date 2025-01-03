@@ -539,7 +539,7 @@ export function IssueViewsStateProvider({
         return;
       }
       setNewViewActive(false);
-      const {label, query: newQuery, saveQueryToView} = newViews[0];
+      const {label, query: newQuery, saveQueryToView} = newViews[0]!;
       const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
         const newId = generateTempViewId();
         const viewToTab: IssueView = {
