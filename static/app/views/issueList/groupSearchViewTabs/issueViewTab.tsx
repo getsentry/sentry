@@ -74,7 +74,7 @@ export function IssueViewTab({
     dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
-    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0].key);
+    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0]!.key);
   };
 
   const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
