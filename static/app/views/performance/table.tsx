@@ -1,4 +1,4 @@
-import {Component, useEffect} from 'react';
+import {Component, type ReactNode, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -11,9 +11,11 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -55,6 +57,15 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
 
+type ColumnTitle = {
+  title: string | ReactNode;
+  tooltip?: string | ReactNode;
+};
+
+const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
+  return {title};
+});
+
 type Props = {
   eventView: EventView;
   location: Location;
@@ -62,7 +73,7 @@ type Props = {
   projects: Project[];
   setError: (msg: string | undefined) => void;
   withStaticFilters: boolean;
-  columnTitles?: string[];
+  columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
   summaryConditions?: string;
 };
@@ -402,7 +413,7 @@ class _Table extends Component<Props, State> {
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode
+    title: ColumnTitle
   ): React.ReactNode {
     const {eventView, location} = this.props;
 
@@ -437,7 +448,7 @@ class _Table extends Component<Props, State> {
     const sortLink = (
       <SortLink
         align={align}
-        title={title || field.field}
+        title={title.title || field.field}
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
@@ -451,11 +462,20 @@ class _Table extends Component<Props, State> {
         </GuideAnchor>
       );
     }
-    return sortLink;
+
+    if (!title.tooltip) {
+      return sortLink;
+    }
+    return (
+      <Header>
+        {sortLink}
+        <QuestionTooltip size="xs" position="top" title={title.tooltip} isHoverable />
+      </Header>
+    );
   }
 
   renderHeadCellWithMeta = (tableMeta: TableData['meta']) => {
-    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES;
+    const columnTitles = this.props.columnTitles ?? COLUMN_TITLES_OPTIONAL_TOOLTIP;
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
       this.renderHeadCell(tableMeta, column, columnTitles[index]);
   };
@@ -479,7 +499,9 @@ class _Table extends Component<Props, State> {
               />
             </TeamKeyTransactionWrapper>
           );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+          return [
+            this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, {title: star}),
+          ];
         }
         return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
       }
@@ -625,6 +647,14 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const Header = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  padding: ${space(1.5)};
+  grid-column-gap: ${space(0.5)};
 `;
 
 export default Table;
