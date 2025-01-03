@@ -77,6 +77,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
         desired_value = str(desired_value).lower()
 
         # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        # For event_attribute we need to check that the value of the attribute is not None
         if match == MatchType.IS_SET:
             return bool(attribute_values)
         elif match == MatchType.NOT_SET:
@@ -144,9 +145,9 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowJob]):
         )
 
         # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        # For tagged_event we need to check that the key exists in the list of all tag_keys
         if match == MatchType.IS_SET:
             return key in tag_keys
-
         elif match == MatchType.NOT_SET:
             return key not in tag_keys
 

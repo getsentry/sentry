@@ -33,7 +33,6 @@ class TestTaggedEventCondition(ConditionTestCase):
         self.job = WorkflowJob(
             {
                 "event": self.group_event,
-                "has_reappeared": True,
             }
         )
         self.dc = self.create_data_condition(
@@ -72,149 +71,187 @@ class TestTaggedEventCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_equals(self):
-        self.dc.comparison = {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
+        self.dc.update(
+            comparison={"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
+        )
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.EQUAL,
-            "key": "logger",
-            "value": "sentry.other.example",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.EQUAL,
+                "key": "logger",
+                "value": "sentry.other.example",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_does_not_equal(self):
-        self.dc.comparison = {
-            "match": MatchType.NOT_EQUAL,
-            "key": "logger",
-            "value": "sentry.example",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_EQUAL,
+                "key": "logger",
+                "value": "sentry.example",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.NOT_EQUAL,
-            "key": "logger",
-            "value": "sentry.other.example",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_EQUAL,
+                "key": "logger",
+                "value": "sentry.other.example",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
     def test_starts_with(self):
-        self.dc.comparison = {
-            "match": MatchType.STARTS_WITH,
-            "key": "logger",
-            "value": "sentry.",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.STARTS_WITH,
+                "key": "logger",
+                "value": "sentry.",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.STARTS_WITH, "key": "logger", "value": "bar."}
+        self.dc.update(
+            comparison={"match": MatchType.STARTS_WITH, "key": "logger", "value": "bar."}
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_does_not_start_with(self):
-        self.dc.comparison = {
-            "match": MatchType.NOT_STARTS_WITH,
-            "key": "logger",
-            "value": "sentry.",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_STARTS_WITH,
+                "key": "logger",
+                "value": "sentry.",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.NOT_STARTS_WITH,
-            "key": "logger",
-            "value": "bar.",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_STARTS_WITH,
+                "key": "logger",
+                "value": "bar.",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
     def test_ends_with(self):
-        self.dc.comparison = {
-            "match": MatchType.ENDS_WITH,
-            "key": "logger",
-            "value": ".example",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.ENDS_WITH,
+                "key": "logger",
+                "value": ".example",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.ENDS_WITH, "key": "logger", "value": ".foo"}
+        self.dc.update(comparison={"match": MatchType.ENDS_WITH, "key": "logger", "value": ".foo"})
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_does_not_end_with(self):
-        self.dc.comparison = {
-            "match": MatchType.NOT_ENDS_WITH,
-            "key": "logger",
-            "value": ".example",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_ENDS_WITH,
+                "key": "logger",
+                "value": ".example",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.NOT_ENDS_WITH,
-            "key": "logger",
-            "value": ".foo",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_ENDS_WITH,
+                "key": "logger",
+                "value": ".foo",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
     def test_contains(self):
-        self.dc.comparison = {
-            "match": MatchType.CONTAINS,
-            "key": "logger",
-            "value": "sentry",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.CONTAINS,
+                "key": "logger",
+                "value": "sentry",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.CONTAINS, "key": "logger", "value": "bar.foo"}
+        self.dc.update(
+            comparison={"match": MatchType.CONTAINS, "key": "logger", "value": "bar.foo"}
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_does_not_contain(self):
-        self.dc.comparison = {
-            "match": MatchType.NOT_CONTAINS,
-            "key": "logger",
-            "value": "sentry",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_CONTAINS,
+                "key": "logger",
+                "value": "sentry",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.NOT_CONTAINS,
-            "key": "logger",
-            "value": "bar.foo",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_CONTAINS,
+                "key": "logger",
+                "value": "bar.foo",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
     def test_is_set(self):
-        self.dc.comparison = {"match": MatchType.IS_SET, "key": "logger"}
+        self.dc.update(comparison={"match": MatchType.IS_SET, "key": "logger"})
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.IS_SET, "key": "missing"}
+        self.dc.update(comparison={"match": MatchType.IS_SET, "key": "missing"})
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_is_not_set(self):
-        self.dc.comparison = {"match": MatchType.NOT_SET, "key": "logger"}
+        self.dc.update(comparison={"match": MatchType.NOT_SET, "key": "logger"})
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.NOT_SET, "key": "missing"}
+        self.dc.update(comparison={"match": MatchType.NOT_SET, "key": "missing"})
         self.assert_passes(self.dc, self.job)
 
     def test_is_in(self):
-        self.dc.comparison = {
-            "match": MatchType.IS_IN,
-            "key": "logger",
-            "value": "bar.foo, wee, wow",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.IS_IN,
+                "key": "logger",
+                "value": "bar.foo, wee, wow",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.IS_IN,
-            "key": "logger",
-            "value": "foo.bar",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.IS_IN,
+                "key": "logger",
+                "value": "foo.bar",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
     def test_not_in(self):
-        self.dc.comparison = {
-            "match": MatchType.NOT_IN,
-            "key": "logger",
-            "value": "bar.foo, wee, wow",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_IN,
+                "key": "logger",
+                "value": "bar.foo, wee, wow",
+            }
+        )
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {
-            "match": MatchType.NOT_IN,
-            "key": "logger",
-            "value": "foo.bar",
-        }
+        self.dc.update(
+            comparison={
+                "match": MatchType.NOT_IN,
+                "key": "logger",
+                "value": "foo.bar",
+            }
+        )
         self.assert_does_not_pass(self.dc, self.job)
