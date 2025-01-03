@@ -83,16 +83,35 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        FlagWebHookSigningSecretModel.objects.create_or_update(
-            organization=organization,
-            provider=validator.validated_data["provider"],
-            values={
-                "created_by": request.user.id,
-                "date_added": datetime.now(tz=timezone.utc),
-                "provider": validator.validated_data["provider"],
-                "secret": validator.validated_data["secret"],
-            },
-        )
+        # these scopes can always update or post secrets
+        has_update_or_post_access = request.access.has_scope(
+            "org:write"
+        ) or request.access.has_scope("org:admin")
+
+        try:
+            secret = FlagWebHookSigningSecretModel.objects.filter(
+                organization_id=organization.id
+            ).get(provider=validator.validated_data["provider"])
+            # allow update access if the user created the secret
+            if request.user.id == secret.created_by:
+                has_update_or_post_access = True
+        except FlagWebHookSigningSecretModel.DoesNotExist:
+            # anyone can post a new secret
+            has_update_or_post_access = True
+
+        if has_update_or_post_access:
+            FlagWebHookSigningSecretModel.objects.create_or_update(
+                organization=organization,
+                provider=validator.validated_data["provider"],
+                values={
+                    "created_by": request.user.id,
+                    "date_added": datetime.now(tz=timezone.utc),
+                    "provider": validator.validated_data["provider"],
+                    "secret": validator.validated_data["secret"],
+                },
+            )
+        else:
+            return Response("Not authorized.", status=401)
 
         return Response(status=201)
 
