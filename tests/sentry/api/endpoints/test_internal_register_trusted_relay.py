@@ -47,8 +47,7 @@ class InternalRegisterTrustedRelayTest(APITestCase):
         Test that attempting to register a relay without an auth token
         """
         response = self.client.post(self.url, self.valid_payload)
-        assert response.status_code == 400
-        assert response.data["detail"] == "Organization not found"
+        assert response.status_code == 401
 
     def test_post_without_relay_feature(self):
         """

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import OrgAuthTokenAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
@@ -29,6 +30,7 @@ class InternalRegisterTrustedRelayEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OWNERS_INGEST
+    authentication_classes = (OrgAuthTokenAuthentication,)
     permission_classes = (TrustedRelayPermission,)
 
     def post(self, request: Request) -> Response:
