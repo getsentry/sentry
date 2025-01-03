@@ -11,7 +11,7 @@ class TestLevelCondition(ConditionTestCase):
     payload = {
         "id": LevelCondition.id,
         "match": MatchType.EQUAL,
-        "level": "30",
+        "level": "20",
     }
 
     def setup_group_event_and_job(self):
@@ -33,6 +33,18 @@ class TestLevelCondition(ConditionTestCase):
             comparison={"match": MatchType.EQUAL, "level": "20"},
             condition_result=True,
         )
+
+    def test_dual_write(self):
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison == {
+            "match": MatchType.EQUAL,
+            "level": "20",
+        }
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
 
     def test_equals(self):
         self.dc.comparison = {"match": MatchType.EQUAL, "level": "20"}
