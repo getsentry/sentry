@@ -27,12 +27,14 @@ from sentry.utils.cache import cache
 class RuleSource(IntEnum):
     ISSUE = 0
     CRON_MONITOR = 1
+    UPTIME = 2
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ISSUE, "issue"),
             (cls.CRON_MONITOR, "cron_monitor"),
+            (cls.UPTIME, "uptime"),
         )
 
 
