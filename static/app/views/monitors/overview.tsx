@@ -96,7 +96,7 @@ export default function Monitors() {
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
   return (
-    <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+    <SentryDocumentTitle title={t(`Crons`)} orgSlug={organization.slug}>
       <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>
