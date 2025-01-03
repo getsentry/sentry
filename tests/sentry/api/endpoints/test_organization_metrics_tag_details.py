@@ -4,7 +4,7 @@ import pytest
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.testutils.cases import MetricsAPIBaseTestCase, OrganizationMetricsIntegrationTestCase
+from sentry.testutils.cases import OrganizationMetricsIntegrationTestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -16,10 +16,6 @@ def _indexer_record(org_id: int, string: str) -> None:
 class OrganizationMetricsTagDetailsTest(OrganizationMetricsIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tag-details"
-
-    @property
-    def now(self):
-        return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_unknown_tag(self):
         _indexer_record(self.organization.id, "bar")

@@ -10,7 +10,6 @@ from requests.sessions import Session
 from urllib3.exceptions import InvalidChunkLength
 from urllib3.response import HTTPResponse
 
-from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
@@ -320,17 +319,3 @@ class ApiClientTest(TestCase):
                 verify=False,
                 cert=None,
             )
-
-
-class OAuthProvider(OAuth2Provider):
-    key = "oauth"
-    name = "OAuth Provider"
-
-    def get_client_id(self):
-        return "client_id"
-
-    def get_client_secret(self):
-        return "client_secret"
-
-    def get_refresh_token_url(self):
-        return "https://example.com"

@@ -174,13 +174,10 @@ def to_json(value: Any, pretty_print: bool = False) -> str:
 
 def dump_variant(
     variant: BaseVariant,
-    lines: list[str] | None = None,
+    lines: list[str],
     indent: int = 0,
     include_non_contributing: bool = True,
 ) -> list[str]:
-    if lines is None:
-        lines = []
-
     def _dump_component(component: BaseGroupingComponent, indent: int) -> None:
         if not component.hint and not component.values:
             return

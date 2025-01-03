@@ -1,4 +1,3 @@
-import subprocess
 from dataclasses import dataclass
 from unittest.mock import MagicMock, Mock, patch
 
@@ -24,18 +23,6 @@ class FakePopen(MagicMock):
         self.args = cmd
         self.stdout = ""
         self.stderr = ""
-
-
-class FakePopenFactory:
-    pass
-
-
-def raise_error(*args, **kwargs):
-    raise subprocess.CalledProcessError(returncode=123, cmd="foo")
-
-
-def raise_timeout(*args, **kwargs):
-    raise subprocess.TimeoutExpired("Fake gcloud timeout", timeout=123)
 
 
 class WorkstationsTestCase(CliTestCase):

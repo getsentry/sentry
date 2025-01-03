@@ -57,17 +57,6 @@ def add_identity(
     return idp
 
 
-def find_identity(idp: IdentityProvider, user: User) -> Identity | None:
-    identities = Identity.objects.filter(
-        idp=idp,
-        user=user,
-        status=IdentityStatus.VALID,
-    )
-    if not identities:
-        return None
-    return identities[0]
-
-
 @assume_test_silo_mode(SiloMode.CONTROL)
 def link_user(user: User, idp: IdentityProvider, slack_id: str) -> None:
     Identity.objects.create(

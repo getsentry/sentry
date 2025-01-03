@@ -1,4 +1,3 @@
-from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.organizationmember import OrganizationMember
@@ -17,9 +16,6 @@ class OrganizationRollbackUserEndpointTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-
-    def _get_path(self) -> str:
-        return reverse(self.endpoint)
 
     @with_feature("organizations:sentry-rollback-2024")
     def test_simple(self):

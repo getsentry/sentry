@@ -86,19 +86,6 @@ class VercelUninstallTest(APITestCase):
             metadata=metadata,
         )
 
-    def _get_delete_response(self):
-        # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events/integration-configuration-removed
-        return """{
-            "payload": {
-                "configuration": {
-                    "id": "my_config_id",
-                    "projects": ["project_id1"]
-                }
-            },
-            "teamId": "vercel_team_id",
-            "userId": "vercel_user_id"
-        }"""
-
     def test_uninstall(self):
         with override_options({"vercel.client-secret": SECRET}):
             response = self.client.post(

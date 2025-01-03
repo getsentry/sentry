@@ -322,10 +322,7 @@ class BitFieldTest(TestCase):
         # Big flags list
         flags = ["f" + str(i) for i in range(100)]
 
-        try:
-            BitField(flags=flags[:MAX_COUNT])
-        except ValueError:
-            self.fail("It should work well with these flags")
+        BitField(flags=flags[:MAX_COUNT])  # should not raise
 
         pytest.raises(ValueError, BitField, flags=flags[: (MAX_COUNT + 1)])
 
@@ -340,10 +337,7 @@ class BitFieldTest(TestCase):
             -100: "smallkey",
         }
 
-        try:
-            bf = BitField(flags)
-        except ValueError:
-            self.fail("It should work well with these flags")
+        bf = BitField(flags)
 
         self.assertEqual(bf.flags, ["zero", "first", "second", "", "", "", "", "", "", "", "tenth"])
         pytest.raises(ValueError, BitField, flags={})

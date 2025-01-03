@@ -2372,12 +2372,6 @@ class BaseAlertRuleTriggerActionTest(TestCase):
         )
 
     def patch_msg_delete_scheduled_response(self, channel_id):
-        if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
-        else:
-            bodydict = {
-                "ok": True,
-            }
         return patch(
             "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
             return_value=SlackResponse(
@@ -2385,7 +2379,7 @@ class BaseAlertRuleTriggerActionTest(TestCase):
                 http_verb="POST",
                 api_url="https://slack.com/api/chat.deleteScheduleMessage",
                 req_args={},
-                data=bodydict,
+                data={"ok": True},
                 headers={},
                 status_code=200,
             ),

@@ -49,7 +49,7 @@ def get_test_message(default_project):
                 "event_id": event_id,
             }
         else:
-            raise ValueError(type)
+            raise AssertionError(type)
 
         em = EventManager(event, project=project)
         em.normalize()

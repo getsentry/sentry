@@ -3,7 +3,6 @@ from __future__ import annotations
 import zipfile
 from io import BytesIO
 from os.path import join
-from tempfile import TemporaryFile
 from typing import Any
 from unittest.mock import patch
 
@@ -84,26 +83,6 @@ def load_profile(name):
     path = join(PROFILES_FIXTURES_PATH, name)
     with open(path) as f:
         return json.loads(f.read())
-
-
-def load_proguard(project, proguard_uuid, proguard_source):
-    with TemporaryFile() as tf:
-        tf.write(proguard_source)
-        tf.seek(0)
-        file = Factories.create_file(
-            name=proguard_uuid,
-            type="project.dif",
-            headers={"Content-Type": "proguard"},
-        )
-        file.putfile(tf)
-
-    return Factories.create_dif_file(
-        project,
-        file=file,
-        debug_id=proguard_uuid,
-        object_name="proguard-mapping",
-        data={"features": ["mapping"]},
-    )
 
 
 @pytest.fixture
@@ -286,21 +265,6 @@ def sample_v2_profile():
   }
 }"""
     )
-
-
-@pytest.fixture
-def proguard_file_basic(project):
-    return load_proguard(project, PROGUARD_UUID, PROGUARD_SOURCE)
-
-
-@pytest.fixture
-def proguard_file_inline(project):
-    return load_proguard(project, PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
-
-
-@pytest.fixture
-def proguard_file_bug(project):
-    return load_proguard(project, PROGUARD_BUG_UUID, PROGUARD_BUG_SOURCE)
 
 
 @django_db_all

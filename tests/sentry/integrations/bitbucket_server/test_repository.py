@@ -253,4 +253,4 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
     def test_get_repository_data_no_installation_id(self):
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in str(e)
+        assert "requires an integration id" in str(e.value)

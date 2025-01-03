@@ -73,8 +73,8 @@ class RedisBackendTestCase(TestCase):
 
         # ...and you can't send a digest in the waiting state.
         with pytest.raises(InvalidState):
-            with backend.digest("timeline", 0) as records:
-                pass
+            with backend.digest("timeline", 0):
+                raise AssertionError("unreachable")
 
         record_2 = Record("record:2", self.notification, time.time())
         backend.add("timeline", record_2)
@@ -127,8 +127,8 @@ class RedisBackendTestCase(TestCase):
         backend.delete("timeline")
 
         with pytest.raises(InvalidState):
-            with backend.digest("timeline", 0) as records:
-                assert not records
+            with backend.digest("timeline", 0):
+                raise AssertionError("unreachable")
 
         assert set(backend.schedule(time.time())) == set()
         assert len(backend._get_connection("timeline").keys("d:*")) == 0

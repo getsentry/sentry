@@ -47,7 +47,7 @@ class RateLimitedEndpoint(Endpoint):
     )
 
     def get(self, request):
-        return Response({"ok": True})
+        raise NotImplementedError
 
 
 class ConcurrentRateLimitedEndpoint(Endpoint):

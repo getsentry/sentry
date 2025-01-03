@@ -867,16 +867,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
         return self.create_alert_rule(projects=[self.project, self.other_project])
 
     @cached_property
-    def valid_params(self):
-        return {
-            "label": "something",
-            "threshold_type": 0,
-            "resolve_threshold": 1,
-            "alert_threshold": 0,
-            "actions": [{"type": "email", "targetType": "team", "targetIdentifier": self.team.id}],
-        }
-
-    @cached_property
     def access(self):
         return from_user(self.user, self.organization)
 
@@ -887,13 +877,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
             "access": self.access,
             "alert_rule": self.alert_rule,
         }
-
-    def run_fail_validation_test(self, params, errors):
-        base_params = self.valid_params.copy()
-        base_params.update(params)
-        serializer = AlertRuleTriggerSerializer(context=self.context, data=base_params)
-        assert not serializer.is_valid()
-        assert serializer.errors == errors
 
     def test_validation_no_params(self):
         serializer = AlertRuleTriggerSerializer(context=self.context, data={})
@@ -906,9 +889,6 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
 
 
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
-    def mock_conversations_list(self, channels):
-        return mock_slack_response("conversations_list", body={"ok": True, "channels": channels})
-
     def mock_conversations_info(self, channel):
         return mock_slack_response(
             "conversations_info",
@@ -917,14 +897,11 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
 
     def patch_msg_schedule_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            body = {"ok": False, "error": "channel_not_found"}
-        else:
-            body = {
-                "ok": True,
-                result_name: channel_id,
-                "scheduled_message_id": "Q1298393284",
-            }
+        body = {
+            "ok": True,
+            result_name: channel_id,
+            "scheduled_message_id": "Q1298393284",
+        }
         return mock_slack_response("chat_scheduleMessage", body)
 
     @cached_property

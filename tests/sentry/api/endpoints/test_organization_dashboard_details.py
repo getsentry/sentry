@@ -2755,9 +2755,6 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
-    def get_widget_queries(self, widget):
-        return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
-
     def test_ondemand_without_flags(self):
         data: dict[str, Any] = {
             "title": "First dashboard",
