@@ -47,6 +47,7 @@ export function MetricRulesEdit({
     {
       staleTime: 0,
       retry: false,
+      refetchOnMount: true,
     }
   );
 
@@ -97,6 +98,9 @@ export function MetricRulesEdit({
   return (
     <RuleForm
       {...props}
+      // HACK: gnarly workaround to force the component to re-render when rule updates
+      // Remove this once the RuleForm component is refactored to use `react-query`
+      key={JSON.stringify(rule)}
       params={params}
       project={project}
       userTeamIds={userTeamIds}
