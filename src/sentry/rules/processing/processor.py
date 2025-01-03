@@ -70,7 +70,7 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
 
 def split_conditions_and_filters(
     rule_condition_list,
-) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:
@@ -212,7 +212,7 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: MutableMapping[str, Any],
+        condition: dict[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
@@ -237,8 +237,8 @@ class RuleProcessor:
         )
 
     def group_conditions_by_speed(
-        self, conditions: list[MutableMapping[str, Any]]
-    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        self, conditions: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, str]], list[EventFrequencyConditionData]]:
         fast_conditions = []
         slow_conditions: list[EventFrequencyConditionData] = []
 
