@@ -64,11 +64,12 @@ def send_incident_alert_notification(
             client.send_message(channel, message)
         except Exception as error:
             # TODO(iamrajjoshi): Update some of these failures to halts
-            lifecycle.record_failure(error)
-            # TODO(iamrajjoshi): Remove the logger after we audit lifecycle
-            logger.warning(
-                "discord.metric_alert.message_send_failure",
-                extra={"error": error, "incident_id": incident.id, "channel_id": channel},
+            lifecycle.add_extras(
+                {
+                    "incident_id": incident.id,
+                    "channel_id": channel,
+                }
             )
+            lifecycle.record_failure(error)
             return False
         return True
