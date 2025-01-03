@@ -10,8 +10,8 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {shiftTimeserieToNow} from '../common/shiftTimeserieToNow';
 import type {Release, TimeseriesData} from '../common/types';
+import {shiftTimeserieToNow} from '../timeSeriesWidget/shiftTimeserieToNow';
 
 import {LineChartWidget} from './lineChartWidget';
 import sampleDurationTimeSeries from './sampleDurationTimeSeries.json';
