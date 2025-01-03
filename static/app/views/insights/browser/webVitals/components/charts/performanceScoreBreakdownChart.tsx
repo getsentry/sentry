@@ -57,7 +57,7 @@ export function PerformanceScoreBreakdownChart({
 
   const pageFilters = usePageFilters();
   const handleMissingWebVitals = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
