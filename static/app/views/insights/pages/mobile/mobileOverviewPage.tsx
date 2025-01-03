@@ -51,26 +51,26 @@ import {
 } from 'sentry/views/performance/utils';
 
 const MOBILE_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'slow frame %',
-  'frozen frame %',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'users'},
+  {title: 'user misery'},
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'slow frame %',
-  'frozen frame %',
-  'stall %',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'stall %'},
+  {title: 'users'},
+  {title: 'user misery'},
 ];
 
 function MobileOverviewPage() {
@@ -124,7 +124,11 @@ function MobileOverviewPage() {
   );
 
   if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
+    columnTitles = [
+      ...columnTitles.slice(0, 5),
+      {title: 'ttid'},
+      ...columnTitles.slice(5, 0),
+    ];
     tripleChartRowCharts.push(
       ...[
         PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,

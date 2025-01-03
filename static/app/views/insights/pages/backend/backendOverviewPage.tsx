@@ -47,17 +47,17 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const BACKEND_COLUMN_TITLES = [
-  'http method',
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'p50()',
-  'p95()',
-  'failure rate',
-  'apdex',
-  'users',
-  'user misery',
+  {title: 'http method'},
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()'},
+  {title: 'p95()'},
+  {title: 'failure rate'},
+  {title: 'apdex'},
+  {title: 'users'},
+  {title: 'user misery'},
 ];
 
 function BackendOverviewPage() {
