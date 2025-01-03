@@ -31,7 +31,7 @@ five`
 
 describe('utils.explodeSlug', function () {
   it('replaces slug special chars with whitespace', function () {
-    expect(explodeSlug('test--slug__replace-')).toEqual('test slug replace');
+    expect(explodeSlug('test--slug__replace-')).toBe('test slug replace');
   });
 });
 
