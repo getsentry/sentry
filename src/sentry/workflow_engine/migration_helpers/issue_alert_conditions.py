@@ -78,14 +78,12 @@ def create_existing_high_priority_issue_data_condition(
 def create_event_attribute_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
     comparison = {
-        "match": data.get("match"),
-        "value": data.get("value"),
-        "attribute": data.get("attribute"),
+        "match": data["match"],
+        "value": data["value"],
+        "attribute": data["attribute"],
     }
-
-    if not (comparison["match"] and comparison["value"] and comparison["attribute"]):
-        raise ValueError("Invalid event attribute comparison.")
 
     return DataCondition.objects.create(
         type=Condition.EVENT_ATTRIBUTE,
@@ -122,10 +120,8 @@ def create_new_high_priority_issue_condition(
 @data_condition_translator_registry.register(LevelCondition.id)
 @data_condition_translator_registry.register(LevelFilter.id)
 def create_level_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
-    comparison = {"match": data.get("match"), "level": data.get("level")}
-
-    if not (comparison["match"] and comparison["level"]):
-        raise ValueError("Invalid level comparison.")
+    # TODO: Add comparison validation (error if not enough information)
+    comparison = {"match": data["match"], "level": data["level"]}
 
     return DataCondition.objects.create(
         type=Condition.LEVEL,
