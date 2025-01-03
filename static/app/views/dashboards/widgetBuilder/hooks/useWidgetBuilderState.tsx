@@ -157,10 +157,6 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
           setDisplayType(action.payload);
-          if (action.payload === DisplayType.BIG_NUMBER) {
-            setSort([]);
-            setLegendAlias([]);
-          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
@@ -169,6 +165,14 @@ function useWidgetBuilderState(): {
             setYAxis([]);
             setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
             setLegendAlias([]);
+          } else if (action.payload === DisplayType.BIG_NUMBER) {
+            // TODO: Reset the selected aggregate here for widgets with equations
+            setSort([]);
+            setYAxis([]);
+            setLegendAlias([]);
+            // Columns are ignored for big number widgets because there is no grouping
+            setFields([...aggregates, ...(yAxis ?? [])]);
+            setQuery(query?.slice(0, 1));
           } else {
             setFields(columns);
             setYAxis([
@@ -239,6 +243,7 @@ function useWidgetBuilderState(): {
       fields,
       yAxis,
       displayType,
+      query,
     ]
   );
 

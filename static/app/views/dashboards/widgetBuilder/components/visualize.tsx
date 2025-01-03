@@ -60,6 +60,7 @@ function Visualize() {
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
+  const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
 
@@ -197,9 +198,10 @@ function Visualize() {
             value: option.value.meta.name,
             label: option.value.meta.name,
           }));
-          aggregateOptions = isChartWidget
-            ? aggregateOptions
-            : [NONE_AGGREGATE, ...aggregateOptions];
+          aggregateOptions =
+            isChartWidget || isBigNumberWidget
+              ? aggregateOptions
+              : [NONE_AGGREGATE, ...aggregateOptions];
 
           let matchingAggregate;
           if (
@@ -427,8 +429,8 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras isChartWidget={isChartWidget}>
-                {!isChartWidget && (
+              <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
+                {!isChartWidget && !isBigNumberWidget && (
                   <LegendAliasInput
                     type="text"
                     name="name"
