@@ -9,13 +9,15 @@ from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.rules.filters.event_attribute import EventAttributeFilter
+from sentry.rules.filters.level import LevelFilter
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
 
 data_condition_translator_registry = Registry[
     Callable[[dict[str, Any], DataConditionGroup], DataCondition]
-]()
+](enable_reverse_lookup=False)
 
 
 def translate_to_data_condition(data: dict[str, Any], dcg: DataConditionGroup):
@@ -72,10 +74,15 @@ def create_existing_high_priority_issue_data_condition(
 
 
 @data_condition_translator_registry.register(EventAttributeCondition.id)
+@data_condition_translator_registry.register(EventAttributeFilter.id)
 def create_event_attribute_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
-    comparison = {"match": data["match"], "value": data["value"], "attribute": data["attribute"]}
+    comparison = {
+        "match": data.get("match"),
+        "value": data.get("value"),
+        "attribute": data.get("attribute"),
+    }
     return DataCondition.objects.create(
         type=Condition.EVENT_ATTRIBUTE,
         comparison=comparison,
@@ -109,8 +116,9 @@ def create_new_high_priority_issue_condition(
 
 
 @data_condition_translator_registry.register(LevelCondition.id)
+@data_condition_translator_registry.register(LevelFilter.id)
 def create_level_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
-    comparison = {"match": data["match"], "level": data["level"]}
+    comparison = {"match": data.get("match"), "level": data.get("level")}
     return DataCondition.objects.create(
         type=Condition.LEVEL,
         comparison=comparison,
