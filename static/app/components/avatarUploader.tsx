@@ -226,7 +226,7 @@ class AvatarUploader extends Component<Props, State> {
       getDiffSW,
     } as const;
 
-    const diff = helpers['getDiff' + resizeDirection!.toUpperCase()](yDiff, xDiff);
+    const diff = helpers['getDiff' + resizeDirection!.toUpperCase()]!(yDiff, xDiff);
 
     let height = container.clientHeight - oldDimensions.top;
     let width = container.clientWidth - oldDimensions.left;
