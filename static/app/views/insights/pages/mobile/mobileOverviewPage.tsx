@@ -35,6 +35,7 @@ import {
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
+  USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
 import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
@@ -58,7 +59,7 @@ const MOBILE_COLUMN_TITLES = [
   {title: 'slow frame %'},
   {title: 'frozen frame %'},
   {title: 'users'},
-  {title: 'user misery'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
