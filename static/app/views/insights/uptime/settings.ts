@@ -10,3 +10,4 @@ export const MODULE_DESCRIPTION = t('Monitor availability of HTTP URLs.');
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/alerts/uptime-monitoring/';
 
 export const MODULE_FEATURES = ['insights-uptime'];
+export const MODULE_VISIBLE_FEATURES = ['insights-uptime'];

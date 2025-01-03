@@ -26,6 +26,7 @@ import {
   MODULE_DOC_LINK as CRONS_MODULE_DOC_LINK,
   MODULE_FEATURES as CRONS_MODULE_FEATURES,
   MODULE_TITLE as CRONS_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as CRONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/crons/settings';
 import {
   DATA_TYPE as DB_DATA_TYPE,
@@ -94,6 +95,7 @@ import {
   MODULE_DOC_LINK as UPTIME_MODULE_DOC_LINK,
   MODULE_FEATURES as UPTIME_MODULE_FEATURES,
   MODULE_TITLE as UPTIME_MODULE_TITLE,
+  MODULE_VISIBLE_FEATURES as UPTIME_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/uptime/settings';
 
 import {ModuleName} from './types';
@@ -177,6 +179,9 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.OTHER]: '',
 };
 
+/**
+ * Features that control gating of modules, falling back to upsell style hooks.
+ */
 export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.DB]: DB_MODULE_FEATURES,
   [ModuleName.APP_START]: APP_STARTS_MODULE_FEATURES,
@@ -196,9 +201,22 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
 };
 
 /**
- * Modules that will not display tabs when the feature is not enabled
+ * Features that control the visibility of modules.
  */
-export const MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED: ModuleName[] = [
-  ModuleName.CRONS,
-  ModuleName.UPTIME,
-];
+export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
+  [ModuleName.DB]: ['insights-entry-points'],
+  [ModuleName.APP_START]: ['insights-entry-points'],
+  [ModuleName.HTTP]: ['insights-entry-points'],
+  [ModuleName.RESOURCE]: ['insights-entry-points'],
+  [ModuleName.VITAL]: ['insights-entry-points'],
+  [ModuleName.CACHE]: ['insights-entry-points'],
+  [ModuleName.QUEUE]: ['insights-entry-points'],
+  [ModuleName.AI]: ['insights-entry-points'],
+  [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
+  [ModuleName.MOBILE_UI]: ['insights-entry-points'],
+  [ModuleName.MOBILE_SCREENS]: ['insights-entry-points'],
+  [ModuleName.SCREEN_RENDERING]: ['insights-entry-points'],
+  [ModuleName.UPTIME]: ['insights-entry-points', ...UPTIME_MODULE_VISIBLE_FEATURES],
+  [ModuleName.CRONS]: ['insights-entry-points', ...CRONS_MODULE_VISIBLE_FEATURES],
+  [ModuleName.OTHER]: ['insights-entry-points'],
+};
