@@ -34,7 +34,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
-import GroupActions from './actions';
+import {GroupActions} from './actions';
 import {Tab} from './types';
 import {getGroupReprocessingStatus} from './utils';
 
@@ -222,7 +222,6 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
             project={project}
             disabled={disableActions}
             event={event}
-            query={location.query}
           />
         </BreadcrumbActionWrapper>
         <HeaderRow>
