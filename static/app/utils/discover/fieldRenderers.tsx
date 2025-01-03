@@ -794,9 +794,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     if (!(userMiseryField in data)) {
       return (
         <Tooltip title={missingUserMisery} showUnderline isHoverable>
-          <RectangleRelativeOpsBreakdown>
-            <NumberContainer>{emptyValue}</NumberContainer>
-          </RectangleRelativeOpsBreakdown>
+          <NumberContainer>{emptyValue}</NumberContainer>
         </Tooltip>
       );
     }
@@ -805,9 +803,7 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     if (userMisery === null || isNaN(userMisery)) {
       return (
         <Tooltip title={missingUserMisery} showUnderline isHoverable>
-          <RectangleRelativeOpsBreakdown>
-            <NumberContainer>{emptyValue}</NumberContainer>
-          </RectangleRelativeOpsBreakdown>
+          <NumberContainer>{emptyValue}</NumberContainer>
         </Tooltip>
       );
     }

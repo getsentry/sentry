@@ -455,13 +455,6 @@ class _Table extends Component<Props, State> {
     );
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
-        {
-          title.tooltip ? (
-            <Tooltip isHoverable title={title.tooltip} showUnderline></Tooltip>
-          ) : (
-            ''
-          );
-        }
         return (
           <GuideAnchor target="project_transaction_threshold" position="top">
             <Tooltip isHoverable title={title.tooltip} showUnderline>
