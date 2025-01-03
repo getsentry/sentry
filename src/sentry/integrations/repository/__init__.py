@@ -10,11 +10,13 @@ What we query from an interface level won't change, simply how we query will cha
 only thing that need to change after we make the migration.
 """
 
+from sentry.integrations.repository.generic import GenericNotificationMessageRepository
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessageRepository
 from sentry.integrations.repository.metric_alert import MetricAlertNotificationMessageRepository
 
 _default_metric_alert_repository = None
 _default_issue_alert_repository = None
+_default_generic_repository = None
 
 
 def get_default_metric_alert_repository() -> MetricAlertNotificationMessageRepository:
@@ -31,3 +33,11 @@ def get_default_issue_alert_repository() -> IssueAlertNotificationMessageReposit
         _default_issue_alert_repository = IssueAlertNotificationMessageRepository.default()
 
     return _default_issue_alert_repository
+
+
+def get_default_generic_repository() -> GenericNotificationMessageRepository:
+    global _default_generic_repository
+    if _default_generic_repository is None:
+        _default_generic_repository = GenericNotificationMessageRepository.default()
+
+    return _default_generic_repository
