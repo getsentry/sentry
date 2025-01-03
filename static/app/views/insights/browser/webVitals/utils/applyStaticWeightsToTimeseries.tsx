@@ -10,7 +10,7 @@ export function applyStaticWeightsToTimeseries(
   timeseriesData: WebVitalsScoreBreakdown
 ) {
   const weights = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   )
     ? getWeights(
         Object.keys(timeseriesData)
