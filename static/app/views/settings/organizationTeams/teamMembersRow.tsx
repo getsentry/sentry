@@ -7,7 +7,7 @@ import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
@@ -15,9 +15,9 @@ interface Props {
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
-  removeMember: (member: Member) => void;
+  removeMember: (variables: {memberId: string}) => void;
   team: Team;
-  updateMemberRole: (member: Member, newRole: string) => void;
+  updateMemberRole: (variables: {memberId: string; newRole: string}) => void;
   user: User;
 }
 
@@ -43,14 +43,14 @@ function TeamMembersRow({
           organization={organization}
           team={team}
           member={member}
-          onChangeTeamRole={newRole => updateMemberRole(member, newRole)}
+          onChangeTeamRole={newRole => updateMemberRole({memberId: member.id, newRole})}
         />
       </RoleSelectWrapper>
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
           isSelf={isSelf}
-          onClick={() => removeMember(member)}
+          onClick={() => removeMember({memberId: member.id})}
           member={member}
         />
       </div>
