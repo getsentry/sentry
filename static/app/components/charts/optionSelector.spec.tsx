@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
-import {t} from 'sentry/locale';
 
 describe('Charts > OptionSelector (Multiple)', function () {
   const features = ['discover-basic'];
@@ -32,7 +31,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
       <OptionSelector
         multiple
         isOpen
-        title={t('Y-Axis')}
+        title={'Y-Axis'}
         selected={currentSelected}
         options={yAxisOptions}
         onChange={newSelected => {
