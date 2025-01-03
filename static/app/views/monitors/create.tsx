@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
-
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -37,7 +36,7 @@ function CreateMonitor() {
   }
 
   return (
-    <Fragment>
+    <SentryDocumentTitle title={t('New Monitor — Crons')}>
       <Layout.Header>
         <Layout.HeaderContent>
           <Breadcrumbs
@@ -67,7 +66,7 @@ function CreateMonitor() {
           />
         </Layout.Main>
       </Layout.Body>
-    </Fragment>
+    </SentryDocumentTitle>
   );
 }
 
