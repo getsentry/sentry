@@ -437,15 +437,13 @@ def update_existing_attachments(job):
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
     """
-    # Patch attachments that were ingested on the standalone path.
-    with sentry_sdk.start_span(op="tasks.post_process_group.update_existing_attachments"):
-        from sentry.models.eventattachment import EventAttachment
+    from sentry.models.eventattachment import EventAttachment
 
-        event = job["event"]
+    event = job["event"]
 
-        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
-            group_id=event.group_id
-        )
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+        group_id=event.group_id
+    )
 
 
 def fetch_buffered_group_stats(group):
