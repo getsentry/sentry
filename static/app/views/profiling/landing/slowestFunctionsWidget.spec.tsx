@@ -244,10 +244,10 @@ describe('SlowestFunctionsWidget', function () {
     expect(await screen.findByTestId('function-chart')).toBeInTheDocument();
 
     const items = screen.getAllByRole('listitem', {});
-    expect(items.length).toEqual(2);
+    expect(items).toHaveLength(2);
 
     const buttons = within(items[0]!).getAllByRole('button');
-    expect(buttons.length).toEqual(2);
+    expect(buttons).toHaveLength(2);
     await userEvent.click(buttons[1]!);
 
     expect(screen.getByText('1'.repeat(8))).toBeInTheDocument();

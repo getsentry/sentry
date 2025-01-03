@@ -3,16 +3,15 @@ import {DOMAIN_VIEW_MODULES} from 'sentry/views/insights/pages/settings';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_FEATURE_MAP,
-  MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED,
+  MODULE_FEATURE_VISIBLE_MAP,
 } from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export const isModuleEnabled = (module: ModuleName, organization: Organization) =>
   MODULE_FEATURE_MAP[module].every(f => organization.features.includes(f));
 
-export const isModuleHidden = (module: ModuleName, organization: Organization) =>
-  MODULE_HIDDEN_WHEN_FEAUTRE_DISABLED.includes(module) &&
-  !isModuleEnabled(module, organization);
+export const isModuleVisible = (module: ModuleName, organization: Organization) =>
+  MODULE_FEATURE_VISIBLE_MAP[module].every(f => organization.features.includes(f));
 
 export const getModuleView = (module: ModuleName): DomainView => {
   if (DOMAIN_VIEW_MODULES.backend.includes(module)) {

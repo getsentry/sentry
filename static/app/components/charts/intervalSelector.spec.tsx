@@ -29,7 +29,7 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
-    expect(interval).toEqual('4h');
+    expect(interval).toBe('4h');
   });
   it('resets large interval', function () {
     eventView.interval = '1h';
@@ -42,7 +42,7 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
-    expect(eventView.interval).toEqual('1m');
+    expect(eventView.interval).toBe('1m');
   });
   it('leaves default interval alone', function () {
     eventView.interval = undefined;
@@ -56,6 +56,6 @@ describe('IntervalSelector', function () {
       />
     );
     render(intervalSelector);
-    expect(interval).toEqual('not called');
+    expect(interval).toBe('not called');
   });
 });

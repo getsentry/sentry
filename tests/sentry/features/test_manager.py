@@ -33,9 +33,6 @@ class MockBatchHandler(features.BatchFeatureHandler):
         return True
 
     def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
-        if isinstance(feature_names, str):
-            feature_names = [feature_names]
-
         feature_results = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
@@ -49,7 +46,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
         return {"unscoped": feature_results}
 
     def _check_for_batch(self, feature_name, organization, actor):
-        return True if feature_name in self.features else None
+        raise NotImplementedError
 
 
 class MockUserBatchHandler(features.BatchFeatureHandler):

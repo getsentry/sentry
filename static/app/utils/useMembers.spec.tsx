@@ -75,7 +75,7 @@ describe('useMembers', function () {
     expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.members.length).toBe(1));
+    await waitFor(() => expect(result.current.members).toHaveLength(1));
 
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
@@ -97,7 +97,7 @@ describe('useMembers', function () {
     expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.members.length).toBe(1));
+    await waitFor(() => expect(result.current.members).toHaveLength(1));
 
     const {members} = result.current;
     expect(members).toEqual(expect.arrayContaining([userFoo]));
@@ -119,11 +119,11 @@ describe('useMembers', function () {
     const {result} = renderHook(useMembers);
 
     const {members, hasMore} = result.current;
-    expect(hasMore).toBe(null);
+    expect(hasMore).toBeNull();
     expect(members).toEqual(expect.arrayContaining([]));
 
     act(() => MemberListStore.loadInitialData(mockUsers, false, null));
-    await waitFor(() => expect(result.current.members.length).toBe(1));
+    await waitFor(() => expect(result.current.members).toHaveLength(1));
 
     expect(result.current.hasMore).toBe(false);
   });

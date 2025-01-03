@@ -91,7 +91,7 @@ describe('useProfileEvents', function () {
     });
 
     await waitFor(() => result.current.isError);
-    await waitFor(() => expect(result.current.status).toEqual('error'));
+    await waitFor(() => expect(result.current.status).toBe('error'));
   });
 });
 

@@ -79,7 +79,7 @@ describe('ProjectKeys', function () {
     );
 
     const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
-    expect(allDsn.length).toBe(1);
+    expect(allDsn).toHaveLength(1);
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
     const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
@@ -228,7 +228,7 @@ describe('ProjectKeys', function () {
     );
 
     const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
-    expect(allDsn.length).toBe(2);
+    expect(allDsn).toHaveLength(2);
   });
 
   it('deletes key', async function () {
