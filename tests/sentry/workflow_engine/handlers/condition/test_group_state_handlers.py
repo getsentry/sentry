@@ -236,47 +236,46 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
             comparison=True,
             condition_result=True,
         )
-        self.group_event.group.priority = PriorityLevel.HIGH
 
     def test_with_high_priority_alerts(self):
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
         # This will only pass for new issues
-        self.group_event.group.priority = PriorityLevel.HIGH
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.group_event.group.update(priority=PriorityLevel.HIGH)
+        self.job.update({"group_state": {"is_new_group_environment": True}})
         self.assert_passes(self.dc, self.job)
 
         # These will never pass
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.update({"group_state": {"is_new_group_environment": False}})
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.group_event.group.priority = PriorityLevel.MEDIUM
+        self.group_event.group.update(priority=PriorityLevel.MEDIUM)
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.group_event.group.priority = PriorityLevel.LOW
+        self.group_event.group.update(priority=PriorityLevel.LOW)
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_without_high_priority_alerts(self):
         self.project.flags.has_high_priority_alerts = False
         self.project.save()
 
-        self.group_event.group.priority = PriorityLevel.HIGH
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.group_event.group.update(priority=PriorityLevel.HIGH)
+        self.job.update({"group_state": {"is_new_group_environment": True}})
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.update({"group_state": {"is_new_group_environment": False}})
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.group_event.group.priority = PriorityLevel.MEDIUM
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.group_event.group.update(priority=PriorityLevel.MEDIUM)
+        self.job.update({"group_state": {"is_new_group_environment": True}})
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.update({"group_state": {"is_new_group_environment": False}})
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.group_event.group.priority = PriorityLevel.LOW
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.group_event.group.update(priority=PriorityLevel.LOW)
+        self.job.update({"group_state": {"is_new_group_environment": True}})
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.update({"group_state": {"is_new_group_environment": False}})
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_dual_write(self):
