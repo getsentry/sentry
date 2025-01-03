@@ -22,7 +22,6 @@ from sentry.constants import ObjectStatus
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
 from sentry.monitors.models import Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context
 
@@ -65,7 +64,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
     ):
         monitor = None
 
-        using_dsn_auth = isinstance(request.auth, ProjectKey)
+        using_dsn_auth = request.auth is not None and request.auth.kind == "project_key"
         if checkin_id != "latest":
             # We require a checkin for this endpoint. If one doesn't exist then error. If the
             # checkin_id is `latest` we'll need to resolve the monitor before we can get it.

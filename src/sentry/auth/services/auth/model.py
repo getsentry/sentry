@@ -73,12 +73,14 @@ class AuthenticatedToken(RpcModel):
         from sentry.models.apikey import ApiKey
         from sentry.models.apitoken import ApiToken
         from sentry.models.orgauthtoken import OrgAuthToken
+        from sentry.models.projectkey import ProjectKey
 
         return {
             "system": frozenset([SystemToken]),
             "api_token": frozenset([ApiToken, ApiTokenReplica]),
             "org_auth_token": frozenset([OrgAuthToken, OrgAuthTokenReplica]),
             "api_key": frozenset([ApiKey, ApiKeyReplica]),
+            "project_key": frozenset((ProjectKey,)),
         }
 
     @classmethod
