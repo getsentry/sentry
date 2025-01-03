@@ -7,7 +7,7 @@ describe('RepositoryActionCreator', function () {
 
   const api = new MockApiClient();
   const mockData = [{id: '1'}];
-  let mockResponse;
+  let mockResponse: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
