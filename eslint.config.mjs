@@ -1,6 +1,10 @@
 // @ts-check
 /**
- * Understanding & making changes to this file:
+ * To get started with this ESLint Configuration list be sure to read at least
+ * these sections of the docs:
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
+ *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
  *
  * This is your friend:
  * `npx eslint --inspect-config`
@@ -98,13 +102,6 @@ const restrictedImportPaths = [
 // Used by both: `languageOptions` & `parserOptions`
 const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
 
-/**
- * To get started with this ESLint Configuration list be sure to read at least
- * these sections of the docs:
- *  - https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
- *  - https://eslint.org/docs/latest/use/configure/configuration-files#cascading-configuration-objects
- */
-
 export default typescript.config([
   {
     // Main parser & linter options
@@ -116,9 +113,7 @@ export default typescript.config([
       sourceType: 'module',
       globals: {
         // TODO(ryan953): globals.browser seems to have a bug with trailing whitespace
-        ...Object.fromEntries(
-          Object.keys(globals.browser).map(key => [key.trim(), false])
-        ),
+        ...Object.fromEntries(Object.keys(globals.browser).map(k => [k.trim(), false])),
         ...globals.jest,
         MockApiClient: true,
         tick: true,
@@ -197,41 +192,39 @@ export default typescript.config([
     ],
   },
   /**
-   * Global Rules
-   * Any ruleset that does not include `files` or `ignores` fields
-   *
-   * Plugins are configured within each configuration object.
-   * https://eslint.org/docs/latest/use/configure/configuration-files#configuration-objects
-   *
    * Rules are grouped by plugin. If you want to override a specific rule inside
    * the recommended set, then it's recommended to spread the new rule on top
    * of the predefined ones.
    *
    * For example: if you want to enable a new plugin in the codebase and their
    * recommended rules (or a new rule that's part of an existing plugin)
-   * First you'd setup a configuration object for that plugin:
-   * {
-   *   name: 'my-plugin/recommended',
-   *   ...myPlugin.configs.recommended,
-   * },
-   * Second you'd override the rule you want to deal with, maybe making it a
-   * warning to start:
-   * {
-   *   name: 'my-plugin/recommended',
-   *   ...myPlugin.configs.recommended,
-   *   rules: {
-   *     ...myPlugin.configs.recommended.rules,
-   *     ['the-rule']: 'warn',
-   *   }
-   * },
-   * Finally, once all warnings are fixed, update from 'warning' to 'error', or
-   * remove the override and rely on the recommended rules again.
+   *
+   * 1. First you'd setup a configuration object for that plugin:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      ...myPlugin.configs.recommended,
+   *    },
+   *
+   * 2. Second you'd override the rule you want to deal with, maybe making it a
+   *    warning to start:
+   *    {
+   *      name: 'my-plugin/recommended',
+   *      ...myPlugin.configs.recommended,
+   *      rules: {
+   *        ['a-rule-outside-the-recommended-list']: 'error',
+   *
+   *        ...myPlugin.configs.recommended.rules,
+   *        ['a-recommended-rule']: 'warn',
+   *      }
+   *    },
+   *
+   * 3. Finally, once all warnings are fixed, update from 'warning' to 'error',
+   *    or remove the override and rely on the recommended rules again.
    */
   {
     name: 'eslint/rules',
     // https://eslint.org/docs/latest/rules/
     rules: {
-      'arrow-body-style': 'off', // Prettier does this
       'array-callback-return': 'error',
       'block-scoped-var': 'error',
       'consistent-return': 'error',
