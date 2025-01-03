@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -140,7 +141,7 @@ def test_skip_list_when_invalid_data_passed() -> None:
 @django_db_all
 @control_silo_test(include_monolith_run=True)
 @mock.patch("sentry_sdk.capture_message")
-def test_invalid_skip_list(mock_capture_message) -> None:
+def test_invalid_skip_list(mock_capture_message: MagicMock) -> None:
     with override_options({"hybrid_cloud.audit_log_event_id_invalid_pass_list": [100, "foo"]}):
         with pytest.raises(AssertionError):
             log_service.record_audit_log(event=AuditLogEvent(event_id=100))
