@@ -51,6 +51,7 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             category = GroupCategory.PERFORMANCE.value
             detector_config_schema = {"type": "object", "additionalProperties": False}
 
+
 class TestDetectorConfig(TestJsonConfigBase):
     def test_detector_no_registration(self):
         with pytest.raises(ValueError):
