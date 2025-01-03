@@ -18,11 +18,11 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 import {SpanOperationBreakdownFilter} from '../filter';
@@ -124,6 +124,7 @@ function InnerContent(
 
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
+  const navigate = useNavigate();
   const [tagSelected, _changeTagSelected] = useState(initialTag);
   const lastTag = useRef('');
 
@@ -136,15 +137,18 @@ function InnerContent(
           [TAG_PAGE_TABLE_CURSOR]: undefined,
         });
 
-        browserHistory.replace({
-          pathname: location.pathname,
-          query: queryParams,
-        });
+        navigate(
+          {
+            pathname: location.pathname,
+            query: queryParams,
+          },
+          {replace: true}
+        );
         _changeTagSelected(tagKey);
         lastTag.current = decodeScalar(location.query.tagKey, '');
       }
     },
-    [location.query, location.pathname]
+    [location.query, location.pathname, navigate]
   );
 
   useEffect(() => {
@@ -159,7 +163,7 @@ function InnerContent(
       query,
     });
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: queryParams,
     });

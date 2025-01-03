@@ -142,7 +142,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(1);
+      expect(nodes).toHaveLength(1);
       expect(nodes[0]).toHaveTextContent('This Event');
     });
 
@@ -162,7 +162,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['This Event', '1 Child'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -189,7 +189,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['This Event', '3 Children'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -211,7 +211,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -240,7 +240,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(4);
+      expect(nodes).toHaveLength(4);
       ['Root', '1 Ancestor', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -274,7 +274,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(4);
+      expect(nodes).toHaveLength(4);
       ['Root', '3 Ancestors', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -300,7 +300,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(3);
+      expect(nodes).toHaveLength(3);
       ['This Event', '1 Child', '1 Descendant'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -333,7 +333,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(3);
+      expect(nodes).toHaveLength(3);
       ['This Event', '1 Child', '3 Descendants'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -371,7 +371,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(6);
+      expect(nodes).toHaveLength(6);
       ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
         (text, i) => expect(nodes[i]).toHaveTextContent(text)
       );
@@ -402,7 +402,7 @@ describe('Quick Trace', function () {
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(6);
+      expect(nodes).toHaveLength(6);
       [
         makeTransactionHref('p0', 'e0', 't0'),
         makeTransactionHref('p1', 'e1', 't1'),
@@ -441,7 +441,7 @@ describe('Quick Trace', function () {
         />
       );
       const items = await screen.findAllByTestId('dropdown-item');
-      expect(items.length).toEqual(3);
+      expect(items).toHaveLength(3);
       // can't easily assert the target is correct since it uses an onClick handler
     });
   });

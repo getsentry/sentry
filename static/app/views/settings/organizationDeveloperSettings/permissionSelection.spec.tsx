@@ -70,11 +70,11 @@ describe('PermissionSelection', () => {
     await selectByValue('Organization', 'Read');
     await selectByValue('Member', 'No Access');
 
-    expect(model.getValue('Project--permission')).toEqual('write');
-    expect(model.getValue('Team--permission')).toEqual('read');
-    expect(model.getValue('Release--permission')).toEqual('admin');
-    expect(model.getValue('Event--permission')).toEqual('admin');
-    expect(model.getValue('Organization--permission')).toEqual('read');
-    expect(model.getValue('Member--permission')).toEqual('no-access');
+    expect(model.getValue('Project--permission')).toBe('write');
+    expect(model.getValue('Team--permission')).toBe('read');
+    expect(model.getValue('Release--permission')).toBe('admin');
+    expect(model.getValue('Event--permission')).toBe('admin');
+    expect(model.getValue('Organization--permission')).toBe('read');
+    expect(model.getValue('Member--permission')).toBe('no-access');
   });
 });

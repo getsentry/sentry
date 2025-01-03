@@ -6,13 +6,12 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -81,8 +80,8 @@ export function ScreenSummary() {
 }
 
 export function ScreenSummaryContentPage() {
+  const navigate = useNavigate();
   const location = useLocation<Query>();
-  const router = useRouter();
 
   const {
     primaryRelease,
@@ -98,15 +97,18 @@ export function ScreenSummaryContentPage() {
   useEffect(() => {
     // Default the start type to cold start if not present
     if (!appStartType) {
-      browserHistory.replace({
-        ...location,
-        query: {
-          ...location.query,
-          [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            [SpanMetricsField.APP_START_TYPE]: COLD_START_TYPE,
+          },
         },
-      });
+        {replace: true}
+      );
     }
-  }, [location, appStartType]);
+  }, [location, appStartType, navigate]);
 
   return (
     <Fragment>
@@ -191,16 +193,19 @@ export function ScreenSummaryContentPage() {
           spanDescription={spanDescription}
           spanOp={spanOp}
           onClose={() => {
-            router.replace({
-              pathname: router.location.pathname,
-              query: omit(
-                router.location.query,
-                'spanGroup',
-                'transactionMethod',
-                'spanDescription',
-                'spanOp'
-              ),
-            });
+            navigate(
+              {
+                pathname: location.pathname,
+                query: omit(
+                  location.query,
+                  'spanGroup',
+                  'transactionMethod',
+                  'spanDescription',
+                  'spanOp'
+                ),
+              },
+              {replace: true}
+            );
           }}
         />
       )}

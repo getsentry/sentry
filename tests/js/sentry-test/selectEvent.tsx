@@ -161,6 +161,7 @@ const clearFirst = async (
 ) => {
   const container = getReactSelectContainerFromInput(input);
   // The "clear" button is the first svg element that is hidden to screen readers
+  // eslint-disable-next-line testing-library/no-node-access
   const clearButton = container.querySelector('svg[aria-hidden="true"]')!;
   await clear(clearButton, {user});
 };
@@ -176,6 +177,7 @@ const clearAll = async (
   const container = getReactSelectContainerFromInput(input);
   // The "clear all" button is the penultimate svg element that is hidden to screen readers
   // (the last one is the dropdown arrow)
+  // eslint-disable-next-line testing-library/no-node-access
   const elements = container.querySelectorAll('svg[aria-hidden="true"]');
   const clearAllButton = elements[elements.length - 2]!;
   await clear(clearAllButton, {user});

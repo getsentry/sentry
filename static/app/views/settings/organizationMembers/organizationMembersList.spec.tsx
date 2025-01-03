@@ -223,7 +223,7 @@ describe('OrganizationMembersList', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith('/organizations/new/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/organizations/new/'});
   });
 
   it('can redirect to remaining org after leaving', async function () {
@@ -250,7 +250,9 @@ describe('OrganizationMembersList', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledTimes(1);
-    expect(router.push).toHaveBeenCalledWith('/organizations/org-two/issues/');
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-two/issues/',
+    });
     expect(OrganizationsStore.getAll()).toEqual([secondOrg]);
   });
 

@@ -1,5 +1,13 @@
 import type {Dispatch, Reducer} from 'react';
-import {createContext, useCallback, useMemo, useReducer, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {TabListState} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
@@ -16,15 +24,17 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {generateTempViewId} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import type {
   GroupSearchView,
   UpdateGroupSearchViewPayload,
 } from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+import {NewTabContext, type NewView} from 'sentry/views/issueList/utils/newTabContext';
 
 const TEMPORARY_TAB_KEY = 'temporary-tab';
+
+export const generateTempViewId = () => `_${Math.random().toString().substring(2, 7)}`;
 
 export interface IssueView {
   id: string;
@@ -42,20 +52,9 @@ export interface IssueView {
   unsavedChanges?: [string, IssueSortOptions];
 }
 
-export type IssueViewsQueryUpdateParams = {
-  // TODO(msun): Once project/env/datetime are added as view configs, add them here
-  newQueryParams: {
-    query?: string;
-    sort?: IssueSortOptions;
-    viewId?: string;
-  };
-  replace?: boolean;
-};
-
 type BaseIssueViewsAction = {
   /** If true, the new views state created by the action will be synced to the backend */
   syncViews?: boolean;
-  updateQueryParams?: IssueViewsQueryUpdateParams;
 };
 
 type ReorderTabsAction = {
@@ -123,7 +122,7 @@ type SetViewsAction = {
 type SyncViewsToBackendAction = {
   /** Syncs the current views state to the backend. Does not make any changes to the views state. */
   type: 'SYNC_VIEWS_TO_BACKEND';
-} & Exclude<BaseIssueViewsAction, 'syncViews'>;
+};
 
 export type IssueViewsActions =
   | ReorderTabsAction
@@ -258,11 +257,7 @@ function deleteView(state: IssueViewsState, tabListState: TabListState<any>) {
   return {...state, views: newViews};
 }
 
-function createNewView(
-  state: IssueViewsState,
-  action: CreateNewViewAction,
-  tabListState: TabListState<any>
-) {
+function createNewView(state: IssueViewsState, action: CreateNewViewAction) {
   const newTabs: IssueView[] = [
     ...state.views,
     {
@@ -274,7 +269,6 @@ function createNewView(
       isCommitted: false,
     },
   ];
-  tabListState?.setSelectedKey(action.tempId);
   return {...state, views: newTabs};
 }
 
@@ -373,6 +367,7 @@ export function IssueViewsStateProvider({
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const {setNewViewActive, setOnNewViewsSaved} = useContext(NewTabContext);
   const [tabListState, setTabListState] = useState<TabListState<any>>();
   const {className: _className, ...restProps} = props;
 
@@ -433,6 +428,30 @@ export function IssueViewsStateProvider({
     onSuccess: replaceWithPersistantViewIds,
   });
 
+  const debounceUpdateViews = useMemo(
+    () =>
+      debounce((newTabs: IssueView[]) => {
+        if (newTabs) {
+          updateViews({
+            orgSlug: organization.slug,
+            groupSearchViews: newTabs
+              .filter(tab => tab.isCommitted)
+              .map(tab => ({
+                // Do not send over an ID if it's a temporary or default tab so that
+                // the backend will save these and generate permanent Ids for them
+                ...(tab.id[0] !== '_' && !tab.id.startsWith('default')
+                  ? {id: tab.id}
+                  : {}),
+                name: tab.label,
+                query: tab.query,
+                querySort: tab.querySort,
+              })),
+          });
+        }
+      }, 500),
+    [organization.slug, updateViews]
+  );
+
   const reducer: Reducer<IssueViewsState, IssueViewsActions> = useCallback(
     (state, action): IssueViewsState => {
       if (!tabListState) {
@@ -452,7 +471,7 @@ export function IssueViewsStateProvider({
         case 'DELETE_VIEW':
           return deleteView(state, tabListState);
         case 'CREATE_NEW_VIEW':
-          return createNewView(state, action, tabListState);
+          return createNewView(state, action);
         case 'SET_TEMP_VIEW':
           return setTempView(state, action);
         case 'DISCARD_TEMP_VIEW':
@@ -496,57 +515,12 @@ export function IssueViewsStateProvider({
     tempView: initialTempView,
   });
 
-  const debounceUpdateViews = useMemo(
-    () =>
-      debounce((newTabs: IssueView[]) => {
-        if (newTabs) {
-          updateViews({
-            orgSlug: organization.slug,
-            groupSearchViews: newTabs
-              .filter(tab => tab.isCommitted)
-              .map(tab => ({
-                // Do not send over an ID if it's a temporary or default tab so that
-                // the backend will save these and generate permanent Ids for them
-                ...(tab.id[0] !== '_' && !tab.id.startsWith('default')
-                  ? {id: tab.id}
-                  : {}),
-                name: tab.label,
-                query: tab.query,
-                querySort: tab.querySort,
-              })),
-          });
-        }
-      }, 500),
-    [organization.slug, updateViews]
-  );
-
-  const updateQueryParams = (params: IssueViewsQueryUpdateParams) => {
-    const {newQueryParams, replace = false} = params;
-    navigate(
-      normalizeUrl({
-        ...location,
-        query: {
-          ...queryParams,
-          ...newQueryParams,
-        },
-      }),
-      {replace}
-    );
-  };
-
   const dispatchWrapper = (action: IssueViewsActions) => {
     const newState = reducer(state, action);
     dispatch(action);
 
-    // These actions are outside of the dispatch to avoid introducing side effects in the reducer
     if (action.type === 'SYNC_VIEWS_TO_BACKEND' || action.syncViews) {
       debounceUpdateViews(newState.views);
-    }
-
-    if (action.updateQueryParams) {
-      queueMicrotask(() => {
-        updateQueryParams(action.updateQueryParams!);
-      });
     }
 
     const actionAnalyticsKey = ACTION_ANALYTICS_MAP[action.type];
@@ -556,6 +530,70 @@ export function IssueViewsStateProvider({
       });
     }
   };
+
+  const handleNewViewsSaved: NewTabContext['onNewViewsSaved'] = useCallback<
+    NewTabContext['onNewViewsSaved']
+  >(
+    () => (newViews: NewView[]) => {
+      if (newViews.length === 0) {
+        return;
+      }
+      setNewViewActive(false);
+      const {label, query: newQuery, saveQueryToView} = newViews[0]!;
+      const remainingNewViews: IssueView[] = newViews.slice(1)?.map(view => {
+        const newId = generateTempViewId();
+        const viewToTab: IssueView = {
+          id: newId,
+          key: newId,
+          label: view.label,
+          query: view.query,
+          querySort: IssueSortOptions.DATE,
+          unsavedChanges: view.saveQueryToView
+            ? undefined
+            : [view.query, IssueSortOptions.DATE],
+          isCommitted: true,
+        };
+        return viewToTab;
+      });
+      let updatedTabs: IssueView[] = state.views.map(tab => {
+        if (tab.key === viewId) {
+          return {
+            ...tab,
+            label,
+            query: saveQueryToView ? newQuery : '',
+            querySort: IssueSortOptions.DATE,
+            unsavedChanges: saveQueryToView ? undefined : [query, IssueSortOptions.DATE],
+            isCommitted: true,
+          };
+        }
+        return tab;
+      });
+
+      if (remainingNewViews.length > 0) {
+        updatedTabs = [...updatedTabs, ...remainingNewViews];
+      }
+
+      dispatch({type: 'SET_VIEWS', views: updatedTabs, syncViews: true});
+      navigate(
+        {
+          ...location,
+          query: {
+            ...queryParams,
+            query,
+            sort: IssueSortOptions.DATE,
+          },
+        },
+        {replace: true}
+      );
+    },
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [location, navigate, setNewViewActive, state.views, viewId]
+  );
+
+  useEffect(() => {
+    setOnNewViewsSaved(handleNewViewsSaved);
+  }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
     <IssueViewsContext.Provider

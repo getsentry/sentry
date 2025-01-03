@@ -725,21 +725,6 @@ class RegionJiraIntegrationTest(APITestCase):
 
 @control_silo_test
 class JiraIntegrationTest(APITestCase):
-    @cached_property
-    def integration(self):
-        integration = self.create_provider_integration(
-            provider="jira",
-            name="Jira Cloud",
-            metadata={
-                "oauth_client_id": "oauth-client-id",
-                "shared_secret": "a-super-secret-key-from-atlassian",
-                "base_url": "https://example.atlassian.net",
-                "domain_name": "example.atlassian.net",
-            },
-        )
-        integration.add_organization(self.organization, self.user)
-        return integration
-
     def setUp(self):
         super().setUp()
         self.min_ago = before_now(minutes=1)

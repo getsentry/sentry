@@ -2,7 +2,6 @@ import uuid
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -52,9 +51,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         assert "userCount" in response_data[0]
         assert "lifetime" in response_data[0]
         assert "filtered" in response_data[0]
-        assert "isUnhandled" not in response_data[0]
 
-    @with_feature("organizations:issue-stream-performance")
     def test_unhandled(self):
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},

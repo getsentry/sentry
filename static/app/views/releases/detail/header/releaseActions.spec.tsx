@@ -87,7 +87,7 @@ describe('ReleaseActions', function () {
 
     expect(await screen.findByText('Archive Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
-    expect(affectedProjects.length).toBe(2);
+    expect(affectedProjects).toHaveLength(2);
 
     // confirm modal
     await userEvent.click(screen.getByTestId('confirm-button'));
@@ -137,7 +137,7 @@ describe('ReleaseActions', function () {
 
     expect(await screen.findByText('Restore Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
-    expect(affectedProjects.length).toBe(2);
+    expect(affectedProjects).toHaveLength(2);
 
     // confirm modal
     await userEvent.click(screen.getByTestId('confirm-button'));

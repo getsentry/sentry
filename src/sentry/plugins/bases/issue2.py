@@ -13,7 +13,6 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.exceptions import PluginError  # NOQA
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
-from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
@@ -50,9 +49,6 @@ class IssueTrackingPlugin2(Plugin):
     # should explicitly call out what is stored
     issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
-
-    def configure(self, project, request):
-        return react_plugin_config(self, project, request)
 
     def get_plugin_type(self):
         return "issue-tracking"

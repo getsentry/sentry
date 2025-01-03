@@ -26,7 +26,7 @@ import type {
 import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
 
-export default function MonitorProcessingErrors({
+export function MonitorProcessingErrors({
   checkinErrors,
   children,
   onDismiss,

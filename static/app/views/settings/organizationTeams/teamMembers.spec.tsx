@@ -31,16 +31,12 @@ describe('TeamMembers', function () {
     name: 'Sentry 9 Name',
   });
 
-  const router = RouterFixture();
-
-  const routerProps = {
-    router,
-    routes: router.routes,
-    params: router.params,
-    routeParams: router.params,
-    route: router.routes[0]!,
-    location: router.location,
-  };
+  const router = RouterFixture({
+    params: {
+      orgId: organization.slug,
+      teamId: team.slug,
+    },
+  });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -73,14 +69,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with open membership', async function () {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
@@ -92,14 +81,7 @@ describe('TeamMembers', function () {
 
   it('can add multiple members with one click on dropdown', async function () {
     const org = OrganizationFixture({access: [], openMembership: true});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
@@ -112,14 +94,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with team:admin permission', async function () {
     const org = OrganizationFixture({access: ['team:admin'], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
@@ -131,14 +106,7 @@ describe('TeamMembers', function () {
 
   it('can add member to team with org:write permission', async function () {
     const org = OrganizationFixture({access: ['org:write'], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
@@ -150,14 +118,7 @@ describe('TeamMembers', function () {
 
   it('can request access to add member to team without permission', async function () {
     const org = OrganizationFixture({access: [], openMembership: false});
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!!
@@ -174,15 +135,7 @@ describe('TeamMembers', function () {
         openMembership: false,
       }),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
@@ -199,15 +152,7 @@ describe('TeamMembers', function () {
         openMembership: true,
       }),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
@@ -221,15 +166,7 @@ describe('TeamMembers', function () {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: true}),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
@@ -243,15 +180,7 @@ describe('TeamMembers', function () {
     const {organization: org} = initializeOrg({
       organization: OrganizationFixture({access: [], openMembership: false}),
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={org}
-        team={team}
-      />,
-      {router}
-    );
+    render(<TeamMembers team={team} />, {router, organization: org});
 
     await userEvent.click(
       (await screen.findAllByRole('button', {name: 'Add Member'}))[0]!
@@ -266,14 +195,7 @@ describe('TeamMembers', function () {
       url: `/organizations/${organization.slug}/members/${members[0]!.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organization}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization});
 
     await screen.findAllByRole('button', {name: 'Add Member'});
 
@@ -300,14 +222,7 @@ describe('TeamMembers', function () {
     });
     const organizationMember = OrganizationFixture({access: []});
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organizationMember}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: organizationMember});
 
     await screen.findAllByRole('button', {name: 'Add Member'});
 
@@ -336,14 +251,7 @@ describe('TeamMembers', function () {
       body: [...members, owner],
     });
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={organization}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization});
 
     const admins = await screen.findAllByText('Team Admin');
     expect(admins).toHaveLength(3);
@@ -366,14 +274,7 @@ describe('TeamMembers', function () {
 
     const orgWithTeamRoles = OrganizationFixture({features: ['team-roles']});
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team.slug}}
-        organization={orgWithTeamRoles}
-        team={team}
-      />
-    );
+    render(<TeamMembers team={team} />, {router, organization: orgWithTeamRoles});
 
     const admins = await screen.findAllByText('Team Admin');
     expect(admins).toHaveLength(3);
@@ -423,14 +324,7 @@ describe('TeamMembers', function () {
       body: team2,
     });
 
-    render(
-      <TeamMembers
-        {...routerProps}
-        params={{teamId: team2.slug}}
-        organization={organization}
-        team={team2}
-      />
-    );
+    render(<TeamMembers team={team2} />, {router, organization});
 
     expect(
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(1)

@@ -49,7 +49,7 @@ export const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.UNKNOWN]: 'muted',
 };
 
-function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
@@ -217,8 +217,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgSlug}: Props) {
     </Fragment>
   );
 }
-
-export default MonitorCheckIns;
 
 const Status = styled('div')`
   line-height: 1.1;

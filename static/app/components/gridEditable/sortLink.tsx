@@ -3,7 +3,7 @@ import type {LocationDescriptorObject} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {IconArrow} from 'sentry/icons';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 export type Alignments = 'left' | 'right' | undefined;
 export type Directions = 'desc' | 'asc' | undefined;
@@ -28,6 +28,7 @@ function SortLink({
   replace,
 }: Props) {
   const target = generateSortLink();
+  const navigate = useNavigate();
 
   if (!target || !canSort) {
     return <StyledNonLink align={align}>{title}</StyledNonLink>;
@@ -40,7 +41,7 @@ function SortLink({
   const handleOnClick: React.MouseEventHandler<HTMLAnchorElement> = e => {
     if (replace) {
       e.preventDefault();
-      browserHistory.replace(target);
+      navigate(target, {replace: true});
     }
     onClick?.(e);
   };

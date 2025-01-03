@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 
 def find_given_child_component[
     T
-](parent_component: BaseGroupingComponent[Any], child_component_type: type[T]) -> T | None:
+](parent_component: BaseGroupingComponent[Any], child_component_type: type[T]) -> T:
     """
     Finds the first instance of the given type of child component in the parent component's `values`
     list. Works best in cases where only one instance of the given type is expected.
@@ -23,8 +23,8 @@ def find_given_child_component[
     for child_component in parent_component.values:
         if isinstance(child_component, child_component_type):
             return child_component
-
-    return None
+    else:
+        raise AssertionError(f"component not found: {child_component_type}")
 
 
 class ComponentTest(TestCase):
