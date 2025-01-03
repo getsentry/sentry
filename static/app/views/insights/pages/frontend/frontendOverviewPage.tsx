@@ -35,7 +35,10 @@ import {
   FRONTEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
-import {generateFrontendOtherPerformanceEventView} from 'sentry/views/performance/data';
+import {
+  generateFrontendOtherPerformanceEventView,
+  USER_MISERY_TOOLTIP,
+} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -50,7 +53,7 @@ import {
 } from 'sentry/views/performance/utils';
 
 const DURATION_TOOLTIP = tct(
-  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle [link:Learn more.]',
+  'A heuristic measuring when a pageload or navigation completes. Based on whether the initial load of the webpage has become idle. [link:Learn more.]',
   {
     link: (
       <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#idletimeout" />
@@ -67,7 +70,7 @@ export const FRONTEND_COLUMN_TITLES = [
   {title: 'p75()', tooltip: DURATION_TOOLTIP},
   {title: 'p95()', tooltip: DURATION_TOOLTIP},
   {title: 'users'},
-  {title: 'user misery'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 function FrontendOverviewPage() {

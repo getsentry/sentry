@@ -11,11 +11,9 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -456,21 +454,37 @@ class _Table extends Component<Props, State> {
       />
     );
     if (field.field.startsWith('user_misery')) {
-      return (
-        <GuideAnchor target="project_transaction_threshold" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
+      if (title.tooltip) {
+        {
+          title.tooltip ? (
+            <Tooltip isHoverable title={title.tooltip} showUnderline></Tooltip>
+          ) : (
+            ''
+          );
+        }
+        return (
+          <GuideAnchor target="project_transaction_threshold" position="top">
+            <Tooltip isHoverable title={title.tooltip} showUnderline>
+              {sortLink}
+            </Tooltip>
+          </GuideAnchor>
+        );
+      } else {
+        return (
+          <GuideAnchor target="project_transaction_threshold" position="top">
+            {sortLink}
+          </GuideAnchor>
+        );
+      }
     }
 
     if (!title.tooltip) {
       return sortLink;
     }
     return (
-      <Header>
+      <Tooltip isHoverable title={title.tooltip} showUnderline>
         {sortLink}
-        <QuestionTooltip size="xs" position="top" title={title.tooltip} isHoverable />
-      </Header>
+      </Tooltip>
     );
   }
 
@@ -647,14 +661,6 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  align-items: center;
-  padding: ${space(1.5)};
-  grid-column-gap: ${space(0.5)};
 `;
 
 export default Table;
