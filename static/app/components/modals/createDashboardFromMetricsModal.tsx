@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {createDashboard, updateDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -25,7 +24,6 @@ import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 export type AddToDashboardModalProps = {
-  location: Location;
   newDashboard: DashboardDetails;
   organization: Organization;
   router: InjectedRouter;

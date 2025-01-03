@@ -717,20 +717,23 @@ export function handleAddQueryToDashboard({
     location,
     widgetType,
   });
+
   openAddToDashboardModal({
     organization,
     selection: {
-      projects: eventView.project,
-      environments: eventView.environment,
+      projects: eventView.project.slice(),
+      environments: eventView.environment.slice(),
       datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
+        start: eventView.start!,
+        end: eventView.end!,
+        period: eventView.statsPeriod!,
+        // Previously undetected because the type used to rely on an implicit any value.
+        // @ts-expect-error
         utc: eventView.utc,
       },
     },
     widget: {
-      title: query?.name ?? eventView.name,
+      title: (query?.name ?? eventView.name)!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
@@ -738,7 +741,7 @@ export function handleAddQueryToDashboard({
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
         },
       ],
-      interval: eventView.interval,
+      interval: eventView.interval!,
       limit:
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
@@ -746,6 +749,8 @@ export function handleAddQueryToDashboard({
       widgetType,
     },
     router,
+    // Previously undetected because the type relied on implicit any.
+    // @ts-expect-error
     widgetAsQueryParams,
     location,
   });
