@@ -626,16 +626,16 @@ describe('WaterfallModel', () => {
 
   it('querySpanSearch', async () => {
     const waterfallModel = new WaterfallModel(event);
-    expect(waterfallModel.fuse).toBe(undefined);
+    expect(waterfallModel.fuse).toBeUndefined();
 
     // Fuzzy search needs to be loaded asynchronously
     await tick();
 
     // expect fuse index to be created
-    expect(waterfallModel.fuse).not.toBe(undefined);
+    expect(waterfallModel.fuse).toBeDefined();
 
-    expect(waterfallModel.filterSpans).toBe(undefined);
-    expect(waterfallModel.searchQuery).toBe(undefined);
+    expect(waterfallModel.filterSpans).toBeUndefined();
+    expect(waterfallModel.searchQuery).toBeUndefined();
 
     waterfallModel.querySpanSearch('GET /api/0/organizations/?member=1');
 

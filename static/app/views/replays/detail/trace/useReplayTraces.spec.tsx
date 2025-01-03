@@ -45,11 +45,11 @@ describe('useTraceMeta', () => {
 
     const {result} = renderHook(() => useReplayTraces({replayRecord}));
 
-    expect(result.current.indexComplete).toEqual(false);
+    expect(result.current.indexComplete).toBe(false);
 
     await waitFor(() => expect(result.current.indexComplete).toBe(true));
 
-    expect(result.current.indexComplete).toEqual(true);
+    expect(result.current.indexComplete).toBe(true);
     expect(result.current.replayTraces).toEqual([
       {traceSlug: 'trace1', timestamp: 1},
       {traceSlug: 'trace2', timestamp: 2},
@@ -71,12 +71,12 @@ describe('useTraceMeta', () => {
 
     const {result} = renderHook(() => useReplayTraces({replayRecord}));
 
-    expect(result.current.indexComplete).toEqual(false);
+    expect(result.current.indexComplete).toBe(false);
 
     await waitFor(() => expect(result.current.indexComplete).toBe(true));
 
-    expect(result.current.indexComplete).toEqual(true);
-    expect(result.current.replayTraces).toEqual(undefined);
+    expect(result.current.indexComplete).toBe(true);
+    expect(result.current.replayTraces).toBeUndefined();
     expect(result.current.indexError as Error).toEqual(
       expect.objectContaining({status: 400})
     );

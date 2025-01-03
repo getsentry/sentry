@@ -159,7 +159,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTraceSpace([0, 0, 1000, 1]);
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
-      expect(manager.transformXFromTimestamp(50)).toEqual(50);
+      expect(manager.transformXFromTimestamp(50)).toBe(50);
     });
 
     it('computes x position correctly when view is offset', () => {
@@ -177,7 +177,7 @@ describe('VirtualizedViewManger', () => {
 
       manager.view.trace_view.x = 50;
 
-      expect(manager.transformXFromTimestamp(-50)).toEqual(-150);
+      expect(manager.transformXFromTimestamp(-50)).toBe(-150);
     });
 
     it('when view is offset and scaled', () => {
@@ -194,7 +194,7 @@ describe('VirtualizedViewManger', () => {
       manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
       manager.view.setTraceView({width: 500, x: 500});
 
-      expect(Math.round(manager.transformXFromTimestamp(100))).toEqual(-500);
+      expect(Math.round(manager.transformXFromTimestamp(100))).toBe(-500);
     });
   });
 });

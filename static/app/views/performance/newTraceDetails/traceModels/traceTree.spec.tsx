@@ -217,7 +217,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.length).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
     });
 
     it('adds continuous profile to node', () => {
@@ -232,7 +232,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.root.children[0]!.children[0]!.profiles.length).toBe(1);
+      expect(tree.root.children[0]!.children[0]!.profiles).toHaveLength(1);
     });
   });
 
@@ -361,7 +361,7 @@ describe('TraceTree', () => {
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
       const tree = TraceTree.FromTrace(traceWithVitals, traceMetadata);
-      expect(tree.indicators.length).toBe(1);
+      expect(tree.indicators).toHaveLength(1);
       expect(tree.indicators[0]!.start).toBe(start * 1e3);
     });
 
@@ -381,7 +381,7 @@ describe('TraceTree', () => {
         }),
         traceMetadata
       );
-      expect(tree.indicators.length).toBe(2);
+      expect(tree.indicators).toHaveLength(2);
       expect(tree.indicators[0]!.start < tree.indicators[1]!.start).toBe(true);
     });
   });
@@ -964,7 +964,7 @@ describe('TraceTree', () => {
       });
 
       const spans = TraceTree.FindAll(tree.root, n => isSpanNode(n));
-      expect(spans.length).toBe(1);
+      expect(spans).toHaveLength(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
   });
@@ -1030,7 +1030,7 @@ describe('TraceTree', () => {
     it('finds all nodes by predicate', () => {
       const tree = TraceTree.FromTrace(trace, traceMetadata);
       const nodes = TraceTree.FindAll(tree.root, n => isTransactionNode(n));
-      expect(nodes.length).toBe(2);
+      expect(nodes).toHaveLength(2);
     });
   });
 

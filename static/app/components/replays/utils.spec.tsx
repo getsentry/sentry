@@ -322,7 +322,7 @@ describe('findVideoSegmentIndex', () => {
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toBe(-1);
   });
 
   it('returns first segment if target timestamp is before the first segment', () => {
@@ -351,6 +351,6 @@ describe('findVideoSegmentIndex', () => {
     const trackList2 = segments2.map(
       ({timestamp}, index) => [timestamp, index] as [ts: number, index: number]
     );
-    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toEqual(-1);
+    expect(findVideoSegmentIndex(trackList2, segments2, 1000)).toBe(-1);
   });
 });

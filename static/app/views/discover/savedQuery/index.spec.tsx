@@ -503,11 +503,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual(
-        '(foo:bar) AND (event.type:transaction)'
-      );
-      expect(queryParameters.get('dataset')).toEqual('transactions');
-      expect(queryParameters.get('eventTypes')).toEqual('transaction');
+      expect(queryParameters.get('query')).toBe('(foo:bar) AND (event.type:transaction)');
+      expect(queryParameters.get('dataset')).toBe('transactions');
+      expect(queryParameters.get('eventTypes')).toBe('transaction');
     });
     it('uses the num errors alert type for error queries', () => {
       const metricAlertOrg = {
@@ -526,9 +524,9 @@ describe('Discover > SaveQueryButtonGroup', function () {
       const href = createAlertButton.getAttribute('href')!;
       const queryParameters = new URLSearchParams(href.split('?')[1]);
 
-      expect(queryParameters.get('query')).toEqual('foo:bar');
-      expect(queryParameters.get('dataset')).toEqual('events');
-      expect(queryParameters.get('eventTypes')).toEqual('error');
+      expect(queryParameters.get('query')).toBe('foo:bar');
+      expect(queryParameters.get('dataset')).toBe('events');
+      expect(queryParameters.get('eventTypes')).toBe('error');
     });
   });
 });

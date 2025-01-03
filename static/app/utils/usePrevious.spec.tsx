@@ -23,7 +23,7 @@ describe('usePrevious', () => {
 
     rerender('New Value');
     // We did not pass anything under initialProps
-    expect(result.current).toBe(undefined);
+    expect(result.current).toBeUndefined();
     rerender('New New Value');
     // Result should point to old value
     expect(result.current).toBe('New Value');

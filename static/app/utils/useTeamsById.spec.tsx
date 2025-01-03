@@ -75,7 +75,7 @@ describe('useTeamsById', function () {
     expect(mockRequest).toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(result.current.teams.length).toBe(1);
+      expect(result.current.teams).toHaveLength(1);
     });
 
     const {teams} = result.current;
@@ -114,7 +114,7 @@ describe('useTeamsById', function () {
     expect(result.current.isLoading).toBe(true);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.teams.length).toBe(1));
+    await waitFor(() => expect(result.current.teams).toHaveLength(1));
 
     const {teams} = result.current;
     expect(teams).toEqual(expect.arrayContaining(requestedTeams));

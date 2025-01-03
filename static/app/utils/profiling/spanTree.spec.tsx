@@ -83,7 +83,7 @@ describe('SpanTree', () => {
         }),
       ]
     );
-    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.orphanedSpans).toHaveLength(0);
     expect(tree.root.children[0]!.span.span_id).toBe('1');
     expect(tree.root.children[0]!.children[0]!.span.span_id).toBe('2');
   });
@@ -119,10 +119,10 @@ describe('SpanTree', () => {
       ]
     );
 
-    expect(tree.orphanedSpans.length).toBe(1);
+    expect(tree.orphanedSpans).toHaveLength(1);
     expect(tree.root.children[0]!.span.span_id).toBe('1');
     expect(tree.root.children[0]!.children[0]!.span.span_id).toBe('2');
-    expect(tree.root.children[0]!.children[1]).toBe(undefined);
+    expect(tree.root.children[0]!.children[1]).toBeUndefined();
   });
 
   it('creates missing instrumentation node', () => {
@@ -149,7 +149,7 @@ describe('SpanTree', () => {
         }),
       ]
     );
-    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.orphanedSpans).toHaveLength(0);
     expect(tree.root.children[0]!.span.span_id).toBe('1');
     expect(tree.root.children[1]!.span.op).toBe('missing span instrumentation');
     expect(tree.root.children[2]!.span.span_id).toBe('2');
@@ -209,7 +209,7 @@ describe('SpanTree', () => {
       ]
     );
 
-    expect(tree.orphanedSpans.length).toBe(0);
+    expect(tree.orphanedSpans).toHaveLength(0);
     expect(tree.root.children[0]!.span.span_id).toBe('1');
     expect(tree.root.children[1]!.span.span_id).toBe('2');
   });

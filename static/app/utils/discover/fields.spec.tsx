@@ -17,9 +17,9 @@ import {
 
 describe('parseFunction', function () {
   it('returns null on non aggregate fields', function () {
-    expect(parseFunction('field')).toEqual(null);
-    expect(parseFunction('under_field')).toEqual(null);
-    expect(parseFunction('foo.bar.is-Enterprise_42')).toEqual(null);
+    expect(parseFunction('field')).toBeNull();
+    expect(parseFunction('under_field')).toBeNull();
+    expect(parseFunction('foo.bar.is-Enterprise_42')).toBeNull();
   });
 
   it('handles 0 arg functions', function () {
@@ -95,32 +95,32 @@ describe('parseFunction', function () {
 
 describe('getAggregateAlias', function () {
   it('no-ops simple fields', function () {
-    expect(getAggregateAlias('field')).toEqual('field');
-    expect(getAggregateAlias('under_field')).toEqual('under_field');
-    expect(getAggregateAlias('foo.bar.is-Enterprise_42')).toEqual(
+    expect(getAggregateAlias('field')).toBe('field');
+    expect(getAggregateAlias('under_field')).toBe('under_field');
+    expect(getAggregateAlias('foo.bar.is-Enterprise_42')).toBe(
       'foo.bar.is-Enterprise_42'
     );
   });
 
   it('handles 0 arg functions', function () {
-    expect(getAggregateAlias('count()')).toEqual('count');
-    expect(getAggregateAlias('count_unique()')).toEqual('count_unique');
+    expect(getAggregateAlias('count()')).toBe('count');
+    expect(getAggregateAlias('count_unique()')).toBe('count_unique');
   });
 
   it('handles 1 arg functions', function () {
-    expect(getAggregateAlias('count(id)')).toEqual('count_id');
-    expect(getAggregateAlias('count_unique(user)')).toEqual('count_unique_user');
-    expect(getAggregateAlias('count_unique(issue.id)')).toEqual('count_unique_issue_id');
-    expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toEqual(
+    expect(getAggregateAlias('count(id)')).toBe('count_id');
+    expect(getAggregateAlias('count_unique(user)')).toBe('count_unique_user');
+    expect(getAggregateAlias('count_unique(issue.id)')).toBe('count_unique_issue_id');
+    expect(getAggregateAlias('count(foo.bar.is-Enterprise_42)')).toBe(
       'count_foo_bar_is_Enterprise_42'
     );
   });
 
   it('handles 2 arg functions', function () {
-    expect(getAggregateAlias('percentile(transaction.duration,0.81)')).toEqual(
+    expect(getAggregateAlias('percentile(transaction.duration,0.81)')).toBe(
       'percentile_transaction_duration_0_81'
     );
-    expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toEqual(
+    expect(getAggregateAlias('percentile(transaction.duration,  0.11)')).toBe(
       'percentile_transaction_duration_0_11'
     );
   });
@@ -128,7 +128,7 @@ describe('getAggregateAlias', function () {
   it('handles to_other with symbols', function () {
     expect(
       getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
-    ).toEqual('to_other_release__release_beta_1_1_1__2___others_current');
+    ).toBe('to_other_release__release_beta_1_1_1__2___others_current');
   });
 });
 
@@ -227,69 +227,67 @@ describe('explodeField', function () {
 
 describe('aggregateOutputType', function () {
   it('handles unknown fields', function () {
-    expect(aggregateOutputType('')).toEqual('number');
-    expect(aggregateOutputType('blerg')).toEqual('number');
+    expect(aggregateOutputType('')).toBe('number');
+    expect(aggregateOutputType('blerg')).toBe('number');
   });
 
   it('handles duration functions', function () {
-    expect(aggregateOutputType('p50()')).toEqual('duration');
-    expect(aggregateOutputType('p75()')).toEqual('duration');
-    expect(aggregateOutputType('p95()')).toEqual('duration');
-    expect(aggregateOutputType('p99()')).toEqual('duration');
-    expect(aggregateOutputType('p100()')).toEqual('duration');
-    expect(aggregateOutputType('p50(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('p75(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('p95(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('p99(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('p100(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toEqual(
+    expect(aggregateOutputType('p50()')).toBe('duration');
+    expect(aggregateOutputType('p75()')).toBe('duration');
+    expect(aggregateOutputType('p95()')).toBe('duration');
+    expect(aggregateOutputType('p99()')).toBe('duration');
+    expect(aggregateOutputType('p100()')).toBe('duration');
+    expect(aggregateOutputType('p50(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('p75(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('p95(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('p99(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('p100(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('percentile(transaction.duration, 0.51)')).toBe(
       'duration'
     );
-    expect(aggregateOutputType('percentile(transaction.duration,0.99)')).toEqual(
-      'duration'
-    );
+    expect(aggregateOutputType('percentile(transaction.duration,0.99)')).toBe('duration');
   });
 
   it('handles percentage functions', function () {
-    expect(aggregateOutputType('failure_rate()')).toEqual('percentage');
+    expect(aggregateOutputType('failure_rate()')).toBe('percentage');
   });
 
   it('handles number functions', function () {
-    expect(aggregateOutputType('apdex()')).toEqual('number');
-    expect(aggregateOutputType('apdex(500)')).toEqual('number');
-    expect(aggregateOutputType('count_miserable(user, 500)')).toEqual('number');
-    expect(aggregateOutputType('user_misery(500)')).toEqual('number');
-    expect(aggregateOutputType('eps()')).toEqual('number');
-    expect(aggregateOutputType('epm()')).toEqual('number');
+    expect(aggregateOutputType('apdex()')).toBe('number');
+    expect(aggregateOutputType('apdex(500)')).toBe('number');
+    expect(aggregateOutputType('count_miserable(user, 500)')).toBe('number');
+    expect(aggregateOutputType('user_misery(500)')).toBe('number');
+    expect(aggregateOutputType('eps()')).toBe('number');
+    expect(aggregateOutputType('epm()')).toBe('number');
   });
 
   it('handles inherit functions', function () {
-    expect(aggregateOutputType('sum(transaction.duration)')).toEqual('duration');
-    expect(aggregateOutputType('sum(stack.colno)')).toEqual('number');
+    expect(aggregateOutputType('sum(transaction.duration)')).toBe('duration');
+    expect(aggregateOutputType('sum(stack.colno)')).toBe('number');
 
-    expect(aggregateOutputType('min(stack.colno)')).toEqual('number');
-    expect(aggregateOutputType('min(timestamp)')).toEqual('date');
+    expect(aggregateOutputType('min(stack.colno)')).toBe('number');
+    expect(aggregateOutputType('min(timestamp)')).toBe('date');
 
-    expect(aggregateOutputType('max(stack.colno)')).toEqual('number');
-    expect(aggregateOutputType('max(timestamp)')).toEqual('date');
+    expect(aggregateOutputType('max(stack.colno)')).toBe('number');
+    expect(aggregateOutputType('max(timestamp)')).toBe('date');
   });
 
   it('handles measurements', function () {
-    expect(aggregateOutputType('sum(measurements.fcp)')).toEqual('duration');
-    expect(aggregateOutputType('min(measurements.fcp)')).toEqual('duration');
-    expect(aggregateOutputType('max(measurements.fcp)')).toEqual('duration');
-    expect(aggregateOutputType('avg(measurements.fcp)')).toEqual('duration');
-    expect(aggregateOutputType('percentile(measurements.fcp, 0.5)')).toEqual('duration');
-    expect(aggregateOutputType('sum(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('min(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('max(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('avg(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toEqual('number');
-    expect(aggregateOutputType('p50(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('p75(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('p95(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('p99(measurements.bar)')).toEqual('number');
-    expect(aggregateOutputType('p100(measurements.bar)')).toEqual('number');
+    expect(aggregateOutputType('sum(measurements.fcp)')).toBe('duration');
+    expect(aggregateOutputType('min(measurements.fcp)')).toBe('duration');
+    expect(aggregateOutputType('max(measurements.fcp)')).toBe('duration');
+    expect(aggregateOutputType('avg(measurements.fcp)')).toBe('duration');
+    expect(aggregateOutputType('percentile(measurements.fcp, 0.5)')).toBe('duration');
+    expect(aggregateOutputType('sum(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('min(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('max(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('avg(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('percentile(measurements.bar, 0.5)')).toBe('number');
+    expect(aggregateOutputType('p50(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('p75(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('p95(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('p99(measurements.bar)')).toBe('number');
+    expect(aggregateOutputType('p100(measurements.bar)')).toBe('number');
   });
 });
 
@@ -326,25 +324,25 @@ describe('generateAggregateFields', function () {
 
 describe('fieldAlignment()', function () {
   it('works with only field name', function () {
-    expect(fieldAlignment('event.type')).toEqual('left');
+    expect(fieldAlignment('event.type')).toBe('left');
 
     // Should be right, but we don't have any type data.
-    expect(fieldAlignment('transaction.duration')).toEqual('left');
+    expect(fieldAlignment('transaction.duration')).toBe('left');
   });
 
   it('works with type parameter', function () {
-    expect(fieldAlignment('transaction.duration', 'duration')).toEqual('right');
-    expect(fieldAlignment('device.battery_level', 'number')).toEqual('right');
-    expect(fieldAlignment('min(timestamp)', 'date')).toEqual('left');
+    expect(fieldAlignment('transaction.duration', 'duration')).toBe('right');
+    expect(fieldAlignment('device.battery_level', 'number')).toBe('right');
+    expect(fieldAlignment('min(timestamp)', 'date')).toBe('left');
   });
 
   it('can use table metadata', function () {
     const meta: Record<string, ColumnValueType> = {
       'transaction.duration': 'duration',
     };
-    expect(fieldAlignment('transaction.duration', 'never', meta)).toEqual('right');
-    expect(fieldAlignment('transaction.duration', undefined, meta)).toEqual('right');
+    expect(fieldAlignment('transaction.duration', 'never', meta)).toBe('right');
+    expect(fieldAlignment('transaction.duration', undefined, meta)).toBe('right');
 
-    expect(fieldAlignment('title', undefined, meta)).toEqual('left');
+    expect(fieldAlignment('title', undefined, meta)).toBe('left');
   });
 });

@@ -187,7 +187,7 @@ describe('sanitizePath', function () {
   }
 
   it('uses original value if placeholder type not found', () => {
-    expect(sanitizePath('/organizations/sentry/dogName/maisey')).toEqual(
+    expect(sanitizePath('/organizations/sentry/dogName/maisey')).toBe(
       '/organizations/{orgSlug}/dogName/maisey'
     );
   });

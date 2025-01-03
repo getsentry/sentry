@@ -329,9 +329,9 @@ describe('EventView.fromSavedQuery()', function () {
       {field: 'title', width: COL_WIDTH_UNDEFINED},
     ]);
     expect(eventView.name).toEqual(saved.name);
-    expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual(undefined);
-    expect(eventView.end).toEqual(undefined);
+    expect(eventView.statsPeriod).toBe('14d');
+    expect(eventView.start).toBeUndefined();
+    expect(eventView.end).toBeUndefined();
   });
 
   it('saved queries are equal when start and end datetime differ in format', function () {
@@ -1285,7 +1285,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         query: 'TypeError',
       },
     });
-    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+    expect(eventView.getEventsAPIPayload(location).query).toBe('event.type:csp');
   });
 
   it('only includes at most one sort key', function () {
@@ -1300,7 +1300,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: {},
     });
 
-    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-title');
+    expect(eventView.getEventsAPIPayload(location).sort).toBe('-title');
   });
 
   it('only includes sort keys that are defined in fields', function () {
@@ -1315,7 +1315,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: {},
     });
 
-    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
+    expect(eventView.getEventsAPIPayload(location).sort).toBe('-count');
   });
 
   it('only includes relevant query strings', function () {
@@ -2027,8 +2027,8 @@ describe('EventView.withColumns()', function () {
       {field: 'project.id', width: 99},
     ]);
 
-    expect(eventView.yAxis).toEqual('failure_count()');
-    expect(newView.yAxis).toEqual('count()');
+    expect(eventView.yAxis).toBe('failure_count()');
+    expect(newView.yAxis).toBe('count()');
   });
 });
 
@@ -2135,7 +2135,7 @@ describe('EventView.withResizedColumn()', function () {
   it('updates a column that exists', function () {
     const newView = view.withResizedColumn(0, 99);
     expect(view.fields[0]!.width).toBeUndefined();
-    expect(newView.fields[0]!.width).toEqual(99);
+    expect(newView.fields[0]!.width).toBe(99);
   });
 
   it('ignores columns that do not exist', function () {
@@ -2566,10 +2566,10 @@ describe('EventView.getQuery()', function () {
       query: 'event.type:error',
     });
 
-    expect(eventView.getQuery()).toEqual('event.type:error');
-    expect(eventView.getQuery(null)).toEqual('event.type:error');
-    expect(eventView.getQuery('hello')).toEqual('event.type:error hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+    expect(eventView.getQuery()).toBe('event.type:error');
+    expect(eventView.getQuery(null)).toBe('event.type:error');
+    expect(eventView.getQuery('hello')).toBe('event.type:error hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
       'event.type:error hello'
     );
   });
@@ -2582,10 +2582,10 @@ describe('EventView.getQuery()', function () {
       project: [],
     });
 
-    expect(eventView.getQuery()).toEqual('');
-    expect(eventView.getQuery(null)).toEqual('');
-    expect(eventView.getQuery('hello')).toEqual('hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+    expect(eventView.getQuery()).toBe('');
+    expect(eventView.getQuery(null)).toBe('');
+    expect(eventView.getQuery('hello')).toBe('hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
       'event.type:error hello'
     );
   });
@@ -2603,7 +2603,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
 
     eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
-    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+    expect(eventView.getQueryWithAdditionalConditions()).toBe(
       'event.type:transaction foo:bar'
     );
   });
@@ -2994,18 +2994,18 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
+    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual('42');
+    expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
   });
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.pathname).toBe('/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual('42');
+    expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
   });
 });
@@ -3051,27 +3051,27 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
+    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual('42');
-    expect(result.query.environment).toEqual('staging');
+    expect(result.query.project).toBe('42');
+    expect(result.query.environment).toBe('staging');
   });
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.pathname).toBe('/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual('42');
-    expect(result.query.environment).toEqual('staging');
+    expect(result.query.project).toBe('42');
+    expect(result.query.environment).toBe('staging');
   });
 });
 
@@ -3122,12 +3122,10 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
       breakdown,
       webVital,
     });
-    expect(result.pathname).toEqual(
-      '/organizations/org-slug/performance/summary/events/'
-    );
+    expect(result.pathname).toBe('/organizations/org-slug/performance/summary/events/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual('42');
-    expect(result.query.sort).toEqual('-count');
+    expect(result.query.project).toBe('42');
+    expect(result.query.sort).toBe('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
@@ -3141,10 +3139,10 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
       breakdown,
       webVital,
     });
-    expect(result.pathname).toEqual('/performance/summary/events/');
+    expect(result.pathname).toBe('/performance/summary/events/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual('42');
-    expect(result.query.sort).toEqual('-count');
+    expect(result.query.project).toBe('42');
+    expect(result.query.sort).toBe('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
@@ -3342,7 +3340,7 @@ describe('EventView.getYAxis()', function () {
   it('should return first default yAxis', function () {
     const thisEventView = new EventView(state);
 
-    expect(thisEventView.getYAxis()).toEqual('count()');
+    expect(thisEventView.getYAxis()).toBe('count()');
   });
 
   it('should return valid yAxis', function () {
@@ -3352,7 +3350,7 @@ describe('EventView.getYAxis()', function () {
       yAxis: 'count_unique(user)',
     });
 
-    expect(thisEventView.getYAxis()).toEqual('count_unique(user)');
+    expect(thisEventView.getYAxis()).toBe('count_unique(user)');
   });
 
   it('should ignore invalid yAxis', function () {
@@ -3370,7 +3368,7 @@ describe('EventView.getYAxis()', function () {
       });
 
       // yAxis defaults to the first entry of the default yAxis options
-      expect(thisEventView.getYAxis()).toEqual('count()');
+      expect(thisEventView.getYAxis()).toBe('count()');
     }
   });
 });
@@ -3404,7 +3402,7 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[1]!.value).toEqual('previous');
+    expect(options[1]!.value).toBe('previous');
     expect(options[1]!.disabled).toBeTruthy();
   });
 
@@ -3414,9 +3412,9 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[2]!.value).toEqual('top5');
+    expect(options[2]!.value).toBe('top5');
     expect(options[2]!.disabled).toBeTruthy();
-    expect(options[4]!.value).toEqual('dailytop5');
+    expect(options[4]!.value).toBe('dailytop5');
     expect(options[4]!.disabled).toBeTruthy();
   });
 });

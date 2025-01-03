@@ -50,15 +50,15 @@ describe('RepositoryActionCreator', function () {
 
     expect(RepositoryStore.state.orgSlug).toEqual(orgSlug);
     expect(RepositoryStore.state.repositories).toEqual(mockData);
-    expect(RepositoryStore.state.repositoriesLoading).toEqual(false);
+    expect(RepositoryStore.state.repositoriesLoading).toBe(false);
   });
 
   it('short-circuits the JS event loop', () => {
-    expect(RepositoryStore.state.repositoriesLoading).toEqual(undefined);
+    expect(RepositoryStore.state.repositoriesLoading).toBeUndefined();
 
     getRepositories(api, {orgSlug}); // Fire Action.loadRepositories
     expect(RepositoryStore.loadRepositories).toHaveBeenCalled();
     // expect(RepositoryStore.loadRepositories).not.toHaveBeenCalled();
-    expect(RepositoryStore.state.repositoriesLoading).toEqual(true); // Short-circuit
+    expect(RepositoryStore.state.repositoriesLoading).toBe(true); // Short-circuit
   });
 });

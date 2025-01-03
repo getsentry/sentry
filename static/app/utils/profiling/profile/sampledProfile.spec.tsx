@@ -86,7 +86,7 @@ describe('SampledProfile', () => {
       createFrameIndex('mobile', [{name: 'f0'}]),
       {type: 'flamechart'}
     );
-    expect(profile.rawWeights.length).toBe(2);
+    expect(profile.rawWeights).toHaveLength(2);
   });
 
   it('rebuilds the stack', () => {
@@ -125,11 +125,11 @@ describe('SampledProfile', () => {
 
     const root = firstCallee(profile.callTree)!;
 
-    expect(root!.totalWeight).toEqual(2);
-    expect(firstCallee(root)!.totalWeight).toEqual(2);
+    expect(root!.totalWeight).toBe(2);
+    expect(firstCallee(root)!.totalWeight).toBe(2);
 
-    expect(root!.selfWeight).toEqual(0);
-    expect(firstCallee(root)!.selfWeight).toEqual(2);
+    expect(root!.selfWeight).toBe(0);
+    expect(firstCallee(root)!.selfWeight).toBe(2);
   });
 
   it('marks direct recursion', () => {
@@ -296,7 +296,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0]!.children[0]!.children.length).toBe(2);
+    expect(profile.callTree.children[0]!.children[0]!.children).toHaveLength(2);
     expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       'f2 [native code]'
     );
@@ -333,7 +333,7 @@ describe('SampledProfile', () => {
     );
 
     // There are no other children than the GC call meaning merge happened
-    expect(profile.callTree.children[0]!.children[0]!.children[1]).toBe(undefined);
+    expect(profile.callTree.children[0]!.children[0]!.children[1]).toBeUndefined();
     expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
       6
     );
@@ -389,7 +389,7 @@ describe('SampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0]!.frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toBe('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
     expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });

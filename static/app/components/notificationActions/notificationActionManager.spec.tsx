@@ -86,7 +86,7 @@ describe('Adds, deletes, and updates notification actions', function () {
       />
     );
     const projectNotificationActions = screen.queryAllByTestId('notification-action');
-    expect(projectNotificationActions.length).toBe(4);
+    expect(projectNotificationActions).toHaveLength(4);
   });
 
   it('disables buttons and dropdowns when disabled is True', function () {

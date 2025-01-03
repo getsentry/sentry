@@ -10,10 +10,10 @@ import {
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
-    expect(parseMRI('')).toEqual(null);
-    expect(parseMRI()).toEqual(null);
-    expect(parseMRI(null)).toEqual(null);
-    expect(parseMRI(undefined)).toEqual(null);
+    expect(parseMRI('')).toBeNull();
+    expect(parseMRI()).toBeNull();
+    expect(parseMRI(null)).toBeNull();
+    expect(parseMRI(undefined)).toBeNull();
   });
 
   it.each(['c', 'd', 'e', 'g', 's'])(
@@ -214,9 +214,9 @@ describe('toMRI', () => {
 
 describe('formatMRI', () => {
   it('returns the metric name', () => {
-    expect(formatMRI('c:custom/foo@none')).toEqual('foo');
-    expect(formatMRI('c:custom/bar@ms')).toEqual('bar');
-    expect(formatMRI('d:transactions/baz@ms')).toEqual('baz');
+    expect(formatMRI('c:custom/foo@none')).toBe('foo');
+    expect(formatMRI('c:custom/bar@ms')).toBe('bar');
+    expect(formatMRI('d:transactions/baz@ms')).toBe('baz');
   });
 });
 

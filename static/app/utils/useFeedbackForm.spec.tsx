@@ -36,7 +36,7 @@ describe('useFeedbackForm', function () {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
     const openForm = result.current;
 
-    expect(openForm).not.toBe(null);
+    expect(openForm).not.toBeNull();
 
     // Calling openForm() should create a form and append it to the DOM
     await openForm!();

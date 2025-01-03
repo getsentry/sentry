@@ -103,13 +103,13 @@ describe('useAggregatedQueryKeys', () => {
     });
 
     // Nothing has been asked for yet:
-    expect(result1.current.data).toEqual(undefined);
+    expect(result1.current.data).toBeUndefined();
 
     result1.current.buffer(['1111']);
     result1.current.buffer(['2222', '3333']);
 
     // We asked for 3 things, but the cache is empty:
-    expect(result1.current.data).toEqual(undefined);
+    expect(result1.current.data).toBeUndefined();
 
     // Wait to full up the cache:
     await waitFor(() => {

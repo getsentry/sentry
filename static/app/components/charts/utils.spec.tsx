@@ -111,19 +111,19 @@ describe('Chart Utils', function () {
     ]);
 
     it('handles negative intervals', function () {
-      expect(ladder.getInterval(-1)).toEqual('15m');
+      expect(ladder.getInterval(-1)).toBe('15m');
     });
 
     it('finds granularity at lower bound', function () {
-      expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toEqual('15m');
+      expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toBe('15m');
     });
 
     it('finds granularity between bounds', function () {
-      expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toEqual('30m');
+      expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toBe('30m');
     });
 
     it('finds granularity at upper bound', function () {
-      expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toEqual('1d');
+      expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toBe('1d');
     });
   });
 

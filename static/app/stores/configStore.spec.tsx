@@ -22,14 +22,14 @@ describe('ConfigStore', () => {
 
   it('should have cookie names', () => {
     const csrfCookieName = ConfigStore.get('csrfCookieName');
-    expect(csrfCookieName).toEqual('csrf-test-cookie');
+    expect(csrfCookieName).toBe('csrf-test-cookie');
 
     const superUserCookieName = ConfigStore.get('superUserCookieName');
-    expect(superUserCookieName).toEqual('su-test-cookie');
+    expect(superUserCookieName).toBe('su-test-cookie');
   });
 
   it('should have customerDomain', () => {
-    expect(ConfigStore.get('customerDomain')).toEqual(null);
+    expect(ConfigStore.get('customerDomain')).toBeNull();
   });
 
   it('returns a stable reference from getState()', () => {

@@ -29,10 +29,10 @@ describe('useChartInterval', function () {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toEqual('3h'); // default
+    expect(chartInterval).toBe('3h'); // default
 
     await act(() => setChartInterval('1d'));
-    expect(chartInterval).toEqual('1d');
+    expect(chartInterval).toBe('1d');
 
     // Update page filters to change interval options
     await act(() =>
@@ -52,7 +52,7 @@ describe('useChartInterval', function () {
     await act(() => {
       setChartInterval('1m');
     });
-    expect(chartInterval).toEqual('1m');
+    expect(chartInterval).toBe('1m');
   });
 });
 
