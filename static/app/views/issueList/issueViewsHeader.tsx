@@ -1,4 +1,5 @@
-import {useContext, useEffect, useMemo, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Node} from '@react-types/shared';
 
@@ -12,20 +13,16 @@ import {
 import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconMegaphone, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {
   generateTempViewId,
@@ -41,24 +38,19 @@ import {IssueSortOptions} from './utils';
 
 type IssueViewsIssueListHeaderProps = {
   onRealtimeChange: (realtime: boolean) => void;
-  organization: Organization;
   realtimeActive: boolean;
   router: InjectedRouter;
   selectedProjectIds: number[];
-};
-
-type IssueViewsIssueListHeaderTabsContentProps = {
-  organization: Organization;
-  router: InjectedRouter;
 };
 
 function IssueViewsIssueListHeader({
   selectedProjectIds,
   realtimeActive,
   onRealtimeChange,
-  ...props
+  router,
 }: IssueViewsIssueListHeaderProps) {
   const {projects} = useProjects();
+  const organization = useOrganization();
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
@@ -66,7 +58,7 @@ function IssueViewsIssueListHeader({
   const {newViewActive} = useContext(NewTabContext);
 
   const {data: groupSearchViews} = useFetchGroupSearchViews({
-    orgSlug: props.organization.slug,
+    orgSlug: organization.slug,
   });
 
   const realtimeTitle = realtimeActive
@@ -74,14 +66,14 @@ function IssueViewsIssueListHeader({
     : t('Enable real-time updates');
 
   const openForm = useFeedbackForm();
-  const hasNewLayout = props.organization.features.includes('issue-stream-table-layout');
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   return (
     <Layout.Header
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        groupSearchViews && !props.router?.location.query.viewId ? 'dashed' : 'solid'
+        groupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
       }
     >
       <Layout.HeaderContent>
@@ -132,7 +124,7 @@ function IssueViewsIssueListHeader({
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
         <StyledIssueViews
-          router={props.router}
+          router={router}
           initialViews={groupSearchViews.map(
             (
               {id, name, query: viewQuery, querySort: viewQuerySort},
@@ -151,7 +143,7 @@ function IssueViewsIssueListHeader({
             }
           )}
         >
-          <IssueViewsIssueListHeaderTabsContent {...props} />
+          <IssueViewsIssueListHeaderTabsContent />
         </StyledIssueViews>
       ) : (
         <div style={{height: 33}} />
@@ -160,13 +152,10 @@ function IssueViewsIssueListHeader({
   );
 }
 
-function IssueViewsIssueListHeaderTabsContent({
-  organization,
-  router,
-}: IssueViewsIssueListHeaderTabsContentProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const pageFilters = usePageFilters();
+function IssueViewsIssueListHeaderTabsContent() {
+  const organization = useOrganization();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const {query, sort, viewId} = Object.fromEntries(searchParams);
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
@@ -174,39 +163,17 @@ function IssueViewsIssueListHeaderTabsContent({
 
   const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
-  // TODO(msun): Use the location from useLocation instead of props router in the future
-  const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
-  const {query, sort, viewId, project, environment} = queryParams;
-  const queryParamsWithPageFilters = useMemo(() => {
-    return {
-      ...queryParams,
-      project: project ?? pageFilters.selection.projects,
-      environment: environment ?? pageFilters.selection.environments,
-      ...normalizeDateTimeParams(pageFilters.selection.datetime),
-    };
-  }, [
-    environment,
-    pageFilters.selection.datetime,
-    pageFilters.selection.environments,
-    pageFilters.selection.projects,
-    project,
-    queryParams,
-  ]);
-
   // This insane useEffect ensures that the correct tab is selected when the url updates
   useEffect(() => {
     // If no query, sort, or viewId is present, set the first tab as the selected tab, update query accordingly
     if (!query && !sort && !viewId) {
-      navigate(
-        normalizeUrl({
-          ...location,
-          query: {
-            ...queryParamsWithPageFilters,
-            query: views[0].query,
-            sort: views[0].querySort,
-            viewId: views[0].id,
-          },
-        }),
+      setSearchParams(
+        prev => {
+          prev.set('query', views[0].query);
+          prev.set('sort', views[0].querySort);
+          prev.set('viewId', views[0].id);
+          return prev;
+        },
         {replace: true}
       );
       tabListState?.setSelectedKey(views[0].key);
@@ -216,14 +183,16 @@ function IssueViewsIssueListHeaderTabsContent({
     if (viewId) {
       const selectedTab = views.find(tab => tab.id === viewId);
       if (selectedTab) {
-        const issueSortOption = Object.values(IssueSortOptions).includes(sort)
+        const issueSortOption = Object.values(IssueSortOptions).includes(
+          sort as IssueSortOptions
+        )
           ? sort
           : IssueSortOptions.DATE;
 
         const newUnsavedChanges: [string, IssueSortOptions] | undefined =
           query === selectedTab.query && sort === selectedTab.querySort
             ? undefined
-            : [query ?? selectedTab.query, issueSortOption];
+            : [query ?? selectedTab.query, issueSortOption as IssueSortOptions];
         if (
           (newUnsavedChanges && !selectedTab.unsavedChanges) ||
           selectedTab.unsavedChanges?.[0] !== newUnsavedChanges?.[0] ||
@@ -240,16 +209,19 @@ function IssueViewsIssueListHeaderTabsContent({
           dispatch({type: 'UPDATE_UNSAVED_CHANGES', unsavedChanges: undefined});
         }
         if (!tabListState?.selectionManager.isSelected(selectedTab.key)) {
-          navigate(
-            normalizeUrl({
-              ...location,
-              query: {
-                ...queryParamsWithPageFilters,
-                query: newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query,
-                sort: newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort,
-                viewId: selectedTab.id,
-              },
-            }),
+          setSearchParams(
+            prev => {
+              prev.set(
+                'query',
+                newUnsavedChanges ? newUnsavedChanges[0] : selectedTab.query
+              );
+              prev.set(
+                'sort',
+                newUnsavedChanges ? newUnsavedChanges[1] : selectedTab.querySort
+              );
+              prev.set('viewId', selectedTab.id);
+              return prev;
+            },
             {replace: true}
           );
           tabListState?.setSelectedKey(selectedTab.key);
@@ -257,14 +229,11 @@ function IssueViewsIssueListHeaderTabsContent({
       } else {
         // if a viewId does not exist, remove it from the query
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              viewId: undefined,
-            },
-          }),
+        setSearchParams(
+          prev => {
+            prev.delete('viewId');
+            return prev;
+          },
           {replace: true}
         );
         trackAnalytics('issue_views.shared_view_opened', {
@@ -276,15 +245,12 @@ function IssueViewsIssueListHeaderTabsContent({
     }
     if (query) {
       if (!tabListState?.selectionManager.isSelected(TEMPORARY_TAB_KEY)) {
-        dispatch({type: 'SET_TEMP_VIEW', query, sort});
-        navigate(
-          normalizeUrl({
-            ...location,
-            query: {
-              ...queryParamsWithPageFilters,
-              viewId: undefined,
-            },
-          }),
+        dispatch({type: 'SET_TEMP_VIEW', query, sort: sort as IssueSortOptions});
+        setSearchParams(
+          prev => {
+            prev.set('viewId', TEMPORARY_TAB_KEY);
+            return prev;
+          },
           {replace: true}
         );
         tabListState?.setSelectedKey(TEMPORARY_TAB_KEY);
@@ -292,17 +258,15 @@ function IssueViewsIssueListHeaderTabsContent({
       }
     }
   }, [
-    navigate,
     organization.slug,
     query,
     sort,
     viewId,
     tabListState,
-    location,
-    queryParamsWithPageFilters,
     views,
     organization,
     dispatch,
+    setSearchParams,
   ]);
 
   // This useEffect ensures the "new view" page is displayed/hidden correctly
@@ -318,7 +282,7 @@ function IssueViewsIssueListHeaderTabsContent({
         setNewViewActive(false);
         dispatch({
           type: 'UPDATE_UNSAVED_CHANGES',
-          unsavedChanges: [query, sort ?? IssueSortOptions.DATE],
+          unsavedChanges: [query, (sort as IssueSortOptions) ?? IssueSortOptions.DATE],
           isCommitted: true,
           syncViews: true,
         });
@@ -355,13 +319,10 @@ function IssueViewsIssueListHeaderTabsContent({
     const tempId = generateTempViewId();
     dispatch({type: 'CREATE_NEW_VIEW', tempId});
     tabListState?.setSelectedKey(tempId);
-    navigate({
-      ...location,
-      query: {
-        ...queryParams,
-        query: '',
-        viewId: tempId,
-      },
+    setSearchParams(prev => {
+      prev.set('query', '');
+      prev.set('viewId', tempId);
+      return prev;
     });
   };
 
@@ -395,7 +356,6 @@ function IssueViewsIssueListHeaderTabsContent({
           key={view.key}
           to={normalizeUrl({
             query: {
-              ...queryParams,
               query: view.unsavedChanges?.[0] ?? view.query,
               sort: view.unsavedChanges?.[1] ?? view.querySort,
               viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
@@ -408,7 +368,6 @@ function IssueViewsIssueListHeaderTabsContent({
             key={view.key}
             view={view}
             initialTabKey={initialTabKey}
-            router={router}
             editingTabKey={editingTabKey}
             setEditingTabKey={setEditingTabKey}
           />
