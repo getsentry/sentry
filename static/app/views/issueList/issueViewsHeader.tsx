@@ -1,9 +1,15 @@
-import {useContext, useEffect, useMemo} from 'react';
+import {useContext, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import type {Node} from '@react-types/shared';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
+import {
+  DraggableTabList,
+  TEMPORARY_TAB_KEY,
+} from 'sentry/components/draggableTabs/draggableTabList';
+import type {DraggableTabListItemProps} from 'sentry/components/draggableTabs/item';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -16,22 +22,24 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {DraggableTabBar} from 'sentry/views/issueList/groupSearchViewTabs/draggableTabBar';
 import {
+  generateTempViewId,
   type IssueView,
   IssueViews,
   IssueViewsContext,
 } from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+import {IssueViewTab} from 'sentry/views/issueList/groupSearchViewTabs/issueViewTab';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
 import {IssueSortOptions} from './utils';
 
-type CustomViewsIssueListHeaderProps = {
+type IssueViewsIssueListHeaderProps = {
   onRealtimeChange: (realtime: boolean) => void;
   organization: Organization;
   realtimeActive: boolean;
@@ -39,17 +47,17 @@ type CustomViewsIssueListHeaderProps = {
   selectedProjectIds: number[];
 };
 
-type CustomViewsIssueListHeaderTabsContentProps = {
+type IssueViewsIssueListHeaderTabsContentProps = {
   organization: Organization;
   router: InjectedRouter;
 };
 
-function CustomViewsIssueListHeader({
+function IssueViewsIssueListHeader({
   selectedProjectIds,
   realtimeActive,
   onRealtimeChange,
   ...props
-}: CustomViewsIssueListHeaderProps) {
+}: IssueViewsIssueListHeaderProps) {
   const {projects} = useProjects();
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
@@ -143,7 +151,7 @@ function CustomViewsIssueListHeader({
             }
           )}
         >
-          <CustomViewsIssueListHeaderTabsContent {...props} />
+          <IssueViewsIssueListHeaderTabsContent {...props} />
         </StyledIssueViews>
       ) : (
         <div style={{height: 33}} />
@@ -152,18 +160,19 @@ function CustomViewsIssueListHeader({
   );
 }
 
-function CustomViewsIssueListHeaderTabsContent({
+function IssueViewsIssueListHeaderTabsContent({
   organization,
   router,
-}: CustomViewsIssueListHeaderTabsContentProps) {
+}: IssueViewsIssueListHeaderTabsContentProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const pageFilters = usePageFilters();
 
   const {newViewActive, setNewViewActive} = useContext(NewTabContext);
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
+  const {views, tempView} = state;
 
-  const {views: draggableTabs} = state;
+  const [editingTabKey, setEditingTabKey] = useState<string | null>(null);
 
   // TODO(msun): Use the location from useLocation instead of props router in the future
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location.query;
@@ -193,19 +202,19 @@ function CustomViewsIssueListHeaderTabsContent({
           ...location,
           query: {
             ...queryParamsWithPageFilters,
-            query: draggableTabs[0]!.query,
-            sort: draggableTabs[0]!.querySort,
-            viewId: draggableTabs[0]!.id,
+            query: views[0].query,
+            sort: views[0].querySort,
+            viewId: views[0].id,
           },
         }),
         {replace: true}
       );
-      tabListState?.setSelectedKey(draggableTabs[0]!.key);
+      tabListState?.setSelectedKey(views[0].key);
       return;
     }
     // if a viewId is present, check if it exists in the existing views.
     if (viewId) {
-      const selectedTab = draggableTabs.find(tab => tab.id === viewId);
+      const selectedTab = views.find(tab => tab.id === viewId);
       if (selectedTab) {
         const issueSortOption = Object.values(IssueSortOptions).includes(sort)
           ? sort
@@ -291,7 +300,7 @@ function CustomViewsIssueListHeaderTabsContent({
     tabListState,
     location,
     queryParamsWithPageFilters,
-    draggableTabs,
+    views,
     organization,
     dispatch,
   ]);
@@ -299,7 +308,7 @@ function CustomViewsIssueListHeaderTabsContent({
   // This useEffect ensures the "new view" page is displayed/hidden correctly
   useEffect(() => {
     if (viewId?.startsWith('_')) {
-      if (draggableTabs.find(tab => tab.id === viewId)?.isCommitted) {
+      if (views.find(tab => tab.id === viewId)?.isCommitted) {
         return;
       }
       // If the user types in query manually while the new view flow is showing,
@@ -326,20 +335,90 @@ function CustomViewsIssueListHeaderTabsContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewId, query]);
 
+  useHotkeys(
+    [
+      {
+        match: ['command+s', 'ctrl+s'],
+        includeInputs: true,
+        callback: () => {
+          if (views.find(tab => tab.key === tabListState?.selectedKey)?.unsavedChanges) {
+            dispatch({type: 'SAVE_CHANGES', syncViews: true});
+            addSuccessMessage(t('Changes saved to view'));
+          }
+        },
+      },
+    ],
+    [dispatch, tabListState?.selectedKey, views]
+  );
+
+  const handleCreateNewView = () => {
+    const tempId = generateTempViewId();
+    dispatch({type: 'CREATE_NEW_VIEW', tempId});
+    tabListState?.setSelectedKey(tempId);
+    navigate({
+      ...location,
+      query: {
+        ...queryParams,
+        query: '',
+        viewId: tempId,
+      },
+    });
+  };
+
+  const allTabs = tempView ? [...views, tempView] : views;
+
   const initialTabKey =
-    viewId && draggableTabs.find(tab => tab.id === viewId)
-      ? draggableTabs.find(tab => tab.id === viewId)!.key
+    viewId && views.find(tab => tab.id === viewId)
+      ? views.find(tab => tab.id === viewId)!.key
       : query
         ? TEMPORARY_TAB_KEY
-        : draggableTabs[0]!.key;
+        : views[0].key;
 
   return (
-    // TODO(msun): look into possibly folding the DraggableTabBar component into this component
-    <DraggableTabBar initialTabKey={initialTabKey} router={router} />
+    <DraggableTabList
+      onReorder={(newOrder: Node<DraggableTabListItemProps>[]) =>
+        dispatch({
+          type: 'REORDER_TABS',
+          newKeyOrder: newOrder.map(node => node.key.toString()),
+        })
+      }
+      onReorderComplete={() => dispatch({type: 'SYNC_VIEWS_TO_BACKEND'})}
+      defaultSelectedKey={initialTabKey}
+      onAddView={handleCreateNewView}
+      orientation="horizontal"
+      editingTabKey={editingTabKey ?? undefined}
+      hideBorder
+    >
+      {allTabs.map(view => (
+        <DraggableTabList.Item
+          textValue={view.label}
+          key={view.key}
+          to={normalizeUrl({
+            query: {
+              ...queryParams,
+              query: view.unsavedChanges?.[0] ?? view.query,
+              sort: view.unsavedChanges?.[1] ?? view.querySort,
+              viewId: view.id !== TEMPORARY_TAB_KEY ? view.id : undefined,
+            },
+            pathname: `/organizations/${organization.slug}/issues/`,
+          })}
+          disabled={view.key === editingTabKey}
+        >
+          <IssueViewTab
+            key={view.key}
+            view={view}
+            initialTabKey={initialTabKey}
+            router={router}
+            editingTabKey={editingTabKey}
+            setEditingTabKey={setEditingTabKey}
+          />
+        </DraggableTabList.Item>
+      ))}
+    </DraggableTabList>
   );
 }
 
-export default CustomViewsIssueListHeader;
+export default IssueViewsIssueListHeader;
 
 const StyledIssueViews = styled(IssueViews)`
   grid-column: 1 / -1;
