@@ -60,10 +60,12 @@ discoverCharts.push({
         AreaSeries({
           name: s.key,
           stack: 'area',
-          data: s.data.map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+          data: s.data.map(
+            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]
+          ),
           lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
           areaStyle: {color: color?.[i], opacity: 1},
         })
@@ -121,12 +123,14 @@ discoverCharts.push({
         BarSeries({
           name: s.key,
           stack: 'area',
-          data: s.data.map(([timestamp, countsForTimestamp]) => ({
-            value: [
-              timestamp * 1000,
-              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-            ],
-          })),
+          data: s.data.map(
+            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => ({
+              value: [
+                timestamp * 1000,
+                countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+              ],
+            })
+          ),
           itemStyle: {color: color?.[i], opacity: 1},
         })
       );
@@ -179,10 +183,12 @@ discoverCharts.push({
       .map((topSeries, i) =>
         AreaSeries({
           stack: 'area',
-          data: topSeries.data.map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+          data: topSeries.data.map(
+            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]
+          ),
           lineStyle: {color: color?.[i], opacity: 1, width: 0.4},
           areaStyle: {color: color?.[i], opacity: 1},
         })
@@ -235,10 +241,12 @@ discoverCharts.push({
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((topSeries, i) =>
         LineSeries({
-          data: topSeries.data.map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+          data: topSeries.data.map(
+            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]
+          ),
           lineStyle: {color: color?.[i], opacity: 1},
           itemStyle: {color: color?.[i]},
         })
@@ -292,10 +300,12 @@ discoverCharts.push({
       .map((topSeries, i) =>
         BarSeries({
           stack: 'area',
-          data: topSeries.data.map(([timestamp, countsForTimestamp]) => [
-            timestamp * 1000,
-            countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-          ]),
+          data: topSeries.data.map(
+            ([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
+              timestamp * 1000,
+              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+            ]
+          ),
           itemStyle: {color: color?.[i], opacity: 1},
         })
       );
@@ -372,7 +382,7 @@ discoverCharts.push({
             stack: 'area',
             data: s.data
               .slice(dataMiddleIndex)
-              .map(([timestamp, countsForTimestamp]) => [
+              .map(([timestamp, countsForTimestamp]: [number, {count: number}[]]) => [
                 timestamp * 1000,
                 countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
               ]),
@@ -384,10 +394,12 @@ discoverCharts.push({
           LineSeries({
             name: t('previous %s', s.key),
             stack: 'previous',
-            data: previous.map(([_, countsForTimestamp], index) => [
-              current[index][0] * 1000,
-              countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
-            ]),
+            data: previous.map(
+              ([_, countsForTimestamp]: [number, {count: number}[]], index: number) => [
+                current[index][0] * 1000,
+                countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
+              ]
+            ),
             lineStyle: {color: previousPeriodColor?.[i], type: 'dotted'},
             itemStyle: {color: previousPeriodColor?.[i]},
           })
