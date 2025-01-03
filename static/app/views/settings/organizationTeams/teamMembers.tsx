@@ -37,6 +37,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow, {
@@ -45,10 +46,6 @@ import TeamMembersRow, {
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getButtonHelpText} from './utils';
-
-interface TeamMembersProps {
-  team: Team;
-}
 
 function getTeamMembersQueryKey({
   organization,
@@ -200,13 +197,19 @@ function AddMemberDropdown({
   );
 }
 
-function TeamMembers({team}: TeamMembersProps) {
+function TeamMembers() {
   const user = useUser();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {teamId} = useParams<{teamId: string}>();
   const location = useLocation();
+  const {
+    teams,
+    isLoading: isTeamLoading,
+    isError: isTeamLoadingError,
+  } = useTeamsById({slugs: [teamId]});
+  const team = teams.find(({slug}) => slug === teamId)!;
 
   const {
     data: teamMembers = [],
@@ -222,10 +225,6 @@ function TeamMembers({team}: TeamMembersProps) {
   );
 
   const teamMembersPageLinks = getTeamMemberResponseHeader?.('Link');
-
-  const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
-  const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
-  const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
 
   const {mutate: handleRemoveTeamMember} = useMutation({
     mutationFn: ({memberId}: {memberId: string}) => {
@@ -321,6 +320,14 @@ function TeamMembers({team}: TeamMembersProps) {
     },
   });
 
+  if (isTeamLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isTeamLoadingError || !team) {
+    return <LoadingError />;
+  }
+
   if (isTeamMembersError) {
     return <LoadingError onRetry={refetchTeamMembers} />;
   }
@@ -341,6 +348,10 @@ function TeamMembers({team}: TeamMembersProps) {
           '"Open Membership" is disabled for the organization. Org Owner/Manager/Admin, or Team Admins can add members for this team.'
         );
   };
+
+  const hasOrgWriteAccess = hasEveryAccess(['org:write'], {organization, team});
+  const hasTeamAdminAccess = hasEveryAccess(['team:admin'], {organization, team});
+  const isTeamAdmin = hasOrgWriteAccess || hasTeamAdminAccess;
 
   const renderMembers = () => {
     if (isTeamMembersLoading) {

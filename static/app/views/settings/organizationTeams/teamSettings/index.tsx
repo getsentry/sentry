@@ -12,27 +12,33 @@ import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldObject} from 'sentry/components/forms/types';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import teamSettingsFields from 'sentry/data/forms/teamSettingsFields';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Team} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-interface TeamSettingsProps extends RouteComponentProps<{teamId: string}, {}> {
-  team: Team;
-}
-
-function TeamSettings({team, params}: TeamSettingsProps) {
+function TeamSettings() {
+  const params = useParams<{teamId: string}>();
   const navigate = useNavigate();
   const organization = useOrganization();
   const api = useApi();
+  const {
+    teams,
+    isLoading: isTeamLoading,
+    isError: isTeamLoadingError,
+  } = useTeamsById({slugs: [params.teamId]});
+  const team = teams.find(({slug}) => slug === params.teamId)!;
 
   const handleSubmitSuccess: FormProps['onSubmitSuccess'] = (resp: Team, _model, id) => {
     // Use the old slug when triggering the update so we correctly replace the
@@ -77,6 +83,14 @@ function TeamSettings({team, params}: TeamSettingsProps) {
 
     return formsConfig;
   }, [team]);
+
+  if (isTeamLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isTeamLoadingError) {
+    return <LoadingError />;
+  }
 
   return (
     <Fragment>

@@ -1,4 +1,4 @@
-import {cloneElement, isValidElement, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,7 +27,7 @@ function TeamDetails({children}: Props) {
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
   const {teams, isLoading, isError} = useTeamsById({slugs: [params.teamId]});
-  const team = teams.find(({slug}) => slug === params.teamId);
+  const team = teams.find(({slug}) => slug === params.teamId)!;
 
   function handleRequestAccess(teamSlug: string) {
     setRequesting(true);
@@ -89,16 +89,17 @@ function TeamDetails({children}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Team Details')} orgSlug={orgSlug} />
+      <SentryDocumentTitle
+        title={t('%s Team Details', `#${params.teamId}`)}
+        orgSlug={orgSlug}
+      />
       {team.hasAccess ? (
         <div>
           <h3>
             <IdBadge hideAvatar hideOverflow={false} team={team} avatarSize={36} />
           </h3>
-
           <NavTabs underlined>{navigationTabs}</NavTabs>
-
-          {isValidElement(children) ? cloneElement<any>(children, {team}) : null}
+          {children}
         </div>
       ) : (
         <Alert type="warning">

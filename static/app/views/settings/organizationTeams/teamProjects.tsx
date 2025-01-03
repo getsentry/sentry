@@ -21,23 +21,28 @@ import {IconFlag, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import {useTeamsById} from 'sentry/utils/useTeamsById';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-interface TeamProjectsProps extends RouteComponentProps<{teamId: string}, {}> {
-  team: Team;
-}
-
-function TeamProjects({team, location, params}: TeamProjectsProps) {
+function TeamProjects() {
   const organization = useOrganization();
+  const params = useParams<{teamId: string}>();
+  const location = useLocation();
+  const {
+    teams,
+    isLoading: isTeamLoading,
+    isError: isTeamLoadingError,
+  } = useTeamsById({slugs: [params.teamId]});
+  const team = teams.find(({slug}) => slug === params.teamId)!;
   const api = useApi({persistInFlight: true});
   const [query, setQuery] = useState<string>('');
   const teamId = params.teamId;
@@ -92,8 +97,6 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
     });
   };
 
-  const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
-  const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
   const otherProjects = useMemo(() => {
     return unlinkedProjects
       .filter(p => p.access.includes('project:write'))
@@ -108,6 +111,17 @@ function TeamProjects({team, location, params}: TeamProjectsProps) {
         ),
       }));
   }, [unlinkedProjects]);
+
+  if (isTeamLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isTeamLoadingError || !team) {
+    return <LoadingError />;
+  }
+
+  const linkedProjectsPageLinks = linkedProjectsHeaders?.('Link');
+  const hasWriteAccess = hasEveryAccess(['team:write'], {organization, team});
 
   return (
     <Fragment>
