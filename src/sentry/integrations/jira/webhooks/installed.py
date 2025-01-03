@@ -1,10 +1,9 @@
+from typing import Any
+
 import sentry_sdk
-from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.api_owners import ApiOwner
-from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.pipeline import ensure_integration
@@ -19,14 +18,28 @@ from .base import JiraWebhookBase
 
 
 @control_silo_endpoint
-class JiraSentryInstalledWebhook(JiraWebhookBase):
-    owner = ApiOwner.INTEGRATIONS
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
+class JiraSentryInstalledWebhook(JiraWebhookBase[None, dict[str, Any] | None]):
     """
     Webhook hit by Jira whenever someone installs the Sentry integration in their Jira instance.
     """
+
+    def authenticate(self, request: Request, **kwargs) -> None:
+        token = self.get_token(request)
+
+        key_id = jwt.peek_header(token).get("kid")
+        if key_id:
+            decoded_claims = authenticate_asymmetric_jwt(token, key_id)
+            verify_claims(decoded_claims, request.path, request.GET, method="POST")
+
+    def unpack_payload(self, request: Request, **kwargs) -> dict[str, Any] | None:
+        state = request.data
+        if not state:
+            kwargs["lifecycle"].record_failure(
+                ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
+            )
+            return None
+
+        return state
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         with IntegrationPipelineViewEvent(
@@ -34,17 +47,10 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
             domain=IntegrationDomain.PROJECT_MANAGEMENT,
             provider_key=self.provider,
         ).capture() as lifecycle:
-            token = self.get_token(request)
-
-            state = request.data
-            if not state:
-                lifecycle.record_failure(ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING)
-                return self.respond(status=status.HTTP_400_BAD_REQUEST)
-
-            key_id = jwt.peek_header(token).get("kid")
-            if key_id:
-                decoded_claims = authenticate_asymmetric_jwt(token, key_id)
-                verify_claims(decoded_claims, request.path, request.GET, method="POST")
+            self.authenticate(request)
+            state = self.unpack_payload(request, lifecycle=lifecycle)
+            if state is None:
+                return self.respond(status=400)
 
             data = JiraIntegrationProvider().build_integration(state)
             integration = ensure_integration(self.provider, data)

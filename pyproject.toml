@@ -210,7 +210,6 @@ module = [
     "sentry.integrations.jira.integration",
     "sentry.integrations.jira.views.base",
     "sentry.integrations.jira.webhooks.base",
-    "sentry.integrations.jira.webhooks.issue_updated",
     "sentry.integrations.jira_server.client",
     "sentry.integrations.jira_server.integration",
     "sentry.integrations.metric_alerts",

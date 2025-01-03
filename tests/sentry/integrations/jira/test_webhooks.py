@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
 from django.test.utils import override_settings
 from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from fixtures.integrations.stub_service import StubService
@@ -184,7 +186,7 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
             self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
 
 
-class MockErroringJiraEndpoint(JiraWebhookBase):
+class MockErroringJiraEndpoint(JiraWebhookBase[Any, Any]):
     permission_classes = ()
     dummy_exception = Exception("whoops")
     # In order to be able to use `as_view`'s `initkwargs` (in other words, in order to be able to
@@ -200,6 +202,15 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
 
     def get(self, request):
         raise self.error
+
+    def authenticate(self, request: Request, **kwargs) -> Any:
+        return None
+
+    def unpack_payload(self, request: Request, **kwargs) -> Any:
+        return None
+
+    def post(self, request: Request, *args, **kwargs) -> Response:
+        return Response()
 
 
 class JiraWebhookBaseTest(TestCase):

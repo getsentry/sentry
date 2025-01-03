@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import abc
 import logging
-from collections.abc import MutableMapping
-from typing import Any
+from abc import ABC
+from collections.abc import Mapping
+from typing import Any, Generic, TypeVar
 
-from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
 from rest_framework import status
 from rest_framework.exceptions import MethodNotAllowed
@@ -13,35 +12,32 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
-from sentry.api.base import Endpoint
 from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError, get_token
+from sentry.integrations.webhook import IntegrationWebhookEndpoint
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
+U = TypeVar("U")
 
 
 class JiraTokenError(Exception):
     pass
 
 
-class JiraWebhookBase(Endpoint, abc.ABC):
+class JiraWebhookBase(Generic[T, U], IntegrationWebhookEndpoint[T, U], ABC):
     """
     Base class for webhooks used in the Jira integration
     """
 
-    authentication_classes = ()
-    permission_classes = ()
     provider = "jira"
-
-    @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
-        handler_context: MutableMapping[str, Any] | None = None,
+        handler_context: Mapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> Response:
         handler_context = handler_context or {}
