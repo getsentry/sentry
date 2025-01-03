@@ -234,7 +234,8 @@ export function SetupReplaysCTA({
         >
           <Button
             data-test-id="setup-replays-btn"
-            onClick={activateSidebar}
+            type="button"
+            onClick={() => activateSidebar()}
             priority="primary"
             disabled={disabled}
           >
