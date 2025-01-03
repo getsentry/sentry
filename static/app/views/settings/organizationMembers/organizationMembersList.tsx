@@ -145,6 +145,7 @@ function OrganizationMembersList() {
     }
 
     redirectToRemainingOrganization({
+      navigate,
       orgId: organization.slug,
       removeOrg: true,
     });
