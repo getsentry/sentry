@@ -25,7 +25,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -214,7 +214,6 @@ export default function StreamlinedGroupHeader({
           project={project}
           disabled={disableActions}
           event={event}
-          query={location.query}
         />
         <WorkflowActions>
           <Workflow>
