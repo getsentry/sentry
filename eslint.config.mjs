@@ -368,6 +368,7 @@ export default typescript.config([
     name: 'plugin/typescript-eslint/custom',
     rules: {
       'no-shadow': 'off', // Disabled in favor of @typescript-eslint/no-shadow
+      'no-use-before-define': 'off',
 
       '@typescript-eslint/naming-convention': [
         'error',
@@ -396,6 +397,7 @@ export default typescript.config([
         },
       ],
       '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/no-use-before-define': 'off', // TODO(ryan953): Configure this and enable it
     },
   },
   // https://github.com/typescript-eslint/typescript-eslint/blob/main/packages/eslint-plugin/src/configs/base.ts
