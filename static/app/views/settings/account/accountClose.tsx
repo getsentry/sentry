@@ -15,6 +15,7 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
@@ -135,6 +136,7 @@ function AccountClose() {
 
   return (
     <div>
+      <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>

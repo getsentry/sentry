@@ -145,7 +145,7 @@ export function OrganizationFeatureFlagsIndex() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Feature Flags')} />
+      <SentryDocumentTitle title={t('Feature Flags')} orgSlug={organization.slug} />
       <SettingsPageHeader title={t('Feature Flags')} action={addNewProvider(hasAccess)} />
 
       <TextBlock>

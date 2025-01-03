@@ -49,7 +49,7 @@ export function RelayWrapper() {
   }, [relays, api, organization.slug]);
 
   return (
-    <SentryDocumentTitle title={t('Relay')}>
+    <SentryDocumentTitle title={t('Relay')} orgSlug={organization.slug}>
       <SettingsPageHeader
         title={t('Relay')}
         action={
