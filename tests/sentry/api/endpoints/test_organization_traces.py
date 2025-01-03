@@ -281,8 +281,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
@@ -816,8 +814,6 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
@@ -942,8 +938,6 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
