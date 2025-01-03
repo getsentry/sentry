@@ -87,6 +87,18 @@ const restrictedImportPaths = [
   },
 ];
 
+const restrictedImportPatterns = [
+  {
+    group: ['sentry/components/devtoolbar/*'],
+    message: 'Do not depend on toolbar internals',
+  },
+  {
+    group: ['*.spec*'],
+    message:
+      'Do not import from test files. This causes tests to be executed multiple times.',
+  },
+];
+
 // Used by both: `languageOptions` & `parserOptions`
 const ecmaVersion = 6; // TODO(ryan953): change to 'latest'
 
@@ -418,17 +430,7 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['sentry/components/devtoolbar/*'],
-              message: 'Do not depend on toolbar internals',
-            },
-            {
-              group: ['*.spec*'],
-              message:
-                'Do not import from test files. This causes tests to be executed multiple times.',
-            },
-          ],
+          patterns: restrictedImportPatterns,
           paths: restrictedImportPaths,
         },
       ],
@@ -822,6 +824,26 @@ export default typescript.config([
       ...testingLibrary.configs['flat/react'].rules,
       'testing-library/render-result-naming-convention': 'off',
       'testing-library/no-unnecessary-act': 'off',
+    },
+  },
+  {
+    name: 'files/sentry-test',
+    files: ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: restrictedImportPatterns,
+          paths: [
+            // @ts-ignore
+            ...restrictedImportPaths,
+            {
+              name: 'sentry/locale',
+              message: 'Translations are not needed in tests.',
+            },
+          ],
+        },
+      ],
     },
   },
   {
