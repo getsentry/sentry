@@ -2,12 +2,14 @@ from collections.abc import Callable
 from typing import Any
 
 from sentry.rules.conditions.event_attribute import EventAttributeCondition
+from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.utils import json
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -35,7 +37,7 @@ def create_reappeared_event_data_condition(
 
 
 @data_condition_translator_registry.register(RegressionEventCondition.id)
-def create_regressed_event_data_condition(
+def create_regression_event_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
     return DataCondition.objects.create(
@@ -102,6 +104,18 @@ def create_new_high_priority_issue_condition(
     return DataCondition.objects.create(
         type=Condition.NEW_HIGH_PRIORITY_ISSUE,
         comparison=True,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(EventFrequencyCondition.id)
+def create_event_frequency_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    return DataCondition.objects.create(
+        type=Condition.EVENT_FREQUENCY,
+        comparison=json.dumps({"interval": data["interval"], "value": data["value"]}),
         condition_result=True,
         condition_group=dcg,
     )
