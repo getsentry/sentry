@@ -162,16 +162,11 @@ function EditAccessSelector({
   // Avatars/Badges in the Edit Access Selector Button
   const triggerAvatars =
     selectedOptions.includes('_allUsers') || !dashboardCreator ? (
-      <StyledBadge
-        key="_all"
-        text={'All'}
-        size={listOnly ? 26 : 20}
-        listonly={listOnly.toString()}
-      />
+      <StyledBadge key="_all" text={'All'} size={listOnly ? 26 : 20} />
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
-        listonly={listOnly.toString()}
+        listonly={listOnly}
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
@@ -185,7 +180,7 @@ function EditAccessSelector({
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
         key="avatar-list-many-teams"
-        listonly={listOnly.toString()}
+        listonly={listOnly}
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
@@ -289,7 +284,7 @@ function EditAccessSelector({
                 type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
-              t('Edit Access:'),
+              <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
               triggerAvatars,
             ]
       }
@@ -335,10 +330,14 @@ const StyledDisplayName = styled('div')`
   font-weight: normal;
 `;
 
-const StyledAvatarList = styled(AvatarList)<{listonly: string}>`
-  margin-left: ${p => (p.listonly === 'true' ? 6 : 10)}px;
-  margin-right: ${p => (p.listonly === 'true' ? 0 : -3)}px;
+const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
+  margin-left: ${space(0.75)};
+  margin-right: ${p => (p.listonly ? 0 : -3)}px;
   font-weight: normal;
+`;
+
+const LabelContainer = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
@@ -346,16 +345,16 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   margin-right: 6px;
 `;
 
-const StyledBadge = styled(Badge)<{listonly: string; size: number}>`
+const StyledBadge = styled(Badge)<{size: number}>`
   color: ${p => p.theme.white};
   background: ${p => p.theme.purple300};
   padding: 0;
-  ${p => p.listonly === 'true' && 'margin-left: 0px;'}
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 0px;
 `;
 
 const FilterButtons = styled(ButtonBar)`
