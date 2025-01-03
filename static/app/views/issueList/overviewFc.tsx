@@ -50,9 +50,9 @@ import usePrevious from 'sentry/utils/usePrevious';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
@@ -185,7 +185,7 @@ function IssueListOverviewFc({
 
   useEffect(() => {
     pollerRef.current = new CursorPoller({
-      linkPreviousHref: parseLinkHeader(pageLinks)?.previous?.href,
+      linkPreviousHref: parseLinkHeader(pageLinks)?.previous!?.href,
       success: onRealtimePoll,
     });
   }, [onRealtimePoll, pageLinks]);
@@ -354,8 +354,8 @@ function IssueListOverviewFc({
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(pageLinks);
-    if (links && !links.previous.results && realtimeActive) {
-      pollerRef.current?.setEndpoint(links?.previous?.href);
+    if (links && !links.previous!.results && realtimeActive) {
+      pollerRef.current?.setEndpoint(links?.previous!.href);
       pollerRef.current?.enable();
     }
   }, [pageLinks, realtimeActive]);
@@ -766,7 +766,7 @@ function IssueListOverviewFc({
     }
 
     const links = parseLinkHeader(pageLinks);
-    return links && !links.previous.results && !links.next.results;
+    return links && !links.previous!.results && !links.next!.results;
   }, [pageLinks]);
 
   const getPageCounts = useCallback(() => {
@@ -992,7 +992,7 @@ function IssueListOverviewFc({
       // If we run out of issues on the last page, navigate back a page to
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
-      transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
       fetchCounts(newQueryCount, true);
     } else {
       fetchData(true);
@@ -1101,7 +1101,7 @@ function IssueListOverviewFc({
       <Layout.Page>
         {organization.features.includes('issue-stream-custom-views') ? (
           <ErrorBoundary message={'Failed to load custom tabs'} mini>
-            <CustomViewsIssueListHeader
+            <IssueViewsIssueListHeader
               organization={organization}
               router={router}
               selectedProjectIds={selection.projects}
