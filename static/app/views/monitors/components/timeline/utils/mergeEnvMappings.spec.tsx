@@ -14,7 +14,7 @@ type StatusCounts = [
   unknown: number,
 ];
 
-export function generateStats(counts: StatusCounts) {
+function generateStats(counts: StatusCounts) {
   const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
     in_progress,

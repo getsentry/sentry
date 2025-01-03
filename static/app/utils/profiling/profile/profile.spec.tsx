@@ -1,38 +1,7 @@
-import type {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 import {c, f, makeTestingBoilerplate} from './testUtils';
-
-// Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
-// will format the stack samples as a tree string so it's more human friendly.
-export const _logExpectedStack = (samples: Profile['samples']): string => {
-  const head = `
-Samples follow a top-down chronological order\n\n`;
-
-  const tail = `\n
------------------------>
-stack top -> stack bottom`;
-
-  const final: string[] = [];
-
-  const visit = (node: CallTreeNode, str: string[]) => {
-    str.push(`${node.frame.name}`);
-
-    if (node.parent) {
-      visit(node.parent, str);
-    }
-  };
-
-  for (const stackTop of samples) {
-    const str = [];
-    visit(stackTop, str);
-
-    final.push(str.join(' -> '));
-  }
-
-  return `${head}${final.join('\n')}${tail}`;
-};
 
 describe('Profile', () => {
   it('Empty profile duration is not infinity', () => {
