@@ -393,37 +393,39 @@ function ExpandedTaskGroup({
   const api = useApi();
   const organization = useOrganization();
 
-  const markTasksAsSeen = useCallback(
-    function () {
-      const unseenTasks = sortedTasks
-        .filter(task => taskIsDone(task) && !task.completionSeen)
-        .map(task => task.task);
+  const markTasksAsSeen = useCallback(() => {
+    const unseenDoneTasks = sortedTasks
+      .filter(task => taskIsDone(task) && !task.completionSeen)
+      .map(task => task.task);
 
-      for (const task of unseenTasks) {
-        updateOnboardingTask(api, organization, {task, completionSeen: true});
-      }
-    },
-    [api, organization, sortedTasks]
-  );
+    for (const unseenDoneTask of unseenDoneTasks) {
+      updateOnboardingTask(api, organization, {
+        task: unseenDoneTask,
+        completionSeen: true,
+      });
+    }
+  }, [api, organization, sortedTasks]);
 
   useEffect(() => {
     markTasksAsSeen();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <AnimatePresence initial={false}>
+    <Fragment>
       <hr />
       <TaskGroupBody>
-        {sortedTasks.map(sortedTask => (
-          <Task
-            key={sortedTask.task}
-            task={sortedTask}
-            hidePanel={hidePanel}
-            showWaitingIndicator={taskKeyForWaitingIndicator === sortedTask.task}
-          />
-        ))}
+        <AnimatePresence initial={false}>
+          {sortedTasks.map(sortedTask => (
+            <Task
+              key={sortedTask.task}
+              task={sortedTask}
+              hidePanel={hidePanel}
+              showWaitingIndicator={taskKeyForWaitingIndicator === sortedTask.task}
+            />
+          ))}
+        </AnimatePresence>
       </TaskGroupBody>
-    </AnimatePresence>
+    </Fragment>
   );
 }
 

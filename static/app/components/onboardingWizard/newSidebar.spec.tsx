@@ -95,6 +95,7 @@ describe('NewSidebar', function () {
         collapsed={false}
         gettingStartedTasks={gettingStartedTasks.map(task => ({
           ...task,
+          completionSeen: true,
           status: 'complete',
         }))}
         beyondBasicsTasks={beyondBasicsTasks}
@@ -152,6 +153,14 @@ describe('NewSidebar', function () {
     expect(screen.getByRole('link', {name: 'Join our Discord'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Visit Help Center'})).toBeInTheDocument();
 
+    // Dismiss skip confirmation
+    userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
+    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
+
+    // Click skip task again
+    userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
+    expect(await screen.findByText(/Not sure what to do/)).toBeInTheDocument();
+
     // Click 'Just Skip'
     userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
     await waitFor(() => {
@@ -165,9 +174,5 @@ describe('NewSidebar', function () {
         })
       );
     });
-
-    // Dismiss skip confirmation
-    userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
-    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
   });
 });
