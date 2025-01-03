@@ -1692,6 +1692,34 @@ class MetricsDatasetConfig(DatasetConfig):
         The total opportunity score is the sum of all individual web vital opportunity scores with another layer of fixed weights applied.
         """
         vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        weights = {
+            vital: Function(
+                "if",
+                [
+                    Function(
+                        "isZeroOrNull",
+                        [
+                            Function(
+                                "countIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric(f"measurements.score.{vital}"),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                    0,
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                ],
+            )
+            for vital in vitals
+        }
         opportunity_score_sums = {
             vital: Function(
                 "minus",
@@ -1755,27 +1783,64 @@ class MetricsDatasetConfig(DatasetConfig):
             for vital in vitals
         }
         return Function(
-            "plus",
+            "divide",
             [
-                adjusted_opportunity_scores["lcp"],
                 Function(
                     "plus",
                     [
-                        adjusted_opportunity_scores["fcp"],
+                        adjusted_opportunity_scores["lcp"],
                         Function(
                             "plus",
                             [
-                                adjusted_opportunity_scores["cls"],
+                                adjusted_opportunity_scores["fcp"],
                                 Function(
                                     "plus",
                                     [
-                                        adjusted_opportunity_scores["ttfb"],
-                                        adjusted_opportunity_scores["inp"],
+                                        adjusted_opportunity_scores["cls"],
+                                        Function(
+                                            "plus",
+                                            [
+                                                adjusted_opportunity_scores["ttfb"],
+                                                adjusted_opportunity_scores["inp"],
+                                            ],
+                                        ),
                                     ],
                                 ),
                             ],
                         ),
                     ],
+                ),
+                (
+                    Function(
+                        "plus",
+                        [
+                            Function(
+                                "plus",
+                                [
+                                    Function(
+                                        "plus",
+                                        [
+                                            Function(
+                                                "plus",
+                                                [
+                                                    weights["lcp"],
+                                                    weights["fcp"],
+                                                ],
+                                            ),
+                                            weights["cls"],
+                                        ],
+                                    ),
+                                    weights["ttfb"],
+                                ],
+                            ),
+                            weights["inp"],
+                        ],
+                    )
+                    if features.has(
+                        "organizations:performance-vitals-handle-missing-webvitals",
+                        self.builder.params.organization,
+                    )
+                    else 1
                 ),
             ],
             alias,
