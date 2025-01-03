@@ -195,12 +195,14 @@ class MonitorType:
     # monitors. But for now we just have CRON_JOB style monitors.
     UNKNOWN = 0
     CRON_JOB = 3
+    UPTIME = 4
 
     @classmethod
     def as_choices(cls):
         return (
             (cls.UNKNOWN, "unknown"),
             (cls.CRON_JOB, "cron_job"),
+            (cls.UPTIME, "uptime"),
         )
 
     @classmethod
