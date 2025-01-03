@@ -25,6 +25,7 @@ class Condition(models.TextChoices):
     EVENT_SEEN_COUNT = "event_seen_count"
     EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
+    FIRST_SEEN_EVENT = "first_seen_event"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
 

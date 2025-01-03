@@ -40,7 +40,7 @@ export function useNavigate(): ReactRouter3Navigate {
       (to: LocationDescriptor | number, options: NavigateOptions = {}) =>
         typeof to === 'number'
           ? router6Navigate(to)
-          : router6Navigate(locationDescriptorToTo(normalizeUrl(to)), options),
+          : router6Navigate(locationDescriptorToTo(to), options),
       [router6Navigate]
     );
 
