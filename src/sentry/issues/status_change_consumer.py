@@ -95,7 +95,6 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
         activity_type = None
-        group_inbox_reason = None
         if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
             group_inbox_reason = GroupInboxReason.REGRESSION
