@@ -35,9 +35,6 @@ class IncidentSerializer(Serializer):
         for incident in item_list:
             results[incident] = {"projects": incident_projects.get(incident.id, [])}
             results[incident]["alert_rule"] = alert_rules.get(str(incident.alert_rule.id))  # type: ignore[assignment]
-            results[incident]["activation"] = (
-                serialize(incident.activation) if incident.activation else []
-            )
 
         if "activities" in self.expand:
             # There could be many activities. An incident could seesaw between error/warning for a long period.
@@ -68,7 +65,6 @@ class IncidentSerializer(Serializer):
             "dateDetected": obj.date_detected,
             "dateCreated": obj.date_added,
             "dateClosed": date_closed,
-            "activation": attrs.get("activation", []),
         }
 
 
