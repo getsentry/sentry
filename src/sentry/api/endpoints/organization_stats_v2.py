@@ -195,7 +195,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         if project_ids:
             params["project_id"] = project_ids
 
-        return QueryDefinition.from_query_dict(request.GET, params)
+        return QueryDefinition.from_query_dict(request.GET, params, allow_minute_resolution=False)
 
     def _get_projects_for_orgstats_query(self, request: Request, organization):
         # look at the raw project_id filter passed in, if its empty
