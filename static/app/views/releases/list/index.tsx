@@ -547,7 +547,7 @@ class ReleasesList extends DeprecatedAsyncComponent<Props, State> {
 
     return (
       <PageFiltersContainer showAbsolute={false}>
-        <SentryDocumentTitle title={t('Releases')} />
+        <SentryDocumentTitle title={t('Releases')} orgSlug={organization.slug} />
         <NoProjectMessage organization={organization}>
           <Header />
           <Layout.Body>
