@@ -137,7 +137,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     // first find every field where we don't load the values on open
     const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
-      field => field.skip_load_on_open
+      field =>
+        field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
     );
 
     fieldsToLoad.forEach(field => {
@@ -250,10 +251,14 @@ export class SentryAppExternalForm extends Component<Props, State> {
       query.dependentData = JSON.stringify(dependentData);
     }
 
-    const {choices} = await this.props.api.requestPromise(
+    const {choices, defaultValue} = await this.props.api.requestPromise(
       `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
       {query}
     );
+
+    // If there is a default choice prepopulate the select with it
+    defaultValue ? this.model.setValue(field.name, defaultValue) : '';
+
     return choices || [];
   };
 
