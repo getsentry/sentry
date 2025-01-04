@@ -1958,3 +1958,32 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             assert response.json()["dynamicSamplingBiases"][0]["non_field_errors"] == [
                 "Error: Only 'id' and 'active' fields are allowed for bias."
             ]
+
+    @with_feature("organizations:tempest-access")
+    def test_put_tempest_fetch_screenshots(self):
+        # assert default value is False, and that put request updates the value
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is False
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+        assert response.data["tempestFetchScreenshots"] is True
+        assert self.project.get_option("sentry:tempest_fetch_screenshots") is True
+
+    def test_put_tempest_fetch_screenshots_without_feature_flag(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, method="put", tempestFetchScreenshots=True
+        )
+
+    @with_feature("organizations:tempest-access")
+    def test_get_tempest_fetch_screenshots_options(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" in response.data
+        assert response.data["tempestFetchScreenshots"] is False
+
+    def test_get_tempest_fetch_screenshots_options_without_feature_flag(self):
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert "tempestFetchScreenshots" not in response.data
