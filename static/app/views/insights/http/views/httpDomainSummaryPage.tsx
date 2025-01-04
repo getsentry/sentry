@@ -24,7 +24,10 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  useEAPSpans,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
@@ -47,6 +50,10 @@ import {
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
+import {
+  HTTP_MODULE_URL_FIELD,
+  USE_EAP_HTTP_MODULE,
+} from 'sentry/views/insights/http/views/httpLandingPage';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -76,18 +83,22 @@ export function HTTPDomainSummaryPage() {
     domain,
     project: projectId,
     'user.geo.subregion': subregions,
+    url,
   } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      url: decodeScalar,
     },
   });
 
   const project = projects.find(p => projectId === p.id);
   const filters: SpanMetricsQueryFilters = {
     ...BASE_FILTERS,
-    'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
+    ...(url
+      ? {[HTTP_MODULE_URL_FIELD]: url}
+      : {'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain)}),
     ...(subregions.length > 0
       ? {
           [SpanMetricsField.USER_GEO_SUBREGION]: `[${subregions.join(',')}]`,
@@ -149,13 +160,26 @@ export function HTTPDomainSummaryPage() {
     Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART
   );
 
-  const {
-    isPending: isTransactionsListLoading,
-    data: transactionsList,
-    meta: transactionsListMeta,
-    error: transactionsListError,
-    pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  const eapTableResponse = useEAPSpans(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: [
+        'project.id',
+        'transaction',
+        'transaction.method',
+        'spm()',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+      ],
+      sorts: [sort],
+      limit: TRANSACTIONS_TABLE_ROW_COUNT,
+      cursor,
+      enabled: USE_EAP_HTTP_MODULE,
+    },
+    Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
+  );
+
+  const spanMetricsTableResponse = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
@@ -173,9 +197,18 @@ export function HTTPDomainSummaryPage() {
       sorts: [sort],
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
       cursor,
+      enabled: !USE_EAP_HTTP_MODULE,
     },
     Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
   );
+
+  const {
+    isPending: isTransactionsListLoading,
+    data: transactionsList,
+    meta: transactionsListMeta,
+    error: transactionsListError,
+    pageLinks: transactionsListPageLinks,
+  } = USE_EAP_HTTP_MODULE ? eapTableResponse : spanMetricsTableResponse;
 
   useSynchronizeCharts(
     3,
@@ -186,7 +219,7 @@ export function HTTPDomainSummaryPage() {
     headerTitle: (
       <Fragment>
         {project && <ProjectAvatar project={project} size={36} />}
-        {domain || NULL_DOMAIN_DESCRIPTION}
+        {domain || url || NULL_DOMAIN_DESCRIPTION}
         <DomainStatusLink domain={domain} />
       </Fragment>
     ),
@@ -207,7 +240,7 @@ export function HTTPDomainSummaryPage() {
       <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
         <Layout.Body>
           <Layout.Main fullWidth>
-            {domain === '' && (
+            {domain === '' && !url && (
               <Alert type="info">
                 {tct(
                   '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
@@ -342,7 +375,7 @@ export function HTTPDomainSummaryPage() {
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'spm()' as const,
   kind: 'desc' as const,
 };
 
