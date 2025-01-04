@@ -90,7 +90,6 @@ def handle_ignored(
     group_list: Sequence[Group],
     status_details: dict[str, Any],
     acting_user: User | RpcUser | AnonymousUser,
-    user: User | RpcUser | AnonymousUser,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
@@ -133,7 +132,7 @@ def handle_ignored(
                     "user_count": ignore_user_count,
                     "user_window": ignore_user_window,
                     "state": state,
-                    "actor_id": user.id if user.is_authenticated else None,
+                    "actor_id": acting_user.id,
                 },
             )
 
@@ -142,7 +141,8 @@ def handle_ignored(
             )
             with in_test_hide_transaction_boundary():
                 serialized_user = user_service.serialize_many(
-                    filter=dict(user_ids=[user.id]), as_user=serialize_generic_user(user)
+                    filter=dict(user_ids=[acting_user.id]),
+                    as_user=serialize_generic_user(acting_user),
                 )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
