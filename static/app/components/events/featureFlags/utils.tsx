@@ -115,14 +115,20 @@ export const sortedFlags = ({
 
 export enum ProviderOptions {
   LAUNCHDARKLY = 'LaunchDarkly',
+  GENERIC = 'Generic',
+  UNLEASH = 'Unleash',
 }
 
 export enum IntegrationOptions {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',
+  GENERIC = 'Generic',
+  UNLEASH = 'Unleash',
 }
 
 export const PROVIDER_OPTION_TO_URLS: Record<ProviderOptions, string> = {
   [ProviderOptions.LAUNCHDARKLY]:
     'https://app.launchdarkly.com/settings/integrations/webhooks/new?q=Webhooks',
+  [ProviderOptions.GENERIC]: 'DOCS LINK TODO',
+  [ProviderOptions.UNLEASH]: 'DOCS LINK TODO',
 };

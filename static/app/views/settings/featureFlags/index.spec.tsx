@@ -49,7 +49,6 @@ describe('OrganizationFeatureFlagsIndex', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    // Then list
     expect(screen.getByText('launchdarkly')).toBeInTheDocument();
     expect(screen.getByText('openfeature')).toBeInTheDocument();
 
