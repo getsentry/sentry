@@ -11,6 +11,7 @@ from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.auth.access import OrganizationGlobalAccess
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -573,9 +574,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 class ReleaseRefsSerializerTest(TestCase):
     def test_simple(self):
         # test bad refs
-        data: dict[str, Any] = {"version": "a" * 40, "projects": ["earth"], "refs": [None]}
+        project = self.create_project()
+        data: dict[str, Any] = {"version": "a" * 40, "projects": [project.slug], "refs": [None]}
 
-        serializer = ReleaseSerializerWithProjects(data=data)
+        access = OrganizationGlobalAccess(self.organization, ["project:releases"])
+        serializer = ReleaseSerializerWithProjects(
+            data=data, context={"organization": self.organization, "access": access}
+        )
 
         assert not serializer.is_valid()
         assert serializer.errors == {
@@ -585,11 +590,13 @@ class ReleaseRefsSerializerTest(TestCase):
         # test good refs
         data = {
             "version": "a" * 40,
-            "projects": ["earth"],
+            "projects": [project.slug],
             "refs": [{"repository": "my-repo", "commit": "b" * 40}],
         }
 
-        serializer = ReleaseSerializerWithProjects(data=data)
+        serializer = ReleaseSerializerWithProjects(
+            data=data, context={"organization": self.organization, "access": access}
+        )
 
         assert serializer.is_valid()
 
