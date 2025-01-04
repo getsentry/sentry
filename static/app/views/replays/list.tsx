@@ -1,13 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import Alert from 'sentry/components/alert';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {IconInfo} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +26,7 @@ function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const {allMobileProj} = useAllMobileProj();
+  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
 
   return (
     <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
@@ -37,14 +40,6 @@ function ReplaysListContainer() {
               )}
               docsUrl="https://docs.sentry.io/product/session-replay/"
             />
-            {allMobileProj ? (
-              <FeatureBadge
-                type="beta"
-                title={t(
-                  'Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs.'
-                )}
-              />
-            ) : null}
           </Layout.Title>
         </Layout.HeaderContent>
         <div /> {/* wraps the tabs below the page title */}
@@ -55,6 +50,19 @@ function ReplaysListContainer() {
           <Layout.Main fullWidth>
             <LayoutGap>
               <ReplayListPageHeaderHook />
+              {allMobileProj && mobileBetaOrg ? (
+                <StyledAlert icon={<IconInfo />} showIcon>
+                  {tct(
+                    `[strong:Mobile Replay is now generally available.] Since you participated in the beta, will have a two month grace period of free usage, until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
+                    {
+                      strong: <strong />,
+                      link: (
+                        <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
+                      ),
+                    }
+                  )}
+                </StyledAlert>
+              ) : null}
               <ListContent />
             </LayoutGap>
           </Layout.Main>
@@ -67,6 +75,10 @@ function ReplaysListContainer() {
 const LayoutGap = styled('div')`
   display: grid;
   gap: ${space(2)};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin: 0;
 `;
 
 export default ReplaysListContainer;
