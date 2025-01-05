@@ -71,7 +71,7 @@ export function MetricsDataSwitcherAlert(
       return null;
     }
 
-    const platform = platforms[0];
+    const platform = platforms[0]!;
     if (UNSUPPORTED_TRANSACTION_NAME_DOCS.includes(platform)) {
       return null;
     }

@@ -167,17 +167,14 @@ function CreateProject() {
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
         if (team) {
-          addSuccessMessage(
-            tct('Created project [project]', {
-              project: `${projectData.slug}`,
-            })
-          );
+          addSuccessMessage(t('Created project %s', `${projectData.slug}`));
         } else {
           addSuccessMessage(
-            tct('Created [project] under new team [team]', {
-              project: `${projectData.slug}`,
-              team: `#${projectData.team_slug}`,
-            })
+            t(
+              'Created %s under new team %s',
+              `${projectData.slug}`,
+              `#${projectData.team_slug}`
+            )
           );
         }
 
@@ -189,11 +186,7 @@ function CreateProject() {
       } catch (err) {
         setInFlight(false);
         setErrors(err.responseJSON);
-        addErrorMessage(
-          tct('Failed to create project [project]', {
-            project: `${projectName}`,
-          })
-        );
+        addErrorMessage(t('Failed to create project %s', `${projectName}`));
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -341,14 +334,14 @@ function CreateProject() {
     }
 
     if (
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
-      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventUniqueUserFrequencyCondition')
     ) {
       return {
         alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
-        interval: String(alertRules?.[0].conditions?.[0].interval),
-        threshold: String(alertRules?.[0].conditions?.[0].value),
-        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+        interval: String(alertRules?.[0]!.conditions?.[0]!.interval),
+        threshold: String(alertRules?.[0]!.conditions?.[0]!.value),
+        metric: alertRules?.[0]!.conditions?.[0]!.id?.endsWith('EventFrequencyCondition')
           ? MetricValues.ERRORS
           : MetricValues.USERS,
       };

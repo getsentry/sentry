@@ -169,7 +169,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
       isLoading={isLoading}
     >
       {metrics.map(({mri, type, unit, cardinality, blockingStatus}) => {
-        const isBlocked = blockingStatus[0]?.isBlocked;
+        const isBlocked = blockingStatus[0]?.isBlocked!;
         const isCardinalityLimited = cardinality > 0;
         return (
           <Fragment key={mri}>

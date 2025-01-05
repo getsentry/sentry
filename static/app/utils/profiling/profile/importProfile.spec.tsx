@@ -186,7 +186,7 @@ describe('parseDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(parseDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toBe(
       'Failed to read string contents of input file'
     );
 
@@ -210,7 +210,7 @@ describe('parseDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(parseDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toBe(
       'Failed to read string contents of input file'
     );
 

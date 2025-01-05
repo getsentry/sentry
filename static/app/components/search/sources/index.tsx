@@ -53,7 +53,7 @@ function SearchSources(props: Props) {
       if (idx >= sources.length) {
         return renderResults(results);
       }
-      const Source = sources[idx];
+      const Source = sources[idx]!;
       return (
         <Source {...props}>
           {(args: SourceResult) => {

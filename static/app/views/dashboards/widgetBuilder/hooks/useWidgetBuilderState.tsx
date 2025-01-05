@@ -6,6 +6,7 @@ import {
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -102,6 +103,7 @@ function useWidgetBuilderState(): {
   const [query, setQuery] = useQueryParamState<string[]>({
     fieldName: 'query',
     decoder: decodeList,
+    deserializer: deserializeQuery,
   });
   const [sort, setSort] = useQueryParamState<Sort[]>({
     fieldName: 'sort',
@@ -156,18 +158,38 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_DISPLAY_TYPE:
           setDisplayType(action.payload);
-          if (action.payload === DisplayType.BIG_NUMBER) {
-            setSort([]);
-            setLegendAlias([]);
-          }
           const [aggregates, columns] = partition(fields, field => {
             const fieldString = generateFieldAsString(field);
             return isAggregateFieldOrEquation(fieldString);
           });
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
-            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
             setLegendAlias([]);
+
+            const newFields = [...columns, ...aggregates, ...(yAxis ?? [])];
+            setFields(newFields);
+
+            // Keep the sort if it's already contained in the new fields
+            // Otherwise, reset sorting to the first field
+            if (
+              newFields.length > 0 &&
+              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+            ) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                },
+              ]);
+            }
+          } else if (action.payload === DisplayType.BIG_NUMBER) {
+            // TODO: Reset the selected aggregate here for widgets with equations
+            setSort([]);
+            setYAxis([]);
+            setLegendAlias([]);
+            // Columns are ignored for big number widgets because there is no grouping
+            setFields([...aggregates, ...(yAxis ?? [])]);
+            setQuery(query?.slice(0, 1));
           } else {
             setFields(columns);
             setYAxis([
@@ -190,9 +212,16 @@ function useWidgetBuilderState(): {
           setFields(
             config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
           );
-          if (nextDisplayType === DisplayType.TABLE) {
+          if (
+            nextDisplayType === DisplayType.TABLE ||
+            nextDisplayType === DisplayType.BIG_NUMBER
+          ) {
             setYAxis([]);
+            setFields(
+              config.defaultWidgetQuery.fields?.map(field => explodeField({field}))
+            );
           } else {
+            setFields([]);
             setYAxis(
               config.defaultWidgetQuery.aggregates?.map(aggregate =>
                 explodeField({field: aggregate})
@@ -238,6 +267,8 @@ function useWidgetBuilderState(): {
       fields,
       yAxis,
       displayType,
+      query,
+      sort,
     ]
   );
 
@@ -313,6 +344,17 @@ function serializeSorts(sorts: Sort[]): string[] {
  */
 function deserializeLimit(value: string): number {
   return decodeInteger(value, DEFAULT_RESULTS_LIMIT);
+}
+
+/**
+ * Decodes the query from the query params
+ * Returns an array with an empty string if the query is empty
+ */
+function deserializeQuery(queries: string[]): string[] {
+  if (queries.length === 0) {
+    return [''];
+  }
+  return queries;
 }
 
 export default useWidgetBuilderState;

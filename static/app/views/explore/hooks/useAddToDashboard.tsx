@@ -39,7 +39,7 @@ export function useAddToDashboard() {
 
   const getEventView = useCallback(
     (visualizeIndex: number) => {
-      const yAxes = visualizes[visualizeIndex].yAxes.slice(0, MAX_NUM_Y_AXES);
+      const yAxes = visualizes[visualizeIndex]!.yAxes.slice(0, MAX_NUM_Y_AXES);
 
       let fields;
       if (mode === Mode.SAMPLES) {

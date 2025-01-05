@@ -165,11 +165,11 @@ function convertContinuousProfileMeasurementsToUIFrames(
   };
 
   for (let i = 0; i < measurement.values.length; i++) {
-    const value = measurement.values[i];
+    const value = measurement.values[i]!;
     const next = measurement.values[i + 1] ?? value;
 
     measurements.values.push({
-      elapsed: next.timestamp - value.timestamp,
+      elapsed: next!.timestamp - value.timestamp,
       value: value.value,
     });
   }
@@ -207,7 +207,7 @@ function findLongestMatchingFrame(
     }
 
     for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+      frames.push(frame.children[i]!);
     }
   }
 
@@ -425,8 +425,8 @@ export function ContinuousFlamegraph(): ReactElement {
 
         let offset = 0;
         for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
-          const next = measurements.values[i + 1] ?? value;
+          const value = measurements.values[i]!;
+          const next = measurements.values[i + 1]! ?? value;
           offset += (next.timestamp - value.timestamp) * 1e3;
 
           values.push({
@@ -467,8 +467,8 @@ export function ContinuousFlamegraph(): ReactElement {
 
         let offset = 0;
         for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
-          const next = measurements.values[i + 1] ?? value;
+          const value = measurements.values[i]!;
+          const next = measurements.values[i + 1]! ?? value;
           offset += (next.timestamp - value.timestamp) * 1e3;
 
           values.push({
@@ -502,8 +502,8 @@ export function ContinuousFlamegraph(): ReactElement {
 
       let offset = 0;
       for (let i = 0; i < memory_footprint.values.length; i++) {
-        const value = memory_footprint.values[i];
-        const next = memory_footprint.values[i + 1] ?? value;
+        const value = memory_footprint.values[i]!;
+        const next = memory_footprint.values[i + 1]! ?? value;
         offset += (next.timestamp - value.timestamp) * 1e3;
 
         values.push({
@@ -525,8 +525,8 @@ export function ContinuousFlamegraph(): ReactElement {
 
       let offset = 0;
       for (let i = 0; i < native_memory_footprint.values.length; i++) {
-        const value = native_memory_footprint.values[i];
-        const next = native_memory_footprint.values[i + 1] ?? value;
+        const value = native_memory_footprint.values[i]!;
+        const next = native_memory_footprint.values[i + 1]! ?? value;
         offset += (next.timestamp - value.timestamp) * 1e3;
 
         values.push({

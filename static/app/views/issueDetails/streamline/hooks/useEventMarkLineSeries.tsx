@@ -11,7 +11,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 
-export function useEventMarklineSeries({
+function useEventMarklineSeries({
   events,
   group,
   markLineProps = {},

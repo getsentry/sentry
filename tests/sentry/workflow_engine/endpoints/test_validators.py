@@ -23,7 +23,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.cases import TestCase
-from sentry.workflow_engine.endpoints.validators import (
+from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     DataSourceCreator,
@@ -82,17 +82,7 @@ class TestBaseGroupTypeDetectorValidator(TestCase):
         super().setUp()
         self.project = self.create_project()
 
-        # Create a concrete implementation for testing
-        class ConcreteGroupTypeValidator(BaseGroupTypeDetectorValidator):
-            @property
-            def data_source(self):
-                return mock.Mock()
-
-            @property
-            def data_conditions(self):
-                return mock.Mock()
-
-        self.validator_class = ConcreteGroupTypeValidator
+        self.validator_class = BaseGroupTypeDetectorValidator
 
     def test_validate_group_type_valid(self):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
@@ -205,7 +195,7 @@ class DetectorValidatorTest(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid(), validator.errors
@@ -297,7 +287,7 @@ class TestMetricAlertsDetectorValidator(TestCase):
             ],
         }
 
-    @mock.patch("sentry.workflow_engine.endpoints.validators.create_audit_entry")
+    @mock.patch("sentry.workflow_engine.endpoints.validators.base.create_audit_entry")
     def test_create_with_valid_data(self, mock_audit):
         validator = MetricAlertsDetectorValidator(
             data=self.valid_data,
@@ -420,10 +410,6 @@ class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
     field1 = serializers.CharField()
     field2 = serializers.IntegerField()
     data_source_type_handler = QuerySubscriptionDataSourceHandler
-
-    @property
-    def model_class(self) -> type[MockModel]:
-        return MockModel
 
     def create_source(self, validated_data) -> MockModel:
         return MockModel.objects.create()

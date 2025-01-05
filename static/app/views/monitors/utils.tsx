@@ -4,7 +4,8 @@ import {t, tn} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import {CheckInStatus} from 'sentry/views/monitors/types';
+
+import {CheckInStatus} from './types';
 
 export function makeMonitorListQueryKey(
   organization: Organization,

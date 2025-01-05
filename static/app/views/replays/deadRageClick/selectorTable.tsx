@@ -81,7 +81,7 @@ export default function SelectorTable({
   clickCountSortable,
 }: Props) {
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
-    defaultSort: {field: clickCountColumns[0].key, kind: 'desc'},
+    defaultSort: {field: clickCountColumns[0]!.key, kind: 'desc'},
     location,
   });
 

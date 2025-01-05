@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
+import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 
 type Props = {
@@ -32,28 +30,10 @@ export default function TimestampButton({
     <Tooltip
       title={
         <div>
-          <TooltipTime>
-            {t(
-              'Date: %s',
-              getFormattedDate(
-                timestampMs,
-                `${getFormat({year: true, seconds: true, timeZone: true})}`,
-                {
-                  local: true,
-                }
-              )
-            )}
-          </TooltipTime>
-          <TooltipTime>
-            {t(
-              'Time within replay: %s',
-              formatDuration({
-                duration: [Math.abs(timestampMs - startTimestampMs), 'ms'],
-                precision: 'ms',
-                style: 'hh:mm:ss.sss',
-              })
-            )}
-          </TooltipTime>
+          <ReplayTooltipTime
+            timestampMs={timestampMs}
+            startTimestampMs={startTimestampMs}
+          />
         </div>
       }
       skipWrapper
@@ -76,10 +56,6 @@ export default function TimestampButton({
     </Tooltip>
   );
 }
-
-const TooltipTime = styled('div')`
-  text-align: left;
-`;
 
 const StyledButton = styled('button')`
   background: transparent;

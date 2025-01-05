@@ -10,7 +10,7 @@ describe('createMqlQuery', () => {
     const field = 'avg(transaction.duration)';
 
     const result = createMqlQuery({field});
-    expect(result).toEqual(`avg(transaction.duration)`);
+    expect(result).toBe(`avg(transaction.duration)`);
   });
 
   it('should create a mql query with a query', () => {
@@ -18,7 +18,7 @@ describe('createMqlQuery', () => {
     const query = 'event.type:error';
 
     const result = createMqlQuery({field, query});
-    expect(result).toEqual(`avg(transaction.duration){event.type:error}`);
+    expect(result).toBe(`avg(transaction.duration){event.type:error}`);
   });
 
   it('should create a mql query with a groupBy', () => {
@@ -26,7 +26,7 @@ describe('createMqlQuery', () => {
     const groupBy = ['environment'];
 
     const result = createMqlQuery({field, groupBy});
-    expect(result).toEqual(`avg(transaction.duration) by (environment)`);
+    expect(result).toBe(`avg(transaction.duration) by (environment)`);
   });
 
   it('should create a mql query with a query and groupBy', () => {
@@ -35,7 +35,7 @@ describe('createMqlQuery', () => {
     const groupBy = ['environment', 'project'];
 
     const result = createMqlQuery({field, query, groupBy});
-    expect(result).toEqual(
+    expect(result).toBe(
       `avg(transaction.duration){event.type:error} by (environment,project)`
     );
   });

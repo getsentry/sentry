@@ -124,7 +124,6 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
     return normalizeDateTimeParams(query, {
       allowAbsolutePageDatetime: true,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // demo has the format ${projectSlug}:${eventId}

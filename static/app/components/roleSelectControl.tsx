@@ -25,9 +25,7 @@ type Props = Omit<ControlProps<OptionType>, 'onChange' | 'value'> & {
 function RoleSelectControl({roles, disableUnallowed, ...props}: Props) {
   const organization = useOrganization();
   const isMemberInvite =
-    organization.features.includes('members-invite-teammates') &&
-    organization.allowMemberInvite &&
-    organization.access?.includes('member:invite');
+    organization.allowMemberInvite && organization.access?.includes('member:invite');
 
   return (
     <SelectControl

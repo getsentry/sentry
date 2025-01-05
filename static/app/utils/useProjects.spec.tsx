@@ -82,7 +82,7 @@ describe('useProjects', function () {
     expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.projects.length).toBe(1));
+    await waitFor(() => expect(result.current.projects).toHaveLength(1));
 
     const {projects} = result.current;
     expect(projects).toEqual(expect.arrayContaining([projectFoo]));
@@ -92,7 +92,7 @@ describe('useProjects', function () {
     act(() => void ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {
-      initialProps: {slugs: [mockProjects[0].slug]},
+      initialProps: {slugs: [mockProjects[0]!.slug]},
       wrapper: TestContext,
     });
 

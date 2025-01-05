@@ -58,9 +58,9 @@ export function mergeAndSortTagValues(
   );
   tagValues2.forEach(tagValue => {
     if (tagValueCollection[tagValue.value]) {
-      tagValueCollection[tagValue.value].count += tagValue.count;
-      if (tagValue.lastSeen > tagValueCollection[tagValue.value].lastSeen) {
-        tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
+      tagValueCollection[tagValue.value]!.count += tagValue.count;
+      if (tagValue.lastSeen > tagValueCollection[tagValue.value]!.lastSeen) {
+        tagValueCollection[tagValue.value]!.lastSeen = tagValue.lastSeen;
       }
     } else {
       tagValueCollection[tagValue.value] = tagValue;
@@ -193,9 +193,15 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
+  start,
+  end,
+  statsPeriod,
 }: {
   query: string | undefined;
+  end?: string;
   environments?: string[];
+  start?: string;
+  statsPeriod?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
@@ -209,6 +215,18 @@ export function getGroupEventDetailsQueryData({
     params.environment = environments;
   }
 
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
   return params;
 }
 
@@ -217,20 +235,29 @@ export function getGroupEventQueryKey({
   groupId,
   eventId,
   environments,
-  recommendedEventQuery,
+  query,
+  start,
+  end,
+  statsPeriod,
 }: {
   environments: string[];
   eventId: string;
   groupId: string;
   orgSlug: string;
-  recommendedEventQuery?: string;
+  end?: string;
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: recommendedEventQuery,
+        query,
+        start,
+        end,
+        statsPeriod,
       }),
     },
   ];

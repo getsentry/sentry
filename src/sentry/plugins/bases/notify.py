@@ -11,7 +11,6 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.services.service import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.plugins.base import Plugin
-from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.structs import Notification
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.actor import Actor, ActorType
@@ -45,9 +44,6 @@ class NotificationPlugin(Plugin):
     )
     # site_conf_form = NotificationConfigurationForm
     project_conf_form: type[forms.Form] = NotificationConfigurationForm
-
-    def configure(self, project, request):
-        return react_plugin_config(self, project, request)
 
     def get_plugin_type(self):
         return "notification"

@@ -49,7 +49,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
     expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/95\.006% 4\.51%/);
 
-    expect(screen.getAllByRole('radio').length).toBe(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
 
     // lazy way to make sure that all percentages are calculated correctly
     expect(
@@ -132,7 +132,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio').length).toBe(12);
+    expect(screen.getAllByRole('radio')).toHaveLength(12);
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
@@ -146,7 +146,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     }
     await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio').length).toBe(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
   it('does not show expanders if there is no health data', async () => {
@@ -184,7 +184,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {router}
     );
 
-    expect(screen.getAllByRole('radio').length).toBe(1);
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
     expect(screen.queryByLabelText(/toggle chart/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
 

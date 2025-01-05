@@ -67,7 +67,7 @@ describe('makeUndoableReducer', () => {
         }
       );
       expect(reducer).not.toHaveBeenCalled();
-      expect(result.current[0]).toEqual(100);
+      expect(result.current[0]).toBe(100);
     });
 
     it('updates state', () => {
@@ -84,11 +84,11 @@ describe('makeUndoableReducer', () => {
       );
       act(() => result.current[1]('add'));
 
-      expect(result.current[0]).toEqual(1);
+      expect(result.current[0]).toBe(1);
       expect(reducer).toHaveBeenNthCalledWith(1, 0, 'add');
 
       act(() => result.current[1]('add'));
-      expect(result.current[0]).toEqual(2);
+      expect(result.current[0]).toBe(2);
       // TODO(react18): switch back to .toHaveBeenNthCalledWith(2, 1, 'add');
       expect(reducer).toHaveBeenLastCalledWith(1, 'add');
     });
@@ -101,10 +101,10 @@ describe('makeUndoableReducer', () => {
       );
 
       act(() => result.current[1](0));
-      expect(result.current[0]).toEqual(1);
+      expect(result.current[0]).toBe(1);
 
       act(() => result.current[1]({type: 'undo'}));
-      expect(result.current[0]).toEqual(0);
+      expect(result.current[0]).toBe(0);
     });
 
     it('can redo state', () => {
@@ -119,14 +119,14 @@ describe('makeUndoableReducer', () => {
 
       act(() => result.current[1]({type: 'undo'})); // 2 -> 1
       act(() => result.current[1]({type: 'undo'})); // 1 -> 0
-      expect(result.current[0]).toEqual(0);
+      expect(result.current[0]).toBe(0);
 
       act(() => result.current[1]({type: 'redo'})); // 0 -> 1
       act(() => result.current[1]({type: 'redo'})); // 1 -> 2
-      expect(result.current[0]).toEqual(2);
+      expect(result.current[0]).toBe(2);
 
       act(() => result.current[1]({type: 'redo'})); // 2 -> undefined
-      expect(result.current[0]).toEqual(2);
+      expect(result.current[0]).toBe(2);
     });
   });
 
@@ -143,10 +143,10 @@ describe('makeUndoableReducer', () => {
     );
 
     act(() => result.current[1]({type: 'add'}));
-    expect(result.current?.[2].previousState).toEqual(0);
+    expect(result.current?.[2].previousState).toBe(0);
 
     act(() => result.current[1]({type: 'undo'}));
-    expect(result.current?.[2].nextState).toEqual(1);
+    expect(result.current?.[2].nextState).toBe(1);
   });
 
   it('can work with primitives', () => {

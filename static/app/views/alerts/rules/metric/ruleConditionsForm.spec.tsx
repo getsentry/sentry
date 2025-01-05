@@ -27,7 +27,7 @@ describe('RuleConditionsForm', () => {
     onFilterSearch: mockSearch,
     onMonitorTypeSelect: () => {},
     onTimeWindowChange: () => {},
-    project: projects[0],
+    project: projects[0]!,
     thresholdChart: <div>chart</div>,
     timeWindow: 30,
   };

@@ -92,7 +92,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeEnabled();
-    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]);
+    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]!);
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });
@@ -553,6 +553,57 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toHaveTextContent('p90');
     expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not show the legend alias input for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow for selecting individual fields in big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+
+    // Being unable to choose "None" in the aggregate selection means that the
+    // individual field is not allowed, i.e. only aggregates appear.
+    expect(screen.queryByRole('option', {name: 'None'})).not.toBeInTheDocument();
   });
 
   describe('spans', () => {

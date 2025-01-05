@@ -1515,7 +1515,7 @@ function buildRoutes() {
           <Redirect
             key={moduleBaseURL}
             from={`${moduleBaseURL}/*`}
-            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL])}${moduleBaseURL}/:splat`}
+            to={`/${DOMAIN_VIEW_BASE_URL}/${getModuleView(moduleUrlToModule[moduleBaseURL]!)}${moduleBaseURL}/:splat`}
           />
         )
     )
@@ -1735,6 +1735,11 @@ function buildRoutes() {
             () =>
               import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
           )}
+        />
+      </Route>
+      <Route path={`${MODULE_BASE_URLS[ModuleName.UPTIME]}/`}>
+        <IndexRoute
+          component={make(() => import('sentry/views/insights/uptime/views/overview'))}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>

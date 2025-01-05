@@ -57,9 +57,9 @@ describe('TeamSettings', function () {
     );
 
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/teams/new-slug/settings/'
-      )
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/settings/org-slug/teams/new-slug/settings/',
+      })
     );
   });
 
@@ -102,7 +102,7 @@ describe('TeamSettings', function () {
     );
 
     await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith('/settings/org-slug/teams/')
+      expect(router.replace).toHaveBeenCalledWith({pathname: '/settings/org-slug/teams/'})
     );
 
     expect(TeamStore.getAll()).toEqual([]);

@@ -98,7 +98,7 @@ describe('HighlightsDataSection', function () {
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
       if (eventTagMap.hasOwnProperty(tagKey)) {
-        expect(within(row).getByText(eventTagMap[tagKey])).toBeInTheDocument();
+        expect(within(row).getByText(eventTagMap[tagKey]!)).toBeInTheDocument();
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
@@ -115,7 +115,7 @@ describe('HighlightsDataSection', function () {
     }
 
     const ctxRows = screen.queryAllByTestId('highlight-context-row');
-    expect(ctxRows.length).toBe(Object.values(highlightContext).flat().length);
+    expect(ctxRows).toHaveLength(Object.values(highlightContext).flat().length);
     highlightContextTitles.forEach(title => {
       expect(screen.getByText(title)).toBeInTheDocument();
     });

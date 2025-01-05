@@ -45,7 +45,7 @@ function mockProjectApiResponses(projects: (Project | ProjectWithBadPlatform)[])
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/${ProjectKeysFixture()[0].public}/`,
+    url: `/projects/org-slug/project-slug/keys/${ProjectKeysFixture()[0]!.public}/`,
     method: 'PUT',
     body: {},
   });

@@ -51,13 +51,12 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         self,
         name="exampleTransaction",
         duration=100,
-        tags=None,
         project_id=None,
         lcp=None,
         user_id=None,
+        *,
+        tags,
     ):
-        if tags is None:
-            tags = []
         if project_id is None:
             project_id = self.project.id
         event = load_data("transaction")

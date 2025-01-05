@@ -46,7 +46,7 @@ export function addOrganizationFeaturesHandler({
     apply: (includes: any, orgFeatures: string[], flagName: string[]) => {
       // Evaluate the result of .includes() and pass it to hook before returning
       const flagResult = includes.apply(orgFeatures, flagName);
-      handler(flagName[0], flagResult);
+      handler(flagName[0]!, flagResult);
       return flagResult;
     },
   };
@@ -69,7 +69,7 @@ export function addProjectFeaturesHandler({
     apply: (includes: any, projFeatures: string[], flagName: string[]) => {
       // Evaluate the result of .includes() and pass it to hook before returning
       const flagResult = includes.apply(projFeatures, flagName);
-      handler(flagName[0], flagResult);
+      handler(flagName[0]!, flagResult);
       return flagResult;
     },
   };
