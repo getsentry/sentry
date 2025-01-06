@@ -46,7 +46,7 @@ ERR_SIGNATURE_EXPIRED = _(
     "Settings to resend the verification email."
 )
 
-WARN_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
+INFO_EMAIL_ALREADY_VERIFIED = _("The email you are trying to verify has already been verified.")
 
 
 class InvalidRequest(Exception):
@@ -432,7 +432,7 @@ def confirm_signed_email(
             # user email does not exist, so we can create it
             pass
     except VerifiedEmailAlreadyExists:
-        msg = WARN_EMAIL_ALREADY_VERIFIED
+        msg = INFO_EMAIL_ALREADY_VERIFIED
         level = messages.INFO
         messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse("sentry-account-settings-emails"))
