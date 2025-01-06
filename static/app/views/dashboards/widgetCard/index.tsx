@@ -67,6 +67,7 @@ type Props = WithRouterProps & {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
   hasEditAccess?: boolean;
@@ -138,7 +139,7 @@ function WidgetCard(props: Props) {
       ...query,
       // Use the last aggregate because that's where the y-axis is stored
       aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]]
+        ? [query.aggregates[query.aggregates.length - 1]!]
         : [],
     }));
     widget.queries = queries;
@@ -269,12 +270,12 @@ function WidgetCard(props: Props) {
               const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
               const fields = Object.keys(tableMeta?.fields ?? {});
 
-              let field = fields[0];
+              let field = fields[0]!;
               let selectedField = field;
 
-              if (defined(widget.queries[0].selectedAggregate)) {
-                const index = widget.queries[0].selectedAggregate;
-                selectedField = widget.queries[0].aggregates[index];
+              if (defined(widget.queries[0]!.selectedAggregate)) {
+                const index = widget.queries[0]!.selectedAggregate;
+                selectedField = widget.queries[0]!.aggregates[index]!;
                 if (fields.includes(selectedField)) {
                   field = selectedField;
                 }
@@ -301,6 +302,7 @@ function WidgetCard(props: Props) {
                   meta={tableMeta}
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
+                  borderless={props.borderless}
                 />
               );
             }}
@@ -316,6 +318,7 @@ function WidgetCard(props: Props) {
             actionsMessage={actionsMessage}
             actions={actions}
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+            borderless={props.borderless}
           >
             <WidgetCardChartContainer
               location={location}

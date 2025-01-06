@@ -50,6 +50,7 @@ describe('Dashboards - DashboardTable', function () {
           isEditableByEveryone: false,
           teamsWithEditAccess: [1],
         },
+        isFavorited: true,
       }),
       DashboardListItemFixture({
         id: '2',
@@ -190,7 +191,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]!);
 
     expect(deleteMock).not.toHaveBeenCalled();
 
@@ -200,8 +201,8 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('cannot delete last dashboard', function () {
@@ -240,7 +241,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -250,8 +251,8 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
-      expect(dashboardUpdateMock).toHaveBeenCalled();
     });
+    expect(dashboardUpdateMock).toHaveBeenCalled();
   });
 
   it('does not throw an error if the POST fails during duplication', async function () {
@@ -271,7 +272,7 @@ describe('Dashboards - DashboardTable', function () {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]);
+    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -281,9 +282,9 @@ describe('Dashboards - DashboardTable', function () {
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
-      // Should not update, and not throw error
-      expect(dashboardUpdateMock).not.toHaveBeenCalled();
     });
+    // Should not update, and not throw error
+    expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
   it('renders access column', async function () {
@@ -307,9 +308,47 @@ describe('Dashboards - DashboardTable', function () {
       />
     );
 
-    expect((await screen.findAllByTestId('grid-head-cell')).length).toBe(5);
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]);
+    await userEvent.click((await screen.findAllByTestId('edit-access-dropdown'))[0]!);
     expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+  });
+
+  it('renders favorite column', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/favorite/',
+      method: 'PUT',
+      body: {isFavorited: false},
+    });
+
+    const organizationWithFavorite = OrganizationFixture({
+      features: [
+        'global-views',
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-table-view',
+        'dashboards-favourite',
+      ],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithFavorite}
+        dashboards={dashboards}
+        location={router.location}
+      />,
+      {
+        organization: organizationWithFavorite,
+      }
+    );
+
+    expect(screen.getByLabelText('Favorite Column')).toBeInTheDocument();
+    expect(screen.queryAllByLabelText('Favorite')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(1);
+
+    await userEvent.click(screen.queryAllByLabelText('Favorite')[0]!);
+    expect(screen.queryAllByLabelText('UnFavorite')).toHaveLength(2);
   });
 });

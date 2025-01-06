@@ -75,7 +75,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               pathname: `/organizations/${
                 organization.slug
               }/releases/${encodeURIComponent(activation.activator)}/`,
-              query: {project: project},
+              query: {project},
             }}
             style={{textOverflow: 'ellipsis', overflowX: 'inherit'}}
           >
@@ -130,7 +130,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               )}
               {COMPARISON_DELTA_OPTIONS.find(
                 ({value}) => value === incident.alertRule.comparisonDelta
-              )?.label ?? COMPARISON_DELTA_OPTIONS[0].label}
+              )?.label ?? COMPARISON_DELTA_OPTIONS[0]!.label}
             </Fragment>
           )}
         {/* If an alert rule is a static detection type */}

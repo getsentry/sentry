@@ -5,6 +5,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -24,7 +25,6 @@ import {DEFAULT_QUERY} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types/group';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
@@ -91,7 +91,7 @@ describe('IssueList', function () {
   beforeEach(function () {
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
-    // eslint-disable-next-line no-console
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
 
@@ -163,7 +163,7 @@ describe('IssueList', function () {
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
       selection: {
-        projects: [parseInt(projects[0].id, 10)],
+        projects: [parseInt(projects[0]!.id, 10)],
         environments: [],
         datetime: {period: '14d'},
       },
@@ -214,7 +214,7 @@ describe('IssueList', function () {
       render(<IssueListWithStores {...routerProps} />, {router});
 
       // Loading saved searches
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
       await screen.findByRole('grid', {name: 'Create a search query'});
@@ -481,12 +481,12 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await userEvent.click(screen.getByRole('button', {name: /custom search/i}));
       await userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
+      expect(router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/searches/789/',
         })
@@ -512,14 +512,14 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
       await userEvent.click(getSearchInput());
       await userEvent.keyboard('dogs{Enter}');
 
-      expect(browserHistory.push).toHaveBeenLastCalledWith(
+      expect(router.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
           pathname: '/organizations/org-slug/issues/',
           query: {
@@ -552,7 +552,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await screen.findByRole('grid', {name: 'Create a search query'});
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
@@ -560,7 +560,7 @@ describe('IssueList', function () {
       await userEvent.paste('assigned:me level:fatal');
       await userEvent.keyboard('{Enter}');
 
-      expect(browserHistory.push as jest.Mock).toHaveBeenCalledWith(
+      expect(router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             query: 'assigned:me level:fatal',
@@ -590,16 +590,16 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/666/',
-            query: {
-              referrer: 'search-bar',
-            },
-            search: '',
-          })
-        );
       });
+      expect(router.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: {
+            referrer: 'search-bar',
+          },
+          search: '',
+        })
+      );
     });
 
     it('unpins a custom query', async function () {
@@ -620,15 +620,15 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      const routerWithSavedSearch = {
+      const routerWithSavedSearch = RouterFixture({
         params: {searchId: pinnedSearch.id},
-      };
+      });
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
 
@@ -639,7 +639,7 @@ describe('IssueList', function () {
       });
 
       await waitFor(() => {
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
+        expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
           expect.objectContaining({
             pathname: '/organizations/org-slug/issues/',
           })
@@ -671,13 +671,13 @@ describe('IssueList', function () {
           isPinned: true,
         },
       });
-      const routerWithSavedSearch = {params: {searchId: '789'}};
+      const routerWithSavedSearch = RouterFixture({params: {searchId: '789'}});
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
         router: routerWithSavedSearch,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
 
@@ -685,12 +685,12 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/789/',
-          })
-        );
       });
+      expect(routerWithSavedSearch.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/789/',
+        })
+      );
     });
 
     it('pinning search should keep project selected', async function () {
@@ -728,7 +728,7 @@ describe('IssueList', function () {
         {router: newRouter}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       const createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -747,18 +747,18 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/searches/666/',
-            query: expect.objectContaining({
-              project: ['123'],
-              environment: ['prod'],
-              query: 'assigned:me level:fatal',
-              referrer: 'search-bar',
-            }),
-          })
-        );
       });
+      expect(newRouter.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/searches/666/',
+          query: expect.objectContaining({
+            project: ['123'],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
+          }),
+        })
+      );
     });
 
     it('unpinning search should keep project selected', async function () {
@@ -810,24 +810,24 @@ describe('IssueList', function () {
         {router: newRouter}
       );
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       await userEvent.click(screen.getByLabelText(/Remove Default/i));
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
-        expect(browserHistory.replace).toHaveBeenLastCalledWith(
-          expect.objectContaining({
-            pathname: '/organizations/org-slug/issues/',
-            query: expect.objectContaining({
-              project: ['123'],
-              environment: ['prod'],
-              query: 'assigned:me level:fatal',
-              referrer: 'search-bar',
-            }),
-          })
-        );
       });
+      expect(newRouter.replace).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/issues/',
+          query: expect.objectContaining({
+            project: ['123'],
+            environment: ['prod'],
+            query: 'assigned:me level:fatal',
+            referrer: 'search-bar',
+          }),
+        })
+      );
     });
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
@@ -835,7 +835,7 @@ describe('IssueList', function () {
         router,
       });
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
 
@@ -863,7 +863,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -887,7 +887,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -909,7 +909,7 @@ describe('IssueList', function () {
       };
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenLastCalledWith(pushArgs);
+        expect(router.push).toHaveBeenLastCalledWith(pushArgs);
       });
 
       rerender(<IssueListWithStores {...merge({}, routerProps, {location: pushArgs})} />);
@@ -919,7 +919,7 @@ describe('IssueList', function () {
 
       await waitFor(() => {
         // cursor is undefined because "prev" cursor is === initial "next" cursor
-        expect(browserHistory.push).toHaveBeenLastCalledWith({
+        expect(router.push).toHaveBeenLastCalledWith({
           pathname: '/organizations/org-slug/issues/',
           query: {
             cursor: undefined,
@@ -955,7 +955,7 @@ describe('IssueList', function () {
       await userEvent.keyboard('{enter}');
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith({
+        expect(router.push).toHaveBeenCalledWith({
           pathname: '/organizations/org-slug/issues/',
           query: {
             environment: [],
@@ -1159,7 +1159,7 @@ describe('IssueList', function () {
       };
       render(<IssueListOverview {...defaultProps} />, {router});
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {

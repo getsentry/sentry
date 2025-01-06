@@ -68,7 +68,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -89,7 +89,7 @@ const useCrashFreeRate = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -128,11 +128,11 @@ function ProjectStabilityScoreCard(props: Props) {
 
   const score = !crashFreeRate
     ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : crashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   const previousScore = !previousCrashFreeRate
     ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
+    : previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100;
 
   if (hasSessions === false) {
     return (

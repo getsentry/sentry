@@ -197,7 +197,7 @@ class ProjectsListTest(APITestCase):
             user=self.user, internal_integration=internal_integration
         )
         path = reverse(self.endpoint)
-        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token}")
+        response = self.client.get(path, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert project.name.encode("utf-8") in response.content
 
     def test_deleted_token_with_internal_integration(self):
@@ -222,7 +222,7 @@ class ProjectsListTest(APITestCase):
             schedule_hybrid_cloud_foreign_key_jobs()
 
         self.get_error_response(
-            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 

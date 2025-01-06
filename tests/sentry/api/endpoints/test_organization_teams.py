@@ -1,7 +1,3 @@
-from functools import cached_property
-
-from django.urls import reverse
-
 from sentry.integrations.utils.providers import get_provider_string
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -173,10 +169,6 @@ class OrganizationTeamsCreateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
-
-    @cached_property
-    def path(self):
-        return reverse("sentry-api-0-organization-teams", args=[self.organization.slug])
 
     def test_missing_permission(self):
         user = self.create_user()

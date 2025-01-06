@@ -593,6 +593,11 @@ def _do_save_event(
                 # so we can delete it from the cache now.
                 if cache_key:
                     processing_store.delete_by_key(cache_key)
+                    track_sampled_event(
+                        data["event_id"],
+                        ConsumerType.Transactions,
+                        TransactionStageStatus.REDIS_DELETED,
+                    )
 
             reprocessing2.mark_event_reprocessed(data)
             if cache_key and has_attachments:

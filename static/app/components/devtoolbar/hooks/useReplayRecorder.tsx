@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
+import type {ReplayRecordingMode} from '@sentry/core';
 import type {replayIntegration} from '@sentry/react';
-import type {ReplayRecordingMode} from '@sentry/types';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';

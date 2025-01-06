@@ -13,7 +13,7 @@ class TestAction(TestCase):
     def setUp(self):
         self.mock_event = Mock(spec=GroupEvent)
         self.mock_detector = Mock(name="detector")
-        self.action = Action(type=Action.Type.NOTIFICATION)
+        self.action = Action(type=Action.Type.SLACK)
 
     def test_get_handler_notification_type(self):
         with patch("sentry.workflow_engine.registry.action_handler_registry.get") as mock_get:
@@ -22,7 +22,7 @@ class TestAction(TestCase):
 
             handler = self.action.get_handler()
 
-            mock_get.assert_called_once_with(Action.Type.NOTIFICATION)
+            mock_get.assert_called_once_with(Action.Type.SLACK)
             assert handler == mock_handler
 
     def test_get_handler_webhook_type(self):
@@ -49,7 +49,7 @@ class TestAction(TestCase):
                 self.action.get_handler()
 
             # Verify the registry was queried with the correct action type
-            mock_get.assert_called_once_with(Action.Type.NOTIFICATION)
+            mock_get.assert_called_once_with(Action.Type.SLACK)
 
     def test_trigger_calls_handler_execute(self):
         mock_handler = Mock(spec=ActionHandler)

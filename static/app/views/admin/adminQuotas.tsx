@@ -1,25 +1,25 @@
 import {Fragment} from 'react';
 
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import TextField from 'sentry/components/forms/fields/textField';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Config = {
   backend: string;
   options: Record<string, string>;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   config: Config;
   resolution: string;
   since: number;
 };
 
-export default class AdminQuotas extends DeprecatedAsyncView<{}, State> {
+export default class AdminQuotas extends DeprecatedAsyncComponent<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -28,7 +28,7 @@ export default class AdminQuotas extends DeprecatedAsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['config', '/internal/quotas/']];
   }
 

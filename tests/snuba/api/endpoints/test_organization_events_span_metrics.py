@@ -342,6 +342,56 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["avg()"] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_avg_on_http_response(self):
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["http.response_content_length"],
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            15,
+            internal_metric=constants.SPAN_METRICS_MAP["http.response_transfer_size"],
+            timestamp=self.min_ago,
+        )
+
+        self.store_span_metric(
+            20,
+            internal_metric=constants.SPAN_METRICS_MAP["http.decoded_response_content_length"],
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(http.response_content_length)",
+                    "avg(http.response_transfer_size)",
+                    "avg(http.decoded_response_content_length)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["avg(http.response_content_length)"] == 10
+        assert data[0]["avg(http.response_transfer_size)"] == 15
+        assert data[0]["avg(http.decoded_response_content_length)"] == 20
+
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(http.response_content_length)"] == "size"
+        assert meta["fields"]["avg(http.response_transfer_size)"] == "size"
+        assert meta["fields"]["avg(http.decoded_response_content_length)"] == "size"
+
+        assert meta["units"]["avg(http.response_content_length)"] == "byte"
+        assert meta["units"]["avg(http.response_transfer_size)"] == "byte"
+        assert meta["units"]["avg(http.decoded_response_content_length)"] == "byte"
+
+        assert meta["dataset"] == "spansMetrics"
+
     def test_eps(self):
         for _ in range(6):
             self.store_span_metric(
@@ -1724,6 +1774,62 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "avg_if(mobile.slow_frames,release,bar)": 10.0,
             }
         ]
+
+    def test_frames_delay_gauge_metric(self):
+        self.store_span_metric(
+            {
+                "min": 5,
+                "max": 5,
+                "sum": 5,
+                "count": 1,
+                "last": 5,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "foo"},
+        )
+        self.store_span_metric(
+            {
+                "min": 10,
+                "max": 10,
+                "sum": 10,
+                "count": 1,
+                "last": 10,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frames_delay",
+            timestamp=self.six_min_ago,
+            tags={"release": "bar"},
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "avg_if(mobile.frames_delay,release,foo)",
+                    "avg_if(mobile.frames_delay,release,bar)",
+                    "avg_compare(mobile.frames_delay,release,foo,bar)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data == [
+            {
+                "avg_compare(mobile.frames_delay,release,foo,bar)": 1.0,
+                "avg_if(mobile.frames_delay,release,foo)": 5.0,
+                "avg_if(mobile.frames_delay,release,bar)": 10.0,
+            }
+        ]
+        assert meta["units"]["avg_if(mobile.frames_delay,release,foo)"] == "second"
+        assert meta["units"]["avg_if(mobile.frames_delay,release,bar)"] == "second"
+        assert meta["units"]["avg_compare(mobile.frames_delay,release,foo,bar)"] is None
 
     def test_resolve_messaging_message_receive_latency_gauge(self):
         self.store_span_metric(

@@ -322,7 +322,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   profilingOnboarding,
-  featureFlagOnboarding: featureFlagOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

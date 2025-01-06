@@ -23,6 +23,7 @@ export type Permissions = {
   Project: PermissionValue;
   Release: PermissionValue;
   Team: PermissionValue;
+  Alerts?: PermissionValue;
 };
 
 export type PermissionResource = keyof Permissions;

@@ -69,9 +69,8 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
     else:
         user_id = None
         try:
-            default_user_id = (
-                Organization.objects.get(id=project.organization_id).get_default_owner().id
-            )
+            default_user = Organization.objects.get(id=project.organization_id).get_default_owner()
+            default_user_id = default_user.id
         except IndexError:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
@@ -113,6 +112,13 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             ),
             project_id=project.id,
         )
+        analytics.record(
+            "second_platform.added",
+            user_id=default_user_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+        )
+        try_mark_onboarding_complete(project.organization_id, user)
 
 
 @first_event_received.connect(weak=False)
@@ -641,8 +647,6 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
-    # NOTE: This intentionally does not fire for the default issue alert rule
-    # that gets created on new project creation.
     task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
@@ -735,6 +739,7 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
+                try_mark_onboarding_complete(organization_id, user)
     else:
         task = OrganizationOnboardingTask.objects.filter(
             organization_id=organization_id,

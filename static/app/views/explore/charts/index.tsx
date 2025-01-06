@@ -20,15 +20,22 @@ import {
   prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {
+  useExploreDataset,
+  useExploreGroupBys,
+  useExploreMode,
+  useExploreSortBys,
+  useExploreVisualizes,
+  useSetExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
@@ -38,11 +45,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
-import {useGroupBys} from '../hooks/useGroupBys';
-import {useResultMode} from '../hooks/useResultsMode';
-import {useSorts} from '../hooks/useSorts';
 import {TOP_EVENTS_LIMIT, useTopEvents} from '../hooks/useTopEvents';
-import {formatSort} from '../tables/aggregatesTable';
 
 interface ExploreChartsProps {
   query: string;
@@ -68,11 +71,12 @@ const exploreChartTypeOptions = [
 export const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({query, setConfidence, setError}: ExploreChartsProps) {
-  const [dataset] = useDataset({allowRPC: true});
-  const [visualizes, setVisualizes] = useVisualizes();
+  const dataset = useExploreDataset();
+  const visualizes = useExploreVisualizes();
+  const setVisualizes = useSetExploreVisualizes();
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {groupBys} = useGroupBys();
-  const [resultMode] = useResultMode();
+  const groupBys = useExploreGroupBys();
+  const mode = useExploreMode();
   const topEvents = useTopEvents();
 
   const extrapolationMetaResults = useExtrapolationMeta({
@@ -81,23 +85,24 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   });
 
   const fields: string[] = useMemo(() => {
-    if (resultMode === 'samples') {
+    if (mode === Mode.SAMPLES) {
       return [];
     }
 
     return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
       Boolean
     );
-  }, [resultMode, groupBys, visualizes]);
-  const [sorts] = useSorts({fields});
+  }, [mode, groupBys, visualizes]);
+
+  const sortBys = useExploreSortBys();
 
   const orderby: string | string[] | undefined = useMemo(() => {
-    if (!sorts.length) {
+    if (!sortBys.length) {
       return undefined;
     }
 
-    return sorts.map(formatSort);
-  }, [sorts]);
+    return sortBys.map(formatSort);
+  }, [sortBys]);
 
   const yAxes = useMemo(() => {
     const deduped = dedupeArray(visualizes.flatMap(visualize => visualize.yAxes));
@@ -241,7 +246,7 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
   const handleChartTypeChange = useCallback(
     (chartType: ChartType, index: number) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[index] = {...newVisualizes[index], chartType};
+      newVisualizes[index] = {...newVisualizes[index]!, chartType};
       setVisualizes(newVisualizes);
     },
     [visualizes, setVisualizes]
@@ -329,10 +334,14 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
                 grid={{
                   left: '0',
                   right: '0',
-                  top: '8px',
+                  top: '32px', // make room to fit the legend above the chart
                   bottom: '0',
                 }}
                 legendFormatter={value => formatVersion(value)}
+                legendOptions={{
+                  itemGap: 24,
+                  top: '4px',
+                }}
                 data={data}
                 error={error}
                 loading={loading}
@@ -347,24 +356,41 @@ export function ExploreCharts({query, setConfidence, setError}: ExploreChartsPro
               />
               {dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                 <ChartFooter>
-                  {defined(extrapolationMetaResults.data?.[0]?.['count_sample()']) &&
-                  defined(
-                    extrapolationMetaResults.data?.[0]?.['avg_sample(sampling_rate)']
-                  )
-                    ? tct(
-                        '*[sampleCount] samples extrapolated with an average sampling rate of [sampleRate]',
-                        {
+                  {!defined(extrapolationMetaResults.data?.[0]?.['count_sample()'])
+                    ? t('* Extrapolated from \u2026')
+                    : resultConfidence === 'low'
+                      ? tct(
+                          '* Extrapolated from [sampleCount] samples ([insufficientSamples])',
+                          {
+                            sampleCount: (
+                              <Count
+                                value={
+                                  extrapolationMetaResults.data?.[0]?.['count_sample()']
+                                }
+                              />
+                            ),
+                            insufficientSamples: (
+                              <Tooltip
+                                title={t(
+                                  'Shortening the date range, increasing the time interval or removing extra filters may improve accuracy.'
+                                )}
+                              >
+                                <InsufficientSamples>
+                                  {t('insufficient for accuracy')}
+                                </InsufficientSamples>
+                              </Tooltip>
+                            ),
+                          }
+                        )
+                      : tct('* Extrapolated from [sampleCount] samples', {
                           sampleCount: (
                             <Count
-                              value={extrapolationMetaResults.data[0]['count_sample()']}
+                              value={
+                                extrapolationMetaResults.data?.[0]?.['count_sample()']
+                              }
                             />
                           ),
-                          sampleRate: formatPercentage(
-                            extrapolationMetaResults.data[0]['avg_sample(sampling_rate)']
-                          ),
-                        }
-                      )
-                    : t('foo')}
+                        })}
                 </ChartFooter>
               )}
             </ChartPanel>
@@ -395,7 +421,7 @@ function useExtrapolationMeta({
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Explore - Extrapolation Meta',
-      fields: ['count_sample()', 'avg_sample(sampling_rate)', 'min(sampling_rate)'],
+      fields: ['count_sample()', 'min(sampling_rate)'],
       query: search.formatString(),
       version: 2,
       dataset,
@@ -448,4 +474,8 @@ const ChartFooter = styled('div')`
   display: inline-block;
   margin-top: ${space(1.5)};
   margin-bottom: 0;
+`;
+
+const InsufficientSamples = styled('span')`
+  text-decoration: underline dotted ${p => p.theme.gray300};
 `;

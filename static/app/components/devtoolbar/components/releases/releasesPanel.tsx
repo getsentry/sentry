@@ -53,7 +53,7 @@ function getCrashFreeRate(data: ApiResult<SessionApiResponse>): number {
   // assume it is 100%.
   // round to 2 decimal points
   return parseFloat(
-    ((data?.json.groups[0].totals['crash_free_rate(session)'] ?? 1) * 100).toFixed(2)
+    ((data?.json.groups[0]!.totals['crash_free_rate(session)'] ?? 1) * 100).toFixed(2)
   );
 }
 
@@ -101,7 +101,7 @@ function ReleaseSummary({orgSlug, release}: {orgSlug: string; release: Release})
           <SentryAppLink
             to={{
               url: `/organizations/${orgSlug}/releases/${encodeURIComponent(release.version)}/`,
-              query: {project: release.projects[0].id},
+              query: {project: release.projects[0]!.id},
             }}
           >
             <VersionWrapper>{formatVersion(release.version)}</VersionWrapper>
@@ -244,14 +244,14 @@ export default function ReleasesPanel() {
       ) : (
         <Fragment>
           <div style={{alignItems: 'start'}}>
-            <ReleaseSummary release={releaseData.json[0]} orgSlug={organizationSlug} />
+            <ReleaseSummary release={releaseData.json[0]!} orgSlug={organizationSlug} />
             <CrashFreeRate
-              currReleaseVersion={releaseData.json[0].version}
+              currReleaseVersion={releaseData.json[0]!.version}
               prevReleaseVersion={
-                releaseData.json.length > 1 ? releaseData.json[1].version : undefined
+                releaseData.json.length > 1 ? releaseData.json[1]!.version : undefined
               }
             />
-            <ReleaseIsssues releaseVersion={releaseData.json[0].version} />
+            <ReleaseIsssues releaseVersion={releaseData.json[0]!.version} />
           </div>
         </Fragment>
       )}

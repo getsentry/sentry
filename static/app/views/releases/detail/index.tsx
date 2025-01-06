@@ -375,7 +375,9 @@ class ReleasesDetailContainer extends DeprecatedAsyncComponent<
       <PageFiltersContainer
         shouldForceProject={projects.length === 1}
         forceProject={
-          projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
+          projects.length === 1
+            ? {...projects[0]!, id: String(projects[0]!.id)}
+            : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}
       >

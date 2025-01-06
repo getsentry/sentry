@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Event} from '@sentry/core';
 import {
   BrowserClient,
   captureFeedback,
@@ -8,7 +9,6 @@ import {
   getDefaultIntegrations,
   makeFetchTransport,
 } from '@sentry/react';
-import type {Event} from '@sentry/types';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';

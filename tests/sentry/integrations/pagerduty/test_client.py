@@ -8,6 +8,7 @@ from responses import matchers
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now
@@ -128,10 +129,7 @@ class PagerDutyClientTest(APITestCase):
             )
         ]
         assert self.metrics.incr.mock_calls == calls
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
     @responses.activate
     def test_send_trigger_custom_severity(self):

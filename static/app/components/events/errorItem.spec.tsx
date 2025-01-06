@@ -50,7 +50,7 @@ describe('Issue error item', function () {
     expect(screen.getByText('File Path')).toBeInTheDocument();
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(

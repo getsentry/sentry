@@ -11,7 +11,7 @@ class SerializableFunctionSignatureTest(TestCase):
             b: str
 
         def a_function(arg1: AnObject, arg2: AnObject) -> AnObject:
-            return AnObject(a=arg1.a + arg2.a, b=".".join((arg1.b, arg2.b)))
+            raise NotImplementedError
 
         sig = SerializableFunctionSignature(a_function)
         arg_values = dict(arg1=AnObject(a=1, b="foo"), arg2=AnObject(a=2, b="bar"))

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from rest_framework import serializers
+from rest_framework.fields import empty
 from rest_framework.request import Request
 
-from sentry import features
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.db.models.fields.bounded import BoundedAutoField
@@ -43,10 +43,7 @@ class MemberPermission(OrganizationPermission):
         is_role_above_member = "member:admin" in scopes or "member:write" in scopes
         if isinstance(organization, RpcUserOrganizationContext):
             organization = organization.organization
-        return is_role_above_member or (
-            features.has("organizations:members-invite-teammates", organization)
-            and not organization.flags.disable_member_invite
-        )
+        return is_role_above_member or not organization.flags.disable_member_invite
 
 
 class MemberAndStaffPermission(StaffPermissionMixin, MemberPermission):
@@ -65,7 +62,7 @@ class MemberIdField(serializers.IntegerField):
             return data
         return super().to_internal_value(data)
 
-    def run_validation(self, data):
+    def run_validation(self, data=empty):
         if data == "me":
             return data
         return super().run_validation(data)
@@ -73,6 +70,15 @@ class MemberIdField(serializers.IntegerField):
 
 class MemberSerializer(serializers.Serializer):
     id = MemberIdField(min_value=0, max_value=BoundedAutoField.MAX_VALUE, required=True)
+
+
+class _FilterKwargs(TypedDict):
+    organization: Organization
+    user_id: NotRequired[int]
+    user_is_active: NotRequired[bool]
+    id: NotRequired[int | str]
+    organization_id: NotRequired[int]
+    invite_status: NotRequired[int]
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
@@ -105,16 +111,16 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         member_id: int | str,
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
-        args = []
-        kwargs = dict(organization=organization)
+        kwargs: _FilterKwargs = {"organization": organization}
 
         if member_id == "me":
-            kwargs.update(user_id=request.user.id, user_is_active=True)
+            kwargs["user_id"] = request.user.id
+            kwargs["user_is_active"] = True
         else:
-            kwargs.update(id=member_id, organization_id=organization.id)
+            kwargs["id"] = member_id
+            kwargs["organization_id"] = organization.id
 
         if invite_status:
-            kwargs.update(invite_status=invite_status.value)
+            kwargs["invite_status"] = invite_status.value
 
-        om = OrganizationMember.objects.filter(*args, **kwargs).get()
-        return om
+        return OrganizationMember.objects.filter(**kwargs).get()

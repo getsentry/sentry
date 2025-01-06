@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import builtins
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
@@ -53,16 +56,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # The type of detector that is being used, this is used to determine the class
-    # to load for the detector
+    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
     type = models.CharField(max_length=200)
 
     # The user that created the detector
     created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-
-    @property
-    def CONFIG_SCHEMA(self) -> dict[str, Any]:
-        raise NotImplementedError('Subclasses must define a "CONFIG_SCHEMA" attribute')
 
     class Meta(OwnerModel.Meta):
         constraints = OwnerModel.Meta.constraints + [
@@ -71,6 +69,11 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
                 name="workflow_engine_detector_org_name",
             )
         ]
+
+    error_detector_project_options = {
+        "fingerprinting_rules": "sentry:fingerprinting_rules",
+        "resolve_age": "sentry:resolve_age",
+    }
 
     @property
     def group_type(self) -> builtins.type[GroupType] | None:
@@ -83,7 +86,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             logger.error(
                 "No registered grouptype for detector",
                 extra={
-                    "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
@@ -105,3 +107,26 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         # TODO: Create proper audit log data for the detector, group and conditions
         return {}
+
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        if not self.project:
+            raise ValueError("Detector must have a project to get options")
+
+        return self.project.get_option(key, default=default, validate=validate)
+
+
+@receiver(pre_save, sender=Detector)
+def enforce_config_schema(sender, instance: Detector, **kwargs):
+    """
+    Ensures the detector type is valid in the grouptype registry.
+    This needs to be a signal because the grouptype registry's entries are not available at import time.
+    """
+    group_type = instance.group_type
+
+    if not group_type:
+        raise ValueError(f"No group type found with type {instance.type}")
+
+    config_schema = group_type.detector_config_schema
+    instance.validate_config(config_schema)

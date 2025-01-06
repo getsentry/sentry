@@ -56,7 +56,7 @@ export function truncationFormatter(
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-function computeShortInterval(datetimeObj: DateTimeObject): boolean {
+export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
@@ -273,7 +273,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 };
 
 const RGB_LIGHTEN_VALUE = 30;
-export const lightenHexToRgb = (colors: string[]) =>
+export const lightenHexToRgb = (colors: ReadonlyArray<string>) =>
   colors.map(hex => {
     const rgb = [
       Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
@@ -292,7 +292,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const tableResult = tableResults[0];
+  const tableResult = tableResults[0]!;
 
   const {data} = tableResult;
 
@@ -300,7 +300,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const preAggregate = Object.keys(data[0]).find(column => {
+  const preAggregate = Object.keys(data[0]!).find(column => {
     return column !== 'geo.country_code';
   });
 
@@ -309,7 +309,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
   }
 
   return {
-    title: tableResult.title ?? '',
+    title: tableResult!.title ?? '',
     data: data.map(row => {
       return {
         name: row['geo.country_code'] as string,

@@ -22,6 +22,7 @@ import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -39,6 +40,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
@@ -65,7 +67,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -78,7 +79,6 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getProjectOptions} from '../utils';
@@ -148,7 +148,7 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
   detailedError: null | {
     [key: string]: string[];
@@ -172,7 +172,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
  */
 const isExactDuplicateExp = /duplicate of '(.*)'/;
 
-class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
+class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics = false;
   trackNoisyWarningViewed = false;
@@ -225,19 +225,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  getTitle() {
-    const {organization} = this.props;
-    const {rule, project} = this.state;
-    const ruleName = rule?.name;
-
-    return routeTitleGen(
-      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
-      organization.slug,
-      false,
-      project?.slug
-    );
-  }
-
   getDefaultState() {
     const {userTeamIds, project} = this.props;
     const defaultState = {
@@ -259,7 +246,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},
@@ -693,7 +680,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
-      const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
+      const id = (clonedState.rule as IssueAlertRule)[type]![idx]!.id;
       const newRule = {
         ...this.getInitialValue(type, id),
         id,
@@ -1104,7 +1091,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
+                  this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});
                 }
 
                 this.setState({project: nextSelectedProject});
@@ -1190,6 +1177,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
       <Main fullWidth>
+        <SentryDocumentTitle
+          title={rule ? t('Alert — %s', rule.name) : t('New Alert Rule')}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+        />
         <PermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
@@ -1239,9 +1231,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               <SetupMessagingIntegrationButton
                 projectId={project.id}
                 refetchConfigs={this.refetchConfigs}
-                analyticsParams={{
-                  view: MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION,
-                }}
+                analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
               />
             </SetConditionsListItem>
             <ContentIndent>
@@ -1310,8 +1300,8 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           error={
                             this.hasError('conditions') && (
                               <StyledAlert type="error">
-                                {detailedError?.conditions[0]}
-                                {(detailedError?.conditions[0] || '').startsWith(
+                                {detailedError?.conditions![0]}
+                                {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
                                 ) && (
                                   <Fragment>
@@ -1395,7 +1385,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           error={
                             this.hasError('filters') && (
                               <StyledAlert type="error">
-                                {detailedError?.filters[0]}
+                                {detailedError?.filters![0]}
                               </StyledAlert>
                             )
                           }
@@ -1444,7 +1434,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">
-                                {detailedError?.actions[0]}
+                                {detailedError?.actions![0]}
                               </StyledAlert>
                             )
                           }
@@ -1530,7 +1520,7 @@ export const findIncompatibleRules = (
     let eventFrequency = -1;
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
-      const id = conditions[i].id;
+      const id = conditions[i]!.id;
       if (id === IssueAlertConditionType.FIRST_SEEN_EVENT) {
         firstSeen = i;
       } else if (id === IssueAlertConditionType.REGRESSION_EVENT) {
@@ -1539,12 +1529,12 @@ export const findIncompatibleRules = (
         reappeared = i;
       } else if (
         id === IssueAlertConditionType.EVENT_FREQUENCY &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         eventFrequency = i;
       } else if (
         id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         userFrequency = i;
       }
@@ -1569,7 +1559,7 @@ export const findIncompatibleRules = (
   if (firstSeen !== -1 && (rule.actionMatch === 'all' || conditions.length === 1)) {
     let incompatibleFilters = 0;
     for (let i = 0; i < filters.length; i++) {
-      const filter = filters[i];
+      const filter = filters[i]!;
       const id = filter.id;
       if (id === IssueAlertFilterType.ISSUE_OCCURRENCES && filter) {
         if (

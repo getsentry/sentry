@@ -3,8 +3,8 @@ import debounce from 'lodash/debounce';
 import IdBadge from 'sentry/components/idBadge';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -15,6 +15,7 @@ import {CrumbLink} from '.';
 type Props = RouteComponentProps<{teamId: string}, {}>;
 
 function TeamCrumb({routes, route, ...props}: Props) {
+  const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
 
@@ -39,7 +40,7 @@ function TeamCrumb({routes, route, ...props}: Props) {
         </CrumbLink>
       }
       onSelect={item => {
-        browserHistory.push(
+        navigate(
           recreateRoute('', {
             routes,
             params: {...params, teamId: item.value},

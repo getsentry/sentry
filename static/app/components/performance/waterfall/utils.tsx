@@ -259,10 +259,10 @@ export const pickBarColor = (input: string | undefined): string => {
     return barColors[input];
   }
 
-  const letterIndex1 = getLetterIndex(input[0]);
-  const letterIndex2 = getLetterIndex(input[1]);
-  const letterIndex3 = getLetterIndex(input[2]);
-  const letterIndex4 = getLetterIndex(input[3]);
+  const letterIndex1 = getLetterIndex(input[0]!);
+  const letterIndex2 = getLetterIndex(input[1]!);
+  const letterIndex3 = getLetterIndex(input[2]!);
+  const letterIndex4 = getLetterIndex(input[3]!);
 
   return colorsAsArray[
     (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length

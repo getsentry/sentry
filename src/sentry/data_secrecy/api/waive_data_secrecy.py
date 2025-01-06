@@ -150,6 +150,5 @@ class WaiveDataSecrecyEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("DATA_SECRECY_REINSTATED"),
         )
         return Response(
-            {"detail": "Data secrecy has been reinstated."},
             status=status.HTTP_204_NO_CONTENT,
         )

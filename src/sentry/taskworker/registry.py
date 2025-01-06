@@ -57,11 +57,19 @@ class TaskNamespace:
         return self._producer
 
     def get(self, name: str) -> Task[Any, Any]:
+        """
+        Get a registered task by name
+
+        Raises KeyError when an unknown task is provided.
+        """
         if name not in self._registered_tasks:
             raise KeyError(f"No task registered with the name {name}. Check your imports")
         return self._registered_tasks[name]
 
     def contains(self, name: str) -> bool:
+        """
+        Check if a task name has been registered
+        """
         return name in self._registered_tasks
 
     def register(
@@ -80,6 +88,7 @@ class TaskNamespace:
         asynchronously via taskworkers.
 
         Parameters
+        ----------
 
         name: str
             The name of the task. This is serialized and must be stable across deploys.

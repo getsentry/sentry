@@ -1,10 +1,9 @@
-import type {CloudResourceContext} from '@sentry/types';
+import type {CloudResourceContext} from '@sentry/core';
 
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -815,7 +814,6 @@ export interface EventTransaction
   )[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 

@@ -1,6 +1,7 @@
 from sentry.api.bases.team import TeamPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.requests import drf_request_from_request
 
 
 class TeamPermissionBase(TestCase):
@@ -14,7 +15,10 @@ class TeamPermissionBase(TestCase):
         request = self.make_request(user=user, auth=auth, method=method)
         if is_superuser:
             request.superuser.set_logged_in(request.user)
-        return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
+        drf_request = drf_request_from_request(request)
+        return perm.has_permission(drf_request, None) and perm.has_object_permission(
+            drf_request, None, obj
+        )
 
 
 class TeamPermissionTest(TeamPermissionBase):

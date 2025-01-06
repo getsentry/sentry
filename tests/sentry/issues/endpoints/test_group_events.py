@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
@@ -15,10 +16,10 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         self.min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
 
-    def do_request(self, url: str):
+    def do_request(self, url: str) -> Response:
         return self.client.get(url, format="json")
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():

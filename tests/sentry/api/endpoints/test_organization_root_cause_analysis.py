@@ -44,7 +44,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         project_id,
         start_timestamp,
         duration,
-        transaction_id=None,
     ):
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
@@ -56,8 +55,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             start_timestamp=start_timestamp,
             timestamp=timestamp,
         )
-        if transaction_id is not None:
-            data["event_id"] = transaction_id
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)

@@ -175,6 +175,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
         assert values == [self.user.id, self.user.id, user_1.id, user_2.id]
 
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [int(row["createdBy"]["id"]) for row in response.data if row["dateCreated"]]
+            assert values == [self.user.id, self.user.id, user_2.id, user_1.id]
+
     def test_get_sortby_mydashboards_and_recently_viewed(self):
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -218,6 +225,59 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             "Dashboard 4",
             "Dashboard 3",
         ]
+
+    def test_get_sortby_mydashboards_with_owner_name(self):
+        user_1 = self.create_user(username="user_1", name="Cat")
+        self.create_member(organization=self.organization, user=user_1)
+
+        user_2 = self.create_user(username="user_2", name="Pineapple")
+        self.create_member(organization=self.organization, user=user_2)
+
+        user_3 = self.create_user(username="user_3", name="Banana")
+        self.create_member(organization=self.organization, user=user_3)
+
+        user_4 = self.create_user(username="user_4", name="Aapple")
+        self.create_member(organization=self.organization, user=user_4)
+
+        Dashboard.objects.create(title="A", created_by_id=user_1.id, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="C", created_by_id=user_3.id, organization=self.organization)
+        Dashboard.objects.create(title="D", created_by_id=user_4.id, organization=self.organization)
+        Dashboard.objects.create(title="E", created_by_id=user_2.id, organization=self.organization)
+        Dashboard.objects.create(title="F", created_by_id=user_1.id, organization=self.organization)
+
+        self.login_as(user_1)
+        with self.feature("organizations:dashboards-table-view"):
+            response = self.client.get(self.url, data={"sort": "mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+                "Aapple",
+                "Banana",
+                "Pineapple",
+                "Pineapple",
+            ]
+
+            # descending
+            response = self.client.get(self.url, data={"sort": "-mydashboards"})
+            assert response.status_code == 200, response.content
+
+            values = [row["createdBy"]["name"] for row in response.data if row["dateCreated"]]
+            assert values == [
+                "Cat",
+                "Cat",
+                "Pineapple",
+                "Pineapple",
+                "Banana",
+                "Aapple",
+                "admin@localhost",  # name is empty
+                "admin@localhost",
+            ]
 
     def test_get_only_favorites_no_sort(self):
         user_1 = self.create_user(username="user_1")
@@ -417,6 +477,108 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
             values = [row["title"] for row in response.data]
             assert values == ["General", "Dashboard 1", "Dashboard 2", "Dashboard 7", "Dashboard 6"]
+
+    def test_pin_favorites_with_my_dashboards_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        Dashboard.objects.create(
+            title="Dashboard A",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_B = Dashboard.objects.create(
+            title="Dashboard B",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        dashboard_C = Dashboard.objects.create(
+            title="Dashboard C",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        dashboard_D = Dashboard.objects.create(
+            title="Dashboard D",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_E = Dashboard.objects.create(
+            title="Dashboard E",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+
+        dashboard_B.favorited_by = [self.user.id]
+        dashboard_D.favorited_by = [self.user.id, user_1.id]
+        dashboard_E.favorited_by = [self.user.id]
+        dashboard_C.favorited_by = [user_1.id]
+
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(self.url, data={"sort": "mydashboards", "pin": "favorites"})
+            assert response.status_code == 200, response.content
+            values = [row["title"] for row in response.data]
+            assert values == [
+                # favorites
+                "Dashboard D",  # self.user's favorite
+                "Dashboard E",  # user_1's dashboard
+                "Dashboard B",  # user_1's dashboard
+                # other dashboards
+                "Dashboard A",  # self.user's dashboard
+                "Dashboard 2",  # self.user's dashboard
+                "Dashboard 1",  # self.user's dashboard
+                "Dashboard C",  # user_1's dashbaord
+            ]
+
+    def test_pin_favorites_with_my_date_created_sort(self):
+        user_1 = self.create_user(username="user_1")
+        self.create_member(organization=self.organization, user=user_1)
+
+        Dashboard.objects.create(
+            title="Dashboard A",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_B = Dashboard.objects.create(
+            title="Dashboard B",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        dashboard_C = Dashboard.objects.create(
+            title="Dashboard C",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+        dashboard_D = Dashboard.objects.create(
+            title="Dashboard D",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        dashboard_E = Dashboard.objects.create(
+            title="Dashboard E",
+            created_by_id=user_1.id,
+            organization=self.organization,
+        )
+
+        dashboard_B.favorited_by = [self.user.id, user_1.id]
+        dashboard_D.favorited_by = [self.user.id]
+        dashboard_E.favorited_by = [self.user.id]
+        dashboard_C.favorited_by = [user_1.id]
+
+        with self.feature("organizations:dashboards-favourite"):
+            response = self.client.get(self.url, data={"sort": "dateCreated", "pin": "favorites"})
+            assert response.status_code == 200, response.content
+            values = [row["title"] for row in response.data]
+            assert values == [
+                # favorites
+                "Dashboard B",
+                "Dashboard D",
+                "Dashboard E",
+                # other dashboards
+                "Dashboard 1",
+                "Dashboard 2",
+                "Dashboard A",
+                "Dashboard C",
+            ]
 
     def test_post(self):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})

@@ -313,10 +313,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           onChange={alertSetting => this.setStateAndUpdateParents({alertSetting})}
           value={this.state.alertSetting}
         />
-        {this.props.organization.features.includes(
-          'messaging-integration-onboarding-project-creation'
-        ) &&
-          this.props.notificationProps &&
+        {this.props.notificationProps &&
           parseInt(this.state.alertSetting, 10) !== RuleAction.CREATE_ALERT_LATER && (
             <IssueAlertNotificationOptions {...this.props.notificationProps} />
           )}

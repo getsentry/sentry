@@ -14,7 +14,7 @@ jest.mock('sentry/actionCreators/organization');
 
 describe('ProjectDetail', function () {
   const {organization, router, projects} = initializeOrg();
-  const project = projects[0];
+  const project = projects[0]!;
 
   beforeEach(function () {
     ProjectsStore.init();

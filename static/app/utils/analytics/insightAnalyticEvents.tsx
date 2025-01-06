@@ -19,6 +19,7 @@ export type InsightEventParameters = {
   'insight.general.select_action_value': {source: string; value: string};
   // Don't specify domain because domains are arbitrary values
   'insight.general.select_domain_value': {source: string};
+  'insight.general.select_region_value': {regions: string[]};
   'insight.general.table_paginate': {direction: string; source: string};
   'insight.general.table_sort': {
     direction: string;
@@ -86,5 +87,6 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.vital.overview.toggle_data_type':
     'Insights: Web Vitals Overview - toggle data type',
   'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
+  'insight.general.select_region_value': 'Insights: Select value in region selector',
   'insight.general.create_alert': 'Insights: Create Alert clicked',
 };

@@ -63,7 +63,9 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from './traceState/traceStateProvider';
+import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
 import {Trace} from './trace';
+import TraceActionsMenu from './traceActionsMenu';
 import {traceAnalytics} from './traceAnalytics';
 import {
   isAutogroupedNode,
@@ -203,11 +205,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       return;
     }
 
-    const newTabs = [TRACE_TAB];
+    // New trace UI has the trace info and web vitalsin the bottom drawer
+    const newTabs = hasTraceNewUi ? [] : [TRACE_TAB];
 
-    if (props.tree.vitals.size > 0) {
+    if (props.tree.vitals.size > 0 && !hasTraceNewUi) {
       const types = Array.from(props.tree.vital_types.values());
-      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]) + ' Vitals';
+      const label = types.length > 1 ? t('Vitals') : capitalize(types[0]!) + ' Vitals';
 
       newTabs.push({
         ...VITALS_TAB,
@@ -225,7 +228,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     traceDispatch({
       type: 'initialize tabs reducer',
       payload: {
-        current_tab: traceStateRef?.current?.tabs?.tabs?.[0],
+        current_tab: traceStateRef?.current?.tabs?.tabs?.[0] ?? null,
         tabs: newTabs,
         last_clicked_tab: null,
       },
@@ -282,8 +285,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           type: 'set results',
           results: matches,
           resultsLookup: lookup,
-          resultIteratorIndex: resultIteratorIndex,
-          resultIndex: resultIndex,
+          resultIteratorIndex,
+          resultIndex,
           previousNode: activeNodeSearchResult,
           node,
         });
@@ -319,9 +322,16 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     ) => {
       // sync query string with the clicked node
       if (node) {
+        // The new ui has the trace info and web vitals in the bottom drawer and
+        // we don't treat the trace node as a clickable node
+        if (isTraceNode(node) && hasTraceNewUi) {
+          return;
+        }
+
         if (queryStringAnimationTimeoutRef.current) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
+
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = TraceTree.PathToNode(node);
@@ -361,7 +371,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [traceDispatch]
+    [traceDispatch, hasTraceNewUi]
   );
 
   const onRowClick = useCallback(
@@ -370,6 +380,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      // The new ui has the trace info and web vitals in the bottom drawer and
+      // we don't treat the trace node as a clickable node
+      if (isTraceNode(node) && hasTraceNewUi) {
+        traceDispatch({
+          type: 'set roving index',
+          action_source: 'click',
+          index,
+          node,
+        });
+        return;
+      }
+
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
@@ -402,7 +424,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch, organization, projects]
+    [setRowAsFocused, traceDispatch, organization, projects, hasTraceNewUi]
   );
 
   const scrollRowIntoView = useCallback(
@@ -451,7 +473,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         traceDispatch({
           type: 'set roving index',
           node: maybeNode,
-          index: index,
+          index,
           action_source: 'click',
         });
 
@@ -493,11 +515,23 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [onScrollToNode, setRowAsFocused]
   );
 
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   // Callback that is invoked when the trace loads and reaches its initialied state,
   // that is when the trace tree data and any data that the trace depends on is loaded,
   // but the trace is not yet rendered in the view.
   const onTraceLoad = useCallback(() => {
-    traceAnalytics.trackTraceShape(props.tree, projectsRef.current, props.organization);
+    if (!isLoadingSubscriptionDetails) {
+      traceAnalytics.trackTraceShape(
+        props.tree,
+        projectsRef.current,
+        props.organization,
+        hasExceededPerformanceUsageLimit
+      );
+    }
     // The tree has the data fetched, but does not yet respect the user preferences.
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
@@ -537,9 +571,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path) ?? node;
+          node = TraceTree.FindByID(node.head, eventId! ?? path!) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path)) ?? node;
+          node =
+            node.children.find(n => TraceTree.FindByID(n, eventId! ?? path!)) ?? node;
         }
       }
     }
@@ -582,8 +617,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
       traceDispatch({
         type: 'set roving index',
-        node: node,
-        index: index,
+        node,
+        index,
         action_source: 'load',
       });
     });
@@ -596,6 +631,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     scrollQueueRef,
     props.tree,
     props.organization,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
   ]);
 
   // Setup the middleware for the trace reducer
@@ -641,7 +678,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         action.type !== 'set search iterator index'
       ) {
         // If the search result index changes, mark the node as focused and scroll it into view
-        const nextNode = props.tree.list[nextSearchResultIndex];
+        const nextNode = props.tree.list[nextSearchResultIndex]!;
         setRowAsFocused(
           nextNode,
           null,
@@ -789,6 +826,10 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TraceShortcuts />
+        <TraceActionsMenu
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
         <TracePreferencesDropdown
           autogroup={
             traceState.preferences.autogroup.parent &&

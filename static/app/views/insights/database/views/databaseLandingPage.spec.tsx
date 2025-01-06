@@ -15,7 +15,7 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('DatabaseLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
   let spanListRequestMock: jest.Mock;
   let spanChartsRequestMock: jest.Mock;
@@ -215,7 +215,6 @@ describe('DatabaseLandingPage', function () {
   });
 
   it('renders a list of queries', async function () {
-    // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn()); // This silences pointless unique key errors that React throws because of the tokenized query descriptions
 
     render(<DatabaseLandingPage />, {organization});

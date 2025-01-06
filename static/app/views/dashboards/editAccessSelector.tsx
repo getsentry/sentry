@@ -65,7 +65,9 @@ function EditAccessSelector({
   const [isMenuOpen, setMenuOpen] = useState<boolean>(false);
   const {teams: selectedTeam} = useTeamsById({
     ids:
-      selectedOptions[1] && selectedOptions[1] !== 'allUsers' ? [selectedOptions[1]] : [],
+      selectedOptions[1] && selectedOptions[1] !== '_allUsers'
+        ? [selectedOptions[1]]
+        : [],
   });
 
   // Gets selected options for the dropdown from dashboard object
@@ -164,6 +166,7 @@ function EditAccessSelector({
     ) : selectedOptions.length === 2 ? (
       // Case where we display 1 Creator Avatar + 1 Team Avatar
       <StyledAvatarList
+        listonly={listOnly}
         key="avatar-list-2-badges"
         typeAvatars="users"
         users={[dashboardCreator]}
@@ -177,6 +180,7 @@ function EditAccessSelector({
       // Case where we display 1 Creator Avatar + a Badge with no. of teams selected
       <StyledAvatarList
         key="avatar-list-many-teams"
+        listonly={listOnly}
         typeAvatars="users"
         users={Array(selectedOptions.length).fill(dashboardCreator)}
         maxVisibleAvatars={1}
@@ -276,16 +280,15 @@ function EditAccessSelector({
           ? [triggerAvatars]
           : [
               <StyledFeatureBadge
-                key="beta-badge"
-                type="beta"
-                title={t('This feature is available for early adopters and may change')}
+                key="new-badge"
+                type="new"
                 tooltipProps={{position: 'left', delay: 1000, isHoverable: true}}
               />,
-              t('Edit Access:'),
+              <LabelContainer key="selector-label">{t('Edit Access:')}</LabelContainer>,
               triggerAvatars,
             ]
       }
-      triggerProps={{borderless: listOnly}}
+      triggerProps={{borderless: listOnly, style: listOnly ? {padding: 2} : {}}}
       searchPlaceholder={t('Search Teams')}
       isOpen={isMenuOpen}
       onOpenChange={() => {
@@ -327,9 +330,14 @@ const StyledDisplayName = styled('div')`
   font-weight: normal;
 `;
 
-const StyledAvatarList = styled(AvatarList)`
-  margin-left: 10px;
-  margin-right: -3px;
+const StyledAvatarList = styled(AvatarList)<{listonly: boolean}>`
+  margin-left: ${space(0.75)};
+  margin-right: ${p => (p.listonly ? 0 : -3)}px;
+  font-weight: normal;
+`;
+
+const LabelContainer = styled('div')`
+  margin-right: ${space(1)};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
@@ -346,6 +354,7 @@ const StyledBadge = styled(Badge)<{size: number}>`
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 0px;
 `;
 
 const FilterButtons = styled(ButtonBar)`

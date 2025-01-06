@@ -13,3 +13,6 @@ If these logins are not from you, we recommend you log in to your Sentry account
 {{ url }}
 
 On the same account security page, we also recommend you click the “Sign out of all devices” button to remove all currently logged-in sessions of your account.
+
+If you are unable to log in to your Sentry account for the password reset, you can use Password Recovery:
+{{ recover_url }}

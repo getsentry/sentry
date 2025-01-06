@@ -24,11 +24,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  useExploreDataset,
+  useExploreQuery,
+  useExploreTitle,
+  useExploreVisualizes,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
 import {type TraceResult, useTraces} from 'sentry/views/explore/hooks/useTraces';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {
   Description,
   ProjectBadgeWrapper,
@@ -55,9 +58,10 @@ interface TracesTableProps {
 }
 
 export function TracesTable({confidence, setError}: TracesTableProps) {
-  const [dataset] = useDataset();
-  const [query] = useUserQuery();
-  const [visualizes] = useVisualizes();
+  const title = useExploreTitle();
+  const dataset = useExploreDataset();
+  const query = useExploreQuery();
+  const visualizes = useExploreVisualizes();
   const organization = useOrganization();
 
   const location = useLocation();
@@ -76,6 +80,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
   }, [setError, result.error?.message]);
 
   useAnalytics({
+    dataset,
     resultLength: result.data?.data?.length,
     resultMode: 'trace samples',
     resultStatus: result.status,
@@ -92,6 +97,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
     ],
     userQuery: query,
     confidence,
+    title,
   });
 
   const {data, isPending, isError, getResponseHeader} = result;
@@ -178,17 +184,8 @@ function TraceRow({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
-  const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
   const organization = useOrganization();
-
-  const setHighlightedSliceName = useMemo(
-    () =>
-      debounce(sliceName => _setHighlightedSliceName(sliceName), 100, {
-        leading: true,
-      }),
-    [_setHighlightedSliceName]
-  );
 
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
 
@@ -210,7 +207,7 @@ function TraceRow({
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }
@@ -290,16 +287,7 @@ function TraceRow({
           <Count value={trace.numSpans} />
         )}
       </StyledPanelItem>
-      <BreakdownPanelItem
-        align="right"
-        highlightedSliceName={highlightedSliceName}
-        onMouseLeave={() => setHighlightedSliceName('')}
-      >
-        <TraceBreakdownRenderer
-          trace={trace}
-          setHighlightedSliceName={setHighlightedSliceName}
-        />
-      </BreakdownPanelItem>
+      <Breakdown trace={trace} />
       <StyledPanelItem align="right">
         {defined(trace.rootDuration) ? (
           <PerformanceDuration milliseconds={trace.rootDuration} abbreviation />
@@ -310,10 +298,32 @@ function TraceRow({
       <StyledPanelItem align="right">
         <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
       </StyledPanelItem>
-      {expanded && (
-        <SpanTable trace={trace} setHighlightedSliceName={setHighlightedSliceName} />
-      )}
+      {expanded && <SpanTable trace={trace} />}
     </Fragment>
+  );
+}
+
+function Breakdown({trace}: {trace: TraceResult}) {
+  const [highlightedSliceName, _setHighlightedSliceName] = useState('');
+  const setHighlightedSliceName = useMemo(
+    () =>
+      debounce(sliceName => _setHighlightedSliceName(sliceName), 100, {
+        leading: true,
+      }),
+    [_setHighlightedSliceName]
+  );
+
+  return (
+    <BreakdownPanelItem
+      align="right"
+      highlightedSliceName={highlightedSliceName}
+      onMouseLeave={() => setHighlightedSliceName('')}
+    >
+      <TraceBreakdownRenderer
+        trace={trace}
+        setHighlightedSliceName={setHighlightedSliceName}
+      />
+    </BreakdownPanelItem>
   );
 }
 

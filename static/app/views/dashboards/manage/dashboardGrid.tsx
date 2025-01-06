@@ -105,6 +105,7 @@ function DashboardGrid({
   async function handleFavorite(dashboard: DashboardListItem, isFavorited: boolean) {
     try {
       await updateDashboardFavorite(api, organization.slug, dashboard.id, isFavorited);
+      onDashboardsChange();
     } catch (error) {
       throw error;
     }
