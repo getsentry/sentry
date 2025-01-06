@@ -50,7 +50,7 @@ export default storyBook('GlobalDrawer', story => {
   ariaLabel: 'test drawer',
   closeOnEscapeKeypress: false, // defaults to true
   closeOnOutsideClick: false, // defaults to true
-  shouldCloseOnLocationChange: (newPathname) => !newPathname.includes('tags'),
+  shouldCloseOnLocationChange: (newLocation) => !newLocation.pathname.includes('tags'),
 })}>
   Open Drawer
 </Button>`}
