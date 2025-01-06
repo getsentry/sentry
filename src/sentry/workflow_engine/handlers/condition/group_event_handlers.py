@@ -1,12 +1,15 @@
 from typing import Any
 
 import sentry_sdk
+from django.utils import timezone
 
 from sentry import tagstore
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType, match_values
+from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.conditions.event_attribute import attribute_registry
+from sentry.rules.filters.age_comparison import timeranges
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -165,3 +168,36 @@ class TaggedEventConditionHandler(DataConditionHandler[WorkflowJob]):
         )
 
         return match_values(group_values=tag_values, match_value=value, match_type=match)
+
+
+@condition_handler_registry.register(Condition.AGE_COMPARISON)
+class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
+    @staticmethod
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        event = job["event"]
+        first_seen = event.group.first_seen
+        current_time = timezone.now()
+        comparison_type = comparison.get("comparison_type")
+        time = comparison.get("time")
+
+        if (
+            not comparison_type
+            or not time
+            or time not in timeranges
+            or (
+                comparison_type != AgeComparisonType.OLDER
+                and comparison_type != AgeComparisonType.NEWER
+            )
+        ):
+            return False
+
+        try:
+            value = int(comparison.get("value"))
+        except (TypeError, ValueError):
+            return False
+
+        _, delta_time = timeranges[time]
+        passes: bool = age_comparison_map[comparison_type](
+            first_seen + (value * delta_time), current_time
+        )
+        return passes
