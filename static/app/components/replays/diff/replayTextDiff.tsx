@@ -3,21 +3,17 @@ import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import DiffFeedbackBanner from 'sentry/components/replays/diff/diffFeedbackBanner';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
-interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
-}
+export function ReplayTextDiff() {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
 
-export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
   const {data, isLoading} = useExtractPageHtml({
     replay,
     offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
