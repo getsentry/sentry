@@ -44,6 +44,10 @@ export type IssueTypeConfig = {
    */
   discover: DisabledWithReasonConfig;
   /**
+   * Is the Event and User Counts shown for this issue
+   */
+  eventCounts: DisabledWithReasonConfig;
+  /**
    * Is the Events tab show for this issue
    */
   events: DisabledWithReasonConfig;
