@@ -14,7 +14,7 @@ interface Props {
 export default function ReplayTabs({selected}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const tabs = useMemo(
     () => [
