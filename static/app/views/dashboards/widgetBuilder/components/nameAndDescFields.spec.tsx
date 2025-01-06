@@ -12,6 +12,7 @@ jest.mock('sentry/utils/useNavigate', () => ({
 }));
 
 const mockUseNavigate = jest.mocked(useNavigate);
+const mockSetError = jest.fn();
 
 describe('WidgetBuilder', () => {
   let router!: ReturnType<typeof RouterFixture>;
@@ -33,7 +34,7 @@ describe('WidgetBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderNameAndDescription error={{}} />
+        <WidgetBuilderNameAndDescription error={{}} setError={mockSetError} />
       </WidgetBuilderProvider>,
       {
         router,
@@ -68,6 +69,7 @@ describe('WidgetBuilder', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderNameAndDescription
           error={{title: 'Title is required during creation.'}}
+          setError={mockSetError}
         />
       </WidgetBuilderProvider>,
       {router, organization}

@@ -12,9 +12,13 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 
 interface WidgetBuilderNameAndDescriptionProps {
   error: Record<string, any>;
+  setError: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderNameAndDescription({error}: WidgetBuilderNameAndDescriptionProps) {
+function WidgetBuilderNameAndDescription({
+  error,
+  setError,
+}: WidgetBuilderNameAndDescriptionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
 
@@ -29,6 +33,8 @@ function WidgetBuilderNameAndDescription({error}: WidgetBuilderNameAndDescriptio
         aria-label={t('Widget Name')}
         value={state.title}
         onChange={e => {
+          // clear error once user starts typing
+          setError({...error, title: undefined});
           dispatch({type: BuilderStateAction.SET_TITLE, payload: e});
         }}
         required
