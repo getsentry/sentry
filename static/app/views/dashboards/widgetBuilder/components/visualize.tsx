@@ -260,16 +260,18 @@ function Visualize() {
                             : field.field
                         }
                         onChange={newField => {
+                          const newFields = cloneDeep(fields);
+                          const currentField = newFields[index]!;
                           // Update the current field's aggregate with the new aggregate
-                          if (field.kind === FieldValueKind.FUNCTION) {
-                            field.function[1] = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FUNCTION) {
+                            currentField.function[1] = newField.value as string;
                           }
-                          if (field.kind === FieldValueKind.FIELD) {
-                            field.field = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FIELD) {
+                            currentField.field = newField.value as string;
                           }
                           dispatch({
                             type: updateAction,
-                            payload: fields,
+                            payload: newFields,
                           });
                         }}
                         triggerProps={{
