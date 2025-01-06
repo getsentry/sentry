@@ -100,8 +100,10 @@ export function Actions(props: Props) {
       delete: deleteCap,
       deleteAndDiscard: deleteDiscardCap,
       share: shareCap,
+      resolve: resolveCap,
       resolveInRelease: resolveInReleaseCap,
     },
+    customCopy: {resolution: resolvedCopyCap},
     discover: discoverCap,
   } = config;
 
@@ -374,38 +376,42 @@ export function Actions(props: Props) {
           <ResolvedActionWapper>
             <ResolvedWrapper>
               <IconCheckmark />
-              {isResolved ? t('Resolved') : t('Archived')}
+              {isResolved ? resolvedCopyCap || t('Resolved') : t('Archived')}
             </ResolvedWrapper>
             <Divider />
-            <Button
-              size="sm"
-              disabled={disabled || isAutoResolved}
-              onClick={() =>
-                onUpdate({
-                  status: GroupStatus.UNRESOLVED,
-                  statusDetails: {},
-                  substatus: GroupSubstatus.ONGOING,
-                })
-              }
-            >
-              {isResolved ? t('Unresolve') : t('Unarchive')}
-            </Button>
+            {resolveCap.enabled && (
+              <Button
+                size="sm"
+                disabled={disabled || isAutoResolved}
+                onClick={() =>
+                  onUpdate({
+                    status: GroupStatus.UNRESOLVED,
+                    statusDetails: {},
+                    substatus: GroupSubstatus.ONGOING,
+                  })
+                }
+              >
+                {isResolved ? t('Unresolve') : t('Unarchive')}
+              </Button>
+            )}
           </ResolvedActionWapper>
         ) : (
           <Fragment>
-            <ResolveActions
-              disableResolveInRelease={!resolveInReleaseCap.enabled}
-              disabled={disabled}
-              disableDropdown={disabled}
-              hasRelease={hasRelease}
-              latestRelease={project.latestRelease}
-              onUpdate={onUpdate}
-              projectSlug={project.slug}
-              isResolved={isResolved}
-              isAutoResolved={isAutoResolved}
-              size="sm"
-              priority="primary"
-            />
+            {resolveCap.enabled && (
+              <ResolveActions
+                disableResolveInRelease={!resolveInReleaseCap.enabled}
+                disabled={disabled}
+                disableDropdown={disabled}
+                hasRelease={hasRelease}
+                latestRelease={project.latestRelease}
+                onUpdate={onUpdate}
+                projectSlug={project.slug}
+                isResolved={isResolved}
+                isAutoResolved={isAutoResolved}
+                size="sm"
+                priority="primary"
+              />
+            )}
             <ArchiveActions
               className={hasStreamlinedUI ? undefined : 'hidden-xs'}
               size="sm"
@@ -577,21 +583,23 @@ export function Actions(props: Props) {
                 disabled={disabled}
                 disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
               />
-              <GuideAnchor target="resolve" position="bottom" offset={20}>
-                <ResolveActions
-                  disableResolveInRelease={!resolveInReleaseCap.enabled}
-                  disabled={disabled}
-                  disableDropdown={disabled}
-                  hasRelease={hasRelease}
-                  latestRelease={project.latestRelease}
-                  onUpdate={onUpdate}
-                  projectSlug={project.slug}
-                  isResolved={isResolved}
-                  isAutoResolved={isAutoResolved}
-                  size="sm"
-                  priority="primary"
-                />
-              </GuideAnchor>
+              {resolveCap.enabled && (
+                <GuideAnchor target="resolve" position="bottom" offset={20}>
+                  <ResolveActions
+                    disableResolveInRelease={!resolveInReleaseCap.enabled}
+                    disabled={disabled}
+                    disableDropdown={disabled}
+                    hasRelease={hasRelease}
+                    latestRelease={project.latestRelease}
+                    onUpdate={onUpdate}
+                    projectSlug={project.slug}
+                    isResolved={isResolved}
+                    isAutoResolved={isAutoResolved}
+                    size="sm"
+                    priority="primary"
+                  />
+                </GuideAnchor>
+              )}
             </Fragment>
           )}
         </Fragment>
