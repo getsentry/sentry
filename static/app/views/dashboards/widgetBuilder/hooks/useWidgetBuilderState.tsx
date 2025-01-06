@@ -233,6 +233,45 @@ function useWidgetBuilderState(): {
           break;
         case BuilderStateAction.SET_FIELDS:
           setFields(action.payload);
+          const isRemoved = action.payload.length < (fields?.length ?? 0);
+          if (
+            displayType === DisplayType.TABLE &&
+            action.payload.length > 0 &&
+            !action.payload.find(
+              field => generateFieldAsString(field) === sort?.[0]?.field
+            )
+          ) {
+            if (isRemoved) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(action.payload[0] as QueryFieldValue),
+                },
+              ]);
+            } else {
+              // Find the index of the first field that doesn't match the old fields.
+              const changedFieldIndex = action.payload.findIndex(
+                field =>
+                  !fields?.find(
+                    originalField =>
+                      generateFieldAsString(originalField) ===
+                      generateFieldAsString(field)
+                  )
+              );
+              if (changedFieldIndex !== -1) {
+                // At this point, we can assume the fields are the same length so
+                // using the changedFieldIndex in action.payload is safe.
+                setSort([
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(
+                      action.payload[changedFieldIndex] as QueryFieldValue
+                    ),
+                  },
+                ]);
+              }
+            }
+          }
           break;
         case BuilderStateAction.SET_Y_AXIS:
           setYAxis(action.payload);

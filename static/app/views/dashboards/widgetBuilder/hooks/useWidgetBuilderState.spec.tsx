@@ -827,6 +827,55 @@ describe('useWidgetBuilderState', () => {
         'event.type',
       ]);
     });
+
+    it('resets the sort when the field that is being sorted is removed', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {field: ['testField'], sort: ['-testField']},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [{field: 'testField2', kind: FieldValueKind.FIELD}],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'testField2', kind: 'desc'}]);
+    });
+
+    it('modifies the sort when the field that is being sorted is modified', () => {
+      mockedUsedLocation.mockReturnValue(
+        LocationFixture({
+          query: {field: ['testField', 'sortField'], sort: ['-sortField']},
+        })
+      );
+
+      const {result} = renderHook(() => useWidgetBuilderState(), {
+        wrapper: WidgetBuilderProvider,
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'sortField', kind: 'desc'}]);
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_FIELDS,
+          payload: [
+            {field: 'testField', kind: FieldValueKind.FIELD},
+            {field: 'newSortField', kind: FieldValueKind.FIELD},
+          ],
+        });
+      });
+
+      expect(result.current.state.sort).toEqual([{field: 'newSortField', kind: 'desc'}]);
+    });
   });
 
   describe('yAxis', () => {
