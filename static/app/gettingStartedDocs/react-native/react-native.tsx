@@ -80,10 +80,8 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  _experiments: {
-    replaysSessionSampleRate: 1.0,
-    replaysOnErrorSampleRate: 1.0,
-  },
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
   integrations: [
     Sentry.mobileReplayIntegration(),
   ],
@@ -411,7 +409,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry React Native SDK version is at least 5.26.0. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry React Native SDK version is at least 6.5.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
