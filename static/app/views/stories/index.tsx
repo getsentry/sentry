@@ -46,13 +46,13 @@ export default function Stories({location}: Props) {
             </TreeContainer>
           </Sidebar>
 
-          {story.error ? (
+          {story.isError ? (
             <VerticalScroll style={{gridArea: 'body'}}>
               <ErrorStory error={story.error} />
             </VerticalScroll>
-          ) : story.resolved ? (
+          ) : story.isSuccess ? (
             <Main style={{gridArea: 'body'}}>
-              <StoryFile filename={story.filename} resolved={story.resolved} />
+              <StoryFile filename={story.data.filename} resolved={story.data.resolved} />
             </Main>
           ) : (
             <VerticalScroll style={{gridArea: 'body'}}>
