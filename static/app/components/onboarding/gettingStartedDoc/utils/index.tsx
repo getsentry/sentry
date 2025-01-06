@@ -1,4 +1,3 @@
-import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
@@ -66,17 +65,4 @@ export function getUploadSourceMapsStep({
       },
     ],
   };
-}
-
-export function MobileBetaBanner({link}: {link: string}) {
-  return (
-    <Alert type="info" showIcon>
-      {tct(
-        `Currently, Mobile Replay is in beta. To learn more, you can [link:read our docs].`,
-        {
-          link: <ExternalLink href={link} />,
-        }
-      )}
-    </Alert>
-  );
 }

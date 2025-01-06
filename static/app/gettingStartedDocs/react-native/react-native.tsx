@@ -9,7 +9,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -402,9 +401,6 @@ const getInstallConfig = () => [
 ];
 
 const replayOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/react-native/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
