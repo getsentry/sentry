@@ -21,6 +21,7 @@ export type IssueTypeConfig = {
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolve: DisabledWithReasonConfig;
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };

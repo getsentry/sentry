@@ -17,6 +17,7 @@ export const errorConfig: IssueCategoryConfigMapping = {
       deleteAndDiscard: {enabled: true},
       ignore: {enabled: true},
       merge: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
