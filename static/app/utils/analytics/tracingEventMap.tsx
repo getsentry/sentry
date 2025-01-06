@@ -7,6 +7,7 @@ export type TracingEventParameters = {
   'trace.explorer.metadata': {
     columns: string[];
     columns_count: number;
+    has_exceeded_performance_usage_limit: boolean | null;
     query_status: 'success' | 'error';
     result_length: number;
     result_missing_root: number;
