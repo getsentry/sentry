@@ -43,10 +43,13 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "Download the latest plugin sources from the [link:Releases] page and place it in the project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
+              "We recommend downloading the latest plugin sources from the [releasesPage: GitHub Releases page], but we also support [installMethods: alternate installation methods]. To integrate Sentry into your Unreal Engine project using the GitHub package, select the artifact that matches your Unreal Engine version and includes `github` in its name. Place the extracted files in your project's 'Plugins' directory. On the next project launch, UE will prompt to build Sentry module.",
               {
-                link: (
+                releasesPage: (
                   <ExternalLink href="https://github.com/getsentry/sentry-unreal/releases" />
+                ),
+                installMethods: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/#install" />
                 ),
               }
             )}
