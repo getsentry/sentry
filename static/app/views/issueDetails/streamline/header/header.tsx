@@ -15,7 +15,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGlobe, IconQuestion} from 'sentry/icons';
+import {IconGlobe, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -130,12 +130,13 @@ export default function StreamlinedGroupHeader({
               size="xs"
               external
               title={t('Learn more about the new UI')}
-              aria-label={t('Learn more about the new UI')}
               href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
-              icon={<IconQuestion />}
+              icon={<IconInfo />}
               analyticsEventKey="issue_details.streamline_ui_learn_more"
               analyticsEventName="Issue Details: Streamline UI Learn More"
-            />
+            >
+              {t("See What's New")}
+            </LinkButton>
             <NewIssueExperienceButton />
           </ButtonBar>
         </Flex>
