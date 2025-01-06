@@ -102,7 +102,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               >
                 <IconDescription>{t('Screenshot')}</IconDescription>
               </ScreenshotButton>
-              {items.length > 1 && <Divider />}
+              {items.length > 0 && <Divider />}
             </Fragment>
           )}
           {items.map((item, index) => (
