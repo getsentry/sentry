@@ -221,8 +221,14 @@ def track_initial_segment_event(
         )
 
 
+BILLING_SKIP_ORG_IDS = None
+
+
 def should_skip_billing(org_id: int, is_replay_video: bool) -> bool:
-    return is_replay_video and org_id in options.get("replay.replay-video.billing-skip-org-ids")
+    global BILLING_SKIP_ORG_IDS
+    if BILLING_SKIP_ORG_IDS is None:
+        BILLING_SKIP_ORG_IDS = set(options.get("replay.replay-video.billing-skip-org-ids"))
+    return is_replay_video and org_id in BILLING_SKIP_ORG_IDS
 
 
 @metrics.wraps("replays.usecases.ingest.process_headers")
