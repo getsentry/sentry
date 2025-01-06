@@ -37,7 +37,7 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
-  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
+  const mobileBetaOrg = true || organization.features.includes('mobile-replay-beta-orgs');
 
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
@@ -66,19 +66,6 @@ export default function ListContent() {
           <ReplaysFilters />
           <ReplaysSearch />
         </FiltersContainer>
-        {allMobileProj && mobileBetaOrg ? (
-          <StyledAlert icon={<IconInfo />} showIcon>
-            {tct(
-              `[strong:Mobile Replay is now generally available.] Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
-              {
-                strong: <strong />,
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
-                ),
-              }
-            )}
-          </StyledAlert>
-        ) : null}
         <ReplayOnboardingPanel />
       </Fragment>
     );
@@ -110,6 +97,19 @@ export default function ListContent() {
           )}
         </SearchWrapper>
       </FiltersContainer>
+      {allMobileProj && mobileBetaOrg ? (
+        <StyledAlert icon={<IconInfo />} showIcon>
+          {tct(
+            `[strong:Mobile Replay is now generally available.] Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
+            {
+              strong: <strong />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
+              ),
+            }
+          )}
+        </StyledAlert>
+      ) : null}
       {widgetIsOpen && !allMobileProj ? <DeadRageSelectorCards /> : null}
       <ReplaysList />
     </Fragment>
