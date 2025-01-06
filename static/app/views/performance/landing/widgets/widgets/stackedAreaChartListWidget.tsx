@@ -68,7 +68,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {setPageError} = usePageAlert();
   const theme = useTheme();
 
-  const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const colors = [...(theme.charts.getColorPalette(5) ?? [])].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({

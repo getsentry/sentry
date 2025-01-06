@@ -231,7 +231,7 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   const project = projects.find(p => p.id === String(func['project.id']));
 
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
-  const palette = new Array(BARS).fill([CHART_PALETTE[0]![0]!]);
+  const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
   const frame = useMemo(() => {
     return new Frame(

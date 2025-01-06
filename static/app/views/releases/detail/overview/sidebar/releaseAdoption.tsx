@@ -123,7 +123,7 @@ function ReleaseAdoption({
     return series;
   }
 
-  const colors = theme.charts.getColorPalette(2);
+  const colors = theme.charts.getColorPalette(2) ?? [];
 
   const axisLineConfig = {
     scale: true,

@@ -472,9 +472,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
             seriesName?.match(otherRegex)
           );
           const colors = timeseriesResults
-            ? theme.charts.getColorPalette(
-                timeseriesResults.length - (shouldColorOther ? 3 : 2)
-              )
+            ? (theme.charts
+                .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+                ?.slice() as string[])
             : [];
           // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
           if (shouldColorOther) {

@@ -145,7 +145,7 @@ export function UIScreens() {
     yAxes: Y_AXES,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
     releaseEvents,
     topTransactions,
   });
