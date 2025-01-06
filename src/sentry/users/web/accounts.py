@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from functools import partial
 
@@ -388,7 +389,10 @@ def confirm_email(request: HttpRequest, user_id: int, hash: str) -> HttpResponse
             extra={
                 "user_id": user_id,
                 "ip_address": request.META["REMOTE_ADDR"],
-                "email": email.email,
+                "useremail_id": email.id,
+                "email_sha256_hash": hashlib.sha256(
+                    email.email.lower().encode("utf-8")
+                ).hexdigest(),
             },
         )
     messages.add_message(request, level, msg)
