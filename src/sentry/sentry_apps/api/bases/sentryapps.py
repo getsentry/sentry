@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
-from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -52,18 +52,8 @@ def catch_raised_errors(func):
 
 def _handle_sentry_app_exception(exception: Exception):
     # If the error_type attr exists we know the error is one of SentryAppError or SentryAppIntegratorError
-    if hasattr(exception, "error_type"):
-
-        # hacky! Children classes of APIExceotion don't stringify nicely since we just want the message
-        if isinstance(exception.__cause__, APIException):
-            wrapped_error = exception.__cause__
-            wrapped_error_message = str(wrapped_error.detail[0]) or wrapped_error.default_detail
-            response = Response(
-                {"error": wrapped_error_message},
-                status=exception.status_code,
-            )
-        else:
-            response = Response({"error": str(exception)}, status=exception.status_code)
+    if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
+        response = Response({"error": str(exception)}, status=exception.status_code)
         response.exception = True
         return response
 
@@ -149,7 +139,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
-            raise SentryAppError from ValidationError(to_single_line_str(error_message))
+            raise SentryAppError(ValidationError(to_single_line_str(error_message)))
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
@@ -161,7 +151,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
-            raise SentryAppError from ValidationError(to_single_line_str(error_message))
+            raise SentryAppError(ValidationError(to_single_line_str(error_message)))
 
         return context
 
