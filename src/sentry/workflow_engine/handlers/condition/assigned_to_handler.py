@@ -2,9 +2,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.models.group import Group
-from sentry.models.team import Team
+from sentry.models.groupassignee import GroupAssignee
 from sentry.notifications.types import AssigneeTargetType
-from sentry.users.models.user import User
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -14,9 +13,9 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
 class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
-    def get_assignees(group: Group) -> Sequence[Team | User]:
+    def get_assignees(group: Group) -> Sequence[GroupAssignee]:
         cache_key = f"group:{group.id}:assignees"
-        assignee_list: Sequence[Team | User] | None = cache.get(cache_key)
+        assignee_list: Sequence[GroupAssignee] | None = cache.get(cache_key)
         if assignee_list is None:
             assignee_list = list(group.assignee_set.all())
             cache.set(cache_key, assignee_list, 60)
