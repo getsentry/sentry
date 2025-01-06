@@ -21,17 +21,21 @@ import type {StateProps} from '../common/types';
 
 import {DEEMPHASIS_COLOR_NAME, LOADING_PLACEHOLDER} from './settings';
 
-interface Props
+export interface BigNumberWidgetProps
   extends StateProps,
     Omit<WidgetFrameProps, 'children'>,
     Partial<BigNumberWidgetVisualizationProps> {}
 
-export function BigNumberWidget(props: Props) {
+export function BigNumberWidget(props: BigNumberWidgetProps) {
   const {value, previousPeriodValue, field} = props;
 
   if (props.isLoading) {
     return (
-      <WidgetFrame title={props.title} description={props.description}>
+      <WidgetFrame
+        title={props.title}
+        description={props.description}
+        borderless={props.borderless}
+      >
         <LoadingPlaceholder>{LOADING_PLACEHOLDER}</LoadingPlaceholder>
       </WidgetFrame>
     );
@@ -62,6 +66,7 @@ export function BigNumberWidget(props: Props) {
       warnings={props.warnings}
       error={error}
       onRetry={props.onRetry}
+      borderless={props.borderless}
     >
       {defined(value) && (
         <BigNumberResizeWrapper>

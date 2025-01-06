@@ -12,7 +12,6 @@ import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -197,7 +196,7 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const childTransaction = childTransactions[0];
+    const childTransaction = childTransactions[0]!;
 
     const transactionResult: TransactionResult = {
       'project.name': childTransaction.project_slug,
@@ -578,13 +577,6 @@ function SpanDetail(props: Props) {
               ))}
             </tbody>
           </table>
-          {span._metrics_summary && (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          )}
         </SpanDetails>
       </Fragment>
     );

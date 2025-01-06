@@ -81,15 +81,6 @@ describe('GroupEventAttachments', function () {
     );
   });
 
-  it('does not render screenshots tab if not mobile platform', function () {
-    project.platform = 'javascript';
-    render(<GroupEventAttachments project={project} group={group} />, {
-      router: screenshotRouter,
-      organization,
-    });
-    expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
-  });
-
   it('calls opens modal when clicking on panel body', async function () {
     render(<GroupEventAttachments project={project} group={group} />, {
       router: screenshotRouter,

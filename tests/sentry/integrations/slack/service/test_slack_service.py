@@ -9,6 +9,7 @@ from slack_sdk.errors import SlackApiError
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import RuleDataError, SlackService
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -157,8 +158,9 @@ class TestNotifyAllThreadsForActivity(TestCase):
         self.service.notify_all_threads_for_activity(activity=self.activity)
         assert not mock_handle.called
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
-    def test_calls_handle_parent_notification_sdk_client(self, mock_handle):
+    def test_calls_handle_parent_notification(self, mock_handle, mock_record):
         parent_notification = IssueAlertNotificationMessage.from_model(
             instance=self.parent_notification
         )
@@ -169,6 +171,13 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         # check client type
         assert isinstance(mock_handle.call_args.kwargs["client"], SlackSdkClient)
+
+        assert len(mock_record.mock_calls) == 4
+        start_1, end_1, start_2, end_2 = mock_record.mock_calls
+        assert start_1.args[0] == EventLifecycleOutcome.STARTED
+        assert start_2.args[0] == EventLifecycleOutcome.STARTED
+        assert end_1.args[0] == EventLifecycleOutcome.SUCCESS
+        assert end_2.args[0] == EventLifecycleOutcome.SUCCESS
 
 
 class TestHandleParentNotification(TestCase):
@@ -233,8 +242,9 @@ class TestHandleParentNotification(TestCase):
             rule_fire_history=self.slack_rule_fire_history,
         )
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_handles_parent_notification_sdk(self, mock_api_call):
+    def test_handles_parent_notification(self, mock_api_call, mock_record):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -246,8 +256,10 @@ class TestHandleParentNotification(TestCase):
             client=SlackSdkClient(integration_id=self.integration.id),
         )
 
-    def test_handles_parent_notification_sdk_error(
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_handles_parent_notification_error(
         self,
+        mock_record,
     ) -> None:
         with pytest.raises(SlackApiError):
             self.service._handle_parent_notification(
@@ -347,13 +359,13 @@ class TestHandleParentNotification(TestCase):
             message_identifier="123abc",
         )
         parent_notification = IssueAlertNotificationMessage.from_model(parent_notification_message)
-        with pytest.raises(RuleDataError) as err:
+        with pytest.raises(RuleDataError) as excinfo:
             self.service._handle_parent_notification(
                 parent_notification=parent_notification,
                 notification_to_send="",
                 client=mock.MagicMock(),
             )
-            assert (
-                err.value
-                == f"failed to get channel_id for rule {self.rule.id} and rule action {parent_notification.rule_action_uuid}"
-            )
+        assert (
+            str(excinfo.value)
+            == f"failed to get channel_id for rule {self.rule.id} and rule action {parent_notification.rule_action_uuid}"
+        )

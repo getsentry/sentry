@@ -26,8 +26,13 @@ export default function DataSecrecy() {
   const api = useApi();
   const organization = useOrganization();
 
+  // state for the allowSuperuserAccess bit field
   const [allowAccess, setAllowAccess] = useState(organization.allowSuperuserAccess);
-  const [allowDate, setAllowDate] = useState<WaiverData>();
+
+  // state of the data secrecy waiver
+  const [waiver, setWaiver] = useState<WaiverData>();
+
+  // state for the allowDateFormData field
   const [allowDateFormData, setAllowDateFormData] = useState<string>('');
 
   const {data, refetch} = useApiQuery<WaiverData>(
@@ -38,12 +43,9 @@ export default function DataSecrecy() {
     }
   );
 
-  const hasValidTempAccess =
-    allowDate?.accessEnd && moment().toISOString() < allowDate.accessEnd;
-
   useEffect(() => {
     if (data?.accessEnd) {
-      setAllowDate(data);
+      setWaiver(data);
       // slice it to yyyy-MM-ddThh:mm format (be aware of the timezone)
       const localDate = moment(data.accessEnd).local();
       setAllowDateFormData(localDate.format('YYYY-MM-DDTHH:mm'));
@@ -57,10 +59,31 @@ export default function DataSecrecy() {
         data: {allowSuperuserAccess: value},
       });
       setAllowAccess(value);
-      addSuccessMessage(t('Successfully updated access.'));
+
+      // if the user has allowed access, we need to remove the temporary access window
+      // only if there is an existing waiver
+      if (value && waiver) {
+        await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
+          method: 'DELETE',
+        });
+        setAllowDateFormData('');
+        setWaiver(undefined);
+      }
+      addSuccessMessage(
+        value
+          ? waiver
+            ? t(
+                'Successfully removed temporary access window and allowed support access.'
+              )
+            : t('Successfully allowed support access.')
+          : t('Successfully removed support access.')
+      );
     } catch (error) {
       addErrorMessage(t('Unable to save changes.'));
     }
+
+    // refetch to get the latest waiver data
+    refetch();
   };
 
   const updateTempAccessDate = async () => {
@@ -69,7 +92,7 @@ export default function DataSecrecy() {
         await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
           method: 'DELETE',
         });
-        setAllowDate({accessStart: '', accessEnd: ''});
+        setWaiver({accessStart: '', accessEnd: ''});
         addSuccessMessage(t('Successfully removed temporary access window.'));
       } catch (error) {
         addErrorMessage(t('Unable to remove temporary access window.'));
@@ -86,14 +109,11 @@ export default function DataSecrecy() {
     };
 
     try {
-      await await api.requestPromise(
-        `/organizations/${organization.slug}/data-secrecy/`,
-        {
-          method: 'PUT',
-          data: nextData,
-        }
-      );
-      setAllowDate(nextData);
+      await api.requestPromise(`/organizations/${organization.slug}/data-secrecy/`, {
+        method: 'PUT',
+        data: nextData,
+      });
+      setWaiver(nextData);
       addSuccessMessage(t('Successfully updated temporary access window.'));
     } catch (error) {
       addErrorMessage(t('Unable to save changes.'));
@@ -123,10 +143,20 @@ export default function DataSecrecy() {
     help: t(
       'Open a temporary time window for Sentry employees to access your organization'
     ),
-    disabled: allowAccess && !organization.access.includes('org:write'),
-    value: allowAccess ? '' : allowDateFormData,
+    // disable the field if the user has allowed access or if the user does not have org:write access
+    disabled: allowAccess || !organization.access.includes('org:write'),
+    disabledReason: allowAccess
+      ? t('Disable permanent access first to set temporary access')
+      : !organization.access.includes('org:write')
+        ? t('You do not have permission to modify access settings')
+        : undefined,
+    value: allowDateFormData,
     onBlur: updateTempAccessDate,
     onChange: v => {
+      // Don't allow the user to set the date if they have allowed access
+      if (allowAccess) {
+        return;
+      }
       // the picker doesn't like having a datetime string with seconds+ and a timezone,
       // so we remove it -- we will add it back when we save the date
       const formattedDate = v ? moment(v).format('YYYY-MM-DDTHH:mm') : '';
@@ -140,9 +170,9 @@ export default function DataSecrecy() {
       <PanelBody>
         {!allowAccess && (
           <PanelAlert>
-            {hasValidTempAccess
+            {waiver?.accessEnd && moment().isBefore(moment(waiver.accessEnd))
               ? tct(`Sentry employees has access to your organization until [date]`, {
-                  date: formatDateTime(allowDate?.accessEnd as string),
+                  date: formatDateTime(waiver?.accessEnd as string),
                 })
               : t('Sentry employees do not have access to your organization')}
           </PanelAlert>

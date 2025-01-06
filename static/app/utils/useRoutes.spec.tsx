@@ -32,7 +32,7 @@ describe('useRoutes', () => {
         <HomePage />
       </RouteContext.Provider>
     );
-    expect(routes.length).toEqual(1);
+    expect(routes).toHaveLength(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});
   });
 });

@@ -10,6 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
@@ -67,7 +68,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.charts.getColorPalette(3) ?? [];
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
@@ -86,7 +87,7 @@ export default function WebVitalMeters({
           showTooltip={showTooltip}
           score={score}
           meterValue={meterValue}
-          color={colors[index]}
+          color={colors[index]!}
           onClick={onClick}
         />
       );
@@ -129,6 +130,9 @@ export function VitalMeter({
       <NoValue />
     );
 
+  const webVitalKey = `measurements.${webVital}`;
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+
   const headerText = webVitalsConfig[webVital].name;
   const meterBody = (
     <Fragment>
@@ -139,13 +143,7 @@ export function VitalMeter({
             size="xs"
             title={
               <span>
-                {tct(
-                  `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
-                      Scores and values may share some (but not perfect) correlation.`,
-                  {
-                    webVital: webVital.toUpperCase(),
-                  }
-                )}
+                {shortDescription}
                 <br />
                 <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('Find out how performance scores are calculated here.')}
@@ -231,6 +229,7 @@ const Flex = styled('div')<{gap?: number}>`
 `;
 
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
+  background-color: ${p => p.theme.background};
   flex: 1;
   position: relative;
   padding: 0;
@@ -314,4 +313,83 @@ export const Dot = styled('span')<{color: string}>`
   width: ${space(1)};
   height: ${space(1)};
   background-color: ${p => p.color};
+`;
+
+// A compressed version of the VitalMeter component used in the trace context panel
+type VitalPillProps = Omit<
+  VitalMeterProps,
+  'showTooltip' | 'isAggregateMode' | 'onClick' | 'color'
+>;
+export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
+  const status = score !== undefined ? scoreToStatus(score) : 'none';
+  const webVitalExists = score !== undefined;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
+
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
+
+  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`];
+
+  return (
+    <VitalPillContainer>
+      <Tooltip title={tooltipText?.shortDescription}>
+        <VitalPillName status={status}>
+          {`${webVital ? webVital.toUpperCase() : ''} (${STATUS_TEXT[status] ?? 'N/A'})`}
+        </VitalPillName>
+      </Tooltip>
+      <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
+    </VitalPillContainer>
+  );
+}
+
+const VitalPillContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 30px;
+`;
+
+const VitalPillName = styled('div')<{status: string}>`
+  display: flex;
+  align-items: center;
+  position: relative;
+
+  height: 100%;
+  padding: 0 ${space(1)};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
+  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+
+  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
+  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeightBold};
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: ${space(0.25)};
+  text-decoration-thickness: 1px;
+
+  cursor: pointer;
+`;
+
+const VitalPillValue = styled('div')`
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+
+  height: 100%;
+  padding: 0 ${space(0.5)};
+  border: 1px solid ${p => p.theme.gray200};
+  border-left: none;
+  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

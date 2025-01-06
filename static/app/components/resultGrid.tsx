@@ -204,7 +204,7 @@ class ResultGrid extends Component<Props, State> {
     this.setState(
       {
         query: queryParams.query ?? '',
-        sortBy: queryParams.sortBy ?? this.props.defaultSort,
+        sortBy: queryParams.sortBy ?? this.props.defaultSort!,
         filters: {...queryParams},
         pageLinks: null,
         loading: true,
@@ -358,7 +358,7 @@ class ResultGrid extends Component<Props, State> {
             <Filter
               key={filterKey}
               queryKey={filterKey}
-              value={this.state.filters[filterKey]}
+              value={this.state.filters[filterKey]!}
               path={path ?? ''}
               location={location}
               {...(filters?.[filterKey] as FilterConfig)}

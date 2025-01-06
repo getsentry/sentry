@@ -1,5 +1,5 @@
+import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
-import type {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -18,7 +18,7 @@ export function createContinuousProfileFrameIndex(
   let idx = -1;
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!;
     const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
       String(frame.lineno) ?? ''
     }:${frame.instruction_addr ?? ''}`;
@@ -63,7 +63,7 @@ export function createSentrySampleProfileFrameIndex(
   let idx = -1;
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!;
     const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
       String(frame.lineno) ?? ''
     }:${frame.instruction_addr ?? ''}`;
@@ -247,18 +247,18 @@ function indexNodeToParents(
   // Begin in each root node
   for (let i = 0; i < roots.length; i++) {
     // If the root is a leaf node, push it to the leafs array
-    if (!roots[i].children?.length) {
-      leafs.push(roots[i]);
+    if (!roots[i]!.children?.length) {
+      leafs.push(roots[i]!);
     }
 
     // Init the map for the root in case we havent yet
-    if (!map[roots[i].key]) {
-      map[roots[i].key] = [];
+    if (!map[roots[i]!.key]) {
+      map[roots[i]!.key] = [];
     }
 
     // descend down to each child and index them
-    for (let j = 0; j < roots[i].children.length; j++) {
-      indexNode(roots[i].children[j], roots[i]);
+    for (let j = 0; j < roots[i]!.children.length; j++) {
+      indexNode(roots[i]!.children[j]!, roots[i]!);
     }
   }
 }
@@ -304,6 +304,6 @@ export function resolveFlamegraphSamplesProfileIds(
   profileIds: Profiling.ProfileReference[]
 ): Profiling.ProfileReference[][] {
   return samplesProfiles.map(profileIdIndices => {
-    return profileIdIndices.map(i => profileIds[i]);
+    return profileIdIndices.map(i => profileIds[i]!);
   });
 }

@@ -4,7 +4,6 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
@@ -40,7 +39,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_no_last_processed_id(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -58,7 +56,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_post_success_no_last_processed_id_single_org(
         self, mock_backfill_seer_grouping_records
@@ -81,7 +78,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_last_processed_id(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -103,7 +99,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_only_delete(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -127,7 +122,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_enable_ingestion(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -151,7 +145,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_skip_processed_projects(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):
@@ -176,7 +169,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecordsTest(APITestCase):
     @patch(
         "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records.backfill_seer_grouping_records_for_project.delay"
     )
-    @with_feature("projects:similarity-embeddings-backfill")
     def test_post_success_skip_project_ids(
         self, mock_backfill_seer_grouping_records, mock_is_active_superuser
     ):

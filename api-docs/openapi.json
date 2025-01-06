@@ -15,10 +15,14 @@
   },
   "servers": [
     {
-      "url": "https://us.sentry.io/"
-    },
-    {
-      "url": "https://de.sentry.io/"
+      "url": "https://{region}.sentry.io",
+      "variables": {
+        "region": {
+          "default": "us",
+          "description": "The data-storage-location for an organization",
+          "enum": ["us", "de"]
+        }
+      }
     }
   ],
   "tags": [

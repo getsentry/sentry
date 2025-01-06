@@ -246,7 +246,7 @@ interface ExpandableErrorListProps {
 
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
-  const firstError = errorList[0];
+  const firstError = errorList[0]!;
   const {title, desc, type} = firstError;
   const numErrors = errorList.length;
   const errorDataList = errorList.map(error => error.data ?? {});
@@ -291,7 +291,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         });
     });
     return cleaned;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorDataList]);
 
   return (

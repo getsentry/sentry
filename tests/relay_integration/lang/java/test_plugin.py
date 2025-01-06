@@ -474,19 +474,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -548,19 +535,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
@@ -618,19 +592,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
@@ -707,19 +668,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -774,19 +722,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -869,19 +804,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -1092,19 +1014,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -1410,19 +1319,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timedelta, timezone
 
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
@@ -24,13 +25,18 @@ from sentry.uptime.models import (
     ProjectUptimeSubscriptionMode,
     UptimeStatus,
     UptimeSubscription,
+    UptimeSubscriptionRegion,
 )
+from sentry.uptime.subscriptions.regions import get_active_region_configs
 from sentry.uptime.subscriptions.subscriptions import (
     delete_uptime_subscriptions_for_project,
     get_or_create_uptime_subscription,
     remove_uptime_subscription_if_unused,
 )
-from sentry.uptime.subscriptions.tasks import send_uptime_config_deletion
+from sentry.uptime.subscriptions.tasks import (
+    send_uptime_config_deletion,
+    update_remote_uptime_subscription,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -73,15 +79,63 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
+    def check_and_update_regions(self, subscription: UptimeSubscription):
+        """
+        This method will check if regions have been added or removed from our region configuration,
+        and updates regions associated with this uptime monitor to reflect the new state. This is
+        done probabilistically, so that the check is performed roughly once an hour for each uptime
+        monitor.
+        """
+        # Run region checks and updates roughly once an hour
+        chance_to_run = subscription.interval_seconds / timedelta(hours=1).total_seconds()
+        if random.random() >= chance_to_run:
+            return
+
+        subscription_region_slugs = {r.region_slug for r in subscription.regions.all()}
+        active_region_slugs = {c.slug for c in get_active_region_configs()}
+        if subscription_region_slugs == active_region_slugs:
+            # Regions haven't changed, exit early.
+            return
+
+        new_region_slugs = active_region_slugs - subscription_region_slugs
+        removed_region_slugs = subscription_region_slugs - active_region_slugs
+        if new_region_slugs:
+            new_regions = [
+                UptimeSubscriptionRegion(uptime_subscription=subscription, region_slug=slug)
+                for slug in new_region_slugs
+            ]
+            UptimeSubscriptionRegion.objects.bulk_create(new_regions, ignore_conflicts=True)
+
+        if removed_region_slugs:
+            for deleted_region in UptimeSubscriptionRegion.objects.filter(
+                uptime_subscription=subscription, region_slug__in=removed_region_slugs
+            ):
+                if subscription.subscription_id:
+                    # We need to explicitly send deletes here before we remove the region
+                    send_uptime_config_deletion(
+                        deleted_region.region_slug, subscription.subscription_id
+                    )
+                deleted_region.delete()
+
+        # Regardless of whether we added or removed regions, we need to send an updated config to all active
+        # regions for this subscription so that they all get an update set of currently active regions.
+        subscription.update(status=UptimeSubscription.Status.UPDATING.value)
+        update_remote_uptime_subscription.delay(subscription.id)
+
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
         logger.info("process_result", extra=result)
 
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
             # from the checker
-            send_uptime_config_deletion(result["subscription_id"])
+            # TODO: Send to region specifically from this check result once we update the schema
+            send_uptime_config_deletion(
+                get_active_region_configs()[0].slug, result["subscription_id"]
+            )
             metrics.incr("uptime.result_processor.subscription_not_found", sample_rate=1.0)
             return
+
+        self.check_and_update_regions(subscription)
 
         project_subscriptions = list(subscription.projectuptimesubscription_set.all())
 
@@ -333,3 +387,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
     result_processor_cls = UptimeResultProcessor
     topic_for_codec = Topic.UPTIME_RESULTS
+    identifier = "uptime"
+
+    def build_payload_grouping_key(self, result: CheckResult) -> str:
+        return self.result_processor.get_subscription_id(result)

@@ -9,11 +9,15 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import GroupingConfigNotFound
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
-from sentry.seer.similarity.utils import killswitch_enabled, project_is_seer_eligible
+from sentry.seer.similarity.utils import (
+    ReferrerOptions,
+    killswitch_enabled,
+    project_is_seer_eligible,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
-    FeatureError,
+    NODESTORE_RETRY_EXCEPTIONS,
     GroupStacktraceData,
     create_project_cohort,
     delete_seer_grouping_records,
@@ -80,7 +84,7 @@ def backfill_seer_grouping_records_for_project(
     assert current_project_id is not None
 
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
-        current_project_id
+        current_project_id, ReferrerOptions.BACKFILL
     ):
         logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
@@ -109,13 +113,6 @@ def backfill_seer_grouping_records_for_project(
             last_processed_group_id_input,
             last_processed_project_index_input,
         )
-    except FeatureError:
-        logger.info(
-            "backfill_seer_grouping_records.no_feature",
-            extra={"current_project_id": current_project_id},
-        )
-        # TODO: let's just delete this branch since feature is on
-        return
     except Project.DoesNotExist:
         logger.info(
             "backfill_seer_grouping_records.project_does_not_exist",
@@ -226,6 +223,16 @@ def backfill_seer_grouping_records_for_project(
     except EVENT_INFO_EXCEPTIONS:
         metrics.incr("sentry.tasks.backfill_seer_grouping_records.grouping_config_error")
         nodestore_results, group_hashes_dict = GroupStacktraceData(data=[], stacktrace_list=[]), {}
+    except NODESTORE_RETRY_EXCEPTIONS as e:
+        extra = {
+            "organization_id": project.organization.id,
+            "project_id": project.id,
+            "error": e.message,
+        }
+        logger.exception(
+            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception", extra=extra
+        )
+        group_hashes_dict = {}
 
     if not group_hashes_dict:
         call_next_backfill(
@@ -305,7 +312,7 @@ def call_next_backfill(
     only_delete: bool = False,
     last_processed_group_id: int | None = None,
     last_processed_project_id: int | None = None,
-):
+) -> None:
     if last_processed_group_id is not None:
         backfill_seer_grouping_records_for_project.apply_async(
             args=[

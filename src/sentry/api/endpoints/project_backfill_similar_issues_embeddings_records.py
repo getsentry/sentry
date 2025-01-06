@@ -2,7 +2,6 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -22,10 +21,6 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
     }
 
     def post(self, request: Request, project: Project) -> Response:
-        # needs to have the flag to run
-        if not features.has("projects:similarity-embeddings-backfill", project):
-            return Response(status=404)
-
         # needs to either be a superuser or be in single org mode
         if not (is_active_superuser(request) or settings.SENTRY_SINGLE_ORGANIZATION):
             return Response(status=404)

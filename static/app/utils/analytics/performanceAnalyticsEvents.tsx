@@ -38,11 +38,6 @@ export type PerformanceEventParameters = {
     single_project: boolean;
     stats_period: string;
   };
-  'performance_views.landingv2.display.filter_change': {
-    field: string;
-    max_value: number;
-    min_value: number;
-  };
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -249,8 +244,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.change_view': 'Performance Views: Change View',
   'performance_views.landingv2.transactions.sort':
     'Performance Views: Landing Transactions Sorted',
-  'performance_views.landingv2.display.filter_change':
-    'Performance Views: Landing v2 Display Filter Change',
   'performance_views.overview.navigate.summary':
     'Performance Views: Overview view summary',
   'performance_views.overview.cellaction': 'Performance Views: Cell Action Clicked',

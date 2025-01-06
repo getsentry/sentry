@@ -231,7 +231,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         "feedback.create_feedback_issue.entered",
         tags={
             "referrer": source.value,
-            "client_source": get_path(event, "contexts", "feedback", "source"),
         },
     )
 
@@ -258,7 +257,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
                 tags={
                     "is_spam": is_message_spam,
                     "referrer": source.value,
-                    "client_source": event["contexts"]["feedback"].get("source"),
                 },
                 sample_rate=1.0,
             )
@@ -357,7 +355,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         "feedback.create_feedback_issue.produced_occurrence",
         tags={
             "referrer": source.value,
-            "client_source": event["contexts"]["feedback"].get("source"),
         },
         sample_rate=1.0,
     )

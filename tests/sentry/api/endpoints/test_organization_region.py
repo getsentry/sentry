@@ -96,7 +96,7 @@ class OrganizationRegionTest(APITestCase):
             self.org, self.org_owner, ["project:read"]
         )
 
-        response = self.send_get_request_with_auth(self.org.slug, token)
+        response = self.send_get_request_with_auth(self.org.slug, token.token)
 
         assert response.status_code == 200
         us_region = get_region_by_name("us")
@@ -108,7 +108,7 @@ class OrganizationRegionTest(APITestCase):
         response = self.get_response(
             self.org.slug,
             extra_headers={
-                "HTTP_AUTHORIZATION": f"Bearer {token}",
+                "HTTP_AUTHORIZATION": f"Bearer {token.token}",
             },
         )
         assert response.status_code == 403
@@ -119,12 +119,12 @@ class OrganizationRegionTest(APITestCase):
             self.create_organization(owner=other_user), other_user, ["project:read"]
         )
 
-        response = self.send_get_request_with_auth(self.org.slug, token)
+        response = self.send_get_request_with_auth(self.org.slug, token.token)
         assert response.status_code == 403
 
     def test_user_auth_token_for_owner(self):
         user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=["org:read"])
-        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 200
         us_region = get_region_by_name("us")
@@ -138,7 +138,7 @@ class OrganizationRegionTest(APITestCase):
             )
 
         user_auth_token = self.create_user_auth_token(user=org_user, scope_list=["org:read"])
-        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 200
         us_region = get_region_by_name("us")
@@ -148,18 +148,18 @@ class OrganizationRegionTest(APITestCase):
         user_auth_token = self.create_user_auth_token(
             user=self.create_user(), scope_list=["org:read"]
         )
-        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
         assert response.status_code == 403
 
     def test_user_auth_token_with_invalid_scopes(self):
         user_auth_token = self.create_user_auth_token(user=self.org_owner, scope_list=[])
-        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 403
 
         user_auth_token = self.create_user_auth_token(
             user=self.org_owner, scope_list=["event:read"]
         )
-        response = self.send_get_request_with_auth(self.org.slug, user_auth_token)
+        response = self.send_get_request_with_auth(self.org.slug, user_auth_token.token)
 
         assert response.status_code == 403

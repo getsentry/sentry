@@ -4,7 +4,11 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_react_native import get_crash_event
+from fixtures.sdk_crash_detection.crash_event_react_native import (
+    get_crash_event,
+    get_exception,
+    get_frames,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -251,6 +255,88 @@ def test_organization_empty_allowlist_not_detected(
     sdk_crash_detection.detect_sdk_crash(
         event=event,
         configs=[],
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_console_mechanism_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=get_frames(
+                        filename="/Users/user/repos/node_modules/@sentry/core/captureconsole.ts"
+                    ),
+                    mechanism_type="onerror",
+                ),
+                get_exception(
+                    frames=get_frames(
+                        filename="/Users/user/repos/node_modules/@sentry/core/captureconsole.ts"
+                    ),
+                    mechanism_type="console",
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_console_mechanism_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(
+        exception={
+            "values": [
+                get_exception(
+                    frames=get_frames(
+                        filename="/Users/user/repos/node_modules/@sentry/core/captureconsole.ts"
+                    ),
+                    mechanism_type="console",
+                ),
+                get_exception(
+                    frames=get_frames(
+                        filename="/Users/user/repos/node_modules/@sentry/core/captureconsole.ts"
+                    ),
+                    mechanism_type="onerror",
+                ),
+            ]
+        }
+    )
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
+
+
+@decorators
+def test_missing_exception_not_detected(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(exception={"values": []})
+
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0

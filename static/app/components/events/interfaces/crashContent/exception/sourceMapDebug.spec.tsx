@@ -76,7 +76,7 @@ describe('SourceMapDebug', () => {
 
   it('should use unqiue in app frames', () => {
     expect(debugFrames).toHaveLength(1);
-    expect(debugFrames[0].filename).toBe(
+    expect(debugFrames[0]!.filename).toBe(
       './app/views/organizationStats/teamInsights/controls.tsx'
     );
   });

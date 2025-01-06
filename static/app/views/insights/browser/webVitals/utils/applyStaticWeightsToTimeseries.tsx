@@ -1,23 +1,33 @@
-import type {
-  UnweightedWebVitalsScoreBreakdown,
-  WebVitalsScoreBreakdown,
-} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import type {Organization} from 'sentry/types/organization';
+import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 // Returns a weighed score timeseries with each interval calculated from applying hardcoded weights to unweighted scores
 export function applyStaticWeightsToTimeseries(
-  timeseriesData: WebVitalsScoreBreakdown & UnweightedWebVitalsScoreBreakdown
+  organization: Organization,
+  timeseriesData: WebVitalsScoreBreakdown
 ) {
+  const weights = organization.features.includes(
+    'performance-vitals-handle-missing-webvitals'
+  )
+    ? getWeights(
+        Object.keys(timeseriesData)
+          .filter(key => key !== 'total')
+          .filter(key =>
+            timeseriesData[key].some(series => series.value > 0)
+          ) as WebVitals[]
+      )
+    : PERFORMANCE_SCORE_WEIGHTS;
   return {
-    ...Object.keys(PERFORMANCE_SCORE_WEIGHTS).reduce((acc, webVital) => {
-      acc[webVital] = timeseriesData[
-        `unweighted${webVital.charAt(0).toUpperCase()}${webVital.slice(1)}`
-      ].map(({name, value}) => ({
+    ...Object.keys(weights).reduce((acc, webVital) => {
+      acc[webVital] = timeseriesData[webVital].map(({name, value}) => ({
         name,
-        value: value * PERFORMANCE_SCORE_WEIGHTS[webVital] * 0.01,
+        value: value * weights[webVital] * 0.01,
       }));
       return acc;
     }, {}),
     total: timeseriesData.total,
-  } as WebVitalsScoreBreakdown & UnweightedWebVitalsScoreBreakdown;
+  } as WebVitalsScoreBreakdown;
 }

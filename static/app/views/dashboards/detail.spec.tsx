@@ -24,7 +24,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import DashboardDetail, {
   handleUpdateDashboardSplit,
@@ -33,7 +32,10 @@ import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import * as types from 'sentry/views/dashboards/types';
 import {DashboardState} from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
+import useWidgetBuilderState from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 
 describe('Dashboards > Detail', function () {
   const organization = OrganizationFixture({
@@ -42,7 +44,7 @@ describe('Dashboards > Detail', function () {
   const projects = [ProjectFixture()];
 
   describe('prebuilt dashboards', function () {
-    let initialData;
+    let initialData!: ReturnType<typeof initializeOrg>;
 
     beforeEach(function () {
       act(() => ProjectsStore.loadInitialData(projects));
@@ -228,7 +230,10 @@ describe('Dashboards > Detail', function () {
   });
 
   describe('custom dashboards', function () {
-    let initialData, widgets, mockVisit, mockPut;
+    let initialData!: ReturnType<typeof initializeOrg>;
+    let widgets!: ReturnType<typeof WidgetFixture>[];
+    let mockVisit!: jest.Mock;
+    let mockPut!: jest.Mock;
 
     beforeEach(function () {
       window.confirm = jest.fn();
@@ -392,6 +397,10 @@ describe('Dashboards > Detail', function () {
         url: '/organizations/org-slug/metrics/meta/',
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/measurements-meta/',
+        body: [],
+      });
     });
 
     afterEach(function () {
@@ -403,7 +412,7 @@ describe('Dashboards > Detail', function () {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
         <OrganizationContext.Provider value={initialData.organization}>
@@ -427,10 +436,10 @@ describe('Dashboards > Detail', function () {
 
       // Remove the second and third widgets
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
       await userEvent.click(
-        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]
+        (await screen.findAllByRole('button', {name: 'Delete Widget'}))[1]!
       );
 
       // Save changes
@@ -542,7 +551,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors',
@@ -580,7 +589,7 @@ describe('Dashboards > Detail', function () {
         {router: initialData.router}
       );
 
-      await userEvent.click(screen.getAllByText('Add Widget')[0]);
+      await userEvent.click(screen.getAllByText('Add Widget')[0]!);
       const menuOptions = await screen.findAllByTestId('menu-list-item-label');
       expect(menuOptions.map(e => e.textContent)).toEqual([
         'Errors and Transactions',
@@ -1217,12 +1226,12 @@ describe('Dashboards > Detail', function () {
 
       await screen.findByText('7D');
       await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getAllByText('Clear')[0]);
+      await userEvent.click(screen.getAllByText('Clear')[0]!);
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: '',
@@ -1330,7 +1339,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       screen.getByText('All Releases');
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: undefined,
@@ -1540,7 +1549,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(screen.getByText('Cancel'));
 
       // release isn't used in the redirect
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(testData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {
             end: undefined,
@@ -1595,7 +1604,7 @@ describe('Dashboards > Detail', function () {
       await userEvent.click(document.body);
 
       await waitFor(() => {
-        expect(browserHistory.push).toHaveBeenCalledWith(
+        expect(testData.router.push).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               release: ['sentry-android-shop@1.2.0'],
@@ -1656,7 +1665,7 @@ describe('Dashboards > Detail', function () {
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2], 's');
+      await userEvent.type(screen.getAllByPlaceholderText('Search\u2026')[2]!, 's');
       await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
 
       // Validate that after search is cleared, search result still appears
@@ -1673,8 +1682,8 @@ describe('Dashboards > Detail', function () {
         {
           router: initialData.router,
           organization: {
-            features: ['dashboards-edit-access'],
             ...initialData.organization,
+            features: ['dashboards-edit-access'],
           },
         }
       );
@@ -1729,15 +1738,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions for dashboard', async function () {
@@ -1797,15 +1806,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
+          }),
+        })
+      );
     });
 
     it('creator can update permissions with teams for dashboard', async function () {
@@ -1881,15 +1890,15 @@ describe('Dashboards > Detail', function () {
 
       await waitFor(() => {
         expect(mockPUT).toHaveBeenCalledTimes(1);
-        expect(mockPUT).toHaveBeenCalledWith(
-          '/organizations/org-slug/dashboards/1/',
-          expect.objectContaining({
-            data: expect.objectContaining({
-              permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
-            }),
-          })
-        );
       });
+      expect(mockPUT).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
+          }),
+        })
+      );
     });
 
     it('disables edit dashboard and add widget button if user cannot edit dashboard', async function () {
@@ -2114,7 +2123,7 @@ describe('Dashboards > Detail', function () {
     });
 
     describe('widget builder redesign', function () {
-      let mockUpdateDashboard;
+      let mockUpdateDashboard!: jest.SpyInstance;
       beforeEach(function () {
         initialData = initializeOrg({
           organization: OrganizationFixture({
@@ -2135,6 +2144,11 @@ describe('Dashboards > Detail', function () {
           .mockResolvedValue({
             ...DashboardFixture([WidgetFixture({id: '1', title: 'Custom Widget'})]),
           });
+
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {},
+        });
       });
 
       afterEach(() => {
@@ -2181,6 +2195,12 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Updated Widget',
+          },
+        });
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2194,7 +2214,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 
@@ -2202,9 +2222,6 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Edit Widget'}));
 
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Updated Widget');
 
         await userEvent.click(screen.getByText('Update Widget'));
 
@@ -2221,6 +2238,12 @@ describe('Dashboards > Detail', function () {
         const mockDashboard = DashboardFixture([], {
           id: '1',
           title: 'Custom Errors',
+        });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Totally new widget',
+          },
         });
         render(
           <DashboardDetail
@@ -2241,9 +2264,6 @@ describe('Dashboards > Detail', function () {
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
 
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
-
         await userEvent.click(screen.getByText('Add Widget'));
 
         // The widget builder is closed after the widget is updated
@@ -2261,6 +2281,12 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Updated Widget Title',
+          },
+        });
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2274,7 +2300,7 @@ describe('Dashboards > Detail', function () {
           {
             organization: initialData.organization,
             // Mock the widgetIndex param so it's available when the widget builder opens
-            router: {...initialData.router, params: {widgetIndex: 0}},
+            router: {...initialData.router, params: {widgetIndex: '0'}},
           }
         );
 
@@ -2285,12 +2311,6 @@ describe('Dashboards > Detail', function () {
         );
 
         expect(await screen.findByText('Edit Widget')).toBeInTheDocument();
-
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(
-          screen.getByLabelText('Widget Name'),
-          'Updated Widget Title'
-        );
 
         await userEvent.click(screen.getByText('Update Widget'));
 
@@ -2314,6 +2334,12 @@ describe('Dashboards > Detail', function () {
           id: '1',
           title: 'Custom Errors',
         });
+        jest.mocked(useWidgetBuilderState).mockReturnValue({
+          dispatch: jest.fn(),
+          state: {
+            title: 'Totally new widget',
+          },
+        });
         render(
           <DashboardDetail
             {...RouteComponentPropsFixture()}
@@ -2332,9 +2358,6 @@ describe('Dashboards > Detail', function () {
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
 
         expect(await screen.findByText('Create Custom Widget')).toBeInTheDocument();
-
-        await userEvent.clear(screen.getByLabelText('Widget Name'));
-        await userEvent.type(screen.getByLabelText('Widget Name'), 'Totally new widget');
 
         await userEvent.click(
           await within(screen.getByTestId('widget-slideout')).findByText('Add Widget')

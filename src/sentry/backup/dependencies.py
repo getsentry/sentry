@@ -95,28 +95,23 @@ class NormalizedModelName:
 #
 # TODO(getsentry/team-ospo#190): We should find a better way to store this information than a magic
 # list in this file. We should probably make a field (or method?) on `BaseModel` instead.
-@unique
-class RelocationRootModels(Enum):
-    """
-    Record the "root" models for a given `RelocationScope`.
-    """
-
-    Excluded: list[NormalizedModelName] = []
-    User = [NormalizedModelName("sentry.user")]
-    Organization = [NormalizedModelName("sentry.organization")]
-    Config = [
-        NormalizedModelName("sentry.controloption"),
-        NormalizedModelName("sentry.option"),
-        NormalizedModelName("sentry.relay"),
-        NormalizedModelName("sentry.relayusage"),
-        NormalizedModelName("sentry.userrole"),
-    ]
+_ROOT_MODELS: tuple[NormalizedModelName, ...] = (
+    # RelocationScope.User
+    NormalizedModelName("sentry.user"),
+    # RelocationScope.Organization
+    NormalizedModelName("sentry.organization"),
+    # RelocationScope.Config
+    NormalizedModelName("sentry.controloption"),
+    NormalizedModelName("sentry.option"),
+    NormalizedModelName("sentry.relay"),
+    NormalizedModelName("sentry.relayusage"),
+    NormalizedModelName("sentry.userrole"),
+    # RelocationScope.Global
     # TODO(getsentry/team-ospo#188): Split out extension scope root models from this list.
-    Global = [
-        NormalizedModelName("sentry.apiapplication"),
-        NormalizedModelName("sentry.integration"),
-        NormalizedModelName("sentry.sentryapp"),
-    ]
+    NormalizedModelName("sentry.apiapplication"),
+    NormalizedModelName("sentry.integration"),
+    NormalizedModelName("sentry.sentryapp"),
+)
 
 
 @unique
@@ -433,6 +428,10 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
+            # exclude proxy models since the backup test is already done on a parent if needed
+            if model._meta.proxy:
+                continue
+
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
@@ -538,10 +537,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             )
 
     # Get a flat list of "root" models, then mark all of them as non-dangling.
-    relocation_root_models: list[NormalizedModelName] = []
-    for root_models in RelocationRootModels:
-        relocation_root_models.extend(root_models.value)
-    for model_name in relocation_root_models:
+    for model_name in _ROOT_MODELS:
         model_dependencies_dict[model_name].dangling = False
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on

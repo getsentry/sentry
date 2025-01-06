@@ -313,7 +313,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId('span-evidence-key-value-list.starting-span')
       ).toHaveTextContent('SELECT * FROM USERS LIMIT 100');
 
-      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'}).length).toBe(
+      expect(screen.queryAllByRole('cell', {name: 'Parallelizable Spans'})).toHaveLength(
         1
       );
       const parallelizableSpanKeyValue = screen.getByTestId(
@@ -457,7 +457,7 @@ describe('SpanEvidenceKeyValueList', () => {
         screen.getByTestId(/span-evidence-key-value-list.repeating-spans/)
       ).toHaveTextContent('/book/[Parameters]');
 
-      expect(screen.queryByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
+      expect(screen.getByRole('cell', {name: 'Parameters'})).toBeInTheDocument();
 
       const parametersKeyValue = screen.getByTestId(
         'span-evidence-key-value-list.parameters'
@@ -476,7 +476,7 @@ describe('SpanEvidenceKeyValueList', () => {
               url: 'http://service.io?id=2543',
             },
           })?.toString()
-        ).toEqual('http://service.io/?id=2543');
+        ).toBe('http://service.io/?id=2543');
       });
 
       it('Pulls out a relative URL if a base is provided', () => {
@@ -490,7 +490,7 @@ describe('SpanEvidenceKeyValueList', () => {
             },
             'http://service.io'
           )?.toString()
-        ).toEqual('http://service.io/item');
+        ).toBe('http://service.io/item');
       });
 
       it('Fetches the query string from the span data if available', () => {
@@ -503,7 +503,7 @@ describe('SpanEvidenceKeyValueList', () => {
               'http.query': 'id=153',
             },
           })?.toString()
-        ).toEqual('http://service.io/item?id=153');
+        ).toBe('http://service.io/item?id=153');
       });
 
       it('Falls back to span description if URL is faulty', () => {
@@ -515,7 +515,7 @@ describe('SpanEvidenceKeyValueList', () => {
               url: '/item',
             },
           })?.toString()
-        ).toEqual('http://service.io/item');
+        ).toBe('http://service.io/item');
       });
     });
 

@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.logging.handlers import JSONRenderer, StructLogHandler
+from sentry.logging.handlers import GKEStructLogHandler, JSONRenderer, StructLogHandler
 
 
 @pytest.fixture
@@ -119,3 +119,15 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu):
 def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu):
     logger = logging.getLogger(__name__)
     logger.log(logging.INFO, snafu)
+
+
+def test_gke_emit() -> None:
+    logger = mock.Mock()
+    GKEStructLogHandler().emit(make_logrecord(), logger=logger)
+    logger.log.assert_called_once_with(
+        name="name",
+        level=logging.INFO,
+        severity="INFO",
+        event="msg",
+        **{"logging.googleapis.com/labels": {"name": "name"}},
+    )

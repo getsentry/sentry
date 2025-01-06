@@ -36,7 +36,7 @@ type FieldOptions = Record<string, FieldValueOption>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
-type ParameterDescription =
+export type ParameterDescription =
   | {
       dataType: ColumnType;
       kind: 'value';
@@ -739,7 +739,7 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends Component<BufferedInputProps, InputState> {
+export class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
     this.input = createRef();

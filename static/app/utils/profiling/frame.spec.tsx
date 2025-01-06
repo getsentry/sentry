@@ -61,7 +61,7 @@ describe('Frame', () => {
           },
           'node'
         ).module
-      ).toBe(undefined);
+      ).toBeUndefined();
     });
     it.each([
       ['node:internal/crypto/hash', 'node:internal/crypto'],

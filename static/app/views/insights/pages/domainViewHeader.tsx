@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
+import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,7 +19,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   OVERVIEW_PAGE_TITLE,
 } from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled} from 'sentry/views/insights/pages/utils';
+import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -32,12 +32,6 @@ export type Props = {
   additonalHeaderActions?: React.ReactNode;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
-};
-
-type Tab = {
-  key: string;
-  label: React.ReactNode;
-  to: LocationDescriptor;
 };
 
 export function DomainViewHeader({
@@ -76,28 +70,23 @@ export function DomainViewHeader({
     ...additionalBreadCrumbs,
   ];
 
-  const showModuleTabs = organization.features.includes('insights-entry-points');
-
   const tabValue =
     hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
 
-  const tabList: Tab[] = [
+  const tabList: TabListItemProps[] = [
     {
       key: OVERVIEW_PAGE_TITLE,
-      label: OVERVIEW_PAGE_TITLE,
+      children: OVERVIEW_PAGE_TITLE,
       to: domainBaseUrl,
     },
-  ];
-
-  if (showModuleTabs) {
-    tabList.push(
-      ...modules.map(moduleName => ({
+    ...modules
+      .filter(moduleName => isModuleVisible(moduleName, organization))
+      .map(moduleName => ({
         key: moduleName,
-        label: <TabLabel moduleName={moduleName} />,
+        children: <TabLabel moduleName={moduleName} />,
         to: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
-      }))
-    );
-  }
+      })),
+  ];
 
   return (
     <Fragment>
@@ -117,9 +106,7 @@ export function DomainViewHeader({
           {!hideDefaultTabs && (
             <TabList hideBorder>
               {tabList.map(tab => (
-                <TabList.Item key={tab.key} to={tab.to}>
-                  {tab.label}
-                </TabList.Item>
+                <TabList.Item {...tab} key={tab.key} />
               ))}
             </TabList>
           )}

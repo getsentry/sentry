@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -20,6 +20,7 @@ const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
 function ReplaysList() {
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const query = useLocationQuery({
     fields: {
@@ -51,7 +52,7 @@ function ReplaysList() {
     selection: {projects},
   } = usePageFilters();
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
@@ -114,7 +115,7 @@ function ReplaysList() {
             organization,
             direction: cursor?.endsWith(':1') ? 'prev' : 'next',
           });
-          browserHistory.push({
+          navigate({
             pathname: path,
             query: {...searchQuery, cursor},
           });

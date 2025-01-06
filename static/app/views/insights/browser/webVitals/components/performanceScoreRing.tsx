@@ -9,8 +9,8 @@ type TextProps = {
 };
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
-  backgroundColors: string[];
-  segmentColors: string[];
+  backgroundColors: readonly string[];
+  segmentColors: readonly string[];
   text: React.ReactNode;
   values: {key: string; maxValue: number; value: number; onHoverActions?: () => void}[];
   /**
@@ -76,14 +76,17 @@ function PerformanceScoreRing({
       const ringSegmentPadding = values.length > 1 ? PADDING : 0;
       // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
       // This only mostly works because we expect values to be somewhere between 0 and 100.
-      const maxOffset =
-        (1 - Math.max(maxValue - ringSegmentPadding, 0) / sumMaxValues) * circumference;
-      const progressOffset =
-        (1 - Math.max(boundedValue - ringSegmentPadding, 0) / sumMaxValues) *
-        circumference;
+      const maxOffset = sumMaxValues
+        ? (1 - Math.max(maxValue - ringSegmentPadding, 0) / sumMaxValues) * circumference
+        : 0;
+      const progressOffset = sumMaxValues
+        ? (1 - Math.max(boundedValue - ringSegmentPadding, 0) / sumMaxValues) *
+          circumference
+        : 0;
       const rotate = currentRotate;
-      currentRotate += (360 * maxValue) / sumMaxValues;
-
+      if (sumMaxValues) {
+        currentRotate += (360 * maxValue) / sumMaxValues;
+      }
       const cx = radius + barWidth / 2;
 
       return [
@@ -95,7 +98,7 @@ function PerformanceScoreRing({
           circumference={circumference}
           cx={cx}
           cy={cx}
-          color={backgroundColors[index]}
+          color={backgroundColors[index]!}
           rotate={rotate}
           onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
@@ -109,7 +112,7 @@ function PerformanceScoreRing({
           barWidth={barWidth}
           cx={cx}
           cy={cx}
-          color={segmentColors[index]}
+          color={segmentColors[index]!}
           rotate={rotate}
           onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}

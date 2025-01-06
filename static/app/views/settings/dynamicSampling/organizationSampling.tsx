@@ -126,6 +126,7 @@ export function OrganizationSampling() {
           <ProjectsPreviewTable
             sampleCounts={sampleCountsQuery.data}
             isLoading={sampleCountsQuery.isPending}
+            period={period}
           />
         )}
         <SubTextParagraph>

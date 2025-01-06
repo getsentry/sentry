@@ -33,7 +33,7 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
   const location = useLocation();
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const eventQuery = useEventQuery({group});
+  const eventQuery = useEventQuery({groupId: group.id});
   const eventView = useIssueDetailsEventView({group});
   const activeAttachmentsTab =
     (location.query.attachmentFilter as EventAttachmentFilter | undefined) ??
@@ -128,10 +128,10 @@ function GroupEventAttachments({project, group}: GroupEventAttachmentsProps) {
             <IconFilter size="xs" />
             {t('Results are filtered by the selections above.')}
           </FilterMessage>
-          <GroupEventAttachmentsFilter project={project} />
+          <GroupEventAttachmentsFilter />
         </Flex>
       ) : (
-        <GroupEventAttachmentsFilter project={project} />
+        <GroupEventAttachmentsFilter />
       )}
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
         ? renderScreenshotGallery()

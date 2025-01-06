@@ -12,8 +12,8 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -21,6 +21,7 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnOrder,
 } from 'sentry/components/gridEditable';
+import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
@@ -28,6 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 import type {
@@ -56,10 +58,17 @@ enum ResponseKeys {
   FAVORITE = 'isFavorited',
 }
 
+const SortKeys = {
+  title: {asc: 'title', desc: '-title'},
+  dateCreated: {asc: 'dateCreated', desc: '-dateCreated'},
+  createdBy: {asc: 'mydashboards', desc: 'mydashboards'},
+};
+
 type FavoriteButtonProps = {
   api: Client;
   dashboardId: string;
   isFavorited: boolean;
+  onDashboardsChange: () => void;
   organization: Organization;
 };
 
@@ -68,38 +77,33 @@ function FavoriteButton({
   api,
   organization,
   dashboardId,
+  onDashboardsChange,
 }: FavoriteButtonProps) {
   const [favorited, setFavorited] = useState(isFavorited);
   return (
-    <Feature features="dashboards-favourite">
-      <StyledFavoriteButton
-        aria-label={t('Favorite Button')}
-        size="zero"
-        borderless
-        icon={
-          <IconStar
-            color={favorited ? 'yellow300' : 'gray300'}
-            isSolid={favorited}
-            aria-label={favorited ? t('UnFavorite') : t('Favorite')}
-            size="sm"
-          />
+    <Button
+      aria-label={t('Favorite Button')}
+      size="zero"
+      borderless
+      icon={
+        <IconStar
+          color={favorited ? 'yellow300' : 'gray300'}
+          isSolid={favorited}
+          aria-label={favorited ? t('UnFavorite') : t('Favorite')}
+          size="sm"
+        />
+      }
+      onClick={async () => {
+        try {
+          setFavorited(!favorited);
+          await updateDashboardFavorite(api, organization.slug, dashboardId, !favorited);
+          onDashboardsChange();
+        } catch (error) {
+          // If the api call fails, revert the state
+          setFavorited(favorited);
         }
-        onClick={async () => {
-          try {
-            setFavorited(!favorited);
-            await updateDashboardFavorite(
-              api,
-              organization.slug,
-              dashboardId,
-              !favorited
-            );
-          } catch (error) {
-            // If the api call fails, revert the state
-            setFavorited(favorited);
-          }
-        }}
-      />
-    </Feature>
+      }}
+    />
   );
 }
 
@@ -112,9 +116,6 @@ function DashboardTable({
   isLoading,
 }: Props) {
   const columnOrder: GridColumnOrder<ResponseKeys>[] = [
-    ...(organization.features.includes('dashboards-favourite')
-      ? [{key: ResponseKeys.FAVORITE, name: t('Favorite'), width: 50}]
-      : []),
     {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
     {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
@@ -166,6 +167,41 @@ function DashboardTable({
       : {}),
   };
 
+  function renderHeadCell(column: GridColumnOrder<string>) {
+    if (column.key in SortKeys) {
+      const urlSort = decodeScalar(location.query.sort, 'mydashboards');
+      const isCurrentSort =
+        urlSort === SortKeys[column.key].asc || urlSort === SortKeys[column.key].desc;
+      const sortDirection =
+        !isCurrentSort || column.key === 'createdBy'
+          ? undefined
+          : urlSort.startsWith('-')
+            ? 'desc'
+            : 'asc';
+
+      return (
+        <SortLink
+          align={'left'}
+          title={column.name}
+          direction={sortDirection}
+          canSort
+          generateSortLink={() => {
+            const newSort = isCurrentSort
+              ? sortDirection === 'asc'
+                ? SortKeys[column.key].desc
+                : SortKeys[column.key].asc
+              : SortKeys[column.key].asc;
+            return {
+              ...location,
+              query: {...location.query, sort: newSort},
+            };
+          }}
+        />
+      );
+    }
+    return column.name;
+  }
+
   const renderBodyCell = (
     column: GridColumnOrder<string>,
     dataRow: DashboardListItem
@@ -177,6 +213,8 @@ function DashboardTable({
           api={api}
           organization={organization}
           dashboardId={dataRow.id}
+          onDashboardsChange={onDashboardsChange}
+          key={dataRow.id}
         />
       );
     }
@@ -200,7 +238,9 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.OWNER) {
       return dataRow[ResponseKeys.OWNER] ? (
-        <ActivityAvatar type="user" user={dataRow[ResponseKeys.OWNER]} size={26} />
+        <BodyCellContainer>
+          <UserAvatar hasTooltip user={dataRow[ResponseKeys.OWNER]} size={26} />
+        </BodyCellContainer>
       ) : (
         <ActivityAvatar type="system" size={26} />
       );
@@ -235,7 +275,7 @@ function DashboardTable({
 
     if (column.key === ResponseKeys.CREATED) {
       return (
-        <DateActionsContainer>
+        <BodyCellContainer>
           <DateSelected>
             {dataRow[ResponseKeys.CREATED] ? (
               <DateStatus>
@@ -276,7 +316,7 @@ function DashboardTable({
               disabled={dashboards && dashboards.length <= 1}
             />
           </ActionsIconWrapper>
-        </DateActionsContainer>
+        </BodyCellContainer>
       );
     }
 
@@ -292,20 +332,34 @@ function DashboardTable({
       columnSortBy={[]}
       grid={{
         renderBodyCell,
-        renderHeadCell: column => {
-          if (column.key === ResponseKeys.FAVORITE) {
-            return (
-              <Feature features="dashboards-favourite">
-                <StyledIconStar
-                  color="yellow300"
-                  isSolid
-                  aria-label={t('Favorite Column')}
-                />
-              </Feature>
-            );
+        renderHeadCell: column => renderHeadCell(column),
+        // favorite column
+        renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
+          if (!organization.features.includes('dashboards-favourite')) {
+            return [];
           }
-          return column.name;
+          const favoriteColumn = {
+            key: ResponseKeys.FAVORITE,
+            name: t('Favorite'),
+          };
+          if (isHeader) {
+            return [
+              <StyledIconStar
+                color="yellow300"
+                isSolid
+                aria-label={t('Favorite Column')}
+                key="favorite-header"
+              />,
+            ];
+          }
+          if (!dataRow) {
+            return [];
+          }
+          return [renderBodyCell(favoriteColumn, dataRow) as any];
         },
+        prependColumnWidths: organization.features.includes('dashboards-favourite')
+          ? ['max-content']
+          : [],
       }}
       isLoading={isLoading}
       emptyMessage={
@@ -332,7 +386,7 @@ const DateStatus = styled('span')`
   padding-left: ${space(1)};
 `;
 
-const DateActionsContainer = styled('div')`
+const BodyCellContainer = styled('div')`
   display: flex;
   gap: ${space(4)};
   justify-content: space-between;
@@ -348,12 +402,6 @@ const StyledButton = styled(Button)`
   box-shadow: none;
 `;
 
-const StyledFavoriteButton = styled(Button)`
-  padding: 0;
-  width: 16px;
-  border: 3px solid transparent;
-`;
-
 const StyledIconStar = styled(IconStar)`
-  margin-left: ${space(0.5)};
+  margin-left: ${space(0.25)};
 `;

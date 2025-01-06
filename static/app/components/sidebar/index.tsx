@@ -34,6 +34,7 @@ import {
   IconSiren,
   IconStats,
   IconSupport,
+  IconTelescope,
   IconTimer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -252,7 +253,7 @@ function Sidebar() {
     />
   );
 
-  const discover2 = hasOrganization && (
+  const discover = hasOrganization && (
     <Feature
       hookName="feature-disabled:discover2-sidebar-item"
       features="discover-basic"
@@ -260,7 +261,8 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={<SubitemDot collapsed />}
+        // In errors-only deploys, Discover isn't a nested link, so it needs a proper icon
+        icon={isSelfHostedErrorsOnly ? <IconTelescope /> : <SubitemDot collapsed />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -502,7 +504,7 @@ function Sidebar() {
       {metrics}
       {profiling}
       {replays}
-      {discover2}
+      {discover}
     </SidebarAccordion>
   );
 
@@ -565,7 +567,7 @@ function Sidebar() {
                   <Fragment>
                     <SidebarSection hasNewNav={hasNewNav}>
                       {alerts}
-                      {discover2}
+                      {discover}
                       {dashboards}
                       {releases}
                       {userFeedback}
@@ -640,9 +642,9 @@ function Sidebar() {
               )}
             </SidebarSection>
 
-            <SidebarSection hasNewNav={hasNewNav}>
+            <SidebarSection hasNewNav={hasNewNav} centeredItems={horizontal}>
               {HookStore.get('sidebar:bottom-items').length > 0 &&
-                HookStore.get('sidebar:bottom-items')[0]({
+                HookStore.get('sidebar:bottom-items')[0]!({
                   orientation,
                   collapsed,
                   hasPanel,
@@ -803,6 +805,7 @@ const SubitemDot = styled('div')<{collapsed: boolean}>`
 `;
 
 const SidebarSection = styled(SidebarSectionGroup)<{
+  centeredItems?: boolean;
   hasNewNav?: boolean;
   noMargin?: boolean;
   noPadding?: boolean;
@@ -821,6 +824,12 @@ const SidebarSection = styled(SidebarSectionGroup)<{
         margin: 0;
         padding: 0;
       }
+    `}
+
+  ${p =>
+    p.centeredItems &&
+    css`
+      align-items: center;
     `}
 
   &:empty {

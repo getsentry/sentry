@@ -83,7 +83,7 @@ export function useTraceTree({
     if (trace.data && meta.data) {
       const newTree = TraceTree.FromTrace(trace.data, {
         meta: meta.data,
-        replay: replay,
+        replay,
       });
 
       setTree(newTree);

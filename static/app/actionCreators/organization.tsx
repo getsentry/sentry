@@ -15,9 +15,13 @@ import TeamStore from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import FeatureFlagOverrides from 'sentry/utils/featureFlagOverrides';
-import FeatureObserver from 'sentry/utils/featureObserver';
+import {
+  addOrganizationFeaturesHandler,
+  buildSentryFeaturesHandler,
+} from 'sentry/utils/featureFlags';
 import {getPreloadedDataPromise} from 'sentry/utils/getPreloadedData';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 async function fetchOrg(
   api: Client,
@@ -42,8 +46,9 @@ async function fetchOrg(
   }
 
   FeatureFlagOverrides.singleton().loadOrg(org);
-  FeatureObserver.singleton({}).observeOrganizationFlags({
+  addOrganizationFeaturesHandler({
     organization: org,
+    handler: buildSentryFeaturesHandler('feature.organizations:'),
   });
 
   OrganizationStore.onUpdate(org, {replace: true});
@@ -139,7 +144,7 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const getErrorMessage = err => {
+  const getErrorMessage = (err: RequestError) => {
     if (typeof err.responseJSON?.detail === 'string') {
       return err.responseJSON?.detail;
     }

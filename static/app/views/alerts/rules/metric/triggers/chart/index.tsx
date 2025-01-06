@@ -138,7 +138,28 @@ export const AVAILABLE_TIME_PERIODS: Record<TimeWindow, readonly TimePeriod[]> =
   [TimeWindow.ONE_DAY]: [TimePeriod.FOURTEEN_DAYS],
 };
 
-const TIME_WINDOW_TO_SESSION_INTERVAL = {
+const MOST_EAP_TIME_PERIOD = [
+  TimePeriod.ONE_DAY,
+  TimePeriod.THREE_DAYS,
+  TimePeriod.SEVEN_DAYS,
+];
+
+const EAP_AVAILABLE_TIME_PERIODS = {
+  [TimeWindow.ONE_MINUTE]: [], // One minute intervals are not allowed on EAP Alerts
+  [TimeWindow.FIVE_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.TEN_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.FIFTEEN_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.THIRTY_MINUTES]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.ONE_HOUR]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.TWO_HOURS]: MOST_EAP_TIME_PERIOD,
+  [TimeWindow.FOUR_HOURS]: [TimePeriod.SEVEN_DAYS],
+  [TimeWindow.ONE_DAY]: [TimePeriod.SEVEN_DAYS],
+};
+
+export const TIME_WINDOW_TO_INTERVAL = {
+  [TimeWindow.FIVE_MINUTES]: '5m',
+  [TimeWindow.TEN_MINUTES]: '10m',
+  [TimeWindow.FIFTEEN_MINUTES]: '15m',
   [TimeWindow.THIRTY_MINUTES]: '30m',
   [TimeWindow.ONE_HOUR]: '1h',
   [TimeWindow.TWO_HOURS]: '2h',
@@ -244,6 +265,10 @@ class TriggersChart extends PureComponent<Props, State> {
         ...AVAILABLE_TIME_PERIODS,
         [TimeWindow.THIRTY_MINUTES]: [TimePeriod.SIX_HOURS],
       };
+    }
+
+    if (this.props.dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+      return EAP_AVAILABLE_TIME_PERIODS;
     }
 
     return AVAILABLE_TIME_PERIODS;
@@ -361,7 +386,7 @@ class TriggersChart extends PureComponent<Props, State> {
 
     const showExtrapolatedChartData =
       shouldShowOnDemandMetricAlertUI(organization) &&
-      seriesAdditionalInfo?.[timeseriesData[0]?.seriesName]?.isExtrapolatedData;
+      seriesAdditionalInfo?.[timeseriesData[0]!?.seriesName]?.isExtrapolatedData;
 
     const totalCountLabel = isSessionAggregate(aggregate)
       ? SESSION_AGGREGATE_TO_HEADING[aggregate]
@@ -426,7 +451,6 @@ class TriggersChart extends PureComponent<Props, State> {
                 borderless: true,
                 prefix: t('Display'),
               }}
-              disabled={isLoading || isReloading}
             />
           </InlineContainer>
         </ChartControls>
@@ -457,7 +481,7 @@ class TriggersChart extends PureComponent<Props, State> {
       onConfidenceDataLoaded,
     } = this.props;
 
-    const period = this.getStatsPeriod();
+    const period = this.getStatsPeriod()!;
     const renderComparisonStats = Boolean(
       organization.features.includes('change-alerts') && comparisonDelta
     );
@@ -504,8 +528,8 @@ class TriggersChart extends PureComponent<Props, State> {
               api={this.historicalAPI}
               period={
                 timeWindow === 5
-                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                  : HISTORICAL_TIME_PERIOD_MAP[period]
+                  ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                  : HISTORICAL_TIME_PERIOD_MAP[period]!
               }
               dataLoadedCallback={onHistoricalDataLoaded}
             />
@@ -551,13 +575,13 @@ class TriggersChart extends PureComponent<Props, State> {
 
     if (isSessionAggregate(aggregate)) {
       const baseProps: ComponentProps<typeof SessionsRequest> = {
-        api: api,
-        organization: organization,
+        api,
+        organization,
         project: projects.map(({id}) => Number(id)),
         environment: environment ? [environment] : undefined,
         statsPeriod: period,
-        query: query,
-        interval: TIME_WINDOW_TO_SESSION_INTERVAL[timeWindow],
+        query,
+        interval: TIME_WINDOW_TO_INTERVAL[timeWindow],
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         groupBy: ['session.status'],
         children: noop,
@@ -628,8 +652,8 @@ class TriggersChart extends PureComponent<Props, State> {
             api={this.historicalAPI}
             period={
               timeWindow === 5
-                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]
-                : HISTORICAL_TIME_PERIOD_MAP[period]
+                ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[period]!
+                : HISTORICAL_TIME_PERIOD_MAP[period]!
             }
             dataLoadedCallback={onHistoricalDataLoaded}
           >
@@ -640,7 +664,7 @@ class TriggersChart extends PureComponent<Props, State> {
           <EventsRequest
             {...baseProps}
             api={this.confidenceAPI}
-            period="7d"
+            period={TimePeriod.SEVEN_DAYS}
             dataLoadedCallback={onConfidenceDataLoaded}
           >
             {noop}

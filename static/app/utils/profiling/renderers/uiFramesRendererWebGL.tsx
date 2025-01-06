@@ -84,7 +84,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
-      const frame = this.uiFrames.frames[index];
+      const frame = this.uiFrames.frames[index]!;
 
       const x1 = frame.start;
       const x2 = frame.end;
@@ -225,7 +225,6 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     });
 
     // Use shader program
-    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
   }
 
@@ -252,7 +251,6 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
       return;
     }
 
-    // biome-ignore lint/correctness/useHookAtTopLevel: not a hook
     this.ctx.useProgram(this.program);
 
     const projectionMatrix = makeProjectionMatrix(

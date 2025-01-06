@@ -214,7 +214,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
       } else {
         pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName, id: currentGroupId});
+      buf.push({group: groupName!, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;

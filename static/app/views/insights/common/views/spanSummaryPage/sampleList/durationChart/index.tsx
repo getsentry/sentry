@@ -149,7 +149,7 @@ function DurationChart({
       seriesIndex > 1 && seriesIndex < 2 + sampledSpanDataSeries.length;
     if (isSpanSample && onMouseOverSample) {
       const spanSampleData = sampledSpanDataSeries?.[seriesIndex - 2]?.data[0];
-      const {name: timestamp, value: duration} = spanSampleData;
+      const {name: timestamp, value: duration} = spanSampleData!;
       const sample = getSample(timestamp as string, duration);
       if (sample) {
         onMouseOverSample(sample);

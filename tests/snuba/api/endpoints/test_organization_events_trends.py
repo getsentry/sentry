@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
@@ -16,16 +16,18 @@ class OrganizationEventsTrendsBase(APITestCase, SnubaTestCase):
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.prototype = load_data("transaction")
         data = self.prototype.copy()
-        data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
         data["user"] = {"email": "foo@example.com"}
-        data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=2))
+        data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=2)).isoformat()
         data["measurements"]["lcp"]["value"] = 2000
         self.store_event(data, project_id=self.project.id)
 
         second = [0, 2, 10]
         for i in range(3):
             data = self.prototype.copy()
-            data["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1, minutes=30 + i))
+            data["start_timestamp"] = (
+                self.day_ago + timedelta(hours=1, minutes=30 + i)
+            ).isoformat()
             data["timestamp"] = (
                 self.day_ago + timedelta(hours=1, minutes=30 + i, seconds=second[i])
             ).isoformat()
@@ -846,7 +848,7 @@ class OrganizationEventsTrendsPagingTest(APITestCase, SnubaTestCase):
             for j in range(2):
                 data = self.prototype.copy()
                 data["user"] = {"email": "foo@example.com"}
-                data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+                data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
                 data["timestamp"] = (
                     self.day_ago + timedelta(hours=j, minutes=30, seconds=2)
                 ).isoformat()

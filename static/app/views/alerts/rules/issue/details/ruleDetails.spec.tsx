@@ -9,7 +9,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import AlertRuleDetails from './ruleDetails';
 
@@ -41,7 +40,6 @@ describe('AlertRuleDetails', () => {
   };
 
   beforeEach(() => {
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,
@@ -111,7 +109,7 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findByLabelText('Next')).toBeEnabled();
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(context.router.push).toHaveBeenCalledWith({
       pathname: '/mock-pathname/',
       query: {
         cursor: '0:100:0',

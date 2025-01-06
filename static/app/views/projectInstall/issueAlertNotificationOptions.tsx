@@ -112,7 +112,7 @@ export function useCreateNotificationAction() {
   useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0] ?? undefined;
+      const firstProvider = providerKeys[0]! ?? undefined;
       const firstIntegration = providersToIntegrations[firstProvider]?.[0] ?? undefined;
       setProvider(firstProvider);
       setIntegration(firstIntegration);
@@ -141,13 +141,7 @@ export function useCreateNotificationAction() {
       const isCreatingIntegrationNotification = actions.find(
         action => action === MultipleCheckboxOptions.INTEGRATION
       );
-      if (
-        !organization.features.includes(
-          'messaging-integration-onboarding-project-creation'
-        ) ||
-        !shouldCreateRule ||
-        !isCreatingIntegrationNotification
-      ) {
+      if (!shouldCreateRule || !isCreatingIntegrationNotification) {
         return undefined;
       }
 
@@ -157,7 +151,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel: channel,
+            channel,
           };
 
           break;
@@ -173,7 +167,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel: channel,
+            channel,
           };
           break;
         default:
@@ -191,15 +185,7 @@ export function useCreateNotificationAction() {
         },
       });
     },
-    [
-      actions,
-      api,
-      provider,
-      integration,
-      channel,
-      organization.features,
-      organization.slug,
-    ]
+    [actions, api, provider, integration, channel, organization.slug]
   );
 
   return {
@@ -262,9 +248,7 @@ export default function IssueAlertNotificationOptions(
       </MultipleCheckbox>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          analyticsParams={{
-            view: MessagingIntegrationAnalyticsView.PROJECT_CREATION,
-          }}
+          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
         />
       )}
     </Fragment>

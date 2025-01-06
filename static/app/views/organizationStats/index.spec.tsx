@@ -43,7 +43,7 @@ describe('OrganizationStats', function () {
     routeParams: {},
   };
 
-  let mockRequest;
+  let mockRequest: jest.Mock;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -227,7 +227,7 @@ describe('OrganizationStats', function () {
   });
 
   it('does not leak query params onto next page links', async () => {
-    const dummyLocation = PAGE_QUERY_PARAMS.reduce(
+    const dummyLocation = PAGE_QUERY_PARAMS.reduce<{query: Record<string, string>}>(
       (location, param) => {
         location.query[param] = '';
         return location;
@@ -382,7 +382,7 @@ describe('OrganizationStats', function () {
     });
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-    expect(screen.getAllByText('proj-1').length).toBe(2);
+    expect(screen.getAllByText('proj-1')).toHaveLength(2);
   });
 
   /**
@@ -453,7 +453,7 @@ describe('OrganizationStats', function () {
     // Should show Profile Hours option
     expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
     // Should show Profiles (transaction) option
-    expect(screen.queryByRole('option', {name: 'Profiles'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
 
   it('shows only profile duration category when both profiling features are enabled', async () => {

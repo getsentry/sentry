@@ -24,8 +24,10 @@ import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleU
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
+import {isRootTransaction} from '../../traceDetails/utils';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
+import {isTraceNode} from '../traceGuards';
 import type {TraceTree} from '../traceModels/traceTree';
 import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
@@ -101,6 +103,49 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
   height: ${p => p._height}px;
   width: ${p => p._width}px;
 `;
+
+const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
+
+export const getRepresentativeTransaction = (
+  tree: TraceTree
+): TraceTree.Transaction | null => {
+  const traceNode = tree.root.children[0];
+
+  if (!traceNode) {
+    return null;
+  }
+
+  if (!isTraceNode(traceNode)) {
+    throw new TypeError('Not trace node');
+  }
+
+  let firstRootTransaction: TraceTree.Transaction | null = null;
+  let candidateTransaction: TraceTree.Transaction | null = null;
+  let firstTransaction: TraceTree.Transaction | null = null;
+
+  for (const transaction of traceNode.value.transactions || []) {
+    // If we find a root transaction, we can stop looking and use it for the title.
+    if (!firstRootTransaction && isRootTransaction(transaction)) {
+      firstRootTransaction = transaction;
+      break;
+    } else if (
+      // If we haven't found a root transaction, but we found a candidate transaction
+      // with an op that we care about, we can use it for the title. We keep looking for
+      // a root.
+      !candidateTransaction &&
+      CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
+    ) {
+      candidateTransaction = transaction;
+      continue;
+    } else if (!firstTransaction) {
+      // If we haven't found a root or candidate transaction, we can use the first transaction
+      // in the trace for the title.
+      firstTransaction = transaction;
+    }
+  }
+
+  return firstRootTransaction ?? candidateTransaction ?? firstTransaction;
+};
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
@@ -181,6 +226,8 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} />;
   }
 
+  const representativeTransaction = getRepresentativeTransaction(props.tree);
+
   return (
     <HeaderLayout>
       <HeaderContent>
@@ -195,12 +242,16 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
           />
         </HeaderRow>
         <HeaderRow>
-          <Title traceSlug={props.traceSlug} tree={props.tree} />
+          <Title
+            traceSlug={props.traceSlug}
+            representativeTransaction={representativeTransaction}
+          />
           <Meta
             organization={props.organization}
             rootEventResults={props.rootEventResults}
             tree={props.tree}
             meta={props.metaResults.data}
+            representativeTransaction={representativeTransaction}
           />
         </HeaderRow>
         <StyledBreak />

@@ -19,6 +19,8 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
+  exception_group_height: number;
+  exception_group_width: number;
   has_commit: boolean;
   has_exception_group: boolean;
   has_local_variables: boolean;
@@ -104,7 +106,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.event_json_clicked': {group_id: number};
+  'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
   'issue_details.issue_tab.screenshot_dropdown_download': {};
@@ -145,8 +147,6 @@ export type TeamInsightsEventParameters = {
   };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
-    created_integration_notification: boolean;
-    has_onboarding_feature_flag: boolean;
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     platform: string;
     project_id: string;

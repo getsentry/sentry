@@ -16,3 +16,7 @@ export const findUpcomingTasks = (task: OnboardingTask) =>
 export function hasQuickStartUpdatesFeature(organization: Organization) {
   return organization.features?.includes('quick-start-updates');
 }
+
+export function hasQuickStartUpdatesFeatureGA(organization: Organization) {
+  return organization.features?.includes('quick-start-updates-ga');
+}
