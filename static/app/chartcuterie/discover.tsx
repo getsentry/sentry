@@ -173,7 +173,10 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      .slice() as string[];
+
     if (hasOther) {
       color.push(theme.chartOther);
     }
@@ -232,7 +235,9 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      .slice() as string[];
     if (hasOther) {
       color.push(theme.chartOther);
     }
@@ -290,7 +295,9 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      .slice() as string[];
     if (hasOther) {
       color.push(theme.chartOther);
     }
