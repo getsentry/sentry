@@ -133,22 +133,6 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Fragment>
-              <h5>{t('Debug Information')}</h5>
-              {t(
-                'To get the most out of Sentry, crash reports must include debug information. In order for Sentry to be able to process the crash report and translate memory addresses to meaningful information like function names, module names, and line numbers, the crash itself must include debug information. In addition, symbols need to be uploaded to Sentry.'
-              )}
-              <p>
-                {tct(
-                  "The option is also located under [strong:Project > Packaging]; select 'show advanced' followed by checking the box for 'Include Debug Files'.",
-                  {strong: <strong />}
-                )}
-              </p>
-            </Fragment>
-          ),
-        },
-        {
-          description: (
-            <Fragment>
               <h5>{t('Configure the Crash Reporter Endpoint')}</h5>
               <p>
                 {tct(
