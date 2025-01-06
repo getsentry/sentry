@@ -2,12 +2,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
@@ -35,6 +35,7 @@ type Props = {
 };
 
 export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -108,7 +109,7 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
           filter: newValue.value as unknown as string,
         });
 
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,

@@ -37,9 +37,9 @@ describe('MetricHistory', () => {
       IncidentFixture({id: `${id}`, identifier: `${id}`})
     );
     render(<MetricHistory incidents={incidents} />);
-    expect(screen.getAllByRole('link').length).toBe(3);
+    expect(screen.getAllByRole('link')).toHaveLength(3);
     await userEvent.click(screen.getByRole('button', {name: 'Show 7 Hidden Alerts'}));
-    expect(screen.getAllByRole('link').length).toBe(incidents.length);
+    expect(screen.getAllByRole('link')).toHaveLength(incidents.length);
   });
 
   it('filters incidents with no activities (unexpected behavior)', () => {

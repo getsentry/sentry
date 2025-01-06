@@ -13,7 +13,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.workflow_engine.endpoints.validators import (
+from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseGroupTypeDetectorValidator,
     NumericComparisonConditionValidator,

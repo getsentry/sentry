@@ -192,7 +192,7 @@ const TagBarContainer = styled('div')`
   position: absolute;
   left: 0;
   top: 0;
-  min-width: ${space(1)};
+  min-width: ${space(0.25)};
   &:before {
     position: absolute;
     inset: 0;

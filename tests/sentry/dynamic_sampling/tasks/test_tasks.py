@@ -589,10 +589,6 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 )
 
     @staticmethod
-    def flush_redis():
-        get_redis_client_for_ds().flushdb()
-
-    @staticmethod
     def set_sliding_window_org_cache_entry(org_id: int, value: str):
         redis = get_redis_client_for_ds()
         cache_key = generate_sliding_window_org_cache_key(org_id=org_id)

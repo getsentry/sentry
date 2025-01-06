@@ -178,6 +178,8 @@ def subscription_checker(**kwargs):
         count += 1
         if subscription.status == UptimeSubscription.Status.CREATING.value:
             create_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
+        elif subscription.status == UptimeSubscription.Status.UPDATING.value:
+            update_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
         elif subscription.status == UptimeSubscription.Status.DELETING.value:
             delete_remote_uptime_subscription.delay(uptime_subscription_id=subscription.id)
 

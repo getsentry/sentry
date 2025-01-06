@@ -23,13 +23,6 @@ class AuthenticationMiddlewareTestCase(TestCase):
     def assert_user_equals(self, request):
         assert request.user == user_service.get_user(user_id=self.user.id)
 
-    def setUp(self):
-        from django.core.cache import cache
-
-        cache.clear()
-        yield
-        cache.clear()
-
     @cached_property
     def request(self):
         rv = RequestFactory().get("/")

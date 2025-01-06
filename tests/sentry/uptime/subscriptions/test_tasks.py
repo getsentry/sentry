@@ -331,6 +331,7 @@ class SubscriptionCheckerTest(UptimeTestCase):
     def test_create_update_delete(self):
         for status in (
             UptimeSubscription.Status.CREATING,
+            UptimeSubscription.Status.UPDATING,
             UptimeSubscription.Status.DELETING,
         ):
             sub = self.create_uptime_subscription(

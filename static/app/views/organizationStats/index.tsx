@@ -316,7 +316,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
-      <SentryDocumentTitle title="Usage Stats">
+      <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
         <PageFiltersContainer>
           {hasTeamInsights ? (
             <HeaderTabs organization={organization} activeTab="stats" />

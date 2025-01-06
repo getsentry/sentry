@@ -460,8 +460,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 client.send_card(channel, attachment)
                 return True
             except Exception as e:
-                # TODO(iamrajjoshi): Remove the logger after we audit lifecycle
-                logger.info("rule.fail.msteams_post", exc_info=True)
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
                 lifecycle.record_failure(e)
             return False
