@@ -147,7 +147,6 @@ def migrate_alert_rule(
 
 
 def get_data_source(alert_rule: AlertRule) -> DataSource | None:
-    # TODO: if dual deleting, then we should delete the subscriptions here and not in logic.py
     snuba_query = alert_rule.snuba_query
     organization = alert_rule.organization
     if not snuba_query or not organization:
@@ -192,9 +191,10 @@ def dual_delete_migrated_alert_rule(
     RegionScheduledDeletion.schedule(instance=alert_rule_workflow, days=0, actor=user)
     # also deletes alert_rule_detector, detector_workflow, detector_state
     RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
-    # also deletes workflow_data_condition_group
     if data_condition_group:
         RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
     RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
+
+    # NOTE: we do not delete the workflow or workflow_data_condition_group
 
     return
