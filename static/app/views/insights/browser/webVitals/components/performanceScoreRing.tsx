@@ -9,8 +9,8 @@ type TextProps = {
 };
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
-  backgroundColors: string[];
-  segmentColors: string[];
+  backgroundColors: readonly string[];
+  segmentColors: readonly string[];
   text: React.ReactNode;
   values: {key: string; maxValue: number; value: number; onHoverActions?: () => void}[];
   /**

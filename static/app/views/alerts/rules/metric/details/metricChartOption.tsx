@@ -188,7 +188,7 @@ export function getMetricAlertChartOption({
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;
-  series[0]!.color = CHART_PALETTE[0]![0]!;
+  series[0]!.color = CHART_PALETTE[0][0];
 
   const dataArr = timeseriesData[0]!.data;
 

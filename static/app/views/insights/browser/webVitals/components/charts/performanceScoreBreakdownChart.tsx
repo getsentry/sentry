@@ -53,7 +53,7 @@ export function PerformanceScoreBreakdownChart({
 }: Props) {
   const organization = useOrganization();
   const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
+  const segmentColors = [...(theme.charts.getColorPalette(3) ?? []).slice(0, 5)];
 
   const pageFilters = usePageFilters();
   const handleMissingWebVitals = organization.features.includes(
