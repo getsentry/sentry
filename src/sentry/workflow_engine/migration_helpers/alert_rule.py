@@ -1,3 +1,5 @@
+import logging
+
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule
@@ -16,6 +18,8 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+logger = logging.getLogger(__name__)
 
 
 def create_metric_alert_lookup_tables(
@@ -164,7 +168,6 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
         )
     except DataSource.DoesNotExist:
         return None
-    bulk_delete_snuba_subscriptions([query_subscription])
     return data_source
 
 
@@ -175,8 +178,16 @@ def dual_delete_migrated_alert_rule(
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
-    except (AlertRuleDetector.DoesNotExist, AlertRuleWorkflow.DoesNotExist):
-        # TODO: log failure
+    except AlertRuleDetector.DoesNotExist:
+        logger.exception(
+            "AlertRuleDetector does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
+    except AlertRuleWorkflow.DoesNotExist:
+        logger.exception(
+            "AlertRuleWorkflow does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
         return
 
     detector: Detector = alert_rule_detector.detector
@@ -184,9 +195,15 @@ def dual_delete_migrated_alert_rule(
 
     data_source = get_data_source(alert_rule=alert_rule)
     if data_source is None:
-        # TODO: log failure
+        logger.error(
+            "DataSource does not exist",
+            extra={"alert_rule_id": AlertRule.id},
+        )
         return
-
+    # we know this exists because the data_source exists
+    assert alert_rule.snuba_query is not None
+    query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
+    bulk_delete_snuba_subscriptions([query_subscription])
     # deleting the alert_rule would also delete alert_rule_workflow, but let's do it here
     RegionScheduledDeletion.schedule(instance=alert_rule_workflow, days=0, actor=user)
     # also deletes alert_rule_detector, detector_workflow, detector_state
