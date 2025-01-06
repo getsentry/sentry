@@ -34,6 +34,12 @@ export type IssueTypeConfig = {
    */
   autofix: boolean;
   /**
+   * Custom copy for actions and other UI elements
+   */
+  customCopy: {
+    resolution: string;
+  };
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
