@@ -7,7 +7,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {RouteContext} from 'sentry/views/routeContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useNavigate', () => {
   const configState = ConfigStore.getState();
@@ -32,9 +32,9 @@ describe('useNavigate', () => {
     };
 
     render(
-      <RouteContext.Provider value={routeContext}>
+      <TestRouteContext.Provider value={routeContext}>
         <HomePage />
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(typeof navigate).toBe('function');
@@ -64,9 +64,9 @@ describe('useNavigate', () => {
     };
 
     render(
-      <RouteContext.Provider value={routeContext}>
+      <TestRouteContext.Provider value={routeContext}>
         <HomePage />
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(routeContext.router.push).toHaveBeenCalledWith({
