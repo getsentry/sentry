@@ -1,6 +1,8 @@
 from sentry.issues.grouptype import ErrorGroupType
+from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.cases import APITestCase
 from sentry.users.services.user.service import user_service
 from sentry.workflow_engine.migration_helpers.rule import migrate_issue_alert
@@ -20,7 +22,16 @@ from sentry.workflow_engine.models.data_condition import Condition
 
 class RuleMigrationHelpersTest(APITestCase):
     def setUp(self):
-        conditions = [{"id": ReappearedEventCondition.id}, {"id": RegressionEventCondition.id}]
+        conditions = [
+            {"id": ReappearedEventCondition.id},
+            {"id": RegressionEventCondition.id},
+            {
+                "id": AgeComparisonFilter.id,
+                "comparison_type": AgeComparisonType.OLDER,
+                "value": "10",
+                "time": "hour",
+            },
+        ]
         self.issue_alert = self.create_project_rule(
             name="test", condition_data=conditions, action_match="any", filter_match="any"
         )
@@ -30,7 +41,7 @@ class RuleMigrationHelpersTest(APITestCase):
         # TODO(cathy): update after filters have condition handlers and the action registry is merged
         pass
 
-    def test_create_issue_alert_no_if(self):
+    def test_create_issue_alert_no_actions(self):
         migrate_issue_alert(self.issue_alert, self.rpc_user)
 
         issue_alert_workflow = AlertRuleWorkflow.objects.get(rule=self.issue_alert)
@@ -67,5 +78,15 @@ class RuleMigrationHelpersTest(APITestCase):
 
         if_dcg = WorkflowDataConditionGroup.objects.get(workflow=workflow).condition_group
         assert if_dcg.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
-        assert DataCondition.objects.filter(condition_group=if_dcg).count() == 0
+        filters = DataCondition.objects.filter(condition_group=if_dcg)
+        assert filters.count() == 1
+        assert filters.filter(
+            type=Condition.AGE_COMPARISON,
+            comparison={
+                "comparison_type": AgeComparisonType.OLDER,
+                "value": "10",
+                "time": "hour",
+            },
+            condition_result=True,
+        ).exists()
         assert DataConditionGroupAction.objects.filter(condition_group=if_dcg).count() == 0
