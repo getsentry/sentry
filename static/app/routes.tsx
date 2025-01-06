@@ -25,7 +25,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import IssueListContainer from 'sentry/views/issueList';
-import IssueListOverview from 'sentry/views/issueList/overview';
+import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -1903,8 +1903,8 @@ function buildRoutes() {
 
   const issueListRoutes = (
     <Route path="/issues" component={errorHandler(IssueListContainer)} withOrgPath>
-      <IndexRoute component={errorHandler(IssueListOverview)} />
-      <Route path="searches/:searchId/" component={errorHandler(IssueListOverview)} />
+      <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
     </Route>
   );
 
