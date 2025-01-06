@@ -415,7 +415,7 @@ def confirm_signed_email(
 
     try:
         data = unsign(
-            signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=172800
+            signed_data, salt=EMAIL_CONFIRMATION_SALT, max_age=2 * 24 * 60 * 60
         )  # max age is 2 days in seconds
 
         # is the currently logged in user the one that
