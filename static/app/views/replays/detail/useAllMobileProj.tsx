@@ -14,8 +14,8 @@ export default function useAllMobileProj({replayPlatforms}: {replayPlatforms?: b
   const proj = projectsSelected.length ? projectsSelected : projects;
 
   const allMobileProj = replayPlatforms
-    ? proj.every(p => mobile.includes(p.platform ?? 'other'))
-    : proj.every(p => replayMobilePlatforms.includes(p.platform ?? 'other'));
+    ? proj.every(p => replayMobilePlatforms.includes(p.platform ?? 'other'))
+    : proj.every(p => mobile.includes(p.platform ?? 'other'));
 
   return {allMobileProj};
 }
