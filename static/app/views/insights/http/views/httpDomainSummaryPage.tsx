@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useEffect} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -57,6 +57,8 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
+import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
+
 type Query = {
   aggregate?: string;
   domain?: string;
@@ -75,13 +77,26 @@ export function HTTPDomainSummaryPage() {
   const {
     domain,
     project: projectId,
+    transaction,
     'user.geo.subregion': subregions,
   } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
       [SpanMetricsField.USER_GEO_SUBREGION]: decodeList,
+      transaction: decodeScalar,
     },
+  });
+
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: <HTTPSamplesPanel />,
+    moduleName: ModuleName.HTTP,
+  });
+
+  useEffect(() => {
+    if (transaction) {
+      openSamplesDrawer();
+    }
   });
 
   const project = projects.find(p => projectId === p.id);
@@ -335,8 +350,6 @@ export function HTTPDomainSummaryPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
-
-      <HTTPSamplesPanel />
     </React.Fragment>
   );
 }
