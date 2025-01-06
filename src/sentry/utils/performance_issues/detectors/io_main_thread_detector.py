@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import fnmatch
 import hashlib
-import re
 from collections import defaultdict
 from typing import Any
 
@@ -118,10 +116,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     __slots__ = ("stored_problems",)
 
-    IGNORED_LIST = {
-        re.compile(fnmatch.translate(pattern))
-        for pattern in ["*.nib", "*.plist", "*kblayout_iphone.dat"]
-    }
+    IGNORED_SUFFIXES = [".nib", ".plist", "kblayout_iphone.dat"]
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
@@ -199,7 +194,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             return False
         file_path = (data.get("file.path") or "").lower()
 
-        if any(bool(ignored_pattern.match(file_path)) for ignored_pattern in self.IGNORED_LIST):
+        if any(file_path.endswith(suffix) for suffix in self.IGNORED_SUFFIXES):
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
