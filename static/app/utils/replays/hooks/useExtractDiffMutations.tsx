@@ -1,3 +1,4 @@
+import formatDuration from 'sentry/utils/duration/formatDuration';
 import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -15,6 +16,7 @@ type DiffMutation = Record<
     attributes: Record<string, unknown>;
     offset: number;
     removes: Record<string, unknown>;
+    timestamp: number;
   }
 >;
 
@@ -102,8 +104,13 @@ async function extractDiffMutations({
 
         const item = collection.get(lastFrame);
         if (item) {
-          item[lastFrame.timestamp]!.adds = adds;
-          item[lastFrame.timestamp]!.attributes = attributes;
+          const formattedTimestamp = formatDuration({
+            duration: [Math.abs(lastFrame.timestamp - startTimestampMs), 'ms'],
+            precision: 'ms',
+            style: 'hh:mm:ss.sss',
+          });
+          item[formattedTimestamp].adds = adds;
+          item[formattedTimestamp].attributes = attributes;
         }
       }
 
@@ -134,12 +141,20 @@ async function extractDiffMutations({
           };
         }
 
+        const offset = Math.abs(frame.timestamp - startTimestampMs);
+        const formattedTimestamp = formatDuration({
+          duration: [offset, 'ms'],
+          precision: 'ms',
+          style: 'hh:mm:ss.sss',
+        });
+
         collection.set(frame, {
-          [frame.timestamp]: {
+          [formattedTimestamp]: {
             adds: {},
             attributes: {},
             removes,
-            offset: frame.timestamp - startTimestampMs,
+            offset,
+            timestamp: frame.timestamp,
           },
         });
       }
