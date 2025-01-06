@@ -196,6 +196,7 @@ def track_initial_segment_event(
 
     # Beta customers will have a 2 months grace period post GA.
     if should_skip_billing(org_id, is_replay_video):
+        metrics.incr("replays.billing-outcome-skipped")
         track_outcome(
             org_id=org_id,
             project_id=project_id,
