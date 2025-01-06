@@ -28,7 +28,7 @@ class _QSTypedDict(TypedDict):
     project__organization_id: int
 
 
-class BaseEventFrequencyConditionHandler(DataConditionHandler[int], ABC):
+class BaseEventFrequencyConditionHandler(ABC):
     @property
     @abstractmethod
     def intervals(self) -> dict[str, tuple[str, timedelta]]:
@@ -176,7 +176,7 @@ class BaseEventFrequencyConditionHandler(DataConditionHandler[int], ABC):
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY)
-class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
+class EventFrequencyConditionHandler(DataConditionHandler[int], BaseEventFrequencyConditionHandler):
     @staticmethod
     def evaluate_value(value: int, comparison: Any) -> DataConditionResult:
         return value == json.loads(comparison)["value"]
