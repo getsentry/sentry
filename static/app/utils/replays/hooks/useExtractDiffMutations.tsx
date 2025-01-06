@@ -16,6 +16,7 @@ type DiffMutation = Record<
     attributes: Record<string, unknown>;
     offset: number;
     removes: Record<string, unknown>;
+    timestamp: number;
   }
 >;
 
@@ -153,6 +154,7 @@ async function extractDiffMutations({
             attributes: {},
             removes,
             offset,
+            timestamp: frame.timestamp,
           },
         });
       }
