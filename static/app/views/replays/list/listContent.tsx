@@ -37,7 +37,7 @@ export default function ListContent() {
   });
 
   const {allMobileProj} = useAllMobileProj({replayPlatforms: true});
-  const mobileBetaOrg = true || organization.features.includes('mobile-replay-beta-orgs');
+  const mobileBetaOrg = organization.features.includes('mobile-replay-beta-orgs');
 
   const [widgetIsOpen, setWidgetIsOpen] = useState(true);
 
