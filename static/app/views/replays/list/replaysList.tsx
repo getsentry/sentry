@@ -52,7 +52,7 @@ function ReplaysList() {
     selection: {projects},
   } = usePageFilters();
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const {needsUpdate: allSelectedProjectsNeedUpdates} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK,
