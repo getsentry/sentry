@@ -40,7 +40,7 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
         />
       )}
 
-      {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
+      {subtitle ? <Deemphasize>{subtitle}</Deemphasize> : null}
 
       {project ? (
         <TruncatedLink
@@ -74,8 +74,8 @@ const Bar = styled('h4')`
   overflow: hidden;
 `;
 
-const Subtitle = styled('span')`
-  color: ${p => p.theme.subText};
+const Deemphasize = styled('span')`
+  color: ${p => p.theme.gray300};
 `;
 
 const TruncatedLink = styled(Link)`
