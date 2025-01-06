@@ -27,23 +27,24 @@ function stringifyFields(
 export function convertWidgetToBuilderStateParams(
   widget: Widget
 ): WidgetBuilderStateQueryParams {
-  let yAxis = widget.queries.flatMap(q => q.aggregates);
   const query = widget.queries.flatMap(q => q.conditions);
   const sort = widget.queries.flatMap(q => q.orderby);
   let legendAlias = widget.queries.flatMap(q => q.name);
 
+  // y-axes and fields are shared across all queries
+  // so we can just use the first query
+  const firstWidgetQuery = widget.queries[0];
+  let yAxis = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'aggregates') : [];
   let field: string[] = [];
   if (
     widget.displayType === DisplayType.TABLE ||
     widget.displayType === DisplayType.BIG_NUMBER
   ) {
-    field = widget.queries.flatMap(widgetQuery => stringifyFields(widgetQuery, 'fields'));
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'fields') : [];
     yAxis = [];
     legendAlias = [];
   } else {
-    field = widget.queries.flatMap(widgetQuery =>
-      stringifyFields(widgetQuery, 'columns')
-    );
+    field = firstWidgetQuery ? stringifyFields(firstWidgetQuery, 'columns') : [];
   }
 
   return {
