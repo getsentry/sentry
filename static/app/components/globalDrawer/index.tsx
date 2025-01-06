@@ -121,6 +121,8 @@ export function GlobalDrawer({children}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       location?.pathname,
+      location?.search,
+      location?.hash,
       closeDrawer,
       currentDrawerConfig?.options.shouldCloseOnLocationChange,
     ]
