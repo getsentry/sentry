@@ -450,6 +450,13 @@ register(
     default=False,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Billing skip for mobile replay orgs.
+register(
+    "replay.replay-video.billing-skip-org-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Disables replay-video for a specific organization.
 register(
     "replay.replay-video.slug-denylist",
