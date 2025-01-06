@@ -34,7 +34,7 @@ function generateJobRun(envName: string, jobStatus: CheckInStatus) {
   return generateEnvMapping(envName, counts);
 }
 
-export function generateStats(counts: StatusCounts) {
+function generateStats(counts: StatusCounts) {
   const [in_progress, ok, missed, timeout, error, unknown] = counts;
   return {
     in_progress,
