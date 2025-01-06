@@ -1,12 +1,12 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationApiKeysList from './organizationApiKeysList';
 import type {DeprecatedApiKey} from './types';
@@ -17,19 +17,15 @@ type Props = RouteComponentProps<{}, {}> & {
 
 type State = {
   keys: DeprecatedApiKey[];
-} & DeprecatedAsyncView['state'];
+} & DeprecatedAsyncComponent['state'];
 
 /**
  * API Keys are deprecated, but there may be some legacy customers that still use it
  */
-class OrganizationApiKeys extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+class OrganizationApiKeys extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [['keys', `/organizations/${organization.slug}/api-keys/`]];
-  }
-
-  getTitle() {
-    return routeTitleGen(t('API Keys'), this.props.organization.slug, false);
   }
 
   handleRemove = async (id: string) => {
@@ -93,15 +89,17 @@ class OrganizationApiKeys extends DeprecatedAsyncView<Props, State> {
     const params = {orgId: organization.slug};
 
     return (
-      <OrganizationApiKeysList
-        {...this.props}
-        params={params}
-        loading={this.state.loading}
-        busy={this.state.busy}
-        keys={this.state.keys}
-        onRemove={this.handleRemove}
-        onAddApiKey={this.handleAddApiKey}
-      />
+      <SentryDocumentTitle title={t('Api Keys')} orgSlug={organization.slug}>
+        <OrganizationApiKeysList
+          {...this.props}
+          params={params}
+          loading={this.state.loading}
+          busy={this.state.busy}
+          keys={this.state.keys}
+          onRemove={this.handleRemove}
+          onAddApiKey={this.handleAddApiKey}
+        />
+      </SentryDocumentTitle>
     );
   }
 }

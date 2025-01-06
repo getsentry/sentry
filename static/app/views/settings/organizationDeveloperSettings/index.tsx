@@ -2,12 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SentryApp} from 'sentry/types/integrations';
@@ -18,25 +20,23 @@ import {
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
 
-type Props = Omit<DeprecatedAsyncView['props'], 'params'> & {
+type Props = Omit<DeprecatedAsyncComponent['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
 type Tab = 'public' | 'internal';
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   applications: SentryApp[];
   tab: Tab;
 };
 
-class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
+class OrganizationDeveloperSettings extends DeprecatedAsyncComponent<Props, State> {
   analyticsView = 'developer_settings' as const;
 
   getDefaultState(): State {
@@ -57,12 +57,7 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
     return this.state.tab;
   }
 
-  getTitle() {
-    const {organization} = this.props;
-    return routeTitleGen(t('Custom Integrations'), organization.slug, false);
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const returnValue: [string, string, any?, any?][] = [
       ['applications', `/organizations/${organization.slug}/sentry-apps/`],
@@ -156,6 +151,10 @@ class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
 
     return (
       <div>
+        <SentryDocumentTitle
+          title={t('Custom Integrations')}
+          orgSlug={organization.slug}
+        />
         <SettingsPageHeader
           title={t('Custom Integrations')}
           body={

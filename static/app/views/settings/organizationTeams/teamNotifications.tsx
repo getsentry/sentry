@@ -5,13 +5,14 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -21,7 +22,6 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization, Team} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
@@ -29,7 +29,7 @@ type Props = RouteComponentProps<{teamId: string}, {}> & {
   team: Team;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   integrations: Integration[];
   teamDetails: Team;
 };
@@ -38,11 +38,7 @@ const DOCS_LINK =
   'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';
 const NOTIFICATION_PROVIDERS = ['slack'];
 
-class TeamNotificationSettings extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    return 'Team Notification Settings';
-  }
-
+class TeamNotificationSettings extends DeprecatedAsyncComponent<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, team} = this.props;
     return [
@@ -77,6 +73,7 @@ class TeamNotificationSettings extends DeprecatedAsyncView<Props, State> {
     const {team} = this.props;
     return (
       <Fragment>
+        <SentryDocumentTitle title={t('Team Notification Settings')} />
         <PermissionAlert access={['team:write']} team={team} />
 
         <Panel>
