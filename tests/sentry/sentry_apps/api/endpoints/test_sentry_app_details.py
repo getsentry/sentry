@@ -743,7 +743,10 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             self.unpublished_app.slug,
             status_code=400,
         )
-        assert response.data["detail"] == "Not found."
+        assert (
+            response.data["error"]
+            == "User must be in the app owner's organization for unpublished apps"
+        )
 
         assert not AuditLogEntry.objects.filter(
             event=audit_log.get_event_id("SENTRY_APP_REMOVE")

@@ -414,7 +414,7 @@ class SuperuserStaffPostSentryAppsTest(SentryAppsTest):
         data = self.get_data(name=sentry_app.name, organization="some-non-existent-org")
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {
-            "error": "Organization 'some-non-existent-org' does not exist.",
+            "error": """[ErrorDetail(string="Organization 'some-non-existent-org' does not exist.", code='invalid')]"""
         }
 
     def test_superuser_can_create_with_popularity(self):
@@ -547,7 +547,7 @@ class PostSentryAppsTest(SentryAppsTest):
         data = self.get_data(name=sentry_app.name, organization=None)
         response = self.get_error_response(**data, status_code=400)
         assert response.data == {
-            "error": "Please provide a valid value for the 'organization' field.",
+            "error": """[ErrorDetail(string="Please provide a valid value for the 'organization' field.", code='invalid')]""",
         }
 
     def test_cannot_create_app_in_alien_organization(self):
