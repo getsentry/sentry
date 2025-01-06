@@ -60,7 +60,7 @@ function ReleaseEventsChart({
   const theme = useTheme();
 
   function getColors() {
-    const colors = theme.charts.getColorPalette(14);
+    const colors = theme.charts.getColorPalette(14) ?? [];
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
         return [colors[12]!];
