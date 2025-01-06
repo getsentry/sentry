@@ -14,7 +14,6 @@ import {
 } from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
@@ -47,8 +46,6 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
-import {useSamplesDrawer} from '../../common/utils/useSamplesDrawer';
-
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
@@ -73,23 +70,6 @@ export function CacheLandingPage() {
 
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
-
-  const query = useLocationQuery({
-    fields: {
-      transaction: decodeScalar,
-    },
-  });
-
-  const {openSamplesDrawer} = useSamplesDrawer({
-    Component: <CacheSamplePanel />,
-    moduleName: ModuleName.CACHE,
-  });
-
-  useEffect(() => {
-    if (query.transaction) {
-      openSamplesDrawer();
-    }
-  });
 
   const {
     isPending: isCacheMissRateLoading,
@@ -253,6 +233,7 @@ export function CacheLandingPage() {
           </Layout.Main>
         </Layout.Body>
       </ModuleBodyUpsellHook>
+      <CacheSamplePanel />
     </React.Fragment>
   );
 }

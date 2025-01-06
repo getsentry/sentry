@@ -1,13 +1,12 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
-import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {
   PerformanceScore,
@@ -18,7 +17,9 @@ import {
 export function VitalDetailPanel({
   vital,
   status,
+  onClose,
 }: {
+  onClose: () => void;
   status: VitalStatus | undefined;
   vital: VitalItem | undefined;
 }) {
@@ -29,9 +30,7 @@ export function VitalDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DrawerHeader />
-
-      <SampleDrawerBody>
+      <DetailPanel detailKey={vital?.field} onClose={onClose}>
         {vital && (
           <React.Fragment>
             <VitalDetailTitle>{vital.title}</VitalDetailTitle>
@@ -69,13 +68,14 @@ export function VitalDetailPanel({
           </React.Fragment>
         )}
         <PageAlert />
-      </SampleDrawerBody>
+      </DetailPanel>
     </PageAlertProvider>
   );
 }
 
 const VitalDetailTitle = styled('h4')`
   margin-bottom: ${space(1)};
+  margin-top: 40px;
 `;
 
 const Badge = styled('div')<{status: string}>`
