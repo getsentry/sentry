@@ -64,7 +64,7 @@ function GroupReplays({group}: Props) {
     location,
     organization,
   });
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   useEffect(() => {
     trackAnalytics('replay.render-issues-group-list', {
@@ -137,7 +137,7 @@ function GroupReplaysTableInner({
     replaySlug,
     group,
   });
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   return (
     <ReplayContextProvider
@@ -189,7 +189,7 @@ function GroupReplaysTable({
     queryReferrer: 'issueReplays',
   });
   const {replays} = replayListData;
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   const rawReplayIndex = urlParams.getParamValue('selected_replay_index');
   const selectedReplayIndex = parseInt(
