@@ -1754,6 +1754,7 @@ class MetricsDatasetConfig(DatasetConfig):
             )
             for vital in vitals
         }
+        # TODO: Divide by the total weights to factor out any missing web vitals
         return Function(
             "divide",
             [
