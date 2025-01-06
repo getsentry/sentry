@@ -10,7 +10,11 @@ import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/co
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 
-function WidgetBuilderNameAndDescription() {
+interface WidgetBuilderNameAndDescriptionProps {
+  error: Record<string, any>;
+}
+
+function WidgetBuilderNameAndDescription({}: WidgetBuilderNameAndDescriptionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
 
