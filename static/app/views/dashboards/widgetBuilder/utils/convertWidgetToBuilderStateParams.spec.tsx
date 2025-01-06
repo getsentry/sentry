@@ -53,4 +53,31 @@ describe('convertWidgetToBuilderStateParams', () => {
     const params = convertWidgetToBuilderStateParams(widget);
     expect(params.legendAlias).toEqual(['test', 'test2']);
   });
+
+  it('does not duplicate filters because of multiple widget queries', () => {
+    const widget = {
+      ...getDefaultWidget(WidgetType.ERRORS),
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'one condition',
+          orderby: '',
+          name: '',
+        },
+        {
+          aggregates: ['count()'],
+          columns: [],
+          conditions: 'second condition',
+          orderby: '',
+          name: '',
+        },
+      ],
+    };
+
+    const params = convertWidgetToBuilderStateParams(widget);
+    expect(params.query).toEqual(['one condition', 'second condition']);
+    expect(params.yAxis).toEqual(['count()']);
+  });
 });
