@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ValidationError
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
@@ -139,7 +138,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
-            raise SentryAppError(ValidationError(to_single_line_str(error_message)))
+            raise SentryAppError(ResourceDoesNotExist(error_message))
         return organization_slug
 
     def _get_organization_for_superuser_or_staff(
@@ -151,7 +150,7 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
         if context is None:
             error_message = f"Organization '{organization_slug}' does not exist."
-            raise SentryAppError(ValidationError(to_single_line_str(error_message)))
+            raise SentryAppError(ResourceDoesNotExist(error_message))
 
         return context
 
