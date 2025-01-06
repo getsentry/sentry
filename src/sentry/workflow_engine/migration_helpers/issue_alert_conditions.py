@@ -10,6 +10,7 @@ from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssue
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
+from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
@@ -109,7 +110,7 @@ def create_first_seen_event_data_condition(
 
 
 @data_condition_translator_registry.register(NewHighPriorityIssueCondition.id)
-def create_new_high_priority_issue_condition(
+def create_new_high_priority_issue_data_condition(
     data: dict[str, Any], dcg: DataConditionGroup
 ) -> DataCondition:
     return DataCondition.objects.create(
@@ -122,7 +123,7 @@ def create_new_high_priority_issue_condition(
 
 @data_condition_translator_registry.register(LevelCondition.id)
 @data_condition_translator_registry.register(LevelFilter.id)
-def create_level_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
+def create_level_data_condition(data: dict[str, Any], dcg: DataConditionGroup) -> DataCondition:
     # TODO: Add comparison validation (error if not enough information)
     comparison = {"match": data["match"], "level": data["level"]}
 
@@ -149,6 +150,25 @@ def create_tagged_event_data_condition(
 
     return DataCondition.objects.create(
         type=Condition.TAGGED_EVENT,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(AgeComparisonFilter.id)
+def create_age_comparison_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
+    comparison = {
+        "comparison_type": data["comparison_type"],
+        "value": data["value"],
+        "time": data["time"],
+    }
+
+    return DataCondition.objects.create(
+        type=Condition.AGE_COMPARISON,
         comparison=comparison,
         condition_result=True,
         condition_group=dcg,
