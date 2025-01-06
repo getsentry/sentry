@@ -67,7 +67,7 @@ describe('filterSupportedTasks', function () {
       [supportedProject, unsupportedProject],
       onboardingTasks
     );
-    expect(supportedTasks.length).toBe(4);
+    expect(supportedTasks).toHaveLength(4);
   });
 
   it('filters out for unsupported platform', function () {
@@ -76,7 +76,7 @@ describe('filterSupportedTasks', function () {
       firstTransactionEvent: false,
     }) as Project & {platform: PlatformKey};
     const supportedTasks = filterSupportedTasks([project], onboardingTasks);
-    expect(supportedTasks.length).toBe(1);
+    expect(supportedTasks).toHaveLength(1);
   });
 
   it('filters out performance only if all projects are without support', function () {
@@ -97,7 +97,7 @@ describe('filterSupportedTasks', function () {
           OnboardingTaskKey.SESSION_REPLAY,
           OnboardingTaskKey.USER_REPORTS,
         ].includes(task.task)
-      ).length
-    ).toBe(3);
+      )
+    ).toHaveLength(3);
   });
 });

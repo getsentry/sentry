@@ -288,15 +288,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# API
-# GA Option for endpoints to work with id or slug as path parameters
-register(
-    "api.id-or-slug-enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # API Tokens
 register(
     "apitoken.auto-add-last-chars",
@@ -457,6 +448,13 @@ register(
     "replay.replay-video.disabled",
     type=Bool,
     default=False,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Billing skip for mobile replay orgs.
+register(
+    "replay.replay-video.billing-skip-org-ids",
+    type=Sequence,
+    default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Disables replay-video for a specific organization.
@@ -2116,6 +2114,20 @@ register(
 )
 
 register(
+    "statistical_detectors.throughput.threshold.transactions",
+    default=50,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "statistical_detectors.throughput.threshold.functions",
+    default=25,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "options_automator_slack_webhook_enabled",
     default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2290,12 +2302,6 @@ register(
     # Lists the shared resource ids we want to account usage for.
     "shared_resources_accounting_enabled",
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "releases_v2.single-tenant",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

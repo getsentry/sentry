@@ -6,8 +6,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -18,10 +18,11 @@ export function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
   const organization = useOrganization();
+  const navigate = useNavigate();
 
   const handleGoBack = useCallback(() => {
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
-  }, [organization.slug]);
+    navigate(normalizeUrl(`/settings/${organization.slug}/feature-flags/`));
+  }, [organization.slug, navigate]);
 
   return (
     <Fragment>

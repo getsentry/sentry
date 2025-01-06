@@ -13,6 +13,7 @@ import toArray from 'sentry/utils/array/toArray';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryExtras,
   type DiscoverQueryRequestParams,
@@ -20,6 +21,7 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import localStorage from 'sentry/utils/localStorage';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
@@ -35,6 +37,7 @@ import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/
 import {DisplayType, type Widget, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import SpansSearchBar from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+import {DASHBOARD_RPC_TOGGLE_KEY} from 'sentry/views/dashboards/widgetBuilder/components/rpcToggle';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -46,7 +49,12 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   fieldAliases: [],
   aggregates: ['count(span.duration)'],
   conditions: '',
-  orderby: '',
+  orderby: '-count(span.duration)',
+};
+
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: ['count', 'span.duration', undefined, undefined],
+  kind: FieldValueKind.FUNCTION,
 };
 
 const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce((acc, aggregate) => {
@@ -72,6 +80,7 @@ export const SpansConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   SearchBar: SpansSearchBar,
@@ -196,11 +205,14 @@ function getEventsRequest(
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
+  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
+
   const params: DiscoverQueryRequestParams = {
     per_page: limit,
     cursor,
     referrer,
     dataset: DiscoverDatasets.SPANS_EAP,
+    useRpc: useRpc ? '1' : undefined,
     ...queryExtras,
   };
 
@@ -263,5 +275,9 @@ function getSeriesRequest(
     DiscoverDatasets.SPANS_EAP,
     referrer
   );
+
+  const useRpc = localStorage.getItem(DASHBOARD_RPC_TOGGLE_KEY) === 'true';
+  requestData.useRpc = useRpc;
+
   return doEventsRequest<true>(api, requestData);
 }

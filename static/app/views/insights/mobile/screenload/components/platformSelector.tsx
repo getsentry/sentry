@@ -3,10 +3,10 @@ import {PlatformIcon} from 'platformicons';
 import {Flex} from 'sentry/components/container/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
@@ -15,6 +15,7 @@ import {
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 
 export function PlatformSelector() {
+  const navigate = useNavigate();
   const {query, pathname} = useLocation();
   const platform =
     decodeScalar(query[PLATFORM_QUERY_PARAM]) ??
@@ -29,7 +30,7 @@ export function PlatformSelector() {
         aria-label={t('Filter platform')}
         onChange={val => {
           localStorage.setItem(PLATFORM_LOCAL_STORAGE_KEY, val);
-          browserHistory.push({
+          navigate({
             pathname,
             query: {
               ...query,

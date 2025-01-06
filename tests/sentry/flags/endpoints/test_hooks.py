@@ -22,6 +22,61 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
     def features(self):
         return {"organizations:feature-flag-audit-log": True}
 
+    def test_generic_post_create(self):
+        request_data = {
+            "data": [
+                {
+                    "action": "created",
+                    "change_id": 9734362632,
+                    "created_at": "2024-12-12T00:00:00+00:00",
+                    "created_by": {"id": "username", "type": "name"},
+                    "flag": "hello",
+                }
+            ],
+            "meta": {"version": 1},
+        }
+        signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization, provider="generic", secret="456"
+        )
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "generic")),
+                request_data,
+                headers={"X-Sentry-Signature": signature},
+            )
+            assert response.status_code == 200, response.content
+            assert FlagAuditLogModel.objects.count() == 1
+
+    def test_unleash_post_create(self):
+        request_data = {
+            "id": 28,
+            "tags": [{"type": "simple", "value": "testvalue"}],
+            "type": "feature-environment-enabled",
+            "project": "default",
+            "createdAt": "2024-12-30T00:00:00.000Z",
+            "createdBy": "admin",
+            "environment": "development",
+            "createdByUserId": 1,
+            "featureName": "test-flag",
+        }
+        signature = "testing12345abcdaslkflsldkfkdlks"
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization,
+            provider="unleash",
+            secret="testing12345abcdaslkflsldkfkdlks",
+        )
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "unleash")),
+                request_data,
+                headers={"Authorization": signature},
+            )
+            assert response.status_code == 200, response.content
+            assert FlagAuditLogModel.objects.count() == 1
+
     def test_launchdarkly_post_create(self):
         request_data = LD_REQUEST
         signature = hmac_sha256_hex_digest(key="456", message=json.dumps(request_data).encode())
@@ -78,6 +133,11 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
         response = self.client.post(self.url, data={})
         assert response.status_code == 404
         assert response.content == b'"Not enabled."'
+
+    def test_post_missing_signature(self):
+        with self.feature(self.features):
+            response = self.client.post(self.url, {})
+            assert response.status_code == 401, response.content
 
 
 LD_REQUEST = {

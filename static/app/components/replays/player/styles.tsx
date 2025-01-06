@@ -3,6 +3,7 @@ import {css, type Theme} from '@emotion/react';
 // Base styles, to make the Replayer instance work
 export const baseReplayerCss = css`
   .replayer-wrapper {
+    z-index: 1000000;
     user-select: none;
   }
 
@@ -18,6 +19,9 @@ export const baseReplayerCss = css`
   .replayer-wrapper > iframe {
     border: none;
     background: white;
+  }
+  .video-replayer-wrapper + .replayer-wrapper > iframe {
+    opacity: 0;
   }
 
   &[data-inspectable='true'] .replayer-wrapper > iframe {
@@ -109,20 +113,6 @@ export const sentryReplayerCss = (theme: Theme) => css`
       opacity: 0.5;
       width: 10px;
       height: 10px;
-    }
-  }
-
-  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
-  &.video-replayer {
-    .replayer-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .replayer-wrapper > iframe {
-      opacity: 0;
     }
   }
 `;

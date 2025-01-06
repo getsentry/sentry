@@ -11,7 +11,7 @@ from sentry.api.serializers.models.group import snuba_tsdb
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase, BaseMetricsTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
 
@@ -232,7 +232,7 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
         )
         data = {
             "fingerprint": ["meow"],
-            "timestamp": iso_format(timezone.now()),
+            "timestamp": timezone.now().isoformat(),
             "type": "error",
             "exception": [{"type": "Foo"}],
         }

@@ -41,7 +41,7 @@ packaging>=24.1
 parsimonious>=0.10.0
 petname>=2.6
 phonenumberslite>=8.12.32
-Pillow>=10.4.0
+Pillow>=11.0.0
 progressbar2>=3.41.0
 protobuf>=5.27.3
 proto-plus>=1.25.0
@@ -65,8 +65,8 @@ requests>=2.32.3
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
-sentry-arroyo>=2.19.7
-sentry-kafka-schemas>=0.1.122
+sentry-arroyo>=2.19.9
+sentry-kafka-schemas>=0.1.125
 sentry-ophio==1.0.0
 sentry-protos>=0.1.37
 sentry-redis-tools>=0.1.7

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
 from sentry.grouping.component import (
     AppGroupingComponent,
+    ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
@@ -25,6 +26,8 @@ class FingerprintVariantMetadata(TypedDict):
 
 
 class BaseVariant(ABC):
+    variant_name: str | None = None
+
     @property
     def contributes(self) -> bool:
         return True
@@ -134,11 +137,18 @@ class ComponentVariant(BaseVariant):
 
     def __init__(
         self,
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
     ):
         self.component = component
         self.config = strategy_config
+        self.contributing_component = contributing_component
+        self.variant_name = self.component.id  # "app", "system", or "default"
 
     @property
     def description(self) -> str:
@@ -217,14 +227,34 @@ class SaltedComponentVariant(ComponentVariant):
 
     type = "salted_component"
 
+    @classmethod
+    def from_component_variant(
+        cls,
+        component_variant: ComponentVariant,
+        fingerprint: list[str],
+        fingerprint_info: FingerprintInfo,
+    ) -> Self:
+        return cls(
+            fingerprint=fingerprint,
+            component=component_variant.component,
+            contributing_component=component_variant.contributing_component,
+            strategy_config=component_variant.config,
+            fingerprint_info=fingerprint_info,
+        )
+
     def __init__(
         self,
         fingerprint: list[str],
+        # The root of the component tree
         component: AppGroupingComponent | SystemGroupingComponent | DefaultGroupingComponent,
+        # The highest non-root contributing component in the tree, representing the overall grouping
+        # method (exception, threads, message, etc.). For non-contributing variants, this will be
+        # None.
+        contributing_component: ContributingComponent | None,
         strategy_config: StrategyConfiguration,
         fingerprint_info: FingerprintInfo,
     ):
-        ComponentVariant.__init__(self, component, strategy_config)
+        ComponentVariant.__init__(self, component, contributing_component, strategy_config)
         self.values = fingerprint
         self.info = fingerprint_info
 

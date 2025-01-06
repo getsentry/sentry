@@ -6,7 +6,7 @@ export function getDefaultWidget(widgetType: WidgetType): Widget {
   return {
     displayType: DisplayType.TABLE,
     interval: '',
-    title: '',
+    title: 'Custom Widget',
     widgetType,
     queries: [config.defaultWidgetQuery],
   };

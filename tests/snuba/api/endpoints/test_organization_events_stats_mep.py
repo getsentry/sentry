@@ -6,7 +6,6 @@ from unittest import mock
 
 import pytest
 from django.urls import reverse
-from rest_framework.response import Response
 
 from sentry.discover.models import DatasetSourcesTypes
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
@@ -14,7 +13,7 @@ from sentry.models.environment import Environment
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.extraction import MetricSpecType, OnDemandMetricSpec
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.utils.samples import load_data
 
@@ -1283,17 +1282,6 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
             "organizations:on-demand-metrics-extraction": True,
         }
 
-    def _make_on_demand_request(
-        self, params: dict[str, Any], extra_features: dict[str, bool] | None = None
-    ) -> Response:
-        """Ensures that the required parameters for an on-demand request are included."""
-        # Expected parameters for this helper function
-        params["dataset"] = "metricsEnhanced"
-        params["useOnDemandMetrics"] = "true"
-        params["onDemandType"] = "dynamic_query"
-        _features = {**self.features, **(extra_features or {})}
-        return self.do_request(params, features=_features)
-
     def test_top_events_wrong_on_demand_type(self):
         query = "transaction.duration:>=100"
         yAxis = ["count()", "count_web_vitals(measurements.lcp, good)"]
@@ -1585,8 +1573,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "event_id": "a" * 32,
                 "message": "very bad",
                 "type": "error",
-                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "start_timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "tags": {"customtag1": "error_value", "query.dataset": "foo"},
             },
             project_id=self.project.id,
@@ -1596,8 +1584,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "event_id": "b" * 32,
                 "message": "very bad 2",
                 "type": "error",
-                "start_timestamp": iso_format(self.day_ago + timedelta(hours=1)),
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "start_timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "tags": {"customtag1": "error_value2", "query.dataset": "foo"},
             },
             project_id=self.project.id,
@@ -1657,15 +1645,15 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandW
                 "event_id": "a" * 32,
                 "message": "very bad",
                 "type": "error",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
+                "timestamp": (self.day_ago + timedelta(hours=1)).isoformat(),
                 "tags": {"customtag1": "error_value", "query.dataset": "foo"},
             },
             project_id=self.project.id,
         )
 
         transaction = load_data("transaction")
-        transaction["timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
-        transaction["start_timestamp"] = iso_format(self.day_ago + timedelta(hours=1))
+        transaction["timestamp"] = (self.day_ago + timedelta(hours=1)).isoformat()
+        transaction["start_timestamp"] = (self.day_ago + timedelta(hours=1)).isoformat()
         transaction["tags"] = {"customtag1": "transaction_value", "query.dataset": "foo"}
 
         self.store_event(

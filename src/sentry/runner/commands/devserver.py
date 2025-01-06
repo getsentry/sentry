@@ -30,6 +30,7 @@ _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "celery-beat": ["sentry", "run", "cron", "--autoreload"],
     "server": ["sentry", "run", "web"],
+    "taskworker": ["sentry", "run", "taskworker"],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -138,6 +139,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     type=click.Choice(["control", "region"]),
     help="The silo mode to run this devserver instance in. Choices are control, region, none",
 )
+@click.option(
+    "--taskworker/--no-taskworker",
+    default=False,
+    help="Run kafka-based task workers",
+)
 @click.argument(
     "bind",
     default=None,
@@ -164,6 +170,7 @@ def devserver(
     client_hostname: str,
     ngrok: str | None,
     silo: str | None,
+    taskworker: bool,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -285,6 +292,9 @@ def devserver(
     if ingest and not workers:
         click.echo("--ingest was provided, implicitly enabling --workers")
         workers = True
+
+    if taskworker:
+        daemons.append(_get_daemon("taskworker"))
 
     if workers and not celery_beat:
         click.secho(

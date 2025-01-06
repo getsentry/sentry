@@ -45,8 +45,8 @@ const orderedGettingStartedTasks = [
   OnboardingTaskKey.INVITE_MEMBER,
   OnboardingTaskKey.ALERT_RULE,
   OnboardingTaskKey.SOURCEMAPS,
-  OnboardingTaskKey.RELEASE_TRACKING,
   OnboardingTaskKey.LINK_SENTRY_TO_SOURCE_CODE,
+  OnboardingTaskKey.RELEASE_TRACKING,
 ];
 
 const orderedBeyondBasicsTasks = [

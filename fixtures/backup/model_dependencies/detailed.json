@@ -3223,22 +3223,6 @@
       ]
     ]
   },
-  "sentry.metricskeyindexer": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "sentry.metricskeyindexer",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_metricskeyindexer",
-    "uniques": [
-      [
-        "string"
-      ]
-    ]
-  },
   "sentry.monitor": {
     "dangling": false,
     "foreign_keys": {
@@ -6313,22 +6297,6 @@
       ]
     ]
   },
-  "uptime.region": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "uptime.region",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "uptime_region",
-    "uniques": [
-      [
-        "slug"
-      ]
-    ]
-  },
   "uptime.uptimesubscription": {
     "dangling": false,
     "foreign_keys": {},
@@ -6349,11 +6317,6 @@
   "uptime.uptimesubscriptionregion": {
     "dangling": false,
     "foreign_keys": {
-      "region": {
-        "kind": "FlexibleForeignKey",
-        "model": "uptime.region",
-        "nullable": false
-      },
       "uptime_subscription": {
         "kind": "FlexibleForeignKey",
         "model": "uptime.uptimesubscription",

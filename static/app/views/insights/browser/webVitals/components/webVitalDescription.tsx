@@ -136,7 +136,7 @@ type WebVitalDetailHeaderProps = {
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[ORDER.indexOf(webVital)];
+  const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (
@@ -273,7 +273,6 @@ const Value = styled('h2')`
 
 const WebVitalName = styled('h4')`
   margin-bottom: ${space(1)};
-  margin-top: 40px;
   max-width: 400px;
   ${p => p.theme.overflowEllipsis}
 `;

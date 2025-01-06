@@ -36,7 +36,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
 
   const scrollLeft = useCallback(
     () =>
-      childrenEls[visibility.findIndex(Boolean) - 1].scrollIntoView({
+      childrenEls[visibility.findIndex(Boolean) - 1]!.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
         inline: 'start',
@@ -46,7 +46,7 @@ function Carousel({children, visibleRatio = 0.8}: CarouselProps) {
 
   const scrollRight = useCallback(
     () =>
-      childrenEls[visibility.findLastIndex(Boolean) + 1].scrollIntoView({
+      childrenEls[visibility.findLastIndex(Boolean) + 1]!.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
         inline: 'end',

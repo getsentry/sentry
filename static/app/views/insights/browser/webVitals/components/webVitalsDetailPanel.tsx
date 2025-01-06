@@ -2,6 +2,7 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -24,7 +25,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -34,7 +35,7 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {SpanIndexedField, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
@@ -51,13 +52,7 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 const MAX_ROWS = 10;
 
-export function WebVitalsDetailPanel({
-  webVital,
-  onClose,
-}: {
-  onClose: () => void;
-  webVital: WebVitals | null;
-}) {
+export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
@@ -72,9 +67,7 @@ export function WebVitalsDetailPanel({
     subregions,
   });
 
-  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
-    projectScoresData?.data?.[0]
-  );
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
   const {data, isPending} = useTransactionWebVitalsScoresQuery({
     limit: 100,
     webVital: webVital ?? 'total',
@@ -134,8 +127,6 @@ export function WebVitalsDetailPanel({
         : [],
     seriesName: webVital ?? '',
   };
-
-  const detailKey = webVital;
 
   useEffect(() => {
     if (webVital !== null) {
@@ -245,7 +236,9 @@ export function WebVitalsDetailPanel({
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
+      <DrawerHeader />
+
+      <SampleDrawerBody>
         {webVital && (
           <WebVitalDescription
             value={
@@ -276,7 +269,7 @@ export function WebVitalsDetailPanel({
           />
         </TableContainer>
         <PageAlert />
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

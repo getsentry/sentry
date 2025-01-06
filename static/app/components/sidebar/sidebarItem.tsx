@@ -335,7 +335,7 @@ export function isItemActive(
       !location.pathname.startsWith('/settings/')) ||
     (item?.label === 'Releases' && location.pathname.includes('/release-thresholds/')) ||
     (item?.label === 'Performance' &&
-      location.pathname.includes('/performance/') &&
+      location.pathname.startsWith('/performance/') &&
       !location.pathname.startsWith('/settings/'))
   );
 }

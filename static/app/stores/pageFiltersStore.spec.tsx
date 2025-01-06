@@ -145,10 +145,10 @@ describe('PageFiltersStore', function () {
   });
 
   it('updatePersistence()', async function () {
-    expect(PageFiltersStore.getState().shouldPersist).toEqual(true);
+    expect(PageFiltersStore.getState().shouldPersist).toBe(true);
     updatePersistence(false);
     await tick();
-    expect(PageFiltersStore.getState().shouldPersist).toEqual(false);
+    expect(PageFiltersStore.getState().shouldPersist).toBe(false);
   });
 
   it('can mark filters as pinned', async function () {

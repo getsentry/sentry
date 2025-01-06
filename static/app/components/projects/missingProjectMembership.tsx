@@ -126,14 +126,14 @@ class MissingProjectMembership extends Component<Props, State> {
     const teamAccess = [
       {
         label: t('Request Access'),
-        options: this.getTeamsForAccess()[0].map(request => ({
+        options: this.getTeamsForAccess()[0]!.map(request => ({
           value: request,
           label: `#${request}`,
         })),
       },
       {
         label: t('Pending Requests'),
-        options: this.getTeamsForAccess()[1].map(pending =>
+        options: this.getTeamsForAccess()[1]!.map(pending =>
           this.getPendingTeamOption(pending)
         ),
       },

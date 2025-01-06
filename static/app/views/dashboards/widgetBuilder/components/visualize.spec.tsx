@@ -17,8 +17,8 @@ jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/utils/useNavigate');
 
 describe('Visualize', () => {
-  let organization;
-  let mockNavigate;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -92,7 +92,7 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeEnabled();
-    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]);
+    await userEvent.click(screen.queryAllByRole('button', {name: 'Remove field'})[0]!);
 
     expect(screen.queryAllByRole('button', {name: 'Remove field'})[0]).toBeDisabled();
   });
@@ -501,6 +501,109 @@ describe('Visualize', () => {
     );
     expect(screen.getByText('is equal to')).toBeInTheDocument();
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+  });
+
+  it('disables the aggregate selection when there is only one aggregate option', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.ISSUE,
+              field: ['issue.id'],
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeDisabled();
+  });
+
+  it('does not show the legend alias input for chart widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['p90(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('transaction.duration');
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('p90');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not show the legend alias input for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow for selecting individual fields in big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+
+    // Being unable to choose "None" in the aggregate selection means that the
+    // individual field is not allowed, i.e. only aggregates appear.
+    expect(screen.queryByRole('option', {name: 'None'})).not.toBeInTheDocument();
   });
 
   describe('spans', () => {
