@@ -320,7 +320,7 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
     user_email = get_path(event_fixed, "user", "email")
-    if user_email and not event_fixed["tags"].get("user.email"):
+    if user_email and "user.email" not in event_fixed["tags"]:
         event_fixed["tags"]["user.email"] = user_email
 
     # Set the trace.id tag to expose it for the feedback UI.
