@@ -284,14 +284,13 @@ SentrySDK.start(configureOptions: { options in
   options.dsn = "${params.dsn.public}"
   options.debug = true
 
-  // Currently under experimental options:
-  options.experimental.sessionReplay.onErrorSampleRate = 1.0
-  options.experimental.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.onErrorSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.experimental.sessionReplay.redactAllText = true
-options.experimental.sessionReplay.redactAllImages = true`;
+options.sessionReplay.redactAllText = true
+options.sessionReplay.redactAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>
@@ -658,7 +657,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Make sure your Sentry Cocoa SDK version is at least 8.31.1. If you already have the SDK installed, you can update it to the latest version with:'
+        'Make sure your Sentry Cocoa SDK version is at least 8.43.0. If you already have the SDK installed, you can update it to the latest version with:'
       ),
       configurations: [
         {
@@ -733,10 +732,8 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
     },
   ],
   verify: getReplayVerifyStep({
-    replayOnErrorSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.onErrorSampleRate',
-    replaySessionSampleRateName:
-      'options\u200b.experimental\u200b.sessionReplay\u200b.sessionSampleRate',
+    replayOnErrorSampleRateName: 'options\u200b.sessionReplay\u200b.onErrorSampleRate',
+    replaySessionSampleRateName: 'options\u200b.sessionReplay\u200b.sessionSampleRate',
   }),
   nextSteps: () => [],
 };
