@@ -71,6 +71,10 @@ const trackViewContinuousProfile = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.view_continuous_profile', {
     organization,
   });
+const trackViewTransactionProfile = (organization: Organization) =>
+  trackAnalytics('trace.trace_layout.view_transaction_profile', {
+    organization,
+  });
 
 const trackTabPin = (organization: Organization) =>
   trackAnalytics('trace.trace_layout.tab_pin', {
@@ -209,6 +213,7 @@ const traceAnalytics = {
   trackShowInView,
   trackViewEventJSON,
   trackViewContinuousProfile,
+  trackViewTransactionProfile,
   // Layout actions
   trackLayoutChange,
   trackDrawerMinimize,
