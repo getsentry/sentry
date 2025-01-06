@@ -41,6 +41,7 @@ const BASE_CONFIG: IssueTypeConfig = {
   },
   attachments: {enabled: false},
   autofix: false,
+  detectorDetails: {enabled: false},
   events: {enabled: true},
   mergedIssues: {enabled: false},
   filterAndSearchHeader: {enabled: true},

@@ -20,6 +20,8 @@ import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSe
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
+import {MetricIssueSidebarSection} from './metricIssueSidebarSection';
+
 type Props = {
   group: Group;
   project: Project;
@@ -87,6 +89,12 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
         <Fragment>
           <StyledBreak />
           <MergedIssuesSidebarSection />
+        </Fragment>
+      )}
+      {issueTypeConfig.detectorDetails.enabled && (
+        <Fragment>
+          <StyledBreak />
+          <MetricIssueSidebarSection event={event} />
         </Fragment>
       )}
     </Side>
