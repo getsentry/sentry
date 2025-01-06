@@ -38,7 +38,7 @@ export function IssueViewTab({
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
-    const duplicatedTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
+    const duplicatedTab = views.find(tab => tab.key === tabListState?.selectedKey);
     if (!duplicatedTab) {
       return;
     }
@@ -56,7 +56,7 @@ export function IssueViewTab({
 
   const handleDiscardChanges = () => {
     dispatch({type: 'DISCARD_CHANGES'});
-    const originalTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
+    const originalTab = views.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       navigate({
         ...location,
@@ -74,9 +74,9 @@ export function IssueViewTab({
     dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
-    const nextTab = views.filter(tb => tb.key !== tab.key)[0]?.key;
+    const nextTab = views.find(tb => tb.key !== tab.key);
     if (nextTab) {
-      tabListState?.setSelectedKey(nextTab);
+      tabListState?.setSelectedKey(nextTab.key);
     }
   };
 
