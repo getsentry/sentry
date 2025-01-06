@@ -5,6 +5,7 @@ import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -363,6 +364,7 @@ type SpecialFields = {
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
+  device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
   issue: SpecialField;
@@ -678,6 +680,16 @@ const SPECIAL_FIELDS: SpecialFields = {
             <UserIcon size="md" />
           </FlexContainer>
         );
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
+  device: {
+    sortField: 'device',
+    renderFunc: data => {
+      if (typeof data.device === 'string') {
+        return <Container>{deviceNameMapper(data.device) || data.device}</Container>;
       }
 
       return <Container>{emptyValue}</Container>;
