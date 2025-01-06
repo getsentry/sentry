@@ -58,7 +58,7 @@ describe('WebVitalsDetailPanel', function () {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel webVital="lcp" />, {
+    render(<WebVitalsDetailPanel onClose={() => undefined} webVital="lcp" />, {
       organization,
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
