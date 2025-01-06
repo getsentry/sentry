@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const metricIssueConfig: IssueCategoryConfigMapping = {
@@ -13,7 +14,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     customCopy: {
-      resolution: 'Back to baseline',
+      resolution: t('Back to baseline'),
     },
     attachments: {enabled: false},
     resources: null,
