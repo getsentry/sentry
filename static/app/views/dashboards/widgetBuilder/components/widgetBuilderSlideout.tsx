@@ -162,7 +162,7 @@ function WidgetBuilderSlideout({
           </Section>
         )}
         <Section>
-          <WidgetBuilderNameAndDescription error={error} />
+          <WidgetBuilderNameAndDescription error={error} setError={setError} />
         </Section>
         <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
       </SlideoutBodyWrapper>
