@@ -22,6 +22,7 @@ import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBu
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 interface WidgetBuilderQueryFilterBuilderProps {
+  error: Record<string, any>;
   onQueryConditionChange: (valid: boolean) => void;
 }
 
