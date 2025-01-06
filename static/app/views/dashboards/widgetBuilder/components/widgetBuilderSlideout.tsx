@@ -129,7 +129,7 @@ function WidgetBuilderSlideout({
             </Section>
           )}
         <Section>
-          <WidgetBuilderTypeSelector error={error} />
+          <WidgetBuilderTypeSelector error={error} setError={setError} />
         </Section>
         <div ref={previewRef}>
           {isSmallScreen && (
