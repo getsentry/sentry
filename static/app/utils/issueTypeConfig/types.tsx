@@ -21,6 +21,7 @@ export type IssueTypeConfig = {
     deleteAndDiscard: DisabledWithReasonConfig;
     ignore: DisabledWithReasonConfig;
     merge: DisabledWithReasonConfig;
+    resolve: DisabledWithReasonConfig;
     resolveInRelease: DisabledWithReasonConfig;
     share: DisabledWithReasonConfig;
   };
@@ -32,6 +33,12 @@ export type IssueTypeConfig = {
    * Should show Autofix for this issue type
    */
   autofix: boolean;
+  /**
+   * Custom copy for actions and other UI elements
+   */
+  customCopy: {
+    resolution: string;
+  };
   /**
    * Is the "Open in Discover" button available for this issue
    */

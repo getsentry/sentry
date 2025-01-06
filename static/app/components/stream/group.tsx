@@ -410,6 +410,7 @@ function BaseGroupRow({
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
     [IssueCategory.UPTIME]: t('Uptime Events'),
+    [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
