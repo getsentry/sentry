@@ -83,18 +83,6 @@ class DataCondition(DefaultFieldsModel):
         on_delete=models.CASCADE,
     )
 
-    @property
-    def slow_conditions(self) -> list[Condition]:
-        return [
-            Condition.EVENT_FREQUENCY,
-            Condition.EVENT_UNIQUE_USER_FREQUENCY,
-            Condition.EVENT_FREQUENCY_PERCENT,
-            Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS,
-        ]
-
-    def is_slow_condition(self):
-        return Condition(self.type) in self.slow_conditions
-
     def get_condition_result(self) -> DataConditionResult:
         match self.condition_result:
             case float() | bool():
@@ -142,26 +130,13 @@ class DataCondition(DefaultFieldsModel):
         return self.get_condition_result() if result else None
 
 
-@receiver(pre_save, sender=DataCondition)
-def enforce_comparison_schema(sender, instance: DataCondition, **kwargs):
+SLOW_CONDITIONS = [
+    Condition.EVENT_FREQUENCY,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY,
+    Condition.EVENT_FREQUENCY_PERCENT,
+    Condition.EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS,
+]
 
-    condition_type = Condition(instance.type)
-    if condition_type in CONDITION_OPS:
-        # don't enforce schema for default ops, this can be any type
-        return
 
-    try:
-        handler = condition_handler_registry.get(condition_type)
-    except NoRegistrationExistsError:
-        logger.exception(
-            "No registration exists for condition",
-            extra={"type": instance.type, "id": instance.id},
-        )
-        return None
-
-    schema = handler.comparison_json_schema
-
-    try:
-        validate(instance.comparison, schema)
-    except ValidationError as e:
-        raise ValidationError(f"Invalid config: {e.message}")
+def is_slow_condition(cond: DataCondition) -> bool:
+    return Condition(cond.type) in SLOW_CONDITIONS

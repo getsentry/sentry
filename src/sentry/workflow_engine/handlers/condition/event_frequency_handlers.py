@@ -11,6 +11,7 @@ from sentry import tsdb
 from sentry.issues.constants import get_issue_tsdb_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
+from sentry.rules.conditions.event_frequency import SNUBA_LIMIT, STANDARD_INTERVALS
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 from sentry.utils.iterators import chunked
@@ -18,25 +19,6 @@ from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
-
-SNUBA_LIMIT = 10000
-STANDARD_INTERVALS: dict[str, tuple[str, timedelta]] = {
-    "1m": ("one minute", timedelta(minutes=1)),
-    "5m": ("5 minutes", timedelta(minutes=5)),
-    "15m": ("15 minutes", timedelta(minutes=15)),
-    "1h": ("one hour", timedelta(hours=1)),
-    "1d": ("one day", timedelta(hours=24)),
-    "1w": ("one week", timedelta(days=7)),
-    "30d": ("30 days", timedelta(days=30)),
-}
-COMPARISON_INTERVALS: dict[str, tuple[str, timedelta]] = {
-    "5m": ("5 minutes", timedelta(minutes=5)),
-    "15m": ("15 minutes", timedelta(minutes=15)),
-    "1h": ("one hour", timedelta(hours=1)),
-    "1d": ("one day", timedelta(hours=24)),
-    "1w": ("one week", timedelta(days=7)),
-    "30d": ("30 days", timedelta(days=30)),
-}
 
 
 class _QSTypedDict(TypedDict):
@@ -215,31 +197,30 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
-        if error_issue_ids and organization_id:
-            error_sums = self.get_chunked_result(
-                tsdb_function=tsdb.backend.get_sums,
-                model=get_issue_tsdb_group_model(GroupCategory.ERROR),
-                group_ids=error_issue_ids,
-                organization_id=organization_id,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-                referrer_suffix="batch_alert_event_frequency",
-            )
-            batch_sums.update(error_sums)
+        if not organization_id:
+            return batch_sums
 
-        if generic_issue_ids and organization_id:
-            generic_sums = self.get_chunked_result(
+        def get_result(model, group_ids):
+            return self.get_chunked_result(
                 tsdb_function=tsdb.backend.get_sums,
-                # this isn't necessarily performance, just any non-error category
-                model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
-                group_ids=generic_issue_ids,
+                model=model,
+                group_ids=group_ids,
                 organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
                 referrer_suffix="batch_alert_event_frequency",
             )
-            batch_sums.update(generic_sums)
+
+        if error_issue_ids:
+            batch_sums.update(
+                get_result(get_issue_tsdb_group_model(GroupCategory.ERROR), error_issue_ids)
+            )
+
+        if generic_issue_ids:
+            # this isn't necessarily performance, just any non-error category
+            batch_sums.update(
+                get_result(get_issue_tsdb_group_model(GroupCategory.PERFORMANCE), generic_issue_ids)
+            )
 
         return batch_sums
