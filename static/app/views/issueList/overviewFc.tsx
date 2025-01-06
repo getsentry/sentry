@@ -1102,7 +1102,6 @@ function IssueListOverviewFc({
         {organization.features.includes('issue-stream-custom-views') ? (
           <ErrorBoundary message={'Failed to load custom tabs'} mini>
             <IssueViewsIssueListHeader
-              organization={organization}
               router={router}
               selectedProjectIds={selection.projects}
               realtimeActive={realtimeActive}
