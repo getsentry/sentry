@@ -8,6 +8,7 @@ from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
+@freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
 class TestAgeComparisonCondition(ConditionTestCase):
     condition = Condition.AGE_COMPARISON
     rule_cls = AgeComparisonFilter
@@ -26,7 +27,6 @@ class TestAgeComparisonCondition(ConditionTestCase):
             }
         )
 
-    # @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     def setUp(self):
         super().setUp()
         self.job = WorkflowJob(
@@ -53,7 +53,6 @@ class TestAgeComparisonCondition(ConditionTestCase):
         assert dc.condition_result is True
         assert dc.condition_group == dcg
 
-    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     def test_older_applies_correctly(self):
         self.dc.update(
             comparison={"comparison_type": AgeComparisonType.OLDER, "value": "10", "time": "hour"}
@@ -67,7 +66,6 @@ class TestAgeComparisonCondition(ConditionTestCase):
         )
         self.assert_passes(self.dc, self.job)
 
-    @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
     def test_newer_applies_correctly(self):
         self.dc.update(
             comparison={"comparison_type": AgeComparisonType.NEWER, "value": "10", "time": "hour"}
