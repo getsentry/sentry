@@ -707,25 +707,4 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.legendAlias).toEqual(['test3', 'test4']);
     });
   });
-
-  describe('error', () => {
-    it('can get and update error', () => {
-      const {result} = renderHook(() => useWidgetBuilderState(), {
-        wrapper: WidgetBuilderProvider,
-      });
-
-      expect(result.current.state.error).toEqual({});
-
-      act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_ERROR,
-          payload: {title: 'Title is required during creation'},
-        });
-      });
-
-      expect(result.current.state.error).toEqual({
-        title: 'Title is required during creation',
-      });
-    });
-  });
 });
