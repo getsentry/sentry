@@ -36,4 +36,3 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
             return any(assignee.team and assignee.team_id == target_id for assignee in assignees)
         elif target_type == AssigneeTargetType.MEMBER:
             return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
-        return False
