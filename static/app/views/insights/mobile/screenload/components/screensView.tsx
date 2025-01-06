@@ -210,7 +210,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     yAxes,
     primaryRelease,
     secondaryRelease,
-    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2),
+    colorPalette: theme.charts.getColorPalette(TOP_SCREENS - 2) ?? [],
     releaseEvents,
     topTransactions,
   });

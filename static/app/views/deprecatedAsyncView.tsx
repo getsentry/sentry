@@ -11,13 +11,11 @@ export type AsyncViewProps = DeprecatedAsyncComponent['props'];
  *
  * [1]: https://develop.sentry.dev/frontend/network-requests/
  */
-export default class DeprecatedAsyncView<
+export default abstract class DeprecatedAsyncView<
   P extends AsyncViewProps = AsyncViewProps,
   S extends AsyncViewState = AsyncViewState,
 > extends DeprecatedAsyncComponent<P, S> {
-  getTitle() {
-    return '';
-  }
+  abstract getTitle(): string;
 
   render() {
     return (

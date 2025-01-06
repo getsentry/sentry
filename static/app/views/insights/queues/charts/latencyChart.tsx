@@ -40,7 +40,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
         ]}
         loading={isPending}
         error={error}
-        chartColors={CHART_PALETTE[2]!.slice(1)}
+        chartColors={CHART_PALETTE[2].slice(1)}
         type={ChartType.AREA}
         showLegend
         stacked
