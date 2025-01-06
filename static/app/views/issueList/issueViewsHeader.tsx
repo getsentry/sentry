@@ -18,13 +18,13 @@ import {IconMegaphone, IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {
@@ -32,8 +32,8 @@ import {
   type IssueView,
   IssueViews,
   IssueViewsContext,
-} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
-import {IssueViewTab} from 'sentry/views/issueList/groupSearchViewTabs/issueViewTab';
+} from 'sentry/views/issueList/issueViews/issueViews';
+import {IssueViewTab} from 'sentry/views/issueList/issueViews/issueViewTab';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {NewTabContext} from 'sentry/views/issueList/utils/newTabContext';
 
@@ -41,14 +41,12 @@ import {IssueSortOptions} from './utils';
 
 type IssueViewsIssueListHeaderProps = {
   onRealtimeChange: (realtime: boolean) => void;
-  organization: Organization;
   realtimeActive: boolean;
   router: InjectedRouter;
   selectedProjectIds: number[];
 };
 
 type IssueViewsIssueListHeaderTabsContentProps = {
-  organization: Organization;
   router: InjectedRouter;
 };
 
@@ -56,8 +54,9 @@ function IssueViewsIssueListHeader({
   selectedProjectIds,
   realtimeActive,
   onRealtimeChange,
-  ...props
+  router,
 }: IssueViewsIssueListHeaderProps) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
@@ -66,7 +65,7 @@ function IssueViewsIssueListHeader({
   const {newViewActive} = useContext(NewTabContext);
 
   const {data: groupSearchViews} = useFetchGroupSearchViews({
-    orgSlug: props.organization.slug,
+    orgSlug: organization.slug,
   });
 
   const realtimeTitle = realtimeActive
@@ -74,14 +73,14 @@ function IssueViewsIssueListHeader({
     : t('Enable real-time updates');
 
   const openForm = useFeedbackForm();
-  const hasNewLayout = props.organization.features.includes('issue-stream-table-layout');
+  const hasNewLayout = organization.features.includes('issue-stream-table-layout');
 
   return (
     <Layout.Header
       noActionWrap
       // No viewId in the URL query means that a temp view is selected, which has a dashed border
       borderStyle={
-        groupSearchViews && !props.router?.location.query.viewId ? 'dashed' : 'solid'
+        groupSearchViews && !router?.location.query.viewId ? 'dashed' : 'solid'
       }
     >
       <Layout.HeaderContent>
@@ -132,7 +131,7 @@ function IssueViewsIssueListHeader({
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
       {groupSearchViews ? (
         <StyledIssueViews
-          router={props.router}
+          router={router}
           initialViews={groupSearchViews.map(
             (
               {id, name, query: viewQuery, querySort: viewQuerySort},
@@ -151,7 +150,7 @@ function IssueViewsIssueListHeader({
             }
           )}
         >
-          <IssueViewsIssueListHeaderTabsContent {...props} />
+          <IssueViewsIssueListHeaderTabsContent router={router} />
         </StyledIssueViews>
       ) : (
         <div style={{height: 33}} />
@@ -161,9 +160,9 @@ function IssueViewsIssueListHeader({
 }
 
 function IssueViewsIssueListHeaderTabsContent({
-  organization,
   router,
 }: IssueViewsIssueListHeaderTabsContentProps) {
+  const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
   const pageFilters = usePageFilters();
