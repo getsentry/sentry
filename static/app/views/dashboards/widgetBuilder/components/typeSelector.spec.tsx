@@ -27,7 +27,7 @@ describe('TypeSelector', () => {
 
     render(
       <WidgetBuilderProvider>
-        <TypeSelector />
+        <TypeSelector error={{}} />
       </WidgetBuilderProvider>,
       {
         router,

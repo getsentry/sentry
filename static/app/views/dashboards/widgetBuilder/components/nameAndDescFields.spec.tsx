@@ -33,7 +33,7 @@ describe('WidgetBuilder', () => {
 
     render(
       <WidgetBuilderProvider>
-        <WidgetBuilderNameAndDescription />
+        <WidgetBuilderNameAndDescription error={{}} />
       </WidgetBuilderProvider>,
       {
         router,
