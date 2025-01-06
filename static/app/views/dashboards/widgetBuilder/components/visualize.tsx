@@ -474,7 +474,7 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [...(fields ?? []), datasetConfig.defaultField],
+              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
             })
           }
         >
