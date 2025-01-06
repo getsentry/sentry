@@ -106,23 +106,21 @@ class BaseEventFrequencyConditionHandler(DataConditionHandler[int], ABC):
             batch_totals.update(result)
         return batch_totals
 
-    def get_error_and_generic_group_ids(
+    def get_group_ids_by_category(
         self,
         groups: QuerySet[Group, _QSTypedDict],
-    ) -> tuple[list[int], list[int]]:
+    ) -> dict[GroupCategory, list[int]]:
         """
         Separate group ids into error group ids and generic group ids
         """
-        generic_issue_ids = []
-        error_issue_ids = []
+        category_group_ids: dict[GroupCategory, list[int]] = defaultdict(list)
 
         for group in groups:
             issue_type = get_group_type_by_type_id(group["type"])
-            if GroupCategory(issue_type.category) == GroupCategory.ERROR:
-                error_issue_ids.append(group["id"])
-            else:
-                generic_issue_ids.append(group["id"])
-        return (error_issue_ids, generic_issue_ids)
+            category = GroupCategory(issue_type.category)
+            category_group_ids[category].append(group["id"])
+
+        return category_group_ids
 
     def get_value_from_groups(
         self,
@@ -194,13 +192,13 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
         groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
-        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        category_group_ids = self.get_group_ids_by_category(groups)
         organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
         if not organization_id:
             return batch_sums
 
-        def get_result(model, group_ids):
+        def get_result(model: TSDBModel, group_ids: list[int]) -> dict[int, int]:
             return self.get_chunked_result(
                 tsdb_function=tsdb.backend.get_sums,
                 model=model,
@@ -212,15 +210,10 @@ class EventFrequencyConditionHandler(BaseEventFrequencyConditionHandler):
                 referrer_suffix="batch_alert_event_frequency",
             )
 
-        if error_issue_ids:
-            batch_sums.update(
-                get_result(get_issue_tsdb_group_model(GroupCategory.ERROR), error_issue_ids)
-            )
-
-        if generic_issue_ids:
-            # this isn't necessarily performance, just any non-error category
-            batch_sums.update(
-                get_result(get_issue_tsdb_group_model(GroupCategory.PERFORMANCE), generic_issue_ids)
-            )
+        for category, issue_ids in category_group_ids.items():
+            model = get_issue_tsdb_group_model(
+                category
+            )  # TODO: may need to update logic for crons, metric issues, uptime
+            batch_sums.update(get_result(model, issue_ids))
 
         return batch_sums

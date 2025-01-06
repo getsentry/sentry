@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition
 from sentry.testutils.skips import requires_snuba
@@ -74,7 +75,8 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         groups = Group.objects.filter(
             id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
         ).values("id", "type", "project_id", "project__organization_id")
-        error_issue_ids, generic_issue_ids = self.handler().get_error_and_generic_group_ids(groups)
-        assert self.event.group_id in error_issue_ids
-        assert self.event2.group_id in error_issue_ids
-        assert self.perf_event.group_id in generic_issue_ids
+        category_group_ids = self.handler().get_group_ids_by_category(groups)
+        error_group_ids = category_group_ids[GroupCategory.ERROR]
+        assert self.event.group_id in error_group_ids
+        assert self.event2.group_id in error_group_ids
+        assert self.perf_event.group_id in category_group_ids[GroupCategory.PERFORMANCE]
