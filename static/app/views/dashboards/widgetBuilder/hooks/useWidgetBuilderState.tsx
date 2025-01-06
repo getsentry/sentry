@@ -241,6 +241,12 @@ function useWidgetBuilderState(): {
               field => generateFieldAsString(field) === sort?.[0]?.field
             )
           ) {
+            if (dataset === WidgetType.ISSUE) {
+              // Issue widgets can sort their tables by limited fields that aren't
+              // in the fields array.
+              return;
+            }
+
             if (isRemoved) {
               setSort([
                 {
@@ -308,6 +314,7 @@ function useWidgetBuilderState(): {
       displayType,
       query,
       sort,
+      dataset,
     ]
   );
 
