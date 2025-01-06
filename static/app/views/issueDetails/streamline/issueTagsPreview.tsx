@@ -22,33 +22,35 @@ export default function IssueTagsPreview({
     environment: environments,
     limit: 3,
   });
-  const tagToPreview = useMemo(() => {
+  const tagsToPreview = useMemo(() => {
     const priorityTags = ['browser.name', 'os.name', 'runtime.name', 'environment'];
     // Sort tags based on priority order defined in priorityTags array
     const sortedTags = tags
       ?.filter(tag => priorityTags.includes(tag.key))
       .sort((a, b) => priorityTags.indexOf(a.key) - priorityTags.indexOf(b.key));
 
-    return sortedTags?.[0] ?? null;
+    return sortedTags?.slice(0, 2) ?? null;
   }, [tags]);
 
   if (isPending) {
     return (
       <LoadingContainer style={{paddingTop: space(1)}}>
-        <Placeholder width="155px" height="95px" />
+        <Placeholder width="320px" height="95px" />
         <SectionDivider />
       </LoadingContainer>
     );
   }
 
-  if (isError || !tagToPreview) {
+  if (isError || !tagsToPreview) {
     return null;
   }
 
   return (
     <Fragment>
       <TagsPreview>
-        <TagPreviewDistribution tag={tagToPreview} />
+        {tagsToPreview.map(tag => (
+          <TagPreviewDistribution key={tag.key} tag={tag} />
+        ))}
       </TagsPreview>
       <SectionDivider />
     </Fragment>
@@ -57,11 +59,25 @@ export default function IssueTagsPreview({
 
 const TagsPreview = styled('div')`
   padding-top: ${space(1)};
-  max-width: 25%;
-  width: 155px;
+  max-width: 40%;
+  width: 320px;
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
+  }
+
+  > *:nth-child(2) {
+    @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
+      display: none;
+    }
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
+    max-width: 20%;
+    width: 160px;
   }
 `;
 
