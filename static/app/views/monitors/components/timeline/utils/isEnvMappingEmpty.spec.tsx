@@ -1,4 +1,4 @@
-import {isEnvMappingEmpty} from './isEnvMappingEmpty';
+import {isEnvMappingEmpty, isStatsBucketEmpty} from './isEnvMappingEmpty';
 
 describe('isEnvMappingEmpty', function () {
   it('returns true for an empty env', function () {
@@ -11,5 +11,17 @@ describe('isEnvMappingEmpty', function () {
       prod: {ok: 1, missed: 0, timeout: 0, error: 0, in_progress: 0, unknown: 0},
     };
     expect(isEnvMappingEmpty(envMapping)).toBe(false);
+  });
+});
+
+describe('isStatsBucketEmpty', function () {
+  it('returns true for an empty env', function () {
+    const stats = {ok: 0, missed: 0, timeout: 0, error: 0, in_progress: 0, unknown: 0};
+    expect(isStatsBucketEmpty(stats)).toEqual(true);
+  });
+
+  it('returns false for a filled env', function () {
+    const stats = {ok: 1, missed: 0, timeout: 0, error: 0, in_progress: 0, unknown: 0};
+    expect(isStatsBucketEmpty(stats)).toEqual(false);
   });
 });
