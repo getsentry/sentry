@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
@@ -23,6 +23,7 @@ import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/modu
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -47,6 +48,27 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
+
+  const {openSamplesDrawer} = useSamplesDrawer({
+    Component: (
+      <SampleList
+        transactionRoute={webVitalsModuleURL}
+        subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
+        groupId={groupId!}
+        moduleName={ModuleName.RESOURCE}
+        transactionName={transaction as string}
+        referrer={TraceViewSources.ASSETS_MODULE}
+      />
+    ),
+    moduleName: ModuleName.RESOURCE,
+  });
+
+  useEffect(() => {
+    if (transaction) {
+      openSamplesDrawer();
+    }
+  });
+
   const {data, isPending} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
@@ -138,17 +160,6 @@ function ResourceSummary() {
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
-              </ModuleLayout.Full>
-
-              <ModuleLayout.Full>
-                <SampleList
-                  transactionRoute={webVitalsModuleURL}
-                  subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-                  groupId={groupId!}
-                  moduleName={ModuleName.RESOURCE}
-                  transactionName={transaction as string}
-                  referrer={TraceViewSources.ASSETS_MODULE}
-                />
               </ModuleLayout.Full>
             </ModuleLayout.Layout>
           </Layout.Main>

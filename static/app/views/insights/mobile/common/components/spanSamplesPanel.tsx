@@ -1,19 +1,16 @@
-import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanSamplesContainer} from 'sentry/views/insights/mobile/common/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -42,12 +39,10 @@ export function SpanSamplesPanel({
   transactionName,
   transactionMethod,
   spanDescription,
-  onClose,
   transactionRoute,
   spanOp,
   additionalFilters,
 }: Props) {
-  const router = useRouter();
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
 
@@ -55,23 +50,8 @@ export function SpanSamplesPanel({
 
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  // A a transaction name is required to show the panel, but a transaction
-  // method is not
-  const detailKey = transactionName
-    ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
-    : undefined;
-
   const {query} = useLocation();
   const {project} = useCrossPlatformProject();
-
-  const onOpenDetailPanel = useCallback(() => {
-    if (query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: moduleName,
-      });
-    }
-  }, [organization, query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -85,22 +65,11 @@ export function SpanSamplesPanel({
     })}`
   );
 
-  function defaultOnClose() {
-    router.replace({
-      pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod'),
-    });
-  }
-
   return (
     <PageAlertProvider>
-      <DetailPanel
-        detailKey={detailKey}
-        onClose={() => {
-          onClose ? onClose() : defaultOnClose();
-        }}
-        onOpen={onOpenDetailPanel}
-      >
+      <DrawerHeader />
+
+      <SampleDrawerBody>
         <HeaderContainer>
           {project && (
             <SpanSummaryProjectAvatar
@@ -147,7 +116,7 @@ export function SpanSamplesPanel({
             />
           </ChartsContainerItem>
         </ChartsContainer>
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }
