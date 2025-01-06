@@ -1,5 +1,6 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,6 +10,7 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -18,7 +20,6 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -78,6 +79,7 @@ function ScreenLoadSpans() {
 
 export function ScreenLoadSpansContent() {
   const location = useLocation<Query>();
+  const router = useRouter();
 
   const {
     spanGroup,
@@ -86,24 +88,6 @@ export function ScreenLoadSpansContent() {
     transaction: transactionName,
     spanDescription,
   } = location.query;
-
-  const {openSamplesDrawer} = useSamplesDrawer({
-    Component: (
-      <SpanSamplesPanel
-        groupId={spanGroup}
-        moduleName={ModuleName.SCREEN_LOAD}
-        transactionName={transactionName}
-        spanDescription={spanDescription}
-      />
-    ),
-    moduleName: ModuleName.SCREEN_LOAD,
-  });
-
-  useEffect(() => {
-    if (transactionName && spanGroup) {
-      openSamplesDrawer();
-    }
-  });
 
   return (
     <Fragment>
@@ -196,6 +180,20 @@ export function ScreenLoadSpansContent() {
           primaryRelease={primaryRelease}
           secondaryRelease={secondaryRelease}
         />
+        {spanGroup && (
+          <SpanSamplesPanel
+            groupId={spanGroup}
+            moduleName={ModuleName.SCREEN_LOAD}
+            transactionName={transactionName}
+            spanDescription={spanDescription}
+            onClose={() => {
+              router.replace({
+                pathname: router.location.pathname,
+                query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
+              });
+            }}
+          />
+        )}
       </ErrorBoundary>
     </Fragment>
   );
