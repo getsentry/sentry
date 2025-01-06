@@ -33,11 +33,7 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
         target_id = comparison.get("target_identifier")
 
         if target_type == AssigneeTargetType.TEAM:
-            for assignee in assignees:
-                if assignee.team and assignee.team_id == target_id:
-                    return True
+            return any(assignee.team and assignee.team_id == target_id for assignee in assignees)
         elif target_type == AssigneeTargetType.MEMBER:
-            for assignee in assignees:
-                if assignee.user_id and assignee.user_id == target_id:
-                    return True
+            return any(assignee.user_id and assignee.user_id == target_id for assignee in assignees)
         return False
