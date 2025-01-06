@@ -103,7 +103,7 @@ SentryAndroid.init(context) { options ->
   options.isDebug = true
 
   options.sessionReplay.onErrorSampleRate = 1.0
-  options.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 }`;
 
 const getReplaySetupSnippetXml = () => `

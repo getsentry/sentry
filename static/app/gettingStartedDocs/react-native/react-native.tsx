@@ -80,7 +80,7 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  replaysSessionSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
   integrations: [
     Sentry.mobileReplayIntegration(),

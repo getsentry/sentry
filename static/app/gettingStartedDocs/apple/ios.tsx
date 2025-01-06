@@ -285,7 +285,7 @@ SentrySDK.start(configureOptions: { options in
   options.debug = true
 
   options.sessionReplay.onErrorSampleRate = 1.0
-  options.sessionReplay.sessionSampleRate = 1.0
+  options.sessionReplay.sessionSampleRate = 0.1
 })`;
 
 const getReplayConfigurationSnippet = () => `
