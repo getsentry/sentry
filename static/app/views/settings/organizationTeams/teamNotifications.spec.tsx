@@ -92,7 +92,7 @@ describe('TeamNotificationSettings', () => {
 
     expect(input).toBeDisabled();
     expect(input).toHaveValue(EXTERNAL_NAME);
-    expect(screen.getByRole('button', {name: 'delete'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Unlink'})).toBeInTheDocument();
   });
 
   it('should delete be able to delete the externalTeam', async () => {
@@ -114,7 +114,7 @@ describe('TeamNotificationSettings', () => {
 
     render(<TeamNotificationSettings />, {router, organization});
 
-    await userEvent.click(await screen.findByRole('button', {name: 'delete'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Unlink'}));
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
