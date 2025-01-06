@@ -1290,15 +1290,13 @@ def sdk_crash_monitoring(job: PostProcessJob):
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    configs = build_sdk_crash_detection_configs()
-    if not configs or len(configs) == 0:
-        return None
+    with sentry_sdk.start_span(op="post_process.build_sdk_crash_config"):
+        configs = build_sdk_crash_detection_configs()
+        if not configs or len(configs) == 0:
+            return None
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
-        sdk_crash_detection.detect_sdk_crash(
-            event=event,
-            configs=configs,
-        )
+    with sentry_sdk.start_span(op="post_process.detect_sdk_crash"):
+        sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
 
 def plugin_post_process_group(plugin_slug, event, **kwargs):
