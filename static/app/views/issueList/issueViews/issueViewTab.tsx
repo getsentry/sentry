@@ -7,13 +7,13 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import EditableTabTitle from 'sentry/views/issueList/groupSearchViewTabs/editableTabTitle';
-import {IssueViewEllipsisMenu} from 'sentry/views/issueList/groupSearchViewTabs/issueViewEllipsisMenu';
+import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
+import {IssueViewEllipsisMenu} from 'sentry/views/issueList/issueViews/issueViewEllipsisMenu';
 import {
   generateTempViewId,
   type IssueView,
   IssueViewsContext,
-} from 'sentry/views/issueList/groupSearchViewTabs/issueViews';
+} from 'sentry/views/issueList/issueViews/issueViews';
 
 interface IssueViewTabProps {
   editingTabKey: string | null;
@@ -34,11 +34,11 @@ export function IssueViewTab({
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
-  const {views: tabs} = state;
+  const {views} = state;
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
-    const duplicatedTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
+    const duplicatedTab = views.find(tab => tab.key === tabListState?.selectedKey);
     if (!duplicatedTab) {
       return;
     }
@@ -56,7 +56,7 @@ export function IssueViewTab({
 
   const handleDiscardChanges = () => {
     dispatch({type: 'DISCARD_CHANGES'});
-    const originalTab = state.views.find(tab => tab.key === tabListState?.selectedKey);
+    const originalTab = views.find(tab => tab.key === tabListState?.selectedKey);
     if (originalTab) {
       navigate({
         ...location,
@@ -74,7 +74,10 @@ export function IssueViewTab({
     dispatch({type: 'DELETE_VIEW', syncViews: true});
     // Including this logic in the dispatch call breaks the tests for some reason
     // so we're doing it here instead
-    tabListState?.setSelectedKey(tabs.filter(tb => tb.key !== tab.key)[0]!.key);
+    const nextTab = views.find(tb => tb.key !== tab.key);
+    if (nextTab) {
+      tabListState?.setSelectedKey(nextTab.key);
+    }
   };
 
   const makeMenuOptions = (tab: IssueView): MenuItemProps[] => {
@@ -88,7 +91,7 @@ export function IssueViewTab({
       return makeUnsavedChangesMenuOptions({
         onRename: () => setEditingTabKey(tab.key),
         onDuplicate: handleDuplicateView,
-        onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
+        onDelete: views.length > 1 ? () => handleDeleteView(tab) : undefined,
         onSave: () => dispatch({type: 'SAVE_CHANGES', syncViews: true}),
         onDiscard: handleDiscardChanges,
       });
@@ -96,7 +99,7 @@ export function IssueViewTab({
     return makeDefaultMenuOptions({
       onRename: () => setEditingTabKey(tab.key),
       onDuplicate: handleDuplicateView,
-      onDelete: tabs.length > 1 ? () => handleDeleteView(tab) : undefined,
+      onDelete: views.length > 1 ? () => handleDeleteView(tab) : undefined,
     });
   };
 
@@ -115,9 +118,8 @@ export function IssueViewTab({
         }
       />
       {/* If tablistState isn't initialized, we want to load the elipsis menu
-                for the initial tab, that way it won't load in a second later
-                and cause the tabs to shift and animate on load.
-            */}
+          for the initial tab, that way it won't load in a second later
+          and cause the tabs to shift and animate on load. */}
       {((tabListState && tabListState?.selectedKey === view.key) ||
         (!tabListState && view.key === initialTabKey)) && (
         <motion.div
