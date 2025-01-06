@@ -67,6 +67,7 @@ export enum IssueCategory {
   CRON = 'cron',
   REPLAY = 'replay',
   UPTIME = 'uptime',
+  METRIC_ALERT = 'metric_alert',
 }
 
 export enum IssueType {

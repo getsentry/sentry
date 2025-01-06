@@ -19,6 +19,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
@@ -223,6 +224,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {
         enabled: false,
         disabledReason: t('Not yet supported for regression issues'),
@@ -354,6 +356,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolve: {enabled: true},
       resolveInRelease: {
         enabled: false,
         disabledReason: t('Not yet supported for regression issues'),
