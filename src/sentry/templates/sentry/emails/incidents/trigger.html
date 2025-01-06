@@ -50,17 +50,6 @@
           <td width="25%">Environment</td>
           <td>{{ environment }}</td>
           </tr>
-          {% if monitor_type == 1 %}
-            <tr>
-              {% if condition_type == 0 %}
-                <td width="25%">New Release</td>
-                <td>{{activator}}</td>
-              {% elif condition_type == 1 %}
-                <td width="25%">New Deploy</td>
-                <td>{{activator}}</td>
-              {% endif %}
-              </tr>
-          {% endif %}
         <tr>
           <td width="25%">Threshold</td>
           <td>
