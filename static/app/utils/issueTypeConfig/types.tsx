@@ -40,6 +40,10 @@ export type IssueTypeConfig = {
     resolution: string;
   };
   /**
+   * Does the issue have detector data to show
+   */
+  detectorDetails: DisabledWithReasonConfig;
+  /**
    * Is the "Open in Discover" button available for this issue
    */
   discover: DisabledWithReasonConfig;
