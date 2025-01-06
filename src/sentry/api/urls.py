@@ -87,7 +87,6 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-
 from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
     OrganizationAlertRuleAnomaliesEndpoint,
 )
