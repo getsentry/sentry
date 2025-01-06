@@ -27,6 +27,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import {DynamicResources} from 'sentry/views/issueDetails/streamline/sidebar/dynamicResources';
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 
 interface AutofixStartBoxProps {
@@ -162,18 +163,25 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
         <Header>{t('Solutions Hub')}</Header>
       </SolutionsDrawerNavigator>
       <SolutionsDrawerBody>
-        {config.resources && (
+        {(config.resources || aiConfig.hasResources) && (
           <ResourcesContainer>
             <ResourcesHeader>
               <IconDocs size="md" />
               {t('Resources')}
             </ResourcesHeader>
+
             <ResourcesBody>
-              <Resources
-                eventPlatform={event?.platform}
-                group={group}
-                configResources={config.resources}
-              />
+              {config.resources ? (
+                <Resources
+                  eventPlatform={event?.platform}
+                  group={group}
+                  configResources={config.resources}
+                />
+              ) : (
+                aiConfig.hasResources && (
+                  <DynamicResources group={group} event={event} project={project} />
+                )
+              )}
             </ResourcesBody>
           </ResourcesContainer>
         )}
@@ -243,7 +251,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
 
 const ResourcesContainer = styled('div')``;
 const ResourcesBody = styled('div')`
-  padding: 0 ${space(2)} ${space(2)} ${space(2)};
+  padding: 0 14px ${space(2)} 14px;
   border-bottom: 1px solid ${p => p.theme.border};
   margin-bottom: ${space(2)};
 `;
@@ -366,10 +374,10 @@ const StarLarge3 = styled(StarLarge)`
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
+  border-radius: ${p => p.theme.borderRadius};
+  border: 1px solid ${p => p.theme.innerBorder};
+  overflow: hidden;
   padding: ${space(1.5)} ${space(2)};
 `;
 
