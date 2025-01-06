@@ -10,7 +10,6 @@ from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import IncidentActivityType
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import ErrorGroupType
