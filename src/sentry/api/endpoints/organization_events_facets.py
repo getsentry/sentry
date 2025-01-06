@@ -12,7 +12,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.search.utils import DEVICE_CLASS
-from sentry.snuba import discover
 
 
 class _TopValue(TypedDict):
@@ -43,10 +42,12 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
 
         update_snuba_params_with_timestamp(request, snuba_params, timestamp_key="traceTimestamp")
 
+        dataset = self.get_dataset(request)
+
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 with handle_query_errors():
-                    facets = discover.get_facets(
+                    facets = dataset.get_facets(
                         query=request.GET.get("query"),
                         snuba_params=snuba_params,
                         referrer="api.organization-events-facets.top-tags",

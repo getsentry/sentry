@@ -157,3 +157,16 @@ def top_events_timeseries(
         dataset=Dataset.Transactions,
         query_source=query_source,
     )
+
+
+def get_facets(
+    query: str | None,
+    snuba_params: SnubaParams,
+    referrer: str,
+    per_page: int | None = discover.TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.Transactions,
+) -> list[discover.FacetResult]:
+    return discover.get_facets(
+        query, snuba_params, referrer, per_page, cursor, Dataset.Transactions
+    )
