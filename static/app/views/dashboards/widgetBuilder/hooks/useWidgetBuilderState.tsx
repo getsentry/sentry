@@ -45,7 +45,6 @@ export const BuilderStateAction = {
   SET_SORT: 'SET_SORT',
   SET_LIMIT: 'SET_LIMIT',
   SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
-  SET_ERROR: 'SET_ERROR',
 } as const;
 
 type WidgetAction =
