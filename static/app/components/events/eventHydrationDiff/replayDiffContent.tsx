@@ -1,6 +1,7 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Placeholder from 'sentry/components/placeholder';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
+import {DiffCompareContextProvider} from 'sentry/components/replays/diff/diffCompareContext';
 import {ReplaySliderDiff} from 'sentry/components/replays/diff/replaySliderDiff';
 import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupContext';
 import {t} from 'sentry/locale';
@@ -53,12 +54,13 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     >
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
-          <ReplaySliderDiff
-            minHeight="355px"
-            leftOffsetMs={leftOffsetMs}
+          <DiffCompareContextProvider
             replay={replay}
-            rightOffsetMs={rightOffsetMs}
-          />
+            initialLeftOffsetMs={leftOffsetMs}
+            initialRightOffsetMs={rightOffsetMs}
+          >
+            <ReplaySliderDiff minHeight="355px" />
+          </DiffCompareContextProvider>
         </ReplayGroupContextProvider>
       </ErrorBoundary>
     </InterimSection>

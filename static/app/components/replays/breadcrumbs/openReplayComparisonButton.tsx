@@ -59,8 +59,8 @@ export function OpenReplayComparisonButton({
               <LazyComparisonModal
                 replay={replay}
                 organization={organization}
-                leftOffsetMs={leftOffsetMs}
-                rightOffsetMs={rightOffsetMs}
+                initialLeftOffsetMs={leftOffsetMs}
+                initialRightOffsetMs={rightOffsetMs}
                 {...deps}
               />
             </Suspense>
