@@ -22,7 +22,7 @@ class TestEventFrequencyCondition(ConditionTestCase):
     rule_cls = EventFrequencyCondition
     payload = {
         "interval": "1h",
-        "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+        "id": EventFrequencyCondition.id,
         "value": 1000,
     }
 
