@@ -1801,6 +1801,7 @@ class MetricsDatasetConfig(DatasetConfig):
             params={},
             snuba_params=self.builder.params,
             selected_columns=[f"sum({column})"],
+            query=self.builder.query,
         )
 
         total_query.columns += self.builder.resolve_groupby()
