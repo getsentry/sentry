@@ -20,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {
   formatTagKey,
@@ -32,6 +31,7 @@ import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useMEPDataContext} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProjects from 'sentry/utils/withProjects';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
@@ -99,6 +99,7 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const routes = useRoutes();
+  const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
   const domainViewFilters = useDomainViewFilters();
 
@@ -112,12 +113,12 @@ function SummaryContent({
       // do not propagate pagination when making a new search
       const searchQueryParams = omit(queryParams, 'cursor');
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: searchQueryParams,
       });
     },
-    [location]
+    [location, navigate]
   );
 
   function generateTagUrl(key: string, value: string) {
@@ -135,7 +136,7 @@ function SummaryContent({
 
       updateQuery(searchConditions, action, column, value);
 
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {
           ...location.query,
@@ -152,7 +153,7 @@ function SummaryContent({
       query: {...location.query, showTransactions: value, transactionCursor: undefined},
     };
 
-    browserHistory.push(target);
+    navigate(target);
   }
 
   function handleAllEventsViewClick() {
@@ -201,7 +202,7 @@ function SummaryContent({
     return decodeScalar(location.query.query, '');
   }, [location]);
 
-  const totalCount = totalValues === null ? null : totalValues['count()'];
+  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -547,7 +548,7 @@ function getTransactionsListSort(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selected: selectedSort, options: sortOptions};
 }
 

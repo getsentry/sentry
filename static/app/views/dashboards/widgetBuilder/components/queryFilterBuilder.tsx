@@ -22,6 +22,7 @@ import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBu
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 interface WidgetBuilderQueryFilterBuilderProps {
+  error: Record<string, any>;
   onQueryConditionChange: (valid: boolean) => void;
 }
 
@@ -126,7 +127,7 @@ function WidgetBuilderQueryFilterBuilder({
           <datasetConfig.SearchBar
             getFilterWarning={
               shouldDisplayOnDemandWidgetWarning(
-                widget.queries[index],
+                widget.queries[index]!,
                 widgetType,
                 organization
               )
@@ -142,7 +143,7 @@ function WidgetBuilderQueryFilterBuilder({
                   state.query?.map((q, i) => (i === index ? queryString : q)) ?? [],
               });
             }}
-            widgetQuery={widget.queries[index]}
+            widgetQuery={widget.queries[index]!}
             dataset={getDiscoverDatasetFromWidgetType(widgetType)}
           />
           {canAddSearchConditions && (

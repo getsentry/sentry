@@ -12,12 +12,12 @@ function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[]
     list.push(node);
 
     for (let i = 0; i < node.children.length; i++) {
-      visit(node.children[i]);
+      visit(node.children[i]!);
     }
   }
 
   for (let i = 0; i < tree.roots.length; i++) {
-    visit(tree.roots[i]);
+    visit(tree.roots[i]!);
   }
 
   return list;
@@ -31,7 +31,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
 
       const tree = VirtualizedTree.fromRoots([root]);
-      tree.expandNode(tree.roots[0], true, {expandChildren: true});
+      tree.expandNode(tree.roots[0]!, true, {expandChildren: true});
 
       expect(tree.flattened).toHaveLength(2);
     });
@@ -48,11 +48,11 @@ describe('VirtualizedTree', () => {
         return node.node.id === 'child1';
       });
 
-      tree.expandNode(tree.roots[0], true, {expandChildren: true});
+      tree.expandNode(tree.roots[0]!, true, {expandChildren: true});
       expect(tree.flattened).toHaveLength(2);
 
-      expect(tree.flattened[1].depth).toBe(1);
-      expect(tree.flattened[1].node.id).toBe('child2');
+      expect(tree.flattened[1]!.depth).toBe(1);
+      expect(tree.flattened[1]!.node.id).toBe('child2');
     });
   });
   describe('expandNode', () => {
@@ -62,11 +62,11 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
 
       const tree = VirtualizedTree.fromRoots([root]);
-      const addedNodes = tree.expandNode(tree.roots[0], true);
+      const addedNodes = tree.expandNode(tree.roots[0]!, true);
 
-      expect(addedNodes.length).toBe(1);
+      expect(addedNodes).toHaveLength(1);
 
-      expect(tree.flattened[1]).toBe(tree.roots[0].children[0]);
+      expect(tree.flattened[1]).toBe(tree.roots[0]!.children[0]);
       expect(tree.flattened).toHaveLength(2);
     });
 
@@ -78,11 +78,11 @@ describe('VirtualizedTree', () => {
       const tree = VirtualizedTree.fromRoots([root]);
 
       // Expand all
-      tree.expandNode(tree.roots[0], true, {expandChildren: true});
+      tree.expandNode(tree.roots[0]!, true, {expandChildren: true});
 
       // Close root
-      const removedNodes = tree.expandNode(tree.roots[0], false);
-      expect(removedNodes.length).toBe(1);
+      const removedNodes = tree.expandNode(tree.roots[0]!, false);
+      expect(removedNodes).toHaveLength(1);
 
       expect(tree.flattened[0]).toBe(tree.roots[0]);
       expect(tree.flattened).toHaveLength(1);
@@ -97,7 +97,7 @@ describe('VirtualizedTree', () => {
       root.children = [child1];
       const tree = VirtualizedTree.fromRoots([root]);
 
-      tree.roots[0].setExpanded(false);
+      tree.roots[0]!.setExpanded(false);
 
       expect(VirtualizedTree.toExpandedList(tree.roots).map(i => i.node.id)).toEqual([
         'root',

@@ -9,7 +9,7 @@ describe('SQLishFormatter', function () {
     const formatter = new SQLishFormatter();
 
     it('Falls back to original string if unable to parse', () => {
-      expect(formatter.toString('😤')).toEqual('😤');
+      expect(formatter.toString('😤')).toBe('😤');
     });
 
     it('Adds newlines for keywords in SELECTs', () => {

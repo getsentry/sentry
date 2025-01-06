@@ -28,7 +28,7 @@ type Props = {
   orgSlug: string;
 };
 
-function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
+export function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
   const {selection} = usePageFilters();
   const {start, end, period} = selection.datetime;
 
@@ -160,7 +160,7 @@ function MonitorStats({monitor, monitorEnvs, orgSlug}: Props) {
               useShortDate
               series={[duration]}
               height={height}
-              colors={[theme.charts.colors[0]]}
+              colors={[theme.charts.colors![0]!]}
               yAxis={getYAxisOptions('duration')}
               grid={{
                 top: 6,

@@ -69,7 +69,7 @@ function ErrorList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const error = items[rowIndex - 1];
+    const error = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer

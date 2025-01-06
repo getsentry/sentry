@@ -5,6 +5,7 @@ import partial from 'lodash/partial';
 
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
+import {deviceNameMapper} from 'sentry/components/deviceName';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
@@ -20,7 +21,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -132,6 +133,14 @@ const EmptyValueContainer = styled('span')`
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
+const missingUserMisery = tct(
+  'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/enriching-events/identify-user/" />
+    ),
+  }
+);
 
 export function nullableValue(value: string | null): string | React.ReactElement {
   switch (value) {
@@ -355,6 +364,7 @@ type SpecialFields = {
   'apdex()': SpecialField;
   attachments: SpecialField;
   'count_unique(user)': SpecialField;
+  device: SpecialField;
   'error.handled': SpecialField;
   id: SpecialField;
   issue: SpecialField;
@@ -675,6 +685,16 @@ const SPECIAL_FIELDS: SpecialFields = {
       return <Container>{emptyValue}</Container>;
     },
   },
+  device: {
+    sortField: 'device',
+    renderFunc: data => {
+      if (typeof data.device === 'string') {
+        return <Container>{deviceNameMapper(data.device) || data.device}</Container>;
+      }
+
+      return <Container>{emptyValue}</Container>;
+    },
+  },
   release: {
     sortField: 'release',
     renderFunc: (data, {organization}) =>
@@ -783,12 +803,20 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const userMiseryField = fieldName;
 
     if (!(userMiseryField in data)) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
+      return (
+        <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <NumberContainer>{emptyValue}</NumberContainer>
+        </Tooltip>
+      );
     }
 
     const userMisery = data[userMiseryField];
     if (userMisery === null || isNaN(userMisery)) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
+      return (
+        <Tooltip title={missingUserMisery} showUnderline isHoverable>
+          <NumberContainer>{emptyValue}</NumberContainer>
+        </Tooltip>
+      );
     }
 
     const projectThresholdConfig = 'project_threshold_config';

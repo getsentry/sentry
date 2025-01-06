@@ -170,7 +170,7 @@ export function CacheLandingPage() {
     transactionsList?.map(transaction => ({
       ...transaction,
       'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);

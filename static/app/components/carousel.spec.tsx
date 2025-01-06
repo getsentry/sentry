@@ -67,9 +67,9 @@ describe('Carousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll left'})).not.toBeInTheDocument();
 
     // Test scroll into view, the 2nd element should have its 'scrollIntoView' called
-    elements[1].scrollIntoView = jest.fn();
+    elements[1]!.scrollIntoView = jest.fn();
     await userEvent.click(rightButton);
-    expect(elements[1].scrollIntoView).toHaveBeenCalled();
+    expect(elements[1]!.scrollIntoView).toHaveBeenCalled();
   });
 
   it('shows left arrow when elements exist to the left', async function () {
@@ -100,9 +100,9 @@ describe('Carousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll right'})).not.toBeInTheDocument();
 
     // Test scroll into view, the 1st element should have its 'scrollIntoView' called
-    elements[0].scrollIntoView = jest.fn();
+    elements[0]!.scrollIntoView = jest.fn();
     await userEvent.click(leftButton);
-    expect(elements[0].scrollIntoView).toHaveBeenCalled();
+    expect(elements[0]!.scrollIntoView).toHaveBeenCalled();
   });
 
   it('skips an element when it is past the visibleRatio', async function () {
@@ -133,8 +133,8 @@ describe('Carousel', function () {
     expect(screen.queryByRole('button', {name: 'Scroll left'})).not.toBeInTheDocument();
 
     // Test scroll into view, the 2nd element should have its 'scrollIntoView' called
-    elements[2].scrollIntoView = jest.fn();
+    elements[2]!.scrollIntoView = jest.fn();
     await userEvent.click(rightButton);
-    expect(elements[2].scrollIntoView).toHaveBeenCalled();
+    expect(elements[2]!.scrollIntoView).toHaveBeenCalled();
   });
 });

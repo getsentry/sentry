@@ -24,7 +24,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -72,9 +72,7 @@ export function WebVitalsDetailPanel({
     subregions,
   });
 
-  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
-    projectScoresData?.data?.[0]
-  );
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.data?.[0]);
   const {data, isPending} = useTransactionWebVitalsScoresQuery({
     limit: 100,
     webVital: webVital ?? 'total',

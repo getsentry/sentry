@@ -45,7 +45,7 @@ describe('projectGeneralSettings', function () {
   const routerProps = {
     location: LocationFixture(),
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     router,
     routeParams: router.params,
   };

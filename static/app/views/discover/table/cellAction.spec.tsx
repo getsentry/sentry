@@ -47,7 +47,7 @@ function renderComponent({
   return render(
     <CellAction
       dataRow={data}
-      column={eventView.getColumns()[columnIndex]}
+      column={eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
     >
       <strong>some content</strong>
@@ -428,79 +428,79 @@ describe('updateQuery()', function () {
     // TODO: Fix this type
     // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, null);
-    expect(results.formatString()).toEqual('!has:a');
+    expect(results.formatString()).toBe('!has:a');
     // TODO: Fix this type
     // @ts-ignore
     updateQuery(results, Actions.EXCLUDE, columnA, null);
-    expect(results.formatString()).toEqual('has:a');
+    expect(results.formatString()).toBe('has:a');
     // TODO: Fix this type
     // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, null);
-    expect(results.formatString()).toEqual('!has:a');
+    expect(results.formatString()).toBe('!has:a');
 
     results = new MutableSearch([]);
     // TODO: Fix this type
     // @ts-ignore
     updateQuery(results, Actions.ADD, columnA, [null]);
-    expect(results.formatString()).toEqual('!has:a');
+    expect(results.formatString()).toBe('!has:a');
   });
 
   it('modifies the query with additions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
-    expect(results.formatString()).toEqual('a:1');
+    expect(results.formatString()).toBe('a:1');
     updateQuery(results, Actions.ADD, columnB, '1');
-    expect(results.formatString()).toEqual('a:1 b:1');
+    expect(results.formatString()).toBe('a:1 b:1');
     updateQuery(results, Actions.ADD, columnA, '2');
-    expect(results.formatString()).toEqual('b:1 a:2');
+    expect(results.formatString()).toBe('b:1 a:2');
     updateQuery(results, Actions.ADD, columnA, ['1', '2', '3']);
-    expect(results.formatString()).toEqual('b:1 a:2 a:1 a:3');
+    expect(results.formatString()).toBe('b:1 a:2 a:1 a:3');
   });
 
   it('modifies the query with exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
-    expect(results.formatString()).toEqual('!a:1');
+    expect(results.formatString()).toBe('!a:1');
     updateQuery(results, Actions.EXCLUDE, columnB, '1');
-    expect(results.formatString()).toEqual('!a:1 !b:1');
+    expect(results.formatString()).toBe('!a:1 !b:1');
     updateQuery(results, Actions.EXCLUDE, columnA, '2');
-    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2');
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2');
     updateQuery(results, Actions.EXCLUDE, columnA, ['1', '2', '3']);
-    expect(results.formatString()).toEqual('!b:1 !a:1 !a:2 !a:3');
+    expect(results.formatString()).toBe('!b:1 !a:1 !a:2 !a:3');
   });
 
   it('modifies the query with a mix of additions and exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
-    expect(results.formatString()).toEqual('a:1');
+    expect(results.formatString()).toBe('a:1');
     updateQuery(results, Actions.ADD, columnB, '2');
-    expect(results.formatString()).toEqual('a:1 b:2');
+    expect(results.formatString()).toBe('a:1 b:2');
     updateQuery(results, Actions.EXCLUDE, columnA, '3');
-    expect(results.formatString()).toEqual('b:2 !a:3');
+    expect(results.formatString()).toBe('b:2 !a:3');
     updateQuery(results, Actions.EXCLUDE, columnB, '4');
-    expect(results.formatString()).toEqual('!a:3 !b:4');
+    expect(results.formatString()).toBe('!a:3 !b:4');
     results.addFilterValues('!a', ['*dontescapeme*'], false);
-    expect(results.formatString()).toEqual('!a:3 !b:4 !a:*dontescapeme*');
+    expect(results.formatString()).toBe('!a:3 !b:4 !a:*dontescapeme*');
     updateQuery(results, Actions.EXCLUDE, columnA, '*escapeme*');
-    expect(results.formatString()).toEqual(
+    expect(results.formatString()).toBe(
       '!b:4 !a:3 !a:*dontescapeme* !a:"\\*escapeme\\*"'
     );
     updateQuery(results, Actions.ADD, columnA, '5');
-    expect(results.formatString()).toEqual('!b:4 a:5');
+    expect(results.formatString()).toBe('!b:4 a:5');
     updateQuery(results, Actions.ADD, columnB, '6');
-    expect(results.formatString()).toEqual('a:5 b:6');
+    expect(results.formatString()).toBe('a:5 b:6');
   });
 
   it('modifies the query with greater/less than', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
-    expect(results.formatString()).toEqual('a:>1');
+    expect(results.formatString()).toBe('a:>1');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 2);
-    expect(results.formatString()).toEqual('a:>2');
+    expect(results.formatString()).toBe('a:>2');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 3);
-    expect(results.formatString()).toEqual('a:<3');
+    expect(results.formatString()).toBe('a:<3');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnA, 4);
-    expect(results.formatString()).toEqual('a:<4');
+    expect(results.formatString()).toBe('a:<4');
   });
 
   it('modifies the query with greater/less than on duration fields', function () {
@@ -511,13 +511,13 @@ describe('updateQuery()', function () {
 
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 1);
-    expect(results.formatString()).toEqual('a:>1.00ms');
+    expect(results.formatString()).toBe('a:>1.00ms');
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnADuration, 2);
-    expect(results.formatString()).toEqual('a:>2.00ms');
+    expect(results.formatString()).toBe('a:>2.00ms');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 3);
-    expect(results.formatString()).toEqual('a:<3.00ms');
+    expect(results.formatString()).toBe('a:<3.00ms');
     updateQuery(results, Actions.SHOW_LESS_THAN, columnADuration, 4.1234);
-    expect(results.formatString()).toEqual('a:<4.12ms');
+    expect(results.formatString()).toBe('a:<4.12ms');
   });
 
   it('does not error for special actions', function () {

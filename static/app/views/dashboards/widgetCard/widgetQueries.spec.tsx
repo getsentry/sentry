@@ -212,7 +212,7 @@ describe('Dashboards > WidgetQueries', function () {
     // Child should be rendered and 2 requests should be sent.
     expect(await screen.findByTestId('child')).toBeInTheDocument();
     await waitFor(() => {
-      expect(error).toEqual('Bad request data');
+      expect(error).toBe('Bad request data');
     });
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
@@ -332,8 +332,8 @@ describe('Dashboards > WidgetQueries', function () {
       })
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
-    await waitFor(() => expect(childProps?.tableResults?.[0].data).toHaveLength(1));
-    expect(childProps?.tableResults?.[0].meta).toBeDefined();
+    await waitFor(() => expect(childProps?.tableResults?.[0]!.data).toHaveLength(1));
+    expect(childProps?.tableResults?.[0]!.meta).toBeDefined();
   });
 
   it('can send multiple table queries', async function () {
@@ -399,8 +399,8 @@ describe('Dashboards > WidgetQueries', function () {
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
     await waitFor(() => expect(childProps?.tableResults).toHaveLength(2));
-    expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
-    expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
+    expect(childProps?.tableResults?.[0]!.data[0]!['sdk.name']).toBeDefined();
+    expect(childProps?.tableResults?.[1]!.data[0]!.title).toBeDefined();
   });
 
   it('can send big number result queries', async function () {
@@ -522,7 +522,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    await waitFor(() => expect(childProps?.loading).toEqual(false));
+    await waitFor(() => expect(childProps?.loading).toBe(false));
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -690,7 +690,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(childProps.loading).toEqual(false));
+    await waitFor(() => expect(childProps.loading).toBe(false));
 
     // Simulate a re-render with a new query alias
     rerender(
@@ -727,7 +727,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults![0].seriesName).toEqual(
+    expect(childProps.timeseriesResults![0]!.seriesName).toBe(
       'this query alias changed : count()'
     );
   });

@@ -10,7 +10,6 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
 import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
@@ -368,9 +367,6 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  introduction: () => (
-    <MobileBetaBanner link="https://docs.sentry.io/platforms/flutter/session-replay/" />
-  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,

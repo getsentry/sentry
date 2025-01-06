@@ -8,7 +8,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useMedia from 'sentry/utils/useMedia';
-import {SectionKey, useEventDetails} from 'sentry/views/issueDetails/streamline/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import {IssueEventNavigation} from './eventNavigation';
@@ -34,17 +34,19 @@ describe('EventNavigation', () => {
   const defaultProps: React.ComponentProps<typeof IssueEventNavigation> = {
     event: testEvent,
     group,
-    query: undefined,
   };
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(useEventDetails).mockReturnValue({
+    jest.mocked(useIssueDetails).mockReturnValue({
       sectionData: {
         highlights: {key: SectionKey.HIGHLIGHTS},
         tags: {key: SectionKey.TAGS},
         replay: {key: SectionKey.REPLAY},
       },
+      eventCount: 0,
+      isSidebarOpen: true,
+      navScrollMargin: 0,
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({
@@ -187,9 +189,7 @@ describe('EventNavigation', () => {
       expect(
         await screen.findByRole('menuitemradio', {name: 'Attachments 0'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Events 327k'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Events 0'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Replays 0'})).toBeInTheDocument();
       expect(screen.getByRole('menuitemradio', {name: 'Feedback 0'})).toBeInTheDocument();
     });

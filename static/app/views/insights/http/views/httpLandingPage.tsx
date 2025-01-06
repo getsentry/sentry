@@ -5,11 +5,11 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -51,6 +51,7 @@ import {
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
   const {view} = useDomainViewFilters();
   const moduleTitle = useModuleTitle(ModuleName.HTTP);
@@ -93,7 +94,7 @@ export function HTTPLandingPage() {
       query: newDomain,
       source: ModuleName.HTTP,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,

@@ -28,7 +28,11 @@ const displayTypes = {
   [DisplayType.BIG_NUMBER]: t('Big Number'),
 };
 
-function WidgetBuilderTypeSelector() {
+interface WidgetBuilderTypeSelectorProps {
+  error: Record<string, any>;
+}
+
+function WidgetBuilderTypeSelector({}: WidgetBuilderTypeSelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const config = getDatasetConfig(state.dataset);
 
@@ -64,7 +68,7 @@ function WidgetBuilderTypeSelector() {
           ) {
             dispatch({
               type: BuilderStateAction.SET_QUERY,
-              payload: [state.query[0]],
+              payload: [state.query[0]!],
             });
           }
         }}

@@ -32,7 +32,6 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Allow organization members to invite other members via email without needing org owner or manager approval.'
         ),
-        visible: ({features}) => features.has('members-invite-teammates'),
       },
       {
         name: 'allowMemberProjectCreation',

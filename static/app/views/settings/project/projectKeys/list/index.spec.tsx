@@ -25,7 +25,7 @@ describe('ProjectKeys', function () {
       body: projectKeys,
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'DELETE',
     });
   });
@@ -79,7 +79,7 @@ describe('ProjectKeys', function () {
     );
 
     const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
-    expect(allDsn.length).toBe(1);
+    expect(allDsn).toHaveLength(1);
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
     const dsn = screen.getByRole('textbox', {name: 'DSN URL'});
@@ -94,11 +94,11 @@ describe('ProjectKeys', function () {
     });
 
     expect(expandButton).toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
-    expect(minidumpEndpoint).toHaveValue(projectKeys[0].dsn.minidump);
+    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
+    expect(minidumpEndpoint).toHaveValue(projectKeys[0]!.dsn.minidump);
     // this is empty in the default ProjectKey
     expect(unrealEndpoint).toHaveValue('');
-    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0].dsn.security);
+    expect(securityHeaderEndpoint).toHaveValue(projectKeys[0]!.dsn.security);
   });
 
   it('renders for javascript project', function () {
@@ -124,7 +124,7 @@ describe('ProjectKeys', function () {
     });
 
     expect(expandButton).not.toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('ProjectKeys', function () {
       name: 'Loader Script',
     });
     expect(loaderScript).toHaveValue(
-      `<script src='${projectKeys[0].dsn.cdn}' crossorigin="anonymous"></script>`
+      `<script src='${projectKeys[0]!.dsn.cdn}' crossorigin="anonymous"></script>`
     );
   });
 
@@ -162,7 +162,7 @@ describe('ProjectKeys', function () {
     });
 
     expect(expandButton).not.toBeInTheDocument();
-    expect(dsn).toHaveValue(projectKeys[0].dsn.public);
+    expect(dsn).toHaveValue(projectKeys[0]!.dsn.public);
     expect(minidumpEndpoint).not.toBeInTheDocument();
     expect(unrealEndpoint).not.toBeInTheDocument();
     expect(securityHeaderEndpoint).not.toBeInTheDocument();
@@ -228,7 +228,7 @@ describe('ProjectKeys', function () {
     );
 
     const allDsn = screen.getAllByRole('textbox', {name: 'DSN URL'});
-    expect(allDsn.length).toBe(2);
+    expect(allDsn).toHaveLength(2);
   });
 
   it('deletes key', async function () {
@@ -259,7 +259,7 @@ describe('ProjectKeys', function () {
     );
 
     const enableMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'PUT',
     });
 

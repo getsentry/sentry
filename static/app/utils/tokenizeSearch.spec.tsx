@@ -197,7 +197,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(new MutableSearch(string)).toEqual(object));
+      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -206,58 +206,56 @@ describe('utils/tokenizeSearch', function () {
       const results = new MutableSearch([]);
 
       results.addStringFilter('a:a');
-      expect(results.formatString()).toEqual('a:a');
+      expect(results.formatString()).toBe('a:a');
 
       results.addFilterValues('b', ['b']);
-      expect(results.formatString()).toEqual('a:a b:b');
+      expect(results.formatString()).toBe('a:a b:b');
 
       results.addFilterValues('c', ['c1', 'c2']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2');
 
       results.addFilterValues('d', ['d']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d');
 
       results.addFilterValues('e', ['e1*e2\\e3']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3"');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3"');
 
       results.addStringFilter('d:d2');
-      expect(results.formatString()).toEqual(
-        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2'
-      );
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2');
     });
 
     it('adds individual values to query object', function () {
       const results = new MutableSearch([]);
 
       results.addFilterValue('e', 'e1*e2\\e3');
-      expect(results.formatString()).toEqual('e:"e1\\*e2\\e3"');
+      expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
     });
 
     it('add text searches to query object', function () {
       const results = new MutableSearch(['a:a']);
 
       results.addFreeText('b');
-      expect(results.formatString()).toEqual('a:a b');
+      expect(results.formatString()).toBe('a:a b');
       expect(results.freeText).toEqual(['b']);
 
       results.addFreeText('c');
-      expect(results.formatString()).toEqual('a:a b c');
+      expect(results.formatString()).toBe('a:a b c');
       expect(results.freeText).toEqual(['b', 'c']);
 
       results.addStringFilter('d:d').addFreeText('e');
-      expect(results.formatString()).toEqual('a:a b c d:d e');
+      expect(results.formatString()).toBe('a:a b c d:d e');
       expect(results.freeText).toEqual(['b', 'c', 'e']);
 
       results.freeText = ['x', 'y'];
-      expect(results.formatString()).toEqual('a:a d:d x y');
+      expect(results.formatString()).toBe('a:a d:d x y');
       expect(results.freeText).toEqual(['x', 'y']);
 
       results.freeText = ['a b c'];
-      expect(results.formatString()).toEqual('a:a d:d "a b c"');
+      expect(results.formatString()).toBe('a:a d:d "a b c"');
       expect(results.freeText).toEqual(['a b c']);
 
       results.freeText = ['invalid literal for int() with base'];
-      expect(results.formatString()).toEqual(
+      expect(results.formatString()).toBe(
         'a:a d:d "invalid literal for int() with base"'
       );
       expect(results.freeText).toEqual(['invalid literal for int() with base']);
@@ -267,10 +265,10 @@ describe('utils/tokenizeSearch', function () {
       const results = new MutableSearch(['x', 'a:a', 'y']);
 
       results.addOp('OR');
-      expect(results.formatString()).toEqual('x a:a y OR');
+      expect(results.formatString()).toBe('x a:a y OR');
 
       results.addFreeText('z');
-      expect(results.formatString()).toEqual('x a:a y OR z');
+      expect(results.formatString()).toBe('x a:a y OR z');
 
       results
         .addOp('(')
@@ -278,21 +276,21 @@ describe('utils/tokenizeSearch', function () {
         .addOp('AND')
         .addStringFilter('c:c')
         .addOp(')');
-      expect(results.formatString()).toEqual('x a:a y OR z ( b:b AND c:c )');
+      expect(results.formatString()).toBe('x a:a y OR z ( b:b AND c:c )');
     });
 
     it('adds tags to query', function () {
       const results = new MutableSearch(['tag:value']);
 
       results.addStringFilter('new:too');
-      expect(results.formatString()).toEqual('tag:value new:too');
+      expect(results.formatString()).toBe('tag:value new:too');
     });
 
     it('setTag() replaces tags', function () {
       const results = new MutableSearch(['tag:value']);
 
       results.setFilterValues('tag', ['too']);
-      expect(results.formatString()).toEqual('tag:too');
+      expect(results.formatString()).toBe('tag:too');
     });
 
     it('setTag() replaces tags in OR', function () {
@@ -305,11 +303,11 @@ describe('utils/tokenizeSearch', function () {
       ]);
 
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual('transaction:def');
+      expect(results.formatString()).toBe('transaction:def');
 
       results = new MutableSearch(['(transaction:xyz', 'OR', 'transaction:abc)']);
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual('transaction:def');
+      expect(results.formatString()).toBe('transaction:def');
     });
 
     it('does not remove boolean operators after setting tag values', function () {
@@ -328,7 +326,7 @@ describe('utils/tokenizeSearch', function () {
       ]);
 
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual(
+      expect(results.formatString()).toBe(
         '( start:xyz AND end:abc ) OR ( start:abc AND end:xyz ) transaction:def'
       );
     });
@@ -336,43 +334,43 @@ describe('utils/tokenizeSearch', function () {
     it('removes tags from query object', function () {
       let results = new MutableSearch(['x', 'a:a', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('x b:b');
+      expect(results.formatString()).toBe('x b:b');
 
       results = new MutableSearch(['a:a']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('');
+      expect(results.formatString()).toBe('');
 
       results = new MutableSearch(['x', 'a:a', 'a:a2']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('x');
+      expect(results.formatString()).toBe('x');
 
       results = new MutableSearch(['a:a', 'OR', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['a:a', 'OR', 'a:a1', 'AND', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['(a:a', 'OR', 'b:b)']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['(a:a', 'OR', 'b:b', 'OR', 'y)']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('( b:b OR y )');
+      expect(results.formatString()).toBe('( b:b OR y )');
 
       results = new MutableSearch(['(a:a', 'OR', '(b:b1', 'OR', '(c:c', 'OR', 'b:b2)))']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('( a:a OR c:c )');
+      expect(results.formatString()).toBe('( a:a OR c:c )');
 
       results = new MutableSearch(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+      expect(results.formatString()).toBe('( ( a:a OR c:c ) )');
 
       results = new MutableSearch(['a:a', '(b:b1', 'OR', 'b:b2', 'OR', 'b:b3)', 'c:c']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('a:a c:c');
+      expect(results.formatString()).toBe('a:a c:c');
     });
 
     it('can return the tag keys', function () {
@@ -504,7 +502,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(object.formatString()).toEqual(string));
+      it(`${name}`, () => expect(object.formatString()).toEqual(string));
     }
   });
 });
