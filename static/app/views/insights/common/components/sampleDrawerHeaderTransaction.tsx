@@ -40,7 +40,12 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
         />
       )}
 
-      {subtitle ? <Deemphasize>{subtitle}</Deemphasize> : null}
+      {subtitle ? (
+        <Deemphasize>
+          {subtitle}
+          {DELIMITER}
+        </Deemphasize>
+      ) : null}
 
       {project ? (
         <TruncatedLink
@@ -60,6 +65,8 @@ export function SampleDrawerHeaderTransaction(props: SampleDrawerHeaderProps) {
     </Bar>
   );
 }
+
+const DELIMITER = ':';
 
 const Bar = styled('h4')`
   display: flex;

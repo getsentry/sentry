@@ -1,6 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SampleDrawerHeaderTransaction} from './sampleDrawerHeaderTransaction';
 
@@ -46,5 +47,21 @@ describe('SampleDrawerHeaderTransaction', () => {
 
     const $link = screen.getByRole('link');
     expect($link).toHaveAccessibleName('GET /issues');
+  });
+
+  it('Shows a prefix', () => {
+    const project = ProjectFixture();
+
+    render(
+      <SampleDrawerHeaderTransaction
+        project={project}
+        transaction="tasks.deliver_mail"
+        subtitle="Producer"
+      />
+    );
+
+    expect(
+      screen.getByText(textWithMarkupMatcher('Producer:tasks.deliver_mail'))
+    ).toBeInTheDocument();
   });
 });
