@@ -18,6 +18,7 @@ const HUMAN_RESOURCE_NAMES = {
   event: 'Event',
   org: 'Organization',
   member: 'Member',
+  alerts: 'Alerts',
 };
 
 const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
@@ -27,6 +28,7 @@ const DEFAULT_RESOURCE_PERMISSIONS: Permissions = {
   Event: 'no-access',
   Organization: 'no-access',
   Member: 'no-access',
+  Alerts: 'no-access',
 };
 
 const PROJECT_RELEASES = 'project:releases';
