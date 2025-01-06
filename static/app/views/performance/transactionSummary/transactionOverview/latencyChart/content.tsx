@@ -85,7 +85,7 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? [...theme.charts.getColorPalette(1)]
+        ? theme.charts.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace

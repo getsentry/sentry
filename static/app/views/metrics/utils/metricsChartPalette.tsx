@@ -11,7 +11,8 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
   // We use Math.max to avoid numbers < -1 as then `getColorPalette` returns undefined (not typesafe because of array access and casting)
   const chartColors =
     theme.charts.getColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
-    CHART_PALETTE[CHART_PALETTE.length - 1];
+    CHART_PALETTE[CHART_PALETTE.length - 1] ??
+    [];
 
   return uniqueSeriesNames.reduce(
     (palette, seriesName, i) => {

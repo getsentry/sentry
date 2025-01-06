@@ -40,7 +40,7 @@ function ChartRow(props: ChartRowProps) {
   const {chartCount, chartHeight, allowedCharts} = props;
   const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
-  const palette = theme.charts.getColorPalette(chartCount)!;
+  const palette = theme.charts.getColorPalette(chartCount) ?? [];
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)

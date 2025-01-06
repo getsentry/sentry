@@ -152,7 +152,7 @@ export interface BaseChartProps {
    * Array of color codes to use in charts. May also take a function which is
    * provided with the current theme
    */
-  colors?: string[] | ((theme: Theme) => string[]);
+  colors?: string[] | readonly string[] | ((theme: Theme) => string[]);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
@@ -390,7 +390,7 @@ function BaseChartUnwrapped({
   const theme = useTheme();
 
   const resolveColors =
-    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+    colors !== undefined ? (typeof colors === 'function' ? colors(theme) : colors) : null;
 
   const color =
     resolveColors ||

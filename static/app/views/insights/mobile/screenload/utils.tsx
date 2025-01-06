@@ -20,7 +20,7 @@ export function transformReleaseEvents({
   colorPalette,
   releaseEvents,
 }: {
-  colorPalette: string[];
+  colorPalette: string[] | ReadonlyArray<string>;
   releaseEvents: any;
   topTransactions: any;
   yAxes: YAxis[];
@@ -124,7 +124,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3]![0]! : CHART_PALETTE[3]![1]!,
+              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
             },
           } as SeriesDataUnit;
         }
