@@ -9,8 +9,11 @@ from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.rules.conditions.regression_event import RegressionEventCondition
+from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.level import LevelFilter
+from sentry.rules.filters.tagged_event import TaggedEventFilter
+from sentry.rules.match import MatchType
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
@@ -125,6 +128,27 @@ def create_level_condition(data: dict[str, Any], dcg: DataConditionGroup) -> Dat
 
     return DataCondition.objects.create(
         type=Condition.LEVEL,
+        comparison=comparison,
+        condition_result=True,
+        condition_group=dcg,
+    )
+
+
+@data_condition_translator_registry.register(TaggedEventCondition.id)
+@data_condition_translator_registry.register(TaggedEventFilter.id)
+def create_tagged_event_data_condition(
+    data: dict[str, Any], dcg: DataConditionGroup
+) -> DataCondition:
+    # TODO: Add comparison validation (error if not enough information)
+    comparison = {
+        "match": data["match"],
+        "key": data["key"],
+    }
+    if comparison["match"] not in {MatchType.IS_SET, MatchType.NOT_SET}:
+        comparison["value"] = data["value"]
+
+    return DataCondition.objects.create(
+        type=Condition.TAGGED_EVENT,
         comparison=comparison,
         condition_result=True,
         condition_group=dcg,
