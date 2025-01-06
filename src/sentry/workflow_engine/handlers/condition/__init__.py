@@ -8,6 +8,8 @@ __all__ = [
     "EventAttributeConditionHandler",
     "FirstSeenEventConditionHandler",
     "NewHighPriorityIssueConditionHandler",
+    "LevelConditionHandler",
+    "TaggedEventConditionHandler",
 ]
 
 from .group_event_handlers import (
@@ -15,6 +17,8 @@ from .group_event_handlers import (
     EventCreatedByDetectorConditionHandler,
     EventSeenCountConditionHandler,
     EveryEventConditionHandler,
+    LevelConditionHandler,
+    TaggedEventConditionHandler,
 )
 from .group_state_handlers import (
     ExistingHighPriorityIssueConditionHandler,

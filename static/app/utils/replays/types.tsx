@@ -1,6 +1,7 @@
 import {
   EventType,
   type eventWithTime as TEventWithTime,
+  IncrementalSource,
   MouseInteractions,
 } from '@sentry-internal/rrweb';
 
@@ -143,6 +144,13 @@ export function isRecordingFrame(
   return 'type' in attachment && 'timestamp' in attachment;
 }
 
+export function isRRWebChangeFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.FullSnapshot ||
+    (frame.type === EventType.IncrementalSnapshot &&
+      frame.data.source === IncrementalSource.Mutation)
+  );
+}
 export function isTouchStartFrame(frame: RecordingFrame) {
   return (
     frame.type === EventType.IncrementalSnapshot &&

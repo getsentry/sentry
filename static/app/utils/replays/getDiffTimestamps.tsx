@@ -1,7 +1,7 @@
 import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
-import {EventType, isHydrationErrorFrame} from 'sentry/utils/replays/types';
+import {isHydrationErrorFrame, isRRWebChangeFrame} from 'sentry/utils/replays/types';
 
 export function getReplayDiffOffsetsFromFrame(
   replay: ReplayReader | null,
@@ -15,11 +15,7 @@ export function getReplayDiffOffsetsFromFrame(
   }
 
   const startTimestampMs = replay.getReplay().started_at.getTime() ?? 0;
-  const domChangedFrames = replay
-    .getRRWebFrames()
-    .filter(frame =>
-      [EventType.FullSnapshot, EventType.IncrementalSnapshot].includes(frame.type)
-    );
+  const domChangedFrames = replay.getRRWebFrames().filter(isRRWebChangeFrame);
 
   const prevIncremental = domChangedFrames.filter(
     frame => frame.timestamp < hydrationError.timestampMs

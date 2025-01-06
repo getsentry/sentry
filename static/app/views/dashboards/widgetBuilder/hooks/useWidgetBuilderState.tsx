@@ -6,6 +6,7 @@ import {
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import {
@@ -163,8 +164,24 @@ function useWidgetBuilderState(): {
           });
           if (action.payload === DisplayType.TABLE) {
             setYAxis([]);
-            setFields([...columns, ...aggregates, ...(yAxis ?? [])]);
             setLegendAlias([]);
+
+            const newFields = [...columns, ...aggregates, ...(yAxis ?? [])];
+            setFields(newFields);
+
+            // Keep the sort if it's already contained in the new fields
+            // Otherwise, reset sorting to the first field
+            if (
+              newFields.length > 0 &&
+              !newFields.find(field => generateFieldAsString(field) === sort?.[0]?.field)
+            ) {
+              setSort([
+                {
+                  kind: 'desc',
+                  field: generateFieldAsString(newFields[0] as QueryFieldValue),
+                },
+              ]);
+            }
           } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
             setSort([]);
@@ -251,6 +268,7 @@ function useWidgetBuilderState(): {
       yAxis,
       displayType,
       query,
+      sort,
     ]
   );
 
