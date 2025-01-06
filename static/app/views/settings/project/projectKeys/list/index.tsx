@@ -7,18 +7,18 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -32,15 +32,10 @@ type Props = {
 
 type State = {
   keyList: ProjectKey[];
-} & DeprecatedAsyncView['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ProjectKeys extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Client Keys'), projectId, false);
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+class ProjectKeys extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
@@ -180,6 +175,7 @@ class ProjectKeys extends DeprecatedAsyncView<Props, State> {
 
     return (
       <div data-test-id="project-keys">
+        <SentryDocumentTitle title={t('Client Keys')} projectSlug={project.slug} />
         <SettingsPageHeader
           title={t('Client Keys')}
           action={

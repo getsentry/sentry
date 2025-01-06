@@ -17,15 +17,15 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 
 type Props = {
   organization: Organization;
@@ -38,20 +38,15 @@ type State = {
     token: string;
     webhookUrl: string;
   } | null;
-} & DeprecatedAsyncView['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const placeholderData = {
   token: TOKEN_PLACEHOLDER,
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-class ProjectReleaseTracking extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {projectId} = this.props.params;
-    return routeTitleGen(t('Releases'), projectId, false);
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+class ProjectReleaseTracking extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -125,6 +120,7 @@ class ProjectReleaseTracking extends DeprecatedAsyncView<Props, State> {
 
     return (
       <div>
+        <SentryDocumentTitle title={t('Releases')} projectSlug={project.slug} />
         <SettingsPageHeader title={t('Release Tracking')} />
         <TextBlock>
           {t(
