@@ -5,6 +5,7 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import AutofixActionSelector from 'sentry/components/events/autofix/autofixActionSelector';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
@@ -27,6 +28,7 @@ import {
   IconCheckmark,
   IconChevron,
   IconClose,
+  IconCopy,
   IconFatal,
   IconOpen,
   IconSad,
@@ -37,6 +39,7 @@ import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 function useSendMessage({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
@@ -136,7 +139,66 @@ function CreatePRsButton({
       analyticsEventKey="autofix.create_pr_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Create PR{changes.length > 1 ? 's' : ''}
+      Draft PR{changes.length > 1 ? 's' : ''}
+    </Button>
+  );
+}
+
+function CreateBranchButton({
+  changes,
+  groupId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+}) {
+  const autofixData = useAutofixData({groupId});
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [hasClickedPushToBranch, setHasClickedPushToBranch] = useState(false);
+
+  const pushToBranch = () => {
+    setHasClickedPushToBranch(true);
+    for (const change of changes) {
+      createBranch({change});
+    }
+  };
+
+  const {mutate: createBranch} = useMutation({
+    mutationFn: ({change}: {change: AutofixCodebaseChange}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: autofixData?.run_id,
+          payload: {
+            type: 'create_branch',
+            repo_external_id: change.repo_external_id,
+            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
+          },
+        },
+      });
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('Pushed to branches.'));
+      queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
+    },
+    onError: () => {
+      setHasClickedPushToBranch(false);
+      addErrorMessage(t('Failed to push to branches.'));
+    },
+  });
+
+  return (
+    <Button
+      onClick={pushToBranch}
+      icon={
+        hasClickedPushToBranch && <ProcessingStatusIndicator size={14} mini hideMessage />
+      }
+      busy={hasClickedPushToBranch}
+      analyticsEventName="Autofix: Push to Branch Clicked"
+      analyticsEventKey="autofix.push_to_branch_clicked"
+      analyticsParams={{group_id: groupId}}
+    >
+      Checkout Locally
     </Button>
   );
 }
@@ -169,12 +231,47 @@ function SetupAndCreatePRsButton({
         analyticsParams={{group_id: groupId}}
         title={t('Enable write access to create pull requests')}
       >
-        {t('Create PRs')}
+        {t('Draft PRs')}
       </Button>
     );
   }
 
   return <CreatePRsButton changes={changes} groupId={groupId} />;
+}
+
+function SetupAndCreateBranchButton({
+  changes,
+  groupId,
+}: {
+  changes: AutofixCodebaseChange[];
+  groupId: string;
+}) {
+  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+
+  if (
+    !changes.every(
+      change =>
+        setupData?.githubWriteIntegration?.repos?.find(
+          repo => `${repo.owner}/${repo.name}` === change.repo_name
+        )?.ok
+    )
+  ) {
+    return (
+      <Button
+        onClick={() => {
+          openModal(deps => <AutofixSetupWriteAccessModal {...deps} groupId={groupId} />);
+        }}
+        analyticsEventName="Autofix: Create PR Setup Clicked"
+        analyticsEventKey="autofix.create_pr_setup_clicked"
+        analyticsParams={{group_id: groupId}}
+        title={t('Enable write access to create branches')}
+      >
+        {t('Checkout Locally')}
+      </Button>
+    );
+  }
+
+  return <CreateBranchButton changes={changes} groupId={groupId} />;
 }
 
 interface RootCauseAndFeedbackInputAreaProps {
@@ -348,6 +445,11 @@ function AutofixMessageBox({
     step?.status === AutofixStatus.COMPLETED &&
     changes.length >= 1 &&
     changes.every(change => change.pull_request);
+  const branchesMade =
+    !prsMade &&
+    step?.status === AutofixStatus.COMPLETED &&
+    changes.length >= 1 &&
+    changes.every(change => change.branch_name);
 
   const isDisabled =
     step?.status === AutofixStatus.ERROR ||
@@ -391,6 +493,27 @@ function AutofixMessageBox({
       setMessage('');
     }
   };
+
+  function BranchButton({change}: {change: AutofixCodebaseChange}) {
+    const {onClick} = useCopyToClipboard({
+      text: `git switch ${change.branch_name}`,
+      successMessage: t('Command copied. Next stop: your terminal.'),
+    });
+
+    return (
+      <Button
+        key={`${change.repo_external_id}-${Math.random()}`}
+        size="xs"
+        priority="primary"
+        onClick={onClick}
+        aria-label={t('Checkout in %s', change.repo_name)}
+        title={t('git switch %s', change.branch_name)}
+        icon={<IconCopy size="xs" />}
+      >
+        {t('Checkout in %s', change.repo_name)}
+      </Button>
+    );
+  }
 
   return (
     <Container>
@@ -466,12 +589,16 @@ function AutofixMessageBox({
                     />
                   )}
                 </AutofixActionSelector>
-              ) : isChangesStep && !prsMade ? (
+              ) : isChangesStep && !prsMade && !branchesMade ? (
                 <AutofixActionSelector
                   options={[
                     {key: 'add_tests', label: t('Add tests')},
                     {key: 'give_feedback', label: t('Iterate')},
-                    {key: 'create_prs', label: t('Approve'), active: true},
+                    {
+                      key: 'create_prs',
+                      label: t('Take it from here'),
+                      active: true,
+                    },
                   ]}
                   selected={changesMode}
                   onSelect={value => setChangesMode(value)}
@@ -508,17 +635,29 @@ function AutofixMessageBox({
                       {option.key === 'create_prs' && (
                         <InputArea>
                           <StaticMessage>
-                            Draft {changes.length} pull request
-                            {changes.length > 1 ? 's' : ''} for the above changes?
+                            Push the above changes to{' '}
+                            {changes.length > 1
+                              ? `${changes.length} branches`
+                              : 'a branch'}
+                            ?
                           </StaticMessage>
-                          <SetupAndCreatePRsButton changes={changes} groupId={groupId} />
+                          <ButtonBar gap={1}>
+                            <SetupAndCreateBranchButton
+                              changes={changes}
+                              groupId={groupId}
+                            />
+                            <SetupAndCreatePRsButton
+                              changes={changes}
+                              groupId={groupId}
+                            />
+                          </ButtonBar>
                         </InputArea>
                       )}
                     </Fragment>
                   )}
                 </AutofixActionSelector>
               ) : isChangesStep && prsMade ? (
-                <ViewPRButtons aria-label={t('View pull requests')}>
+                <StyledScrollCarousel aria-label={t('View pull requests')}>
                   {changes.map(
                     change =>
                       change.pull_request?.pr_url && (
@@ -534,7 +673,19 @@ function AutofixMessageBox({
                         </LinkButton>
                       )
                   )}
-                </ViewPRButtons>
+                </StyledScrollCarousel>
+              ) : isChangesStep && branchesMade ? (
+                <StyledScrollCarousel aria-label={t('Checkout branches')}>
+                  {changes.map(
+                    change =>
+                      change.branch_name && (
+                        <BranchButton
+                          key={`${change.repo_external_id}-${Math.random()}`}
+                          change={change}
+                        />
+                      )
+                  )}
+                </StyledScrollCarousel>
               ) : (
                 <RootCauseAndFeedbackInputArea
                   handleSend={handleSend}
@@ -562,11 +713,6 @@ const Placeholder = styled('div')`
   padding: ${space(1)};
 `;
 
-const ViewPRButtons = styled(ScrollCarousel)`
-  width: 100%;
-  padding: 0 ${space(1)};
-`;
-
 const ScrollIntoViewButtonWrapper = styled('div')`
   position: absolute;
   top: -2rem;
@@ -585,6 +731,10 @@ const Container = styled('div')`
   box-shadow: ${p => p.theme.dropShadowHeavy};
   display: flex;
   flex-direction: column;
+`;
+
+const StyledScrollCarousel = styled(ScrollCarousel)`
+  padding: 0 ${space(1)};
 `;
 
 const AnimatedContent = styled(motion.div)`
