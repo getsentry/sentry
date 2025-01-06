@@ -10,9 +10,11 @@ __all__ = [
     "NewHighPriorityIssueConditionHandler",
     "LevelConditionHandler",
     "TaggedEventConditionHandler",
+    "AgeComparisonConditionHandler",
 ]
 
 from .group_event_handlers import (
+    AgeComparisonConditionHandler,
     EventAttributeConditionHandler,
     EventCreatedByDetectorConditionHandler,
     EventSeenCountConditionHandler,
