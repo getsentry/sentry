@@ -3,7 +3,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
-from django.http import Http404
 from django.test.utils import override_settings
 from rest_framework.request import Request
 
@@ -15,6 +14,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryAppPermission,
     add_integration_platform_metric_tag,
 )
+from sentry.sentry_apps.utils.errors import SentryAppIntegratorError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
@@ -43,7 +43,7 @@ class SentryAppPermissionTest(TestCase):
             request=self.make_request(user=non_owner, method="GET"), endpoint=self.endpoint
         )
 
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.permission.has_object_permission(self.request, None, self.sentry_app)
 
     def test_has_permission(self):
@@ -83,7 +83,7 @@ class SentryAppPermissionTest(TestCase):
 
         request._request.method = "POST"
 
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.permission.has_object_permission(request, None, self.sentry_app)
 
     @override_options({"superuser.read-write.ga-rollout": True})
@@ -143,7 +143,7 @@ class SentryAppBaseEndpointTest(TestCase):
         assert kwargs["sentry_app"].id == self.sentry_app.id
 
     def test_raises_when_sentry_app_not_found(self):
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.endpoint.convert_args(self.request, "notanapp")
 
 
@@ -181,7 +181,7 @@ class SentryAppInstallationPermissionTest(TestCase):
             self.make_request(user=user, method="GET"), endpoint=self.endpoint
         )
 
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.permission.has_object_permission(request, None, self.installation)
 
     def test_superuser_has_permission(self):
@@ -206,7 +206,7 @@ class SentryAppInstallationPermissionTest(TestCase):
         assert self.permission.has_object_permission(request, None, self.installation)
 
         request._request.method = "POST"
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.permission.has_object_permission(request, None, self.installation)
 
     @override_options({"superuser.read-write.ga-rollout": True})
@@ -242,7 +242,7 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
         assert kwargs["installation"].id == self.installation.id
 
     def test_raises_when_sentry_app_not_found(self):
-        with pytest.raises(Http404):
+        with pytest.raises(SentryAppIntegratorError):
             self.endpoint.convert_args(self.request, "1234")
 
 
