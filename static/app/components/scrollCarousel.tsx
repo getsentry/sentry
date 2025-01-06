@@ -80,7 +80,7 @@ export function ScrollCarousel({
     scrollContainerRef.current?.scrollTo({
       behavior: 'smooth',
       // We don't need to do any fancy math for the left edge
-      left: getOffsetRect(childrenEls[clampedIndex], childrenEls[0]).left,
+      left: getOffsetRect(childrenEls[clampedIndex]!, childrenEls[0]!).left,
     });
   }, [visibility, childrenEls, jumpItemCount]);
 
@@ -89,8 +89,8 @@ export function ScrollCarousel({
     // Clamp the scroll index to the last visible item
     const clampedIndex = Math.min(scrollIndex + jumpItemCount, visibility.length - 1);
 
-    const targetElement = childrenEls[clampedIndex];
-    const targetElementRight = getOffsetRect(targetElement, childrenEls[0]).right;
+    const targetElement = childrenEls[clampedIndex]!;
+    const targetElementRight = getOffsetRect(targetElement, childrenEls[0]!).right;
     const containerRight = scrollContainerRef.current?.clientWidth ?? 0;
     // scrollIntoView scrolls the entire page on some browsers
     scrollContainerRef.current?.scrollTo({

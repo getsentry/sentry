@@ -10,9 +10,9 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 
@@ -122,6 +122,7 @@ export function isValidGuide(guide?: string): guide is GuideKey {
 export function CronsLandingPanel() {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
 
@@ -147,7 +148,7 @@ export function CronsLandingPanel() {
     selectedGuide?: string
   ) => {
     if (!selectedPlatform) {
-      browserHistory.push({
+      navigate({
         pathname: location.pathname,
         query: {...location.query, platform: undefined, guide: undefined},
       });
@@ -157,7 +158,7 @@ export function CronsLandingPanel() {
     if (!selectedGuide) {
       selectedGuide = platformGuides[selectedPlatform][0]?.key ?? GuideKey.MANUAL;
     }
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, platform: selectedPlatform, guide: selectedGuide},
     });

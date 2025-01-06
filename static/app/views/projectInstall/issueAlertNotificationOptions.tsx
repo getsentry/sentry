@@ -112,7 +112,7 @@ export function useCreateNotificationAction() {
   useEffect(() => {
     if (messagingIntegrationsQuery.isSuccess) {
       const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0] ?? undefined;
+      const firstProvider = providerKeys[0]! ?? undefined;
       const firstIntegration = providersToIntegrations[firstProvider]?.[0] ?? undefined;
       setProvider(firstProvider);
       setIntegration(firstIntegration);
@@ -151,7 +151,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.SLACK,
             workspace: integration?.id,
-            channel: channel,
+            channel,
           };
 
           break;
@@ -167,7 +167,7 @@ export function useCreateNotificationAction() {
           integrationAction = {
             id: IssueAlertActionType.MS_TEAMS,
             team: integration?.id,
-            channel: channel,
+            channel,
           };
           break;
         default:

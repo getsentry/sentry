@@ -36,6 +36,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "portablepdbs",  # Portable PDB debug file
     "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
     "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
+    "proguard",  # Chunk-uploaded proguard mappings
 )
 
 

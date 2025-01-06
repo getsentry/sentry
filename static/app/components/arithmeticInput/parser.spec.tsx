@@ -2,17 +2,17 @@ import {Operation, parseArithmetic} from 'sentry/components/arithmeticInput/pars
 
 describe('arithmeticInput/parser', function () {
   it('errors on too many operators', () => {
-    expect(parseArithmetic('1+1+1+1+1+1+1+1+1+1+1+1').error).toEqual(
+    expect(parseArithmetic('1+1+1+1+1+1+1+1+1+1+1+1').error).toBe(
       'Maximum operators exceeded'
     );
   });
 
   it('errors on divide by 0', () => {
-    expect(parseArithmetic('1/0').error).toEqual('Division by 0 is not allowed');
+    expect(parseArithmetic('1/0').error).toBe('Division by 0 is not allowed');
   });
 
   it('handles one term', () => {
-    expect(parseArithmetic('1').result).toStrictEqual('1');
+    expect(parseArithmetic('1').result).toBe('1');
   });
 
   it('handles some addition', () => {

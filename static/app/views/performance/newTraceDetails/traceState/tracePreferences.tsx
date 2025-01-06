@@ -15,13 +15,14 @@ type TracePreferencesAction =
   | {payload: number; type: 'set list width'}
   | {payload: boolean; type: 'minimize drawer'}
   | {payload: boolean; type: 'set missing instrumentation'}
-  | {payload: boolean; type: 'set autogrouping'};
+  | {payload: boolean; type: 'set autogrouping'}
+  | {payload: number; type: 'set trace context height'};
 
 type TraceDrawerPreferences = {
   layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: {
-    [key in TraceLayoutPreferences]: number;
+    [key in TraceLayoutPreferences | 'trace context height']: number;
   };
 };
 
@@ -42,6 +43,7 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.33,
   'drawer right': 0.33,
   'drawer bottom': 0.5,
+  'trace context height': 150,
 };
 
 export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
@@ -51,6 +53,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.5,
+      'trace context height': 150,
     },
     layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
@@ -199,6 +202,17 @@ export function tracePreferencesReducer(
         ...state,
         list: {
           width: clamp(action.payload, 0.1, 0.9),
+        },
+      };
+    case 'set trace context height':
+      return {
+        ...state,
+        drawer: {
+          ...state.drawer,
+          sizes: {
+            ...state.drawer.sizes,
+            'trace context height': action.payload,
+          },
         },
       };
     default:

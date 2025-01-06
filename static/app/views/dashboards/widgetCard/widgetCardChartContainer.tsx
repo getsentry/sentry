@@ -1,13 +1,17 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PageFilters} from 'sentry/types/core';
-import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  Series,
+} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -18,7 +22,6 @@ import type {DashboardFilters, Widget} from '../types';
 import {WidgetType} from '../types';
 import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 
-import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
 import {WidgetCardDataLoader} from './widgetCardDataLoader';
@@ -31,7 +34,6 @@ type Props = {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
-  chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -50,10 +52,9 @@ type Props = {
     type: 'legendselectchanged';
   }>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
-  onZoom?: AugmentedEChartDataZoomHandler;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
   shouldResize?: boolean;
-  showSlider?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
@@ -72,9 +73,7 @@ export function WidgetCardChartContainer({
   legendOptions,
   expandNumbers,
   onDataFetched,
-  showSlider,
   noPadding,
-  chartZoomOptions,
   onWidgetSplitDecision,
   chartGroup,
   shouldResize,
@@ -115,7 +114,7 @@ export function WidgetCardChartContainer({
                 : null}
               <LoadingScreen loading={loading} />
               <IssueWidgetCard
-                transformedResults={tableResults?.[0].data ?? []}
+                transformedResults={tableResults?.[0]!.data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}
                 widget={widget}
@@ -148,10 +147,8 @@ export function WidgetCardChartContainer({
               windowWidth={windowWidth}
               expandNumbers={expandNumbers}
               onZoom={onZoom}
-              showSlider={showSlider}
               timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
-              chartZoomOptions={chartZoomOptions}
               chartGroup={chartGroup}
               shouldResize={shouldResize}
               onLegendSelectChanged={

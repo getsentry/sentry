@@ -12,11 +12,13 @@ import {space} from 'sentry/styles/space';
 import {
   type AggregationKeyWithAlias,
   type AggregationRefinement,
+  classifyTagKey,
   generateFieldAsString,
   parseFunction,
   prettifyTagKey,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
+import {FieldKind} from 'sentry/utils/fields';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
@@ -31,6 +33,7 @@ import {
   type ParameterDescription,
 } from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
 type AggregateFunction = [
@@ -57,12 +60,68 @@ function Visualize() {
   const isChartWidget =
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
+  const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
   const numericSpanTags = useSpanTags('number');
   const stringSpanTags = useSpanTags('string');
-  if (state.dataset === WidgetType.SPANS && isChartWidget) {
-    tags = numericSpanTags;
-  } else if (state.dataset === WidgetType.SPANS && !isChartWidget) {
-    tags = stringSpanTags;
+
+  // Span column options are explicitly defined and bypass all of the
+  // fieldOptions filtering and logic used for showing options for
+  // chart types.
+  let spanColumnOptions;
+  if (state.dataset === WidgetType.SPANS) {
+    // Explicitly merge numeric and string tags to ensure filtering
+    // compatibility for timeseries chart types.
+    tags = {...numericSpanTags, ...stringSpanTags};
+
+    const columns =
+      state.fields
+        ?.filter(field => field.kind === FieldValueKind.FIELD)
+        .map(field => field.field) ?? [];
+    spanColumnOptions = [
+      // Columns that are not in the tag responses, e.g. old tags
+      ...columns
+        .filter(
+          column =>
+            column !== '' &&
+            !stringSpanTags.hasOwnProperty(column) &&
+            !numericSpanTags.hasOwnProperty(column)
+        )
+        .map(column => {
+          return {
+            label: prettifyTagKey(column),
+            value: column,
+            textValue: column,
+            trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+          };
+        }),
+      ...Object.values(stringSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+        };
+      }),
+      ...Object.values(numericSpanTags).map(tag => {
+        return {
+          label: tag.name,
+          value: tag.key,
+          textValue: tag.name,
+          trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+        };
+      }),
+    ];
+    spanColumnOptions.sort((a, b) => {
+      if (a.label < b.label) {
+        return -1;
+      }
+
+      if (a.label > b.label) {
+        return 1;
+      }
+
+      return 0;
+    });
   }
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
@@ -103,15 +162,21 @@ function Visualize() {
           // For charts, we show aggregate parameter options for the y-axis as primary options.
           // For tables, we show all string tags and fields as primary options, as well
           // as aggregates that don't take parameters.
+          const columnFilterMethod = isChartWidget
+            ? datasetConfig.filterYAxisAggregateParams?.(
+                field,
+                state.displayType ?? DisplayType.LINE
+              )
+            : field.kind === FieldValueKind.FUNCTION
+              ? datasetConfig.filterAggregateParams
+              : datasetConfig.filterTableOptions;
           const columnOptions = Object.values(fieldOptions)
             .filter(option => {
+              // Don't show any aggregates under the columns, and if
+              // there isn't a filter method, just show the option
               return (
                 option.value.kind !== FieldValueKind.FUNCTION &&
-                (datasetConfig.filterYAxisAggregateParams?.(
-                  field,
-                  state.displayType ?? DisplayType.TABLE
-                )?.(option) ??
-                  true)
+                (columnFilterMethod?.(option, field) ?? true)
               );
             })
             .map(option => ({
@@ -120,17 +185,28 @@ function Visualize() {
                 state.dataset === WidgetType.SPANS
                   ? prettifyTagKey(option.value.meta.name)
                   : option.value.meta.name,
+
+              // For the spans dataset, all of the options are measurements,
+              // so we force the number badge to show
+              trailingItems:
+                state.dataset === WidgetType.SPANS ? (
+                  <TypeBadge kind={FieldKind.MEASUREMENT} />
+                ) : null,
             }));
 
-          const aggregateOptions = aggregates.map(option => ({
+          let aggregateOptions = aggregates.map(option => ({
             value: option.value.meta.name,
             label: option.value.meta.name,
           }));
+          aggregateOptions =
+            isChartWidget || isBigNumberWidget
+              ? aggregateOptions
+              : [NONE_AGGREGATE, ...aggregateOptions];
 
           let matchingAggregate;
           if (
-            fields[index].kind === FieldValueKind.FUNCTION &&
-            FieldValueKind.FUNCTION in fields[index]
+            fields[index]!.kind === FieldValueKind.FUNCTION &&
+            FieldValueKind.FUNCTION in fields[index]!
           ) {
             matchingAggregate = aggregates.find(
               option =>
@@ -171,7 +247,12 @@ function Visualize() {
                     <PrimarySelectRow>
                       <ColumnCompactSelect
                         searchable
-                        options={columnOptions}
+                        options={
+                          state.dataset === WidgetType.SPANS &&
+                          field.kind !== FieldValueKind.FUNCTION
+                            ? spanColumnOptions
+                            : columnOptions
+                        }
                         value={
                           field.kind === FieldValueKind.FUNCTION
                             ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ??
@@ -179,37 +260,36 @@ function Visualize() {
                             : field.field
                         }
                         onChange={newField => {
+                          const newFields = cloneDeep(fields);
+                          const currentField = newFields[index]!;
                           // Update the current field's aggregate with the new aggregate
-                          if (field.kind === FieldValueKind.FUNCTION) {
-                            field.function[1] = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FUNCTION) {
+                            currentField.function[1] = newField.value as string;
                           }
-                          if (field.kind === FieldValueKind.FIELD) {
-                            field.field = newField.value as string;
+                          if (currentField.kind === FieldValueKind.FIELD) {
+                            currentField.field = newField.value as string;
                           }
                           dispatch({
                             type: updateAction,
-                            payload: fields,
+                            payload: newFields,
                           });
                         }}
                         triggerProps={{
                           'aria-label': t('Column Selection'),
                         }}
                         disabled={
-                          fields[index].kind === FieldValueKind.FUNCTION &&
+                          fields[index]!.kind === FieldValueKind.FUNCTION &&
                           matchingAggregate?.value.meta.parameters.length === 0
                         }
                       />
                       <AggregateCompactSelect
-                        options={
-                          isChartWidget
-                            ? aggregateOptions
-                            : [NONE_AGGREGATE, ...aggregateOptions]
-                        }
+                        disabled={aggregateOptions.length <= 1}
+                        options={aggregateOptions}
                         value={parseFunction(stringFields?.[index] ?? '')?.name ?? ''}
                         onChange={aggregateSelection => {
                           const isNone = aggregateSelection.value === NONE;
                           const newFields = cloneDeep(fields);
-                          const currentField = newFields[index];
+                          const currentField = newFields[index]!;
                           const newAggregate = aggregates.find(
                             option => option.value.meta.name === aggregateSelection.value
                           );
@@ -230,7 +310,7 @@ function Visualize() {
                                 } else {
                                   currentField.function[1] =
                                     (currentField.function[1] ||
-                                      newAggregate.value.meta.parameters[0]
+                                      newAggregate.value.meta.parameters[0]!
                                         .defaultValue) ??
                                     '';
                                   // Set the remaining parameters for the new aggregate
@@ -241,7 +321,7 @@ function Visualize() {
                                   ) {
                                     // Increment by 1 to skip past the aggregate name
                                     currentField.function[i + 1] =
-                                      newAggregate.value.meta.parameters[i].defaultValue;
+                                      newAggregate.value.meta.parameters[i]!.defaultValue;
                                   }
                                 }
 
@@ -302,7 +382,7 @@ function Visualize() {
                               field:
                                 'function' in currentField
                                   ? (currentField.function[1] as string) ??
-                                    columnOptions[0].value
+                                    columnOptions[0]!.value
                                   : '',
                             };
                           }
@@ -332,10 +412,12 @@ function Visualize() {
                                 currentValue={currentValue}
                                 onChange={value => {
                                   const newFields = cloneDeep(fields);
-                                  if (newFields[index].kind !== FieldValueKind.FUNCTION) {
+                                  if (
+                                    newFields[index]!.kind !== FieldValueKind.FUNCTION
+                                  ) {
                                     return;
                                   }
-                                  newFields[index].function[parameterIndex + 2] = value;
+                                  newFields[index]!.function[parameterIndex + 2] = value;
                                   dispatch({
                                     type: updateAction,
                                     payload: newFields,
@@ -349,13 +431,23 @@ function Visualize() {
                   </Fragment>
                 )}
               </FieldBar>
-              <FieldExtras>
-                <LegendAliasInput
-                  type="text"
-                  name="name"
-                  placeholder={t('Add Alias')}
-                  onChange={() => {}}
-                />
+              <FieldExtras isChartWidget={isChartWidget || isBigNumberWidget}>
+                {!isChartWidget && !isBigNumberWidget && (
+                  <LegendAliasInput
+                    type="text"
+                    name="name"
+                    placeholder={t('Add Alias')}
+                    value={field.alias}
+                    onChange={e => {
+                      const newFields = cloneDeep(fields);
+                      newFields[index]!.alias = e.target.value;
+                      dispatch({
+                        type: updateAction,
+                        payload: newFields,
+                      });
+                    }}
+                  />
+                )}
                 <StyledDeleteButton
                   borderless
                   icon={<IconDelete />}
@@ -382,18 +474,11 @@ function Visualize() {
           onClick={() =>
             dispatch({
               type: updateAction,
-              payload: [
-                ...(fields ?? []),
-                // TODO: Define a default aggregate/field for the datasets?
-                {
-                  function: ['count', '', undefined, undefined],
-                  kind: FieldValueKind.FUNCTION,
-                },
-              ],
+              payload: [...(fields ?? []), cloneDeep(datasetConfig.defaultField)],
             })
           }
         >
-          {t('+ Add Series')}
+          {isChartWidget ? t('+ Add Series') : t('+ Add Field')}
         </AddButton>
         {datasetConfig.enableEquations && (
           <AddButton
@@ -552,11 +637,11 @@ const FieldRow = styled('div')`
 
 const StyledDeleteButton = styled(Button)``;
 
-const FieldExtras = styled('div')`
+const FieldExtras = styled('div')<{isChartWidget: boolean}>`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
-  flex: 1;
+  flex: ${p => (p.isChartWidget ? '0' : '1')};
 `;
 
 const AddButton = styled(Button)`

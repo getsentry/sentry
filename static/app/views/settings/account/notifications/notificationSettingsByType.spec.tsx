@@ -222,7 +222,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     expect(await screen.findByText('foo')).toBeInTheDocument();
-    await selectEvent.select(screen.getAllByText('On')[1], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[1]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -270,7 +270,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
     expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
     expect(
       screen.getByText('Control the notifications you receive for organization spend.')
@@ -286,7 +286,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: `/users/me/notification-options/`,
@@ -301,7 +301,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spend notifications off
-    await selectEvent.select(screen.getAllByText('On')[0], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[0]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -326,7 +326,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -349,7 +349,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[4], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[4]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(
@@ -375,7 +375,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -396,7 +396,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toEqual(2);
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
@@ -415,7 +415,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization],
     });
 
-    expect(await screen.getAllByText('Quota Notifications').length).toEqual(1);
+    expect(await screen.getAllByText('Quota Notifications').length).toBe(1);
     expect(screen.queryByText('Spend Notifications')).not.toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -439,7 +439,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // toggle spans quota notifications off
-    await selectEvent.select(screen.getAllByText('On')[3], 'Off');
+    await selectEvent.select(screen.getAllByText('On')[3]!, 'Off');
 
     expect(editSettingMock).toHaveBeenCalledTimes(1);
     expect(editSettingMock).toHaveBeenCalledWith(

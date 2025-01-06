@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const metricIssueConfig: IssueCategoryConfigMapping = {

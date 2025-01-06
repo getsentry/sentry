@@ -59,7 +59,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
 
     const authenticators = await this.getAuthenticators();
-    this.setState({authenticators: authenticators});
+    this.setState({authenticators});
 
     // Set the error state if there are no authenticators and U2F is on
     if (!authenticators.length && !disableU2FForSUForm) {

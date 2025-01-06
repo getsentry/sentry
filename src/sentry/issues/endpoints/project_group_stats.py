@@ -9,6 +9,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -28,7 +29,7 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         }
     }
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)
         except Environment.DoesNotExist:

@@ -1,8 +1,11 @@
 ---
+created: '2024-12-17T22:46:42.275404+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because hash matches system variant)
@@ -44,6 +47,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "5a78ef040b2122b94fc8d7756971739c"
+  contributing component: exception
   component:
     system*
       exception*

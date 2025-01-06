@@ -151,7 +151,7 @@ function useHighlightFirstOptionOnSectionChange({
     if (selectedSection === RECENT_SEARCH_CATEGORY_VALUE) {
       return [...state.collection].filter(item => !hiddenOptions.has(item.key));
     }
-    const options = state.collection.getChildren?.(selectedSection ?? sections[0].value);
+    const options = state.collection.getChildren?.(selectedSection ?? sections[0]!.value);
     return [...(options ?? [])].filter(option => !hiddenOptions.has(option.key));
   }, [state.collection, selectedSection, sections, hiddenOptions]);
 
@@ -176,6 +176,28 @@ function useHighlightFirstOptionOnSectionChange({
     selectedSection,
     state.selectionManager,
   ]);
+}
+
+// If the selected section no longer exists, switch to the first valid section
+function useSwitchToValidSection({
+  sections,
+  selectedSection,
+  setSelectedSection,
+}: {
+  sections: Section[];
+  selectedSection: Key | null;
+  setSelectedSection: (section: string) => void;
+}) {
+  useEffect(() => {
+    if (!selectedSection || !sections.length) {
+      return;
+    }
+
+    const section = sections.find(s => s.value === selectedSection);
+    if (!section) {
+      setSelectedSection(sections[0]!.value);
+    }
+  }, [sections, selectedSection, setSelectedSection]);
 }
 
 function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
@@ -286,6 +308,8 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     sections,
     isOpen,
   });
+
+  useSwitchToValidSection({sections, selectedSection, setSelectedSection});
 
   const fullWidth = !query;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;

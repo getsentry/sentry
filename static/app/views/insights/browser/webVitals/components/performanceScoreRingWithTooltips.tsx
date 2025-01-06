@@ -16,6 +16,7 @@ import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
@@ -33,8 +34,8 @@ type WebVitalsLabelCoordinates = {
 type Props = {
   height: number;
   projectScore: ProjectScore;
-  ringBackgroundColors: string[];
-  ringSegmentColors: string[];
+  ringBackgroundColors: ReadonlyArray<string>;
+  ringSegmentColors: ReadonlyArray<string>;
   text: React.ReactNode;
   width: number;
   barWidth?: number;
@@ -162,7 +163,11 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const weights = PERFORMANCE_SCORE_WEIGHTS;
+  const weights = organization.features.includes(
+    'performance-vitals-handle-missing-webvitals'
+  )
+    ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
+    : PERFORMANCE_SCORE_WEIGHTS;
 
   const commonWebVitalLabelProps = {
     organization,
@@ -192,7 +197,7 @@ function PerformanceScoreRingWithTooltips({
           <TooltipRow>
             <span>
               <Dot
-                color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]}
+                color={ringBackgroundColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
               />
               {webVitalTooltip.toUpperCase()} {t('Opportunity')}
             </span>
@@ -202,7 +207,9 @@ function PerformanceScoreRingWithTooltips({
           </TooltipRow>
           <TooltipRow>
             <span>
-              <Dot color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]} />
+              <Dot
+                color={ringSegmentColors[ringSegmentOrder.indexOf(webVitalTooltip)]!}
+              />
               {webVitalTooltip.toUpperCase()} {t('Score')}
             </span>
             <TooltipValue>{projectScore[`${webVitalTooltip}Score`]}</TooltipValue>
@@ -317,8 +324,8 @@ function calculateLabelCoordinates(
   Object.keys(weights).forEach((key, index) => {
     results[key] = {
       // Padding hack for now since ttfb label is longer than the others
-      x: coordinates[index].x + (key === 'ttfb' ? -12 : 0),
-      y: coordinates[index].y,
+      x: coordinates[index]!.x + (key === 'ttfb' ? -12 : 0),
+      y: coordinates[index]!.y,
     };
   });
   return results;

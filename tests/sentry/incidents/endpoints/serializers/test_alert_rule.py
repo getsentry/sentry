@@ -13,12 +13,10 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.rule import Rule
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
@@ -145,70 +143,21 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
 
-    def test_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        activated_alert_rule = self.create_alert_rule(
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
-        )
-        other_alert_rule = self.create_alert_rule()
-
-        activations = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-        )
-        activated_alert_rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-            activator="testing",
-        )
-        activated_alert_rule.refresh_from_db()
-
-        result = serialize([alert_rule, other_alert_rule, activated_alert_rule])
-        assert result[0]["activations"] == serialize(activations)
-        assert result[1]["activations"] == []
-        assert result[2]["activations"] == serialize(list(activated_alert_rule.activations.all()))
-        assert (
-            result[2]["activationCondition"]
-            == AlertRuleActivationConditionType.RELEASE_CREATION.value
-        )
-
-    def test_truncated_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        for i in range(11):
-            self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-            )
-            if i % 2 == 0:
-                self.create_alert_rule_activation(
-                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-                )
-        result = serialize([alert_rule, alert_rule2])
-        assert len(result[0]["activations"]) == 10
-        assert len(result[1]["activations"]) == 6
-
     def test_projects(self):
         regular_alert_rule = self.create_alert_rule()
-        activated_alert_rule = self.create_alert_rule(
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
-        )
         alert_rule_no_projects = self.create_alert_rule()
 
         AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()
 
-        assert activated_alert_rule.projects
         assert regular_alert_rule.projects
         assert not alert_rule_no_projects.projects.exists()
-        result = serialize([regular_alert_rule, activated_alert_rule, alert_rule_no_projects])
+        result = serialize([regular_alert_rule, alert_rule_no_projects])
 
         assert result[0]["projects"] == [
             project.slug for project in regular_alert_rule.projects.all()
         ]
-        assert result[1]["projects"] == [
-            project.slug for project in activated_alert_rule.projects.all()
-        ]
         # NOTE: we are now _only_ referencing alert_rule.projects fk (AlertRuleProjects)
-        assert result[2]["projects"] == [
+        assert result[1]["projects"] == [
             project.slug for project in alert_rule_no_projects.projects.all()
         ]
 

@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
@@ -43,9 +42,8 @@ describe('ScreenLoadSpansTable', function () {
     },
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
   beforeEach(function () {
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/`,
       body: [],
@@ -128,7 +126,7 @@ describe('ScreenLoadSpansTable', function () {
     );
 
     const header = await screen.findAllByTestId('grid-head-row');
-    const headerCells = within(header[0]).getAllByTestId('grid-head-cell');
+    const headerCells = within(header[0]!).getAllByTestId('grid-head-cell');
     const headerCell = headerCells[4];
     expect(headerCell).toHaveTextContent('Affects TTID');
     expect(await screen.findByRole('link', {name: 'Affects TTID'})).toHaveAttribute(
@@ -158,7 +156,7 @@ describe('ScreenLoadSpansTable', function () {
     );
 
     const header = await screen.findAllByTestId('grid-head-row');
-    const headerCells = within(header[0]).getAllByTestId('grid-head-cell');
+    const headerCells = within(header[0]!).getAllByTestId('grid-head-cell');
     const headerCell = headerCells[4];
     expect(headerCell).toHaveTextContent('Affects TTID');
     expect(await screen.findByRole('link', {name: 'Affects TTID'})).toHaveAttribute(

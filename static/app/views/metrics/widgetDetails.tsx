@@ -138,7 +138,7 @@ export function MetricDetails({
           min: selectionRange?.min,
           op: aggregation,
           query: queryWithFocusedSeries,
-          mri: mri,
+          mri,
         },
         query: {
           project: selection.projects as unknown as string[],

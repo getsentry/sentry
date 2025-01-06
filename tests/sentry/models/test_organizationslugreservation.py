@@ -69,7 +69,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             or len(slug_reservations_missing_replicas) > 0
             or len(extraneous_replicas) > 0
         ):
-            raise Exception(
+            raise AssertionError(
                 "One or more org slug replicas did not match\n"
                 + f"mismatched replicas: {mismatched_slug_res_replicas}\n"
                 + f"extraneous replicas: {extraneous_replicas}\n"

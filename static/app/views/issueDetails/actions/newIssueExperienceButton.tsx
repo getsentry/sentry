@@ -30,7 +30,7 @@ export function NewIssueExperienceButton() {
     mutate({['prefersIssueDetailsStreamlinedUI']: !hasStreamlinedUI});
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
-      organization: organization,
+      organization,
     });
   }, [mutate, organization, hasStreamlinedUI]);
 

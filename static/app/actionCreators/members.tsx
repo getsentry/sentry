@@ -67,7 +67,7 @@ export function indexMembersByProject(members: Member[]): IndexedMembersByProjec
         acc[project] = [];
       }
       if (member.user) {
-        acc[project].push(member.user);
+        acc[project]!.push(member.user);
       }
     }
     return acc;

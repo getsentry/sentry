@@ -2,11 +2,9 @@ import uuid
 from datetime import UTC, datetime
 
 import pytest
-from django.http.request import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
-from rest_framework.views import APIView
 from sentry_relay.auth import generate_key_pair
 
 from sentry.api.authentication import (
@@ -32,18 +30,15 @@ from sentry.models.relay import Relay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.token import AuthTokenType
 from sentry.utils.security.orgauthtoken_token import hash_token
 
 
-def _drf_request_from_request(request: HttpRequest) -> Request:
-    return APIView().initialize_request(request)
-
-
 def _drf_request(data: dict[str, str] | None = None) -> Request:
     req = RequestFactory().post("/example", data, format="json")
-    return _drf_request_from_request(req)
+    return drf_request_from_request(req)
 
 
 @control_silo_test
@@ -294,7 +289,7 @@ def test_registered_relay(internal):
 
     data = {"some_data": "hello"}
     packed, signature = sk.pack(data)
-    request = _drf_request_from_request(
+    request = drf_request_from_request(
         RequestFactory().post("/", data=packed, content_type="application/json")
     )
     request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"] = signature
@@ -327,7 +322,7 @@ def test_statically_configured_relay(settings, internal):
 
     data = {"some_data": "hello"}
     packed, signature = sk.pack(data)
-    request = _drf_request_from_request(
+    request = drf_request_from_request(
         RequestFactory().post("/", data=packed, content_type="application/json")
     )
     request.META["HTTP_X_SENTRY_RELAY_SIGNATURE"] = signature
@@ -359,7 +354,7 @@ class TestRpcSignatureAuthentication(TestCase):
     @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
     def test_authenticate_success(self):
         data = b'{"meta":{},"args":{"id":1}'
-        request = _drf_request_from_request(
+        request = drf_request_from_request(
             RequestFactory().post("/", data=data, content_type="application/json")
         )
 
@@ -371,7 +366,7 @@ class TestRpcSignatureAuthentication(TestCase):
         assert token == signature
 
     def test_authenticate_old_key_validates(self):
-        request = _drf_request_from_request(
+        request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
         with override_settings(RPC_SHARED_SECRET=["an-old-key"]):
@@ -386,7 +381,7 @@ class TestRpcSignatureAuthentication(TestCase):
         assert token == signature
 
     def test_authenticate_without_signature(self):
-        request = _drf_request_from_request(
+        request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
         request.META["HTTP_AUTHORIZATION"] = "Bearer abcdef"
@@ -395,7 +390,7 @@ class TestRpcSignatureAuthentication(TestCase):
 
     @override_settings(RPC_SHARED_SECRET=["a-long-secret-key"])
     def test_authenticate_invalid_signature(self):
-        request = _drf_request_from_request(
+        request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
         request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"
@@ -404,7 +399,7 @@ class TestRpcSignatureAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_authenticate_no_shared_secret(self):
-        request = _drf_request_from_request(
+        request = drf_request_from_request(
             RequestFactory().post("/", data="", content_type="application/json")
         )
         request.META["HTTP_AUTHORIZATION"] = "rpcsignature abcdef"

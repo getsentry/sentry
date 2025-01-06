@@ -102,7 +102,7 @@ export function getAlertInterval(
   }
 
   for (let index = 0; index < TIME_WINDOWS_TO_CHECK.length; index++) {
-    const timeWindow = TIME_WINDOWS_TO_CHECK[index];
+    const timeWindow = TIME_WINDOWS_TO_CHECK[index]!;
     if (inMinutes <= timeWindow && AVAILABLE_TIME_PERIODS[timeWindow].includes(period)) {
       return toInterval(timeWindow);
     }
@@ -129,7 +129,7 @@ export function CreateAlertModal({
   const {selection} = usePageFilters();
   const [formState, setFormState] = useState<FormState>(() => {
     let project =
-      selection.projects.length === 1 ? selection.projects[0].toString() : null;
+      selection.projects.length === 1 ? selection.projects[0]!.toString() : null;
 
     if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
       const rule = getExtractionRule(metricsQuery.mri, metricsQuery.condition);
@@ -139,7 +139,7 @@ export function CreateAlertModal({
     }
 
     const environment =
-      selection.environments.length === 1 && project ? selection.environments[0] : null;
+      selection.environments.length === 1 && project ? selection.environments[0]! : null;
 
     return {
       project,

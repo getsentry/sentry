@@ -375,7 +375,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             : [seriesParamsOrParam];
 
           const pointY = (
-            seriesParams.length > 1 ? seriesParams[0].data[1] : undefined
+            seriesParams.length > 1 ? seriesParams[0]!.data[1] : undefined
           ) as number | undefined;
 
           const comparisonSeries =
@@ -415,7 +415,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         max: this.state.yAxisMax ?? undefined,
         axisLabel: {
           formatter: (value: number) =>
-            alertAxisFormatter(value, data[0].seriesName, aggregate),
+            alertAxisFormatter(value, data[0]!.seriesName, aggregate),
         },
       },
     };

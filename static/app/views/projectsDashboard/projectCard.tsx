@@ -281,7 +281,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }
 
     this.setState({
-      projectDetails: itemsBySlug[project.slug],
+      projectDetails: itemsBySlug[project.slug]!,
     });
   }
 

@@ -2,35 +2,30 @@ import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
 import {After, Before, DiffHeader} from 'sentry/components/replays/diff/utils';
 import ReplayPlayer from 'sentry/components/replays/player/replayPlayer';
 import ReplayPlayerMeasurer from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import toPixels from 'sentry/utils/number/toPixels';
-import {ReplayPlayerEventsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerEventsContext';
 import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 interface Props {
-  leftOffsetMs: number;
-  replay: ReplayReader;
-  rightOffsetMs: number;
   minHeight?: `${number}px` | `${number}%`;
 }
 
 const BORDER_WIDTH = 3;
 
-export function ReplaySliderDiff({
-  minHeight = '0px',
-  leftOffsetMs,
-  replay,
-  rightOffsetMs,
-}: Props) {
+export function ReplaySliderDiff({minHeight = '0px'}: Props) {
+  const {replay, leftOffsetMs, rightOffsetMs} = useDiffCompareContext();
+
   const positionedRef = useRef<HTMLDivElement>(null);
   const viewDimensions = useDimensions({elementRef: positionedRef});
   const width = toPixels(viewDimensions.width);
@@ -38,8 +33,8 @@ export function ReplaySliderDiff({
   return (
     <Fragment>
       <DiffHeader>
-        <Before />
-        <After />
+        <Before startTimestampMs={replay.getStartTimestampMs()} offset={leftOffsetMs} />
+        <After startTimestampMs={replay.getStartTimestampMs()} offset={rightOffsetMs} />
       </DiffHeader>
       <WithPadding>
         <Positioned style={{minHeight}} ref={positionedRef}>
@@ -114,7 +109,7 @@ function DiffSides({
   return (
     <Fragment>
       <ReplayPlayerPluginsContextProvider>
-        <ReplayPlayerEventsContextProvider replay={replay}>
+        <ReplayReaderProvider replay={replay}>
           <Cover style={{width}}>
             <Placement style={{width}}>
               <ReplayPlayerStateContextProvider>
@@ -137,7 +132,7 @@ function DiffSides({
               </ReplayPlayerStateContextProvider>
             </Placement>
           </Cover>
-        </ReplayPlayerEventsContextProvider>
+        </ReplayReaderProvider>
       </ReplayPlayerPluginsContextProvider>
       <Divider ref={dividerElem} onMouseDown={onDividerMouseDownWithAnalytics} />
     </Fragment>

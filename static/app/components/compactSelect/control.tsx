@@ -524,9 +524,9 @@ export function Control({
         >
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
-            minWidth={overlayProps.style.minWidth}
+            minWidth={overlayProps.style!.minWidth}
             maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style.maxHeight}
+            maxHeight={overlayProps.style!.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}

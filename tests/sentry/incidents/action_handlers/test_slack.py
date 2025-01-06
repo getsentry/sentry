@@ -12,10 +12,6 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
-from sentry.integrations.slack.metrics import (
-    SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-    SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
-)
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.options.organization_option import OrganizationOption
@@ -122,10 +118,6 @@ class SlackActionHandlerTest(FireTest):
         self._assert_blocks(mock_post, incident, 1000, chart_url)
 
         assert NotificationMessage.objects.all().count() == 1
-        mock_metrics.incr.assert_called_with(
-            SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
-            sample_rate=1.0,
-        )
 
         assert len(mock_record.mock_calls) == 4
         thread_ts_start, thread_ts_success, send_notification_start, send_notification_success = (
@@ -146,12 +138,6 @@ class SlackActionHandlerTest(FireTest):
         assert msg.error_code == 200
         assert msg.error_details is not None
         assert msg.error_details["data"] == {"ok": False, "error": "invalid_auth"}
-
-        mock_metrics.incr.assert_called_with(
-            SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"ok": False, "status": 200},
-        )
 
         assert len(mock_record.mock_calls) == 4
         thread_ts_start, thread_ts_failure, send_notification_start, send_notification_failure = (

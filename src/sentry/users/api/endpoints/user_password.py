@@ -9,11 +9,11 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.auth import password_validation
-from sentry.ratelimits import backend as ratelimiter
 from sentry.security.utils import capture_security_activity
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.models.user import User
+from sentry.web.frontend.twofactor import reset_2fa_rate_limits
 
 
 class UserPasswordSerializer(serializers.Serializer[User]):
@@ -91,7 +91,6 @@ class UserPasswordEndpoint(UserEndpoint):
             send_email=True,
         )
 
-        ratelimiter.reset(f"auth-2fa:user:{user.id}", window=20)
-        ratelimiter.reset(f"auth-2fa-long:user:{user.id}", window=60 * 60)
+        reset_2fa_rate_limits(user.id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

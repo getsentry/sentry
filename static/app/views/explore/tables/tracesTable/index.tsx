@@ -27,6 +27,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {
   useExploreDataset,
   useExploreQuery,
+  useExploreTitle,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
@@ -57,6 +58,7 @@ interface TracesTableProps {
 }
 
 export function TracesTable({confidence, setError}: TracesTableProps) {
+  const title = useExploreTitle();
   const dataset = useExploreDataset();
   const query = useExploreQuery();
   const visualizes = useExploreVisualizes();
@@ -95,6 +97,7 @@ export function TracesTable({confidence, setError}: TracesTableProps) {
     ],
     userQuery: query,
     confidence,
+    title,
   });
 
   const {data, isPending, isError, getResponseHeader} = result;
@@ -204,7 +207,7 @@ function TraceRow({
     const trailingProjects: string[] = [];
 
     for (let i = 0; i < trace.breakdowns.length; i++) {
-      const project = trace.breakdowns[i].project;
+      const project = trace.breakdowns[i]!.project;
       if (!defined(project) || seenProjects.has(project)) {
         continue;
       }
