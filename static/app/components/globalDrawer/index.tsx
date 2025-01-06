@@ -115,6 +115,7 @@ export function GlobalDrawer({children}) {
         currentDrawerConfig?.options.shouldCloseOnLocationChange?.(location.pathname) ??
         true
       ) {
+        // Call `closeDrawer` without invoking `onClose` callback, since those callbacks often update the URL
         closeDrawer();
       }
     },
