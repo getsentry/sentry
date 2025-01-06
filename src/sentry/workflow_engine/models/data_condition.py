@@ -30,6 +30,7 @@ class Condition(models.TextChoices):
     NEW_HIGH_PRIORITY_ISSUE = "new_high_priority_issue"
     REGRESSION_EVENT = "regression_event"
     REAPPEARED_EVENT = "reappeared_event"
+    TAGGED_EVENT = "tagged_event"
 
 
 condition_ops = {
