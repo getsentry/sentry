@@ -95,7 +95,7 @@ function Content({
 
   const colors = (theme: Theme) =>
     currentFilter === SpanOperationBreakdownFilter.NONE
-      ? theme.charts.getColorPalette(1).slice()
+      ? (theme.charts.getColorPalette(1) as string[] | undefined) ?? []
       : [filterToColor(currentFilter)];
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;

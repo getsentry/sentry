@@ -146,7 +146,7 @@ class ReleaseSessionsChart extends Component<Props> {
 
   getColors() {
     const {theme, chartType} = this.props;
-    const colors = theme.charts.getColorPalette(14);
+    const colors = theme.charts.getColorPalette(14) ?? [];
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
         return [colors[0]!];
