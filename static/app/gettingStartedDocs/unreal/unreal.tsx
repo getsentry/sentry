@@ -106,7 +106,7 @@ const onboarding: OnboardingConfig = {
     {
       title: t('Crash Reporter Client'),
       description: tct(
-        'For Windows and Mac, [link:Crash Reporter Client] provided along with Unreal Engine has to be configured in order to capture errors automatically.',
+        'In Unreal Engine versions prior to UE 5.2 to automatically capture errors on desktop platforms [link:Crash Reporter Client] has to be configured.',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/unreal/setup-crashreporter/" />
