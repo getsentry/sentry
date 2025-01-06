@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("hybridcloud", "0018_add_alert_scopes_to_sentry_apps"),
+        ("hybridcloud", "0017_add_scoping_organization_apitokenreplica"),
     ]
 
     operations = [

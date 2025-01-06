@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0805_add_alert_scopes_to_sentry_apps"),
+        ("sentry", "0804_delete_metrics_key_indexer_pt2"),
     ]
 
     operations = [
