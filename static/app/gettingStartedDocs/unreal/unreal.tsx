@@ -172,9 +172,11 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [italic:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
+              'To allow Sentry to fully process native crashes and provide you with symbolicated stack traces, you need to upload [link:debug information files] (sometimes also referred to as [italic:debug symbols] or just [italic:symbols]). We recommend uploading debug information during your build or release process.',
               {
-                italic: <i />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/unreal/configuration/debug-symbols/" />
+                ),
               }
             )}
           </p>
