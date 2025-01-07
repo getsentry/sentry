@@ -47,36 +47,36 @@ class TestLevelCondition(ConditionTestCase):
         assert dc.condition_group == dcg
 
     def test_equals(self):
-        self.dc.comparison = {"match": MatchType.EQUAL, "level": "20"}
+        self.dc.update(comparison={"match": MatchType.EQUAL, "level": "20"})
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.EQUAL, "level": "30"}
+        self.dc.update(comparison={"match": MatchType.EQUAL, "level": "30"})
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_greater_than(self):
-        self.dc.comparison = {"match": MatchType.GREATER_OR_EQUAL, "level": "40"}
+        self.dc.update(comparison={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
         self.assert_does_not_pass(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.GREATER_OR_EQUAL, "level": "20"}
+        self.dc.update(comparison={"match": MatchType.GREATER_OR_EQUAL, "level": "20"})
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.GREATER_OR_EQUAL, "level": "10"}
+        self.dc.update(comparison={"match": MatchType.GREATER_OR_EQUAL, "level": "10"})
         self.assert_passes(self.dc, self.job)
 
     def test_less_than(self):
-        self.dc.comparison = {"match": MatchType.LESS_OR_EQUAL, "level": "40"}
+        self.dc.update(comparison={"match": MatchType.LESS_OR_EQUAL, "level": "40"})
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.LESS_OR_EQUAL, "level": "20"}
+        self.dc.update(comparison={"match": MatchType.LESS_OR_EQUAL, "level": "20"})
         self.assert_passes(self.dc, self.job)
 
-        self.dc.comparison = {"match": MatchType.LESS_OR_EQUAL, "level": "10"}
+        self.dc.update(comparison={"match": MatchType.LESS_OR_EQUAL, "level": "10"})
         self.assert_does_not_pass(self.dc, self.job)
 
     def test_without_tag(self):
         self.event = self.store_event(data={}, project_id=self.project.id)
         self.setup_group_event_and_job()
-        self.dc.comparison = {"match": MatchType.EQUAL, "level": "20"}
+        self.dc.update(comparison={"match": MatchType.EQUAL, "level": "20"})
         self.assert_does_not_pass(self.dc, self.job)
 
     # This simulates the following case:
@@ -95,7 +95,7 @@ class TestLevelCondition(ConditionTestCase):
         assert wevent.group is not None
         assert wevent.group.id == eevent.group.id
 
-        self.dc.comparison = {"match": MatchType.GREATER_OR_EQUAL, "level": "40"}
+        self.dc.update(comparison={"match": MatchType.GREATER_OR_EQUAL, "level": "40"})
 
         self.event = wevent
         self.setup_group_event_and_job()

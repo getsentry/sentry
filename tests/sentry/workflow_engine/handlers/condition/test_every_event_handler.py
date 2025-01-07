@@ -10,6 +10,15 @@ class TestEveryEventCondition(ConditionTestCase):
     rule_cls = EveryEventCondition
     payload = {"id": EveryEventCondition.id}
 
+    def test_dual_write(self):
+        dcg = self.create_data_condition_group()
+        dc = self.translate_to_data_condition(self.payload, dcg)
+
+        assert dc.type == self.condition
+        assert dc.comparison is True
+        assert dc.condition_result is True
+        assert dc.condition_group == dcg
+
     def test(self):
         job = WorkflowJob(
             {
@@ -31,12 +40,3 @@ class TestEveryEventCondition(ConditionTestCase):
         )
 
         self.assert_passes(dc, job)
-
-    def test_dual_write(self):
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison is True
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
