@@ -207,7 +207,7 @@ def _query_metrics_with_pagination(
     group_ids: Sequence[int],
     start_date: datetime,
     end_date: datetime,
-    all_results: list[GroupsCountResponse],
+    all_results: Sequence[GroupsCountResponse],
     category: GroupCategory | None = None,
 ) -> None:
     """
@@ -261,7 +261,7 @@ def _query_metrics_with_pagination(
             )
 
 
-def transform_to_groups_count_response(data: dict[str, Any]) -> list[GroupsCountResponse]:
+def transform_to_groups_count_response(data: Mapping[str, Any]) -> list[GroupsCountResponse]:
     """
     Transforms results from `get_series` metrics query to List[GroupsCountResponse]
     """
@@ -284,7 +284,9 @@ def transform_to_groups_count_response(data: dict[str, Any]) -> list[GroupsCount
     return result
 
 
-def compare_lists(list1: list[GroupsCountResponse], list2: list[GroupsCountResponse]) -> bool:
+def compare_lists(
+    list1: Sequence[GroupsCountResponse], list2: Sequence[GroupsCountResponse]
+) -> bool:
     # Convert each dictionary in the list to a frozenset so it's hashable
     set1 = set(map(lambda x: frozenset(x.items()), list1))
     set2 = set(map(lambda x: frozenset(x.items()), list2))
