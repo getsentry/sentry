@@ -49,12 +49,15 @@ x-sentry-service-config:
         branch: main
         repo_link: https://github.com/getsentry/taskbroker.git
         mode: containerized
+    rabbitmq:
+      description: Messaging and streaming broker
   modes:
     default: [snuba, postgres, relay]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
     taskbroker: [snuba, postgres, relay, taskbroker]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
+    rabbitmq: [postgres, snuba, rabbitmq]
 
 services:
   postgres:
@@ -105,6 +108,17 @@ services:
       - '127.0.0.1:7003:7003'
       - '127.0.0.1:7004:7004'
       - '127.0.0.1:7005:7005'
+    networks:
+      - devservices
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      - IP=0.0.0.0
+  rabbitmq:
+    image: ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management
+    ports:
+      - '127.0.0.1:5672:5672'
+      - '127.0.0.1:15672:15672'
     networks:
       - devservices
     extra_hosts:
