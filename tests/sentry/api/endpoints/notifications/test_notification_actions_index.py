@@ -270,6 +270,9 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock(side_effect=serializers.ValidationError(error_message))
 
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
         self.mock_register(self.base_data)(MockActionRegistration)
 
         response = self.get_error_response(
@@ -289,7 +292,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
     def test_post_with_slack_validation(self, mock_delete, mock_schedule):
         class MockActionRegistration(ActionRegistration):
-            pass
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         channel_name = "journal"
         channel_id = "CABC123"
@@ -316,7 +320,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     @patch.dict(NotificationAction._registry, {})
     def test_post_with_pagerduty_validation(self):
         class MockActionRegistration(ActionRegistration):
-            pass
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         service_name = "palace"
 
@@ -385,6 +390,9 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
 
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
+
         registration = MockActionRegistration
         self.mock_register(self.base_data)(registration)
 
@@ -442,6 +450,9 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         class MockActionRegistration(ActionRegistration):
             validate_action = MagicMock()
+
+            def fire(self, data: Any) -> None:
+                raise NotImplementedError
 
         registration = MockActionRegistration
         self.mock_register(self.base_data)(registration)
