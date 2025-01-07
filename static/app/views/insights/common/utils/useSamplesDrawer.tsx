@@ -16,7 +16,7 @@ interface UseSamplesDrawerProps {
 
 export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps) {
   const organization = useOrganization();
-  const {openDrawer} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -34,6 +34,10 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
   }, [navigate, location.query]);
 
   const openSamplesDrawer = useCallback(() => {
+    if (isDrawerOpen) {
+      return;
+    }
+
     trackAnalytics('performance_views.sample_spans.opened', {
       organization,
       source: moduleName,
@@ -44,7 +48,7 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
       onClose,
       transitionProps: {stiffness: 1000},
     });
-  }, [openDrawer, onClose, Component, organization, moduleName]);
+  }, [openDrawer, isDrawerOpen, onClose, Component, organization, moduleName]);
 
-  return {openSamplesDrawer};
+  return {openSamplesDrawer, isDrawerOpen};
 }

@@ -16,10 +16,10 @@ export function useWebVitalsDrawer({
   webVital,
   onClose,
 }: UseWebVitalsDrawerProps) {
-  const {openDrawer} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
 
   const openVitalsDrawer = useCallback(() => {
-    if (!webVital) {
+    if (!webVital || isDrawerOpen) {
       return;
     }
 
@@ -28,7 +28,7 @@ export function useWebVitalsDrawer({
       onClose,
       transitionProps: {stiffness: 1000},
     });
-  }, [openDrawer, onClose, Component, webVital]);
+  }, [openDrawer, isDrawerOpen, onClose, Component, webVital]);
 
   return {openVitalsDrawer};
 }

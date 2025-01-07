@@ -16,10 +16,10 @@ export function useMobileVitalsDrawer({
   vital,
   onClose,
 }: UseMobileVitalsDrawerProps) {
-  const {openDrawer} = useDrawer();
+  const {openDrawer, isDrawerOpen} = useDrawer();
 
   const openVitalsDrawer = useCallback(() => {
-    if (!vital) {
+    if (!vital || isDrawerOpen) {
       return;
     }
 
@@ -28,7 +28,7 @@ export function useMobileVitalsDrawer({
       onClose,
       transitionProps: {stiffness: 1000},
     });
-  }, [openDrawer, onClose, Component, vital]);
+  }, [openDrawer, isDrawerOpen, onClose, Component, vital]);
 
   return {openVitalsDrawer};
 }
