@@ -2732,7 +2732,9 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
 
     def test_dashboard_release_widget_resets_to_errors(self):
-        dashboard = self.create_dashboard(title="First dashboard", organization=self.organization)
+        dashboard = self.create_dashboard(
+            title="dataset reset issue", organization=self.organization
+        )
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
@@ -2754,10 +2756,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
         data = {
-            "title": "reset issue",
-            "projects": [self.project.id],
-            "period": "24h",
-            "filters": {},
+            "title": "dataset reset issue",
             "widgets": [
                 {
                     "id": str(widget.id),
@@ -2789,6 +2788,10 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
 
         assert response.data["widgets"][0]["widgetType"] == "metrics"
+
+        widget = DashboardWidget.objects.get(id=widget.id)
+        assert widget.discover_widget_split is None
+        assert widget.dataset_source == DatasetSourcesTypes.UNKNOWN.value
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
