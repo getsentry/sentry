@@ -9,8 +9,10 @@ interface FetchIssueCountsParameters extends Partial<PageFilters['datetime']> {
   orgSlug: string;
   project: number[];
   query: string[];
+  end?: string | null;
   groupStatsPeriod?: string | null;
   sort?: string;
+  start?: string | null;
   statsPeriod?: string | null;
   useGroupSnubaDataset?: boolean;
 }
