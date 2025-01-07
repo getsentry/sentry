@@ -37,7 +37,8 @@ const BASE_CONFIG: IssueTypeConfig = {
     share: {enabled: false},
   },
   customCopy: {
-    resolution: 'Resolved',
+    resolution: t('Resolved'),
+    allEvents: t('All Events'),
   },
   attachments: {enabled: false},
   autofix: false,
