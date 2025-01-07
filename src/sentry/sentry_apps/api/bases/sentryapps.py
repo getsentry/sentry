@@ -130,6 +130,11 @@ class IntegrationPlatformEndpoint(Endpoint):
         add_request_metric_tags(request, integration_platform=True)
         return super().dispatch(request, *args, **kwargs)
 
+    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
+            request, exc, handler_context, scope
+        )
+
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
@@ -202,11 +207,6 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         kwargs["organization"] = context.organization
 
         return (args, kwargs)
-
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
 
 
 class SentryAppPermission(SentryPermission):
@@ -299,11 +299,6 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
 
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
-
 
 class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
@@ -324,11 +319,6 @@ class RegionSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
-
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
 
 
 class SentryAppInstallationsPermission(SentryPermission):
@@ -385,11 +375,6 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
 
         kwargs["organization"] = organization
         return (args, kwargs)
-
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
 
 
 class SentryAppInstallationPermission(SentryPermission):
@@ -467,11 +452,6 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
         kwargs["installation"] = installation
         return (args, kwargs)
-
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
 
 
 class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
