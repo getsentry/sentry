@@ -17,7 +17,9 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowJob]):
         except (TypeError, ValueError, KeyError):
             return False
 
-        if group and group.issue_category:
-            return bool(value == group.issue_category)
+        try:
+            issue_category = group.issue_category
+        except ValueError:
+            return False
 
-        return False
+        return bool(value == issue_category)
