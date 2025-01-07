@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -87,7 +87,7 @@ export function ScreenLoadSpansContent() {
     spanDescription,
   } = location.query;
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: (
       <SpanSamplesPanel
         groupId={spanGroup}
@@ -97,12 +97,7 @@ export function ScreenLoadSpansContent() {
       />
     ),
     moduleName: ModuleName.SCREEN_LOAD,
-  });
-
-  useEffect(() => {
-    if (transactionName && spanGroup) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction', 'spanGroup'],
   });
 
   return (

@@ -14,7 +14,6 @@ import {
 } from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
@@ -74,21 +73,10 @@ export function CacheLandingPage() {
   const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
-  const query = useLocationQuery({
-    fields: {
-      transaction: decodeScalar,
-    },
-  });
-
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: <CacheSamplePanel />,
     moduleName: ModuleName.CACHE,
-  });
-
-  useEffect(() => {
-    if (query.transaction) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction'],
   });
 
   const {

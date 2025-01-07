@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect} from 'react';
+import React, {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -77,7 +77,6 @@ export function HTTPDomainSummaryPage() {
   const {
     domain,
     project: projectId,
-    transaction,
     'user.geo.subregion': subregions,
   } = useLocationQuery({
     fields: {
@@ -88,15 +87,10 @@ export function HTTPDomainSummaryPage() {
     },
   });
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: <HTTPSamplesPanel />,
     moduleName: ModuleName.HTTP,
-  });
-
-  useEffect(() => {
-    if (transaction) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction'],
   });
 
   const project = projects.find(p => projectId === p.id);

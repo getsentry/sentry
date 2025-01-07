@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -149,7 +149,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
     [SpanMetricsField.SPAN_GROUP]: string;
   };
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: (
       <SampleList
         groupId={span[SpanMetricsField.SPAN_GROUP]}
@@ -160,12 +160,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
       />
     ),
     moduleName: ModuleName.DB,
-  });
-
-  useEffect(() => {
-    if (transaction) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction'],
   });
 
   const {

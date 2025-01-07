@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -73,7 +73,7 @@ export function ScreenSummaryContent() {
     'device.class': deviceClass,
   } = location.query;
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: (
       <SpanSamplesPanel
         additionalFilters={{
@@ -87,12 +87,7 @@ export function ScreenSummaryContent() {
       />
     ),
     moduleName: ModuleName.OTHER,
-  });
-
-  useEffect(() => {
-    if (spanGroup && spanOp) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['spanGroup', 'spanOp'],
   });
 
   return (

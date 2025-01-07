@@ -111,7 +111,7 @@ export function ScreenSummaryContentPage() {
     }
   }, [location, appStartType, navigate]);
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: (
       <SpanSamplesPanel
         additionalFilters={{
@@ -141,12 +141,12 @@ export function ScreenSummaryContentPage() {
       />
     ),
     moduleName: ModuleName.APP_START,
-  });
-
-  useEffect(() => {
-    if (transactionName && spanGroup && spanOp && appStartType) {
-      openSamplesDrawer();
-    }
+    requiredParams: [
+      'transaction',
+      'spanGroup',
+      'spanOp',
+      SpanMetricsField.APP_START_TYPE,
+    ],
   });
 
   return (

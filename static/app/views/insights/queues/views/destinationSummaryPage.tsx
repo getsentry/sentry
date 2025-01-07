@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -43,15 +43,10 @@ function DestinationSummaryPage() {
   });
   const errorRate = 1 - (data[0]?.['trace_status_rate(ok)'] ?? 0);
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: <MessageSpanSamplesPanel />,
     moduleName: ModuleName.QUEUE,
-  });
-
-  useEffect(() => {
-    if (query.transaction) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction'],
   });
 
   return (

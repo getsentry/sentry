@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
@@ -49,7 +49,7 @@ function ResourceSummary() {
     query: {transaction},
   } = useLocation();
 
-  const {openSamplesDrawer} = useSamplesDrawer({
+  useSamplesDrawer({
     Component: (
       <SampleList
         transactionRoute={webVitalsModuleURL}
@@ -61,12 +61,7 @@ function ResourceSummary() {
       />
     ),
     moduleName: ModuleName.RESOURCE,
-  });
-
-  useEffect(() => {
-    if (transaction) {
-      openSamplesDrawer();
-    }
+    requiredParams: ['transaction'],
   });
 
   const {data, isPending} = useSpanMetrics(

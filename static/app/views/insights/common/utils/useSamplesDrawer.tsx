@@ -1,4 +1,5 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
+import type {Location} from 'history';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import {t} from 'sentry/locale';
@@ -12,11 +13,16 @@ import type {ModuleName} from '../../types';
 interface UseSamplesDrawerProps {
   Component: React.ReactNode;
   moduleName: ModuleName;
+  requiredParams: [string, ...string[]];
 }
 
-export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps) {
+export function useSamplesDrawer({
+  Component,
+  moduleName,
+  requiredParams,
+}: UseSamplesDrawerProps): void {
   const organization = useOrganization();
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,6 +39,13 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
     });
   }, [navigate, location.query]);
 
+  const shouldCloseOnLocationChange = useCallback(
+    (newLocation: Location) => {
+      return !requiredParams.some(paramName => Boolean(newLocation.query[paramName]));
+    },
+    [requiredParams]
+  );
+
   const openSamplesDrawer = useCallback(() => {
     if (isDrawerOpen) {
       return;
@@ -47,8 +60,28 @@ export function useSamplesDrawer({Component, moduleName}: UseSamplesDrawerProps)
       ariaLabel: t('Samples'),
       onClose,
       transitionProps: {stiffness: 1000},
+      shouldCloseOnLocationChange,
+      shouldCloseOnInteractOutside: () => false,
     });
-  }, [openDrawer, isDrawerOpen, onClose, Component, organization, moduleName]);
+  }, [
+    openDrawer,
+    isDrawerOpen,
+    onClose,
+    shouldCloseOnLocationChange,
+    Component,
+    organization,
+    moduleName,
+  ]);
 
-  return {openSamplesDrawer, isDrawerOpen};
+  const shouldDrawerOpen = requiredParams.every(paramName =>
+    Boolean(location.query[paramName])
+  );
+
+  useEffect(() => {
+    if (shouldDrawerOpen) {
+      openSamplesDrawer();
+    } else {
+      closeDrawer();
+    }
+  }, [shouldDrawerOpen, openSamplesDrawer, closeDrawer]);
 }
