@@ -221,3 +221,7 @@ class TestDataConditionGroupSerializer(TestCase):
                 }
             ],
         }
+
+
+class TestActionSerializer(TestCase):
+    pass

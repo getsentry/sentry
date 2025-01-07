@@ -51,6 +51,7 @@ class Action(DefaultFieldsModel):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
+    # TODO - I think we can remove this :yay:
     # LEGACY: The legacy_notification_type is used to denote if this notification was for an issue alert, metric alert, etc.
     # We need this because of how tightly coupled the notification system is with the legacy alert models
     legacy_notification_type = models.TextField(
