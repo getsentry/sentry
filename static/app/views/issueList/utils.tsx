@@ -163,7 +163,7 @@ export function isForReviewQuery(query: string | undefined) {
 // the tab counts will look like 99+
 export const TAB_MAX_COUNT = 99;
 
-type QueryCount = {
+export type QueryCount = {
   count: number;
   hasMore: boolean;
 };
