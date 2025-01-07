@@ -155,14 +155,16 @@ export function IssueViewTab({
         }
       />
       {!queryCountLoading && queryCount && (
-        <QueryCountBadge>
-          <QueryCount
-            count={queryCount?.[view.query]}
-            max={TAB_MAX_COUNT}
-            hideIfEmpty={false}
-            hideParens
-          />
-        </QueryCountBadge>
+        <motion.div>
+          <QueryCountBadge>
+            <QueryCount
+              count={queryCount?.[view.query]}
+              max={TAB_MAX_COUNT}
+              hideIfEmpty={false}
+              hideParens
+            />
+          </QueryCountBadge>
+        </motion.div>
       )}
       {/* If tablistState isn't initialized, we want to load the elipsis menu
           for the initial tab, that way it won't load in a second later
