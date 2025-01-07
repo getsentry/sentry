@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any, TypedDict
 
 import jsonschema
 import sentry_sdk
-from django.contrib.auth.models import AnonymousUser
 from django.db import models
 from django.utils import timezone
 
@@ -111,7 +110,7 @@ def add_group_to_inbox(
 def remove_group_from_inbox(
     group: Group,
     action: GroupInboxRemoveAction | None = None,
-    user: User | RpcUser | AnonymousUser | None = None,
+    user: User | RpcUser | None = None,
 ) -> None:
     try:
         group_inbox = GroupInbox.objects.get(group=group)
@@ -132,7 +131,7 @@ def remove_group_from_inbox(
 def bulk_remove_groups_from_inbox(
     groups: BaseQuerySet[Group, Group],
     action: GroupInboxRemoveAction | None = None,
-    user: User | RpcUser | Team | AnonymousUser | None = None,
+    user: User | RpcUser | Team | None = None,
 ) -> None:
     with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
         try:
