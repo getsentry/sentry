@@ -310,7 +310,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.data["id"] == str(group.id)
             assert response.data["count"] == "16"
 
-    def test_open_periods(self) -> None:
+    def test_open_periods_non_metric(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
         url = f"/api/0/issues/{group.id}/"
@@ -319,6 +319,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["openPeriods"] == []
+
+    def test_open_periods_new_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
 
         # test a new group has an open period
         group.type = MetricIssuePOC.type_id
@@ -330,7 +335,15 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"start": group.first_seen, "end": None, "duration": None, "isOpen": True}
         ]
 
+    def test_open_periods_resolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
         # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
         group.status = GroupStatus.RESOLVED
         group.save()
         resolved_time = timezone.now()
@@ -351,6 +364,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 "isOpen": False,
             }
         ]
+
+    def test_open_periods_unresolved_group(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        url = f"/api/0/issues/{group.id}/"
+
+        group.type = MetricIssuePOC.type_id
+        group.save()
+
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        resolved_time = timezone.now()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=resolved_time,
+        )
 
         # test that another open period is created
         unresolved_time = timezone.now()
