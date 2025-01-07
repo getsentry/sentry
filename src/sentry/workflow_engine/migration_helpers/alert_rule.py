@@ -1,4 +1,5 @@
 from typing import Any
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.snuba.models import QuerySubscription, SnubaQuery
