@@ -124,6 +124,7 @@ type Props = {
   placeholder?: string;
   projectIds?: number[] | Readonly<number[]>;
   query?: string;
+  recentSearches?: SavedSearchType;
   searchSource?: string;
   supportedTags?: TagCollection | undefined;
 };
@@ -289,7 +290,7 @@ function ResultsSearchQueryBuilder(props: Props) {
       searchSource={props.searchSource || 'eventsv2'}
       filterKeySections={filterKeySections}
       getTagValues={getEventFieldValues}
-      recentSearches={SavedSearchType.EVENT}
+      recentSearches={props.recentSearches ?? SavedSearchType.EVENT}
       showUnsubmittedIndicator
     />
   );
