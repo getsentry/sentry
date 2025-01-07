@@ -420,7 +420,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             retention_days = (
                 quotas.backend.get_event_retention(organization=project.organization) or 90
             )
-            snuba_message = {
+
+            snuba_message: SnubaUptimeResult = {
                 # Copy over fields from original result
                 "guid": result["guid"],
                 "subscription_id": result["subscription_id"],
@@ -436,7 +437,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 "organization_id": project.organization_id,
                 "project_id": project.id,
                 "retention_days": retention_days,
-                "region_slug": result.get("region_slug"),
+                "region_slug": result.get("region"),
             }
 
             topic = get_topic_definition(Topic.SNUBA_UPTIME_RESULTS)["real_topic_name"]
