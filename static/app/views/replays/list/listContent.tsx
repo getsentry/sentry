@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayRageClickSdkVersionBanner from 'sentry/components/replays/replayRageClickSdkVersionBanner';
 import {IconInfo} from 'sentry/icons';
@@ -100,12 +100,10 @@ export default function ListContent() {
       {allMobileProj && mobileBetaOrg ? (
         <StyledAlert icon={<IconInfo />} showIcon>
           {tct(
-            `[strong:Mobile Replay is now generally available.] Orgs that participated in the beta will have a two month grace period of unlimited usage until March 6. After that, you will be billed for [link:additional replays not included in your plan].`,
+            `[strong:Mobile Replay is now generally available.] Since your org participated in the beta, you'll have a two month grace period of unlimited usage until March 6. After that, we will only accept replay events that are included in your plan. If you'd like to increase your reserved replay quota, go to your [link:Subscription Settings] or speak to your organization owner.`,
             {
               strong: <strong />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/pricing/#replays-pricing" />
-              ),
+              link: <Link to={`/settings/${organization.slug}/billing/overview/`} />,
             }
           )}
         </StyledAlert>
