@@ -171,12 +171,17 @@ class SamplingFilter(logging.Filter):
     """
     A logging filter to sample logs with a fixed probability.
 
-    p -- probability log is emitted. Float in range [0.0, 1.0]
+    p      -- probability the log record is emitted. Float in range [0.0, 1.0].
+    level  -- sampling applies to log records with this level OR LOWER. Other records always pass through.
     """
 
-    def __init__(self, p: float):
+    def __init__(self, p: float, level: int | None = None):
         super().__init__()
-        self.sample_probability = p
+        assert 0.0 <= p <= 1.0
+        self.sample_rate = p
+        self.level = logging.INFO if level is None else level
 
     def filter(self, record: logging.LogRecord) -> bool:
-        return random.random() < self.sample_probability
+        if record.levelno <= self.level:
+            return random.random() < self.sample_rate
+        return True

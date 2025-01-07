@@ -63,7 +63,11 @@ from sentry.replays.lib.storage import (
     make_recording_filename,
     storage_kv,
 )
-from sentry.replays.usecases.ingest import process_headers, track_initial_segment_event
+from sentry.replays.usecases.ingest import (
+    LOG_SAMPLE_RATE,
+    process_headers,
+    track_initial_segment_event,
+)
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -73,7 +77,7 @@ from sentry.replays.usecases.pack import pack
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
-logger.addFilter(SamplingFilter(0.1))  # TODO: MAKE OPTION
+logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
 

@@ -26,11 +26,12 @@ from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
-logger = logging.getLogger("sentry.replays")
-logger.addFilter(SamplingFilter(0.1))  # TODO: MAKE OPTION
-
 CACHE_TIMEOUT = 3600
 COMMIT_FREQUENCY_SEC = 1
+LOG_SAMPLE_RATE = 0.01
+
+logger = logging.getLogger("sentry.replays")
+logger.addFilter(SamplingFilter(LOG_SAMPLE_RATE))
 
 
 class ReplayRecordingSegment(TypedDict):
