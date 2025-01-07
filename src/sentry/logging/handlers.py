@@ -169,7 +169,7 @@ class MetricsLogHandler(logging.Handler):
 
 class SamplingFilter(logging.Filter):
     """
-    A logging filter to sample logs at a fixed percentage.
+    A logging filter to sample logs with a fixed probability.
 
     p -- probability log is emitted. Float in range [0.0, 1.0]
     """
