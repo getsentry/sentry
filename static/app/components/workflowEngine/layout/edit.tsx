@@ -1,77 +1,35 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {WorkflowEngineActions as Actions} from 'sentry/components/workflowEngine/layout/actions';
+import {BreadcrumbsFromContext} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import {space} from 'sentry/styles/space';
 
 export interface WorkflowEngineEditLayoutProps {
   /**
    * The main content for this page
+   * Expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
    */
   children: React.ReactNode;
-  /**
-   * Breadcrumb info for the parent page
-   */
-  parent: {
-    /**
-     * Link to the parent page, displayed as a breadcrumb
-     */
-    href: LocationDescriptor;
-    /**
-     * Title of the parent page, displayed as a breadcrumb
-     */
-    title: React.ReactNode;
-  };
-  /**
-   * Action buttons to display in the page header
-   */
-  actions?: React.ReactNode;
-
-  /**
-   * The main page title, for example "Automations" or "Rules"
-   */
-  title?: string;
 }
 
 /**
- * Precomposed full-width layout for Automations / Rules edit pages.
- * The `children` are expected to include `<EditLayout.Chart>` and `<EditLayout.Panel>` components.
+ * Precomposed full-width layout for Automations / Monitors edit pages.
  */
-function EditLayout({parent, children, actions, title}: WorkflowEngineEditLayoutProps) {
+function EditLayout({children}: WorkflowEngineEditLayoutProps) {
+  const title = useDocumentTitle();
   return (
-    <Fragment>
-      <SentryDocumentTitle title={title} />
-      <Layout.Page>
-        <StyledHeader>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                {
-                  label: parent.title,
-                  to: parent.href,
-                },
-                {
-                  label: title,
-                },
-              ]}
-            />
-            <Layout.Title>{title}</Layout.Title>
-          </Layout.HeaderContent>
-          {actions ? (
-            <Layout.HeaderActions>
-              <ButtonBar merged={false} gap={1}>
-                {actions}
-              </ButtonBar>
-            </Layout.HeaderActions>
-          ) : null}
-        </StyledHeader>
-        <Body>{children}</Body>
-      </Layout.Page>
-    </Fragment>
+    <Layout.Page>
+      <StyledHeader>
+        <Layout.HeaderContent>
+          <BreadcrumbsFromContext />
+          <Layout.Title>{title}</Layout.Title>
+        </Layout.HeaderContent>
+        <Actions />
+      </StyledHeader>
+      <Body>{children}</Body>
+    </Layout.Page>
   );
 }
 
