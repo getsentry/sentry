@@ -41,7 +41,7 @@ export default function IssueTagsPreview({
     );
   }
 
-  if (isError || !tagsToPreview) {
+  if (isError || !tagsToPreview || tagsToPreview.length === 0) {
     return null;
   }
 
