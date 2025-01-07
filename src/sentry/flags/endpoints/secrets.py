@@ -84,22 +84,21 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
             return self.respond(validator.errors, status=400)
 
         # these scopes can always update or post secrets
-        has_update_or_post_access = request.access.has_scope(
-            "org:write"
-        ) or request.access.has_scope("org:admin")
+        has_permission = request.access.has_scope("org:write") or request.access.has_scope(
+            "org:admin"
+        )
 
         try:
             secret = FlagWebHookSigningSecretModel.objects.filter(
                 organization_id=organization.id
             ).get(provider=validator.validated_data["provider"])
             # allow update access if the user created the secret
-            if request.user.id == secret.created_by:
-                has_update_or_post_access = True
+            is_creator = request.user.id == secret.created_by
         except FlagWebHookSigningSecretModel.DoesNotExist:
             # anyone can post a new secret
-            has_update_or_post_access = True
+            is_creator = True
 
-        if has_update_or_post_access:
+        if is_creator or has_permission:
             FlagWebHookSigningSecretModel.objects.create_or_update(
                 organization=organization,
                 provider=validator.validated_data["provider"],
