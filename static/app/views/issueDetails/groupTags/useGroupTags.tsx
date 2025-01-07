@@ -85,7 +85,7 @@ export function useGroupTagsReadable(
   return useGroupTags(
     {
       readable: true,
-      limit: 4,
+      limit: 3,
       ...parameters,
     },
     options
