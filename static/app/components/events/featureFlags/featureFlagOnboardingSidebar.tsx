@@ -157,8 +157,8 @@ function OnboardingContent({
     return window.location.hash;
   }, []);
   const skipConfig = ORIGINAL_HASH === FLAG_HASH_SKIP_CONFIG;
-  const openFeatureProviders = [ProviderOptions.LAUNCHDARKLY];
-  const sdkProviders = [ProviderOptions.LAUNCHDARKLY];
+  const openFeatureProviders = Object.values(ProviderOptions);
+  const sdkProviders = Object.values(ProviderOptions);
 
   // First dropdown: OpenFeature providers
   const openFeatureProviderOptions = openFeatureProviders.map(provider => {
