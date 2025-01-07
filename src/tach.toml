@@ -53,6 +53,7 @@ expose = [
     ".*utils.*",
     ".*integrations.*",
     "utils.*"
+    "services.*",
 ]
 
 [[interfaces]]
