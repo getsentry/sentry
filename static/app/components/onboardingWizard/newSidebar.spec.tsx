@@ -1,11 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NewOnboardingSidebar} from 'sentry/components/onboardingWizard/newSidebar';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
@@ -137,6 +131,7 @@ describe('NewSidebar', function () {
     // Tasks from the second group should be visible
     expect(await screen.findByText(beyondBasicsTasks[0]!.title)).toBeInTheDocument();
 
+    // Click skip task
     await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
 
     // Confirmation to skip should be visible
@@ -155,11 +150,10 @@ describe('NewSidebar', function () {
 
     // Dismiss skip confirmation
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss Skip'}));
-    await waitForElementToBeRemoved(() => screen.queryByText(/Not sure what to do/));
+    expect(screen.queryByText(/Not sure what to do/)).not.toBeInTheDocument();
 
     // Click skip task again
     await userEvent.click(screen.getByRole('button', {name: 'Skip Task'}));
-    expect(await screen.findByText(/Not sure what to do/)).toBeInTheDocument();
 
     // Click 'Just Skip'
     await userEvent.click(screen.getByRole('button', {name: 'Just Skip'}));
