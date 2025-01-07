@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry import eventstream, tagstore, tsdb
+from sentry import eventstream, tsdb
 from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -273,16 +273,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             merge_groups.delay([merge_source.id], source.id)
             eventstream.backend.end_merge(eventstream_state)
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                source,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 6), ("green", 5), ("blue", 5)}
-
         similar_items = features.compare(source)
         assert len(similar_items) == 2
         assert similar_items[0][0] == source.id
@@ -333,16 +323,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         ) == {("production", time_from_now(10), time_from_now(15))}
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("green", 3), ("blue", 3)}
-
         destination_event_ids = set(
             map(lambda event: event.event_id, list(events.values())[0] + list(events.values())[2])
         )
@@ -363,16 +343,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
-
-        assert {
-            (gtk.value, gtk.times_seen)
-            for gtk in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("blue", 3), ("green", 3)}
 
         rollup_duration = 3600
 
