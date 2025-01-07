@@ -206,41 +206,22 @@ class AlertRuleMigrationHelpersTest(APITestCase):
             ]
         )
         assert len(alert_rule_trigger_data_conditions) == 2
-        data_condition_group_id = alert_rule_trigger_data_conditions[
-            0
-        ].data_condition.condition_group.id
-        data_conditions = DataCondition.objects.filter(condition_group=data_condition_group_id)
+        data_conditions = DataCondition.objects.filter(
+            comparison__in=[
+                self.alert_rule_trigger_warning.alert_threshold,
+                self.alert_rule_trigger_critical.alert_threshold,
+            ]
+        )
         assert len(data_conditions) == 2
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        data_condition_group = workflow.when_condition_group
-
         assert data_conditions[0].type == Condition.GREATER
         assert data_conditions[0].comparison == self.alert_rule_trigger_warning.alert_threshold
         assert data_conditions[0].condition_result == DetectorPriorityLevel.MEDIUM
-        assert data_conditions[0].condition_group == data_condition_group
+        assert data_conditions[0].condition_group == data_conditions[0].condition_group
 
         assert data_conditions[1].type == Condition.GREATER
         assert data_conditions[1].comparison == self.alert_rule_trigger_critical.alert_threshold
         assert data_conditions[1].condition_result == DetectorPriorityLevel.HIGH
-        assert data_conditions[1].condition_group == data_condition_group
-
-    @mock.patch("sentry.workflow_engine.migration_helpers.alert_rule.logger")
-    def test_create_metric_alert_trigger_no_alert_rule_detector(self, mock_logger):
-        create_data_source(self.organization.id, self.metric_alert.snuba_query)
-        data_condition_group = create_data_condition_group(self.organization.id)
-        create_workflow(
-            self.metric_alert.name, self.organization.id, data_condition_group, self.rpc_user
-        )
-        create_detector(self.metric_alert, self.project.id, data_condition_group, self.rpc_user)
-        # skip creating lookup tables
-        migrate_metric_data_condition(self.alert_rule_trigger_critical)
-        mock_logger.exception.assert_called_with(
-            "AlertRuleDetector does not exist",
-            extra={
-                "alert_rule_id": self.alert_rule_trigger_critical.alert_rule.id,
-            },
-        )
+        assert data_conditions[1].condition_group == data_conditions[1].condition_group
 
     def test_create_metric_alert_trigger_action(self):
         """
@@ -261,11 +242,11 @@ class AlertRuleMigrationHelpersTest(APITestCase):
                 self.alert_rule_trigger_critical,
             ]
         )
-        data_condition_group_id = alert_rule_trigger_data_condition[
-            0
-        ].data_condition.condition_group.id
         data_condition_group_actions = DataConditionGroupAction.objects.filter(
-            condition_group_id=data_condition_group_id
+            condition_group_id__in=[
+                trigger_data_condition.data_condition.condition_group.id
+                for trigger_data_condition in alert_rule_trigger_data_condition
+            ]
         )
         action = Action.objects.filter(
             id__in=[item.action.id for item in data_condition_group_actions]

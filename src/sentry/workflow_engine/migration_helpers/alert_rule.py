@@ -41,10 +41,10 @@ def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | 
         )
         if not integration:
             return None
-        for type in Action.Type.choices:
-            if type[0] == integration.provider:
-                return type[1]
-        return None
+        try:
+            return Action.Type(integration.provider)
+        except Exception:
+            return None
     else:
         return Action.Type.EMAIL
 
@@ -96,16 +96,7 @@ def migrate_metric_action(
 def migrate_metric_data_condition(
     alert_rule_trigger: AlertRuleTrigger,
 ) -> tuple[DataCondition, AlertRuleTriggerDataCondition] | None:
-    try:
-        alert_rule_detector = AlertRuleDetector.objects.get(
-            alert_rule=alert_rule_trigger.alert_rule
-        )
-    except AlertRuleDetector.DoesNotExist:
-        logger.exception(
-            "AlertRuleDetector does not exist",
-            extra={"alert_rule_id": alert_rule_trigger.alert_rule.id},
-        )
-        return None
+    alert_rule = alert_rule_trigger.alert_rule
 
     threshold_to_condition = {
         AlertRuleThresholdType.ABOVE.value: Condition.GREATER,
@@ -113,13 +104,9 @@ def migrate_metric_data_condition(
         # TODO add ABOVE_AND_BELOW for anomaly detection
     }
 
-    data_condition_group = alert_rule_detector.detector.workflow_condition_group
-    if not data_condition_group:
-        logger.warning(
-            "Could not find data_condition_group",
-            extra={"detector_id": alert_rule_detector.id},
-        )
-        return None
+    data_condition_group = DataConditionGroup.objects.create(
+        organization_id=alert_rule.organization_id
+    )
 
     condition_result = (
         DetectorPriorityLevel.MEDIUM
