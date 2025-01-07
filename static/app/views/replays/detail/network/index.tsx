@@ -89,9 +89,9 @@ function NetworkList() {
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: getFrameMethod(item),
-          resource_status: String(getFrameStatus(item)),
-          resource_type: item.op,
+          resource_method: getFrameMethod(item!),
+          resource_status: String(getFrameStatus(item!)),
+          resource_type: item!.op,
         });
       },
       [organization, items, isNetworkDetailsSetup]
@@ -117,7 +117,7 @@ function NetworkList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
+    const network = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer

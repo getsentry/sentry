@@ -98,16 +98,25 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
         )
 
         if isinstance(message.value, BrokerValue):
-            if message.value.timestamp < min_accepted_timestamp:
+            # Normalize the message timezone to be UTC
+            if message.value.timestamp.tzinfo is None:
+                message_timestamp = message.value.timestamp.replace(tzinfo=timezone.utc)
+            else:
+                message_timestamp = message.value.timestamp
+
+            if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
                 raise InvalidMessage(
-                    message.value.partition, message.value.offset, reason=RejectReason.STALE.value
+                    message.value.partition,
+                    message.value.offset,
+                    reason=RejectReason.STALE.value,
+                    log_exception=False,
                 )
 
         # If we get a valid message for a partition later, don't emit a filtered message for it
         if self.offsets_to_forward:
             for partition in message.committable:
-                self.offsets_to_forward.pop(partition)
+                self.offsets_to_forward.pop(partition, None)
 
         self.next_step.submit(message)
 

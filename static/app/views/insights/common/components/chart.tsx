@@ -2,7 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LineSeriesOption} from 'echarts';
+import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import type {
   MarkLineOption,
@@ -75,7 +75,7 @@ type Props = {
   loading: boolean;
   type: ChartType;
   aggregateOutputFormat?: AggregationOutputType;
-  chartColors?: string[];
+  chartColors?: string[] | ReadonlyArray<string>;
   chartGroup?: string;
   dataMax?: number;
   definedAxisTicks?: number;
@@ -88,6 +88,7 @@ type Props = {
   hideYAxis?: boolean;
   hideYAxisSplitLine?: boolean;
   legendFormatter?: (name: string) => string;
+  legendOptions?: LegendComponentOption;
   log?: boolean;
   markLine?: MarkLineOption;
   onClick?: EChartClickHandler;
@@ -139,6 +140,7 @@ function Chart({
   error,
   onLegendSelectChanged,
   onDataZoom,
+  legendOptions,
   /**
    * Setting a default formatter for some reason causes `>` to
    * render correctly instead of rendering as `&gt;` in the legend.
@@ -163,7 +165,7 @@ function Chart({
     echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors ?? theme.charts.getColorPalette(4) ?? [];
 
   const durationOnly =
     aggregateOutputFormat === 'duration' ||
@@ -227,10 +229,10 @@ function Chart({
   let incompleteSeries: Series[] = [];
 
   const bucketSize =
-    new Date(series[0]?.data[1]?.name).getTime() -
-    new Date(series[0]?.data[0]?.name).getTime();
+    new Date(series[0]!?.data[1]!?.name).getTime() -
+    new Date(series[0]!?.data[0]!?.name).getTime();
   const lastBucketTimestamp = new Date(
-    series[0]?.data?.[series[0]?.data?.length - 1]?.name
+    series[0]!?.data?.[series[0]!?.data?.length - 1]!?.name
   ).getTime();
   const ingestionBuckets = useMemo(() => {
     if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
@@ -260,10 +262,10 @@ function Chart({
     [series, incompleteSeries] = seriesToShow.reduce(
       (acc, serie, index) => {
         const [trimmed, incomplete] = acc;
-        const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+        const {markLine: _, ...incompleteSerie} = serie[1]! ?? {};
 
         return [
-          [...trimmed, {...serie[0], color: colors[index]}],
+          [...trimmed, {...serie[0]!, color: colors[index]!}],
           [
             ...incomplete,
             ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
@@ -285,7 +287,7 @@ function Chart({
         formatter(value: number) {
           return axisLabelFormatter(
             value,
-            aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+            aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
             true,
             durationUnit ?? getDurationUnit(data),
             rateUnit
@@ -346,6 +348,10 @@ function Chart({
     })(deDupedParams, asyncTicket);
   };
 
+  const legend = isLegendVisible
+    ? {top: 0, right: 10, formatter: legendFormatter, ...legendOptions}
+    : undefined;
+
   const areaChartProps = {
     seriesOptions: {
       showSymbol: false,
@@ -353,7 +359,7 @@ function Chart({
     grid,
     yAxes,
     utc,
-    legend: isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined,
+    legend,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     tooltip: {
@@ -367,7 +373,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -401,9 +407,7 @@ function Chart({
           tooltip={areaChartProps.tooltip}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
           onMouseOut={onMouseOut}
           onMouseOver={onMouseOver}
@@ -468,7 +472,7 @@ function Chart({
               formatter(value: number) {
                 return axisLabelFormatter(
                   value,
-                  aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+                  aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
                   true,
                   durationUnit ?? getDurationUnit(data),
                   rateUnit
@@ -481,15 +485,13 @@ function Chart({
               return tooltipFormatter(
                 value,
                 aggregateOutputFormat ??
-                  aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+                  aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
               );
             },
           }}
           colors={colors}
           grid={grid}
-          legend={
-            isLegendVisible ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-          }
+          legend={legend}
           onClick={onClick}
         />
       );
@@ -587,7 +589,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   let maxValue = 0;
   if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i].data.map(point => point.value)) as number;
+      maxValue += max(data[i]!.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);

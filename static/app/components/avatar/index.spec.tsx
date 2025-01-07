@@ -293,7 +293,7 @@ describe('Avatar', function () {
       avatar2.unmount();
 
       // avatarType of `default`
-      sentryApp.avatars![0].avatarType = 'default';
+      sentryApp.avatars![0]!.avatarType = 'default';
       render(<AvatarComponent sentryApp={sentryApp} isColor />);
       expect(screen.getByTestId('default-sentry-app-avatar')).toBeInTheDocument();
     });

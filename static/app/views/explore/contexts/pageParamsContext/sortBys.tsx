@@ -26,7 +26,7 @@ export function defaultSortBys(
     if (fields.length) {
       return [
         {
-          field: fields[0],
+          field: fields[0]!,
           kind: 'desc' as const,
         },
       ];

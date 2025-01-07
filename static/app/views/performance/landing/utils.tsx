@@ -89,7 +89,7 @@ export function getDefaultDisplayForPlatform(projects: Project[], eventView?: Ev
   const defaultDisplay = LANDING_DISPLAYS.find(
     ({field}) => field === defaultDisplayField
   );
-  return defaultDisplay || LANDING_DISPLAYS[0];
+  return defaultDisplay || LANDING_DISPLAYS[0]!;
 }
 
 export function getCurrentLandingDisplay(

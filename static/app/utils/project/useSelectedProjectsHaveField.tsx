@@ -27,7 +27,7 @@ export default function useSelectedProjectsHaveField(field: keyof Project) {
 
   const hasField = useMemo(() => {
     const selectedProjects = getSelectedProjectList(selection.projects, projects);
-    const hasSetupOneFeedback = selectedProjects.some(project => project[field]);
+    const hasSetupOneFeedback = selectedProjects.some(project => project![field]);
     return hasSetupOneFeedback;
   }, [field, selection.projects, projects]);
 

@@ -486,7 +486,7 @@ export default class ReplayReader {
       // and TouchEnd is too small. This clamps the tap to a min time
       // if the difference is less, so that the rrweb tap is visible and obvious.
       if (isTouchStartFrame(e) && index < events.length - 2) {
-        const nextEvent = events[index + 1];
+        const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
           nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
         }

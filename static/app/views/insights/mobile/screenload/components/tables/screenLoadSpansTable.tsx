@@ -13,7 +13,6 @@ import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -24,6 +23,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
@@ -61,6 +61,7 @@ export function ScreenLoadSpansTable({
   secondaryRelease,
 }: Props) {
   const moduleURL = useModuleURL('screen_load');
+  const navigate = useNavigate();
   const location = useLocation();
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -348,7 +349,7 @@ export function ScreenLoadSpansTable({
   const columnSortBy = eventView.getSorts();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [MobileCursors.SPANS_TABLE]: newCursor},
     });

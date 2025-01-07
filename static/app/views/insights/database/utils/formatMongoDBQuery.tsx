@@ -50,7 +50,7 @@ export function formatMongoDBQuery(query: string, command: string) {
   });
 
   if (tokens.length === 1 && tempTokens.length > 0) {
-    tokens.push(stringToToken(', ', `${tokens[0].key}:,`));
+    tokens.push(stringToToken(', ', `${tokens[0]!.key}:,`));
   }
 
   tempTokens.forEach((token, index) => {

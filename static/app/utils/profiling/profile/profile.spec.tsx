@@ -1,75 +1,13 @@
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
 
-// Test utils to keep the tests code dry
-export const f = (name: string, key: number, in_app: boolean = true) =>
-  new Frame({name, key, is_application: in_app});
-export const c = (fr: Frame) => new CallTreeNode(fr, null);
-export const firstCallee = (node: CallTreeNode) => node.children[0];
-export const nthCallee = (node: CallTreeNode, n: number) => {
-  const child = node.children[n];
-  if (!child) {
-    throw new Error('Child not found');
-  }
-  return child;
-};
-
-export const makeTestingBoilerplate = () => {
-  const timings: [Frame['name'], string][] = [];
-
-  const openSpy = jest.fn();
-  const closeSpy = jest.fn();
-
-  // We need to wrap the spy fn because they are not allowed to reference external variables
-  const open = (node, value) => {
-    timings.push([node.frame.name, 'open']);
-    openSpy(node, value);
-  };
-  // We need to wrap the spy fn because they are not allowed to reference external variables
-  const close = (node, val) => {
-    timings.push([node.frame.name, 'close']);
-    closeSpy(node, val);
-  };
-
-  return {open, close, timings, openSpy, closeSpy};
-};
-
-// Since it's easy to make mistakes or accidentally assign parents to the wrong nodes, this utility fn
-// will format the stack samples as a tree string so it's more human friendly.
-export const _logExpectedStack = (samples: Profile['samples']): string => {
-  const head = `
-Samples follow a top-down chronological order\n\n`;
-
-  const tail = `\n
------------------------>
-stack top -> stack bottom`;
-
-  const final: string[] = [];
-
-  const visit = (node: CallTreeNode, str: string[]) => {
-    str.push(`${node.frame.name}`);
-
-    if (node.parent) {
-      visit(node.parent, str);
-    }
-  };
-
-  for (const stackTop of samples) {
-    const str = [];
-    visit(stackTop, str);
-
-    final.push(str.join(' -> '));
-  }
-
-  return `${head}${final.join('\n')}${tail}`;
-};
+import {c, f, makeTestingBoilerplate} from './testUtils';
 
 describe('Profile', () => {
   it('Empty profile duration is not infinity', () => {
     const profile = Profile.Empty;
-    expect(profile.duration).toEqual(1000);
-    expect(profile.minFrameDuration).toEqual(1000);
+    expect(profile.duration).toBe(1000);
+    expect(profile.minFrameDuration).toBe(1000);
   });
 
   it('forEach - iterates over a single sample', () => {

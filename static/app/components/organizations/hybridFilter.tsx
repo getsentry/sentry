@@ -324,12 +324,12 @@ export function HybridFilter<Value extends SelectKey>({
       // A modifier key is being pressed --> enter multiple selection mode
       if (multiple && modifierKeyPressed) {
         !modifierTipSeen && setModifierTipSeen(true);
-        toggleOption(diff[0]);
+        toggleOption(diff[0]!);
         return;
       }
 
       // Only one option was clicked on --> use single, direct selection mode
-      onReplace?.(diff[0]);
+      onReplace?.(diff[0]!);
       commit(diff);
     },
     [

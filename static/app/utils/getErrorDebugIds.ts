@@ -40,8 +40,8 @@ export async function getErrorDebugIds(e: Error): Promise<{[filename: string]: s
         return;
       }
 
-      fileDebugIdCache.set(stackFrame.filename, debugIdMatch[1]);
-      debugIdMap[stackFrame.filename] = debugIdMatch[1];
+      fileDebugIdCache.set(stackFrame.filename, debugIdMatch[1]!);
+      debugIdMap[stackFrame.filename] = debugIdMatch[1]!;
     } catch {
       // noop
       return;

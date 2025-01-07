@@ -120,7 +120,7 @@ function ManageDashboards() {
       {
         query: {
           ...pick(location.query, ['cursor', 'query']),
-          sort: getActiveSort().value,
+          sort: getActiveSort()!.value,
           ...(organization.features.includes('dashboards-favourite')
             ? {pin: 'favorites'}
             : {}),
@@ -168,7 +168,7 @@ function ManageDashboards() {
           const paginationObject = parseLinkHeader(dashboardsPageLinks);
           if (
             dashboards?.length &&
-            paginationObject.next.results &&
+            paginationObject.next!.results &&
             rowCount * columnCount > dashboards.length
           ) {
             refetchDashboards();
@@ -285,7 +285,7 @@ function ManageDashboards() {
         </Feature>
         <CompactSelect
           triggerProps={{prefix: t('Sort By')}}
-          value={activeSort.value}
+          value={activeSort!.value}
           options={SORT_OPTIONS}
           onChange={opt => handleSortChange(opt.value)}
           position="bottom-end"

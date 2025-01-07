@@ -12,10 +12,10 @@ class RegistryTest(TestCase):
 
         @test_registry.register("something")
         def registered_func():
-            pass
+            raise NotImplementedError
 
         def unregistered_func():
-            pass
+            raise NotImplementedError
 
         assert test_registry.get("something") == registered_func
         with pytest.raises(NoRegistrationExistsError):
@@ -40,7 +40,7 @@ class RegistryTest(TestCase):
         @test_registry.register("something")
         @test_registry.register("something 2")
         def registered_func():
-            pass
+            raise NotImplementedError
 
         assert test_registry.get("something") == registered_func
         assert test_registry.get("something 2") == registered_func

@@ -92,7 +92,7 @@ def normalize_sdk_tag(tag: str) -> str:
 
     # collapse tags other than JavaScript / Native to their top-level SDK
 
-    if not tag.split(".")[1] in {"javascript", "native"}:
+    if tag.split(".")[1] not in {"javascript", "native"}:
         tag = ".".join(tag.split(".", 2)[0:2])
 
     if tag.split(".")[1] == "native":

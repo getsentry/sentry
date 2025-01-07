@@ -104,7 +104,7 @@ describe('PlatformPicker', function () {
     const platformNames = screen.getAllByRole('heading', {level: 3});
 
     platformNames.forEach((platform, index) => {
-      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
+      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]!);
     });
   });
 

@@ -1,7 +1,10 @@
 import type {Location, LocationDescriptor} from 'history';
 
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 
 import {isSpanNode, isTransactionNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
@@ -23,6 +26,25 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
     return node.value.event_id;
   }
   return TraceTree.ParentTransaction(node)?.value?.event_id;
+}
+
+export function makeTransactionProfilingLink(
+  profileId: string,
+  options: {
+    orgSlug: string;
+    projectSlug: string;
+  },
+  query: Location['query'] = {}
+): LocationDescriptor | null {
+  if (!options.projectSlug || !options.orgSlug) {
+    return null;
+  }
+  return generateProfileFlamechartRouteWithQuery({
+    orgSlug: options.orgSlug,
+    projectSlug: options.projectSlug,
+    profileId,
+    query,
+  });
 }
 
 /**

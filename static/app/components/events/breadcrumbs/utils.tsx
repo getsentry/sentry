@@ -143,9 +143,9 @@ export function useBreadcrumbFilters(crumbs: EnhancedCrumb[]) {
       options.forEach(optionValue => {
         const [indicator, value] = optionValue.split('-');
         if (indicator === 'type') {
-          typeFilterSet.add(value);
+          typeFilterSet.add(value!);
         } else if (indicator === 'level') {
-          levelFilterSet.add(value);
+          levelFilterSet.add(value!);
         }
       });
 

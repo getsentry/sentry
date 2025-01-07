@@ -67,15 +67,15 @@ function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowPro
     >
       <BreadcrumbRow
         style={style}
-        error={parent.props.breadcrumbs[index].breadcrumb.type === BreadcrumbType.ERROR}
+        error={parent.props.breadcrumbs[index]!.breadcrumb.type === BreadcrumbType.ERROR}
       >
         <Breadcrumb
           index={index}
           cache={cache}
           style={style}
           parent={parent}
-          meta={parent.props.breadcrumbs[index].meta}
-          breadcrumb={parent.props.breadcrumbs[index].breadcrumb}
+          meta={parent.props.breadcrumbs[index]!.meta}
+          breadcrumb={parent.props.breadcrumbs[index]!.breadcrumb}
           organization={parent.props.organization}
           searchTerm={parent.props.searchTerm}
           event={parent.props.event}

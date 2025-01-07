@@ -1208,7 +1208,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_multiple_entity_query_fails(self):
         with pytest.raises(IncompatibleMetricsQuery):
-            query = MetricsQueryBuilder(
+            MetricsQueryBuilder(
                 self.params,
                 query="p95(transaction.duration):>5s AND count_unique(user):>0",
                 dataset=Dataset.PerformanceMetrics,
@@ -1222,11 +1222,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     use_aggregate_conditions=True,
                 ),
             )
-            query.run_query("test_query")
 
     def test_query_entity_does_not_match_orderby(self):
         with pytest.raises(IncompatibleMetricsQuery):
-            query = MetricsQueryBuilder(
+            MetricsQueryBuilder(
                 self.params,
                 query="count_unique(user):>0",
                 dataset=Dataset.PerformanceMetrics,
@@ -1241,7 +1240,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     use_aggregate_conditions=True,
                 ),
             )
-            query.run_query("test_query")
 
     def test_aggregate_query_with_multiple_entities_without_orderby(self):
         self.store_transaction_metric(

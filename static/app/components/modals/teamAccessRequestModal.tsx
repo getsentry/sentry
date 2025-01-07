@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -21,22 +21,12 @@ export interface CreateTeamAccessRequestModalProps
   teamId: string;
 }
 
-type State = {
-  createBusy: boolean;
-};
+function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) {
+  const [createBusy, setCreateBusy] = useState<boolean>(false);
+  const {api, memberId, orgId, teamId, closeModal, Body, Footer} = props;
 
-class CreateTeamAccessRequestModal extends Component<
-  CreateTeamAccessRequestModalProps,
-  State
-> {
-  state: State = {
-    createBusy: false,
-  };
-
-  handleClick = async () => {
-    const {api, memberId, orgId, teamId, closeModal} = this.props;
-
-    this.setState({createBusy: true});
+  const handleClick = async () => {
+    setCreateBusy(true);
 
     try {
       await api.requestPromise(
@@ -49,37 +39,28 @@ class CreateTeamAccessRequestModal extends Component<
     } catch (err) {
       addErrorMessage(t('Unable to send team request'));
     }
-    this.setState({createBusy: false});
+    setCreateBusy(false);
     closeModal();
   };
 
-  render() {
-    const {Body, Footer, closeModal, teamId} = this.props;
-
-    return (
-      <Fragment>
-        <Body>
-          {tct(
-            'You do not have permission to add members to the #[team] team, but we will send a request to your organization admins for approval.',
-            {team: teamId}
-          )}
-        </Body>
-        <Footer>
-          <ButtonGroup>
-            <Button onClick={closeModal}>{t('Cancel')}</Button>
-            <Button
-              priority="primary"
-              onClick={this.handleClick}
-              busy={this.state.createBusy}
-              autoFocus
-            >
-              {t('Continue')}
-            </Button>
-          </ButtonGroup>
-        </Footer>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Body>
+        {tct(
+          'You do not have permission to add members to the #[team] team, but we will send a request to your organization admins for approval.',
+          {team: teamId}
+        )}
+      </Body>
+      <Footer>
+        <ButtonGroup>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button priority="primary" onClick={handleClick} busy={createBusy} autoFocus>
+            {t('Continue')}
+          </Button>
+        </ButtonGroup>
+      </Footer>
+    </Fragment>
+  );
 }
 
 const ButtonGroup = styled('div')`
