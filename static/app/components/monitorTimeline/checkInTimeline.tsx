@@ -2,14 +2,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
+import {CheckInTooltip} from 'sentry/components/monitorTimeline/checkInTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
+import type {
+  MonitorBucketWithStats,
+  TimeWindowConfig,
+} from 'sentry/views/monitors/components/timeline/types';
+import {getAggregateStatusFromStatsBucket} from 'sentry/views/monitors/components/timeline/utils/getAggregateStatus';
+import {mergeBucketsWithStats} from 'sentry/views/monitors/components/timeline/utils/mergeBuckets';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getTickStyle} from 'sentry/views/monitors/utils';
-
-import {getAggregateStatusFromStatsBucket} from './utils/getAggregateStatus';
-import {mergeBucketsWithStats} from './utils/mergeBuckets';
-import {CheckInTooltip} from './checkInTooltipWithStats';
-import type {MonitorBucketWithStats, TimeWindowConfig} from './types';
 
 interface TimelineProps {
   timeWindowConfig: TimeWindowConfig;

@@ -1,9 +1,8 @@
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {CheckInTooltip} from 'sentry/components/monitorTimeline/checkInTooltip';
 import {getFormat} from 'sentry/utils/dates';
-
-import {CheckInTooltip} from './checkInTooltipWithStats';
-import type {TimeWindowConfig} from './types';
+import type {TimeWindowConfig} from 'sentry/views/monitors/components/timeline/types';
 
 type StatusCounts = [
   in_progress: number,
