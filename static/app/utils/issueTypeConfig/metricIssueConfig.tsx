@@ -1,20 +1,25 @@
+import {t} from 'sentry/locale';
 import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
-const uptimeConfig: IssueCategoryConfigMapping = {
+const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
-      archiveUntilOccurrence: {enabled: true},
+      archiveUntilOccurrence: {enabled: false},
       delete: {enabled: false},
       deleteAndDiscard: {enabled: false},
       merge: {enabled: false},
       ignore: {enabled: true},
-      resolve: {enabled: true},
-      resolveInRelease: {enabled: true},
+      resolve: {enabled: false},
+      resolveInRelease: {enabled: false},
       share: {enabled: true},
+    },
+    customCopy: {
+      resolution: t('Back to baseline'),
     },
     attachments: {enabled: false},
     resources: null,
     autofix: false,
+    events: {enabled: false},
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
@@ -26,4 +31,4 @@ const uptimeConfig: IssueCategoryConfigMapping = {
   },
 };
 
-export default uptimeConfig;
+export default metricIssueConfig;

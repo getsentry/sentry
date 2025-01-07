@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
@@ -46,7 +46,7 @@ describe('VitalDetailPanel', () => {
   test('renders correctly with given props', () => {
     render(
       <PageAlertProvider>
-        <VitalDetailPanel vital={mockVital} status={mockStatus} />
+        <VitalDetailPanel vital={mockVital} status={mockStatus} onClose={jest.fn()} />
       </PageAlertProvider>
     );
 
@@ -63,5 +63,18 @@ describe('VitalDetailPanel', () => {
       'href',
       'https://example.com/platform-docs'
     );
+  });
+
+  test('calls onClose when close action is triggered', async () => {
+    const onCloseMock = jest.fn();
+    render(
+      <PageAlertProvider>
+        <VitalDetailPanel vital={mockVital} status={mockStatus} onClose={onCloseMock} />
+      </PageAlertProvider>
+    );
+
+    const closeButton = screen.getByLabelText('Close Details');
+    await userEvent.click(closeButton);
+    expect(onCloseMock).toHaveBeenCalled();
   });
 });

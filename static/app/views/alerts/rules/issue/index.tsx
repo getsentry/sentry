@@ -22,6 +22,7 @@ import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -39,6 +40,7 @@ import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
@@ -65,7 +67,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -78,7 +79,6 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getProjectOptions} from '../utils';
@@ -148,7 +148,7 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
   detailedError: null | {
     [key: string]: string[];
@@ -172,7 +172,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
  */
 const isExactDuplicateExp = /duplicate of '(.*)'/;
 
-class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
+class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics = false;
   trackNoisyWarningViewed = false;
@@ -225,19 +225,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  getTitle() {
-    const {organization} = this.props;
-    const {rule, project} = this.state;
-    const ruleName = rule?.name;
-
-    return routeTitleGen(
-      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
-      organization.slug,
-      false,
-      project?.slug
-    );
-  }
-
   getDefaultState() {
     const {userTeamIds, project} = this.props;
     const defaultState = {
@@ -259,7 +246,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},
@@ -1190,6 +1177,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
       <Main fullWidth>
+        <SentryDocumentTitle
+          title={rule ? t('Alert — %s', rule.name) : t('New Alert Rule')}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+        />
         <PermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}

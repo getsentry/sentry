@@ -30,9 +30,11 @@ const _VITAL_GROUPS = [
 ];
 
 const _COLORS = [
-  ...theme.charts.getColorPalette(
-    _VITAL_GROUPS.reduce((count, {vitals}) => count + vitals.length, 0) - 1
-  ),
+  ...((theme.charts
+    .getColorPalette(
+      _VITAL_GROUPS.reduce((count, {vitals}) => count + vitals.length, 0) - 1
+    )
+    ?.slice() as string[] | undefined) ?? []),
 ].reverse();
 
 export const VITAL_GROUPS: VitalGroup[] = _VITAL_GROUPS.map(group => ({

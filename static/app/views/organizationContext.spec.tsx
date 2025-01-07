@@ -18,7 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {OrganizationContextProvider, useEnsureOrganization} from './organizationContext';
-import {RouteContext} from './routeContext';
+import {TestRouteContext} from './routeContext';
 
 jest.mock('sentry/actionCreators/sudoModal');
 
@@ -122,12 +122,12 @@ describe('OrganizationContext', function () {
   it('fetches new org when router params change', async function () {
     // First render with org-slug
     const {rerender} = render(
-      <RouteContext.Provider value={router}>
+      <TestRouteContext.Provider value={router}>
         <OrganizationContextProvider>
           <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(await screen.findByText(organization.slug)).toBeInTheDocument();
@@ -139,12 +139,12 @@ describe('OrganizationContext', function () {
 
     // re-render with another-org
     rerender(
-      <RouteContext.Provider value={{...router, params: {orgId: 'another-org'}}}>
+      <TestRouteContext.Provider value={{...router, params: {orgId: 'another-org'}}}>
         <OrganizationContextProvider>
           <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(await screen.findByText(anotherOrg.slug)).toBeInTheDocument();
@@ -209,12 +209,12 @@ describe('OrganizationContext', function () {
 
     // orgId is not present in the router.
     render(
-      <RouteContext.Provider value={{...router, params: {}}}>
+      <TestRouteContext.Provider value={{...router, params: {}}}>
         <OrganizationContextProvider>
           <OrganizationLoaderStub />
           <OrganizationName />
         </OrganizationContextProvider>
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     expect(await screen.findByText(configStoreOrg.slug)).toBeInTheDocument();

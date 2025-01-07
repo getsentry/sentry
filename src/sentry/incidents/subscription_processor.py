@@ -253,7 +253,7 @@ class SubscriptionProcessor:
                     rpc_time_series_request, start, end
                 )
 
-                rpc_response = snuba_rpc.timeseries_rpc(rpc_time_series_request)
+                rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
                 if len(rpc_response.result_timeseries):
                     comparison_aggregate = rpc_response.result_timeseries[0].data_points[0].data
 

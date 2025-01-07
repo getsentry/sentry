@@ -7,6 +7,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 export function useAnalytics({
   dataset,
@@ -33,8 +34,13 @@ export function useAnalytics({
   resultMissingRoot?: number;
   title?: string;
 }) {
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
   useEffect(() => {
-    if (resultStatus === 'pending') {
+    if (resultStatus === 'pending' || isLoadingSubscriptionDetails) {
       return;
     }
 
@@ -54,6 +60,7 @@ export function useAnalytics({
       visualizes,
       visualizes_count: visualizes.length,
       title,
+      has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
     };
 
     trackAnalytics('trace.explorer.metadata', params);
@@ -62,6 +69,8 @@ export function useAnalytics({
     resultLength,
     resultMissingRoot,
     resultMode,
+    isLoadingSubscriptionDetails,
+    hasExceededPerformanceUsageLimit,
     resultStatus,
     visualizes,
     columns,

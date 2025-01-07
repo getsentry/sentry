@@ -1,4 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
@@ -7,14 +8,13 @@ import FormField from 'sentry/components/forms/formField';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import type {DeprecatedApiKey} from './types';
@@ -27,12 +27,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   apiKey: DeprecatedApiKey;
 };
 
-class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+class OrganizationApiKeyDetails extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
       [
@@ -40,10 +40,6 @@ class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
         `/organizations/${organization.slug}/api-keys/${this.props.params.apiKey}/`,
       ],
     ];
-  }
-
-  getTitle() {
-    return routeTitleGen(t('Edit API Key'), this.props.organization.slug, false);
   }
 
   handleSubmitSuccess = () => {
@@ -67,6 +63,7 @@ class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
     const {organization, router} = this.props;
     return (
       <div>
+        <SentryDocumentTitle title={t('Edit API Key')} orgSlug={organization.slug} />
         <SettingsPageHeader title={t('Edit API Key')} />
 
         <Panel>

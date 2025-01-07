@@ -173,7 +173,10 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      ?.slice() as string[];
+
     if (hasOther) {
       color.push(theme.chartOther);
     }
@@ -232,7 +235,9 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      ?.slice() as string[];
     if (hasOther) {
       color.push(theme.chartOther);
     }
@@ -290,9 +295,11 @@ discoverCharts.push({
 
     const stats = Object.values(data.stats);
     const hasOther = Object.keys(data.stats).includes('Other');
-    const color = theme.charts.getColorPalette(stats.length - 2 - (hasOther ? 1 : 0));
+    const color = theme.charts
+      .getColorPalette(stats.length - 2 - (hasOther ? 1 : 0))
+      ?.slice() as string[] | undefined;
     if (hasOther) {
-      color.push(theme.chartOther);
+      color?.push(theme.chartOther);
     }
 
     const series = stats
@@ -364,7 +371,7 @@ discoverCharts.push({
     const stats = Object.keys(data.stats).map(key =>
       Object.assign({}, {key}, data.stats[key])
     );
-    const color = theme.charts.getColorPalette(stats.length - 2);
+    const color = theme.charts.getColorPalette(stats.length - 2) ?? [];
     const previousPeriodColor = lightenHexToRgb(color);
 
     const areaSeries: SeriesOption[] = [];
