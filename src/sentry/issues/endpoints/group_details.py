@@ -1,7 +1,7 @@
 import functools
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -93,15 +93,15 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         if group.type != MetricIssuePOC.type_id:
             return []
 
-        activity = Activity.objects.filter(
+        activities = Activity.objects.filter(
             group=group,
             type__in=[ActivityType.SET_UNRESOLVED.value, ActivityType.SET_RESOLVED.value],
         ).order_by("datetime")
 
         open_periods = []
-        start = group.first_seen
+        start: datetime | None = group.first_seen
 
-        for activity in activity:
+        for activity in activities:
             if activity.type == ActivityType.SET_RESOLVED.value and start:
                 open_periods.append(
                     OpenPeriod(

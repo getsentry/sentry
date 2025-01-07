@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 from sentry.incidents.models.incident import Incident, IncidentStatus
@@ -20,7 +21,7 @@ class OpenPeriod:
     duration: timedelta | None
     is_open: bool
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "start": self.start,
             "end": self.end,
