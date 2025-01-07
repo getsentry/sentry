@@ -69,7 +69,7 @@ class GrantExchanger:
             raise SentryAppIntegratorError("Forbidden grant")
 
         if not self._grant_is_active():
-            raise SentryAppIntegratorError("Grant has already expired")
+            raise SentryAppIntegratorError("Grant has already expired", status_code=403)
 
     def _grant_belongs_to_install(self) -> bool:
         return self.grant.sentry_app_installation.id == self.install.id
@@ -109,7 +109,7 @@ class GrantExchanger:
                 .get(code=self.code)
             )
         except ApiGrant.DoesNotExist:
-            raise SentryAppIntegratorError("Could not find grant")
+            raise SentryAppIntegratorError("Could not find grant", status_code=403)
 
     @property
     def application(self) -> ApiApplication:

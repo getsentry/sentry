@@ -53,7 +53,9 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 )
 
                 if not auth_serializer.is_valid():
-                    raise SentryAppError(auth_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    raise SentryAppError(
+                        auth_serializer.errors, status_code=status.HTTP_400_BAD_REQUEST
+                    )
 
                 token = GrantExchanger(
                     install=installation,
@@ -66,7 +68,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
 
                 if not refresh_serializer.is_valid():
                     raise SentryAppError(
-                        refresh_serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                        refresh_serializer.errors, status_code=status.HTTP_400_BAD_REQUEST
                     )
 
                 token = Refresher(
@@ -77,7 +79,7 @@ class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
                 ).run()
             else:
                 raise SentryAppIntegratorError(
-                    "Invalid grant type", status=status.HTTP_403_FORBIDDEN
+                    "Invalid grant type", status_code=status.HTTP_403_FORBIDDEN
                 )
 
         except APIUnauthorized as e:
