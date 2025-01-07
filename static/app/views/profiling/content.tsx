@@ -63,8 +63,6 @@ function decodeTab(tab: unknown): 'flamegraph' | 'transactions' {
 }
 
 export default function ProfilingContent({location}: ProfilingContentProps) {
-  // return <LegacyProfilingContent location={location} />;
-
   const {selection} = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
