@@ -76,6 +76,9 @@ def robots_txt(request):
 
 @cache_control(max_age=3600, public=True)
 def security_txt(request):
+    if settings.SENTRY_MODE == SentryMode.SELF_HOSTED:
+        return HttpResponse(status=404)
+
     return HttpResponse(SECURITY, content_type="text/plain")
 
 
