@@ -52,8 +52,8 @@ depends_on = []
 expose = [
     ".*utils.*",
     ".*integrations.*",
-    "utils.*",
-    "services.*",
+    ".*utils.*",
+    ".*services.*",
 ]
 
 [[interfaces]]
