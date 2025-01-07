@@ -64,7 +64,6 @@ from sentry.api.endpoints.seer_rpc import SeerRpcServiceEndpoint
 from sentry.api.endpoints.source_map_debug_blue_thunder_edition import (
     SourceMapDebugBlueThunderEditionEndpoint,
 )
-from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -195,12 +194,6 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
-from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
-    MonitorIngestCheckinAttachmentEndpoint,
-)
-from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
-    OrganizationMonitorCheckInAttachmentEndpoint,
-)
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -221,9 +214,6 @@ from sentry.monitors.endpoints.organization_monitor_schedule_sample_data import 
     OrganizationMonitorScheduleSampleDataEndpoint,
 )
 from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
-from sentry.monitors.endpoints.project_monitor_checkin_attachment import (
-    ProjectMonitorCheckInAttachmentEndpoint,
-)
 from sentry.monitors.endpoints.project_monitor_checkin_index import (
     ProjectMonitorCheckInIndexEndpoint,
 )
@@ -1121,7 +1111,7 @@ USER_ROLE_URLS = [
     ),
 ]
 
-ORGANIZATION_URLS = [
+ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^$",
         OrganizationIndexEndpoint.as_view(),
@@ -1707,16 +1697,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/$",
         OrganizationMonitorCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-        method_dispatch(
-            GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
-            OPTIONS=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
-            POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
-            csrf_exempt=True,
-        ),
-        name="sentry-api-0-organization-monitor-check-in-attachment",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
@@ -2732,11 +2712,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/statistical-detector/$",
         ProjectStatisticalDetectors.as_view(),
         name="sentry-api-0-project-statistical-detector",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-        ProjectMonitorCheckInAttachmentEndpoint.as_view(),
-        name="sentry-api-0-project-monitor-check-in-attachment",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/$",

@@ -277,7 +277,6 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     status: str
     duration: int
     dateCreated: datetime
-    attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
 
@@ -339,7 +338,6 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment_id,
             "expectedTime": obj.expected_time,
             "monitorConfig": obj.monitor_config or {},
         }
