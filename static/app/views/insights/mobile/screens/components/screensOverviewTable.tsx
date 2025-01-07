@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,8 +37,8 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
   const columnNameMap = {
     transaction: t('Screen'),
     [`count()`]: t('Screen Loads'),
-    [`avg(mobile.slow_frames)`]: t('Slow Frames'),
-    [`avg(mobile.frozen_frames)`]: t('Frozen Frames'),
+    [`division(mobile.slow_frames,mobile.total_frames)`]: t('Slow Frame Rate'),
+    [`division(mobile.frozen_frames,mobile.total_frames)`]: t('Frozen Frame Rate'),
     [`avg(measurements.time_to_initial_display)`]: t('TTID'),
     [`avg(measurements.time_to_full_display)`]: t('TTFD'),
     ['avg(measurements.app_start_warm)']: t('Warm Start'),
@@ -87,6 +88,19 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
       );
     }
 
+    if (
+      field === 'division(mobile.slow_frames,mobile.total_frames)' ||
+      field === 'division(mobile.frozen_frames,mobile.total_frames)'
+    ) {
+      if (isFinite(row[field])) {
+        return (
+          <NumberContainer>
+            {row[field] ? formatPercentage(row[field], 2, {minimumValue: 0.0001}) : '-'}
+          </NumberContainer>
+        );
+      }
+    }
+
     return null;
   }
 
@@ -102,8 +116,8 @@ function ScreensOverviewTable({data, eventView, isLoading, pageLinks}: Props) {
         'transaction',
         'avg(measurements.app_start_cold)',
         'avg(measurements.app_start_warm)',
-        `avg(mobile.slow_frames)`,
-        `avg(mobile.frozen_frames)`,
+        `division(mobile.slow_frames,mobile.total_frames)`,
+        `division(mobile.frozen_frames,mobile.total_frames)`,
         `avg(measurements.time_to_initial_display)`,
         `avg(measurements.time_to_full_display)`,
         `count()`,
