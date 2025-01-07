@@ -9,29 +9,29 @@ import {FieldKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 
 describe('addSpace()', function () {
   it('should add a space when there is no trailing space', function () {
-    expect(addSpace('one')).toEqual('one ');
+    expect(addSpace('one')).toBe('one ');
   });
 
   it('should not add another space when there is already one', function () {
-    expect(addSpace('one ')).toEqual('one ');
+    expect(addSpace('one ')).toBe('one ');
   });
 
   it('should leave the empty string alone', function () {
-    expect(addSpace('')).toEqual('');
+    expect(addSpace('')).toBe('');
   });
 });
 
 describe('removeSpace()', function () {
   it('should remove a trailing space', function () {
-    expect(removeSpace('one ')).toEqual('one');
+    expect(removeSpace('one ')).toBe('one');
   });
 
   it('should not remove the last character if it is not a space', function () {
-    expect(removeSpace('one')).toEqual('one');
+    expect(removeSpace('one')).toBe('one');
   });
 
   it('should leave the empty string alone', function () {
-    expect(removeSpace('')).toEqual('');
+    expect(removeSpace('')).toBe('');
   });
 });
 

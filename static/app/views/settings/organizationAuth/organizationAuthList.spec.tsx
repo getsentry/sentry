@@ -24,7 +24,7 @@ describe('OrganizationAuthList', function () {
       />
     );
 
-    expect(screen.getAllByLabelText('Configure').length).toBe(2);
+    expect(screen.getAllByLabelText('Configure')).toHaveLength(2);
     expect(screen.getByText('Dummy')).toBeInTheDocument();
     expect(screen.getByText('Dummy SAML')).toBeInTheDocument();
   });

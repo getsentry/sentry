@@ -67,7 +67,7 @@ def wait_for_consumer(consumer: Consumer[T], message: BrokerValue[T], attempts: 
 
         time.sleep(0.1)
 
-    raise Exception(f"{message} was not received by {consumer} within {attempts} attempts")
+    raise AssertionError(f"{message} was not received by {consumer} within {attempts} attempts")
 
 
 def test_synchronized_consumer() -> None:

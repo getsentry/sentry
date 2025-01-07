@@ -633,6 +633,7 @@ def get_facets(
     referrer: str,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
     cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.Discover,
 ) -> list[FacetResult]:
     """
     High-level API for getting 'facet map' results.
@@ -648,12 +649,18 @@ def get_facets(
     cursor - The number of records to skip.
     """
 
+    assert dataset in [
+        Dataset.Discover,
+        Dataset.Transactions,
+        Dataset.Events,
+    ], "A dataset is required to query discover"
+
     sample = len(snuba_params.project_ids) > 2
     fetch_projects = len(snuba_params.project_ids) > 1
 
     with sentry_sdk.start_span(op="discover.discover", name="facets.frequent_tags"):
         key_name_builder = DiscoverQueryBuilder(
-            Dataset.Discover,
+            dataset,
             params={},
             snuba_params=snuba_params,
             query=query,
@@ -699,7 +706,7 @@ def get_facets(
     if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", name="facets.projects"):
             project_value_builder = DiscoverQueryBuilder(
-                Dataset.Discover,
+                dataset,
                 params={},
                 snuba_params=snuba_params,
                 query=query,
@@ -736,7 +743,7 @@ def get_facets(
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
             tag_value_builder = DiscoverQueryBuilder(
-                Dataset.Discover,
+                dataset,
                 params={},
                 snuba_params=snuba_params,
                 query=query,
@@ -758,7 +765,7 @@ def get_facets(
     if aggregate_tags:
         with sentry_sdk.start_span(op="discover.discover", name="facets.aggregate_tags"):
             aggregate_value_builder = DiscoverQueryBuilder(
-                Dataset.Discover,
+                dataset,
                 params={},
                 snuba_params=snuba_params,
                 query=(query if query is not None else "")

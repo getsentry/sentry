@@ -12,7 +12,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import ReleaseContext from './releaseContext';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 
-export const mockedReleaseWithHealth = ReleaseFixture({
+const mockedReleaseWithHealth = ReleaseFixture({
   id: '1',
   shortVersion: 'sentry-android-shop@1.2.0',
   version: 'sentry-android-shop@1.2.0',
