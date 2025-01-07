@@ -21,12 +21,9 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MonitorType} from 'sentry/types/alerts';
 import type {Actor} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
-import ActivatedMetricAlertRuleStatus from 'sentry/views/alerts/list/rules/activatedMetricAlertRuleStatus';
-import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import AlertRuleStatus from 'sentry/views/alerts/list/rules/alertRuleStatus';
 import CombinedAlertBadge from 'sentry/views/alerts/list/rules/combinedAlertBadge';
 import {getActor} from 'sentry/views/alerts/list/rules/utils';
@@ -60,11 +57,7 @@ function RuleListRow({
 }: Props) {
   const {teams: userTeams} = useUserTeams();
   const [assignee, setAssignee] = useState<string>('');
-
-  const isActivatedAlertRule =
-    rule.type === CombinedAlertType.METRIC && rule.monitorType === MonitorType.ACTIVATED;
   const isUptime = rule.type === CombinedAlertType.UPTIME;
-
   const slug = isUptime ? rule.projectSlug : rule.projects[0]!;
 
   const editKey = {
@@ -235,9 +228,7 @@ function RuleListRow({
               {rule.name} {titleBadge}
             </Link>
           </AlertName>
-          <AlertIncidentDate>
-            <AlertLastIncidentActivationInfo rule={rule} />
-          </AlertIncidentDate>
+          <AlertIncidentDate />
         </AlertNameAndStatus>
       </AlertNameWrapper>
       <FlexCenter>
@@ -245,9 +236,7 @@ function RuleListRow({
           <CombinedAlertBadge rule={rule} />
         </FlexCenter>
         <MarginLeft>
-          {isActivatedAlertRule ? (
-            <ActivatedMetricAlertRuleStatus rule={rule} />
-          ) : isUptime ? (
+          {isUptime ? (
             rule.status === UptimeMonitorStatus.FAILED ? (
               t('Down')
             ) : (
