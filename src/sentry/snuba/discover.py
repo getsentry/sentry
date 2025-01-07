@@ -575,7 +575,7 @@ def top_events_timeseries(
         result = top_events_builder.process_results(result)
 
         issues: Mapping[int, str | None] = {}
-        if "issue" in selected_columns:
+        if "issue" in selected_columns and dataset in {Dataset.Discover, Dataset.Events}:
             issues = Group.objects.get_issues_mapping(
                 {cast(int, event["issue.id"]) for event in top_events["data"]},
                 snuba_params.project_ids,
