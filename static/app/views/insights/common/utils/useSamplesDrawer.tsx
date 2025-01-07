@@ -35,6 +35,12 @@ export function useSamplesDrawer({
         spanGroup: undefined,
         spanOp: undefined,
         query: undefined,
+        responseCodeClass: undefined,
+        panel: undefined,
+        statusClass: undefined,
+        spanSearchQuery: undefined,
+        traceStatus: undefined,
+        retryCount: undefined,
       },
     });
   }, [navigate, location.query]);
