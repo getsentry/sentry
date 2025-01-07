@@ -88,7 +88,7 @@ export function TracesChart({}: Props) {
         continue;
       }
       const data = series[i]!['count()'];
-      data.color = CHART_PALETTE[2]![i]!;
+      data.color = CHART_PALETTE[2][i];
       data.seriesName =
         `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');
       allData.push(data);

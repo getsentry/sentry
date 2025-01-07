@@ -64,7 +64,7 @@ describe('VirtualizedTree', () => {
       const tree = VirtualizedTree.fromRoots([root]);
       const addedNodes = tree.expandNode(tree.roots[0]!, true);
 
-      expect(addedNodes.length).toBe(1);
+      expect(addedNodes).toHaveLength(1);
 
       expect(tree.flattened[1]).toBe(tree.roots[0]!.children[0]);
       expect(tree.flattened).toHaveLength(2);
@@ -82,7 +82,7 @@ describe('VirtualizedTree', () => {
 
       // Close root
       const removedNodes = tree.expandNode(tree.roots[0]!, false);
-      expect(removedNodes.length).toBe(1);
+      expect(removedNodes).toHaveLength(1);
 
       expect(tree.flattened[0]).toBe(tree.roots[0]);
       expect(tree.flattened).toHaveLength(1);

@@ -35,7 +35,7 @@ import {
 } from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 
-export const enum EventGraphSeries {
+const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }

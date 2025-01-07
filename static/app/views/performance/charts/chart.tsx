@@ -82,7 +82,7 @@ function Chart({
     return null;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4)!;
+  const colors = chartColors ?? theme.charts.getColorPalette(4) ?? [];
 
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'

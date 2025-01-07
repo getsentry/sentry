@@ -48,11 +48,7 @@ class SlackNotifyActionTest(RuleTestCase):
         return mock_slack_response("chat_scheduleMessage", body)
 
     def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            body = {"ok": False, "error": "channel_not_found"}
-        else:
-            body = {"ok": True}
-        return mock_slack_response("chat_deleteScheduledMessage", body)
+        return mock_slack_response("chat_deleteScheduledMessage", {"ok": True})
 
     def setUp(self):
         self.organization = self.get_event().project.organization

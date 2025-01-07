@@ -47,9 +47,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withSavedSearches from 'sentry/utils/withSavedSearches';
-import CustomViewsIssueListHeader from 'sentry/views/issueList/customViewsHeader';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
+import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
@@ -1191,8 +1191,7 @@ class IssueListOverview extends Component<Props, State> {
         <Layout.Page>
           {organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <CustomViewsIssueListHeader
-                organization={organization}
+              <IssueViewsIssueListHeader
                 router={router}
                 selectedProjectIds={selection.projects}
                 realtimeActive={realtimeActive}

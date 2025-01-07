@@ -555,6 +555,99 @@ describe('Visualize', () => {
     expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
   });
 
+  it('does not show the legend alias input for big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('count');
+    expect(screen.queryByLabelText('Legend Alias')).not.toBeInTheDocument();
+  });
+
+  it('does not allow for selecting individual fields in big number widgets', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.BIG_NUMBER,
+              field: ['count()'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+
+    // Being unable to choose "None" in the aggregate selection means that the
+    // individual field is not allowed, i.e. only aggregates appear.
+    expect(screen.queryByRole('option', {name: 'None'})).not.toBeInTheDocument();
+  });
+
+  it('updates only the selected field', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+              field: ['count_unique(user)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
+      'count_unique'
+    );
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
+
+    // Add 3 fields
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Field'}));
+
+    // count() is the default aggregate when adding a field
+    expect(screen.getAllByText('count')).toHaveLength(3);
+
+    // Change the last field
+    await userEvent.click(screen.getAllByText('count')[2]!);
+    await userEvent.click(screen.getByRole('option', {name: 'epm'}));
+
+    // The other fields should not be affected
+    expect(screen.getByText('count_unique')).toBeInTheDocument();
+    expect(screen.getAllByText('count')).toHaveLength(2);
+    expect(screen.getAllByText('epm')).toHaveLength(1);
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {

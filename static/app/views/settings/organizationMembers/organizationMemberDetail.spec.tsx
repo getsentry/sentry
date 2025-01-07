@@ -714,11 +714,11 @@ describe('OrganizationMemberDetail', function () {
       const teamRoleSelect = within(teamRow).getByText('Contributor');
 
       // Dropdown options are not visible
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
 
       // Dropdown can be opened
       await selectEvent.openMenu(teamRoleSelect);
-      expect(screen.queryAllByText('...').length).toBe(2);
+      expect(screen.queryAllByText('...')).toHaveLength(2);
 
       // Dropdown value can be changed
       await userEvent.click(screen.getByLabelText('Team Admin'));
@@ -745,11 +745,11 @@ describe('OrganizationMemberDetail', function () {
         const teamRoleSelect = within(teamRow).getByText('Team Admin');
 
         // Dropdown options are not visible
-        expect(screen.queryAllByText('...').length).toBe(0);
+        expect(screen.queryAllByText('...')).toHaveLength(0);
 
         // Dropdown cannot be opened
         await selectEvent.openMenu(teamRoleSelect);
-        expect(screen.queryAllByText('...').length).toBe(0);
+        expect(screen.queryAllByText('...')).toHaveLength(0);
       }
 
       for (const role of [admin, manager, owner]) {
@@ -788,11 +788,11 @@ describe('OrganizationMemberDetail', function () {
       within(teamRow).getByText('Team Admin');
 
       // Dropdown options are not visible
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
 
       // Dropdown cannot be opened
       await selectEvent.openMenu(teamRoleSelect);
-      expect(screen.queryAllByText('...').length).toBe(0);
+      expect(screen.queryAllByText('...')).toHaveLength(0);
     });
   });
 });

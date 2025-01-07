@@ -34,8 +34,8 @@ type WebVitalsLabelCoordinates = {
 type Props = {
   height: number;
   projectScore: ProjectScore;
-  ringBackgroundColors: string[];
-  ringSegmentColors: string[];
+  ringBackgroundColors: ReadonlyArray<string>;
+  ringSegmentColors: ReadonlyArray<string>;
   text: React.ReactNode;
   width: number;
   barWidth?: number;
@@ -164,7 +164,7 @@ function PerformanceScoreRingWithTooltips({
   }
 
   const weights = organization.features.includes(
-    'organizations:performance-vitals-handle-missing-webvitals'
+    'performance-vitals-handle-missing-webvitals'
   )
     ? getWeights(ORDER.filter(webVital => projectScore[`${webVital}Score`]))
     : PERFORMANCE_SCORE_WEIGHTS;
