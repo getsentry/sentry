@@ -27,6 +27,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -56,7 +57,7 @@ import ReleasesAdoptionChart from './releasesAdoptionChart';
 import ReleasesDisplayOptions, {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesPromo from './releasesPromo';
 import ReleasesRequest from './releasesRequest';
-import ReleasesSortOptions, {ReleasesSortOption} from './releasesSortOptions';
+import ReleasesSortOptions from './releasesSortOptions';
 import ReleasesStatusOptions, {ReleasesStatusOption} from './releasesStatusOptions';
 
 type RouteParams = {
