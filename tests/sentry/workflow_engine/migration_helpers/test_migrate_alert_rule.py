@@ -17,6 +17,7 @@ from sentry.workflow_engine.models import (
     DetectorState,
     DetectorWorkflow,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
