@@ -1,6 +1,7 @@
 import {MissingInstrumentationNode} from './traceModels/missingInstrumentationNode';
 import {ParentAutogroupNode} from './traceModels/parentAutogroupNode';
 import {SiblingAutogroupNode} from './traceModels/siblingAutogroupNode';
+import {CollapsedNode} from './traceModels/traceCollapsedNode';
 import type {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 
@@ -44,6 +45,12 @@ export function isAutogroupedNode(
   return node instanceof ParentAutogroupNode || node instanceof SiblingAutogroupNode;
 }
 
+export function isCollapsedNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is CollapsedNode {
+  return node instanceof CollapsedNode;
+}
+
 export function isTraceErrorNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.TraceError> {
@@ -82,6 +89,7 @@ export function shouldAddMissingInstrumentationSpan(sdk: string | undefined): bo
     case 'sentry.javascript.angular':
     case 'sentry.javascript.angular-ivy':
     case 'sentry.javascript.nextjs':
+    case 'sentry.javascript.nuxt':
     case 'sentry.javascript.electron':
     case 'sentry.javascript.remix':
     case 'sentry.javascript.svelte':

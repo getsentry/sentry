@@ -12,10 +12,11 @@ import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
@@ -26,7 +27,7 @@ interface ProviderOptions {
    * Do not shim the router use{Routes,Router,Navigate,Location} functions, and
    * instead allow them to work as normal, rendering inside of a memory router.
    *
-   * Wehn enabling this passing a `router` object *will do nothing*!
+   * When enabling this passing a `router` object *will do nothing*!
    */
   disableRouterMocks?: boolean;
   /**
@@ -60,7 +61,7 @@ function makeAllTheProviders(options: ProviderOptions) {
     const wrappedContent = options.disableRouterMocks ? (
       content
     ) : (
-      <RouteContext.Provider
+      <TestRouteContext.Provider
         value={{
           router,
           location: router.location,
@@ -69,7 +70,7 @@ function makeAllTheProviders(options: ProviderOptions) {
         }}
       >
         {content}
-      </RouteContext.Provider>
+      </TestRouteContext.Provider>
     );
 
     const history = createMemoryHistory();
@@ -103,6 +104,15 @@ function makeAllTheProviders(options: ProviderOptions) {
         router.push(path);
       };
     }
+
+    DANGEROUS_SET_TEST_HISTORY({
+      goBack: router.goBack,
+      push: router.push,
+      replace: router.replace,
+      listen: jest.fn(() => {}),
+      listenBefore: jest.fn(),
+      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
+    });
 
     // By default react-router 6 catches exceptions and displays the stack
     // trace. For tests we want them to bubble out
@@ -203,11 +213,12 @@ instrumentUserEvent();
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
 
-// eslint-disable-next-line import/export
 export {
+  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   userEvent,
+  // eslint-disable-next-line import/export
   fireEvent,
   waitForDrawerToHide,
   makeAllTheProviders,

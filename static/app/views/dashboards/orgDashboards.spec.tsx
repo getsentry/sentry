@@ -5,7 +5,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
@@ -16,7 +15,7 @@ describe('OrgDashboards', () => {
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
-  let initialData;
+  let initialData!: ReturnType<typeof initializeOrg>;
   beforeEach(() => {
     initialData = initializeOrg({
       organization,
@@ -84,11 +83,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -99,7 +96,7 @@ describe('OrgDashboards', () => {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -150,11 +147,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -165,7 +160,7 @@ describe('OrgDashboards', () => {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
+      expect(initialData.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
           query: expect.objectContaining({
             project: [1, 2],
@@ -223,11 +218,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -237,7 +230,8 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    // The first call is done by the page filters
+    expect(initialData.router.replace).not.toHaveBeenCalledTimes(2);
   });
 
   it('does not add query params for page filters if none are saved', () => {
@@ -253,11 +247,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -267,7 +259,7 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    expect(browserHistory.replace).not.toHaveBeenCalled();
+    expect(initialData.router.replace).not.toHaveBeenCalled();
   });
 
   it('does not redirect to add query params if location is cleared manually', async () => {
@@ -300,11 +292,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -314,7 +304,7 @@ describe('OrgDashboards', () => {
       {router: initialData.router}
     );
 
-    await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(initialData.router.replace).toHaveBeenCalledTimes(1));
 
     rerender(
       <OrgDashboards
@@ -328,11 +318,9 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.router.location}
-              router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
-              {...initialData.router}
+              {...initialData.routerProps}
             />
           ) : (
             <div>loading</div>
@@ -342,6 +330,6 @@ describe('OrgDashboards', () => {
     );
 
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(browserHistory.replace).toHaveBeenCalledTimes(1);
+    expect(initialData.router.replace).toHaveBeenCalledTimes(1);
   });
 });

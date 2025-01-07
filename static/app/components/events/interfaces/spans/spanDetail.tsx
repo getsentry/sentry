@@ -12,7 +12,6 @@ import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -22,7 +21,6 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
-import {useTransactionProfileId} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import {
   generateIssueEventTarget,
@@ -106,7 +104,7 @@ type Props = {
 function SpanDetail(props: Props) {
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
-  const profileId = useTransactionProfileId();
+  const profileId = props.event.contexts.profile?.profile_id;
   const {projects} = useProjects();
   const project = projects.find(p => p.id === props.event.projectID);
 
@@ -198,7 +196,7 @@ function SpanDetail(props: Props) {
       return null;
     }
 
-    const childTransaction = childTransactions[0];
+    const childTransaction = childTransactions[0]!;
 
     const transactionResult: TransactionResult = {
       'project.name': childTransaction.project_slug,
@@ -579,13 +577,6 @@ function SpanDetail(props: Props) {
               ))}
             </tbody>
           </table>
-          {span._metrics_summary && (
-            <CustomMetricsEventData
-              projectId={event.projectID}
-              metricsSummary={span._metrics_summary}
-              startTimestamp={span.start_timestamp}
-            />
-          )}
         </SpanDetails>
       </Fragment>
     );

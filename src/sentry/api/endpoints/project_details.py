@@ -57,6 +57,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.notifications.utils import has_alert_integration
 from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
+from sentry.tempest.utils import has_tempest_access
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueCreationThroughPlatform",
         "performanceIssueSendToPlatform",
         "uptimeAutodetection",
+        "tempestFetchScreenshots",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -225,6 +227,7 @@ E.g. `['release', 'environment']`""",
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     uptimeAutodetection = serializers.BooleanField(required=False)
+    tempestFetchScreenshots = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -448,6 +451,15 @@ E.g. `['release', 'environment']`""",
                 "Must enable Manual Mode to configure project sample rates."
             )
 
+        return value
+
+    def validate_tempestFetchScreenshots(self, value):
+        organization = self.context["project"].organization
+        actor = self.context["request"].user
+        if not has_tempest_access(organization, actor=actor):
+            raise serializers.ValidationError(
+                "Organization does not have the tempest feature enabled."
+            )
         return value
 
 
@@ -751,9 +763,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("allowedDomains"):
             if project.update_option("sentry:origins", result["allowedDomains"]):
                 changed_proj_settings["sentry:origins"] = result["allowedDomains"]
+        if result.get("tempestFetchScreenshots") is not None:
+            if project.update_option(
+                "sentry:tempest_fetch_screenshots", result["tempestFetchScreenshots"]
+            ):
+                changed_proj_settings["sentry:tempest_fetch_screenshots"] = result[
+                    "tempestFetchScreenshots"
+                ]
         if result.get("targetSampleRate") is not None:
-            if project.update_option("sentry:target_sample_rate", result["targetSampleRate"]):
-                changed_proj_settings["sentry:target_sample_rate"] = result["targetSampleRate"]
+            if project.update_option(
+                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
+            ):
+                changed_proj_settings["sentry:target_sample_rate"] = round(
+                    result["targetSampleRate"], 4
+                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):

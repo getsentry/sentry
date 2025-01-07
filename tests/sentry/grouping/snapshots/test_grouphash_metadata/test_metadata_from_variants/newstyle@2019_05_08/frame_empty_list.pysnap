@@ -1,11 +1,21 @@
 ---
-created: '2024-11-11T18:00:22.555686+00:00'
+created: '2024-11-20T21:26:22.370427+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
 hash_basis: fallback
 hashing_metadata: {
   "fallback_reason": "no_frames"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "fallback",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.fallback": {
+    "fallback_reason": "no_frames"
+  }
 }
 ---
 contributing variants:

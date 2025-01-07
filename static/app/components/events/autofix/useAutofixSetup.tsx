@@ -14,39 +14,44 @@ export type AutofixSetupResponse = {
   genAIConsent: {
     ok: boolean;
   };
-  githubWriteIntegration: {
-    ok: boolean;
-    repos: AutofixSetupRepoDefinition[];
-  };
   integration: {
     ok: boolean;
     reason: string | null;
   };
-  subprocessorConsent: {
+  githubWriteIntegration?: {
     ok: boolean;
-  };
+    repos: AutofixSetupRepoDefinition[];
+  } | null;
 };
 
-export function makeAutofixSetupQueryKey(groupId: string): ApiQueryKey {
-  return [`/issues/${groupId}/autofix/setup/`];
+export function makeAutofixSetupQueryKey(
+  groupId: string,
+  checkWriteAccess?: boolean
+): ApiQueryKey {
+  return [
+    `/issues/${groupId}/autofix/setup/${checkWriteAccess ? '?check_write_access=true' : ''}`,
+  ];
 }
 
 export function useAutofixSetup(
-  {groupId}: {groupId: string},
+  {groupId, checkWriteAccess}: {groupId: string; checkWriteAccess?: boolean},
   options: Omit<UseApiQueryOptions<AutofixSetupResponse, RequestError>, 'staleTime'> = {}
 ) {
-  const queryData = useApiQuery<AutofixSetupResponse>(makeAutofixSetupQueryKey(groupId), {
-    enabled: Boolean(groupId),
-    staleTime: 0,
-    retry: false,
-    ...options,
-  });
+  const queryData = useApiQuery<AutofixSetupResponse>(
+    makeAutofixSetupQueryKey(groupId, checkWriteAccess),
+    {
+      enabled: Boolean(groupId),
+      staleTime: 0,
+      retry: false,
+      ...options,
+    }
+  );
 
   return {
     ...queryData,
     canStartAutofix: Boolean(
       queryData.data?.integration.ok && queryData.data?.genAIConsent.ok
     ),
-    canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration.ok),
+    canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
   };
 }

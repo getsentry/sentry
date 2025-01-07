@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from types import TracebackType
 from typing import Any, Self
 
@@ -112,6 +112,10 @@ class EventLifecycle:
         Overwrites the name with a new value if it was previously used.
         """
         self._extra[name] = value
+
+    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+        """Add multiple values to logged "extra" data."""
+        self._extra.update(extras)
 
     def record_event(
         self, outcome: EventLifecycleOutcome, outcome_reason: BaseException | str | None = None
@@ -241,30 +245,27 @@ class EventLifecycle:
             )
 
 
-class IntegrationPipelineViewType(Enum):
+class IntegrationPipelineViewType(StrEnum):
     """A specific step in an integration's pipeline that is not a static page."""
 
     # IdentityProviderPipeline
-    IDENTITY_LOGIN = "IDENTITY_LOGIN"
-    IDENTITY_LINK = "IDENTITY_LINK"
-    TOKEN_EXCHANGE = "TOKEN_EXCHANGE"
+    IDENTITY_LOGIN = "identity_login"
+    IDENTITY_LINK = "identity_link"
+    TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "OAUTH_LOGIN"
-    GITHUB_INSTALLATION = "GITHUB_INSTALLATION"
+    OAUTH_LOGIN = "oauth_loging"
+    GITHUB_INSTALLATION = "github_installation"
 
     # Bitbucket
-    VERIFY_INSTALLATION = "VERIFY_INSTALLATION"
+    VERIFY_INSTALLATION = "verify_installation"
 
     # Bitbucket Server
     # OAUTH_LOGIN = "OAUTH_LOGIN"
-    OAUTH_CALLBACK = "OAUTH_CALLBACK"
+    OAUTH_CALLBACK = "oauth_callback"
 
     # Azure DevOps
-    ACCOUNT_CONFIG = "ACCOUNT_CONFIG"
-
-    def __str__(self) -> str:
-        return self.value.lower()
+    ACCOUNT_CONFIG = "account_config"
 
 
 @dataclass
@@ -277,6 +278,34 @@ class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
 
     def get_metrics_domain(self) -> str:
         return "installation"
+
+    def get_integration_domain(self) -> IntegrationDomain:
+        return self.domain
+
+    def get_integration_name(self) -> str:
+        return self.provider_key
+
+    def get_interaction_type(self) -> str:
+        return str(self.interaction_type)
+
+
+class IntegrationWebhookEventType(StrEnum):
+    INSTALLATION = "installation"
+    PUSH = "push"
+    PULL_REQUEST = "pull_request"
+    INBOUND_SYNC = "inbound_sync"
+
+
+@dataclass
+class IntegrationWebhookEvent(IntegrationEventLifecycleMetric):
+    """An instance to be recorded of a webhook event."""
+
+    interaction_type: IntegrationWebhookEventType
+    domain: IntegrationDomain
+    provider_key: str
+
+    def get_metrics_domain(self) -> str:
+        return "webhook"
 
     def get_integration_domain(self) -> IntegrationDomain:
         return self.domain

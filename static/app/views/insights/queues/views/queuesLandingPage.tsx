@@ -1,30 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {
@@ -45,7 +40,7 @@ const DEFAULT_SORT = {
 };
 
 function QueuesLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -67,7 +62,7 @@ function QueuesLandingPage() {
       query: newDestination,
       source: ModuleName.QUEUE,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -83,45 +78,20 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
-  const crumbs = useModuleBreadcrumbs('queue');
-
   return (
     <Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <BackendHeader
-          headerTitle={
-            <Fragment>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.QUEUE}
-        />
-      )}
+      <BackendHeader
+        headerTitle={
+          <Fragment>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Fragment>
+        }
+        module={ModuleName.QUEUE}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.QUEUE}>
         <Layout.Body>
@@ -158,11 +128,7 @@ function QueuesLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="queue"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.queue"
-    >
+    <ModulePageProviders moduleName="queue" analyticEventName="insight.page_loads.queue">
       <QueuesLandingPage />
     </ModulePageProviders>
   );

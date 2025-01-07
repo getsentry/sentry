@@ -6,6 +6,7 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import OrganizationContainer from 'sentry/views/organizationContainer';
+import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
 import EmptyStory from 'sentry/views/stories/emptyStory';
 import ErrorStory from 'sentry/views/stories/errorStory';
 import storiesContext from 'sentry/views/stories/storiesContext';
@@ -25,40 +26,42 @@ export default function Stories({location}: Props) {
   useHotkeys([{match: '/', callback: () => searchInput.current?.focus()}], []);
 
   return (
-    <OrganizationContainer>
-      <Layout>
-        <StoryHeader style={{gridArea: 'head'}} />
+    <RouteAnalyticsContextProvider>
+      <OrganizationContainer>
+        <Layout>
+          <StoryHeader style={{gridArea: 'head'}} />
 
-        <Sidebar style={{gridArea: 'aside'}}>
-          <Input
-            ref={searchInput}
-            placeholder="Search files by name"
-            onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-          />
-          <TreeContainer>
-            <StoryTree
-              files={storiesContext()
-                .files()
-                .filter(s => s.toLowerCase().includes(searchTerm))}
+          <Sidebar style={{gridArea: 'aside'}}>
+            <Input
+              ref={searchInput}
+              placeholder="Search files by name"
+              onChange={e => setSearchTerm(e.target.value.toLowerCase())}
             />
-          </TreeContainer>
-        </Sidebar>
+            <TreeContainer>
+              <StoryTree
+                files={storiesContext()
+                  .files()
+                  .filter(s => s.toLowerCase().includes(searchTerm))}
+              />
+            </TreeContainer>
+          </Sidebar>
 
-        {story.error ? (
-          <VerticalScroll style={{gridArea: 'body'}}>
-            <ErrorStory error={story.error} />
-          </VerticalScroll>
-        ) : story.resolved ? (
-          <Main style={{gridArea: 'body'}}>
-            <StoryFile filename={story.filename} resolved={story.resolved} />
-          </Main>
-        ) : (
-          <VerticalScroll style={{gridArea: 'body'}}>
-            <EmptyStory />
-          </VerticalScroll>
-        )}
-      </Layout>
-    </OrganizationContainer>
+          {story.isError ? (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <ErrorStory error={story.error} />
+            </VerticalScroll>
+          ) : story.isSuccess ? (
+            <Main style={{gridArea: 'body'}}>
+              <StoryFile filename={story.data.filename} resolved={story.data.resolved} />
+            </Main>
+          ) : (
+            <VerticalScroll style={{gridArea: 'body'}}>
+              <EmptyStory />
+            </VerticalScroll>
+          )}
+        </Layout>
+      </OrganizationContainer>
+    </RouteAnalyticsContextProvider>
   );
 }
 

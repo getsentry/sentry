@@ -249,7 +249,7 @@ export default class ReplayReader {
     this._errors = errorFrames.sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
-    this._videoEvents = videoFrames;
+    this._videoEvents = videoFrames.sort((a, b) => a.timestamp - b.timestamp);
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
@@ -486,7 +486,7 @@ export default class ReplayReader {
       // and TouchEnd is too small. This clamps the tap to a min time
       // if the difference is less, so that the rrweb tap is visible and obvious.
       if (isTouchStartFrame(e) && index < events.length - 2) {
-        const nextEvent = events[index + 1];
+        const nextEvent = events[index + 1]!;
         if (isTouchEndFrame(nextEvent)) {
           nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
         }
@@ -638,7 +638,7 @@ export default class ReplayReader {
     const crumbs = removeDuplicateClicks(
       this._sortedBreadcrumbFrames.filter(
         frame =>
-          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
+          ['navigation', 'ui.click', 'ui.tap', 'ui.swipe'].includes(frame.category) ||
           (frame.category === 'ui.slowClickDetected' &&
             (isDeadClick(frame as SlowClickFrame) ||
               isDeadRageClick(frame as SlowClickFrame)))

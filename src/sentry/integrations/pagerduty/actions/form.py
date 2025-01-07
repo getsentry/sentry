@@ -6,7 +6,7 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.on_call.metrics import OnCallInteractionType
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
@@ -47,7 +47,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
         self.fields["service"].widget.choices = self.fields["service"].choices
 
     def _validate_service(self, service_id: int, integration_id: int) -> None:
-        with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture():
+        with record_event(OnCallInteractionType.VALIDATE_SERVICE).capture() as lifecycle:
             params = {
                 "account": dict(self.fields["account"].choices).get(integration_id),
                 "service": dict(self.fields["service"].choices).get(service_id),
@@ -66,6 +66,7 @@ class PagerDutyNotifyServiceForm(forms.Form):
             ):
                 # We need to make sure that the service actually belongs to that integration,
                 # meaning that it belongs under the appropriate account in PagerDuty.
+                lifecycle.record_halt(OnCallIntegrationsHaltReason.INVALID_SERVICE)
                 raise forms.ValidationError(
                     _(
                         'The service "%(service)s" has not been granted access in the %(account)s Pagerduty account.'

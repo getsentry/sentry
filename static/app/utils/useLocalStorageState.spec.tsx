@@ -18,7 +18,6 @@ describe('useLocalStorageState', () => {
     renderHook(() => {
       try {
         // @ts-expect-error force incorrect usage
-        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
         useLocalStorageState({}, 'default value');
       } catch (err) {
         errorResult = err;

@@ -28,7 +28,7 @@ class SearchResolverQueryTest(TestCase):
         self.resolver = SearchResolver(params=SnubaParams(), config=SearchResolverConfig())
 
     def test_simple_query(self):
-        query = self.resolver.resolve_query("span.description:foo")
+        query, _ = self.resolver.resolve_query("span.description:foo")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
@@ -38,7 +38,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_negation(self):
-        query = self.resolver.resolve_query("!span.description:foo")
+        query, _ = self.resolver.resolve_query("!span.description:foo")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
@@ -48,7 +48,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_numeric_query(self):
-        query = self.resolver.resolve_query("ai.total_tokens.used:123")
+        query, _ = self.resolver.resolve_query("ai.total_tokens.used:123")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
@@ -58,7 +58,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_in_filter(self):
-        query = self.resolver.resolve_query("span.description:[foo,bar,baz]")
+        query, _ = self.resolver.resolve_query("span.description:[foo,bar,baz]")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
@@ -68,7 +68,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_uuid_validation(self):
-        query = self.resolver.resolve_query(f"id:{'f'*16}")
+        query, _ = self.resolver.resolve_query(f"id:{'f'*16}")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
@@ -82,7 +82,7 @@ class SearchResolverQueryTest(TestCase):
             self.resolver.resolve_query("id:hello")
 
     def test_not_in_filter(self):
-        query = self.resolver.resolve_query("!span.description:[foo,bar,baz]")
+        query, _ = self.resolver.resolve_query("!span.description:[foo,bar,baz]")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="sentry.name", type=AttributeKey.Type.TYPE_STRING),
@@ -92,7 +92,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_in_numeric_filter(self):
-        query = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
+        query, _ = self.resolver.resolve_query("ai.total_tokens.used:[123,456,789]")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
@@ -102,7 +102,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_greater_than_numeric_filter(self):
-        query = self.resolver.resolve_query("ai.total_tokens.used:>123")
+        query, _ = self.resolver.resolve_query("ai.total_tokens.used:>123")
         assert query == TraceItemFilter(
             comparison_filter=ComparisonFilter(
                 key=AttributeKey(name="ai_total_tokens_used", type=AttributeKey.Type.TYPE_INT),
@@ -112,7 +112,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_query_with_and(self):
-        query = self.resolver.resolve_query("span.description:foo span.op:bar")
+        query, _ = self.resolver.resolve_query("span.description:foo span.op:bar")
         assert query == TraceItemFilter(
             and_filter=AndFilter(
                 filters=[
@@ -137,7 +137,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_query_with_or(self):
-        query = self.resolver.resolve_query("span.description:foo or span.op:bar")
+        query, _ = self.resolver.resolve_query("span.description:foo or span.op:bar")
         assert query == TraceItemFilter(
             or_filter=OrFilter(
                 filters=[
@@ -162,7 +162,7 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_query_with_or_and_brackets(self):
-        query = self.resolver.resolve_query(
+        query, _ = self.resolver.resolve_query(
             "(span.description:123 and span.op:345) or (span.description:foo and span.op:bar)"
         )
         assert query == TraceItemFilter(
@@ -221,7 +221,9 @@ class SearchResolverQueryTest(TestCase):
         )
 
     def test_empty_query(self):
-        query = self.resolver.resolve_query("")
+        query, _ = self.resolver.resolve_query("")
+        assert query is None
+        query, _ = self.resolver.resolve_query(None)
         assert query is None
 
 
@@ -350,3 +352,25 @@ class SearchResolverColumnTest(TestCase):
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
         assert virtual_context is None
+
+    def test_resolver_cache_attribute(self):
+        self.resolver.resolve_columns(["span.op"])
+        assert "span.op" in self.resolver._resolved_attribute_cache
+
+        project_column, project_context = self.resolver.resolve_column("project")
+        # Override the cache so we can confirm its being used
+        self.resolver._resolved_attribute_cache["span.op"] = project_column, project_context  # type: ignore[assignment]
+
+        # If we resolve op again, we should get the project context and column instead
+        resolved_column, virtual_context = self.resolver.resolve_column("span.op")
+        assert (resolved_column, virtual_context) == (project_column, project_context)
+
+    def test_resolver_cache_function(self):
+        self.resolver.resolve_columns(["count()"])
+        assert "count()" in self.resolver._resolved_function_cache
+
+        p95_column, p95_context = self.resolver.resolve_column("p95(span.duration) as foo")
+        self.resolver._resolved_function_cache["count()"] = p95_column, p95_context  # type: ignore[assignment]
+
+        resolved_column, virtual_context = self.resolver.resolve_column("count()")
+        assert (resolved_column, virtual_context) == (p95_column, p95_context)

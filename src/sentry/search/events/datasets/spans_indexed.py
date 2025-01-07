@@ -44,7 +44,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     @property
     def search_filter_converter(
         self,
-    ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
+    ) -> dict[str, Callable[[SearchFilter], WhereType | None]]:
         return {
             "message": self._message_filter_converter,
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
@@ -835,9 +835,7 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
                     optional_args=[
                         with_default("span.duration", NumericColumn("column", spans=True)),
                     ],
-                    snql_aggregate=lambda args, alias: self._resolve_percentile_weighted(
-                        args, alias, 1.0
-                    ),
+                    snql_aggregate=self._resolve_aggregate_if("max"),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
@@ -915,6 +913,14 @@ class SpansEAPDatasetConfig(SpansIndexedDatasetConfig):
         }
         existing_field_aliases.update(field_alias_converter)
         return existing_field_aliases
+
+    @property
+    def search_filter_converter(
+        self,
+    ) -> dict[str, Callable[[SearchFilter], WhereType | None]]:
+        existing_search_filters = super().search_filter_converter
+        del existing_search_filters[constants.SPAN_STATUS]
+        return existing_search_filters
 
     def _resolve_sum_weighted(
         self,

@@ -122,12 +122,12 @@ export const useResourcesQuery = ({
   });
 
   const data = result?.data?.data.map(row => ({
-    [SPAN_OP]: row[SPAN_OP].toString() as `resource.${string}`,
-    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION].toString(),
+    [SPAN_OP]: row[SPAN_OP]!.toString() as `resource.${string}`,
+    [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]!.toString(),
     ['avg(span.self_time)']: row[`avg(${SPAN_SELF_TIME})`] as number,
     'count()': row['count()'] as number,
     'spm()': row['spm()'] as number,
-    [SPAN_GROUP]: row[SPAN_GROUP].toString(),
+    [SPAN_GROUP]: row[SPAN_GROUP]!.toString(),
     [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[
       `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`

@@ -12,6 +12,7 @@ import type {SimilarItem} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -49,8 +50,13 @@ function SimilarStackTrace({project}: Props) {
   const navigate = useNavigate();
   const prevLocationSearch = usePrevious(location.search);
   const hasSimilarityFeature = project.features.includes('similarity-view');
+  const {data: projectData, isPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+  // similarity-embeddings feature is only available on project details
   const hasSimilarityEmbeddingsFeature =
-    project.features.includes('similarity-embeddings') ||
+    projectData?.features.includes('similarity-embeddings') ||
     location.query.similarityEmbeddings === '1';
   // Use reranking by default (assuming the `seer.similarity.similar_issues.use_reranking`
   // backend option is using its default value of `True`). This is just so we can turn it off
@@ -58,6 +64,9 @@ function SimilarStackTrace({project}: Props) {
   const useReranking = String(location.query.useReranking !== '0');
 
   const fetchData = useCallback(() => {
+    if (isPending) {
+      return;
+    }
     setStatus('loading');
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
@@ -93,6 +102,7 @@ function SimilarStackTrace({project}: Props) {
     hasSimilarityFeature,
     hasSimilarityEmbeddingsFeature,
     useReranking,
+    isPending,
   ]);
 
   const onGroupingChange = useCallback(
@@ -155,7 +165,7 @@ function SimilarStackTrace({project}: Props) {
     GroupingStore.onMerge({
       params,
       query: location.query.query as string,
-      projectId: firstIssue.issue.project.slug,
+      projectId: firstIssue!.issue.project.slug,
     });
   }, [params, location.query, items]);
 
@@ -183,7 +193,7 @@ function SimilarStackTrace({project}: Props) {
       {status === 'ready' && !hasSimilarItems && !hasSimilarityEmbeddingsFeature && (
         <Panel>
           <EmptyStateWarning>
-            <p>{t("There don't seem to be any similar issues.")}</p>
+            <Title>{t("There don't seem to be any similar issues.")}</Title>
           </EmptyStateWarning>
         </Panel>
       )}
@@ -208,6 +218,7 @@ function SimilarStackTrace({project}: Props) {
           groupId={params.groupId}
           pageLinks={items.pageLinks}
           location={location}
+          hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
       {status === 'ready' && hasSimilarItems && hasSimilarityEmbeddingsFeature && (
@@ -220,6 +231,7 @@ function SimilarStackTrace({project}: Props) {
           groupId={params.groupId}
           pageLinks={items.pageLinks}
           location={location}
+          hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
         />
       )}
       <DataConsentBanner source="grouping" />

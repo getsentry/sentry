@@ -6,9 +6,6 @@ from typing import Any
 from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import (
-    SourceCodeIssueIntegrationInteractionType,
-)
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
 from sentry.silo.base import all_silo_function
@@ -122,25 +119,24 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def create_issue(self, data, **kwargs):
-        with self.record_event(SourceCodeIssueIntegrationInteractionType.CREATE_ISSUE).capture():
-            client = self.get_client()
-            if not data.get("repo"):
-                raise IntegrationFormError({"repo": ["Repository is required"]})
+        client = self.get_client()
+        if not data.get("repo"):
+            raise IntegrationFormError({"repo": ["Repository is required"]})
 
-            data["content"] = {"raw": data["description"]}
-            del data["description"]
+        data["content"] = {"raw": data["description"]}
+        del data["description"]
 
-            try:
-                issue = client.create_issue(data.get("repo"), data)
-            except ApiError as e:
-                self.raise_error(e)
+        try:
+            issue = client.create_issue(data.get("repo"), data)
+        except ApiError as e:
+            self.raise_error(e)
 
-            return {
-                "key": issue["id"],
-                "title": issue["title"],
-                "description": issue["content"]["html"],  # users content rendered as html
-                "repo": data.get("repo"),
-            }
+        return {
+            "key": issue["id"],
+            "title": issue["title"],
+            "description": issue["content"]["html"],  # users content rendered as html
+            "repo": data.get("repo"),
+        }
 
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()

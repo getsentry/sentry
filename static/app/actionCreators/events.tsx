@@ -56,6 +56,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -109,6 +110,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     excludeOther,
     includeAllArgs,
     dataset,
+    useRpc,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<
@@ -137,6 +139,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
+      useRpc: useRpc ? '1' : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -175,6 +178,7 @@ export type EventQuery = {
   referrer?: string;
   sort?: string | string[];
   team?: string | string[];
+  useRpc?: '1';
 };
 
 export type TagSegment = {

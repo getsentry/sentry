@@ -49,23 +49,24 @@ from sentry.incidents.models.incident import (
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
-    IncidentSubscription,
     IncidentTrigger,
     IncidentType,
     TriggerStatus,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.environment import Environment
-from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS,
     SPANS_METRICS_FUNCTIONS,
 )
 from sentry.search.events.fields import is_function, resolve_field
+from sentry.search.events.types import SnubaParams
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.seer.anomaly_detection.store_data import send_new_rule_data, update_rule_data
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
@@ -74,7 +75,8 @@ from sentry.shared_integrations.exceptions import (
     DuplicateDisplayNameError,
     IntegrationError,
 )
-from sentry.snuba.dataset import Dataset
+from sentry.snuba import spans_rpc
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
     EntitySubscription,
@@ -85,6 +87,7 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.metrics.extraction import should_use_on_demand_metrics
 from sentry.snuba.metrics.naming_layer.mri import get_available_operations, is_mri, parse_mri
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.subscriptions import (
     bulk_delete_snuba_subscriptions,
     bulk_disable_snuba_subscriptions,
@@ -195,8 +198,6 @@ def create_incident(
 def update_incident_status(
     incident: Incident,
     status: IncidentStatus,
-    user: RpcUser | None = None,
-    comment: str | None = None,
     status_method: IncidentStatusMethod = IncidentStatusMethod.RULE_TRIGGERED,
     date_closed: datetime | None = None,
 ) -> Incident:
@@ -212,13 +213,9 @@ def update_incident_status(
         create_incident_activity(
             incident,
             IncidentActivityType.STATUS_CHANGE,
-            user=user,
             value=status.value,
             previous_value=incident.status,
-            comment=comment,
         )
-        if user:
-            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs: dict[str, Any] = {"status": status.value, "status_method": status_method.value}
@@ -256,12 +253,8 @@ def create_incident_activity(
     user: RpcUser | User | None = None,
     value: str | int | None = None,
     previous_value: str | int | None = None,
-    comment: str | None = None,
-    mentioned_user_ids: Collection[int] = (),
     date_added: datetime | None = None,
 ) -> IncidentActivity:
-    if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else None
     previous_value = str(previous_value) if previous_value is not None else None
     kwargs = {}
@@ -273,40 +266,9 @@ def create_incident_activity(
         user_id=user.id if user else None,
         value=value,
         previous_value=previous_value,
-        comment=comment,
         notification_uuid=uuid4(),
         **kwargs,
     )
-
-    if mentioned_user_ids:
-        user_ids_to_subscribe = set(mentioned_user_ids) - set(
-            IncidentSubscription.objects.filter(
-                incident=incident, user_id__in=mentioned_user_ids
-            ).values_list("user_id", flat=True)
-        )
-        if user_ids_to_subscribe:
-            IncidentSubscription.objects.bulk_create(
-                [
-                    IncidentSubscription(incident=incident, user_id=mentioned_user_id)
-                    for mentioned_user_id in user_ids_to_subscribe
-                ]
-            )
-    transaction.on_commit(
-        lambda: tasks.send_subscriber_notifications.apply_async(
-            kwargs={"activity_id": activity.id}, countdown=10
-        ),
-        router.db_for_write(IncidentSubscription),
-    )
-    if activity_type == IncidentActivityType.COMMENT:
-        analytics.record(
-            "incident.comment",
-            incident_id=incident.id,
-            organization_id=incident.organization_id,
-            incident_type=incident.type,
-            user_id=user.id if user else None,
-            activity_id=activity.id,
-        )
-
     return activity
 
 
@@ -417,36 +379,64 @@ def get_incident_aggregates(
         snuba_query,
         incident.organization_id,
     )
-    query_builder = _build_incident_query_builder(
-        incident, entity_subscription, start, end, windowed_stats
-    )
-    try:
-        results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
-    except Exception:
-        metrics.incr(
-            "incidents.get_incident_aggregates.snql.query.error",
-            tags={
-                "dataset": snuba_query.dataset,
-                "entity": get_entity_key_from_query_builder(query_builder).value,
-            },
+    if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
+        start, end = _calculate_incident_time_range(
+            incident, start, end, windowed_stats=windowed_stats
         )
-        raise
+
+        project_ids = list(
+            IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
+        )
+
+        params = SnubaParams(
+            environments=[snuba_query.environment],
+            projects=[Project.objects.get_from_cache(id=project_id) for project_id in project_ids],
+            organization=Organization.objects.get_from_cache(id=incident.organization_id),
+            start=start,
+            end=end,
+        )
+
+        try:
+            results = spans_rpc.run_table_query(
+                params,
+                query_string=snuba_query.query,
+                selected_columns=[entity_subscription.aggregate],
+                orderby=None,
+                offset=0,
+                limit=1,
+                referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                config=SearchResolverConfig(
+                    auto_fields=True,
+                ),
+            )
+
+        except Exception:
+            metrics.incr(
+                "incidents.get_incident_aggregates.snql.query.error",
+                tags={
+                    "dataset": snuba_query.dataset,
+                    "entity": EntityKey.EAPSpans.value,
+                },
+            )
+            raise
+    else:
+        query_builder = _build_incident_query_builder(
+            incident, entity_subscription, start, end, windowed_stats
+        )
+        try:
+            results = query_builder.run_query(referrer="incidents.get_incident_aggregates")
+        except Exception:
+            metrics.incr(
+                "incidents.get_incident_aggregates.snql.query.error",
+                tags={
+                    "dataset": snuba_query.dataset,
+                    "entity": get_entity_key_from_query_builder(query_builder).value,
+                },
+            )
+            raise
 
     aggregated_result = entity_subscription.aggregate_query_results(results["data"], alias="count")
     return aggregated_result[0]
-
-
-def subscribe_to_incident(incident: Incident, user_id: int) -> IncidentSubscription:
-    subscription, _ = IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
-    return subscription
-
-
-def unsubscribe_from_incident(incident: Incident, user_id: int) -> None:
-    IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
-
-
-def get_incident_subscribers(incident: Incident) -> Iterable[IncidentSubscription]:
-    return IncidentSubscription.objects.filter(incident=incident)
 
 
 def get_incident_activity(incident: Incident) -> Iterable[IncidentActivity]:
@@ -1639,7 +1629,7 @@ def _get_alert_rule_trigger_action_sentry_app(
     from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
-        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+        installations = app_service.installations_for_organization(organization_id=organization.id)
 
     for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
@@ -1851,7 +1841,7 @@ def get_slack_actions_with_async_lookups(
                         "access": SystemAccess(),
                         "user": user,
                         "input_channel_id": action.get("inputChannelId"),
-                        "installations": app_service.get_installed_for_organization(
+                        "installations": app_service.installations_for_organization(
                             organization_id=organization.id
                         ),
                     },

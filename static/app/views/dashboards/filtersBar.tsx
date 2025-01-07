@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {User} from '@sentry/types';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
@@ -11,6 +10,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {ToggleOnDemand} from 'sentry/utils/performance/contexts/onDemandControl';
@@ -120,7 +120,14 @@ export default function FiltersBar({
         </FilterButtons>
         {hasUnsavedChanges && !isEditingDashboard && !isPreview && (
           <FilterButtons>
-            <Button priority="primary" onClick={onSave} disabled={!hasEditAccess}>
+            <Button
+              title={
+                !hasEditAccess && t('You do not have permission to edit this dashboard')
+              }
+              priority="primary"
+              onClick={onSave}
+              disabled={!hasEditAccess}
+            >
               {t('Save')}
             </Button>
             <Button onClick={onCancel}>{t('Cancel')}</Button>

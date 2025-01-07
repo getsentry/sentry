@@ -7,7 +7,6 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -218,17 +217,6 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
                     ]
                 )
             },
-            store_metrics_summary={
-                "d:custom/value@millisecond": [
-                    {
-                        "min": 40_000,
-                        "max": 40_000,
-                        "sum": 40_000,
-                        "count": 1,
-                        "tags": {"foo": "qux"},
-                    }
-                ]
-            },
             sdk_name="sentry.javascript.remix",
         )
 
@@ -287,16 +275,20 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -322,22 +314,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data == {
             "detail": ErrorDetail(
                 string="Invalid per_page value. Cannot exceed 100.", code="parse_error"
-            ),
-        }
-
-    def test_unsupported_mri(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 1,
-            "mri": "d:spans/made_up@none",
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="Unsupported MRI: d:spans/made_up@none", code="parse_error"
             ),
         }
 
@@ -445,7 +421,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ]
 
         mock_capture_exception.assert_called_with(
-            exception, contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}}
+            exception,
+            contexts={"bad_traces": {"traces": list(sorted([trace_id_1, trace_id_2]))}},
         )
 
     def test_use_first_span_for_name(self):
@@ -825,142 +802,18 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     },
                 ]
 
-    def test_matching_tag_metrics(self):
-        (
-            project_1,
-            _,
-            _,
-            _,
-            trace_id_3,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        for mri, op in [
-            (TransactionMRI.DURATION.value, "count"),
-            ("d:transactions/measurements.lcp@millisecond", "max"),
-            (SpanMRI.DURATION.value, "min"),
-            (SpanMRI.SELF_TIME.value, "avg"),
-            ("d:spans/webvital.score.total@ratio", "count"),
-            ("d:spans/webvital.score.inp@ratio", "max"),
-            ("d:spans/webvital.score.weight.inp@ratio", "min"),
-            ("d:spans/http.response_content_length@byte", "avg"),
-            ("d:spans/http.decoded_response_content_length@byte", "count"),
-            ("d:spans/http.response_transfer_size@byte", "max"),
-            ("d:custom/value@millisecond", "min"),
-        ]:
-            for user_query in ["foo:qux", None]:
-                query = {
-                    "mri": mri,
-                    "metricsMin": 30_000,
-                    "metricsMax": 50_000,
-                    "metricsOp": op,
-                    "metricsQuery": ["foo:qux"],
-                    "project": [],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "maxSpansPerTrace": 3,
-                    "per_page": 1,
-                }
-                if user_query:
-                    query["query"] = user_query
-
-                response = self.do_request(query)
-                assert response.status_code == 200, (mri, response.data)
-
-                result_data = sorted(response.data["data"], key=lambda trace: trace["trace"])
-
-                assert result_data == [
-                    {
-                        "trace": trace_id_3,
-                        "numErrors": 0,
-                        "numOccurrences": 0,
-                        "numSpans": 2,
-                        "matchingSpans": 1 if user_query else 2,
-                        "project": project_1.slug,
-                        "name": "qux",
-                        "duration": 40_000,
-                        "start": timestamps[10],
-                        "end": timestamps[10] + 40_000,
-                        "rootDuration": 40_000,
-                        "breakdowns": [
-                            {
-                                "project": project_1.slug,
-                                "sdkName": "sentry.javascript.remix",
-                                "isRoot": False,
-                                "start": timestamps[10],
-                                "end": timestamps[10] + 40_000,
-                                "sliceStart": 0,
-                                "sliceEnd": 40,
-                                "sliceWidth": 40,
-                                "kind": "project",
-                                "duration": 40_000,
-                            },
-                            {
-                                "project": project_1.slug,
-                                "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
-                                "start": timestamps[11],
-                                "end": timestamps[11] + 10_000,
-                                "sliceStart": 10,
-                                "sliceEnd": 20,
-                                "sliceWidth": 10,
-                                "kind": "project",
-                                "duration": 10_000,
-                            },
-                        ],
-                    },
-                ], (mri, user_query)
-
-    def test_matching_tag_metrics_but_no_matching_spans(self):
-        for mri in [
-            TransactionMRI.DURATION.value,
-            "d:transactions/measurements.lcp@millisecond",
-            SpanMRI.DURATION.value,
-            SpanMRI.SELF_TIME.value,
-            "d:spans/webvital.score.total@ratio",
-            "d:spans/webvital.score.inp@ratio",
-            "d:spans/webvital.score.weight.inp@ratio",
-            "d:spans/http.response_content_length@byte",
-            "d:spans/http.decoded_response_content_length@byte",
-            "d:spans/http.response_transfer_size@byte",
-            "d:custom/value@millisecond",
-        ]:
-            for user_query in ["foo:qux", None]:
-                query = {
-                    "mri": mri,
-                    "metricsQuery": ["foo:qux"],
-                    "project": [self.project.id],
-                    "field": ["id", "parent_span", "span.duration"],
-                    "query": "foo:foobar",
-                    "maxSpansPerTrace": 3,
-                }
-
-                response = self.do_request(query)
-                assert response.status_code == 200, (mri, response.data)
-                assert response.data == {
-                    "data": [],
-                    "meta": {
-                        "dataset": "unknown",
-                        "datasetReason": "unchanged",
-                        "fields": {},
-                        "isMetricsData": False,
-                        "isMetricsExtractedData": False,
-                        "tips": {},
-                        "units": {},
-                    },
-                }
-
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
 
     def do_request(self, trace_id, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
@@ -1073,77 +926,26 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             }
             assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[1:4])]
 
-    def test_get_spans_for_trace_matching_tags_metrics(self):
-        (
-            project_1,
-            project_2,
-            _,
-            _,
-            trace_id,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        for mri, op in [
-            (TransactionMRI.DURATION.value, "count"),
-            ("d:transactions/measurements.lcp@millisecond", "max"),
-            (SpanMRI.DURATION.value, "min"),
-            (SpanMRI.SELF_TIME.value, "avg"),
-            ("d:spans/webvital.score.total@ratio", "count"),
-            ("d:spans/webvital.score.inp@ratio", "max"),
-            ("d:spans/webvital.score.weight.inp@ratio", "min"),
-            ("d:spans/http.response_content_length@byte", "avg"),
-            ("d:spans/http.decoded_response_content_length@byte", "count"),
-            ("d:spans/http.response_transfer_size@byte", "max"),
-            ("d:custom/value@millisecond", "min"),
-        ]:
-            for user_query in ["foo:qux", None]:
-                query = {
-                    "mri": mri,
-                    "metricsMin": 30_000,
-                    "metricsMax": 50_000,
-                    "metricsOp": op,
-                    "metricsQuery": ["foo:qux"],
-                    "project": [],
-                    "field": ["id"],
-                    "sort": "id",
-                }
-                if user_query:
-                    query["query"] = user_query
-
-                response = self.do_request(trace_id, query)
-                assert response.status_code == 200, response.data
-                assert response.data["meta"] == {
-                    "dataset": "unknown",
-                    "datasetReason": "unchanged",
-                    "fields": {
-                        "id": "string",
-                    },
-                    "isMetricsData": False,
-                    "isMetricsExtractedData": False,
-                    "tips": {},
-                    "units": {
-                        "id": None,
-                    },
-                }
-                assert response.data["data"] == [{"id": span_ids[10]}]
-
 
 class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-traces-stats"
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer", "organizations:global-views"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:global-views",
+            ]
 
         if self.is_eap:
-            if query is None:
-                query = {}
             query["dataset"] = "spans"
 
         with self.feature(features):
             return self.client.get(
-                reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                reverse(
+                    self.view,
+                    kwargs={"organization_id_or_slug": self.organization.slug},
+                ),
                 query,
                 format="json",
                 **kwargs,
@@ -2581,10 +2383,6 @@ def test_build_breakdown_error(mock_new_trace_interval, mock_capture_exception):
 
 class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
     is_eap: bool = True
-
-    @pytest.mark.skip(reason="no support for metrics so not back porting this feature")
-    def test_matching_tag_metrics(self):
-        pass
 
     def test_invalid_sort(self):
         for sort in ["foo", "-foo"]:

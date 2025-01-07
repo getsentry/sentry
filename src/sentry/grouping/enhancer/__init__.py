@@ -4,6 +4,7 @@ import base64
 import logging
 import os
 import zlib
+from collections import Counter
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -35,9 +36,13 @@ LATEST_VERSION = VERSIONS[-1]
 
 VALID_PROFILING_MATCHER_PREFIXES = (
     "stack.abs_path",
+    "path",  # stack.abs_path alias
     "stack.module",
+    "module",  # stack.module alias
     "stack.function",
+    "function",  # stack.function alias
     "stack.package",
+    "package",  # stack.package
 )
 VALID_PROFILING_ACTIONS_SET = frozenset(["+app", "-app"])
 
@@ -164,11 +169,11 @@ class Enhancements:
 
     def assemble_stacktrace_component(
         self,
-        components: list[FrameGroupingComponent],
+        frame_components: list[FrameGroupingComponent],
         frames: list[dict[str, Any]],
         platform: str | None,
         exception_data: dict[str, Any] | None = None,
-    ) -> tuple[StacktraceGroupingComponent, bool]:
+    ) -> StacktraceGroupingComponent:
         """
         This assembles a `stacktrace` grouping component out of the given
         `frame` components and source frames.
@@ -177,22 +182,30 @@ class Enhancements:
         """
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in components]
+        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
             match_frames, make_rust_exception_data(exception_data), rust_components
         )
 
-        for py_component, rust_component in zip(components, rust_components):
-            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+        # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
+        # both collect metrics and use the information in decisions about whether to send the event
+        # to Seer
+        frame_counts: Counter[str] = Counter()
 
-        component = StacktraceGroupingComponent(
-            values=components,
+        for py_component, rust_component in zip(frame_components, rust_components):
+            py_component.update(contributes=rust_component.contributes, hint=rust_component.hint)
+            key = f"{"in_app" if py_component.in_app else "system"}_{"contributing" if py_component.contributes else "non_contributing"}_frames"
+            frame_counts[key] += 1
+
+        stacktrace_component = StacktraceGroupingComponent(
+            values=frame_components,
             hint=rust_results.hint,
             contributes=rust_results.contributes,
+            frame_counts=frame_counts,
         )
 
-        return component, rust_results.invert_stacktrace
+        return stacktrace_component
 
     def as_dict(self, with_rules=False):
         rv = {
@@ -252,7 +265,7 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(self, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)

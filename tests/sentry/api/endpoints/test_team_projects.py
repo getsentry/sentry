@@ -284,3 +284,44 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             )
             is None
         )
+
+    def test_builtin_symbol_sources_electron(self):
+        """
+        Test that project option for builtin symbol sources contains ["electron"] when creating
+        an Electron project, but uses defaults for other platforms.
+        """
+        # Test Electron project
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="electron-app",
+            slug="electron-app",
+            platform="electron",
+            status_code=201,
+        )
+
+        electron_project = Project.objects.get(id=response.data["id"])
+        assert electron_project.platform == "electron"
+        symbol_sources = ProjectOption.objects.get_value(
+            project=electron_project, key="sentry:builtin_symbol_sources"
+        )
+        assert symbol_sources == ["ios", "microsoft", "electron"]
+
+    def test_builtin_symbol_sources_not_electron(self):
+        # Test non-Electron project (e.g. Python)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="python-app",
+            slug="python-app",
+            platform="python",
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=response.data["id"])
+        assert python_project.platform == "python"
+        # Should use default value, not ["electron"]
+        symbol_sources = ProjectOption.objects.get_value(
+            project=python_project, key="sentry:builtin_symbol_sources"
+        )
+        assert "electron" not in symbol_sources

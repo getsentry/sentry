@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -9,9 +9,11 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -41,6 +43,19 @@ function ReleaseContext(props: BaseContextProps) {
     }
   );
 
+  const authors = useMemo(
+    () =>
+      data?.authors.map<Actor | User>(author =>
+        // Add a unique id if missing
+        ({
+          ...author,
+          type: 'user',
+          id: 'id' in author ? author.id : uniqueId(),
+        })
+      ),
+    [data?.authors]
+  );
+
   useEffect(() => {
     trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
@@ -55,7 +70,7 @@ function ReleaseContext(props: BaseContextProps) {
     const userInAuthors =
       data &&
       authorsCount >= 1 &&
-      data.authors.find((author: User) => author.id && user.id && author.id === user.id);
+      data.authors.find(author => 'id' in author && user.id && author.id === user.id);
 
     if (userInAuthors) {
       authorsCount = authorsCount - 1;
@@ -105,7 +120,7 @@ function ReleaseContext(props: BaseContextProps) {
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
             ) : (
-              <StyledAvatarList users={data.authors} maxVisibleAvatars={10} />
+              <StyledAvatarList users={authors} maxVisibleAvatars={10} />
             )}
           </ContextBody>
         </ReleaseContextContainer>

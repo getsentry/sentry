@@ -1,8 +1,5 @@
 import React from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -25,12 +22,10 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
@@ -47,7 +42,6 @@ const {
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
-  const {isInDomainView} = useDomainViewFilters();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
   const {
@@ -91,43 +85,17 @@ function ResourceSummary() {
     ) ||
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
 
-  const crumbs = useModuleBreadcrumbs('resource');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-                },
-              ]}
-            />
-
-            <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <FrontendHeader
-          headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
-          breadcrumbs={[
-            {
-              label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-            },
-          ]}
-          module={ModuleName.RESOURCE}
-        />
-      )}
+      <FrontendHeader
+        headerTitle={spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}
+        breadcrumbs={[
+          {
+            label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+          },
+        ]}
+        module={ModuleName.RESOURCE}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
         <Layout.Body>
@@ -159,11 +127,14 @@ function ResourceSummary() {
 
               {isImage && (
                 <ModuleLayout.Full>
-                  <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                  <SampleImages
+                    groupId={groupId!}
+                    projectId={data?.[0]?.['project.id']}
+                  />
                 </ModuleLayout.Full>
               )}
 
-              <ResourceSummaryCharts groupId={groupId} />
+              <ResourceSummaryCharts groupId={groupId!} />
 
               <ModuleLayout.Full>
                 <ResourceSummaryTable />
@@ -173,7 +144,7 @@ function ResourceSummary() {
                 <SampleList
                   transactionRoute={webVitalsModuleURL}
                   subregions={filters[SpanMetricsField.USER_GEO_SUBREGION]}
-                  groupId={groupId}
+                  groupId={groupId!}
                   moduleName={ModuleName.RESOURCE}
                   transactionName={transaction as string}
                   referrer={TraceViewSources.ASSETS_MODULE}
@@ -189,11 +160,7 @@ function ResourceSummary() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="resource"
-      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
       <ResourceSummary />
     </ModulePageProviders>
   );

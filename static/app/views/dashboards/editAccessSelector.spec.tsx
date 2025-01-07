@@ -1,9 +1,11 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import EditAccessSelector from 'sentry/views/dashboards/editAccessSelector';
 
@@ -224,7 +226,15 @@ describe('When EditAccessSelector is rendered with Teams', function () {
   });
 
   it('searches teams', async function () {
+    const org = OrganizationFixture();
+    OrganizationStore.onUpdate(org, {replace: true});
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/teams/`,
+      method: 'GET',
+      body: teams,
+    });
     renderTestComponent();
+
     await userEvent.click(await screen.findByText('Edit Access:'));
     await userEvent.type(screen.getByPlaceholderText('Search Teams'), 'team2');
 

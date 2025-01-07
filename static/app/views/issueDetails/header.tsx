@@ -34,15 +34,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
 import {useIssueDetailsHeader} from 'sentry/views/issueDetails/useIssueDetailsHeader';
 
-import GroupActions from './actions';
+import {GroupActions} from './actions';
 import {Tab} from './types';
-import type {ReprocessingStatus} from './utils';
+import {getGroupReprocessingStatus} from './utils';
 
 type Props = {
   baseUrl: string;
   event: Event | null;
   group: Group;
-  groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
 };
@@ -177,15 +176,9 @@ export function GroupHeaderTabs({
   );
 }
 
-function GroupHeader({
-  baseUrl,
-  group,
-  groupReprocessingStatus,
-  organization,
-  event,
-  project,
-}: Props) {
+function GroupHeader({baseUrl, group, organization, event, project}: Props) {
   const location = useLocation();
+  const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
   const {
     disabledTabs,
@@ -229,7 +222,6 @@ function GroupHeader({
             project={project}
             disabled={disableActions}
             event={event}
-            query={location.query}
           />
         </BreadcrumbActionWrapper>
         <HeaderRow>

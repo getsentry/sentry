@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
+import pytest
 from django.urls import reverse
 
 from sentry.discover.models import DatasetSourcesTypes
@@ -18,12 +19,12 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
-from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 
 class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -417,6 +418,63 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         assert "teamsWithEditAccess" in response.data["permissions"]
         assert response.data["permissions"]["teamsWithEditAccess"] == [team1.id, team2.id]
 
+    def test_get_favorited_user_status(self):
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.user_2 = self.create_user(email="user2@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.create_member(user=self.user_2, organization=self.organization)
+
+        self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
+
+        self.login_as(user=self.user_1)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavorited"] is True
+
+    def test_get_not_favorited_user_status(self):
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.dashboard.favorited_by = [self.user_1.id, self.user.id]
+
+        user_3 = self.create_user()
+        self.create_member(user=user_3, organization=self.organization)
+        self.login_as(user=user_3)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavorited"] is False
+
+    def test_get_favorite_status_no_dashboard_edit_access(self):
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.user_2 = self.create_user(email="user2@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.create_member(user=self.user_2, organization=self.organization)
+
+        self.dashboard.favorited_by = [self.user_1.id, self.user_2.id, self.user.id]
+
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+        self.login_as(user=self.user_2)
+        dashboard_detail_put_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", dashboard_detail_put_url, data={"title": "New Dashboard 9"}
+            )
+            # assert user cannot edit dashboard
+            assert response.status_code == 403
+
+        # assert user can see if they favorited the dashboard
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request("get", self.url(self.dashboard.id))
+            assert response.status_code == 200
+            assert response.data["isFavorited"] is True
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
@@ -512,6 +570,108 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         self.login_as(self.user)
         response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 204
+
+    def test_allow_delete_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_all_projects_dashboard_when_no_open_membership(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        dashboard = Dashboard.objects.create(
+            title="Dashboard For All Projects",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            filters={"all_projects": True},
+        )
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_my_projects_dashboard_when_no_open_membership(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        dashboard = Dashboard.objects.create(
+            title="Dashboard For My Projects",
+            created_by_id=self.user.id,
+            organization=self.organization,
+            # no 'filter' field means the dashboard covers all available projects
+        )
+
+        # user has no access to all the projects
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204
+
+    def test_disallow_delete_when_no_project_access_and_no_edit_perms(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 204
+
+    def test_allow_delete_as_superuser_but_no_edit_perms(self):
+        self.create_user(id=12333)
+        dashboard = Dashboard.objects.create(
+            id=67,
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+
+        # Create and login as superuser
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request("delete", self.url(dashboard.id))
+        assert response.status_code == 204, response.content
 
     def test_dashboard_does_not_exist(self):
         response = self.do_request("delete", self.url(1234567890))
@@ -730,6 +890,102 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         assert response.status_code == 403, response.data
         assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_allow_put_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 200, response.data
+
+    def test_disallow_put_when_no_project_access_and_no_edit_perms(self):
+        # set dashboard edit perms to be editable only by creator
+        self.dashboard.permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=self.dashboard
+        )
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has no access to the above project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_disallow_put_when_has_project_access_and_no_edit_perms(self):
+        # set dashboard edit perms to be editable only by creator
+        self.dashboard.permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=self.dashboard
+        )
+
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # assign a project to a dashboard
+        self.dashboard.projects.set([self.project])
+
+        # user has access to the above project
+        user = self.create_user(id=3456)
+        team = self.create_team(organization=self.organization)
+        self.create_member(user=user, organization=self.organization, teams=[team])
+        self.project.add_team(team)
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"title": "Dashboard Hello"}
+            )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+    def test_allow_put_as_superuser_but_no_edit_perms(self):
+        self.create_user(id=12333)
+        dashboard = Dashboard.objects.create(
+            id=67,
+            title="Dashboard With Dataset Source",
+            created_by_id=12333,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+
+        # Create and login as superuser
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(user=superuser, superuser=True)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", self.url(dashboard.id), data={"title": "New Dashboard 9"}
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["title"] == "New Dashboard 9"
 
     def test_add_widget(self):
         data: dict[str, Any] = {
@@ -1823,6 +2079,37 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
+    def test_add_discover_widget_returns_validation_error(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "discover",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()", "total.count"],
+                            "columns": ["total.count"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature({"organizations:deprecate-discover-widget-type": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+
+        assert response.status_code == 400, response.data
+        assert (
+            "Attribute value `discover` is deprecated. Please use `error-events` or `transaction-like`"
+            in response.content.decode()
+        )
+
     def test_update_dashboard_with_filters(self):
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -2136,6 +2423,21 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             in response.content.decode()
         )
 
+    def test_manager_or_owner_can_update_dashboard_edit_perms(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+
+        user = self.create_user(id=28193)
+        self.create_member(user=user, organization=self.organization, role="manager")
+        self.login_as(user)
+
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put",
+                self.url(self.dashboard.id),
+                data={"permissions": {"is_editable_by_everyone": False}},
+            )
+        assert response.status_code == 200
+
     def test_update_dashboard_permissions_with_new_teams(self):
         mock_project = self.create_project()
         permission = DashboardPermissions.objects.create(
@@ -2325,6 +2627,110 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 200, response.data
         assert sorted(response.data["projects"]) == [project1.id, project2.id]
 
+    def test_save_widget_with_custom_measurement_in_equation_tables(self):
+        BaseMetricsTestCase.store_metric(
+            self.organization.id,
+            self.project.id,
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
+        )
+
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "EPM table",
+                    "displayType": "table",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "transaction.duration",
+                                "measurements.custom_duration",
+                                "equation|measurements.custom_duration / transaction.duration",
+                            ],
+                            "columns": [
+                                "transaction.duration",
+                                "measurements.custom_duration",
+                            ],
+                            "aggregates": [
+                                "equation|measurements.custom_duration / transaction.duration"
+                            ],
+                            "conditions": "",
+                            "orderby": "",
+                            "selectedAggregate": 1,
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature({"organizations:performance-use-metrics": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
+    def test_save_widget_with_custom_measurement_in_equation_line_chart(self):
+        BaseMetricsTestCase.store_metric(
+            self.organization.id,
+            self.project.id,
+            "d:transactions/measurements.custom_duration@millisecond",
+            {},
+            int(before_now(days=1).timestamp()),
+            1,
+        )
+
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "EPM line",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "transaction.duration",
+                                "measurements.custom_duration",
+                                "equation|avg(measurements.custom_duration) / avg(transaction.duration)",
+                            ],
+                            "columns": [
+                                "transaction.duration",
+                                "measurements.custom_duration",
+                            ],
+                            "aggregates": [
+                                "equation|avg(measurements.custom_duration) / avg(transaction.duration)"
+                            ],
+                            "conditions": "",
+                            "orderby": "",
+                            "selectedAggregate": 1,
+                        }
+                    ],
+                },
+            ],
+        }
+        with self.feature({"organizations:performance-use-metrics": True}):
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        widgets = self.get_widgets(self.dashboard.id)
+        assert len(widgets) == 1
+
+        self.assert_serialized_widget(data["widgets"][0], widgets[0])
+
+        queries = widgets[0].dashboardwidgetquery_set.all()
+        assert len(queries) == 1
+        self.assert_serialized_widget_query(data["widgets"][0]["queries"][0], queries[0])
+
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):
     widget_type = DashboardWidgetTypes.DISCOVER
@@ -2348,9 +2754,6 @@ class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestC
             widget_type=self.widget_type,
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
-
-    def get_widget_queries(self, widget):
-        return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
 
     def test_ondemand_without_flags(self):
         data: dict[str, Any] = {
@@ -2902,3 +3305,72 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         dashboard = Dashboard.objects.get(id=self.dashboard.id)
         assert dashboard.visits == 1
         assert dashboard.last_visited == last_visited
+
+
+class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
+    def setUp(self):
+        super().setUp()
+        # Create two additional users
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.user_2 = self.create_user(email="user2@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+        self.create_member(user=self.user_2, organization=self.organization)
+
+        # Both users have favorited the dashboard
+        self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
+
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-favorite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    # PUT tests
+    def test_favorite_dashboard(self):
+        assert self.user.id not in self.dashboard.favorited_by
+        self.login_as(user=self.user)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavorited": "true"}
+            )
+            assert response.status_code == 204
+            assert self.user.id in self.dashboard.favorited_by
+
+    def test_unfavorite_dashboard(self):
+        assert self.user_1.id in self.dashboard.favorited_by
+        self.login_as(user=self.user_1)
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavorited": False}
+            )
+            assert response.status_code == 204
+            assert self.user_1.id not in self.dashboard.favorited_by
+
+    def test_favorite_dashboard_no_dashboard_edit_access(self):
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=self.dashboard)
+        self.login_as(user=self.user_2)
+        dashboard_detail_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+        with self.feature({"organizations:dashboards-edit-access": True}):
+            response = self.do_request(
+                "put", dashboard_detail_url, data={"title": "New Dashboard 9"}
+            )
+            # assert user cannot edit dashboard
+            assert response.status_code == 403
+
+        # assert if user can edit the favorite status of the dashboard
+        assert self.user_2.id in self.dashboard.favorited_by
+        with self.feature({"organizations:dashboards-favourite": True}):
+            response = self.do_request(
+                "put", self.url(self.dashboard.id), data={"isFavorited": False}
+            )
+            assert response.status_code == 204
+            assert self.user_2.id not in self.dashboard.favorited_by

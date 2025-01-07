@@ -266,6 +266,10 @@ describe('WidgetBuilder', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/spans/fields/`,
       body: [],
     });
@@ -542,7 +546,7 @@ describe('WidgetBuilder', function () {
     const countFields = screen.getAllByText('count()');
     expect(countFields).toHaveLength(3);
 
-    await selectEvent.select(countFields[1], ['last_seen()']);
+    await selectEvent.select(countFields[1]!, ['last_seen()']);
 
     await userEvent.click(screen.getByText('Add Widget'));
 
@@ -1194,7 +1198,7 @@ describe('WidgetBuilder', function () {
 
     // Triggering the onBlur of the new field should not error
     await userEvent.click(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1],
+      screen.getAllByPlaceholderText('Search for events, users, tags, and more')[1]!,
       {delay: null}
     );
     await userEvent.keyboard('{Escape}', {delay: null});
@@ -1263,7 +1267,7 @@ describe('WidgetBuilder', function () {
     await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
-    await selectEvent.select(screen.getAllByText('count()')[0], 'eps()');
+    await selectEvent.select(screen.getAllByText('count()')[0]!, 'eps()');
 
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenLastCalledWith(
@@ -1620,7 +1624,7 @@ describe('WidgetBuilder', function () {
 
     await userEvent.click(screen.getByLabelText('Add a Column'));
 
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('Second Alias');
 
     await userEvent.click(screen.getByText('Add Widget'));
@@ -1642,9 +1646,9 @@ describe('WidgetBuilder', function () {
     });
 
     await userEvent.click(screen.getByText('Add an Equation'));
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('This should persist');
-    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'A');
+    await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'A');
 
     expect(await screen.findByText('This should persist')).toBeInTheDocument();
   });
@@ -1655,12 +1659,12 @@ describe('WidgetBuilder', function () {
     });
 
     await userEvent.click(screen.getByText('Add an Equation'));
-    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]);
+    await userEvent.click(screen.getAllByPlaceholderText('Alias')[1]!);
     await userEvent.paste('This should persist');
 
     // 1 for the table, 1 for the column selector, 1 for the sort
     await waitFor(() => expect(screen.getAllByText('count()')).toHaveLength(3));
-    await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+    await selectEvent.select(screen.getAllByText('count()')[1]!, /count_unique/);
 
     expect(screen.getByText('This should persist')).toBeInTheDocument();
   });
@@ -1673,7 +1677,7 @@ describe('WidgetBuilder', function () {
     await userEvent.click(await screen.findByText('Table'));
     await userEvent.click(screen.getByText('Line Chart'));
     await selectEvent.select(screen.getByText('Select group'), 'project');
-    await selectEvent.select(screen.getAllByText('count()')[1], 'count_unique(…)');
+    await selectEvent.select(screen.getAllByText('count()')[1]!, 'count_unique(…)');
 
     MockApiClient.clearMockResponses();
     eventsStatsMock = MockApiClient.addMockResponse({
@@ -2273,7 +2277,7 @@ describe('WidgetBuilder', function () {
       // Confirm modal doesn't open because no changes were made
       expect(mockModal).not.toHaveBeenCalled();
 
-      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]!);
       await userEvent.click(screen.getByText('High Throughput Transactions'));
 
       // Should not have overwritten widget data, and confirm modal should open
@@ -2314,7 +2318,7 @@ describe('WidgetBuilder', function () {
       });
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
-      await userEvent.click(screen.getAllByText('count()')[0], {
+      await userEvent.click(screen.getAllByText('count()')[0]!, {
         skipHover: true,
       });
       await userEvent.click(screen.getByText(/count_unique/), {
@@ -2373,7 +2377,7 @@ describe('WidgetBuilder', function () {
       await userEvent.click(await screen.findByText('Add Group'));
       expect(screen.getAllByLabelText('Remove group')).toHaveLength(2);
 
-      await userEvent.click(screen.getAllByLabelText('Remove group')[1]);
+      await userEvent.click(screen.getAllByLabelText('Remove group')[1]!);
       await waitFor(() =>
         expect(screen.queryByLabelText('Remove group')).not.toBeInTheDocument()
       );
@@ -2608,7 +2612,7 @@ describe('WidgetBuilder', function () {
         body: [
           {
             key: 'plan',
-            name: 'Plan',
+            name: 'plan',
           },
         ],
         match: [
@@ -2621,12 +2625,12 @@ describe('WidgetBuilder', function () {
         url: `/organizations/org-slug/spans/fields/`,
         body: [
           {
-            key: 'lcp.size',
-            name: 'Lcp.Size',
+            key: 'tags[lcp.size,number]',
+            name: 'lcp.size',
           },
           {
-            key: 'something.else',
-            name: 'Something.Else',
+            key: 'tags[something.else,number]',
+            name: 'something.else',
           },
         ],
         match: [
@@ -2656,7 +2660,7 @@ describe('WidgetBuilder', function () {
       });
       renderTestComponent({
         dashboard,
-        orgFeatures: [...defaultOrgFeatures],
+        orgFeatures: [...defaultOrgFeatures, 'dashboards-eap'],
         params: {
           widgetIndex: '0',
         },

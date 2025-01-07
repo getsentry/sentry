@@ -5,6 +5,11 @@ from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
+from sentry.integrations.discord.spec import DiscordMessagingSpec
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
@@ -46,19 +51,24 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
 
             client = DiscordClient()
-            try:
-                client.send_message(channel_id, message, notification_uuid=notification_uuid)
-            except Exception as e:
-                self.logger.error(
-                    "discord.notification.message_send_failure",
-                    extra={
-                        "error": str(e),
-                        "project_id": event.project_id,
-                        "event_id": event.event_id,
-                        "guild_id": integration.external_id,
-                        "channel_id": channel_id,
-                    },
-                )
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ISSUE_ALERT_NOTIFICATION,
+                spec=DiscordMessagingSpec(),
+            ).capture() as lifecycle:
+                try:
+                    lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
+                    client.send_message(channel_id, message, notification_uuid=notification_uuid)
+                except Exception as e:
+                    # TODO(iamrajjoshi): Update some of these failures to halts
+                    lifecycle.add_extras(
+                        {
+                            "project_id": event.project_id,
+                            "event_id": event.event_id,
+                            "guild_id": integration.external_id,
+                            "channel_id": channel_id,
+                        }
+                    )
+                    lifecycle.record_failure(e)
 
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel_id, rule, notification_uuid)

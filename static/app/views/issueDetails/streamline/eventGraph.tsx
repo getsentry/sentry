@@ -1,6 +1,7 @@
-import {type CSSProperties, useMemo, useState} from 'react';
+import {type CSSProperties, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 
 import Alert from 'sentry/components/alert';
 import {Button, type ButtonProps} from 'sentry/components/button';
@@ -25,14 +26,16 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/widgetCard/utils';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/useFlagSeries';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/streamline/useIssueDetailsDiscoverQuery';
-import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/useReleaseMarkLineSeries';
+} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 
-export const enum EventGraphSeries {
+const enum EventGraphSeries {
   EVENT = 'event',
   USER = 'user',
 }
@@ -71,9 +74,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     EventGraphSeries.EVENT
   );
   const eventView = useIssueDetailsEventView({group});
-  const hasFeatureFlagFeature = organization.features.includes('feature-flag-ui');
-
   const config = getConfigForIssueType(group, group.project);
+  const {dispatch} = useIssueDetails();
 
   const {
     data: groupStats = {},
@@ -86,6 +88,24 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       referrer: 'issue_details.streamline_graph',
     },
   });
+
+  const noQueryEventView = eventView.clone();
+  noQueryEventView.query = `issue:${group.shortId}`;
+  noQueryEventView.environment = [];
+
+  const isUnfilteredStatsEnabled =
+    eventView.query !== noQueryEventView.query || eventView.environment.length > 0;
+  const {data: unfilteredGroupStats} =
+    useIssueDetailsDiscoverQuery<MultiSeriesEventsStats>({
+      options: {
+        enabled: isUnfilteredStatsEnabled,
+      },
+      params: {
+        route: 'events-stats',
+        eventView: noQueryEventView,
+        referrer: 'issue_details.streamline_graph',
+      },
+    });
 
   const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
     data: Array<{count_unique: number}>;
@@ -118,6 +138,25 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     }
     return createSeriesAndCount(groupStats['count()']);
   }, [groupStats]);
+
+  // Ensure the dropdown can access the new filtered event count
+  useEffect(() => {
+    dispatch({type: 'UPDATE_EVENT_COUNT', count: eventCount});
+  }, [eventCount, dispatch]);
+
+  const {series: unfilteredEventSeries} = useMemo(() => {
+    if (!unfilteredGroupStats?.['count()']) {
+      return {series: []};
+    }
+
+    return createSeriesAndCount(unfilteredGroupStats['count()']);
+  }, [unfilteredGroupStats]);
+  const {series: unfilteredUserSeries} = useMemo(() => {
+    if (!unfilteredGroupStats?.['count_unique(user)']) {
+      return {series: []};
+    }
+    return createSeriesAndCount(unfilteredGroupStats['count_unique(user)']);
+  }, [unfilteredGroupStats]);
   const userSeries = useMemo(() => {
     if (!groupStats['count_unique(user)']) {
       return [];
@@ -130,6 +169,10 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     saveOnZoom: true,
   });
 
+  const currentEventSeries = useCurrentEventMarklineSeries({
+    event,
+    group,
+  });
   const releaseSeries = useReleaseMarkLineSeries({group});
   const flagSeries = useFlagSeries({
     query: {
@@ -142,39 +185,70 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   const series = useMemo((): BarChartSeries[] => {
     const seriesData: BarChartSeries[] = [];
+    const translucentGray300 = Color(theme.gray300).alpha(0.3).string();
 
     if (visibleSeries === EventGraphSeries.USER) {
+      if (isUnfilteredStatsEnabled) {
+        seriesData.push({
+          seriesName: t('Total users'),
+          itemStyle: {
+            borderRadius: [2, 2, 0, 0],
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
+          },
+          barGap: '-100%', // Makes bars overlap completely
+          data: unfilteredUserSeries,
+          animation: false,
+        });
+      }
+
       seriesData.push({
-        seriesName: t('Users'),
+        seriesName: isUnfilteredStatsEnabled ? t('Matching users') : t('Users'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
           color: theme.purple200,
         },
-        stack: 'stats',
         data: userSeries,
         animation: false,
       });
     }
     if (visibleSeries === EventGraphSeries.EVENT) {
+      if (isUnfilteredStatsEnabled) {
+        seriesData.push({
+          seriesName: t('Total events'),
+          itemStyle: {
+            borderRadius: [2, 2, 0, 0],
+            borderColor: theme.translucentGray200,
+            color: translucentGray300,
+          },
+          barGap: '-100%', // Makes bars overlap completely
+          data: unfilteredEventSeries,
+          animation: false,
+        });
+      }
+
       seriesData.push({
-        seriesName: t('Events'),
+        seriesName: isUnfilteredStatsEnabled ? t('Matching events') : t('Events'),
         itemStyle: {
           borderRadius: [2, 2, 0, 0],
           borderColor: theme.translucentGray200,
-          color: theme.gray200,
+          color: isUnfilteredStatsEnabled ? theme.purple200 : translucentGray300,
         },
-        stack: 'stats',
         data: eventSeries,
         animation: false,
       });
+    }
+
+    if (currentEventSeries.markLine) {
+      seriesData.push(currentEventSeries as BarChartSeries);
     }
 
     if (releaseSeries.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
-    if (flagSeries.markLine && hasFeatureFlagFeature) {
+    if (flagSeries.markLine && flagSeries.type === 'line') {
       seriesData.push(flagSeries as BarChartSeries);
     }
 
@@ -183,10 +257,13 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     visibleSeries,
     userSeries,
     eventSeries,
+    currentEventSeries,
     releaseSeries,
     flagSeries,
     theme,
-    hasFeatureFlagFeature,
+    isUnfilteredStatsEnabled,
+    unfilteredEventSeries,
+    unfilteredUserSeries,
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
@@ -200,13 +277,13 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   );
 
   const legend = Legend({
-    theme: theme,
+    theme,
     orient: 'horizontal',
     align: 'left',
     show: true,
     top: 4,
     right: 8,
-    data: hasFeatureFlagFeature ? ['Feature Flags', 'Releases'] : ['Releases'],
+    data: flagSeries.type === 'line' ? ['Feature Flags', 'Releases'] : ['Releases'],
     selected: legendSelected,
     zlevel: 10,
     inactiveColor: theme.gray200,

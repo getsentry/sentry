@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {NoAccess} from 'sentry/components/noAccess';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -10,6 +11,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import {tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   canUseMetricsData,
@@ -32,7 +34,10 @@ import {BACKEND_LANDING_TITLE} from 'sentry/views/insights/pages/backend/setting
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {OVERVIEW_PAGE_ALLOWED_OPS as FRONTEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
-import {generateBackendPerformanceEventView} from 'sentry/views/performance/data';
+import {
+  generateBackendPerformanceEventView,
+  USER_MISERY_TOOLTIP,
+} from 'sentry/views/performance/data';
 import {
   DoubleChartRow,
   TripleChartRow,
@@ -46,18 +51,27 @@ import {
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
+const APDEX_TOOLTIP = tct(
+  'An industry-standard metric used to measure user satisfaction based on your application response times. [link:Learn more.]',
+  {
+    link: (
+      <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#apdex" />
+    ),
+  }
+);
+
 export const BACKEND_COLUMN_TITLES = [
-  'http method',
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'p50()',
-  'p95()',
-  'failure rate',
-  'apdex',
-  'users',
-  'user misery',
+  {title: 'http method'},
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()'},
+  {title: 'p95()'},
+  {title: 'failure rate'},
+  {title: 'apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'users'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 function BackendOverviewPage() {
@@ -166,7 +180,7 @@ function BackendOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -191,7 +205,7 @@ function BackendOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>

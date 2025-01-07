@@ -137,6 +137,10 @@ function durationRenderer(duration, {dataRow, option}) {
 }
 
 function changeRenderer(percentageChange) {
+  if (percentageChange === Infinity) {
+    return <ChangeContainer change={'neutral'} />;
+  }
+
   return (
     <ChangeContainer
       change={

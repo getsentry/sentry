@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:41.521084+00:00'
+created: '2024-12-17T22:50:09.724987+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -9,9 +9,20 @@ hashing_metadata: {
   "security_report_type": "expect-ct"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "expect-ct"
+  }
+}
+---
 contributing variants:
   default*
     hash: "3d2933f4b5ec459ec8d569a398fd328c"
+    contributing component: expect-ct
     component:
       default*
         expect-ct*

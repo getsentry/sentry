@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:50.014912+00:00'
+created: '2024-12-17T22:50:16.167354+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -10,9 +10,22 @@ hashing_metadata: {
   "stacktrace_type": "in_app"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
 contributing variants:
   app*
     hash: "a20509269752c9a1bea6078851e4d39c"
+    contributing component: exception
     component:
       app*
         exception*
@@ -57,6 +70,7 @@ contributing variants:
             "Error"
   system*
     hash: "252dc79eb5653bf822e2684d90734cb8"
+    contributing component: exception
     component:
       system*
         exception*

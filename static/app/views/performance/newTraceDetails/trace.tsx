@@ -21,6 +21,10 @@ import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTim
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  scoreToStatus,
+  STATUS_TEXT,
+} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
 import {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
@@ -31,6 +35,7 @@ import {
 } from './traceRenderers/traceVirtualizedList';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {TraceAutogroupedRow} from './traceRow/traceAutogroupedRow';
+import {TraceCollapsedRow} from './traceRow/traceCollapsedRow';
 import {TraceErrorRow} from './traceRow/traceErrorRow';
 import {TraceLoadingRow} from './traceRow/traceLoadingRow';
 import {TraceMissingInstrumentationRow} from './traceRow/traceMissingInstrumentationRow';
@@ -51,6 +56,7 @@ import {
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
 import {
   isAutogroupedNode,
+  isCollapsedNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -86,7 +92,6 @@ function computeNextIndexFromAction(
 
 interface TraceProps {
   forceRerender: number;
-  isEmbedded: boolean;
   isLoading: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
@@ -116,7 +121,6 @@ export function Trace({
   scheduler,
   forceRerender,
   trace_id,
-  isEmbedded,
   isLoading,
 }: TraceProps) {
   const theme = useTheme();
@@ -263,7 +267,7 @@ export function Trace({
         traceDispatch({
           type: 'set roving index',
           index: nextIndex,
-          node: treeRef.current.list[nextIndex],
+          node: treeRef.current.list[nextIndex]!,
           action_source: 'keyboard',
         });
       }
@@ -333,7 +337,6 @@ export function Trace({
           onRowKeyDown={onRowKeyDown}
           tree={trace}
           trace_id={trace_id}
-          isEmbedded={isEmbedded}
         />
       );
     },
@@ -372,7 +375,7 @@ export function Trace({
     manager,
     items: trace.list,
     container: scrollContainer,
-    render: render,
+    render,
     scheduler,
   });
 
@@ -398,14 +401,19 @@ export function Trace({
       >
         {trace.indicators.length > 0
           ? trace.indicators.map((indicator, i) => {
+              const status =
+                indicator.score === undefined
+                  ? 'none'
+                  : STATUS_TEXT[scoreToStatus(indicator.score)];
+
               return (
                 <div
                   key={i}
                   ref={r => manager.registerIndicatorRef(r, i, indicator)}
                   className={`TraceIndicator ${indicator.poor ? 'Errored' : ''}`}
                 >
-                  <div className="TraceIndicatorLabel">{indicator.label}</div>
-                  <div className="TraceIndicatorLine" />
+                  <div className={`TraceIndicatorLabel ${status}`}>{indicator.label}</div>
+                  <div className={`TraceIndicatorLine ${status}`} />
                 </div>
               );
             })
@@ -462,7 +470,6 @@ export function Trace({
 
 function RenderTraceRow(props: {
   index: number;
-  isEmbedded: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -591,7 +598,6 @@ function RenderTraceRow(props: {
     onRowClick,
     onRowKeyDown,
     previouslyFocusedNodeRef: props.previouslyFocusedNodeRef,
-    isEmbedded: props.isEmbedded,
     onSpanArrowClick: onSpanRowArrowClick,
     manager: props.manager,
     index: props.index,
@@ -635,6 +641,10 @@ function RenderTraceRow(props: {
 
   if (isTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
+  }
+
+  if (isCollapsedNode(node)) {
+    return <TraceCollapsedRow {...rowProps} node={node} />;
   }
 
   return null;
@@ -735,6 +745,7 @@ const TraceStylingWrapper = styled('div')`
     padding-top: 44px;
 
     &:before {
+      background-color: ${p => p.theme.background};
       height: 44px;
 
       .TraceScrollbarContainer {
@@ -873,6 +884,24 @@ const TraceStylingWrapper = styled('div')`
       line-height: 1;
       margin-top: 2px;
       white-space: nowrap;
+
+      &.Poor {
+        color: ${p => p.theme.red300};
+        border: 1px solid ${p => p.theme.red300};
+        background: ${p => p.theme.red100};
+      }
+
+      &.Meh {
+        color: ${p => p.theme.yellow400};
+        border: 1px solid ${p => p.theme.yellow300};
+        background: ${p => p.theme.yellow100};
+      }
+
+      &.Good {
+        color: ${p => p.theme.green300};
+        border: 1px solid ${p => p.theme.green300};
+        background: ${p => p.theme.green100};
+      }
     }
 
     .TraceIndicatorLine {
@@ -881,13 +910,40 @@ const TraceStylingWrapper = styled('div')`
       top: 20px;
       position: absolute;
       left: 50%;
-      transform: translateX(-2px);
+      transform: translate(-2px, -7px);
       background: repeating-linear-gradient(
           to bottom,
           transparent 0 4px,
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+
+      &.Poor {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.red300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.Meh {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.yellow300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
+
+      &.Good {
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 4px,
+            ${p => p.theme.green300} 4px 8px
+          )
+          80%/2px 100% no-repeat;
+      }
     }
 
     .Indicator {
@@ -1259,6 +1315,22 @@ const TraceStylingWrapper = styled('div')`
             color: ${p => p.theme.white};
             background-color: ${p => p.theme.red300};
           }
+        }
+      }
+    }
+
+    &.Collapsed {
+      background-color: ${p => p.theme.backgroundSecondary};
+      border-bottom: 1px solid ${p => p.theme.border};
+      border-top: 1px solid ${p => p.theme.border};
+
+      .TraceLeftColumn {
+        padding-left: 14px;
+        width: 100%;
+        color: ${p => p.theme.subText};
+
+        .TraceLeftColumnInner {
+          padding-left: 0 !important;
         }
       }
     }

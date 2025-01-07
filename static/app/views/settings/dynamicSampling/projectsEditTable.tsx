@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
@@ -18,12 +19,16 @@ import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatP
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {projectSamplingForm} from 'sentry/views/settings/dynamicSampling/utils/projectSamplingForm';
 import {scaleSampleRates} from 'sentry/views/settings/dynamicSampling/utils/scaleSampleRates';
-import type {ProjectSampleCount} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
+import type {
+  ProjectionSamplePeriod,
+  ProjectSampleCount,
+} from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
 
 interface Props {
   editMode: 'single' | 'bulk';
   isLoading: boolean;
   onEditModeChange: (mode: 'single' | 'bulk') => void;
+  period: ProjectionSamplePeriod;
   sampleCounts: ProjectSampleCount[];
 }
 
@@ -34,6 +39,7 @@ export function ProjectsEditTable({
   isLoading: isLoadingProp,
   sampleCounts,
   editMode,
+  period,
   onEditModeChange,
 }: Props) {
   const {projects, fetching} = useProjects();
@@ -111,6 +117,12 @@ export function ProjectsEditTable({
     [dataByProjectId, editMode, onChange, onEditModeChange, value]
   );
 
+  const handleOrgBlur = useCallback(() => {
+    setIsBulkEditEnabled(false);
+    // Parse to ensure valid values
+    setOrgRate(rate => (parsePercent(rate, 1) * 100).toString());
+  }, []);
+
   const items = useMemo(
     () =>
       projects.map(project => {
@@ -123,9 +135,9 @@ export function ProjectsEditTable({
           count: item?.count || 0,
           ownCount: item?.ownCount || 0,
           subProjects: item?.subProjects ?? EMPTY_ARRAY,
-          project: project,
-          initialSampleRate: initialValue[project.id],
-          sampleRate: value[project.id],
+          project,
+          initialSampleRate: initialValue[project.id]!,
+          sampleRate: value[project.id]!,
           error: error?.[project.id],
         };
       }),
@@ -181,7 +193,7 @@ export function ProjectsEditTable({
         {isLoading ? (
           <LoadingIndicator
             css={css`
-              margin: ${space(4)} 0;
+              margin: 60px 0;
             `}
           />
         ) : (
@@ -199,21 +211,26 @@ export function ProjectsEditTable({
               alignRight
             >
               <InputWrapper>
-                <PercentInput
-                  type="number"
-                  ref={inputRef}
-                  disabled={!hasAccess || !isBulkEditEnabled}
-                  size="sm"
-                  onChange={handleOrgChange}
-                  value={projectedOrgRate}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      inputRef.current?.blur();
-                    }
-                  }}
-                  onBlur={() => setIsBulkEditEnabled(false)}
-                />
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t('You do not have permission to change the sample rate')}
+                >
+                  <PercentInput
+                    type="number"
+                    ref={inputRef}
+                    disabled={!hasAccess || !isBulkEditEnabled}
+                    size="sm"
+                    onChange={handleOrgChange}
+                    value={projectedOrgRate}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        inputRef.current?.blur();
+                      }
+                    }}
+                    onBlur={handleOrgBlur}
+                  />
+                </Tooltip>
                 <FlexRow>
                   <PreviousValue>
                     {initialOrgRate !== projectedOrgRate
@@ -248,6 +265,7 @@ export function ProjectsEditTable({
         canEdit={!isBulkEditEnabled}
         onChange={handleProjectChange}
         emptyMessage={t('No active projects found in the selected period.')}
+        period={period}
         isLoading={isLoading}
         items={activeItems}
         inactiveItems={inactiveItems}

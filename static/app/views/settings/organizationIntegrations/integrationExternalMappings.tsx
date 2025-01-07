@@ -92,7 +92,7 @@ class IntegrationExternalMappings extends DeprecatedAsyncComponent<Props, State>
     const errorKey = `missing_external_${type}s`;
     const unassociatedMappings = Object.values(associationMappings).reduce(
       (map, {errors}) => {
-        return new Set<string>([...map, ...errors[errorKey]]);
+        return new Set<string>([...map, ...errors[errorKey]!]);
       },
       new Set<string>()
     );

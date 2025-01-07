@@ -78,10 +78,6 @@ class AlertRuleIndexMixin(Endpoint):
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
 
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
-
         response = self.paginate(
             request,
             queryset=alert_rules,
@@ -111,7 +107,7 @@ class AlertRuleIndexMixin(Endpoint):
                 "access": request.access,
                 "user": request.user,
                 "ip_address": request.META.get("REMOTE_ADDR"),
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=organization.id
                 ),
             },
@@ -185,10 +181,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-
-        monitor_type = request.GET.get("monitor_type", None)
-        if monitor_type is not None:
-            alert_rules = alert_rules.filter(monitor_type=monitor_type)
 
         issue_rules = Rule.objects.filter(
             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
@@ -346,7 +338,7 @@ A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
 - `alertThreshold`: The value that the subscription needs to reach to trigger the
 alert rule.
-- `actions`: A list of actions that take place when the threshold is met. Set as an empty list if no actions are to take place.
+- `actions`: A list of actions that take place when the threshold is met.
 ```json
 triggers: [
     {
@@ -409,21 +401,7 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
-    monitorType = serializers.IntegerField(
-        required=False,
-        min_value=0,
-        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
-    )
-    activationCondition = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=0,
-        help_text="Optional int that represents a trigger condition for when to start monitoring",
-    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -442,10 +420,14 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
         in their request.
         """
-        #
-        if request.access.has_scope("alerts:write"):
+        # if the requesting user has any of these org-level permissions, then they can create an alert
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
             return
-        # team admins should be able to crete alerts for the projects they have access to
+        # team admins should be able to create alerts for the projects they have access to
         projects = self.get_projects(request, organization)
         # team admins will have alerts:write scoped to their projects, members will not
         team_admin_has_access = all(

@@ -4,7 +4,6 @@ from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
-from django.urls import reverse
 from django.utils import timezone
 
 from sentry.incidents.logic import (
@@ -12,150 +11,19 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     create_incident_activity,
-    subscribe_to_incident,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import (
-    INCIDENT_STATUS,
-    IncidentActivityType,
-    IncidentStatus,
-    IncidentSubscription,
-)
-from sentry.incidents.tasks import (
-    build_activity_context,
-    generate_incident_activity_email,
-    handle_subscription_metrics_logger,
-    handle_trigger_action,
-    send_subscriber_notifications,
-)
+from sentry.incidents.models.incident import IncidentActivityType, IncidentStatus
+from sentry.incidents.tasks import handle_subscription_metrics_logger, handle_trigger_action
 from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.skips import requires_kafka, requires_snuba
-from sentry.users.services.user.service import user_service
-from sentry.utils.http import absolute_uri
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
-
-
-class BaseIncidentActivityTest(TestCase):
-    @property
-    def incident(self):
-        return self.create_incident(title="hello")
-
-
-class TestSendSubscriberNotifications(BaseIncidentActivityTest):
-    @pytest.fixture(autouse=True)
-    def _setup_send_async_patch(self):
-        with mock.patch("sentry.utils.email.MessageBuilder.send_async") as self.send_async:
-            yield
-
-    def test_simple(self):
-        activity = create_incident_activity(
-            self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
-        )
-        send_subscriber_notifications(activity.id)
-        # User shouldn't receive an email for their own activity
-        assert self.send_async.call_count == 0
-
-        self.send_async.reset_mock()
-        non_member_user = self.create_user(email="non_member@test.com")
-        subscribe_to_incident(activity.incident, non_member_user.id)
-
-        member_user = self.create_user(email="member@test.com")
-        self.create_member([self.team], user=member_user, organization=self.organization)
-        subscribe_to_incident(activity.incident, member_user.id)
-        send_subscriber_notifications(activity.id)
-        self.send_async.assert_called_once_with([member_user.email])
-        assert not IncidentSubscription.objects.filter(
-            incident=activity.incident, user_id=non_member_user.id
-        ).exists()
-        assert IncidentSubscription.objects.filter(
-            incident=activity.incident, user_id=member_user.id
-        ).exists()
-
-    def test_invalid_types(self):
-        activity_type = IncidentActivityType.CREATED
-        activity = create_incident_activity(self.incident, activity_type)
-        send_subscriber_notifications(activity.id)
-        assert self.send_async.call_count == 0
-        self.send_async.reset_mock()
-
-
-class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
-    @freeze_time()
-    def test_simple(self):
-        activity = create_incident_activity(
-            self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
-        )
-        incident = activity.incident
-        recipient = self.create_user()
-        message = generate_incident_activity_email(activity, recipient)
-        assert message.subject == f"Activity on Alert {incident.title} (#{incident.identifier})"
-        assert message.type == "incident.activity"
-        assert message.context == build_activity_context(activity, recipient)
-
-
-class TestBuildActivityContext(BaseIncidentActivityTest):
-    def run_test(
-        self, activity, expected_username, expected_action, expected_comment, expected_recipient
-    ):
-        incident = activity.incident
-        context = build_activity_context(activity, expected_recipient)
-        assert context["user_name"] == expected_username
-        assert (
-            context["action"]
-            == f"{expected_action} on alert {activity.incident.title} (#{activity.incident.identifier})"
-        )
-        assert (
-            context["link"]
-            == absolute_uri(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                )
-            )
-            + "?referrer=incident_activity_email"
-        )
-        assert context["comment"] == expected_comment
-
-    @freeze_time()
-    def test_simple(self):
-        activity = create_incident_activity(
-            self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
-        )
-        recipient = self.create_user()
-        assert activity.user_id is not None
-        user = user_service.get_user(user_id=activity.user_id)
-        assert user is not None
-        self.run_test(
-            activity,
-            expected_username=user.name,
-            expected_action="left a comment",
-            expected_comment=activity.comment,
-            expected_recipient=recipient,
-        )
-        activity.type = IncidentActivityType.STATUS_CHANGE
-        activity.value = str(IncidentStatus.CLOSED.value)
-        activity.previous_value = str(IncidentStatus.WARNING.value)
-        assert activity.user_id is not None
-        user = user_service.get_user(user_id=activity.user_id)
-        assert user is not None
-        self.run_test(
-            activity,
-            expected_username=user.name,
-            expected_action="changed status from %s to %s"
-            % (INCIDENT_STATUS[IncidentStatus.WARNING], INCIDENT_STATUS[IncidentStatus.CLOSED]),
-            expected_comment=activity.comment,
-            expected_recipient=recipient,
-        )
 
 
 class HandleTriggerActionTest(TestCase):

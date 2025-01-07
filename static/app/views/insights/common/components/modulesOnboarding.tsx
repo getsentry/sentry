@@ -370,7 +370,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
       {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
@@ -479,5 +479,21 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }),
     ],
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  // XXX(epurkhiser): Crons does not use the insights onboarding component.
+  crons: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
+  },
+  // XXX(epurkhiser): Uptime does not use the insights onboarding component.
+  uptime: {
+    description: null,
+    heading: null,
+    imageSrc: null,
+    valuePropDescription: null,
+    valuePropPoints: [],
   },
 };

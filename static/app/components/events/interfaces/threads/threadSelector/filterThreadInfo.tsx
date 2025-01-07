@@ -8,7 +8,6 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import getRelevantFrame from './getRelevantFrame';
 import getThreadException from './getThreadException';
 import getThreadStacktrace from './getThreadStacktrace';
-import trimFilename from './trimFilename';
 
 type ThreadInfo = {
   crashedInfo?: EntryData;
@@ -16,6 +15,11 @@ type ThreadInfo = {
   label?: string;
   state?: ThreadStates;
 };
+
+function trimFilename(filename: string) {
+  const pieces = filename.split(/\//g);
+  return pieces[pieces.length - 1];
+}
 
 function filterThreadInfo(
   event: Event,

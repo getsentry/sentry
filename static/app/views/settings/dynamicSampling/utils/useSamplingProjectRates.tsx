@@ -50,7 +50,7 @@ const fetchAllSamplingRates = async (
 
     if (linkHeader) {
       const links = parseLinkHeader(linkHeader);
-      cursor = (links.next.results && links.next.cursor) || null;
+      cursor = (links.next!.results && links.next!.cursor) || null;
     }
   }
 

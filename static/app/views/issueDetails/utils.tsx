@@ -12,6 +12,7 @@ import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {useGroupTagsReadable} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -57,9 +58,9 @@ export function mergeAndSortTagValues(
   );
   tagValues2.forEach(tagValue => {
     if (tagValueCollection[tagValue.value]) {
-      tagValueCollection[tagValue.value].count += tagValue.count;
-      if (tagValue.lastSeen > tagValueCollection[tagValue.value].lastSeen) {
-        tagValueCollection[tagValue.value].lastSeen = tagValue.lastSeen;
+      tagValueCollection[tagValue.value]!.count += tagValue.count;
+      if (tagValue.lastSeen > tagValueCollection[tagValue.value]!.lastSeen) {
+        tagValueCollection[tagValue.value]!.lastSeen = tagValue.lastSeen;
       }
     } else {
       tagValueCollection[tagValue.value] = tagValue;
@@ -192,9 +193,15 @@ export function useEnvironmentsFromUrl(): string[] {
 export function getGroupEventDetailsQueryData({
   environments,
   query,
+  start,
+  end,
+  statsPeriod,
 }: {
   query: string | undefined;
+  end?: string;
   environments?: string[];
+  start?: string;
+  statsPeriod?: string;
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
@@ -208,6 +215,18 @@ export function getGroupEventDetailsQueryData({
     params.environment = environments;
   }
 
+  if (start) {
+    params.start = start;
+  }
+
+  if (end) {
+    params.end = end;
+  }
+
+  if (statsPeriod) {
+    params.statsPeriod = statsPeriod;
+  }
+
   return params;
 }
 
@@ -216,20 +235,29 @@ export function getGroupEventQueryKey({
   groupId,
   eventId,
   environments,
-  recommendedEventQuery,
+  query,
+  start,
+  end,
+  statsPeriod,
 }: {
   environments: string[];
   eventId: string;
   groupId: string;
   orgSlug: string;
-  recommendedEventQuery?: string;
+  end?: string;
+  query?: string;
+  start?: string;
+  statsPeriod?: string;
 }): ApiQueryKey {
   return [
     `/organizations/${orgSlug}/issues/${groupId}/events/${eventId}/`,
     {
       query: getGroupEventDetailsQueryData({
         environments,
-        query: recommendedEventQuery,
+        query,
+        start,
+        end,
+        statsPeriod,
       }),
     },
   ];
@@ -238,12 +266,20 @@ export function getGroupEventQueryKey({
 export function useHasStreamlinedUI() {
   const location = useLocation();
   const user = useUser();
-  if (location.query.streamline === '0') {
-    return false;
+  const organization = useOrganization();
+
+  // Allow query param to override all other settings to set the UI.
+  if (defined(location.query.streamline)) {
+    return location.query.streamline === '1';
   }
-  return (
-    location.query.streamline === '1' || !!user?.options?.prefersIssueDetailsStreamlinedUI
-  );
+
+  // If the enforce flag is set for the organization, ignore user preferences and enable the UI
+  if (organization.features.includes('issue-details-streamline-enforce')) {
+    return true;
+  }
+
+  // Apply the UI based on user preferences
+  return !!user?.options?.prefersIssueDetailsStreamlinedUI;
 }
 
 export function useIsSampleEvent(): boolean {
@@ -256,7 +292,7 @@ export function useIsSampleEvent(): boolean {
 
   const {data} = useGroupTagsReadable(
     {
-      groupId: groupId,
+      groupId,
       environment: environments,
     },
     // Don't want this query to take precedence over the main requests

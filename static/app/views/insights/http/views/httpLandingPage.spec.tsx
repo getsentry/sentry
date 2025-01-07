@@ -15,9 +15,10 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('HTTPLandingPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let spanListRequestMock, spanChartsRequestMock;
+  let spanListRequestMock!: jest.Mock;
+  let spanChartsRequestMock!: jest.Mock;
 
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
@@ -39,7 +40,7 @@ describe('HTTPLandingPage', function () {
   });
 
   jest.mocked(useLocation).mockReturnValue({
-    pathname: '',
+    pathname: '/insights/backend/http/',
     search: '',
     query: {statsPeriod: '10d', 'span.domain': 'git', project: '1'},
     hash: '',
@@ -300,7 +301,7 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
+      '/organizations/org-slug/insights/backend/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
     expect(
       screen.getAllByRole('cell', {name: 'View Project Details'})[0]

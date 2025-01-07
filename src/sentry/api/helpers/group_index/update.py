@@ -4,12 +4,13 @@ import logging
 import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import rest_framework
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
@@ -37,7 +38,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.grouplink import GroupLink
-from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
@@ -62,11 +62,23 @@ from .validators import GroupValidator, ValidationError
 logger = logging.getLogger(__name__)
 
 
+class MultipleProjectsError(Exception):
+    pass
+
+
+class ResolutionParams(TypedDict):
+    release: Release
+    type: int | None
+    status: int | None
+    actor_id: int | None
+    current_release_version: NotRequired[str]
+
+
 def handle_discard(
     request: Request,
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    user: User,
+    user,
 ) -> Response:
     for project in projects:
         if not features.has("projects:discard-groups", project, actor=user):
@@ -107,12 +119,14 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
+    acting_user, group: Group, self_assign_issue: str
 ) -> Actor | None:
-    # Used during issue resolution to assign to acting user
-    # returns None if the user didn't elect to self assign on resolution
-    # or the group is assigned already, otherwise returns Actor
-    # representation of current user
+    """
+    Used during issue resolution to assign to acting user
+    returns None if the user didn't elect to self assign on resolution
+    or the group is assigned already, otherwise returns Actor
+    representation of current user
+    """
     if acting_user:
         GroupSubscription.objects.subscribe(
             subscriber=acting_user, group=group, reason=GroupSubscriptionReason.status_change
@@ -136,25 +150,9 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     """
     current_release_version = None
     if follows_semver:
-        if not features.has(
-            "organizations:releases-resolve-next-release-semver-fix", group.project.organization
-        ):
-            try:
-                # This sets current_release_version to the latest semver version associated with a group
-                associated_release_id = GroupRelease.objects.filter(
-                    project_id=group.project.id, group_id=group.id
-                ).values_list("release_id")
-                current_release_version = (
-                    get_semver_releases(group.project)
-                    .filter(id__in=associated_release_id)
-                    .values_list("version", flat=True)[:1]
-                    .get()
-                )
-            except Release.DoesNotExist:
-                pass
-        else:
-            current_release_version = greatest_semver_release(group.project).version
-
+        release = greatest_semver_release(group.project)
+        if release is not None:
+            current_release_version = release.version
     else:
         # This sets current_release_version to the most recent release associated with a group
         # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
@@ -167,29 +165,127 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
 
 def update_groups(
     request: Request,
-    group_ids: Sequence[int | str] | None,
-    projects: Sequence[Project],
-    organization_id: int,
-    search_fn: SearchFunction | None,
-    user: RpcUser | User | None = None,
+    groups: Sequence[Group],
+    user: RpcUser | User | AnonymousUser | None = None,
     data: Mapping[str, Any] | None = None,
 ) -> Response:
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
+    acting_user = user if user and user.is_authenticated else None
     data = data or request.data
 
-    if group_ids:
-        group_list = Group.objects.filter(
-            project__organization_id=organization_id, project__in=projects, id__in=group_ids
-        )
-        # filter down group ids to only valid matches
-        group_ids = [g.id for g in group_list]
-        if not group_ids:
-            return Response(status=204)
-    else:
-        group_list = None
+    # so we won't have to requery for each group
+    project_lookup = {g.project_id: g.project for g in groups}
+    projects = list(project_lookup.values())
 
+    # Assert all projects belong to the same organization
+    if len({p.organization_id for p in projects}) > 1:
+        return Response({"detail": "All groups must belong to same organization."}, status=400)
+
+    if not groups:
+        return Response({"detail": "No groups found"}, status=204)
+
+    serializer = validate_request(request, projects, data)
+
+    if serializer is None:
+        logger.error("Error validating request. Investigate.")
+        return Response(status=500)
+
+    result = dict(serializer.validated_data)
+
+    acting_user = user if user.is_authenticated else None
+
+    discard = result.get("discard")
+    if discard:
+        return handle_discard(request, groups, projects, acting_user)
+
+    status_details = result.pop("statusDetails", result)
+    status = result.get("status")
+    res_type = None
+    if "priority" in result:
+        handle_priority(
+            priority=result["priority"],
+            group_list=groups,
+            acting_user=acting_user,
+            project_lookup=project_lookup,
+        )
+    if status in ("resolved", "resolvedInNextRelease"):
+        try:
+            result, res_type = handle_resolve_in_release(
+                status,
+                status_details,
+                groups,
+                projects,
+                project_lookup,
+                acting_user,
+                user,
+                result,
+            )
+        except MultipleProjectsError:
+            return Response({"detail": "Cannot set resolved for multiple projects."}, status=400)
+    elif status:
+        result = handle_other_status_updates(
+            result,
+            groups,
+            projects,
+            project_lookup,
+            status_details,
+            acting_user,
+            user,
+        )
+
+    return prepare_response(
+        result,
+        groups,
+        project_lookup,
+        projects,
+        acting_user,
+        data,
+        res_type,
+        request.META.get("HTTP_REFERER", ""),
+    )
+
+
+def update_groups_with_search_fn(
+    request: Request,
+    group_ids: Sequence[int | str] | None,
+    projects: Sequence[Project],
+    organization_id: int,
+    search_fn: SearchFunction,
+) -> Response:
+    group_list = []
+    if group_ids:
+        group_list = get_group_list(organization_id, projects, group_ids)
+
+    if not group_list:
+        try:
+            # It can raise ValidationError
+            cursor_result, _ = search_fn(
+                {
+                    "limit": BULK_MUTATION_LIMIT,
+                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
+                }
+            )
+        except ValidationError:
+            logger.exception("Error getting group ids and group list")  # Track the error in Sentry
+            return Response(
+                {"detail": "Invalid query. Error getting group ids and group list"}, status=400
+            )
+
+        group_list = list(cursor_result)
+
+    if not group_list:
+        return Response({"detail": "No groups found"}, status=204)
+
+    return update_groups(request, group_list)
+
+
+def validate_request(
+    request: Request,
+    projects: Sequence[Project],
+    data: Mapping[str, Any],
+) -> GroupValidator | None:
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
@@ -206,16 +302,54 @@ def update_groups(
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
+    return serializer
 
-    if serializer is None:
-        return
 
-    result = dict(serializer.validated_data)
+def get_group_list(
+    organization_id: int,
+    projects: Sequence[Project],
+    group_ids: Sequence[int | str],
+) -> list[Group]:
+    """
+    Gets group list based on provided filters.
 
-    # so we won't have to requery for each group
-    project_lookup = {p.id: p for p in projects}
+    Args:
+        organization_id: ID of the organization
+        projects: Sequence of projects to filter groups by
+        group_ids: Sequence of specific group IDs to fetch
 
-    acting_user = user if user.is_authenticated else None
+    Returns: List of Group objects filtered to only valid groups in the org/projects
+    """
+    groups = []
+    # Convert all group IDs to integers and filter out any non-integer values
+    group_ids_int = [int(gid) for gid in group_ids if str(gid).isdigit()]
+    if group_ids_int:
+        return list(
+            Group.objects.filter(
+                project__organization_id=organization_id, project__in=projects, id__in=group_ids_int
+            )
+        )
+    else:
+        for group_id in group_ids:
+            if isinstance(group_id, str):
+                groups.append(Group.objects.by_qualified_short_id(organization_id, group_id))
+
+    return groups
+
+
+def handle_resolve_in_release(
+    status: str,
+    status_details: Mapping[str, Any],
+    group_list: Sequence[Group],
+    projects: Sequence[Project],
+    project_lookup: Mapping[int, Project],
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
+    result: MutableMapping[str, Any],
+) -> tuple[dict[str, Any], int | None]:
+    res_type = None
+    release = None
+    commit = None
     self_assign_issue = "0"
     if acting_user:
         user_options = user_option_service.get_many(
@@ -223,420 +357,315 @@ def update_groups(
         )
         if user_options:
             self_assign_issue = user_options[0].value
-    if search_fn and not group_ids:
+    res_status = None
+    if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
+        # TODO(jess): We may want to support this for multi project, but punting on it for now
+        if len(projects) > 1:
+            raise MultipleProjectsError()
+        # may not be a release yet
+        release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
+
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {
+            # no version yet
+            "version": ""
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inNextRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_next_release
+        res_type_str = "in_next_release"
+        res_status = GroupResolution.Status.pending
+    elif status_details.get("inUpcomingRelease"):
+        if len(projects) > 1:
+            raise MultipleProjectsError()
+        release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {"version": ""}
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inUpcomingRelease": True,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_upcoming_release
+        res_type_str = "in_upcoming_release"
+        res_status = GroupResolution.Status.pending
+    elif status_details.get("inRelease"):
+        # TODO(jess): We could update validation to check if release
+        # applies to multiple projects, but I think we agreed to punt
+        # on this for now
+        if len(projects) > 1:
+            raise MultipleProjectsError()
+        release = status_details["inRelease"]
+        activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+        activity_data = {
+            # no version yet
+            "version": release.version
+        }
+
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+        new_status_details = {
+            "inRelease": release.version,
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type = GroupResolution.Type.in_release
+        res_type_str = "in_release"
+        res_status = GroupResolution.Status.resolved
+    elif status_details.get("inCommit"):
+        # TODO(jess): Same here, this is probably something we could do, but
+        # punting for now.
+        if len(projects) > 1:
+            raise MultipleProjectsError()
+        commit = status_details["inCommit"]
+        activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
+        activity_data = {"commit": commit.id}
+        serialized_user = user_service.serialize_many(filter=dict(user_ids=[user.id]), as_user=user)
+
+        new_status_details = {
+            "inCommit": serialize(commit, user),
+        }
+        if serialized_user:
+            new_status_details["actor"] = serialized_user[0]
+        res_type_str = "in_commit"
+    else:
+        res_type_str = "now"
+        activity_type = ActivityType.SET_RESOLVED.value
+        activity_data = {}
+        new_status_details = {}
+
+    metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
+
+    # if we've specified a commit, let's see if its already been released
+    # this will allow us to associate the resolution to a release as if we
+    # were simply using 'inRelease' above
+    # Note: this is different than the way commit resolution works on deploy
+    # creation, as a given deploy is connected to an explicit release, and
+    # in this case we're simply choosing the most recent release which contains
+    # the commit.
+    if commit and not release:
+        # TODO(jess): If we support multiple projects for release / commit resolution,
+        # we need to update this to find the release for each project (we shouldn't assume
+        # it's the same)
         try:
-            cursor_result, _ = search_fn(
-                {
-                    "limit": BULK_MUTATION_LIMIT,
-                    "paginator_options": {"max_limit": BULK_MUTATION_LIMIT},
-                }
-            )
-        except ValidationError as exc:
-            return Response({"detail": str(exc)}, status=400)
-
-        group_list = list(cursor_result)
-        group_ids = [g.id for g in group_list]
-
-    is_bulk = len(group_ids) > 1
-
-    group_project_ids = {g.project_id for g in group_list}
-    # filter projects down to only those that have groups in the search results
-    projects = [p for p in projects if p.id in group_project_ids]
-
-    queryset = Group.objects.filter(id__in=group_ids)
-
-    discard = result.get("discard")
-    if discard:
-        return handle_discard(request, list(queryset), projects, acting_user)
-
-    status_details = result.pop("statusDetails", result)
-    status = result.get("status")
-    release = None
-    commit = None
-    res_type = None
-    activity_type = None
-    activity_data: MutableMapping[str, Any | None] | None = None
-    if "priority" in result:
-        handle_priority(
-            priority=result["priority"],
-            group_list=group_list,
-            actor=acting_user,
-            project_lookup=project_lookup,
-        )
-    if status in ("resolved", "resolvedInNextRelease"):
-        res_status = None
-        if status == "resolvedInNextRelease" or status_details.get("inNextRelease"):
-            # TODO(jess): We may want to support this for multi project, but punting on it for now
-            if len(projects) > 1:
-                return Response(
-                    {"detail": "Cannot set resolved in next release for multiple projects."},
-                    status=400,
-                )
-            # may not be a release yet
-            release = status_details.get("inNextRelease") or get_release_to_resolve_by(projects[0])
-
-            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-            activity_data = {
-                # no version yet
-                "version": ""
-            }
-
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
-            )
-            new_status_details = {
-                "inNextRelease": True,
-            }
-            if serialized_user:
-                new_status_details["actor"] = serialized_user[0]
-            res_type = GroupResolution.Type.in_next_release
-            res_type_str = "in_next_release"
-            res_status = GroupResolution.Status.pending
-        elif status_details.get("inUpcomingRelease"):
-            if len(projects) > 1:
-                return Response(
-                    {"detail": "Cannot set resolved in upcoming release for multiple projects."},
-                    status=400,
-                )
-            release = status_details.get("inUpcomingRelease") or most_recent_release(projects[0])
-            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-            activity_data = {"version": ""}
-
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
-            )
-            new_status_details = {
-                "inUpcomingRelease": True,
-            }
-            if serialized_user:
-                new_status_details["actor"] = serialized_user[0]
-            res_type = GroupResolution.Type.in_upcoming_release
-            res_type_str = "in_upcoming_release"
-            res_status = GroupResolution.Status.pending
-        elif status_details.get("inRelease"):
-            # TODO(jess): We could update validation to check if release
-            # applies to multiple projects, but I think we agreed to punt
-            # on this for now
-            if len(projects) > 1:
-                return Response(
-                    {"detail": "Cannot set resolved in release for multiple projects."}, status=400
-                )
-            release = status_details["inRelease"]
-            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-            activity_data = {
-                # no version yet
-                "version": release.version
-            }
-
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
-            )
-            new_status_details = {
-                "inRelease": release.version,
-            }
-            if serialized_user:
-                new_status_details["actor"] = serialized_user[0]
+            release = most_recent_release_matching_commit(projects, commit)
             res_type = GroupResolution.Type.in_release
-            res_type_str = "in_release"
             res_status = GroupResolution.Status.resolved
-        elif status_details.get("inCommit"):
-            # TODO(jess): Same here, this is probably something we could do, but
-            # punting for now.
-            if len(projects) > 1:
-                return Response(
-                    {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
-                )
-            commit = status_details["inCommit"]
-            activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
-            activity_data = {"commit": commit.id}
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
-            )
-
-            new_status_details = {
-                "inCommit": serialize(commit, user),
-            }
-            if serialized_user:
-                new_status_details["actor"] = serialized_user[0]
-            res_type_str = "in_commit"
-        else:
-            res_type_str = "now"
-            activity_type = ActivityType.SET_RESOLVED.value
-            activity_data = {}
-            new_status_details = {}
-
-        now = django_timezone.now()
-        metrics.incr("group.resolved", instance=res_type_str, skip_internal=True)
-
-        # if we've specified a commit, let's see if its already been released
-        # this will allow us to associate the resolution to a release as if we
-        # were simply using 'inRelease' above
-        # Note: this is different than the way commit resolution works on deploy
-        # creation, as a given deploy is connected to an explicit release, and
-        # in this case we're simply choosing the most recent release which contains
-        # the commit.
-        if commit and not release:
-            # TODO(jess): If we support multiple projects for release / commit resolution,
-            # we need to update this to find the release for each project (we shouldn't assume
-            # it's the same)
-            try:
-                release = most_recent_release_matching_commit(projects, commit)
-                res_type = GroupResolution.Type.in_release
-                res_status = GroupResolution.Status.resolved
-            except IndexError:
-                release = None
-        for group in group_list:
-            with transaction.atomic(router.db_for_write(Group)):
-                resolution = None
-                created = None
-                if release:
-                    resolution_params = {
-                        "release": release,
-                        "type": res_type,
-                        "status": res_status,
-                        "actor_id": user.id if user.is_authenticated else None,
-                    }
-
-                    # We only set `current_release_version` if GroupResolution type is
-                    # in_next_release, because we need to store information about the latest/most
-                    # recent release that was associated with a group and that is required for
-                    # release comparisons (i.e. handling regressions)
-                    if res_type == GroupResolution.Type.in_next_release:
-                        # Check if semver versioning scheme is followed
-                        follows_semver = follows_semver_versioning_scheme(
-                            org_id=group.organization.id,
-                            project_id=group.project.id,
-                            release_version=release.version,
-                        )
-
-                        current_release_version = get_current_release_version_of_group(
-                            group, follows_semver
-                        )
-
-                        if current_release_version:
-                            resolution_params.update(
-                                {"current_release_version": current_release_version}
-                            )
-
-                            # Sets `current_release_version` for activity, since there is no point
-                            # waiting for when a new release is created i.e.
-                            # clear_expired_resolutions task to be run.
-                            # Activity should look like "... resolved in version
-                            # >current_release_version" in the UI
-                            if follows_semver:
-                                activity_data.update(
-                                    {"current_release_version": current_release_version}
-                                )
-
-                                # In semver projects, and thereby semver releases, we determine
-                                # resolutions by comparing against an expression rather than a
-                                # specific release (i.e. >current_release_version). Consequently,
-                                # at this point we can consider this GroupResolution as resolved
-                                # in release
-                                resolution_params.update(
-                                    {
-                                        "type": GroupResolution.Type.in_release,
-                                        "status": GroupResolution.Status.resolved,
-                                    }
-                                )
-                            else:
-                                # If we already know the `next` release in date based ordering
-                                # when clicking on `resolvedInNextRelease` because it is already
-                                # been released, there is no point in setting GroupResolution to
-                                # be of type in_next_release but rather in_release would suffice
-
-                                try:
-                                    # Get current release object from current_release_version
-                                    current_release_obj = Release.objects.get(
-                                        version=current_release_version,
-                                        organization_id=projects[0].organization_id,
-                                    )
-
-                                    date_order_q = Q(
-                                        date_added__gt=current_release_obj.date_added
-                                    ) | Q(
-                                        date_added=current_release_obj.date_added,
-                                        id__gt=current_release_obj.id,
-                                    )
-
-                                    # Find the next release after the current_release_version
-                                    # i.e. the release that resolves the issue
-                                    resolved_in_release = (
-                                        Release.objects.filter(
-                                            date_order_q,
-                                            projects=projects[0],
-                                            organization_id=projects[0].organization_id,
-                                        )
-                                        .extra(
-                                            select={"sort": "COALESCE(date_released, date_added)"}
-                                        )
-                                        .order_by("sort", "id")[:1]
-                                        .get()
-                                    )
-
-                                    # If we get here, we assume it exists and so we update
-                                    # GroupResolution and Activity
-                                    resolution_params.update(
-                                        {
-                                            "release": resolved_in_release,
-                                            "type": GroupResolution.Type.in_release,
-                                            "status": GroupResolution.Status.resolved,
-                                        }
-                                    )
-                                    activity_data.update({"version": resolved_in_release.version})
-                                except Release.DoesNotExist:
-                                    # If it gets here, it means we don't know the upcoming
-                                    # release yet because it does not exist, and so we should
-                                    # fall back to our current model
-                                    ...
-
-                    resolution, created = GroupResolution.objects.get_or_create(
-                        group=group, defaults=resolution_params
-                    )
-                    if not created:
-                        resolution.update(datetime=django_timezone.now(), **resolution_params)
-
-                if commit:
-                    GroupLink.objects.create(
-                        group_id=group.id,
-                        project_id=group.project_id,
-                        linked_type=GroupLink.LinkedType.commit,
-                        relationship=GroupLink.Relationship.resolves,
-                        linked_id=commit.id,
-                    )
-
-                affected = Group.objects.filter(id=group.id).update(
-                    status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
-                )
-                if not resolution:
-                    created = affected
-
-                group.status = GroupStatus.RESOLVED
-                group.substatus = None
-                group.resolved_at = now
-                if affected and not options.get("groups.enable-post-update-signal"):
-                    post_save.send(
-                        sender=Group,
-                        instance=group,
-                        created=False,
-                        update_fields=["resolved_at", "status", "substatus"],
-                    )
-                remove_group_from_inbox(
-                    group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
-                )
-                result["inbox"] = None
-
-                assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
-                if assigned_to is not None:
-                    result["assignedTo"] = assigned_to
-
-                if created:
-                    activity = Activity.objects.create(
-                        project=project_lookup[group.project_id],
-                        group=group,
-                        type=activity_type,
-                        user_id=acting_user.id,
-                        ident=resolution.id if resolution else None,
-                        data=activity_data,
-                    )
-                    record_group_history_from_activity_type(group, activity_type, actor=acting_user)
-
-                    # TODO(dcramer): we need a solution for activity rollups
-                    # before sending notifications on bulk changes
-                    if not is_bulk:
-                        transaction.on_commit(
-                            lambda: activity.send_notification(), router.db_for_write(Group)
-                        )
-
-            issue_resolved.send_robust(
-                organization_id=organization_id,
-                user=(acting_user or user),
-                group=group,
-                project=project_lookup[group.project_id],
-                resolution_type=res_type_str,
-                sender=update_groups,
-            )
-
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
-
-        result.update({"status": "resolved", "statusDetails": new_status_details})
-
-    elif status:
-        new_status = STATUS_UPDATE_CHOICES[result["status"]]
-        new_substatus = (
-            SUBSTATUS_UPDATE_CHOICES[result.get("substatus")] if result.get("substatus") else None
-        )
-        new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
+        except IndexError:
+            release = None
+    for group in group_list:
+        # If the group is already resolved, we don't need to do anything
+        if group.status == GroupStatus.RESOLVED:
+            continue
 
         with transaction.atomic(router.db_for_write(Group)):
-            # TODO(gilbert): update() doesn't call pre_save and bypasses any substatus defaulting we have there
-            #                we should centralize the logic for validating and defaulting substatus values
-            #                and refactor pre_save and the above new_substatus assignment to account for this
-            status_updated = queryset.exclude(status=new_status).update(
-                status=new_status, substatus=new_substatus
-            )
-            GroupResolution.objects.filter(group__in=group_ids).delete()
-            if new_status == GroupStatus.IGNORED:
-                if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
-                    result["statusDetails"] = handle_archived_until_escalating(
-                        group_list, acting_user, projects, sender=update_groups
-                    )
-                else:
-                    result["statusDetails"] = handle_ignored(
-                        group_ids, group_list, status_details, acting_user, user
-                    )
-                result["inbox"] = None
-            else:
-                result["statusDetails"] = {}
-        if group_list and status_updated:
-            activity_type, activity_data = handle_status_update(
-                group_list=group_list,
-                projects=projects,
-                project_lookup=project_lookup,
-                new_status=new_status,
-                new_substatus=new_substatus,
-                is_bulk=is_bulk,
-                acting_user=acting_user,
-                status_details=result.get("statusDetails", {}),
-                sender=update_groups,
+            process_group_resolution(
+                group,
+                group_list,
+                release,
+                commit,
+                res_type,
+                res_status,
+                acting_user,
+                user,
+                self_assign_issue,
+                activity_type,
+                activity_data,
+                result,
             )
 
-    result = update_results(
-        result, group_list, group_ids, project_lookup, projects, acting_user, data, res_type
-    )
-
-    # TODO: Create new endpoint for this
-    if result.get("merge") and len(group_list) > 1:
-        # don't allow merging cross project
-        if len(project_lookup) > 1:
-            return Response({"detail": "Merging across multiple projects is not supported"})
-        result["merge"] = merge_groups(
-            group_list,
-            project_lookup,
-            acting_user,
-            urlparse(request.META.get("HTTP_REFERER", "")).path,
-        )
-
-    inbox = result.get("inbox", None)
-    if inbox is not None:
-        result["inbox"] = update_inbox(
-            inbox,
-            group_list,
-            project_lookup,
-            acting_user,
-            http_referrer=request.META.get("HTTP_REFERER"),
+        issue_resolved.send_robust(
+            organization_id=projects[0].organization_id,
+            user=(acting_user or user),
+            group=group,
+            project=project_lookup[group.project_id],
+            resolution_type=res_type_str,
             sender=update_groups,
         )
 
-    return Response(result)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+    result.update({"status": "resolved", "statusDetails": new_status_details})
+
+    return dict(result), res_type
+
+
+def process_group_resolution(
+    group: Group,
+    group_list: Sequence[Group],
+    release: Release | None,
+    commit: Commit | None,
+    res_type: int | None,
+    res_status: int | None,
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
+    self_assign_issue: str,
+    activity_type: int,
+    activity_data: MutableMapping[str, Any],
+    result: MutableMapping[str, Any],
+):
+    now = django_timezone.now()
+    resolution = None
+    created = None
+    if release:
+        # These are the parameters that are set for creating a GroupResolution
+        resolution_params: ResolutionParams = {
+            "release": release,
+            "type": res_type,
+            "status": res_status,
+            "actor_id": user.id if user and user.is_authenticated else None,
+        }
+
+        # We only set `current_release_version` if GroupResolution type is
+        # in_next_release, because we need to store information about the latest/most
+        # recent release that was associated with a group and that is required for
+        # release comparisons (i.e. handling regressions)
+        if res_type == GroupResolution.Type.in_next_release:
+            # Check if semver versioning scheme is followed
+            follows_semver = follows_semver_versioning_scheme(
+                org_id=group.project.organization_id,
+                project_id=group.project_id,
+                release_version=release.version,
+            )
+
+            current_release_version = get_current_release_version_of_group(group, follows_semver)
+
+            if current_release_version:
+                resolution_params.update({"current_release_version": current_release_version})
+
+                # Sets `current_release_version` for activity, since there is no point
+                # waiting for when a new release is created i.e.
+                # clear_expired_resolutions task to be run.
+                # Activity should look like "... resolved in version
+                # >current_release_version" in the UI
+                if follows_semver:
+                    activity_data.update({"current_release_version": current_release_version})
+
+                    # In semver projects, and thereby semver releases, we determine
+                    # resolutions by comparing against an expression rather than a
+                    # specific release (i.e. >current_release_version). Consequently,
+                    # at this point we can consider this GroupResolution as resolved
+                    # in release
+                    resolution_params.update(
+                        {
+                            "type": GroupResolution.Type.in_release,
+                            "status": GroupResolution.Status.resolved,
+                        }
+                    )
+                else:
+                    # If we already know the `next` release in date based ordering
+                    # when clicking on `resolvedInNextRelease` because it is already
+                    # been released, there is no point in setting GroupResolution to
+                    # be of type in_next_release but rather in_release would suffice
+
+                    try:
+                        # Get current release object from current_release_version
+                        current_release_obj = Release.objects.get(
+                            version=current_release_version,
+                            organization_id=group.project.organization_id,
+                        )
+
+                        date_order_q = Q(date_added__gt=current_release_obj.date_added) | Q(
+                            date_added=current_release_obj.date_added,
+                            id__gt=current_release_obj.id,
+                        )
+
+                        # Find the next release after the current_release_version
+                        # i.e. the release that resolves the issue
+                        resolved_in_release = (
+                            Release.objects.filter(
+                                date_order_q,
+                                projects=group.project,
+                                organization_id=group.project.organization_id,
+                            )
+                            .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                            .order_by("sort", "id")[:1]
+                            .get()
+                        )
+
+                        # If we get here, we assume it exists and so we update
+                        # GroupResolution and Activity
+                        resolution_params.update(
+                            {
+                                "release": resolved_in_release,
+                                "type": GroupResolution.Type.in_release,
+                                "status": GroupResolution.Status.resolved,
+                            }
+                        )
+                        activity_data.update({"version": resolved_in_release.version})
+                    except Release.DoesNotExist:
+                        # If it gets here, it means we don't know the upcoming
+                        # release yet because it does not exist, and so we should
+                        # fall back to our current model
+                        ...
+
+        resolution, created = GroupResolution.objects.get_or_create(
+            group=group, defaults=resolution_params
+        )
+        if not created:
+            resolution.update(datetime=django_timezone.now(), **resolution_params)
+
+    if commit:
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+
+    affected = Group.objects.filter(id=group.id).update(
+        status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
+    )
+    if not resolution:
+        created = bool(affected)
+
+    group.status = GroupStatus.RESOLVED
+    group.substatus = None
+    group.resolved_at = now
+    if affected and not options.get("groups.enable-post-update-signal"):
+        post_save.send(
+            sender=Group,
+            instance=group,
+            created=False,
+            update_fields=["resolved_at", "status", "substatus"],
+        )
+    remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
+    result["inbox"] = None
+
+    assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
+    if assigned_to is not None:
+        result["assignedTo"] = assigned_to
+
+    if created:
+        activity = Activity.objects.create(
+            project=group.project,
+            group=group,
+            type=activity_type,
+            user_id=acting_user.id,
+            ident=resolution.id if resolution else None,
+            data=dict(activity_data),
+        )
+        record_group_history_from_activity_type(group, activity_type, actor=acting_user)
+
+        # TODO(dcramer): we need a solution for activity rollups
+        # before sending notifications on bulk changes
+        if not len(group_list) > 1:
+            transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
 
 
 def merge_groups(
     group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
-    acting_user: User,
+    acting_user,
     referer: str,
 ) -> MergedGroup:
     issue_stream_regex = r"^(\/organizations\/[^\/]+)?\/issues\/$"
@@ -664,16 +693,66 @@ def merge_groups(
     return handle_merge(group_list, project_lookup, acting_user)
 
 
-def update_results(
+def handle_other_status_updates(
     result: dict[str, Any],
     group_list: Sequence[Group],
-    group_ids: Sequence[Group],
+    projects: Sequence[Project],
+    project_lookup: Mapping[int, Project],
+    status_details: dict[str, Any],
+    acting_user,
+    user: RpcUser | User | AnonymousUser,
+) -> dict[str, Any]:
+    group_ids = [group.id for group in group_list]
+    queryset = Group.objects.filter(id__in=group_ids)
+    new_status = STATUS_UPDATE_CHOICES[result["status"]]
+    new_substatus = None
+    if result.get("substatus"):
+        new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
+    new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
+
+    with transaction.atomic(router.db_for_write(Group)):
+        status_updated = queryset.exclude(status=new_status).update(
+            status=new_status, substatus=new_substatus
+        )
+        GroupResolution.objects.filter(group__in=group_ids).delete()
+        if new_status == GroupStatus.IGNORED:
+            if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
+                result["statusDetails"] = handle_archived_until_escalating(
+                    group_list, acting_user, projects, sender=update_groups
+                )
+            else:
+                result["statusDetails"] = handle_ignored(
+                    group_list, status_details, acting_user, user
+                )
+            result["inbox"] = None
+        else:
+            result["statusDetails"] = {}
+
+    if group_list and status_updated:
+        handle_status_update(
+            group_list=group_list,
+            projects=projects,
+            project_lookup=project_lookup,
+            new_status=new_status,
+            new_substatus=new_substatus,
+            is_bulk=len(group_ids) > 1,
+            acting_user=acting_user,
+            status_details=result.get("statusDetails", {}),
+            sender=update_groups,
+        )
+    return result
+
+
+def prepare_response(
+    result: dict[str, Any],
+    group_list: Sequence[Group],
     project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User,
+    acting_user,
     data: Mapping[str, Any],
-    res_type: GroupResolution.Type | None,
-) -> dict[str, Any]:
+    res_type: int | None,
+    referer: str,
+) -> Response:
     # XXX (ahmed): hack to get the activities to work properly on issues page. Not sure of
     # what performance impact this might have & this possibly should be moved else where
     try:
@@ -702,14 +781,10 @@ def update_results(
             acting_user,
         )
 
-    handle_has_seen(
-        result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
-    )
+    handle_has_seen(result.get("hasSeen"), group_list, project_lookup, projects, acting_user)
 
     if "isBookmarked" in result:
-        handle_is_bookmarked(
-            result["isBookmarked"], group_list, group_ids, project_lookup, acting_user
-        )
+        handle_is_bookmarked(result["isBookmarked"], group_list, project_lookup, acting_user)
 
     if result.get("isSubscribed") in (True, False):
         result["subscriptionDetails"] = handle_is_subscribed(
@@ -721,22 +796,39 @@ def update_results(
             result["isPublic"], group_list, project_lookup, acting_user
         )
 
-    return result
+    # TODO: Create new endpoint for this
+    if result.get("merge") and len(group_list) > 1:
+        # don't allow merging cross project
+        if len(project_lookup) > 1:
+            return Response(
+                {"detail": "Merging across multiple projects is not supported"}, status=400
+            )
+        result["merge"] = merge_groups(
+            group_list,
+            project_lookup,
+            acting_user,
+            urlparse(referer).path,
+        )
+
+    inbox = result.get("inbox", None)
+    if inbox is not None:
+        result["inbox"] = update_inbox(
+            inbox,
+            group_list,
+            project_lookup,
+            acting_user,
+            http_referrer=referer,
+            sender=update_groups,
+        )
+
+    return Response(result)
 
 
 def get_release_to_resolve_by(project: Project) -> Release | None:
-    # XXX: Remove block once released
-    follows_semver = False
-    if features.has("organizations:releases-resolve-next-release-semver-fix", project.organization):
-        follows_semver = follows_semver_versioning_scheme(
-            org_id=project.organization_id, project_id=project.id
-        )
-
-    if follows_semver:
-        release = greatest_semver_release(project)
-    else:
-        release = most_recent_release(project)
-    return release
+    follows_semver = follows_semver_versioning_scheme(
+        org_id=project.organization_id, project_id=project.id
+    )
+    return greatest_semver_release(project) if follows_semver else most_recent_release(project)
 
 
 def most_recent_release(project: Project) -> Release | None:
@@ -762,10 +854,10 @@ def greatest_semver_release(project: Project) -> Release | None:
     return get_semver_releases(project).first()
 
 
-def get_semver_releases(project: Project) -> Release:
+def get_semver_releases(project: Project) -> QuerySet[Release]:
     return (
         Release.objects.filter(projects=project, organization_id=project.organization_id)
-        .filter_to_semver()
+        .filter_to_semver()  # type: ignore[attr-defined]
         .annotate_prerelease_column()
         .order_by(*[f"-{col}" for col in Release.SEMVER_COLS])
     )
@@ -774,8 +866,8 @@ def get_semver_releases(project: Project) -> Release:
 def handle_is_subscribed(
     is_subscribed: bool,
     group_list: Sequence[Group],
-    project_lookup: dict[int, Any],
-    acting_user: User,
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> dict[str, str]:
     # TODO(dcramer): we could make these more efficient by first
     # querying for which `GroupSubscription` rows are present (if N > 2),
@@ -800,14 +892,14 @@ def handle_is_subscribed(
 
 def handle_is_bookmarked(
     is_bookmarked: bool,
-    group_list: Sequence[Group] | None,
-    group_ids: Sequence[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> None:
     """
     Creates bookmarks and subscriptions for a user, or deletes the existing bookmarks and subscriptions.
     """
+    group_ids = [group.id for group in group_list]
     if is_bookmarked:
         for group in group_list:
             GroupBookmark.objects.get_or_create(
@@ -815,13 +907,16 @@ def handle_is_bookmarked(
                 group=group,
                 user_id=acting_user.id if acting_user else None,
             )
-            GroupSubscription.objects.subscribe(
-                subscriber=acting_user, group=group, reason=GroupSubscriptionReason.bookmark
-            )
-    elif is_bookmarked is False:
+            if acting_user:
+                GroupSubscription.objects.subscribe(
+                    subscriber=acting_user,
+                    group=group,
+                    reason=GroupSubscriptionReason.bookmark,
+                )
+    elif is_bookmarked is False and acting_user is not None:
         GroupBookmark.objects.filter(
             group__in=group_ids,
-            user_id=acting_user.id if acting_user else None,
+            user_id=acting_user.id,
         ).delete()
         if group_list:
             GroupSubscription.objects.filter(
@@ -831,12 +926,11 @@ def handle_is_bookmarked(
 
 
 def handle_has_seen(
-    has_seen: Any,
+    has_seen: bool | None,
     group_list: Sequence[Group],
-    group_ids: Sequence[Group],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     projects: Sequence[Project],
-    acting_user: User | None,
+    acting_user,
 ) -> None:
     is_member_map = {
         project.id: (
@@ -855,15 +949,17 @@ def handle_has_seen(
                     project=project_lookup[group.project_id],
                     values={"last_seen": django_timezone.now()},
                 )
-    elif has_seen is False:
-        GroupSeen.objects.filter(group__in=group_ids, user_id=user_id).delete()
+    elif has_seen is False and user_id is not None:
+        GroupSeen.objects.filter(
+            group__in=[group.id for group in group_list], user_id=user_id
+        ).delete()
 
 
 def handle_priority(
     priority: str,
     group_list: Sequence[Group],
-    actor: User | None,
-    project_lookup: dict[int, Project],
+    acting_user,
+    project_lookup: Mapping[int, Project],
 ) -> None:
     for group in group_list:
         priority_value = PriorityLevel.from_str(priority) if priority else None
@@ -872,7 +968,7 @@ def handle_priority(
             group=group,
             priority=priority_value,
             sender="manual_update_priority",
-            actor=actor,
+            actor=acting_user,
             project=project_lookup[group.project_id],
         )
         group.update(priority_locked_at=django_timezone.now())
@@ -880,9 +976,9 @@ def handle_priority(
 
 def handle_is_public(
     is_public: bool,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> str | None:
     """
     Handle the isPublic flag on a group update.
@@ -924,9 +1020,9 @@ def handle_assigned_to(
     assigned_actor: Actor,
     assigned_by: str | None,
     integration: str | None,
-    group_list: list[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    group_list: Sequence[Group],
+    project_lookup: Mapping[int, Project],
+    acting_user,
 ) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.

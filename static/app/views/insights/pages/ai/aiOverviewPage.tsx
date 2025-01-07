@@ -47,13 +47,13 @@ import {
 } from 'sentry/views/performance/utils';
 
 export const AI_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'p50()',
-  'p95()',
-  'users',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'p50()'},
+  {title: 'p95()'},
+  {title: 'users'},
 ];
 
 function AiOverviewPage() {
@@ -134,7 +134,7 @@ function AiOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -164,7 +164,7 @@ function AiOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>

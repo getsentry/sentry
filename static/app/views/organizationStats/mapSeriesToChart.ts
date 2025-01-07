@@ -28,6 +28,7 @@ export function mapSeriesToChart({
 }): {
   cardStats: {
     accepted?: string;
+    accepted_stored?: string;
     filtered?: string;
     invalid?: string;
     rateLimited?: string;
@@ -40,19 +41,21 @@ export function mapSeriesToChart({
   const cardStats = {
     total: undefined,
     accepted: undefined,
+    accepted_stored: undefined,
     filtered: undefined,
     invalid: undefined,
     rateLimited: undefined,
   };
   const chartStats: ChartStats = {
     accepted: [],
+    accepted_stored: [],
     filtered: [],
     rateLimited: [],
     invalid: [],
     clientDiscard: [],
     projected: [],
   };
-  const chartSubLabels: TooltipSubLabel[] = [];
+  let chartSubLabels: TooltipSubLabel[] = [];
 
   if (!orgStats) {
     return {cardStats, chartStats, chartSubLabels};
@@ -66,6 +69,7 @@ export function mapSeriesToChart({
         date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
         total: 0,
         accepted: 0,
+        accepted_stored: 0,
         filtered: 0,
         rateLimited: 0,
         invalid: 0,
@@ -85,34 +89,49 @@ export function mapSeriesToChart({
       [Outcome.ABUSE]: 0, // Combined with dropped later
     };
 
-    orgStats.groups.forEach(group => {
-      const {outcome} = group.by;
+    let countAcceptedStored = 0;
 
-      if (outcome !== Outcome.CLIENT_DISCARD) {
-        count.total += group.totals['sum(quantity)'];
+    orgStats.groups.forEach(group => {
+      const {outcome, category} = group.by;
+
+      // For spans, we additionally query for `span_indexed` data
+      // to get the `accepted_stored` count
+      if (category !== 'span_indexed') {
+        if (outcome !== Outcome.CLIENT_DISCARD) {
+          count.total += group.totals['sum(quantity)']!;
+        }
+        count[outcome!] += group.totals['sum(quantity)']!;
+      } else {
+        if (outcome === Outcome.ACCEPTED) {
+          countAcceptedStored += group.totals['sum(quantity)']!;
+        }
       }
 
-      count[outcome] += group.totals['sum(quantity)'];
+      if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
+        // we need `span_indexed` data for `accepted_stored` only
+        return;
+      }
 
-      group.series['sum(quantity)'].forEach((stat, i) => {
-        const dataObject = {name: orgStats.intervals[i], value: stat};
+      group.series['sum(quantity)']!.forEach((stat, i) => {
+        const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
-        const reason = getReasonGroupName(outcome, strigfiedReason);
-
-        const label = startCase(reason.replace(/-|_/g, ' '));
+        const reason = getReasonGroupName(outcome!, strigfiedReason);
 
         // Function to handle chart sub-label updates
-        const updateChartSubLabels = (parentLabel: SeriesTypes) => {
+        const updateChartSubLabels = (
+          parentLabel: SeriesTypes,
+          label = startCase(reason.replace(/-|_/g, ' '))
+        ) => {
           const existingSubLabel = chartSubLabels.find(
             subLabel => subLabel.label === label && subLabel.parentLabel === parentLabel
           );
 
           if (existingSubLabel) {
             // Check if the existing sub-label's data length matches the intervals length
-            if (existingSubLabel.data.length === group.series['sum(quantity)'].length) {
+            if (existingSubLabel.data.length === group.series['sum(quantity)']!.length) {
               // Update the value of the current interval
-              existingSubLabel.data[i].value += stat;
+              existingSubLabel.data[i]!.value += stat;
             } else {
               // Add a new data object if the length does not match
               existingSubLabel.data.push(dataObject);
@@ -126,26 +145,35 @@ export function mapSeriesToChart({
           }
         };
 
+        // Add accepted indexed spans as sub-label to accepted
+        if (category === 'span_indexed') {
+          if (outcome === Outcome.ACCEPTED) {
+            usageStats[i]!.accepted_stored += stat;
+            updateChartSubLabels(SeriesTypes.ACCEPTED, 'Stored');
+            return;
+          }
+        }
+
         switch (outcome) {
           case Outcome.FILTERED:
-            usageStats[i].filtered += stat;
+            usageStats[i]!.filtered += stat;
             updateChartSubLabels(SeriesTypes.FILTERED);
             break;
           case Outcome.ACCEPTED:
-            usageStats[i].accepted += stat;
+            usageStats[i]!.accepted += stat;
             break;
           case Outcome.CARDINALITY_LIMITED:
           case Outcome.RATE_LIMITED:
           case Outcome.ABUSE:
-            usageStats[i].rateLimited += stat;
+            usageStats[i]!.rateLimited += stat;
             updateChartSubLabels(SeriesTypes.RATE_LIMITED);
             break;
           case Outcome.CLIENT_DISCARD:
-            usageStats[i].clientDiscard += stat;
+            usageStats[i]!.clientDiscard += stat;
             updateChartSubLabels(SeriesTypes.CLIENT_DISCARD);
             break;
           case Outcome.INVALID:
-            usageStats[i].invalid += stat;
+            usageStats[i]!.invalid += stat;
             updateChartSubLabels(SeriesTypes.INVALID);
             break;
           default:
@@ -158,6 +186,11 @@ export function mapSeriesToChart({
     count[Outcome.RATE_LIMITED] +=
       count[Outcome.ABUSE] + count[Outcome.CARDINALITY_LIMITED];
 
+    const isSampled =
+      dataCategory === 'spans' &&
+      countAcceptedStored > 0 &&
+      countAcceptedStored !== count[Outcome.ACCEPTED];
+
     usageStats.forEach(stat => {
       stat.total = [
         stat.accepted,
@@ -169,7 +202,11 @@ export function mapSeriesToChart({
 
       // Chart Data
       const chartData = [
-        {key: 'accepted', value: stat.accepted},
+        {
+          key: 'accepted',
+          value: stat.accepted,
+        },
+        ...(isSampled ? [{key: 'accepted_stored', value: stat.accepted_stored}] : []),
         {key: 'filtered', value: stat.filtered},
         {key: 'rateLimited', value: stat.rateLimited},
         {key: 'invalid', value: stat.invalid},
@@ -180,6 +217,12 @@ export function mapSeriesToChart({
         (chartStats[data.key] as any[]).push({value: [stat.date, data.value]});
       });
     });
+
+    if (!isSampled) {
+      chartSubLabels = chartSubLabels.filter(
+        subLabel => subLabel.parentLabel !== SeriesTypes.ACCEPTED
+      );
+    }
 
     return {
       cardStats: {
@@ -193,6 +236,13 @@ export function mapSeriesToChart({
           dataCategory,
           getFormatUsageOptions(dataCategory)
         ),
+        accepted_stored: isSampled
+          ? formatUsageWithUnits(
+              countAcceptedStored,
+              dataCategory,
+              getFormatUsageOptions(dataCategory)
+            )
+          : undefined,
         filtered: formatUsageWithUnits(
           count[Outcome.FILTERED],
           dataCategory,

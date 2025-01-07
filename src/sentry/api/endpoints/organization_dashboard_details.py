@@ -3,7 +3,6 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -31,32 +30,9 @@ EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
 
 
-class DashboardPermissions(BasePermission):
-    """
-    Django Permissions Class for managing Dashboard Edit
-    permissions defined in the DashboardPermissions Model
-    """
-
-    scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
-    }
-
-    def has_object_permission(self, request: Request, view, obj):
-        if isinstance(obj, Dashboard) and features.has(
-            "organizations:dashboards-edit-access", obj.organization, actor=request.user
-        ):
-            # Check if user has permissions to edit dashboard
-            if hasattr(obj, "permissions"):
-                return obj.permissions.has_edit_permissions(request.user.id)
-        return True
-
-
 class OrganizationDashboardBase(OrganizationEndpoint):
     owner = ApiOwner.PERFORMANCE
-    permission_classes = (OrganizationDashboardsPermission, DashboardPermissions)
+    permission_classes = (OrganizationDashboardsPermission,)
 
     def convert_args(
         self, request: Request, organization_id_or_slug, dashboard_id, *args, **kwargs
@@ -219,5 +195,44 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.visits = F("visits") + 1
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
+
+        return Response(status=204)
+
+
+@region_silo_endpoint
+class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
+    """
+    Endpoint for managing the favorite status of dashboards for users
+    """
+
+    publish_status = {
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    def put(self, request: Request, organization, dashboard) -> Response:
+        """
+        Toggle favorite status for current user by adding or removing
+        current user from dashboard favorites
+        """
+        if not features.has("organizations:dashboards-favourite", organization, actor=request.user):
+            return Response(status=404)
+
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        if isinstance(dashboard, dict):
+            return Response(status=204)
+
+        is_favorited = request.data.get("isFavorited")
+        current_favorites = set(dashboard.favorited_by)
+
+        if is_favorited and request.user.id not in current_favorites:
+            current_favorites.add(request.user.id)
+        elif not is_favorited and request.user.id in current_favorites:
+            current_favorites.remove(request.user.id)
+        else:
+            return Response(status=204)
+
+        dashboard.favorited_by = current_favorites
 
         return Response(status=204)

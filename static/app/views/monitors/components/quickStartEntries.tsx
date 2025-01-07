@@ -109,9 +109,7 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
         {tct(
           'Make sure to [installLink:install the Sentry CLI] (min v2.16.1), then instrument your monitor:',
           {
-            installLink: (
-              <ExternalLink href="https://docs.sentry.io/product/cli/installation/" />
-            ),
+            installLink: <ExternalLink href="https://docs.sentry.io/cli/installation/" />,
           }
         )}
       </div>
@@ -169,7 +167,7 @@ $checkInId = \\Sentry\\captureCheckIn(
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
 \\Sentry\\captureCheckIn(
     slug: '${slug}',
-    status: CheckInStatus::error()
+    status: CheckInStatus::error(),
     checkInId: $checkInId,
 );`;
 

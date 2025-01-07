@@ -30,7 +30,7 @@ const LINKS = {
   DOCUMENTATION: 'https://docs.sentry.io/',
   DOCUMENTATION_PLATFORMS: 'https://docs.sentry.io/platforms/',
   DOCUMENTATION_QUICKSTART: 'https://docs.sentry.io/platform-redirect/?next=/',
-  DOCUMENTATION_CLI: 'https://docs.sentry.io/product/cli/',
+  DOCUMENTATION_CLI: 'https://docs.sentry.io/cli/',
   DOCUMENTATION_API: 'https://docs.sentry.io/api/',
   API: '/settings/account/api/',
   MANAGE: '/manage/',

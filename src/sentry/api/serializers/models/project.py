@@ -45,6 +45,7 @@ from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
+from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
 
 STATUS_LABELS = {
@@ -78,6 +79,8 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
+    "similarity-embeddings",
+    "similarity-embeddings-delete-by-hash",
 }
 
 
@@ -770,14 +773,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
-        if "stats" in attrs:
-            context.update(stats=attrs["stats"])
-        if "transactionStats" in attrs:
-            context.update(transactionStats=attrs["transactionStats"])
-        if "sessionStats" in attrs:
-            context.update(sessionStats=attrs["sessionStats"])
-        if "options" in attrs:
-            context.update(options=attrs["options"])
+
+        if attrs["has_access"] or user.is_staff:
+            if "stats" in attrs:
+                context.update(stats=attrs["stats"])
+            if "transactionStats" in attrs:
+                context.update(transactionStats=attrs["transactionStats"])
+            if "sessionStats" in attrs:
+                context.update(sessionStats=attrs["sessionStats"])
+            if "options" in attrs:
+                context.update(options=attrs["options"])
 
         return context
 
@@ -1068,6 +1073,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             )
 
         data["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+
+        if has_tempest_access(obj.organization, user):
+            data["tempestFetchScreenshots"] = attrs["options"].get(
+                "sentry:tempest_fetch_screenshots", False
+            )
 
         return data
 

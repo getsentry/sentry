@@ -154,6 +154,29 @@ class OrganizationMemberRequestSerializerTest(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
 
+    @with_feature("organizations:invite-billing")
+    def test_valid_invite_billing_member(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "bill@localhost",
+            "orgRole": "billing",
+            "teamRoles": [],
+        }
+
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
+        assert serializer.is_valid()
+
+    def test_invalid_invite_billing_member(self):
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {
+            "email": "bill@localhost",
+            "orgRole": "billing",
+            "teamRoles": [],
+        }
+
+        serializer = OrganizationMemberRequestSerializer(context=context, data=data)
+        assert not serializer.is_valid()
+
 
 class OrganizationMemberListTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-member-index"
@@ -498,7 +521,6 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, HybridCloudTestMixin):
     method = "post"
 
-    @with_feature("organizations:members-invite-teammates")
     def invite_all_helper(self, role):
         invite_roles = ["owner", "manager", "member"]
 

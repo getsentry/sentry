@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list/';
+import ListItem from 'sentry/components/list/listItem';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -17,88 +17,50 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getFeedbackConfigureDescription,
+  getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {MaybeBrowserProfilingBetaWarning} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
-  getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {t, tct} from 'sentry/locale';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
+import {t, tct, tctCode} from 'sentry/locale';
 
 type Params = DocsParams;
 
-const getNuxtModuleSnippet = () => `
-export default defineNuxtConfig({
-  modules: ["@sentry/nuxt/module"],
-});
-`;
+const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
+  const urlParam = isSelfHosted ? '--saas' : '--saas';
 
-const getSdkClientSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/nuxt";
+  return [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#install" />
+          ),
+        }
+      ),
+      configurations: [
+        {
+          language: 'bash',
+          code: `npx @sentry/wizard@latest -i nuxt ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+        },
+      ],
+    },
+  ];
+};
 
-Sentry.init({
-  // If set up, you can use your runtime config here
-  // dsn: useRuntimeConfig().public.sentry.dsn,
-  dsn: "${params.dsn.public}",${
-    params.isReplaySelected
-      ? `
-  integrations: [Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})],`
-      : ''
-  }${
-    params.isPerformanceSelected
-      ? `
-  // Tracing
-  // We recommend adjusting this value in production, or using a tracesSampler for finer control.
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-  // Session Replay
-  replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-  replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-  // Set profilesSampleRate to 1.0 to profile every transaction.
-  // Since profilesSampleRate is relative to tracesSampleRate,
-  // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-  // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-  // results in 25% of transactions being profiled (0.5*0.5=0.25)
-  profilesSampleRate: 1.0,`
-      : ''
-  }
-});
-`;
-
-const getSdkServerSetupSnippet = (params: Params) => `
-import * as Sentry from "@sentry/nuxt";
-
-Sentry.init({
-  dsn: "${params.dsn.public}",${
-    params.isPerformanceSelected
-      ? `
-  // Tracing
-  // We recommend adjusting this value in production, or using a tracesSampler for finer control.
-  tracesSampleRate: 1.0, // Capture 100% of the transactions`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-    // Set profilesSampleRate to 1.0 to profile every transaction.
-    // Since profilesSampleRate is relative to tracesSampleRate,
-    // the final profiling rate can be computed as tracesSampleRate * profilesSampleRate
-    // For example, a tracesSampleRate of 0.5 and profilesSampleRate of 0.5 would
-    // results in 25% of transactions being profiled (0.5*0.5=0.25)
-    profilesSampleRate: 1.0,`
-      : ''
-  }
-});
-`;
+const getInstallConfig = (params: Params) => [
+  {
+    type: StepType.INSTALL,
+    configurations: getConfigStep(params),
+  },
+];
 
 const getVerifyNuxtSnippet = () => `
 <script setup>
@@ -111,140 +73,60 @@ const getVerifyNuxtSnippet = () => `
   <button id="errorBtn" @click="triggerError">Trigger Error</button>
 </template>`;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/nuxt',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/nuxt',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: `pnpm add @sentry/nuxt`,
-      },
-    ],
-  },
-];
-
 const onboarding: OnboardingConfig = {
-  introduction: params => (
-    <Fragment>
-      <MaybeBrowserProfilingBetaWarning {...params} />
-      <p>
-        {tct(
-          'In this quick guide you’ll use [strong:npm], [strong:yarn] or [strong:pnpm] to set up:',
-          {
-            strong: <strong />,
-          }
-        )}
-      </p>
-    </Fragment>
-  ),
-  install: () => [
+  install: (params: Params) => [
     {
-      type: StepType.INSTALL,
-      description: t(
-        'Add the Sentry Nuxt SDK as a dependency using your preferred package manager:'
-      ),
-      configurations: getInstallConfig(),
+      title: t('Automatic Configuration (Recommended)'),
+      configurations: getConfigStep(params),
     },
   ],
-  configure: (params: Params) => [
+  configure: () => [
     {
-      type: StepType.CONFIGURE,
-      configurations: [
-        {
-          description: tct(
-            'Add the Sentry Nuxt module in your [code:nuxt.config.ts] file:',
-            {code: <code />}
-          ),
-          code: [
-            {
-              label: 'TypeScript',
-              value: 'typescript',
-              language: 'typescript',
-              filename: 'nuxt.config.ts',
-              code: getNuxtModuleSnippet(),
-            },
-          ],
-        },
-        {
-          description: tct(
-            'For the client, create a [codeFile:sentry.client.config.ts] file in your project root and initialize the Sentry SDK:',
-            {codeFile: <code />}
-          ),
-          code: [
-            {
-              label: 'TypeScript',
-              value: 'typescript',
-              language: 'typescript',
-              filename: 'sentry.client.config.ts',
-              code: getSdkClientSetupSnippet(params),
-            },
-          ],
-        },
-        {
-          description: (
-            <Fragment>
-              <p>
-                {tct(
-                  'For the server, create a [codeFile:sentry.server.config.ts] file in your project root and initialize the Sentry SDK:',
-                  {codeFile: <code />}
-                )}
-              </p>
-
-              <StyledAlert type="info" showIcon>
-                {tct(
-                  'To complete the server-side setup, follow the [link:Sentry Nuxt docs] for guidance. Nuxt compiles your code in ESM on the server side as well, so the deployment setup can get tricky depending on where you deploy your application.',
-                  {
-                    link: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#server-side-setup" />
-                    ),
-                  }
-                )}
-              </StyledAlert>
-            </Fragment>
-          ),
-          code: [
-            {
-              label: 'TypeScript',
-              value: 'typescript',
-              language: 'typescript',
-              filename: 'sentry.server.config.ts',
-              code: getSdkServerSetupSnippet(params),
-            },
-          ],
-        },
-      ],
-    },
-    {
-      title: t('Upload Source Maps'),
+      title: t('Manual Configuration'),
+      collapsible: true,
       description: tct(
-        'To upload source maps to Sentry, follow the [link:instructions in our documentation].',
+        'Alternatively, you can also [manualSetupLink:set up the SDK manually], by following these steps:',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/#add-readable-stack-traces-to-errors" />
+          manualSetupLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/" />
           ),
         }
       ),
+      configurations: [
+        {
+          description: (
+            <List symbol="bullet">
+              <ListItem>
+                {tctCode('Add [code:@sentry/nuxt/module] to your [code:nuxt.config.ts].')}
+              </ListItem>
+              <ListItem>
+                {tctCode(
+                  'Create or update [code:sentry.client.config.ts] and [code:sentry.server.config.ts] with the default [code:Sentry.init] call.'
+                )}
+              </ListItem>
+              <ListItem>
+                {tctCode(
+                  'Configure source maps upload options in your [code:nuxt.config.ts].'
+                )}
+              </ListItem>
+            </List>
+          ),
+        },
+      ],
     },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+      description: (
+        <Fragment>
+          <p>
+            {tctCode(
+              'Build and run your application and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.'
+            )}
+          </p>
+          <p>{t('Or, throw an error in a simple vue component.')}</p>
+        </Fragment>
       ),
       configurations: [
         {
@@ -258,6 +140,9 @@ const onboarding: OnboardingConfig = {
           ],
         },
       ],
+      additionalInfo: t(
+        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+      ),
     },
   ],
   nextSteps: () => [
@@ -271,21 +156,10 @@ const onboarding: OnboardingConfig = {
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 8.9.1 of [code:@sentry/nuxt] in order to use Session Replay. You do not need to install any additional packages.',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
-    },
-  ],
+  install: (params: Params) => getInstallConfig(params),
   configure: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
+      type: StepType.INSTALL,
       description: getReplayConfigureDescription({
         link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/session-replay/',
       }),
@@ -296,20 +170,25 @@ const replayOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkClientSetupSnippet(params),
+              code: getReplaySDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/nuxt";`,
+                dsn: params.dsn.public,
+                mask: params.replayOptions?.mask,
+                block: params.replayOptions?.block,
+              }),
             },
           ],
-          additionalInfo: <TracePropagationMessage />,
         },
       ],
+      additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct(
@@ -318,7 +197,7 @@ const feedbackOnboarding: OnboardingConfig = {
           code: <code />,
         }
       ),
-      configurations: getInstallConfig(),
+      configurations: getInstallConfig(params),
     },
   ],
   configure: (params: Params) => [
@@ -337,13 +216,17 @@ const feedbackOnboarding: OnboardingConfig = {
               label: 'JavaScript',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkClientSetupSnippet(params),
+              code: getFeedbackSDKSetupSnippet({
+                importStatement: `import * as Sentry from "@sentry/nuxt";`,
+                dsn: params.dsn.public,
+                feedbackOptions: params.feedbackOptions,
+              }),
             },
           ],
         },
       ],
       additionalInfo: crashReportCallout({
-        link: 'https://docs.sentry.io/platforms/nuxt/guides/nuxt/user-feedback/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nuxt/user-feedback/#crash-report-modal',
       }),
     },
   ],
@@ -381,10 +264,7 @@ const docs: Docs = {
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
   profilingOnboarding,
+  featureFlagOnboarding,
 };
-
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
 
 export default docs;

@@ -1,8 +1,10 @@
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
+import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -12,6 +14,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {
   EAPSpanSearchQueryBuilder,
   SpanSearchQueryBuilder,
@@ -19,23 +22,31 @@ import {
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Confidence} from 'sentry/types/organization';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  type AggregationKey,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
 import {
+  PageParamsProvider,
+  useExploreDataset,
+  useExploreMode,
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {
   SpanTagsProvider,
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-
-import {useResultMode} from './hooks/useResultsMode';
 
 interface ExploreContentProps {
   location: Location;
@@ -46,16 +57,14 @@ function ExploreContentImpl({}: ExploreContentProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [dataset] = useDataset();
-
-  const [resultMode] = useResultMode();
-  const supportedAggregates =
-    resultMode === 'aggregate' ? ALLOWED_EXPLORE_VISUALIZE_AGGREGATES : [];
+  const dataset = useExploreDataset();
+  const mode = useExploreMode();
 
   const numberTags = useSpanTags('number');
   const stringTags = useSpanTags('string');
 
-  const [userQuery, setUserQuery] = useUserQuery();
+  const query = useExploreQuery();
+  const setQuery = useSetExploreQuery();
 
   const toolbarExtras = organization.features.includes('visibility-explore-dataset')
     ? ['dataset toggle' as const]
@@ -71,13 +80,28 @@ function ExploreContentImpl({}: ExploreContentProps) {
     });
   }, [location, navigate]);
 
+  const [confidence, setConfidence] = useState<Confidence>(null);
+  const [chartError, setChartError] = useState<string>('');
+  const [tableError, setTableError] = useState<string>('');
+
+  const maxPickableDays = 7;
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Layout.Title>{t('Traces')}</Layout.Title>
+              <Layout.Title>
+                {t('Traces')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://github.com/getsentry/sentry/discussions/81239"
+                  title={t(
+                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                  )}
+                  linkLabel={t('Read the Discussion')}
+                />
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               <ButtonBar gap={1}>
@@ -96,7 +120,8 @@ function ExploreContentImpl({}: ExploreContentProps) {
                 <ProjectPageFilter />
                 <EnvironmentPageFilter />
                 <DatePageFilter
-                  maxPickableDays={7}
+                  defaultPeriod="7d"
+                  maxPickableDays={maxPickableDays}
                   relativeOptions={({arbitraryOptions}) => ({
                     ...arbitraryOptions,
                     '1h': t('Last 1 hour'),
@@ -108,17 +133,33 @@ function ExploreContentImpl({}: ExploreContentProps) {
               {dataset === DiscoverDatasets.SPANS_INDEXED ? (
                 <SpanSearchQueryBuilder
                   projects={selection.projects}
-                  initialQuery={userQuery}
-                  onSearch={setUserQuery}
+                  initialQuery={query}
+                  onSearch={setQuery}
                   searchSource="explore"
                 />
               ) : (
                 <EAPSpanSearchQueryBuilder
                   projects={selection.projects}
-                  initialQuery={userQuery}
-                  onSearch={setUserQuery}
+                  initialQuery={query}
+                  onSearch={setQuery}
                   searchSource="explore"
-                  supportedAggregates={supportedAggregates}
+                  getFilterTokenWarning={
+                    mode === Mode.SAMPLES
+                      ? key => {
+                          if (
+                            ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.includes(
+                              key as AggregationKey
+                            )
+                          ) {
+                            return t(
+                              "This key won't affect the results because samples mode does not support aggregate functions"
+                            );
+                          }
+                          return undefined;
+                        }
+                      : undefined
+                  }
+                  supportedAggregates={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
                   numberTags={numberTags}
                   stringTags={stringTags}
                 />
@@ -126,8 +167,17 @@ function ExploreContentImpl({}: ExploreContentProps) {
             </TopSection>
             <ExploreToolbar extras={toolbarExtras} />
             <MainSection fullWidth>
-              <ExploreCharts query={userQuery} />
-              <ExploreTables />
+              {(tableError || chartError) && (
+                <Alert type="error" showIcon>
+                  {tableError || chartError}
+                </Alert>
+              )}
+              <ExploreCharts
+                query={query}
+                setConfidence={setConfidence}
+                setError={setChartError}
+              />
+              <ExploreTables confidence={confidence} setError={setTableError} />
             </MainSection>
           </Body>
         </Layout.Page>
@@ -136,13 +186,25 @@ function ExploreContentImpl({}: ExploreContentProps) {
   );
 }
 
-export function ExploreContent(props: ExploreContentProps) {
-  const [dataset] = useDataset();
+function ExploreTagsProvider({children}) {
+  const dataset = useExploreDataset();
 
   return (
-    <SpanTagsProvider dataset={dataset}>
-      <ExploreContentImpl {...props} />
+    <SpanTagsProvider dataset={dataset} enabled>
+      {children}
     </SpanTagsProvider>
+  );
+}
+
+export function ExploreContent(props: ExploreContentProps) {
+  Sentry.setTag('explore.visited', 'yes');
+
+  return (
+    <PageParamsProvider>
+      <ExploreTagsProvider>
+        <ExploreContentImpl {...props} />
+      </ExploreTagsProvider>
+    </PageParamsProvider>
   );
 }
 
@@ -150,11 +212,12 @@ const Body = styled(Layout.Body)`
   gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 300px minmax(100px, auto);
+    grid-template-columns: 350px minmax(100px, auto);
+    gap: ${space(2)};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: 350px minmax(100px, auto);
+    grid-template-columns: 400px minmax(100px, auto);
   }
 `;
 
@@ -165,12 +228,12 @@ const TopSection = styled('div')`
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: minmax(300px, auto) 1fr;
+    grid-template-columns: minmax(350px, auto) 1fr;
     margin-bottom: 0;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
-    grid-template-columns: minmax(350px, auto) 1fr;
+    grid-template-columns: minmax(400px, auto) 1fr;
   }
 `;
 

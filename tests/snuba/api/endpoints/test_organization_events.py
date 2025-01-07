@@ -36,9 +36,8 @@ from sentry.testutils.cases import (
     SpanTestCase,
 )
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
-from sentry.testutils.skips import requires_not_arm64
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -57,7 +56,7 @@ class OrganizationEventsEndpointTestBase(APITransactionTestCase, SnubaTestCase, 
         super().setUp()
         self.nine_mins_ago = before_now(minutes=9)
         self.ten_mins_ago = before_now(minutes=10)
-        self.ten_mins_ago_iso = iso_format(self.ten_mins_ago)
+        self.ten_mins_ago_iso = self.ten_mins_ago.replace(microsecond=0).isoformat()
         self.eleven_mins_ago = before_now(minutes=11)
         self.eleven_mins_ago_iso = self.eleven_mins_ago.isoformat()
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -3042,9 +3041,13 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         result = {r["any(user.display)"] for r in data}
         assert result == {"cathy@example.com"}
         result = {r["any(timestamp.to_day)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
         result = {r["any(timestamp.to_hour)"][:19] for r in data}
-        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+        assert result == {
+            day_ago.replace(minute=0, second=0, microsecond=0, tzinfo=None).isoformat()
+        }
 
     def test_field_aliases_in_conflicting_functions(self):
         self.store_event(
@@ -3335,7 +3338,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
-        assert self.ten_mins_ago_iso[:-5] in data[0]["last_seen()"]
+        assert self.ten_mins_ago_iso == data[0]["last_seen()"]
         assert data[0]["latest_event()"] == event.event_id
 
         query = {
@@ -3373,7 +3376,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["linear_regression(transaction.duration, transaction.duration)"] == [0, 0]
         assert data[0]["sum(transaction.duration)"] == 10000
 
-    @requires_not_arm64
     def test_null_user_misery_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
@@ -3393,7 +3395,6 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
             data = response.data["data"]
             assert data[0]["user_misery(300)"] == 0
 
-    @requires_not_arm64
     def test_null_user_misery_new_returns_zero(self):
         self.transaction_data["user"] = None
         self.transaction_data["transaction"] = "/no_users/1"
@@ -6626,35 +6627,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
             "performance_score(measurements.score.lcp)": 0.7923076923076923,
         }
 
-    def test_weighted_performance_score(self):
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 0.03},
-            "score.weight.lcp": {"value": 0.3},
-            "score.total": {"value": 0.03},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.lcp": {"value": 1.0},
-            "score.weight.lcp": {"value": 1.0},
-            "score.total": {"value": 1.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.lcp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 200, response.content
-        assert len(response.data["data"]) == 1
-        assert response.data["data"][0] == {
-            "weighted_performance_score(measurements.score.lcp)": 0.3433333333333333,
-        }
-
     def test_invalid_performance_score_column(self):
         self.transaction_data["measurements"] = {
             "score.total": {"value": 0.0},
@@ -6663,19 +6635,6 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         query = {
             "field": [
                 "performance_score(measurements.score.fp)",
-            ]
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_invalid_weighted_performance_score_column(self):
-        self.transaction_data["measurements"] = {
-            "score.total": {"value": 0.0},
-        }
-        self.store_event(self.transaction_data, self.project.id)
-        query = {
-            "field": [
-                "weighted_performance_score(measurements.score.fp)",
             ]
         }
         response = self.do_request(query)
@@ -6732,16 +6691,16 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         data = response.data["data"][0]
         assert data == {
             "id": event.event_id,
-            "events.transaction": "",
+            "transaction": "",
             "project.name": event.project.name.lower(),
-            "events.title": event.group.title,
+            "title": event.group.title,
             "release": event.release,
-            "events.environment": None,
+            "environment": None,
             "user.display": user_data["email"],
             "device": "Mac",
             "replayId": replay_id,
             "os": "",
-            "events.timestamp": event.datetime.replace(microsecond=0).isoformat(),
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
         }
 
     def test_opportunity_score(self):

@@ -7,12 +7,10 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import * as modal from 'sentry/actionCreators/modal';
 import HighlightsDataSection from 'sentry/components/events/highlights/highlightsDataSection';
 import {EMPTY_HIGHLIGHT_DEFAULT} from 'sentry/components/events/highlights/util';
-import {
-  TEST_EVENT_CONTEXTS,
-  TEST_EVENT_TAGS,
-} from 'sentry/components/events/highlights/util.spec';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
+
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 
 describe('HighlightsDataSection', function () {
   const organization = OrganizationFixture();
@@ -21,7 +19,7 @@ describe('HighlightsDataSection', function () {
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
   });
-  const eventTagMap = TEST_EVENT_TAGS.reduce(
+  const eventTagMap = TEST_EVENT_TAGS.reduce<Record<string, string>>(
     (tagMap, tag) => ({...tagMap, [tag.key]: tag.value}),
     {}
   );
@@ -100,12 +98,12 @@ describe('HighlightsDataSection', function () {
         .closest('div[data-test-id=highlight-tag-row]') as HTMLElement;
       // If highlight is present on the event...
       if (eventTagMap.hasOwnProperty(tagKey)) {
-        expect(within(row).getByText(eventTagMap[tagKey])).toBeInTheDocument();
+        expect(within(row).getByText(eventTagMap[tagKey]!)).toBeInTheDocument();
         const highlightTagDropdown = within(row).getByLabelText('Tag Actions Menu');
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
         expect(
-          await screen.findByLabelText('View issues with this tag value')
+          await screen.findByLabelText('Search issues with this tag value')
         ).toBeInTheDocument();
         expect(
           screen.queryByLabelText('Add to event highlights')
@@ -117,7 +115,7 @@ describe('HighlightsDataSection', function () {
     }
 
     const ctxRows = screen.queryAllByTestId('highlight-context-row');
-    expect(ctxRows.length).toBe(Object.values(highlightContext).flat().length);
+    expect(ctxRows).toHaveLength(Object.values(highlightContext).flat().length);
     highlightContextTitles.forEach(title => {
       expect(screen.getByText(title)).toBeInTheDocument();
     });

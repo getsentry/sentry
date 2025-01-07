@@ -58,7 +58,7 @@ def get_symbolication_platforms(
 
     platforms = []
 
-    if is_jvm_event(data):
+    if is_jvm_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.jvm)
     if is_js_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.js)

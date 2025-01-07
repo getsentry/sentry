@@ -82,8 +82,8 @@ function applyImageFilters(
       if (term.indexOf('0x') === 0) {
         const needle = parseAddress(term);
         if (needle > 0 && image.image_addr !== '0x0') {
-          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-          return needle >= startAddress && needle < endAddress;
+          const [startAddress, endAddress] = getImageRange(image);
+          return needle >= startAddress! && needle < endAddress!;
         }
       }
 
@@ -184,7 +184,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     ];
 
     const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
+      'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     setFilterState({
@@ -320,7 +320,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       >
         <DebugImage
           style={style}
-          image={images[index]}
+          image={images[index]!}
           onOpenImageDetailsModal={handleOpenImageDetailsModal}
         />
       </CellMeasurer>
@@ -370,12 +370,14 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     />
   );
 
+  const isJSPlatform = event.platform?.includes('javascript');
+
   return (
     <InterimSection
       type={SectionKey.DEBUGMETA}
-      title={t('Images Loaded')}
+      title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse
@@ -383,7 +385,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
+            placeholder={isJSPlatform ? t('Search source maps') : t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}

@@ -3,8 +3,10 @@ from typing import Any
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.absolute_url import generate_organization_url
 from sentry.toolbar.utils.url import is_origin_allowed
 from sentry.web.frontend.base import ProjectView, region_silo_view
 
@@ -47,7 +49,7 @@ class IframeView(ProjectView):
         allowed_origins: list[str] = project.get_option("sentry:toolbar_allowed_origins")
 
         if referrer and is_origin_allowed(referrer, allowed_origins):
-            return self._respond_with_state("success")
+            return self._respond_with_state("logged-in")
 
         return self._respond_with_state("invalid-domain")
 
@@ -61,6 +63,8 @@ class IframeView(ProjectView):
                 "logging": self.request.GET.get("logging", ""),
                 "organization_slug": self.organization_slug,
                 "project_id_or_slug": self.project_id_or_slug,
+                "organization_url": generate_organization_url(self.organization_slug),
+                "region_url": generate_region_url(),
             },
         )
 

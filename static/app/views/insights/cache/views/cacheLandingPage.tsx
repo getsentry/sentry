@@ -1,9 +1,6 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -44,11 +41,9 @@ import {
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
@@ -68,7 +63,6 @@ const SDK_UPDATE_ALERT = (
 const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
 export function CacheLandingPage() {
-  const {isInDomainView} = useDomainViewFilters();
   const location = useLocation();
   const {setPageInfo, pageAlert} = usePageAlert();
 
@@ -174,52 +168,27 @@ export function CacheLandingPage() {
     transactionsList?.map(transaction => ({
       ...transaction,
       'avg(transaction.duration)':
-        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)'],
+        transactionDurationsMap[transaction.transaction]?.['avg(transaction.duration)']!,
     })) || [];
 
   const meta = combineMeta(transactionsListMeta, transactionDurationMeta);
 
   addCustomMeta(meta);
 
-  const crumbs = useModuleBreadcrumbs('cache');
-
   return (
     <React.Fragment>
-      {!isInDomainView && (
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-
-            <Layout.Title>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Layout.Title>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-      )}
-
-      {isInDomainView && (
-        <BackendHeader
-          headerTitle={
-            <Fragment>
-              {MODULE_TITLE}
-              <PageHeadingQuestionTooltip
-                docsUrl={MODULE_DOC_LINK}
-                title={MODULE_DESCRIPTION}
-              />
-            </Fragment>
-          }
-          module={ModuleName.CACHE}
-        />
-      )}
+      <BackendHeader
+        headerTitle={
+          <Fragment>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Fragment>
+        }
+        module={ModuleName.CACHE}
+      />
 
       <ModuleBodyUpsellHook moduleName={ModuleName.CACHE}>
         <Layout.Body>
@@ -271,11 +240,7 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="cache"
-      features="insights-addon-modules"
-      analyticEventName="insight.page_loads.cache"
-    >
+    <ModulePageProviders moduleName="cache" analyticEventName="insight.page_loads.cache">
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>

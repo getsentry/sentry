@@ -1,7 +1,6 @@
 import {type ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {
   CompactSelect,
   type SelectOption,
@@ -64,12 +63,7 @@ export default function SubregionSelector({size}: Props) {
       size={size}
       searchable
       triggerProps={{
-        prefix: (
-          <Fragment>
-            <StyledFeatureBadge type="beta" />
-            {t('Geo region')}
-          </Fragment>
-        ),
+        prefix: t('Geo region'),
       }}
       multiple
       loading={isPending}
@@ -84,9 +78,9 @@ export default function SubregionSelector({size}: Props) {
       }
       options={options}
       onChange={(selectedOptions: SelectOption<string>[]) => {
-        trackAnalytics('insight.vital.select_browser_value', {
+        trackAnalytics('insight.general.select_region_value', {
           organization,
-          browsers: selectedOptions.map(v => v.value),
+          regions: selectedOptions.map(v => subregionCodeToName[v.value]),
         });
 
         navigate({
@@ -102,10 +96,6 @@ export default function SubregionSelector({size}: Props) {
     />
   );
 }
-
-const StyledFeatureBadge = styled(FeatureBadge)`
-  margin-right: ${space(1)};
-`;
 
 const MenuTitleContainer = styled('div')`
   display: flex;

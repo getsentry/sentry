@@ -7,6 +7,7 @@ import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoRepl
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -340,7 +341,6 @@ export function Provider({
         }
       }
 
-      // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
@@ -389,6 +389,8 @@ export function Provider({
     ]
   );
 
+  useTouchEventsCheck({replay: isFetching ? null : replay});
+
   const initVideoRoot = useCallback(
     (root: RootElem) => {
       if (root === null || isFetching) {
@@ -429,13 +431,8 @@ export function Provider({
         // rrweb specific
         theme,
         eventsWithSnapshots: replay?.getRRWebFramesWithSnapshots() ?? [],
-        touchEvents: replay?.getRRwebTouchEvents() ?? [],
         // common to both
         root,
-        context: {
-          sdkName: replay?.getReplay().sdk.name,
-          sdkVersion: replay?.getReplay().sdk.version,
-        },
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.

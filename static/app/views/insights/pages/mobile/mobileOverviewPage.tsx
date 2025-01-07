@@ -35,6 +35,7 @@ import {
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
+  USER_MISERY_TOOLTIP,
 } from 'sentry/views/performance/data';
 import {checkIsReactNative} from 'sentry/views/performance/landing/utils';
 import {
@@ -51,26 +52,26 @@ import {
 } from 'sentry/views/performance/utils';
 
 const MOBILE_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'slow frame %',
-  'frozen frame %',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'users'},
+  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 const REACT_NATIVE_COLUMN_TITLES = [
-  'transaction',
-  'operation',
-  'project',
-  'tpm',
-  'slow frame %',
-  'frozen frame %',
-  'stall %',
-  'users',
-  'user misery',
+  {title: 'transaction'},
+  {title: 'operation'},
+  {title: 'project'},
+  {title: 'tpm'},
+  {title: 'slow frame %'},
+  {title: 'frozen frame %'},
+  {title: 'stall %'},
+  {title: 'users'},
+  {title: 'user misery'},
 ];
 
 function MobileOverviewPage() {
@@ -124,7 +125,11 @@ function MobileOverviewPage() {
   );
 
   if (organization.features.includes('mobile-vitals')) {
-    columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
+    columnTitles = [
+      ...columnTitles.slice(0, 5),
+      {title: 'ttid'},
+      ...columnTitles.slice(5, 0),
+    ];
     tripleChartRowCharts.push(
       ...[
         PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
@@ -180,7 +185,7 @@ function MobileOverviewPage() {
 
   return (
     <Feature
-      features="insights-domain-view"
+      features="performance-view"
       organization={organization}
       renderDisabled={NoAccess}
     >
@@ -205,7 +210,7 @@ function MobileOverviewPage() {
                     onSearch={(query: string) => {
                       handleSearch(query);
                     }}
-                    query={getFreeTextFromQuery(derivedQuery)}
+                    query={getFreeTextFromQuery(derivedQuery)!}
                   />
                 )}
               </ToolRibbon>

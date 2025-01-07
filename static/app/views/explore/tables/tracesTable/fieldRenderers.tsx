@@ -302,7 +302,6 @@ export function SpanBreakdownSliceRenderer({
   onMouseEnter,
   offset,
 }: {
-  onMouseEnter: () => void;
   sliceEnd: number;
   sliceName: string | null;
   sliceSecondaryName: string | null;
@@ -310,6 +309,7 @@ export function SpanBreakdownSliceRenderer({
   theme: Theme;
   trace: TraceResult;
   offset?: number;
+  onMouseEnter?: () => void;
   sliceDurationReal?: number;
   sliceNumberStart?: number;
   sliceNumberWidth?: number;
@@ -433,7 +433,7 @@ interface TraceIdRendererProps {
   location: Location;
   timestamp: number; // in milliseconds
   traceId: string;
-  onClick?: () => void;
+  onClick?: React.ComponentProps<typeof Link>['onClick'];
   transactionId?: string;
 }
 

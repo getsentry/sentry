@@ -1,5 +1,6 @@
-import {useMemo, useState} from 'react';
+import React, {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {
   addErrorMessage,
@@ -11,6 +12,8 @@ import LoadingError from 'sentry/components/loadingError';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnRouteLeave} from 'sentry/utils/reactRouter6Compat/onRouteLeave';
@@ -58,7 +61,7 @@ export function ProjectSampling() {
   const initialValues = useMemo(() => ({projectRates}), [projectRates]);
 
   const formState = useFormState({
-    initialValues: initialValues,
+    initialValues,
     enableReInitialize: true,
   });
 
@@ -150,6 +153,7 @@ export function ProjectSampling() {
           <LoadingError onRetry={sampleCountsQuery.refetch} />
         ) : (
           <ProjectsEditTable
+            period={period}
             editMode={editMode}
             onEditModeChange={setEditMode}
             isLoading={sampleRatesQuery.isPending || sampleCountsQuery.isPending}
@@ -160,18 +164,97 @@ export function ProjectSampling() {
           <Button disabled={isFormActionDisabled} onClick={handleReset}>
             {t('Reset')}
           </Button>
-          <Button
-            priority="primary"
-            disabled={isFormActionDisabled || !formState.isValid}
-            onClick={handleSubmit}
-          >
-            {t('Apply Changes')}
-          </Button>
+          <ScrollIntoViewButton enabled={!isFormActionDisabled && formState.isValid}>
+            <Button
+              priority="primary"
+              disabled={isFormActionDisabled || !formState.isValid}
+              onClick={handleSubmit}
+            >
+              {t('Apply Changes')}
+            </Button>
+          </ScrollIntoViewButton>
         </FormActions>
       </form>
     </FormProvider>
   );
 }
+
+function ScrollIntoViewButton({
+  children,
+  enabled,
+}: {
+  children: React.ReactElement;
+  enabled: boolean;
+}) {
+  if (React.Children.count(children) !== 1) {
+    throw new Error('ScrollIntoViewButton only accepts a single child');
+  }
+
+  const [isVisible, setIsVisible] = useState(false);
+  const [targetElement, setTargetElement] = useState<HTMLElement>();
+
+  useEffect(() => {
+    if (!targetElement || !enabled) {
+      return () => {};
+    }
+
+    const observer = new IntersectionObserver(
+      observerEntries => {
+        const entry = observerEntries[0]!;
+        setIsVisible(!entry.isIntersecting);
+      },
+      {
+        root: null,
+        threshold: 0.5,
+      }
+    );
+
+    observer.observe(targetElement);
+    return () => {
+      observer.disconnect();
+      setIsVisible(false);
+    };
+  }, [targetElement, enabled]);
+
+  return (
+    <Fragment>
+      {React.cloneElement(children, {ref: setTargetElement})}
+      {isVisible && (
+        <Tooltip title={t('Scroll down to apply changes')} skipWrapper>
+          <FloatingButton
+            type="button"
+            onClick={() => {
+              targetElement?.scrollIntoView({behavior: 'smooth'});
+            }}
+            initial={{opacity: 0, scale: 0.5}}
+            animate={{opacity: 1, scale: 1}}
+            transition={{
+              ease: [0, 0.71, 0.2, 1.4],
+            }}
+          >
+            <IconArrow direction="down" size="sm" />
+          </FloatingButton>
+        </Tooltip>
+      )}
+    </Fragment>
+  );
+}
+
+const FloatingButton = styled(motion.button)`
+  position: fixed;
+  bottom: ${space(4)};
+  right: ${space(1)};
+  border-radius: 50%;
+  border: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.purple400};
+  color: ${p => p.theme.white};
+  box-shadow: ${p => p.theme.dropShadowHeavy};
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
 const FormActions = styled('div')`
   display: grid;

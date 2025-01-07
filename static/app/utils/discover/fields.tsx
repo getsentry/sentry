@@ -19,6 +19,7 @@ import {
   AggregationKey,
   DISCOVER_FIELDS,
   FieldKey,
+  FieldKind,
   FieldValueType,
   getFieldDefinition,
   MEASUREMENT_FIELDS,
@@ -264,7 +265,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -296,7 +297,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -683,7 +684,7 @@ export function getAggregations(dataset: DiscoverDatasets) {
           kind: 'dropdown',
           options: CONDITIONS_ARGUMENTS,
           dataType: 'string',
-          defaultValue: CONDITIONS_ARGUMENTS[0].value,
+          defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
           required: true,
         },
         {
@@ -804,7 +805,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -818,7 +819,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -828,8 +829,8 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[2]!),
     };
   }
 
@@ -928,7 +929,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -1185,7 +1186,7 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
@@ -1371,7 +1372,7 @@ export function isLegalYAxisType(match: ColumnType | MetricType) {
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -1639,12 +1640,19 @@ export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
 
-export const TYPED_TAG_KEY_RE = /tags\[(.*),(.*)\]/;
+export const TYPED_TAG_KEY_RE = /tags\[([^\s]*),([^\s]*)\]/;
 
-export function formatParsedFunction(func: ParsedFunction) {
-  const args = func.arguments.map(arg => {
-    const result = arg.match(TYPED_TAG_KEY_RE);
-    return result?.[1] ?? arg;
-  });
+export function classifyTagKey(key: string): FieldKind {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[2] === 'number' ? FieldKind.MEASUREMENT : FieldKind.TAG;
+}
+
+export function prettifyTagKey(key: string): string {
+  const result = key.match(TYPED_TAG_KEY_RE);
+  return result?.[1] ?? key;
+}
+
+export function prettifyParsedFunction(func: ParsedFunction) {
+  const args = func.arguments.map(prettifyTagKey);
   return `${func.name}(${args.join(',')})`;
 }

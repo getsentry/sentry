@@ -35,11 +35,11 @@ function GroupSimilarIssues() {
 
   return (
     <Fragment>
-      <Feature features="related-issues">
-        <GroupRelatedIssues />
-      </Feature>
       <Feature features="similarity-view" project={project}>
         <SimilarStackTrace project={project} />
+      </Feature>
+      <Feature features="related-issues">
+        <GroupRelatedIssues />
       </Feature>
     </Fragment>
   );

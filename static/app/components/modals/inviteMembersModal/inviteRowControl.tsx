@@ -23,6 +23,7 @@ type Props = {
   disabled: boolean;
   emails: string[];
   inviteStatus: InviteStatus;
+  isOverMemberLimit: boolean;
   onChangeEmails: (emails: SelectOption[]) => void;
   onChangeRole: (role: SelectOption) => void;
   onChangeTeams: (teams: SelectOption[]) => void;
@@ -52,6 +53,7 @@ function InviteRowControl({
   onChangeRole,
   onChangeTeams,
   disableRemove,
+  isOverMemberLimit,
 }: Props) {
   const [inputValue, setInputValue] = useState('');
 
@@ -94,7 +96,7 @@ function InviteRowControl({
         value={emails}
         components={{
           MultiValue: (props: MultiValueProps<SelectOption>) => (
-            <EmailValue status={inviteStatus[props.data.value]} valueProps={props} />
+            <EmailValue status={inviteStatus[props.data.value]!} valueProps={props} />
           ),
           DropdownIndicator: () => null,
         }}
@@ -118,7 +120,7 @@ function InviteRowControl({
       <RoleSelectControl
         aria-label={t('Role')}
         data-test-id="select-role"
-        disabled={disabled}
+        disabled={isOverMemberLimit ? true : disabled}
         value={role}
         roles={roleOptions}
         disableUnallowed={roleDisabledUnallowed}

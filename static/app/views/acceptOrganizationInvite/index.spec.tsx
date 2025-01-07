@@ -1,11 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');
@@ -25,6 +25,7 @@ const getJoinButton = () => {
 };
 
 describe('AcceptOrganizationInvite', function () {
+  const router = RouterFixture();
   const organization = OrganizationFixture({slug: 'org-slug'});
   const configState = ConfigStore.getState();
 
@@ -46,7 +47,8 @@ describe('AcceptOrganizationInvite', function () {
       <AcceptOrganizationInvite
         {...RouteComponentPropsFixture()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
-      />
+      />,
+      {router}
     );
 
     const acceptMock = MockApiClient.addMockResponse({
@@ -58,7 +60,7 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
-    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
+    expect(router.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('can accept invitation on customer-domains', async function () {
@@ -85,7 +87,8 @@ describe('AcceptOrganizationInvite', function () {
       <AcceptOrganizationInvite
         {...RouteComponentPropsFixture()}
         params={{memberId: '1', token: 'abc'}}
-      />
+      />,
+      {router}
     );
 
     const acceptMock = MockApiClient.addMockResponse({
@@ -97,7 +100,28 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
-    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
+    expect(router.replace).toHaveBeenCalledWith('/org-slug/');
+  });
+
+  it('renders error message', function () {
+    MockApiClient.addMockResponse({
+      url: '/accept-invite/1/abc/',
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'uh oh'},
+    });
+
+    render(
+      <AcceptOrganizationInvite
+        {...RouteComponentPropsFixture()}
+        params={{memberId: '1', token: 'abc'}}
+      />
+    );
+    expect(getJoinButton()).not.toBeInTheDocument();
+
+    expect(
+      screen.getByRole('link', {name: 'sign in with a different account'})
+    ).toBeInTheDocument();
   });
 
   it('requires authentication to join', function () {

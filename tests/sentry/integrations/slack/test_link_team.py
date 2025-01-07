@@ -13,9 +13,9 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
 from sentry.models.team import Team
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack, link_team

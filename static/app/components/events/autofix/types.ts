@@ -28,6 +28,15 @@ export enum AutofixCodebaseIndexingStatus {
   ERRORED = 'errored',
 }
 
+export enum AutofixStatus {
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
+  PROCESSING = 'PROCESSING',
+  NEED_MORE_INFORMATION = 'NEED_MORE_INFORMATION',
+  CANCELLED = 'CANCELLED',
+  WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
+}
+
 export type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
@@ -49,13 +58,7 @@ export type AutofixData = {
   created_at: string;
   repositories: AutofixRepository[];
   run_id: string;
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'NOFIX'
-    | 'ERROR'
-    | 'NEED_MORE_INFORMATION';
+  status: AutofixStatus;
   actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
@@ -80,22 +83,19 @@ interface BaseStep {
   id: string;
   index: number;
   progress: AutofixProgressItem[];
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'ERROR'
-    | 'CANCELLED'
-    | 'WAITING_FOR_USER_RESPONSE';
+  status: AutofixStatus;
   title: string;
   type: AutofixStepType;
   completedMessage?: string;
+  output_stream?: string | null;
 }
 
 export type CodeSnippetContext = {
   file_path: string;
   repo_name: string;
   snippet: string;
+  end_line?: number;
+  start_line?: number;
 };
 
 export type StacktraceContext = {

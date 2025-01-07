@@ -30,6 +30,7 @@ import {
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -75,7 +76,8 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
     if (
       info?.name === DataCategoryExact.SPAN &&
-      this.props.organization.features.includes('spans-usage-tracking')
+      this.props.organization.features.includes('spans-usage-tracking') &&
+      !hasDynamicSamplingCustomFeature(this.props.organization)
     ) {
       return {
         ...info,
@@ -314,7 +316,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     const hasTeamInsights = organization.features.includes('team-insights');
 
     return (
-      <SentryDocumentTitle title="Usage Stats">
+      <SentryDocumentTitle title={t('Usage Stats')} orgSlug={organization.slug}>
         <PageFiltersContainer>
           {hasTeamInsights ? (
             <HeaderTabs organization={organization} activeTab="stats" />

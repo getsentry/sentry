@@ -121,8 +121,8 @@ export type PermissionChoice = {
 
 type PermissionObj = {
   choices: {
-    admin: PermissionChoice;
     'no-access': PermissionChoice;
+    admin?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -197,6 +197,15 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
       read: {label: 'Read', scopes: ['member:read']},
       write: {label: 'Read & Write', scopes: ['member:read', 'member:write']},
       admin: {label: 'Admin', scopes: ['member:read', 'member:write', 'member:admin']},
+    },
+  },
+  {
+    resource: 'Alerts',
+    help: 'Manage Alerts',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['alerts:read']},
+      write: {label: 'Read & Write', scopes: ['alerts:read', 'alerts:write']},
     },
   },
 ];
@@ -333,7 +342,7 @@ export const DATA_CATEGORY_INFO = {
     apiName: 'span',
     plural: 'spans',
     displayName: 'span',
-    titleName: t('Spans'),
+    titleName: t('Spans'), // TODO(DS Spans): Update name
     productName: t('Tracing'),
     uid: 12,
     isBilledCategory: true,
@@ -347,6 +356,16 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Cron Monitoring'),
     uid: 13,
     isBilledCategory: true,
+  },
+  [DataCategoryExact.SPAN_INDEXED]: {
+    name: DataCategoryExact.SPAN_INDEXED,
+    apiName: 'span_indexed',
+    plural: 'spansIndexed',
+    displayName: 'stored span',
+    titleName: t('Stored Spans'),
+    productName: t('Tracing'),
+    uid: 16,
+    isBilledCategory: false,
   },
   [DataCategoryExact.PROFILE_DURATION]: {
     name: DataCategoryExact.PROFILE_DURATION,

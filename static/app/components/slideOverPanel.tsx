@@ -13,11 +13,13 @@ const PANEL_HEIGHT = '50vh';
 const OPEN_STYLES = {
   bottom: {opacity: 1, x: 0, y: 0},
   right: {opacity: 1, x: 0, y: 0},
+  left: {opacity: 1, x: 0, y: 0},
 };
 
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
+  left: {opacity: 0, x: -200, y: 0},
 };
 
 type SlideOverPanelProps = {
@@ -25,8 +27,9 @@ type SlideOverPanelProps = {
   collapsed: boolean;
   ariaLabel?: string;
   className?: string;
+  'data-test-id'?: string;
   onOpen?: () => void;
-  slidePosition?: 'right' | 'bottom';
+  slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
 
@@ -34,6 +37,7 @@ export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
   {
+    'data-test-id': testId,
     ariaLabel,
     collapsed,
     children,
@@ -73,6 +77,7 @@ function SlideOverPanel(
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
+      data-test-id={testId}
     >
       {children}
     </_SlideOverPanel>
@@ -84,14 +89,14 @@ const _SlideOverPanel = styled(motion.div, {
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
-  slidePosition?: 'right' | 'bottom';
+  slidePosition?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
 
-  top: ${space(2)};
-  right: 0;
+  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
+  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${space(2)};
+  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -118,16 +123,29 @@ const _SlideOverPanel = styled(motion.div, {
             bottom: 0;
             left: 0;
           `
-        : css`
-            position: fixed;
+        : p.slidePosition === 'right'
+          ? css`
+              position: fixed;
 
-            width: ${PANEL_WIDTH};
-            height: 100%;
+              width: ${PANEL_WIDTH};
+              height: 100%;
 
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: auto;
-          `}
+              top: 0;
+              right: 0;
+              bottom: 0;
+              left: auto;
+            `
+          : css`
+              position: relative;
+
+              width: ${PANEL_WIDTH};
+              min-width: 500px;
+              height: 100%;
+
+              top: 0;
+              right: auto;
+              bottom: 0;
+              left: auto;
+            `}
   }
 `;

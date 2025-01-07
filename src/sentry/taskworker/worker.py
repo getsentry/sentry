@@ -10,29 +10,59 @@ from uuid import uuid4
 
 import grpc
 import orjson
+import sentry_sdk
 from django.conf import settings
+from django.core.cache import cache
 from sentry_protos.sentry.v1.taskworker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
     TASK_ACTIVATION_STATUS_RETRY,
+    FetchNextTask,
     TaskActivation,
 )
 
+from sentry.taskworker.client import TaskworkerClient
 from sentry.taskworker.registry import taskregistry
-from sentry.taskworker.service.client import TaskClient
+from sentry.taskworker.task import Task
 from sentry.utils import metrics
+from sentry.utils.memory import track_memory_usage
 
 logger = logging.getLogger("sentry.taskworker.worker")
 
-# Use forking processes so that django is initialized
-mp_context = multiprocessing.get_context("fork")
+mp_context = multiprocessing.get_context("spawn")
 
 
-def _process_activation(
-    namespace: str, task_name: str, args: list[Any], kwargs: dict[str, Any]
-) -> None:
+def _init_pool_process() -> None:
+    """initialize pool workers by loading all task modules"""
+    for module in settings.TASKWORKER_IMPORTS:
+        __import__(module)
+
+
+def _process_activation(activation: TaskActivation) -> None:
     """multiprocess worker method"""
-    taskregistry.get(namespace).get(task_name)(*args, **kwargs)
+    parameters = orjson.loads(activation.parameters)
+    args = parameters.get("args", [])
+    kwargs = parameters.get("kwargs", {})
+    headers = {k: v for k, v in activation.headers.items()}
+
+    transaction = sentry_sdk.continue_trace(
+        environ_or_headers=headers,
+        op="task.taskworker",
+        name=f"{activation.namespace}:{activation.taskname}",
+    )
+    with (
+        track_memory_usage("taskworker.worker.memory_change"),
+        sentry_sdk.start_transaction(transaction),
+    ):
+        taskregistry.get(activation.namespace).get(activation.taskname)(*args, **kwargs)
+
+
+AT_MOST_ONCE_TIMEOUT = 60 * 60 * 24  # 1 day
+
+
+def get_at_most_once_key(namespace: str, taskname: str, task_id: str) -> str:
+    # tw:amo -> taskworker:at_most_once
+    return f"tw:amo:{namespace}:{taskname}:{task_id}"
 
 
 class TaskWorker:
@@ -47,13 +77,18 @@ class TaskWorker:
     """
 
     def __init__(
-        self, rpc_host: str, max_task_count: int | None = None, **options: dict[str, Any]
+        self,
+        rpc_host: str,
+        max_task_count: int | None = None,
+        namespace: str | None = None,
+        **options: dict[str, Any],
     ) -> None:
         self.options = options
         self._execution_count = 0
         self._worker_id = uuid4().hex
         self._max_task_count = max_task_count
-        self.client = TaskClient(rpc_host)
+        self._namespace = namespace
+        self.client = TaskworkerClient(rpc_host)
         self._pool: Pool | None = None
         self._build_pool()
 
@@ -64,7 +99,7 @@ class TaskWorker:
     def _build_pool(self) -> None:
         if self._pool:
             self._pool.terminate()
-        self._pool = mp_context.Pool(processes=1)
+        self._pool = mp_context.Pool(processes=1, initializer=_init_pool_process)
 
     def do_imports(self) -> None:
         for module in settings.TASKWORKER_IMPORTS:
@@ -114,7 +149,7 @@ class TaskWorker:
 
     def fetch_task(self) -> TaskActivation | None:
         try:
-            activation = self.client.get_task()
+            activation = self.client.get_task(self._namespace)
         except grpc.RpcError:
             metrics.incr("taskworker.worker.get_task.failed")
             logger.info("get_task failed. Retrying in 1 second")
@@ -122,19 +157,19 @@ class TaskWorker:
 
         if not activation:
             metrics.incr("taskworker.worker.get_task.not_found")
-            logger.info("No task fetched")
+            logger.debug("No task fetched")
             return None
 
         metrics.incr("taskworker.worker.get_task.success")
         return activation
 
-    def _known_task(self, activation: TaskActivation) -> bool:
+    def _get_known_task(self, activation: TaskActivation) -> Task[Any, Any] | None:
         if not taskregistry.contains(activation.namespace):
             logger.error(
                 "taskworker.invalid_namespace",
                 extra={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            return False
+            return None
 
         namespace = taskregistry.get(activation.namespace)
         if not namespace.contains(activation.taskname):
@@ -142,12 +177,13 @@ class TaskWorker:
                 "taskworker.invalid_taskname",
                 extra={"namespace": activation.namespace, "taskname": activation.taskname},
             )
-            return False
-        return True
+            return None
+        return namespace.get(activation.taskname)
 
     def process_task(self, activation: TaskActivation) -> TaskActivation | None:
         assert self._pool
-        if not self._known_task(activation):
+        task = self._get_known_task(activation)
+        if not task:
             metrics.incr(
                 "taskworker.worker.unknown_task",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
@@ -156,26 +192,32 @@ class TaskWorker:
             return self.client.update_task(
                 task_id=activation.id,
                 status=TASK_ACTIVATION_STATUS_FAILURE,
+                fetch_next_task=FetchNextTask(namespace=self._namespace),
             )
 
-        # TODO(taskworker): Add at_most_once checks
+        if task.at_most_once:
+            key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
+            if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
+                metrics.incr(
+                    "taskworker.task.at_most_once.executed", tags={"task": activation.taskname}
+                )
+            else:
+                metrics.incr(
+                    "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
+                )
+                return None
+
         processing_timeout = activation.processing_deadline_duration
         namespace = taskregistry.get(activation.namespace)
         next_state = TASK_ACTIVATION_STATUS_FAILURE
         result = None
         execution_start_time = 0.0
         try:
-            task_data_parameters = orjson.loads(activation.parameters)
             execution_start_time = time.time()
 
             result = self._pool.apply_async(
                 func=_process_activation,
-                args=(
-                    activation.namespace,
-                    activation.taskname,
-                    task_data_parameters["args"],
-                    task_data_parameters["kwargs"],
-                ),
+                args=(activation,),
             )
             # Will trigger a TimeoutError if the task execution runs long
             result.get(timeout=processing_timeout)
@@ -238,4 +280,5 @@ class TaskWorker:
         return self.client.update_task(
             task_id=activation.id,
             status=next_state,
+            fetch_next_task=FetchNextTask(namespace=self._namespace),
         )

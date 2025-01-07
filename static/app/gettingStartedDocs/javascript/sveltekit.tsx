@@ -25,6 +25,7 @@ import {
   getReplaySDKSetupSnippet,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -255,6 +256,7 @@ const docs: Docs = {
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

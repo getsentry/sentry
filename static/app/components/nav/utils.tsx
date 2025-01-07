@@ -34,6 +34,10 @@ export interface NavItemLayout<Item extends NavSidebarItem | NavSubmenuItem> {
  */
 export interface NavSidebarItem extends NavItem {
   /**
+   * A unique identifier string, used as a key for analytics
+   */
+  analyticsKey: string;
+  /**
    * The icon to render in the sidebar
    */
   icon: React.ReactElement;
@@ -161,7 +165,7 @@ export function resolveNavItemTo(
     return undefined;
   }
   if (isSidebarItem(item) && isNonEmptyArray(item.submenu)) {
-    return item.submenu[0].to;
+    return item.submenu[0]!.to;
   }
   return undefined;
 }

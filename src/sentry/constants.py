@@ -706,7 +706,6 @@ REQUIRE_SCRUB_IP_ADDRESS_DEFAULT = False
 SCRAPE_JAVASCRIPT_DEFAULT = True
 TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
-AI_SUGGESTED_SOLUTION = True
 HIDE_AI_FEATURES_DEFAULT = False
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
@@ -779,17 +778,18 @@ DS_DENYLIST = frozenset(
 HEALTH_CHECK_GLOBS = [
     "*healthcheck*",
     "*heartbeat*",
-    "*/health",
-    "*/healthy",
-    "*/healthz",
-    "*/_health",
-    r"*/\[_health\]",
-    "*/live",
-    "*/livez",
-    "*/ready",
-    "*/readyz",
-    "*/ping",
-    "*/up",
+    "*/health{/,}",
+    "*/healthy{/,}",
+    "*/healthz{/,}",
+    "*/health_check{/,}",
+    "*/_health{/,}",
+    r"*/\[_health\]{/,}",
+    "*/live{/,}",
+    "*/livez{/,}",
+    "*/ready{/,}",
+    "*/readyz{/,}",
+    "*/ping{/,}",
+    "*/up{/,}",
 ]
 
 

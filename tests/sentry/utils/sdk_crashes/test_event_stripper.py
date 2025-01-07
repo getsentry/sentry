@@ -372,8 +372,8 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
 
     sentry_sdk_frame["module"] = "io.sentry.android.core.SentryAndroidOptions"
     sentry_sdk_frame["filename"] = "SentryAndroidOptions.java"
+    sentry_sdk_frame["package"] = "/apex/com.android.art/lib64/libart.so"
     sentry_sdk_frame["abs_path"] = "remove_me"
-    sentry_sdk_frame["package"] = "remove_me"
 
     event_data = get_crash_event_with_frames(frames)
 
@@ -389,6 +389,7 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
         "function": "register",
         "module": "io.sentry.android.core.SentryAndroidOptions",
         "filename": "SentryAndroidOptions.java",
+        "package": "/apex/com.android.art/lib64/libart.so",
         "in_app": True,
         "image_addr": "0x100304000",
     }

@@ -1,9 +1,10 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
-sentry-devenv>=1.13.0
-devservices>=1.0.2
+sentry-devenv>=1.14.2
+devservices>=1.0.8
 
 covdefaults>=2.3.0
+sentry-covdefaults-disable-branch-coverage>=1.0.2
 docker>=7
 time-machine>=2.16.0
 honcho>=2
@@ -14,7 +15,7 @@ pytest-cov>=4.0.0
 pytest-django>=4.9.0
 pytest-fail-slow>=0.3.0
 pytest-json-report>=1.5.0
-pytest-rerunfailures>=14
+pytest-rerunfailures>=15
 pytest-sentry>=0.3.0
 pytest-xdist>=3
 responses>=0.23.1
@@ -37,10 +38,10 @@ packaging>=21.3
 
 # for type checking
 sentry-forked-django-stubs>=5.1.1.post1
-sentry-forked-djangorestframework-stubs>=3.15.1.post2
+sentry-forked-djangorestframework-stubs>=3.15.2.post1
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.13
+mypy>=1.14
 types-beautifulsoup4
 types-cachetools
 types-jsonschema

@@ -85,7 +85,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
       const priorityProjects: Project[] = [];
       priorityProjectIds.forEach(projectId => {
-        priorityProjects.push(projectMap[String(projectId)]);
+        priorityProjects.push(projectMap[String(projectId)]!);
       });
 
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent
@@ -269,7 +269,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     api,
     projectKeyId,
     dsn,
-    organization: organization,
+    organization,
     platformKey: currentProject.platform || 'other',
     projectId: currentProject.id,
     projectSlug: currentProject.slug,

@@ -33,7 +33,7 @@ export function useCardinalityLimitedMetricVolume({projects}: Props) {
     {
       environments: [],
       datetime: CARDINALITY_DATE_TIME,
-      projects: projects,
+      projects,
     },
     {interval: CARDINALITY_INTERVAL, includeSeries: false}
   );
@@ -41,7 +41,7 @@ export function useCardinalityLimitedMetricVolume({projects}: Props) {
   if (cardinalityQuery.data?.data[0]) {
     const data = cardinalityQuery.data.data[0].reduce(
       (acc, group) => {
-        acc[group.by.mri] = group.totals;
+        acc[group.by.mri!] = group.totals;
         return acc;
       },
       {} as Record<string, number>

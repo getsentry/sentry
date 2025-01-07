@@ -104,6 +104,10 @@ describe('Dashboards > WidgetCard', function () {
         data: [{title: 'title'}],
       },
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/stats/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -141,7 +145,7 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
@@ -190,7 +194,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
@@ -229,7 +233,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.TOP_N,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: ['transaction', 'count()'],
               columns: ['transaction'],
               aggregates: ['count()'],
@@ -264,7 +268,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.LINE,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               conditions: '',
               fields: [],
               columns: [],
@@ -299,7 +303,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -326,7 +330,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -353,7 +357,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -380,7 +384,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -414,7 +418,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -449,7 +453,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -648,11 +652,12 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => {
       const mockCall = spy.mock.calls?.at(-1)?.[0];
       expect(mockCall?.tooltip).toBeDefined();
-      // @ts-expect-error
-      expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
-        '24ms'
-      );
     });
+    const mockCall = spy.mock.calls?.at(-1)?.[0];
+    // @ts-expect-error
+    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toBe(
+      '24ms'
+    );
   });
 
   it('renders label in seconds when there is a transition from seconds to minutes in the y axis', async function () {
@@ -746,14 +751,14 @@ describe('Dashboards > WidgetCard', function () {
     await waitFor(() => {
       const mockCall = spy.mock.calls?.at(-1)?.[0];
       expect(mockCall?.yAxis).toBeDefined();
-
-      expect(
-        // @ts-expect-error
-        mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
-      ).toEqual('60s');
-      // @ts-expect-error
-      expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
     });
+    const mockCall = spy.mock.calls?.at(-1)?.[0];
+    expect(
+      // @ts-expect-error
+      mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
+    ).toBe('60s');
+    // @ts-expect-error
+    expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });
 
   it('displays indexed badge in preview mode', async function () {

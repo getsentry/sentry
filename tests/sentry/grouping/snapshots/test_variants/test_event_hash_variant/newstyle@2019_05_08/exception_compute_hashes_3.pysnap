@@ -1,13 +1,14 @@
 ---
-created: '2021-02-15T10:11:51.105902Z'
+created: '2024-12-17T22:46:47.432793+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "669cb6664e0f5fed38665da04e464f7e"
+  contributing component: chained-exception
   component:
-    app (exception of system takes precedence)
-      chained-exception (ignored because hash matches system variant)
+    app*
+      chained-exception*
         exception*
           stacktrace*
             frame*
@@ -28,10 +29,11 @@ app:
             "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: "669cb6664e0f5fed38665da04e464f7e"
+  hash: null
+  contributing component: null
   component:
-    system*
-      chained-exception*
+    system (exception of app takes precedence)
+      chained-exception (ignored because hash matches app variant)
         exception*
           stacktrace*
             frame*

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from copy import deepcopy
 from functools import cached_property
-from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -56,7 +55,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 from tests.sentry.incidents.endpoints.test_organization_alert_rule_index import AlertRuleBase
 
 pytestmark = [requires_snuba]
@@ -80,7 +78,7 @@ class AlertRuleDetailsBase(AlertRuleBase):
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
                 "user": self.user,
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=self.organization.id
                 ),
             },
@@ -400,7 +398,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 "organization": self.organization,
                 "access": OrganizationGlobalAccess(self.organization, settings.SENTRY_SCOPES),
                 "user": self.user,
-                "installations": app_service.get_installed_for_organization(
+                "installations": app_service.installations_for_organization(
                     organization_id=self.organization.id
                 ),
             },
@@ -1132,20 +1130,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
-    def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
-
     def mock_conversations_info(self, channel):
         return patch(
             "slack_sdk.web.client.WebClient.conversations_info",
@@ -1158,15 +1142,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 headers={},
                 status_code=200,
             ),
-        )
-
-    def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
-        responses.add(
-            method=responses.GET,
-            url=url,
-            status=status,
-            content_type="application/json",
-            body=json.dumps(body),
         )
 
     def _organization_alert_rule_api_call(

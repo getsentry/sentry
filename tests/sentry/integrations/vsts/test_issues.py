@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import cached_property
 from time import time
 from typing import Any
 from unittest.mock import patch
@@ -8,7 +7,7 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from django.test import RequestFactory, override_settings
+from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import (
@@ -21,7 +20,6 @@ from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -72,10 +70,6 @@ def assert_response_calls(expected_region_response, expected_non_region_response
 
 
 class VstsIssueBase(TestCase):
-    @cached_property
-    def request(self):
-        return RequestFactory()
-
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
@@ -168,8 +162,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         responses.reset()
 
     @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue(self, mock_record):
+    def test_create_issue(self):
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
@@ -199,17 +192,9 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"op": "add", "path": "/fields/System.Description", "value": "<p>Fix this.</p>\n"},
             {"op": "add", "path": "/fields/System.History", "value": "<p>Fix this.</p>\n"},
         ]
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_create_issue_failure(self, mock_record):
-        """
-        Test that metrics are being correctly emitted on failure.
-        """
+    def test_create_issue_failure(self):
         form_data = {
             "title": "rip",
             "description": "Goodnight, sweet prince",
@@ -217,11 +202,6 @@ class VstsIssueSyncTest(VstsIssueBase):
 
         with pytest.raises(ValueError):
             self.integration.create_issue(form_data)
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.FAILURE
 
     @responses.activate
     def test_get_issue(self):
@@ -242,8 +222,7 @@ class VstsIssueSyncTest(VstsIssueBase):
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sync_assignee_outbound(self, mock_record, use_proxy_url_for_tests):
+    def test_sync_assignee_outbound(self, use_proxy_url_for_tests):
         use_proxy_url_for_tests.return_value = True
         vsts_work_item_id = 5
         generate_mock_response(
@@ -288,55 +267,6 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert request_body[0]["value"] == "ftotten@vscsi.us"
         assert request_body[0]["op"] == "replace"
         assert responses.calls[1].response.status_code == 200
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
-
-    @responses.activate
-    @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sync_assignee_outbound_error(self, mock_record, use_proxy_url_for_tests):
-        """
-        Test that halt metrics are being properly emitted.
-        """
-        use_proxy_url_for_tests.return_value = True
-        vsts_work_item_id = 5
-        generate_mock_response(
-            method=responses.PATCH,
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-            path=f"_apis/wit/workitems/{vsts_work_item_id}",
-            non_region_url=f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
-        )
-        generate_mock_response(
-            method=responses.GET,
-            json={
-                "value": [
-                    {"mailAddress": "example1@example.com"},
-                    {"mailAddress": "example2@example.com"},
-                    {"mailAddress": "example3@example.com"},
-                ]
-            },
-            headers={},  # removing the continuation token takes us into the 'assignee is None' code path
-            path="_apis/graph/users",
-            non_region_url="https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
-        )
-        user = user_service.get_user(user_id=self.create_user("mifu@mifen.io").id)
-        external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
-            key=vsts_work_item_id,
-            title="The Little Prince",
-            description="The most beautiful things in the world cannot be seen or touched, they are felt with the heart.",
-        )
-        self.integration.sync_assignee_outbound(external_issue, user, assign=True)
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     @responses.activate
     @patch("sentry.integrations.vsts.client.VstsApiClient._use_proxy_url_for_tests")
@@ -402,8 +332,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         assert responses.calls[2].response.status_code == 200
 
     @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sync_status_outbound(self, mock_record):
+    def test_sync_status_outbound(self):
         vsts_work_item_id = 5
         responses.add(
             responses.PATCH,
@@ -456,57 +385,6 @@ class VstsIssueSyncTest(VstsIssueBase):
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
         ]
         assert responses.calls[2].response.status_code == 200
-
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.SUCCESS
-
-    @responses.activate
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_sync_status_outbound_error(self, mock_record):
-        """
-        Test that halt metrics are being properly emitted.
-        """
-        vsts_work_item_id = 5
-        responses.add(
-            responses.PATCH,
-            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-        )
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.vssps.visualstudio.com/_apis/graph/users",
-            body=GET_USERS_RESPONSE,
-            content_type="application/json",
-        )
-        responses.add(
-            responses.GET,
-            f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}",
-            body=WORK_ITEM_RESPONSE,
-            content_type="application/json",
-        )
-        responses.add(
-            responses.GET,
-            "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects",
-            body=GET_PROJECTS_RESPONSE,
-            content_type="application/json",
-        )
-        external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.model.id,
-            key=vsts_work_item_id,
-            title="The Little Prince",
-            description="The most beautiful things in the world cannot be seen or touched, they are felt with the heart.",
-        )
-        self.integration.sync_status_outbound(
-            external_issue, True, self.project.id
-        )  # no external project will be found
-        assert len(mock_record.mock_calls) == 2
-        start, halt = mock_record.mock_calls
-        assert start.args[0] == EventLifecycleOutcome.STARTED
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
 
     def test_get_issue_url(self):
         work_id = 345

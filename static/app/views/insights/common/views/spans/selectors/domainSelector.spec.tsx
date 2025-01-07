@@ -64,7 +64,7 @@ describe('DomainSelector', function () {
   it('allows selecting a domain', async function () {
     render(<DomainSelector moduleName={ModuleName.DB} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await selectEvent.openMenu(screen.getByText('All'));
 
@@ -93,7 +93,7 @@ describe('DomainSelector', function () {
     render(<DomainSelector moduleName={ModuleName.DB} />);
     expect(fetchMoreResponse).not.toHaveBeenCalled();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await selectEvent.openMenu(screen.getByText('All'));
 

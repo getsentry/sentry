@@ -6,7 +6,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import {OrganizationCrumb} from './organizationCrumb';
 import type {RouteWithName} from './types';
@@ -29,13 +28,12 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.load(organizations);
 
     initialData = ConfigStore.getState();
-    jest.mocked(browserHistory.push).mockReset();
     jest.mocked(window.location.assign).mockReset();
   });
 
   const switchOrganization = async () => {
     await userEvent.hover(screen.getByRole('link'));
-    await userEvent.click(screen.getAllByRole('option')[1]);
+    await userEvent.click(screen.getAllByRole('option')[1]!);
   };
 
   const renderComponent = (
@@ -67,7 +65,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
   });
 
   it('switches organizations while on API Keys Details route', async function () {
@@ -88,7 +86,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
   });
 
   it('switches organizations while on API Keys List route', async function () {
@@ -108,7 +106,7 @@ describe('OrganizationCrumb', function () {
     renderComponent({routes, route});
     await switchOrganization();
 
-    expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/api-keys/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/api-keys/'});
   });
 
   it('switches organizations while in Project Client Keys Details route', async function () {
@@ -130,7 +128,7 @@ describe('OrganizationCrumb', function () {
     });
     await switchOrganization();
 
-    expect(browserHistory.push).toHaveBeenCalledWith('/settings/org-slug2/');
+    expect(router.push).toHaveBeenCalledWith({pathname: '/settings/org-slug2/'});
   });
 
   it('switches organizations for child route with customer domains', async function () {

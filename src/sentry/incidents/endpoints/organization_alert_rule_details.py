@@ -73,7 +73,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "access": request.access,
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
-            "installations": app_service.get_installed_for_organization(
+            "installations": app_service.installations_for_organization(
                 organization_id=organization.id
             ),
         },
@@ -148,7 +148,7 @@ A list of triggers, where each trigger is an object with the following fields:
 - `label`: One of `critical` or `warning`. A `critical` trigger is always required.
 - `alertThreshold`: The value that the subscription needs to reach to trigger the
 alert rule.
-- `actions`: A list of actions that take place when the threshold is met. Set as an empty list if no actions are to take place.
+- `actions`: A list of actions that take place when the threshold is met.
 ```json
 triggers: [
     {
@@ -212,21 +212,7 @@ Metric alert rule trigger actions follow the following structure:
     owner = ActorField(
         required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
-    excludedProjects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
-    monitorType = serializers.IntegerField(
-        required=False,
-        min_value=0,
-        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
-    )
-    activationCondition = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        min_value=0,
-        help_text="Optional int that represents a trigger condition for when to start monitoring",
-    )
 
 
 @extend_schema(tags=["Alerts"])

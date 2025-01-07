@@ -12,12 +12,12 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,

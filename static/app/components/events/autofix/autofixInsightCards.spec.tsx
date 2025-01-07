@@ -122,13 +122,6 @@ describe('AutofixInsightCards', () => {
     expect(userMessage.closest('div')).toHaveStyle('color: inherit');
   });
 
-  it('renders "No insights yet" message when there are no insights', () => {
-    renderComponent({insights: []});
-    expect(
-      screen.getByText(/Autofix will share its discoveries here./)
-    ).toBeInTheDocument();
-  });
-
   it('toggles context expansion correctly', async () => {
     renderComponent();
     const contextButton = screen.getByText('Sample insight 1');
@@ -164,17 +157,29 @@ describe('AutofixInsightCards', () => {
     renderComponent();
     const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(
+        'You should know X... Dive deeper into Y... Look at Z...'
+      )
+    ).toBeInTheDocument();
   });
 
   it('hides rethink input overlay when clicked outside', async () => {
     renderComponent();
     const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
-    expect(screen.getByPlaceholderText('Say something...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(
+        'You should know X... Dive deeper into Y... Look at Z...'
+      )
+    ).toBeInTheDocument();
 
     await userEvent.click(document.body);
-    expect(screen.queryByPlaceholderText('Say something...')).not.toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(
+        'You should know X... Dive deeper into Y... Look at Z...'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('submits rethink request when form is submitted', async () => {
@@ -187,7 +192,9 @@ describe('AutofixInsightCards', () => {
     const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText(
+      'You should know X... Dive deeper into Y... Look at Z...'
+    );
     await userEvent.type(input, 'Rethink this part');
 
     const submitButton = screen.getByLabelText(
@@ -222,7 +229,9 @@ describe('AutofixInsightCards', () => {
     const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText(
+      'You should know X... Dive deeper into Y... Look at Z...'
+    );
     await userEvent.type(input, 'Rethink this part');
 
     const submitButton = screen.getByLabelText(
@@ -246,7 +255,9 @@ describe('AutofixInsightCards', () => {
     const rethinkButton = screen.getByRole('button', {name: 'Rethink from here'});
     await userEvent.click(rethinkButton);
 
-    const input = screen.getByPlaceholderText('Say something...');
+    const input = screen.getByPlaceholderText(
+      'You should know X... Dive deeper into Y... Look at Z...'
+    );
     await userEvent.type(input, 'Rethink this part');
 
     const submitButton = screen.getByLabelText(

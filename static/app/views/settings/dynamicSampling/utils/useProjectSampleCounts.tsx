@@ -106,17 +106,14 @@ export function useProjectSampleCounts({period}: {period: ProjectionSamplePeriod
 
   const items = useMemo(
     () =>
-      projectEntries
-        .entries()
-        .map<ProjectSampleCount>(([key, value]) => {
-          return {
-            project: projectBySlug[key],
-            count: value.count,
-            ownCount: value.ownCount,
-            subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
-          };
-        })
-        .toArray(),
+      Array.from(projectEntries.entries()).map<ProjectSampleCount>(([key, value]) => {
+        return {
+          project: projectBySlug[key]!,
+          count: value.count,
+          ownCount: value.ownCount,
+          subProjects: value.subProjects.toSorted((a, b) => b.count - a.count),
+        };
+      }),
     [projectBySlug, projectEntries]
   );
 

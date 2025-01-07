@@ -35,6 +35,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.types import DatasetQuery
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaError
@@ -55,13 +56,14 @@ class DiscoverDatasetSplitException(Exception):
     pass
 
 
-ALLOWED_EVENTS_REFERRERS = {
+ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_ORGANIZATION_EVENTS.value,
     Referrer.API_ORGANIZATION_EVENTS_V2.value,
     Referrer.API_DASHBOARDS_TABLEWIDGET.value,
     Referrer.API_DASHBOARDS_BIGNUMBERWIDGET.value,
     Referrer.API_DISCOVER_TRANSACTIONS_LIST.value,
     Referrer.API_DISCOVER_QUERY_TABLE.value,
+    Referrer.API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR.value,
     Referrer.API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE.value,
     Referrer.API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT.value,
@@ -70,12 +72,24 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
     Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_COLD_START.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_WARM_START.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ISSUES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA.value,
+    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
@@ -155,10 +169,13 @@ ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_PERFORMANCE_MOBILE_UI_METRICS_RIBBON.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_HEADER_DATA.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TABLE.value,
-    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE,
+    Referrer.API_EXPLORE_SPANS_AGGREGATES_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_SAMPLES_TABLE.value,
+    Referrer.API_EXPLORE_SPANS_EXTRAPOLATION_META.value,
+    Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
+    Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
 }
 
-API_TOKEN_REFERRER = Referrer.API_AUTH_TOKEN_EVENTS.value
 
 LEGACY_RATE_LIMIT = dict(limit=30, window=1, concurrent_limit=15)
 # reduced limit will be the future default for all organizations not explicitly on increased limit
@@ -261,8 +278,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
     enforce_rate_limit = True
 
-    def rate_limits(*args, **kwargs) -> dict[str, dict[RateLimitCategory, RateLimit]]:
-        return rate_limit_events(*args, **kwargs)
+    rate_limits = rate_limit_events
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
@@ -283,11 +299,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
 
-        all_features = (
-            batch_features.get(f"organization:{organization.id}", {})
-            if batch_features is not None
-            else {}
-        )
+        all_features: dict[str, bool] = {}
+
+        if batch_features is not None:
+            for feature_name, result in batch_features.get(
+                f"organization:{organization.id}", {}
+            ).items():
+                all_features[feature_name] = bool(result)
 
         for feature_name in feature_names:
             if feature_name not in all_features:
@@ -367,7 +385,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 }
             )
         except InvalidParams as err:
-            raise ParseError(err)
+            raise ParseError(detail=str(err))
 
         batch_features = self.get_features(organization, request)
 
@@ -406,7 +424,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            referrer = API_TOKEN_REFERRER
+            referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+        elif referrer is None:
+            referrer = Referrer.API_ORGANIZATION_EVENTS.value
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             if referrer:
                 with sentry_sdk.isolation_scope() as scope:
@@ -419,12 +439,18 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         use_aggregate_conditions = request.GET.get("allowAggregateConditions", "1") == "1"
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
+        sentry_sdk.set_tag("performance.use_rpc", use_rpc)
 
-        def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+        def _data_fn(
+            dataset_query: DatasetQuery,
+            offset: int,
+            limit: int,
+            query: str | None,
+        ):
             if use_rpc and dataset == spans_eap:
                 return spans_rpc.run_table_query(
                     params=snuba_params,
-                    query_string=query,
+                    query_string=query or "",
                     selected_columns=self.get_field_list(organization, request),
                     orderby=self.get_orderby(request),
                     offset=offset,
@@ -436,9 +462,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     ),
                 )
             query_source = self.get_request_source(request)
-            return scoped_dataset.query(
+            return dataset_query(
                 selected_columns=self.get_field_list(organization, request),
-                query=query,
+                query=query or "",
                 snuba_params=snuba_params,
                 equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
@@ -447,24 +473,30 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 referrer=referrer,
                 auto_fields=True,
                 auto_aggregations=True,
-                use_aggregate_conditions=use_aggregate_conditions,
                 allow_metric_aggregates=allow_metric_aggregates,
+                use_aggregate_conditions=use_aggregate_conditions,
                 transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
                 has_metrics=use_metrics,
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
-                query_source=query_source,
                 fallback_to_transactions=features.has(
                     "organizations:performance-discover-dataset-selector",
                     organization,
                     actor=request.user,
                 ),
+                query_source=query_source,
             )
 
         @sentry_sdk.tracing.trace
-        def _dashboards_data_fn(scoped_dataset, offset, limit, scoped_query, dashboard_widget_id):
+        def _dashboards_data_fn(
+            scoped_dataset_query: DatasetQuery,
+            offset: int,
+            limit: int,
+            scoped_query: str | None,
+            dashboard_widget_id: str,
+        ):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
@@ -475,27 +507,29 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 )
 
                 if does_widget_have_split and not has_override_feature:
+                    dataset_query: DatasetQuery
+
                     # This is essentially cached behaviour and we skip the check
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                        split_dataset = errors
+                        dataset_query = errors.query
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
-                        split_dataset = scoped_dataset
+                        dataset_query = scoped_dataset_query
                     else:
-                        split_dataset = discover
+                        dataset_query = discover.query
 
-                    return _data_fn(split_dataset, offset, limit, scoped_query)
+                    return _data_fn(dataset_query, offset, limit, scoped_query)
 
                 with handle_query_errors():
                     try:
-                        error_results = _data_fn(errors, offset, limit, scoped_query)
+                        error_results = _data_fn(errors.query, offset, limit, scoped_query)
                         # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                         has_errors = len(error_results["data"]) > 0
                     except SnubaError:
                         has_errors = False
                         error_results = None
 
-                    original_results = _data_fn(scoped_dataset, offset, limit, scoped_query)
+                    original_results = _data_fn(scoped_dataset_query, offset, limit, scoped_query)
                     if original_results.get("data") is not None:
                         dataset_meta = original_results.get("meta", {})
                     else:
@@ -512,7 +546,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     if has_errors and has_other_data and not using_metrics:
                         # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                         sentry_sdk.set_tag("third_split_query", True)
-                        transaction_results = _data_fn(transactions, offset, limit, scoped_query)
+                        transaction_results = _data_fn(
+                            transactions.query, offset, limit, scoped_query
+                        )
                         has_transactions = len(transaction_results["data"]) > 0
 
                     decision = self.save_split_decision(
@@ -520,7 +556,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
-                        return _data_fn(discover, offset, limit, scoped_query)
+                        return _data_fn(discover.query, offset, limit, scoped_query)
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
                         original_results["meta"]["discoverSplitDecision"] = (
                             DashboardWidgetTypes.get_type_name(
@@ -538,13 +574,19 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 if isinstance(e, ParseError):
-                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
         @sentry_sdk.tracing.trace
-        def _discover_data_fn(scoped_dataset, offset, limit, scoped_query, discover_saved_query_id):
+        def _discover_data_fn(
+            scoped_dataset_query: DatasetQuery,
+            offset: int,
+            limit: int,
+            scoped_query: str | None,
+            discover_saved_query_id: str,
+        ):
             try:
                 discover_query = DiscoverSavedQuery.objects.get(
                     id=discover_saved_query_id, organization=organization
@@ -553,7 +595,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     discover_query.dataset is not DiscoverSavedQueryTypes.DISCOVER
                 )
                 if does_widget_have_split:
-                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
@@ -564,9 +606,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                 # See if we can infer which dataset based on selected columns and query string.
                 with handle_query_errors():
-                    if dataset_inferred_from_query is not None:
+                    if (
+                        dataset := SAVED_QUERY_DATASET_MAP.get(dataset_inferred_from_query)
+                    ) is not None:
                         result = _data_fn(
-                            SAVED_QUERY_DATASET_MAP[dataset_inferred_from_query],
+                            dataset.query,
                             offset,
                             limit,
                             scoped_query,
@@ -590,11 +634,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         with ThreadPoolExecutor(max_workers=3) as exe:
                             futures = {
                                 exe.submit(
-                                    _data_fn, get_dataset(dataset_), offset, limit, scoped_query
-                                ): dataset_
-                                for dataset_ in [
-                                    "errors",
-                                    "transactions",
+                                    _data_fn, dataset_query, offset, limit, scoped_query
+                                ): dataset_name
+                                for dataset_name, dataset_query in [
+                                    ("errors", errors.query),
+                                    ("transactions", transactions.query),
                                 ]
                             }
 
@@ -648,10 +692,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 if isinstance(e, ParseError):
-                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
         def data_fn_factory(scoped_dataset):
             """
@@ -665,17 +709,17 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
             discover_saved_query_id = request.GET.get("discoverSavedQueryId", None)
 
-            def fn(offset, limit) -> dict[str, Any]:
+            def fn(offset, limit):
                 if save_discover_dataset_decision and discover_saved_query_id:
                     return _discover_data_fn(
-                        scoped_dataset, offset, limit, scoped_query, discover_saved_query_id
+                        scoped_dataset.query, offset, limit, scoped_query, discover_saved_query_id
                     )
 
                 if not (metrics_enhanced and dashboard_widget_id):
-                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset.query, offset, limit, scoped_query)
 
                 return _dashboards_data_fn(
-                    scoped_dataset, offset, limit, scoped_query, dashboard_widget_id
+                    scoped_dataset.query, offset, limit, scoped_query, dashboard_widget_id
                 )
 
             return fn

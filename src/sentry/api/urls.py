@@ -83,9 +83,9 @@ from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
     OrganizationFlagLogIndexEndpoint,
 )
-from sentry.flags.endpoints.secrets import OrganizationFlagsWebHookSigningSecretEndpoint
-from sentry.incidents.endpoints.organization_alert_rule_activations import (
-    OrganizationAlertRuleActivationsEndpoint,
+from sentry.flags.endpoints.secrets import (
+    OrganizationFlagsWebHookSigningSecretEndpoint,
+    OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
 from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
     OrganizationAlertRuleAnomaliesEndpoint,
@@ -100,23 +100,10 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     OrganizationAlertRuleIndexEndpoint,
     OrganizationCombinedRuleIndexEndpoint,
 )
-from sentry.incidents.endpoints.organization_incident_activity_index import (
-    OrganizationIncidentActivityIndexEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_details import (
-    OrganizationIncidentCommentDetailsEndpoint,
-)
-from sentry.incidents.endpoints.organization_incident_comment_index import (
-    OrganizationIncidentCommentIndexEndpoint,
-)
 from sentry.incidents.endpoints.organization_incident_details import (
     OrganizationIncidentDetailsEndpoint,
 )
 from sentry.incidents.endpoints.organization_incident_index import OrganizationIncidentIndexEndpoint
-from sentry.incidents.endpoints.organization_incident_seen import OrganizationIncidentSeenEndpoint
-from sentry.incidents.endpoints.organization_incident_subscription_index import (
-    OrganizationIncidentSubscriptionIndexEndpoint,
-)
 from sentry.incidents.endpoints.project_alert_rule_details import ProjectAlertRuleDetailsEndpoint
 from sentry.incidents.endpoints.project_alert_rule_index import ProjectAlertRuleIndexEndpoint
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
@@ -188,7 +175,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -323,6 +309,11 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
+from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
+from sentry.uptime.endpoints.organiation_uptime_alert_index import (
+    OrganizationUptimeAlertIndexEndpoint,
+)
 from sentry.uptime.endpoints.project_uptime_alert_details import ProjectUptimeAlertDetailsEndpoint
 from sentry.uptime.endpoints.project_uptime_alert_index import ProjectUptimeAlertIndexEndpoint
 from sentry.users.api.endpoints.authenticator_index import AuthenticatorIndexEndpoint
@@ -350,6 +341,7 @@ from sentry.users.api.endpoints.user_role_details import UserUserRoleDetailsEndp
 from sentry.users.api.endpoints.user_roles import UserUserRolesEndpoint
 from sentry.users.api.endpoints.userroles_details import UserRoleDetailsEndpoint
 from sentry.users.api.endpoints.userroles_index import UserRolesEndpoint
+from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -385,7 +377,6 @@ from .endpoints.debug_files import (
     SourceMapsEndpoint,
     UnknownDebugFilesEndpoint,
 )
-from .endpoints.event_ai_suggested_fix import EventAiSuggestedFixEndpoint
 from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
@@ -443,6 +434,7 @@ from .endpoints.organization_codeowners_associations import (
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
+    OrganizationDashboardFavoriteEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from .endpoints.organization_dashboard_widget_details import (
@@ -501,9 +493,6 @@ from .endpoints.organization_member import (
     OrganizationMemberIndexEndpoint,
 )
 from .endpoints.organization_member.team_details import OrganizationMemberTeamDetailsEndpoint
-from .endpoints.organization_member_unreleased_commits import (
-    OrganizationMemberUnreleasedCommitsEndpoint,
-)
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
 from .endpoints.organization_metrics_meta import (
@@ -511,7 +500,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibilitySums,
 )
 from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
-from .endpoints.organization_metrics_samples import OrganizationMetricsSamplesEndpoint
 from .endpoints.organization_metrics_tag_details import OrganizationMetricsTagDetailsEndpoint
 from .endpoints.organization_metrics_tags import OrganizationMetricsTagsEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
@@ -525,7 +513,6 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
-    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
     OrganizationProfilingHasChunksEndpoint,
 )
@@ -573,9 +560,6 @@ from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
-)
-from .endpoints.organization_transaction_anomaly_detection import (
-    OrganizationTransactionAnomalyDetectionEndpoint,
 )
 from .endpoints.organization_user_details import OrganizationUserDetailsEndpoint
 from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
@@ -808,11 +792,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/first-last-release/$",
             GroupFirstLastReleaseEndpoint.as_view(),
             name=f"{name_prefix}-group-first-last-release",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/participants/$",
-            GroupParticipantsEndpoint.as_view(),
-            name=f"{name_prefix}-group-participants",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/$",
@@ -1174,11 +1153,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-alert-rule-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
-        OrganizationAlertRuleActivationsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-activations",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",
         OrganizationAlertRuleAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-anomalies",
@@ -1207,21 +1181,6 @@ ORGANIZATION_URLS = [
     ),
     # Incidents
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/activity/$",
-        OrganizationIncidentActivityIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-activity",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/$",
-        OrganizationIncidentCommentIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comments",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/comments/(?P<activity_id>[^\/]+)/$",
-        OrganizationIncidentCommentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-comment-details",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/$",
         OrganizationIncidentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-incident-details",
@@ -1230,16 +1189,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/incidents/$",
         OrganizationIncidentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-incident-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/seen/$",
-        OrganizationIncidentSeenEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-seen",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/incidents/(?P<incident_identifier>[^\/]+)/subscriptions/$",
-        OrganizationIncidentSubscriptionIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-incident-subscription-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/chunk-upload/$",
@@ -1334,6 +1283,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/visit/$",
         OrganizationDashboardVisitEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-visit",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/(?P<dashboard_id>[^\/]+)/favorite/$",
+        OrganizationDashboardFavoriteEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-favorite",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/shortids/(?P<short_id>[^\/]+)/$",
@@ -1806,11 +1760,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-member-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/unreleased-commits/$",
-        OrganizationMemberUnreleasedCommitsEndpoint.as_view(),
-        name="sentry-api-0-organization-member-unreleased-commits",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/teams/(?P<team_id_or_slug>[^\/]+)/$",
         OrganizationMemberTeamDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-member-team-details",
@@ -2036,11 +1985,6 @@ ORGANIZATION_URLS = [
         OrganizationJoinRequestEndpoint.as_view(),
         name="sentry-api-0-organization-join-request",
     ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/transaction-anomaly-detection/$",
-        OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
-        name="sentry-api-0-organization-transaction-anomaly-detection",
-    ),
     # relay usage
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/relay_usage/$",
@@ -2064,7 +2008,12 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-flag-hooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/flags/hooks/provider/(?P<provider>[\w-]+)/signing-secret/$",
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/$",
+        OrganizationFlagsWebHookSigningSecretsEndpoint.as_view(),
+        name="sentry-api-0-organization-flag-hooks-signing-secrets",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/flags/signing-secrets/(?P<signing_secret_id>\d+)/$",
         OrganizationFlagsWebHookSigningSecretEndpoint.as_view(),
         name="sentry-api-0-organization-flag-hooks-signing-secret",
     ),
@@ -2152,11 +2101,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-query",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/samples/$",
-        OrganizationMetricsSamplesEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-samples",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/metrics/tags/$",
         OrganizationMetricsTagsEndpoint.as_view(),
         name="sentry-api-0-organization-metrics-tags",
@@ -2174,11 +2118,6 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
-                ),
-                re_path(
-                    r"^chunks-flamegraph/$",
-                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
@@ -2248,6 +2187,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/fork/$",
         OrganizationForkEndpoint.as_view(),
         name="sentry-api-0-organization-fork",
+    ),
+    # Uptime
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/uptime/$",
+        OrganizationUptimeAlertIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-uptime-alert-index",
     ),
 ]
 
@@ -2321,11 +2266,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/grouping-info/$",
         EventGroupingInfoEndpoint.as_view(),
         name="sentry-api-0-event-grouping-info",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/ai-fix-suggest/$",
-        EventAiSuggestedFixEndpoint.as_view(),
-        name="sentry-api-0-event-ai-fix-suggest",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/apple-crash-report$",
@@ -2844,6 +2784,18 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         ProjectUptimeAlertIndexEndpoint.as_view(),
         name="sentry-api-0-project-uptime-alert-index",
     ),
+    # Tempest
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/$",
+        TempestCredentialsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/(?P<tempest_credentials_id>\d+)/$",
+        TempestCredentialsDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-tempest-credentials-details",
+    ),
+    *workflow_urls.urlpatterns,
 ]
 
 TEAM_URLS = [

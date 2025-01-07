@@ -1,22 +1,22 @@
-import {Fragment, useMemo} from 'react';
+import type {Dispatch, SetStateAction} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import {GridResizer} from 'sentry/components/gridEditable/styles';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
-import type {NewQuery} from 'sentry/types/organization';
+import type {Confidence, NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
-import type {Sort} from 'sentry/utils/discover/fields';
 import {
   fieldAlignment,
-  formatParsedFunction,
-  getAggregateAlias,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -27,43 +27,69 @@ import {
   TableBodyCell,
   TableHead,
   TableHeadCell,
+  TableHeadCellContent,
   TableRow,
   TableStatus,
   useTableStyles,
 } from 'sentry/views/explore/components/table';
+import {
+  useExploreDataset,
+  useExploreGroupBys,
+  useExploreQuery,
+  useExploreSortBys,
+  useExploreTitle,
+  useExploreVisualizes,
+  useSetExploreSortBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
-import {useDataset} from 'sentry/views/explore/hooks/useDataset';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
-import {useSorts} from 'sentry/views/explore/hooks/useSorts';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {useUserQuery} from 'sentry/views/explore/hooks/useUserQuery';
-import {useVisualizes} from 'sentry/views/explore/hooks/useVisualizes';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 import {FieldRenderer} from './fieldRenderer';
 
-export function formatSort(sort: Sort): string {
-  const direction = sort.kind === 'desc' ? '-' : '';
-  return `${direction}${getAggregateAlias(sort.field)}`;
+interface AggregatesTableProps {
+  confidence: Confidence;
+  setError: Dispatch<SetStateAction<string>>;
 }
 
-interface AggregatesTableProps {}
-
-export function AggregatesTable({}: AggregatesTableProps) {
+export function AggregatesTable({confidence, setError}: AggregatesTableProps) {
   const {selection} = usePageFilters();
   const topEvents = useTopEvents();
   const organization = useOrganization();
-  const [dataset] = useDataset();
-  const {groupBys} = useGroupBys();
-  const [visualizes] = useVisualizes();
+  const title = useExploreTitle();
+  const dataset = useExploreDataset();
+  const groupBys = useExploreGroupBys();
+  const visualizes = useExploreVisualizes();
+
   const fields = useMemo(() => {
-    return [...groupBys, ...visualizes.flatMap(visualize => visualize.yAxes)].filter(
-      Boolean
-    );
+    // When rendering the table, we want the group bys first
+    // then the aggregates.
+    const allFields: string[] = [];
+
+    for (const groupBy of groupBys) {
+      if (allFields.includes(groupBy)) {
+        continue;
+      }
+      allFields.push(groupBy);
+    }
+
+    for (const visualize of visualizes) {
+      for (const yAxis of visualize.yAxes) {
+        if (allFields.includes(yAxis)) {
+          continue;
+        }
+        allFields.push(yAxis);
+      }
+    }
+
+    return allFields.filter(Boolean);
   }, [groupBys, visualizes]);
-  const [sorts, setSorts] = useSorts({fields});
-  const [query] = useUserQuery();
+
+  const sorts = useExploreSortBys();
+  const setSorts = useSetExploreSortBys();
+  const query = useExploreQuery();
 
   const eventView = useMemo(() => {
     const search = new MutableSearch(query);
@@ -94,7 +120,12 @@ export function AggregatesTable({}: AggregatesTableProps) {
     referrer: 'api.explore.spans-aggregates-table',
   });
 
+  useEffect(() => {
+    setError(result.error?.message ?? '');
+  }, [setError, result.error?.message]);
+
   useAnalytics({
+    dataset,
     resultLength: result.data?.length,
     resultMode: 'aggregates',
     resultStatus: result.status,
@@ -102,16 +133,12 @@ export function AggregatesTable({}: AggregatesTableProps) {
     organization,
     columns: groupBys,
     userQuery: query,
+    confidence,
+    title,
   });
 
-  const {tableStyles} = useTableStyles({
-    items: fields.map(field => {
-      return {
-        label: field,
-        value: field,
-      };
-    }),
-  });
+  const tableRef = useRef<HTMLTableElement>(null);
+  const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef);
 
   const meta = result.meta ?? {};
 
@@ -120,7 +147,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
 
   return (
     <Fragment>
-      <Table style={tableStyles}>
+      <Table ref={tableRef} styles={initialTableStyles}>
         <TableHead>
           <TableRow>
             {fields.map((field, i) => {
@@ -140,7 +167,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
 
               const func = parseFunction(field);
               if (func) {
-                label = formatParsedFunction(func);
+                label = prettifyParsedFunction(func);
               }
 
               const direction = sorts.find(s => s.field === field)?.kind;
@@ -151,26 +178,33 @@ export function AggregatesTable({}: AggregatesTableProps) {
               }
 
               return (
-                <StyledTableHeadCell
-                  align={align}
-                  key={i}
-                  isFirst={i === 0}
-                  onClick={updateSort}
-                >
-                  <span>{label}</span>
-                  {defined(direction) && (
-                    <IconArrow
-                      size="xs"
-                      direction={
-                        direction === 'desc'
-                          ? 'down'
-                          : direction === 'asc'
-                            ? 'up'
-                            : undefined
+                <TableHeadCell align={align} key={i} isFirst={i === 0}>
+                  <TableHeadCellContent onClick={updateSort}>
+                    <span>{label}</span>
+                    {defined(direction) && (
+                      <IconArrow
+                        size="xs"
+                        direction={
+                          direction === 'desc'
+                            ? 'down'
+                            : direction === 'asc'
+                              ? 'up'
+                              : undefined
+                        }
+                      />
+                    )}
+                  </TableHeadCellContent>
+                  {i !== fields.length - 1 && (
+                    <GridResizer
+                      dataRows={
+                        !result.isError && !result.isPending && result.data
+                          ? result.data.length
+                          : 0
                       }
+                      onMouseDown={e => onResizeMouseDown(e, i)}
                     />
                   )}
-                </StyledTableHeadCell>
+                </TableHeadCell>
               );
             })}
           </TableRow>
@@ -194,7 +228,7 @@ export function AggregatesTable({}: AggregatesTableProps) {
                         <TopResultsIndicator index={i} />
                       )}
                       <FieldRenderer
-                        column={columns[j]}
+                        column={columns[j]!}
                         data={row}
                         unit={meta?.units?.[field]}
                         meta={meta}
@@ -227,10 +261,6 @@ const TopResultsIndicator = styled('div')<{index: number}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => {
-    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1][p.index];
+    return CHART_PALETTE[TOP_EVENTS_LIMIT - 1]![p.index];
   }};
-`;
-
-const StyledTableHeadCell = styled(TableHeadCell)`
-  cursor: pointer;
 `;

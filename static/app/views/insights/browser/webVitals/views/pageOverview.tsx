@@ -3,20 +3,17 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {AggregateSpans} from 'sentry/components/events/interfaces/spans/aggregateSpans';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -27,14 +24,13 @@ import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/we
 import {PageSamplePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pageSamplePerformanceTable';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -70,12 +66,13 @@ function getCurrentTabSelection(selectedTab) {
 }
 
 export function PageOverview() {
+  const navigate = useNavigate();
   const moduleURL = useModuleURL('vital');
   const organization = useOrganization();
   const location = useLocation();
   const {projects} = useProjects();
   const router = useRouter();
-  const {isInDomainView, view} = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
   const transaction = location.query.transaction
     ? Array.isArray(location.query.transaction)
       ? location.query.transaction[0]
@@ -94,8 +91,6 @@ export function PageOverview() {
   const [state, setState] = useState<{webVital: WebVitals | null}>({
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
-
-  const crumbs = useModuleBreadcrumbs('vital');
 
   const query = decodeScalar(location.query.query);
   const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
@@ -132,14 +127,14 @@ export function PageOverview() {
   const projectScore =
     isProjectScoresLoading || isPending
       ? undefined
-      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
+      : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
 
   const handleTabChange = (value: string) => {
     trackAnalytics('insight.vital.overview.toggle_tab', {
       organization,
       tab: value,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -151,81 +146,43 @@ export function PageOverview() {
   return (
     <React.Fragment>
       <Tabs value={tab} onChange={handleTabChange}>
-        {!isInDomainView && (
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
-              />
-              <Layout.Title>
-                {transaction && project && <ProjectAvatar project={project} size={24} />}
-                {transaction ?? t('Page Loads')}
-              </Layout.Title>
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <FeedbackWidgetButton />
-                {transactionSummaryTarget && (
-                  <LinkButton
-                    to={transactionSummaryTarget}
-                    onClick={() => {
-                      trackAnalytics('insight.vital.overview.open_transaction_summary', {
-                        organization,
-                      });
-                    }}
-                    size="sm"
-                  >
-                    {t('View Transaction Summary')}
-                  </LinkButton>
-                )}
-              </ButtonBar>
-            </Layout.HeaderActions>
-            <TabList hideBorder>
-              {LANDING_DISPLAYS.map(({label, field}) => (
-                <TabList.Item key={field}>{label}</TabList.Item>
-              ))}
-            </TabList>
-          </Layout.Header>
-        )}
-        {isInDomainView && (
-          <FrontendHeader
-            headerTitle={
-              <Fragment>
-                {transaction && project && <ProjectAvatar project={project} size={24} />}
-                {transaction ?? t('Page Loads')}
-              </Fragment>
-            }
-            headerActions={
-              transactionSummaryTarget && (
-                <LinkButton
-                  to={transactionSummaryTarget}
-                  onClick={() => {
-                    trackAnalytics('insight.vital.overview.open_transaction_summary', {
-                      organization,
-                    });
-                  }}
-                  size="sm"
-                >
-                  {t('View Transaction Summary')}
-                </LinkButton>
-              )
-            }
-            hideDefaultTabs
-            tabs={{
-              value: tab,
-              onTabChange: handleTabChange,
-              tabList: (
-                <TabList hideBorder>
-                  {LANDING_DISPLAYS.map(({label, field}) => (
-                    <TabList.Item key={field}>{label}</TabList.Item>
-                  ))}
-                </TabList>
-              ),
-            }}
-            breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
-            module={ModuleName.VITAL}
-          />
-        )}
+        <FrontendHeader
+          headerTitle={
+            <Fragment>
+              {transaction && project && <ProjectAvatar project={project} size={24} />}
+              {transaction ?? t('Page Loads')}
+            </Fragment>
+          }
+          headerActions={
+            transactionSummaryTarget && (
+              <LinkButton
+                to={transactionSummaryTarget}
+                onClick={() => {
+                  trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                    organization,
+                  });
+                }}
+                size="sm"
+              >
+                {t('View Summary')}
+              </LinkButton>
+            )
+          }
+          hideDefaultTabs
+          tabs={{
+            value: tab,
+            onTabChange: handleTabChange,
+            tabList: (
+              <TabList hideBorder>
+                {LANDING_DISPLAYS.map(({label, field}) => (
+                  <TabList.Item key={field}>{label}</TabList.Item>
+                ))}
+              </TabList>
+            ),
+          }}
+          breadcrumbs={transaction ? [{label: 'Page Summary'}] : []}
+          module={ModuleName.VITAL}
+        />
         <ModuleBodyUpsellHook moduleName={ModuleName.VITAL}>
           {tab === LandingDisplayField.SPANS ? (
             <Layout.Body>
@@ -299,7 +256,7 @@ export function PageOverview() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+    <ModulePageProviders moduleName="vital">
       <PageOverview />
     </ModulePageProviders>
   );

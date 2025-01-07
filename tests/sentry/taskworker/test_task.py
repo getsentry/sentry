@@ -1,7 +1,7 @@
 import datetime
-import logging
 
 import pytest
+import sentry_sdk
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace
@@ -12,7 +12,7 @@ from sentry.utils import json
 
 
 def do_things() -> None:
-    logging.info("Ran do_things")
+    raise NotImplementedError
 
 
 @pytest.fixture
@@ -30,6 +30,18 @@ def test_define_task_retry(task_namespace: TaskNamespace) -> None:
     retry = Retry(times=3, times_exceeded=LastAction.Deadletter)
     task = Task(name="test.do_things", func=do_things, namespace=task_namespace, retry=retry)
     assert task.retry == retry
+
+
+def test_define_task_at_most_once_with_retry(task_namespace: TaskNamespace):
+    with pytest.raises(AssertionError) as err:
+        Task(
+            name="test.do_things",
+            func=do_things,
+            namespace=task_namespace,
+            at_most_once=True,
+            retry=Retry(times=3),
+        )
+    assert "You cannot enable at_most_once and have retries" in str(err)
 
 
 def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
@@ -110,6 +122,12 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
         processing_deadline_duration=30,
     )
 
+    at_most_once_task = Task(
+        name="test.at_most_once",
+        func=do_things,
+        namespace=task_namespace,
+        at_most_once=True,
+    )
     # No retries will be made as there is no retry policy on the task or namespace.
     activation = no_retry_task.create_activation()
     assert activation.taskname == "test.no_retry"
@@ -136,14 +154,36 @@ def test_create_activation(task_namespace: TaskNamespace) -> None:
     assert activation.expires == 300
     assert activation.processing_deadline_duration == 30
 
+    activation = at_most_once_task.create_activation()
+    assert activation.taskname == "test.at_most_once"
+    assert activation.namespace == task_namespace.name
+    assert activation.retry_state
+    assert activation.retry_state.at_most_once is True
+    assert activation.retry_state.attempts == 0
+    assert activation.retry_state.discard_after_attempt == 1
+    assert activation.retry_state.deadletter_after_attempt == 0
+
 
 def test_create_activation_parameters(task_namespace: TaskNamespace) -> None:
     @task_namespace.register(name="test.parameters")
     def with_parameters(one: str, two: int, org_id: int) -> None:
-        pass
+        raise NotImplementedError
 
     activation = with_parameters.create_activation("one", 22, org_id=99)
     params = json.loads(activation.parameters)
     assert params["args"]
     assert params["args"] == ["one", 22]
     assert params["kwargs"] == {"org_id": 99}
+
+
+def test_create_activation_tracing(task_namespace: TaskNamespace) -> None:
+    @task_namespace.register(name="test.parameters")
+    def with_parameters(one: str, two: int, org_id: int) -> None:
+        raise NotImplementedError
+
+    with sentry_sdk.start_transaction(op="test.task"):
+        activation = with_parameters.create_activation("one", 22, org_id=99)
+
+    headers = activation.headers
+    assert headers["sentry-trace"]
+    assert "baggage" in headers

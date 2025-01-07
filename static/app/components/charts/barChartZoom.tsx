@@ -3,7 +3,11 @@ import type {Location} from 'history';
 
 import DataZoomInside from 'sentry/components/charts/components/dataZoomInside';
 import ToolBox from 'sentry/components/charts/components/toolBox';
-import type {EChartChartReadyHandler, EChartDataZoomHandler} from 'sentry/types/echarts';
+import type {
+  EChartChartReadyHandler,
+  EChartDataZoomHandler,
+  ECharts,
+} from 'sentry/types/echarts';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 type RenderProps = {
@@ -69,7 +73,7 @@ class BarChartZoom extends Component<Props> {
   /**
    * Enable zoom immediately instead of having to toggle to zoom
    */
-  handleChartReady = chart => {
+  handleChartReady = (chart: ECharts) => {
     this.props.onChartReady?.(chart);
   };
 
@@ -108,8 +112,8 @@ class BarChartZoom extends Component<Props> {
     if (startValue !== null && endValue !== null) {
       const {buckets, location, paramStart, paramEnd, minZoomWidth, onHistoryPush} =
         this.props;
-      const {start} = buckets[startValue];
-      const {end} = buckets[endValue];
+      const {start} = buckets[startValue]!;
+      const {end} = buckets[endValue]!;
 
       if (minZoomWidth === undefined || end - start > minZoomWidth) {
         const target = {

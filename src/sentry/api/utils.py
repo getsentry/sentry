@@ -234,6 +234,35 @@ def get_date_range_from_stats_period(
     return start, end
 
 
+def clamp_date_range(
+    range: tuple[datetime.datetime, datetime.datetime], max_timedelta: datetime.timedelta
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Accepts a date range and a maximum time delta. If the date range is shorter
+    than the max delta, returns the range as-is. If the date range is longer than the max delta, clamps the range range, anchoring to the end.
+
+    If any of the inputs are invalid (e.g., a negative range) returns the range
+    without modifying it.
+
+    :param range: A tuple of two `datetime.datetime` objects
+    :param max_timedelta: Maximum allowed range delta
+    :return: A tuple of two `datetime.datetime` objects
+    """
+
+    [start, end] = range
+    delta = end - start
+
+    # Ignore negative max time deltas
+    if max_timedelta < datetime.timedelta(0):
+        return (start, end)
+
+    # Ignore if delta is within acceptable range
+    if delta < max_timedelta:
+        return (start, end)
+
+    return (end - max_timedelta, end)
+
+
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(

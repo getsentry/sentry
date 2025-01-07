@@ -1,6 +1,7 @@
 from sentry.api.bases.project import ProjectAndStaffPermission, ProjectPermission
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.requests import drf_request_from_request
 from sentry.users.services.user.serial import serialize_rpc_user
 
 
@@ -14,7 +15,10 @@ class ProjectPermissionBase(TestCase):
         request = self.make_request(
             user=user, auth=auth, method=method, is_superuser=is_superuser, is_staff=is_staff
         )
-        return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
+        drf_request = drf_request_from_request(request)
+        return perm.has_permission(drf_request, None) and perm.has_object_permission(
+            drf_request, None, obj
+        )
 
 
 class ProjectPermissionTest(ProjectPermissionBase):
@@ -423,9 +427,12 @@ class ProjectAndStaffPermissionTest(ProjectPermissionBase):
         staff_user = self.create_user(is_staff=True)
         self.login_as(user=staff_user, staff=True)
         request = self.make_request(user=serialize_rpc_user(staff_user), is_staff=True)
+        drf_request = drf_request_from_request(request)
         permission = self.permission_cls()
 
         self.organization.flags.require_2fa = True
         self.organization.save()
 
-        assert not permission.is_not_2fa_compliant(request=request, organization=self.organization)
+        assert not permission.is_not_2fa_compliant(
+            request=drf_request, organization=self.organization
+        )

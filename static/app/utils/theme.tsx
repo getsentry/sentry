@@ -417,7 +417,7 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
+  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
 };
 
 /**
@@ -743,6 +743,9 @@ const commonTheme = {
 
     globalSelectionHeader: 1009,
 
+    // needs to be below sidebar
+    widgetBuilderDrawer: 1016,
+
     settingsSidebarNavMask: 1017,
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
@@ -926,7 +929,7 @@ const commonTheme = {
 
     // We have an array that maps `number + 1` --> list of `number` colors
     getColorPalette: (length: number) =>
-      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)] as string[],
+      CHART_PALETTE[Math.min(CHART_PALETTE.length - 1, length + 1)],
 
     previousPeriod: lightColors.gray200,
     symbolSize: 6,

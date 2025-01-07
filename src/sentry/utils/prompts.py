@@ -22,6 +22,8 @@ DEFAULT_PROMPTS = {
     "issue_feature_flags_inline_onboarding": {"required_fields": ["organization_id", "project_id"]},
     "issue_feedback_hidden": {"required_fields": ["organization_id", "project_id"]},
     "issue_views_add_view_banner": {"required_fields": ["organization_id"]},
+    "rollback_2024_sidebar": {"required_fields": ["organization_id"]},
+    "rollback_2024_dropdown": {"required_fields": ["organization_id"]},
 }
 
 

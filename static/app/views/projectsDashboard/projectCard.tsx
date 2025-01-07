@@ -139,6 +139,7 @@ class ProjectCard extends Component<Props> {
                 borderless
                 size="zero"
                 icon={<IconSettings color="subText" />}
+                title={t('Settings')}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${slug}/`}
               />
@@ -280,7 +281,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
     }
 
     this.setState({
-      projectDetails: itemsBySlug[project.slug],
+      projectDetails: itemsBySlug[project.slug]!,
     });
   }
 
@@ -314,6 +315,8 @@ const SettingsButton = styled(LinkButton)`
   margin-top: -${space(0.5)};
   padding: 3px;
   border-radius: 50%;
+  width: 24px;
+  height: 24px;
 `;
 
 const StyledBookmarkStar = styled(BookmarkStar)`

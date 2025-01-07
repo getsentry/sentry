@@ -21,6 +21,8 @@ class Migration(CheckedMigration):
 
     is_post_deployment = False
 
+    allow_run_sql = True
+
     dependencies = [
         ("sentry", "0743_backfill_broken_monitor_notification_setting_option"),
     ]

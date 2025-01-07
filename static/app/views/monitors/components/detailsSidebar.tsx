@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
+import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Text from 'sentry/components/text';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getFormattedDate} from 'sentry/utils/dates';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -31,7 +32,7 @@ interface Props {
   showUnknownLegend?: boolean;
 }
 
-export default function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
+export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) {
   const {checkin_margin, schedule, schedule_type, max_runtime, timezone} = monitor.config;
   const {onClick, label} = useCopyToClipboard({text: monitor.slug});
 
@@ -115,7 +116,14 @@ export default function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}:
               {t('Unknown Status')}
               <QuestionTooltip
                 size="sm"
-                title={t('Sentry was unable to determine the check-in status.')}
+                title={tct(
+                  'Sentry was unable to determine the check-in status. [link:Learn More].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/product/crons/monitor-details/#check-in-statuses" />
+                    ),
+                  }
+                )}
               />
             </UnknownText>
           </CheckInLegendItem>

@@ -55,8 +55,12 @@ export function getXAxisDates(
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
-  const start = moment(dateStart).startOf('h');
-  const end = moment(dateEnd).startOf('h');
+  let startOfUnit: moment.unitOfTime.StartOf = 'h';
+  if (interval <= '6h') {
+    startOfUnit = 'm';
+  }
+  const start = moment(dateStart).startOf(startOfUnit);
+  const end = moment(dateEnd).startOf(startOfUnit);
 
   if (!start.isValid() || !end.isValid()) {
     return range;
@@ -102,7 +106,7 @@ export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[])
 
   // Collect unique labels and their positions
   intervals.forEach((label, index) => {
-    if (index === 0 || label.slice(0, 6) !== intervals[index - 1].slice(0, 6)) {
+    if (index === 0 || label.slice(0, 6) !== intervals[index - 1]!.slice(0, 6)) {
       uniqueLabels.add(label);
       labelToPositionMap.set(label, index);
     }

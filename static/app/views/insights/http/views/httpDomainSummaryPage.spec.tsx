@@ -15,9 +15,10 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('HTTPSummaryPage', function () {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['insights-initial-modules']});
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let domainChartsRequestMock: jest.Mock;
+  let domainTransactionsListRequestMock: jest.Mock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -275,7 +276,7 @@ describe('HTTPSummaryPage', function () {
     expect(screen.getByRole('cell', {name: 'GET /api/users'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'GET /api/users'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.dev&project=8&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
+      '/organizations/org-slug/insights/backend/http/domains/?domain=%2A.sentry.dev&project=8&statsPeriod=10d&transaction=%2Fapi%2Fusers&transactionMethod=GET&transactionsCursor=0%3A20%3A0'
     );
     expect(screen.getByRole('cell', {name: '17.9/s'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '97%'})).toBeInTheDocument();

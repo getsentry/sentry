@@ -75,22 +75,26 @@ export function generateIconName(
     return 'google';
   }
 
+  if (lowerCaseName.startsWith('vercel')) {
+    return 'vercel';
+  }
+
   const formattedName = name
-    .split(/\d/)[0]
+    .split(/\d/)[0]!
     .toLowerCase()
     .replace(/[^a-z0-9\-]+/g, '-')
     .replace(/\-+$/, '')
     .replace(/^\-+/, '');
 
   if (formattedName === 'edge' && version) {
-    const majorVersion = version.split('.')[0];
+    const majorVersion = version.split('.')[0]!;
     const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
 
     return isLegacyEdge ? 'legacy-edge' : 'edge';
   }
 
   if (formattedName.endsWith('-mobile')) {
-    return formattedName.split('-')[0];
+    return formattedName.split('-')[0]!;
   }
 
   return formattedName;
@@ -429,7 +433,13 @@ export function getFormattedContextData({
     case 'state':
       return getStateContextData({data: contextValue, meta});
     case 'profile':
-      return getProfileContextData({data: contextValue, meta, organization, project});
+      return getProfileContextData({
+        data: contextValue,
+        event,
+        meta,
+        organization,
+        project,
+      });
     case 'replay':
       return getReplayContextData({data: contextValue, meta});
     case 'cloud_resource':

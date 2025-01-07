@@ -121,8 +121,7 @@ class WidgetLegendSelectionState {
 
     return location.query.unselectedSeries
       ? this.decodeLegendQueryParam(widget)
-      : this.widgetRequiresLegendUnselection(widget) &&
-          this.organization.features.includes('dashboards-releases-on-charts')
+      : this.widgetRequiresLegendUnselection(widget)
         ? {
             [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
               'Releases',
@@ -148,8 +147,7 @@ class WidgetLegendSelectionState {
   }
 
   formatLegendDefaultQuery(widget: Widget) {
-    return this.organization.features.includes('dashboards-releases-on-charts') &&
-      this.widgetRequiresLegendUnselection(widget)
+    return this.widgetRequiresLegendUnselection(widget)
       ? `${widget.id}${WIDGET_ID_DELIMITER}Releases`
       : undefined;
   }
@@ -163,7 +161,7 @@ class WidgetLegendSelectionState {
         .filter(key => !selected[key])
         .map(series =>
           encodeURIComponent(
-            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)
+            WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(series)!
           )
         )
         .join(SERIES_LIST_DELIMITER)
@@ -179,7 +177,7 @@ class WidgetLegendSelectionState {
     );
     if (widgetLegendString) {
       const [_, seriesNameString] = widgetLegendString.split(WIDGET_ID_DELIMITER);
-      const seriesNames = seriesNameString.split(SERIES_LIST_DELIMITER);
+      const seriesNames = seriesNameString!.split(SERIES_LIST_DELIMITER);
       return seriesNames.reduce((acc, series) => {
         acc[
           decodeURIComponent(

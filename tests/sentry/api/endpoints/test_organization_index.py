@@ -5,8 +5,10 @@ from typing import Any
 from unittest.mock import patch
 
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -104,6 +106,27 @@ class OrganizationsListTest(OrganizationIndexTest):
 
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id + 10}"})
         assert len(response.data) == 0
+
+    def test_show_only_token_organization(self):
+        org1 = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {user_token.plaintext_token}")
+        response = self.client.get(reverse(self.endpoint))
+        # if token is not specific to any organization, it should return all the organizations
+        assert len(response.data) == 2
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_scoped_token = ApiToken.objects.create(
+                user=self.user, scoping_organization_id=org1.id, scope_list=["org:read"]
+            )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {org_scoped_token.plaintext_token}")
+        response = self.client.get(reverse(self.endpoint))
+        # if token is specific to an organization, it should return only that organization
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(org1.id)
 
 
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):

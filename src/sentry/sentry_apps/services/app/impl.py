@@ -97,7 +97,7 @@ class DatabaseBackedAppService(AppService):
         except SentryApp.DoesNotExist:
             return None
 
-    def get_installed_for_organization(
+    def get_installations_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(

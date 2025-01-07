@@ -75,7 +75,6 @@ export type RouteHooks = {
 type AiSetupDataConsentProps = {
   groupId: string;
 };
-type AutofixSetupConsentStepProps = {hasConsented: boolean};
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
@@ -188,7 +187,6 @@ export type MembershipSettingsProps = {
  */
 export type ComponentHooks = {
   'component:ai-setup-data-consent': () => React.ComponentType<AiSetupDataConsentProps> | null;
-  'component:autofix-setup-step-consent': () => React.ComponentType<AutofixSetupConsentStepProps> | null;
   'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
@@ -689,6 +687,11 @@ type InviteModalCustomizationHook = () => React.ComponentType<{
      * invites may currently be sent.
      */
     canSend: boolean;
+    /**
+     * Indicates that the account has reached the maximum member limit. Future invitations
+     * are limited to Billing roles
+     */
+    isOverMemberLimit: boolean;
     /**
      * Trigger sending invites
      */

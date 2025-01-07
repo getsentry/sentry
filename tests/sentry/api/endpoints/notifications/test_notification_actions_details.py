@@ -4,7 +4,8 @@ from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.models.notificationaction import (
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.notifications.models.notificationaction import (
     ActionRegistration,
     ActionService,
     ActionTarget,
@@ -12,7 +13,6 @@ from sentry.models.notificationaction import (
     NotificationAction,
     NotificationActionProject,
 )
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
@@ -50,14 +50,11 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     def mock_msg_schedule_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            body = {"ok": False, "error": "channel_not_found"}
-        else:
-            body = {
-                "ok": True,
-                result_name: channel_id,
-                "scheduled_message_id": "Q1298393284",
-            }
+        body = {
+            "ok": True,
+            result_name: channel_id,
+            "scheduled_message_id": "Q1298393284",
+        }
         return mock_slack_response("chat_scheduleMessage", body=body)
 
     def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):

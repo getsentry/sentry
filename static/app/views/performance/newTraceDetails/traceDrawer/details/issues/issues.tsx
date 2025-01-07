@@ -127,7 +127,11 @@ function Issue(props: IssueProps) {
       </IconWrapper>
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
-          <EventOrGroupHeader data={fetchedIssue} organization={organization} />
+          <EventOrGroupHeader
+            data={fetchedIssue}
+            organization={organization}
+            eventId={props.issue.event_id}
+          />
           <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
@@ -274,8 +278,8 @@ function LegacyIssue(
         <GroupStatusChart
           stats={
             props.fetchedIssue.filtered
-              ? props.fetchedIssue.filtered.stats?.['24h']
-              : props.fetchedIssue.stats?.['24h']
+              ? props.fetchedIssue.filtered.stats?.['24h']!
+              : props.fetchedIssue.stats?.['24h']!
           }
           secondaryStats={
             props.fetchedIssue.filtered ? props.fetchedIssue.stats?.['24h'] : []
@@ -626,7 +630,8 @@ const IssuesWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(0.75)};
   justify-content: left;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1.5)};
+  margin-top: ${space(1)};
 
   ${StyledPanel} {
     margin-bottom: 0;
@@ -645,6 +650,7 @@ const StyledPanelHeader = styled(PanelHeader)<{hasNewLayout: boolean}>`
 
 const StyledLoadingIndicatorWrapper = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
   padding: ${space(2)} 0;
@@ -732,7 +738,8 @@ const StyledPanelItem = styled(StyledLegacyPanelItem)`
   justify-content: left;
   align-items: center;
   gap: ${space(1.5)};
-  padding: 0 ${space(2)};
+  height: fit-content;
+  padding: ${space(1)} ${space(2)};
 `;
 
 const StyledIssueStreamHeaderLabel = styled(IssueStreamHeaderLabel)`

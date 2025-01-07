@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping
+from datetime import timedelta
 from typing import Any
 
 from django.db.models import Q
@@ -168,6 +169,20 @@ def get_resolutions_and_activity_data_for_groups(
     return resolutions_by_group_id, activity_type, activity_data
 
 
+def group_was_recently_resolved(group: Group) -> bool:
+    """
+    Check if the group was resolved in the last 3 minutes
+    """
+    if group.status != GroupStatus.RESOLVED:
+        return False
+
+    try:
+        group_resolution = GroupResolution.objects.get(group=group)
+        return group_resolution.datetime > django_timezone.now() - timedelta(minutes=3)
+    except GroupResolution.DoesNotExist:
+        return False
+
+
 @instrumented_task(
     name="sentry.integrations.tasks.sync_status_inbound",
     queue="integrations",
@@ -189,8 +204,8 @@ def sync_status_inbound(
         raise Integration.DoesNotExist
 
     organizations = Organization.objects.filter(id=organization_id)
-    affected_groups = Group.objects.get_groups_by_external_issue(
-        integration, organizations, issue_key
+    affected_groups = list(
+        Group.objects.get_groups_by_external_issue(integration, organizations, issue_key)
     )
     if not affected_groups:
         return
@@ -213,6 +228,17 @@ def sync_status_inbound(
         "integration_id": integration_id,
     }
     if action == ResolveSyncAction.RESOLVE:
+        # Check if the group was recently resolved and we should skip the request
+        # Avoid resolving the group in-app and then re-resolving via the integration webhook
+        # which would override the in-app resolution
+        resolvable_groups = []
+        for group in affected_groups:
+            if not group_was_recently_resolved(group):
+                resolvable_groups.append(group)
+
+        if not resolvable_groups:
+            return
+
         (
             resolutions_by_group_id,
             activity_type,
@@ -221,14 +247,14 @@ def sync_status_inbound(
             affected_groups, config.get("resolution_strategy"), activity_data, organization_id
         )
         Group.objects.update_group_status(
-            groups=affected_groups,
+            groups=resolvable_groups,
             status=GroupStatus.RESOLVED,
             substatus=None,
             activity_type=activity_type,
             activity_data=activity_data,
         )
         # after we update the group, pdate the resolutions
-        for group in affected_groups:
+        for group in resolvable_groups:
             resolution_params = resolutions_by_group_id.get(group.id)
             if resolution_params:
                 resolution, created = GroupResolution.objects.get_or_create(
@@ -243,6 +269,7 @@ def sync_status_inbound(
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
+                provider=provider.key,
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )

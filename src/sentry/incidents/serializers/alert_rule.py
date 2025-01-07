@@ -37,11 +37,9 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -76,9 +74,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         required=False,
         max_length=1,
     )
-    excluded_projects = serializers.ListField(
-        child=ProjectField(scope="project:read"), required=False
-    )
     triggers = serializers.ListField(required=True)
     query_type = serializers.IntegerField(required=False)
     dataset = serializers.CharField(required=False)
@@ -99,10 +94,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
     # This will be set to required=True once the frontend starts sending it.
     owner = ActorField(required=False, allow_null=True)
 
-    monitor_type = serializers.IntegerField(required=False, min_value=0)
-    activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     description = serializers.CharField(required=False, allow_blank=True)
-
     sensitivity = serializers.CharField(required=False, allow_null=True)
     seasonality = serializers.CharField(required=False, allow_null=True)
     detection_type = serializers.CharField(required=False, default=AlertRuleDetectionType.STATIC)
@@ -123,12 +115,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "comparison_delta",
             "aggregate",
             "projects",
-            "include_all_projects",
-            "excluded_projects",
             "triggers",
             "event_types",
-            "monitor_type",
-            "activation_condition",
             "description",
             "sensitivity",
             "seasonality",
@@ -136,7 +124,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
-            "include_all_projects": {"default": False},
             "threshold_type": {"required": True},
             "resolve_threshold": {"required": False},
         }
@@ -221,28 +208,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             raise serializers.ValidationError(
                 "Invalid threshold type, valid values are %s"
                 % [item.value for item in AlertRuleThresholdType]
-            )
-
-    def validate_monitor_type(self, monitor_type):
-        if monitor_type > 0 and not features.has(
-            "organizations:activated-alert-rules",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            raise serializers.ValidationError("Invalid monitor type")
-
-        return AlertRuleMonitorTypeInt(monitor_type)
-
-    def validate_activation_condition(self, activation_condition):
-        if activation_condition is None:
-            return activation_condition
-
-        try:
-            return AlertRuleActivationConditionType(activation_condition)
-        except ValueError:
-            raise serializers.ValidationError(
-                "Invalid activation condition, valid values are %s"
-                % [item.value for item in AlertRuleActivationConditionType]
             )
 
     def validate(self, data):
@@ -551,12 +516,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
-        if "monitor_type" in validated_data:
-            """
-            TODO: enable monitor type editing
-            requires creating/disabling activations accordingly
-            """
-            validated_data.pop("monitor_type")
         with transaction.atomic(router.db_for_write(AlertRule)):
             try:
                 alert_rule = update_alert_rule(

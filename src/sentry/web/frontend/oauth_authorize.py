@@ -127,17 +127,25 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        # TODO (athena): Clean up this so scopes are always coming from the model
-        # This change is temporarily needed before we migrate existing applications
-        # to have the correct scopes
-        if application.requires_org_level_access:
-            scopes = application.scopes
+        scopes = request.GET.get("scope")
+        if scopes:
+            scopes = scopes.split(" ")
         else:
-            scopes = request.GET.get("scope")
-            if scopes:
-                scopes = scopes.split(" ")
-            else:
-                scopes = []
+            scopes = []
+        if application.requires_org_level_access:
+            # Applications that require org level access have a maximum scope limit set
+            # in admin that should not pass
+            max_scopes = application.scopes
+            for scope in scopes:
+                if scope not in max_scopes:
+                    return self.error(
+                        request=request,
+                        client_id=client_id,
+                        response_type=response_type,
+                        redirect_uri=redirect_uri,
+                        name="invalid_scope",
+                        state=state,
+                    )
 
         for scope in scopes:
             if scope not in settings.SENTRY_SCOPES:
@@ -163,7 +171,9 @@ class OAuthAuthorizeView(AuthLoginView):
         if not request.user.is_authenticated:
             return super().get(request, application=application)
 
-        if not force_prompt:
+        # If the application expects org level access, we need to prompt the user to choose which
+        # organization they want to give access to every time. We should not presume the user intention
+        if not (force_prompt or application.requires_org_level_access):
             try:
                 existing_auth = ApiAuthorization.objects.get(
                     user_id=request.user.id, application=application
@@ -223,13 +233,14 @@ class OAuthAuthorizeView(AuthLoginView):
             # If application is not org level we should not show organizations to choose from at all
             organization_options = []
 
-        context = {
+        context = self.get_default_context(request) | {
             "user": request.user,
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
             "organization_options": organization_options,
         }
+
         return self.respond("sentry/oauth-authorize.html", context)
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:

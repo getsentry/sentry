@@ -1,6 +1,8 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {CommitRow} from 'sentry/components/commitRow';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -15,7 +17,14 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
+import {
+  IconChevron,
+  IconClock,
+  IconInfo,
+  IconLock,
+  IconPlay,
+  IconTimer,
+} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Thread} from 'sentry/types/event';
@@ -101,7 +110,11 @@ const useActiveThreadState = (
 };
 
 export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
-  const threads = data.values ?? [];
+  // Sort threads by crashed first
+  const threads = useMemo(
+    () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
+    [data.values]
+  );
   const hasStreamlinedUI = useHasStreamlinedUI();
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
 
@@ -109,7 +122,10 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
 
   const hasMoreThanOneThread = threads.length > 1;
 
-  const exception = getThreadException(event, activeThread);
+  const exception = useMemo(
+    () => getThreadException(event, activeThread),
+    [event, activeThread]
+  );
 
   const entryIndex = exception
     ? event.entries.findIndex(entry => entry.type === EntryType.EXCEPTION)
@@ -226,6 +242,18 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
 
+  function handleChangeThread(direction: 'previous' | 'next') {
+    const currentIndex = threads.findIndex(thread => thread.id === activeThreadId);
+    let nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0) {
+      nextIndex = threads.length - 1;
+    } else if (nextIndex >= threads.length) {
+      nextIndex = 0;
+    }
+
+    setActiveThread(threads[nextIndex]);
+  }
+
   const threadComponent = (
     <Fragment>
       {hasMoreThanOneThread && (
@@ -235,6 +263,28 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
               <ThreadHeading>{t('Threads')}</ThreadHeading>
               {activeThread && (
                 <Wrapper>
+                  <ButtonBar merged>
+                    <Button
+                      title={t('Previous Thread')}
+                      tooltipProps={{delay: 1000}}
+                      icon={<IconChevron direction="left" />}
+                      aria-label={t('Previous Thread')}
+                      size="xs"
+                      onClick={() => {
+                        handleChangeThread('previous');
+                      }}
+                    />
+                    <Button
+                      title={t('Next Thread')}
+                      tooltipProps={{delay: 1000}}
+                      icon={<IconChevron direction="right" />}
+                      aria-label={t('Next Thread')}
+                      size="xs"
+                      onClick={() => {
+                        handleChangeThread('next');
+                      }}
+                    />
+                  </ButtonBar>
                   <ThreadSelector
                     threads={threads}
                     activeThread={activeThread}
@@ -276,7 +326,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
         </Fragment>
       )}
       <TraceEventDataSection
-        type={EntryType.THREADS}
+        type={SectionKey.THREADS}
         projectSlug={projectSlug}
         eventId={event.id}
         recentFirst={isStacktraceNewestFirst()}
@@ -398,6 +448,8 @@ const LockReason = styled(TextOverflow)`
 `;
 
 const Wrapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
   align-items: center;
   flex-wrap: wrap;
   flex-grow: 1;

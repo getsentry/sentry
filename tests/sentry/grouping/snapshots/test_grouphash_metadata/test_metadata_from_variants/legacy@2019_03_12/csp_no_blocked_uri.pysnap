@@ -1,5 +1,5 @@
 ---
-created: '2024-11-08T19:20:24.404194+00:00'
+created: '2024-12-17T22:49:56.749550+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -10,9 +10,20 @@ hashing_metadata: {
   "security_report_type": "csp"
 }
 ---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "violation",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.violation": {
+    "security_report_type": "csp"
+  }
+}
+---
 contributing variants:
   default*
     hash: "efddf1cde918097259aa7d4904fb1942"
+    contributing component: csp
     component:
       default*
         csp*

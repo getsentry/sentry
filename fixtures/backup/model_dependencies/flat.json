@@ -68,10 +68,6 @@
     "sentry.alertrule",
     "sentry.user"
   ],
-  "sentry.alertruleexcludedprojects": [
-    "sentry.alertrule",
-    "sentry.project"
-  ],
   "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
@@ -83,10 +79,6 @@
     "sentry.alertruletrigger",
     "sentry.integration",
     "sentry.sentryapp"
-  ],
-  "sentry.alertruletriggerexclusion": [
-    "sentry.alertruletrigger",
-    "sentry.querysubscription"
   ],
   "sentry.apiapplication": [
     "sentry.user"
@@ -195,6 +187,10 @@
   ],
   "sentry.dashboard": [
     "sentry.organization",
+    "sentry.user"
+  ],
+  "sentry.dashboardfavoriteuser": [
+    "sentry.dashboard",
     "sentry.user"
   ],
   "sentry.dashboardpermissions": [
@@ -428,17 +424,9 @@
     "sentry.incident",
     "sentry.project"
   ],
-  "sentry.incidentseen": [
-    "sentry.incident",
-    "sentry.user"
-  ],
   "sentry.incidentsnapshot": [
     "sentry.incident",
     "sentry.timeseriessnapshot"
-  ],
-  "sentry.incidentsubscription": [
-    "sentry.incident",
-    "sentry.user"
   ],
   "sentry.incidenttrigger": [
     "sentry.alertruletrigger",
@@ -459,7 +447,6 @@
   "sentry.lostpasswordhash": [
     "sentry.user"
   ],
-  "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
     "sentry.project",
@@ -869,6 +856,10 @@
   "social_auth.usersocialauth": [
     "sentry.user"
   ],
+  "tempest.tempestcredentials": [
+    "sentry.project",
+    "sentry.user"
+  ],
   "uptime.projectuptimesubscription": [
     "sentry.environment",
     "sentry.project",
@@ -877,8 +868,25 @@
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": [],
+  "uptime.uptimesubscriptionregion": [
+    "uptime.uptimesubscription"
+  ],
   "workflow_engine.action": [
     "sentry.integration"
+  ],
+  "workflow_engine.alertruledetector": [
+    "sentry.alertrule",
+    "sentry.rule",
+    "workflow_engine.detector"
+  ],
+  "workflow_engine.alertruletriggerdatacondition": [
+    "sentry.alertruletrigger",
+    "workflow_engine.datacondition"
+  ],
+  "workflow_engine.alertruleworkflow": [
+    "sentry.alertrule",
+    "sentry.rule",
+    "workflow_engine.workflow"
   ],
   "workflow_engine.datacondition": [
     "workflow_engine.dataconditiongroup"
@@ -899,6 +907,7 @@
   ],
   "workflow_engine.detector": [
     "sentry.organization",
+    "sentry.project",
     "sentry.team",
     "sentry.user",
     "workflow_engine.dataconditiongroup"
@@ -911,7 +920,10 @@
     "workflow_engine.workflow"
   ],
   "workflow_engine.workflow": [
+    "sentry.environment",
     "sentry.organization",
+    "sentry.team",
+    "sentry.user",
     "workflow_engine.dataconditiongroup"
   ],
   "workflow_engine.workflowdataconditiongroup": [

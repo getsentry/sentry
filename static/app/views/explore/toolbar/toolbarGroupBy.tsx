@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
@@ -11,16 +11,25 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {useGroupBys} from 'sentry/views/explore/hooks/useGroupBys';
+import {
+  useExploreGroupBys,
+  useExploreMode,
+  useSetExploreGroupBys,
+} from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 
 import {DragNDropContext} from '../contexts/dragNDropContext';
 import {useSpanTags} from '../contexts/spanTagsContext';
 import type {Column} from '../hooks/useDragNDropColumns';
-import {useResultMode} from '../hooks/useResultsMode';
 
-import {ToolbarHeader, ToolbarHeaderButton, ToolbarLabel, ToolbarSection} from './styles';
+import {
+  ToolbarHeader,
+  ToolbarHeaderButton,
+  ToolbarLabel,
+  ToolbarRow,
+  ToolbarSection,
+} from './styles';
 
 interface ToolbarGroupByProps {
   disabled?: boolean;
@@ -28,85 +37,99 @@ interface ToolbarGroupByProps {
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
   const tags = useSpanTags();
-  const [resultMode] = useResultMode();
+  const mode = useExploreMode();
 
-  const {groupBys, setGroupBys} = useGroupBys();
+  const groupBys = useExploreGroupBys();
+  const setGroupBys = useSetExploreGroupBys();
 
   const options: SelectOption<string>[] = useMemo(() => {
-    // These options aren't known to exist on this project but it was inserted into
-    // the group bys somehow so it should be a valid options in the group bys.
-    //
-    // One place this may come from is when switching projects/environment/date range,
-    // a tag may disappear based on the selection.
-    const unknownOptions = groupBys
-      .filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy))
-      .map(groupBy => {
-        return {
-          label: groupBy,
-          value: groupBy,
-          textValue: groupBy,
-        };
-      });
+    const potentialOptions = [
+      ...Object.keys(tags),
 
-    const knownOptions = Object.keys(tags).map(tagKey => {
-      return {
-        label: tagKey,
-        value: tagKey,
-        textValue: tagKey,
-      };
-    });
+      // These options aren't known to exist on this project but it was inserted into
+      // the group bys somehow so it should be a valid options in the group bys.
+      //
+      // One place this may come from is when switching projects/environment/date range,
+      // a tag may disappear based on the selection.
+      ...groupBys.filter(groupBy => groupBy && !tags.hasOwnProperty(groupBy)),
+    ];
+    potentialOptions.sort();
 
     return [
       // hard code in an empty option
       {label: t('None'), value: '', textValue: t('none')},
-      ...unknownOptions,
-      ...knownOptions,
+      ...potentialOptions.map(key => ({
+        label: key,
+        value: key,
+        textValue: key,
+      })),
     ];
   }, [groupBys, tags]);
 
   return (
     <DragNDropContext columns={groupBys} setColumns={setGroupBys}>
-      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => (
-        <ToolbarSection data-test-id="section-group-by">
-          <StyledToolbarHeader>
-            <Tooltip
-              position="right"
-              title={t(
-                'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
-              )}
+      {({editableColumns, insertColumn, updateColumnAtIndex, deleteColumnAtIndex}) => {
+        let columnEditorRows = (
+          <Fragment>
+            {editableColumns.map((column, i) => (
+              <ColumnEditorRow
+                disabled={mode === Mode.SAMPLES}
+                key={column.id}
+                canDelete={
+                  editableColumns.length > 1 || !['', undefined].includes(column.column)
+                }
+                column={column}
+                options={options}
+                onColumnChange={c => updateColumnAtIndex(i, c)}
+                onColumnDelete={() => deleteColumnAtIndex(i)}
+              />
+            ))}
+          </Fragment>
+        );
+
+        if (disabled) {
+          columnEditorRows = (
+            <FullWidthTooltip
+              position="top"
+              title={t('Group by is only applicable to aggregate results.')}
             >
-              <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
-            </Tooltip>
-            <ToolbarHeaderButton
-              disabled={disabled}
-              size="zero"
-              onClick={insertColumn}
-              borderless
-              aria-label={t('Add Group')}
-              icon={<IconAdd />}
-            />
-          </StyledToolbarHeader>
-          {editableColumns.map((column, i) => (
-            <ColumnEditorRow
-              disabled={resultMode === 'samples'}
-              key={column.id}
-              canDelete={
-                editableColumns.length > 1 || !['', undefined].includes(column.column)
-              }
-              column={column}
-              options={options}
-              onColumnChange={c => updateColumnAtIndex(i, c)}
-              onColumnDelete={() => deleteColumnAtIndex(i)}
-            />
-          ))}
-        </ToolbarSection>
-      )}
+              {columnEditorRows}
+            </FullWidthTooltip>
+          );
+        }
+
+        return (
+          <ToolbarSection data-test-id="section-group-by">
+            <ToolbarHeader>
+              <Tooltip
+                position="right"
+                title={t(
+                  'Aggregated data by a key attribute to calculate averages, percentiles, count and more'
+                )}
+              >
+                <ToolbarLabel disabled={disabled}>{t('Group By')}</ToolbarLabel>
+              </Tooltip>
+              <Tooltip title={t('Add a new group')}>
+                <ToolbarHeaderButton
+                  disabled={disabled}
+                  size="zero"
+                  onClick={insertColumn}
+                  borderless
+                  aria-label={t('Add Group')}
+                  icon={<IconAdd />}
+                />
+              </Tooltip>
+            </ToolbarHeader>
+            {columnEditorRows}
+          </ToolbarSection>
+        );
+      }}
     </DragNDropContext>
   );
 }
 
-const StyledToolbarHeader = styled(ToolbarHeader)`
-  margin-bottom: ${space(1)};
+const FullWidthTooltip = styled(Tooltip)`
+  width: 100%;
 `;
 
 interface ColumnEditorRowProps {
@@ -142,7 +165,7 @@ function ColumnEditorRow({
   }, [column.column, options]);
 
   return (
-    <RowContainer
+    <ToolbarRow
       key={column.id}
       ref={setNodeRef}
       style={{
@@ -181,19 +204,9 @@ function ColumnEditorRow({
         icon={<IconDelete size="sm" />}
         onClick={() => onColumnDelete()}
       />
-    </RowContainer>
+    </ToolbarRow>
   );
 }
-
-const RowContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${space(0.5)};
-
-  :not(:first-child) {
-    margin-top: ${space(1)};
-  }
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   flex-grow: 1;

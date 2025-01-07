@@ -7,6 +7,7 @@ from multiprocessing import cpu_count
 from typing import Any
 
 import click
+from django.utils import autoreload
 
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
@@ -230,27 +231,93 @@ def worker(ignore_unknown_queues: bool, **options: Any) -> None:
                 raise click.ClickException(message)
 
     if options["autoreload"]:
-        from django.utils import autoreload
-
         autoreload.run_with_reloader(run_worker, **options)
     else:
         run_worker(**options)
 
 
+@run.command()
 @click.option("--rpc-host", help="The hostname for the taskworker-rpc", default="127.0.0.1:50051")
 @click.option("--autoreload", is_flag=True, default=False, help="Enable autoreloading.")
 @click.option(
     "--max-task-count", help="Number of tasks this worker should run before exiting", default=10000
 )
+@click.option(
+    "--namespace", help="The dedicated task namespace that taskworker operates on", default=None
+)
 @log_options()
 @configuration
-def taskworker(rpc_host: str, max_task_count: int, **options: Any) -> None:
+def taskworker(**options: Any) -> None:
+    """
+    Run a taskworker worker
+    """
+    if options["autoreload"]:
+        autoreload.run_with_reloader(run_taskworker, **options)
+    else:
+        run_taskworker(**options)
+
+
+def run_taskworker(
+    rpc_host: str, max_task_count: int, namespace: str | None, **options: Any
+) -> None:
+    """
+    taskworker factory that can be reloaded
+    """
     from sentry.taskworker.worker import TaskWorker
 
     with managed_bgtasks(role="taskworker"):
-        worker = TaskWorker(rpc_host=rpc_host, max_task_count=max_task_count, **options)
+        worker = TaskWorker(
+            rpc_host=rpc_host, max_task_count=max_task_count, namespace=namespace, **options
+        )
         exitcode = worker.start()
         raise SystemExit(exitcode)
+
+
+@run.command()
+@log_options()
+@configuration
+@click.option(
+    "--repeat",
+    type=int,
+    help="Number of messages to send to the kafka topic",
+    default=1,
+    show_default=True,
+)
+@click.option(
+    "--kwargs",
+    type=str,
+    help="Task function keyword arguments",
+)
+@click.option(
+    "--args",
+    type=str,
+    help="Task function arguments",
+)
+@click.option(
+    "--task-function-path",
+    type=str,
+    help="The path to the function name of the task to execute",
+    required=True,
+)
+def taskbroker_send_tasks(
+    task_function_path: str,
+    args: str,
+    kwargs: str,
+    repeat: int,
+) -> None:
+    from sentry.utils.imports import import_string
+
+    try:
+        func = import_string(task_function_path)
+    except Exception as e:
+        click.echo(f"Error: {e}")
+        raise click.Abort()
+    task_args = [] if not args else eval(args)
+    task_kwargs = {} if not kwargs else eval(kwargs)
+
+    for _ in range(repeat):
+        func.delay(*task_args, **task_kwargs)
+    click.echo(message=f"Successfully sent {repeat} messages.")
 
 
 @run.command()
@@ -350,6 +417,11 @@ def cron(**options: Any) -> None:
     default=True,
 )
 @click.option(
+    "--stale-threshold-sec",
+    type=click.IntRange(min=300),
+    help="Routes stale messages to stale topic if provided. This feature is currently being tested, do not pass in production yet.",
+)
+@click.option(
     "--log-level",
     type=click.Choice(["debug", "info", "warning", "error", "critical"], case_sensitive=False),
     help="log level to pass to the arroyo consumer",
@@ -433,6 +505,7 @@ def dev_consumer(consumer_names: tuple[str, ...]) -> None:
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
             enable_dlq=False,
+            stale_threshold_sec=None,
             healthcheck_file_path=None,
             enforce_schema=True,
         )

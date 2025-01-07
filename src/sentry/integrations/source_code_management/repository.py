@@ -10,8 +10,8 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.metrics import (
-    RepositoryIntegrationInteractionEvent,
-    RepositoryIntegrationInteractionType,
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -97,8 +97,8 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         """
         return []
 
-    def record_event(self, event: RepositoryIntegrationInteractionType):
-        return RepositoryIntegrationInteractionEvent(
+    def record_event(self, event: SCMIntegrationInteractionType):
+        return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.integration_name,
             organization=self.organization,
@@ -118,7 +118,7 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        with self.record_event(RepositoryIntegrationInteractionType.CHECK_FILE).capture():
+        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture():
             filepath = filepath.lstrip("/")
             try:
                 client = self.get_client()
@@ -153,7 +153,17 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
         If no file was found return `None`, and re-raise for non-"Not Found"
         errors, like 403 "Account Suspended".
         """
-        with self.record_event(RepositoryIntegrationInteractionType.GET_STACKTRACE_LINK).capture():
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_STACKTRACE_LINK
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "filepath": filepath,
+                    "default": default,
+                    "version": version,
+                    "organization_id": repo.organization_id,
+                }
+            )
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
             if version:
@@ -182,7 +192,15 @@ class RepositoryIntegration(IntegrationInstallation, BaseRepositoryIntegration, 
          * filepath - full path of the file i.e. CODEOWNERS, .github/CODEOWNERS, docs/CODEOWNERS
          * raw - the decoded raw contents of the codeowner file
         """
-        with self.record_event(RepositoryIntegrationInteractionType.GET_CODEOWNER_FILE).capture():
+        with self.record_event(
+            SCMIntegrationInteractionType.GET_CODEOWNER_FILE
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "ref": ref,
+                    "organization_id": repo.organization_id,
+                }
+            )
             if self.codeowners_locations is None:
                 raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 

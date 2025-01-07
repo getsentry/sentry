@@ -66,7 +66,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
       <Fragment>
         <div>
           {replayCount > 50
-            ? t('There are 50+ replays fro this issue.')
+            ? t('There are 50+ replays for this issue.')
             : tn(
                 'There is %s replay for this issue.',
                 'there are %s replays for this issue.',

@@ -89,7 +89,7 @@ export function getHiddenFrameIndices({
       const index = parseInt(indexString, 10);
       const indicesToBeAdded: number[] = [];
       let i = 1;
-      let numHidden = frameCountMap[index];
+      let numHidden = frameCountMap[index]!;
       while (numHidden > 0) {
         if (!repeatedIndeces.includes(index - i)) {
           indicesToBeAdded.push(index - i);
@@ -125,21 +125,21 @@ export function getCurlCommand(data: EntryRequest['data']) {
     result += ' \\\n -X ' + data.method;
   }
 
-  data.headers = data.headers?.filter(defined);
+  const headers =
+    data.headers
+      ?.filter(defined)
+      // sort headers
+      .sort(function (a, b) {
+        return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
+      }) ?? [];
 
   // TODO(benvinegar): just gzip? what about deflate?
-  const compressed = data.headers?.find(
+  const compressed = headers?.find(
     h => h[0] === 'Accept-Encoding' && h[1].includes('gzip')
   );
   if (compressed) {
     result += ' \\\n --compressed';
   }
-
-  // sort headers
-  const headers =
-    data.headers?.sort(function (a, b) {
-      return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
-    }) ?? [];
 
   for (const header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeBashString(header[1] + '') + '"';
@@ -172,7 +172,9 @@ export function getCurlCommand(data: EntryRequest['data']) {
   return result;
 }
 
-export function stringifyQueryList(query: string | [key: string, value: string][]) {
+export function stringifyQueryList(
+  query: string | Array<[key: string, value: string] | null>
+) {
   if (typeof query === 'string') {
     return query;
   }
@@ -303,7 +305,7 @@ export function parseAssembly(assembly: string | null) {
   }
 
   for (let i = 1; i < pieces.length; i++) {
-    const [key, value] = pieces[i].trim().split('=');
+    const [key, value] = pieces[i]!.trim().split('=');
 
     // eslint-disable-next-line default-case
     switch (key) {

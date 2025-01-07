@@ -1,3 +1,5 @@
+import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
+
 import {TraceIcons} from '../traceIcons';
 import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
@@ -17,13 +19,13 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
     <div
       key={props.index}
       ref={r =>
-        props.tabIndex === 0 && !props.isEmbedded
+        props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
           : null
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
-      onClick={props.onRowClick}
+      onPointerDown={props.onRowClick}
       onKeyDown={props.onRowKeyDown}
       style={props.style}
     >
@@ -57,6 +59,9 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
               </TraceChildrenButton>
             ) : null}
           </div>
+          <SpanProjectIcon
+            platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
+          />
           <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
           <strong className="TraceEmDash"> — </strong>
           <span className="TraceDescription" title={props.node.value.description}>

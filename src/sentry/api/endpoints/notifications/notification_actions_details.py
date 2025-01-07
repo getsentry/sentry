@@ -20,7 +20,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT
 from sentry.apidocs.examples.notification_examples import NotificationActionExamples
 from sentry.apidocs.parameters import GlobalParams, NotificationParams
-from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 from sentry.notifications.api.serializers.notification_action_request import (
     NotificationActionSerializer,
@@ -28,6 +27,7 @@ from sentry.notifications.api.serializers.notification_action_request import (
 from sentry.notifications.api.serializers.notification_action_response import (
     OutgoingNotificationActionSerializer,
 )
+from sentry.notifications.models.notificationaction import NotificationAction
 
 logger = logging.getLogger(__name__)
 

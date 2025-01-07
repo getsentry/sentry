@@ -9,11 +9,8 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.testutils.helpers import override_options
 
 
-@contextmanager
 def mock_redis_buffer():
-    buffer = RedisBuffer()
-    with patch("sentry.buffer.backend", new=buffer):
-        yield buffer
+    return patch("sentry.buffer.backend", new=RedisBuffer())
 
 
 @contextmanager

@@ -18,7 +18,6 @@ import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
@@ -64,7 +63,7 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'loca
 
 function EventDetailsContent(props: Props) {
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
-  const projectId = props.eventSlug.split(':')[0];
+  const projectId = props.eventSlug.split(':')[0]!;
   const {organization, eventSlug, location} = props;
 
   const {
@@ -139,13 +138,7 @@ function EventDetailsContent(props: Props) {
             skipLight={false}
           >
             {results => (
-              <TransactionProfileIdProvider
-                projectId={transaction.projectID}
-                transactionId={
-                  transaction.type === 'transaction' ? transaction.id : undefined
-                }
-                timestamp={transaction.dateReceived}
-              >
+              <Fragment>
                 <Layout.Header>
                   <Layout.HeaderContent>
                     <Breadcrumb
@@ -299,7 +292,7 @@ function EventDetailsContent(props: Props) {
                     </Layout.Side>
                   )}
                 </Layout.Body>
-              </TransactionProfileIdProvider>
+              </Fragment>
             )}
           </QuickTraceQuery>
         )}

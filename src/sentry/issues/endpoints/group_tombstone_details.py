@@ -8,6 +8,7 @@ from sentry.api.bases import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.project import Project
 
 
 @region_silo_endpoint
@@ -17,7 +18,7 @@ class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
     }
 
-    def delete(self, request: Request, project, tombstone_id) -> Response:
+    def delete(self, request: Request, project: Project, tombstone_id: str) -> Response:
         """
         Remove a GroupTombstone
         ```````````````````````

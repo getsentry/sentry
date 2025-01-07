@@ -156,10 +156,11 @@ class Symbolicator:
                 # Otherwise, we are done processing, yay
                 return json_response
 
-    def process_minidump(self, minidump):
+    def process_minidump(self, platform, minidump):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
+            "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
@@ -173,10 +174,11 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_applecrashreport(self, report):
+    def process_applecrashreport(self, platform, report):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
+            "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
@@ -190,10 +192,13 @@ class Symbolicator:
         )
         return process_response(res)
 
-    def process_payload(self, stacktraces, modules, signal=None, apply_source_context=True):
+    def process_payload(
+        self, platform, stacktraces, modules, signal=None, apply_source_context=True
+    ):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         json = {
+            "platform": platform,
             "sources": sources,
             "options": {
                 "dif_candidates": True,
@@ -210,11 +215,12 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, release, dist, apply_source_context=True):
+    def process_js(self, platform, stacktraces, modules, release, dist, apply_source_context=True):
         source = get_internal_artifact_lookup_source(self.project)
         scraping_config = get_scraping_config(self.project)
 
         json = {
+            "platform": platform,
             "source": source,
             "stacktraces": stacktraces,
             "modules": modules,
@@ -231,6 +237,7 @@ class Symbolicator:
 
     def process_jvm(
         self,
+        platform,
         exceptions,
         stacktraces,
         modules,
@@ -242,6 +249,7 @@ class Symbolicator:
         Process a JVM event by remapping its frames and exceptions with
         ProGuard.
 
+        :param platform: The event's platform. This should be either unset or "java".
         :param exceptions: The event's exceptions. These must contain a `type` and a `module`.
         :param stacktraces: The event's stacktraces. Frames must contain a `function` and a `module`.
         :param modules: ProGuard modules and source bundles. They must contain a `uuid` and have a
@@ -253,6 +261,7 @@ class Symbolicator:
         source = get_internal_source(self.project)
 
         json = {
+            "platform": platform,
             "sources": [source],
             "exceptions": exceptions,
             "stacktraces": stacktraces,

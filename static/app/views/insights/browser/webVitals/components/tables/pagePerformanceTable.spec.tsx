@@ -115,15 +115,15 @@ describe('PagePerformanceTable', function () {
     render(<PagePerformanceTable />, {router, organization});
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledTimes(1);
-      expect(eventsMock).toHaveBeenLastCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: expect.stringContaining('transaction:"*/issues/\\**"'),
-          }),
-        })
-      );
     });
+    expect(eventsMock).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/events/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query: expect.stringContaining('transaction:"*/issues/\\**"'),
+        }),
+      })
+    );
   });
 
   it('renders a list of pages', async function () {
@@ -147,7 +147,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/insights/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+      '/organizations/org-slug/insights/frontend/pageloads/overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
     );
 
     expect(screen.getByRole('cell', {name: 'View Project Details'})).toBeInTheDocument();

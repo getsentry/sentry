@@ -53,28 +53,28 @@ export function spanDetailsRouteWithQuery({
 }
 
 export function generateQuerySummaryRoute({
-  orgSlug,
+  base,
   group,
 }: {
+  base: string;
   group: string;
-  orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/insights/database/spans/span/${group}/`;
+  return `${base}/spans/span/${group}/`;
 }
 
 export function querySummaryRouteWithQuery({
-  orgSlug,
+  base,
   query,
   group,
   projectID,
 }: {
+  base: string;
   group: string;
-  orgSlug: string;
   query: Query;
   projectID?: string | string[];
 }) {
   const pathname = generateQuerySummaryRoute({
-    orgSlug,
+    base,
     group,
   });
 

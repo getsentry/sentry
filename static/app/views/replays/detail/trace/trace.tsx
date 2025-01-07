@@ -12,7 +12,6 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
@@ -21,6 +20,7 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -88,6 +88,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
+      'trace context height': 150,
     },
     layoutOptions: [],
   },
@@ -223,7 +224,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
       preferencesStorageKey="replay-trace-view-preferences"
     >
       <TraceViewWaterfallWrapper>
-        <TraceViewWaterfall
+        <TraceWaterfall
           traceSlug={undefined}
           trace={trace}
           tree={tree}
@@ -234,8 +235,6 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
           meta={meta}
           source="replay"
           replay={replay}
-          // Replays might want to enable this in the future
-          isEmbedded={false}
         />
       </TraceViewWaterfallWrapper>
     </TraceStateProvider>

@@ -72,10 +72,10 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       help: `The unique identifier for this organization. It cannot be modified.`,
     };
 
-    formsConfig[0].fields = [
-      ...formsConfig[0].fields.slice(0, 2),
+    formsConfig[0]!.fields = [
+      ...formsConfig[0]!.fields.slice(0, 2),
       organizationIdField,
-      ...formsConfig[0].fields.slice(2),
+      ...formsConfig[0]!.fields.slice(2),
       makeHideAiFeaturesField(organization),
       {
         name: 'codecovAccess',
@@ -120,6 +120,16 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
           </PoweredByCodecov>
         ),
       },
+      ...(organization.features.includes('sentry-rollback-settings')
+        ? [
+            {
+              name: 'rollbackEnabled',
+              type: 'boolean',
+              label: t('2024 Sentry Rollback'),
+              help: t('Allow organization members to view their year in review'),
+            } as FieldObject,
+          ]
+        : []),
     ];
     return formsConfig;
   }, [access, organization]);

@@ -114,7 +114,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
 
         serializer = DiscoverSavedQuerySerializer(
             data=request.data,
-            context={"params": params},
+            context={"params": params, "organization": organization, "user": request.user},
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

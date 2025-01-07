@@ -21,6 +21,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {isTransactionNode} from '../../../../traceGuards';
@@ -166,6 +167,7 @@ export function useSpanAncestryAndGroupingItems({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }): SectionCardKeyValueList {
+  const hasTraceNewUi = useHasTraceNewUi();
   const parentTransaction = useMemo(() => TraceTree.ParentTransaction(node), [node]);
   const childTransactions = useMemo(() => {
     const transactions: TraceTreeNode<TraceTree.Transaction>[] = [];
@@ -191,24 +193,31 @@ export function useSpanAncestryAndGroupingItems({
     });
   }
 
-  items.push({
-    key: 'span_id',
-    value: (
-      <Fragment>
-        {span.span_id}
-        <CopyToClipboardButton borderless size="zero" iconSize="xs" text={span.span_id} />
-      </Fragment>
-    ),
-    subject: 'Span ID',
-    subjectNode: (
-      <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
-        <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
-          Span ID
-        </span>
-        <SpanChildrenTraversalButton node={node} organization={organization} />
-      </TraceDrawerComponents.FlexBox>
-    ),
-  });
+  if (!hasTraceNewUi) {
+    items.push({
+      key: 'span_id',
+      value: (
+        <Fragment>
+          {span.span_id}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={span.span_id}
+          />
+        </Fragment>
+      ),
+      subject: 'Span ID',
+      subjectNode: (
+        <TraceDrawerComponents.FlexBox style={{gap: '5px'}}>
+          <span onClick={scrollToSpan(span.span_id, () => {}, location, organization)}>
+            Span ID
+          </span>
+          <SpanChildrenTraversalButton node={node} organization={organization} />
+        </TraceDrawerComponents.FlexBox>
+      ),
+    });
+  }
 
   items.push({
     key: 'origin',

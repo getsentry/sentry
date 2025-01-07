@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -40,6 +40,7 @@ import type WidgetLegendSelectionState from '../widgetLegendSelectionState';
 import {BigNumberWidget} from '../widgets/bigNumberWidget/bigNumberWidget';
 import type {Meta} from '../widgets/common/types';
 import {WidgetFrame} from '../widgets/common/widgetFrame';
+import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
 
 import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -66,7 +67,9 @@ type Props = WithRouterProps & {
   widget: Widget;
   widgetLegendState: WidgetLegendSelectionState;
   widgetLimitReached: boolean;
+  borderless?: boolean;
   dashboardFilters?: DashboardFilters;
+  disableFullscreen?: boolean;
   hasEditAccess?: boolean;
   index?: string;
   isEditingWidget?: boolean;
@@ -100,6 +103,7 @@ type Data = {
 
 function WidgetCard(props: Props) {
   const [data, setData] = useState<Data>();
+  const {setData: setWidgetViewerData} = useContext(WidgetViewerContext);
 
   const onDataFetched = (newData: Data) => {
     if (props.onDataFetched && newData.tableResults) {
@@ -127,6 +131,7 @@ function WidgetCard(props: Props) {
     onSetTransactionsDataset,
     legendOptions,
     widgetLegendState,
+    disableFullscreen,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -134,7 +139,7 @@ function WidgetCard(props: Props) {
       ...query,
       // Use the last aggregate because that's where the y-axis is stored
       aggregates: query.aggregates.length
-        ? [query.aggregates[query.aggregates.length - 1]]
+        ? [query.aggregates[query.aggregates.length - 1]!]
         : [],
     }));
     widget.queries = queries;
@@ -174,6 +179,14 @@ function WidgetCard(props: Props) {
 
   const onFullScreenViewClick = () => {
     if (!isWidgetViewerPath(location.pathname)) {
+      setWidgetViewerData({
+        pageLinks: data?.pageLinks,
+        seriesData: data?.timeseriesResults,
+        tableData: data?.tableResults,
+        seriesResultsType: data?.timeseriesResultsTypes,
+        totalIssuesCount: data?.totalIssuesCount,
+      });
+
       props.router.push({
         pathname: `${location.pathname}${
           location.pathname.endsWith('/') ? '' : '/'
@@ -257,12 +270,12 @@ function WidgetCard(props: Props) {
               const tableMeta = tableResults?.[0]?.meta as Meta | undefined;
               const fields = Object.keys(tableMeta?.fields ?? {});
 
-              let field = fields[0];
+              let field = fields[0]!;
               let selectedField = field;
 
-              if (defined(widget.queries[0].selectedAggregate)) {
-                const index = widget.queries[0].selectedAggregate;
-                selectedField = widget.queries[0].aggregates[index];
+              if (defined(widget.queries[0]!.selectedAggregate)) {
+                const index = widget.queries[0]!.selectedAggregate;
+                selectedField = widget.queries[0]!.aggregates[index]!;
                 if (fields.includes(selectedField)) {
                   field = selectedField;
                 }
@@ -279,7 +292,9 @@ function WidgetCard(props: Props) {
                   actionsDisabled={actionsDisabled}
                   actionsMessage={actionsMessage}
                   actions={actions}
-                  onFullScreenViewClick={onFullScreenViewClick}
+                  onFullScreenViewClick={
+                    disableFullscreen ? undefined : onFullScreenViewClick
+                  }
                   isLoading={loading}
                   thresholds={widget.thresholds ?? undefined}
                   value={value}
@@ -287,6 +302,7 @@ function WidgetCard(props: Props) {
                   meta={tableMeta}
                   error={widgetQueryError || errorMessage || undefined}
                   preferredPolarity="-"
+                  borderless={props.borderless}
                 />
               );
             }}
@@ -301,7 +317,8 @@ function WidgetCard(props: Props) {
             error={widgetQueryError}
             actionsMessage={actionsMessage}
             actions={actions}
-            onFullScreenViewClick={onFullScreenViewClick}
+            onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
+            borderless={props.borderless}
           >
             <WidgetCardChartContainer
               location={location}

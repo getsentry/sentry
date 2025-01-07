@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+from typing_extensions import TypeIs
+
 from sentry.eventstore.models import Event
+from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     CSPGroupingComponent,
@@ -38,8 +41,11 @@ from sentry.types.grouphash_metadata import (
     StacktraceHashingMetadata,
     TemplateHashingMetadata,
 )
+from sentry.utils import metrics
+from sentry.utils.metrics import MutableTags
 
 logger = logging.getLogger(__name__)
+
 
 GROUPING_METHODS_BY_DESCRIPTION = {
     # All frames from a stacktrace at the top level of the event, in `exception`, or in
@@ -66,6 +72,8 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     # Security reports (CSP, expect-ct, and the like)
     "URL": HashBasis.SECURITY_VIOLATION,
     "hostname": HashBasis.SECURITY_VIOLATION,
+    # CSP reports of `unsafe-inline` and `unsafe-eval` violations
+    "violation": HashBasis.SECURITY_VIOLATION,
     # Django template errors, which don't report a full stacktrace
     "template": HashBasis.TEMPLATE,
     # Hash set directly on the event by the client, under the key `checksum`
@@ -75,20 +83,38 @@ GROUPING_METHODS_BY_DESCRIPTION = {
     "fallback": HashBasis.FALLBACK,
 }
 
+# TODO: For now not including `csp_directive` and `csp_script_violation` - let's see if we end up
+# wanting them
+METRICS_TAGS_BY_HASH_BASIS = {
+    HashBasis.STACKTRACE: ["stacktrace_type", "stacktrace_location"],
+    HashBasis.MESSAGE: ["message_source", "message_parameterized"],
+    HashBasis.FINGERPRINT: ["fingerprint_source"],
+    HashBasis.SECURITY_VIOLATION: ["security_report_type"],
+    HashBasis.TEMPLATE: [],
+    HashBasis.CHECKSUM: [],
+    HashBasis.FALLBACK: ["fallback_reason"],
+    HashBasis.UNKNOWN: [],
+}
 
-def create_or_update_grouphash_metadata(
+
+def create_or_update_grouphash_metadata_if_needed(
     event: Event,
     project: Project,
     grouphash: GroupHash,
-    created: bool,
+    grouphash_is_new: bool,
     grouping_config: str,
     variants: dict[str, BaseVariant],
 ) -> None:
     # TODO: Do we want to expand this to backfill metadata for existing grouphashes? If we do,
     # we'll have to override the metadata creation date for them.
 
-    if created:
-        hash_basis, hashing_metadata = get_hash_basis_and_metadata(event, project, variants)
+    if grouphash_is_new:
+        with metrics.timer(
+            "grouping.grouphashmetadata.get_hash_basis_and_metadata"
+        ) as metrics_timer_tags:
+            hash_basis, hashing_metadata = get_hash_basis_and_metadata(
+                event, project, variants, metrics_timer_tags
+            )
 
         GroupHashMetadata.objects.create(
             grouphash=grouphash,
@@ -104,35 +130,19 @@ def create_or_update_grouphash_metadata(
 
 
 def get_hash_basis_and_metadata(
-    event: Event, project: Project, variants: dict[str, BaseVariant]
+    event: Event,
+    project: Project,
+    variants: dict[str, BaseVariant],
+    metrics_timer_tags: MutableTags,
 ) -> tuple[HashBasis, HashingMetadata]:
     hashing_metadata: HashingMetadata = {}
-
-    # TODO: This (and `contributing_variant` below) are typed as `Any` so that we don't have to cast
-    # them to whatever specific subtypes of `BaseVariant` and `GroupingComponent` (respectively)
-    # each of the helper calls below requires. Casting once, to a type retrieved from a look-up,
-    # doesn't work, but maybe there's a better way?
-    contributing_variant: Any = (
-        variants["app"]
-        # TODO: We won't need this 'if' once we stop returning both app and system contributing
-        # variants
-        if "app" in variants and variants["app"].contributes
-        else (
-            variants["hashed_checksum"]
-            # TODO: We won't need this 'if' once we stop returning both hashed and non-hashed
-            # checksum contributing variants
-            if "hashed_checksum" in variants
-            # Other than in the broken app/system and hashed/raw checksum cases, there should only
-            # ever be a single contributing variant
-            else [variant for variant in variants.values() if variant.contributes][0]
-        )
-    )
-    contributing_component: Any = (
-        # There should only ever be a single contributing component here at the top level
-        [value for value in contributing_variant.component.values if value.contributes][0]
-        if hasattr(contributing_variant, "component")
-        else None
-    )
+    # TODO: These are typed as `Any` so that we don't have to cast them to whatever specific
+    # subtypes of `BaseVariant` and `GroupingComponent` (respectively) each of the helper calls
+    # below requires. Casting once, to a type retrieved from a look-up, doesn't work, but maybe
+    # there's a better way?
+    contributors = get_contributing_variant_and_component(variants)
+    contributing_variant: Any = contributors[0]
+    contributing_component: Any = contributors[1]
 
     # Hybrid fingerprinting adds 'modified' to the beginning of the description of whatever method
     # was used before the extra fingerprint was added. We classify events with hybrid fingerprints
@@ -147,9 +157,11 @@ def get_hash_basis_and_metadata(
         logger.exception(
             "Encountered unknown grouping method '%s'.",
             contributing_variant.description,
-            extra={"project": project.id, "event": event.event_id},
+            extra={"project": project.id, "event_id": event.event_id},
         )
         return (HashBasis.UNKNOWN, {})
+
+    metrics_timer_tags["hash_basis"] = hash_basis
 
     # Gather different metadata depending on the grouping method
 
@@ -193,6 +205,51 @@ def get_hash_basis_and_metadata(
     return hash_basis, hashing_metadata
 
 
+def record_grouphash_metadata_metrics(grouphash_metadata: GroupHashMetadata) -> None:
+    # TODO: Once https://peps.python.org/pep-0728 is a thing (still in draft but theoretically on
+    # track for 3.14), we can mark the various hashing metadata types as closed and that should
+    # narrow the types for the tag values such that we can stop stringifying everything
+
+    # TODO: For now, until we backfill data for pre-existing hashes, these metrics are going
+    # to be somewhat skewed
+
+    # Define a helper for this check so that it can double as a type guard
+    def is_stacktrace_hashing(
+        _hashing_metadata: HashingMetadata,
+        hash_basis: str,
+    ) -> TypeIs[StacktraceHashingMetadata]:
+        return hash_basis == HashBasis.STACKTRACE
+
+    hash_basis = grouphash_metadata.hash_basis
+    hashing_metadata = grouphash_metadata.hashing_metadata
+
+    if hash_basis:
+        hash_basis_tags: dict[str, str] = {"hash_basis": hash_basis}
+        if hashing_metadata:
+            hash_basis_tags["is_hybrid_fingerprint"] = str(
+                hashing_metadata.get("is_hybrid_fingerprint", False)
+            )
+        metrics.incr(
+            "grouping.grouphashmetadata.event_hash_basis", sample_rate=1.0, tags=hash_basis_tags
+        )
+
+        if hashing_metadata:
+            hashing_metadata_tags: dict[str, str | bool] = {
+                tag: str(hashing_metadata.get(tag))
+                for tag in METRICS_TAGS_BY_HASH_BASIS[hash_basis]
+            }
+            if is_stacktrace_hashing(hashing_metadata, hash_basis):
+                hashing_metadata_tags["chained_exception"] = str(
+                    int(hashing_metadata.get("num_stacktraces", 1)) > 1
+                )
+            if hashing_metadata_tags:
+                metrics.incr(
+                    f"grouping.grouphashmetadata.event_hashing_metadata.{hash_basis}",
+                    sample_rate=1.0,
+                    tags=hashing_metadata_tags,
+                )
+
+
 def _get_stacktrace_hashing_metadata(
     contributing_variant: ComponentVariant,
     contributing_component: (
@@ -203,7 +260,7 @@ def _get_stacktrace_hashing_metadata(
     ),
 ) -> StacktraceHashingMetadata:
     return {
-        "stacktrace_type": "in_app" if "in-app" in contributing_variant.description else "system",
+        "stacktrace_type": "in_app" if contributing_variant.variant_name == "app" else "system",
         "stacktrace_location": (
             "exception"
             if "exception" in contributing_variant.description

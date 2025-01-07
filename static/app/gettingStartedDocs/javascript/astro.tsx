@@ -23,6 +23,7 @@ import {
   getReplaySDKSetupSnippet,
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -211,7 +212,7 @@ const onboarding: OnboardingConfig = {
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
-      ...getInstallConfig()[0],
+      ...getInstallConfig()[0]!,
       additionalInfo:
         'Session Replay is enabled by default when you install the Astro SDK!',
     },
@@ -378,6 +379,7 @@ const docs: Docs = {
   replayOnboarding,
   customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
   crashReportOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

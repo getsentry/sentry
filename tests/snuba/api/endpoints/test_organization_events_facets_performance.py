@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
@@ -60,10 +60,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         )
 
     def store_transaction(
-        self, name="exampleTransaction", duration=100, tags=None, project_id=None, lcp=None
+        self, name="exampleTransaction", duration=100, project_id=None, lcp=None, *, tags
     ):
-        if tags is None:
-            tags = []
         if project_id is None:
             project_id = self.project.id
         event = load_data("transaction")
@@ -72,7 +70,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             {
                 "transaction": name,
                 "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
-                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
+                "start_timestamp": (self.two_mins_ago - timedelta(seconds=duration)).isoformat(),
                 "timestamp": self.two_mins_ago.isoformat(),
             }
         )
