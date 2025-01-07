@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import theme from 'sentry/utils/theme';
@@ -81,8 +82,8 @@ export function IssueViewQueryCount({view}: IssueViewQueryCountProps) {
 
 const QueryCountBubble = styled(motion.span)`
   line-height: 20px;
-  font-size: 75%;
-  padding: 0 5px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  padding: 0 ${space(0.5)};
   min-width: 20px;
   display: flex;
   height: 16px;
