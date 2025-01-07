@@ -21,8 +21,8 @@ class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: str
     createdAt: datetime
-    createdBy: str
-    createdByType: str
+    createdBy: str | None
+    createdByType: str | None
     flag: str
     tags: dict[str, Any]
 
