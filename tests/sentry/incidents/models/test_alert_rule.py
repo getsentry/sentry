@@ -10,14 +10,11 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
 from sentry.users.services.user.service import user_service
