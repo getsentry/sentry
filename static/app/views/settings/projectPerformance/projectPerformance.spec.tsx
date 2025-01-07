@@ -27,14 +27,16 @@ describe('projectPerformance', function () {
   });
   const project = ProjectFixture();
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
-  let getMock, postMock, deleteMock;
+  let getMock: jest.Mock;
+  let postMock: jest.Mock;
+  let deleteMock: jest.Mock;
 
   const router = RouterFixture();
   const routerProps = {
     router,
     location: LocationFixture(),
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     routeParams: router.params,
   };
 
@@ -329,7 +331,7 @@ describe('projectPerformance', function () {
         await userEvent.click(chevron);
       }
 
-      const slider = screen.getAllByRole('slider')[sliderIndex];
+      const slider = screen.getAllByRole('slider')[sliderIndex]!;
       const indexOfValue = allowedValues.indexOf(defaultValue);
       const newValueIndex = allowedValues.indexOf(newValue);
 
@@ -351,7 +353,7 @@ describe('projectPerformance', function () {
 
       // Ensure that PUT request is fired to update
       // project settings
-      const expectedPUTPayload = {};
+      const expectedPUTPayload: Record<string, number> = {};
       expectedPUTPayload[threshold] = newValue;
       expect(performanceIssuesPutMock).toHaveBeenCalledWith(
         '/projects/org-slug/project-slug/performance-issues/configure/',

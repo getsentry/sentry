@@ -66,7 +66,7 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
         .map(key => [
           key,
           {
-            ...supportedTags[key],
+            ...supportedTags[key]!,
             kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
           },
         ])
@@ -79,7 +79,7 @@ function getFeedbackFilterKeys(supportedTags: TagCollection) {
   // To guarantee ordering, we need to implement filterKeySections.
   const keys = Object.keys(allTags);
   keys.sort();
-  return Object.fromEntries(keys.map(key => [key, allTags[key]]));
+  return Object.fromEntries(keys.map(key => [key, allTags[key]!]));
 }
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {

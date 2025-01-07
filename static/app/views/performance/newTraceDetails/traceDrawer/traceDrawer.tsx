@@ -447,7 +447,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     meta={props.meta}
                     traceType={props.traceType}
                     tree={props.trace}
-                    node={props.trace.root.children[0]}
+                    node={props.trace.root.children[0]!}
                     rootEventResults={props.rootEventResults}
                     tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                     traceEventView={props.traceEventView}
@@ -505,7 +505,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         onClick={() => {
           if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
             traceAnalytics.trackTabView(node, organization);
-            props.onTabScrollToNode(root);
+            props.onTabScrollToNode(root!);
           }
           props.traceDispatch({type: 'activate tab', payload: props.index});
         }}
@@ -515,7 +515,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         props.tab.node === 'vitals' ||
         props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
-            backgroundColor={makeTraceNodeBarColor(props.theme, root)}
+            backgroundColor={makeTraceNodeBarColor(props.theme, root!)}
           />
         )}
         <TabButton>{props.tab.label ?? node}</TabButton>
@@ -626,7 +626,7 @@ function TraceLayoutMinimizeButton(props: {
       size="xs"
       borderless
       aria-label={t('Close Drawer')}
-      icon={<IconClose size="xs" />}
+      icon={<StyledIconClose />}
       onClick={props.onClick}
     >
       {t('Close')}
@@ -634,8 +634,16 @@ function TraceLayoutMinimizeButton(props: {
   );
 }
 
+const StyledIconClose = styled(IconClose)`
+  width: 10px;
+  height: 10px;
+`;
+
 const CloseButton = styled(Button)`
+  font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  height: 100%;
+  border-bottom: 2px solid transparent;
   &:hover {
     color: ${p => p.theme.textColor};
   }
@@ -741,7 +749,7 @@ const TabsHeightContainer = styled('div')<{
 const TabsLayout = styled('div')`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  padding-left: ${space(0.25)};
+  padding-left: ${space(1)};
   padding-right: ${space(0.5)};
 `;
 
@@ -785,6 +793,7 @@ const TabLayoutControlItem = styled('li')`
   position: relative;
   z-index: 10;
   background-color: ${p => p.theme.background};
+  height: 100%;
 `;
 
 const Tab = styled('li')`

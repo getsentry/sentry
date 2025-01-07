@@ -132,7 +132,7 @@ from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.pytest.selenium import Browser
@@ -2126,7 +2126,7 @@ class BaseIncidentsTest(SnubaTestCase):
         data = {
             "event_id": event_id,
             "fingerprint": [fingerprint],
-            "timestamp": iso_format(timestamp),
+            "timestamp": timestamp.isoformat(),
             "type": "error",
             # This is necessary because event type error should not exist without
             # an exception being in the payload
@@ -3388,7 +3388,7 @@ class TraceTestCase(SpanTestCase):
         start, _ = self.get_start_end_from_day_ago(1000)
         return self.store_event(
             {
-                "timestamp": iso_format(start),
+                "timestamp": start.isoformat(),
                 "contexts": {
                     "trace": {
                         "type": "trace",

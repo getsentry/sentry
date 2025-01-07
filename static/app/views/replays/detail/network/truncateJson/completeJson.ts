@@ -29,7 +29,7 @@ export function completeJson(incompleteJson: string, stack: JsonToken[]): string
 
   // Most checks are only needed for the last step in the stack
   const lastPos = stack.length - 1;
-  const lastStep = stack[lastPos];
+  const lastStep = stack[lastPos]!;
 
   json = _fixLastStep(json, lastStep);
 

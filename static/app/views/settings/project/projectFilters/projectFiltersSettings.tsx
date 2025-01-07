@@ -82,7 +82,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 62 and lower',
+    helpText: 'Version 63 and lower',
     legacy: false,
   },
   safari: {

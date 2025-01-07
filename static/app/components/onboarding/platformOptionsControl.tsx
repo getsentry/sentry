@@ -26,8 +26,8 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
     }
 
     return Object.keys(platformOptions).reduce((acc, key) => {
-      const defaultValue = platformOptions[key].defaultValue;
-      const values = platformOptions[key].items.map(({value}) => value);
+      const defaultValue = platformOptions[key]!.defaultValue;
+      const values = platformOptions[key]!.items.map(({value}) => value);
       acc[key as keyof PlatformOptions] = values.includes(query[key])
         ? query[key]
         : defaultValue ?? values[0];
@@ -100,7 +100,7 @@ export function PlatformOptionsControl({
         <OptionControl
           key={key}
           option={platformOption}
-          value={urlOptionValues[key] ?? platformOption.items[0]?.value}
+          value={urlOptionValues[key]! ?? platformOption.items[0]?.value}
           onChange={value => handleChange(key, value)}
         />
       ))}

@@ -25,7 +25,7 @@ function GroupEventAttachmentsContainer() {
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+  } = useGroup({groupId: params.groupId!});
 
   if (isGroupPending) {
     return <LoadingIndicator />;

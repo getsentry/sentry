@@ -15,7 +15,7 @@ import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGlobe, IconQuestion} from 'sentry/icons';
+import {IconGlobe, IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -23,9 +23,10 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import GroupActions from 'sentry/views/issueDetails/actions/index';
+import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
@@ -66,6 +67,11 @@ export default function StreamlinedGroupHeader({
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
   const shareUrl = group?.shareId ? getShareUrl(group) : null;
+
+  const [showLearnMore, setShowLearnMore] = useLocalStorageState(
+    'issue-details-learn-more',
+    true
+  );
 
   return (
     <Fragment>
@@ -130,12 +136,16 @@ export default function StreamlinedGroupHeader({
               size="xs"
               external
               title={t('Learn more about the new UI')}
-              aria-label={t('Learn more about the new UI')}
               href={`https://sentry.zendesk.com/hc/en-us/articles/30882241712795`}
-              icon={<IconQuestion />}
+              aria-label={t('Learn more about the new UI')}
+              icon={<IconInfo />}
               analyticsEventKey="issue_details.streamline_ui_learn_more"
               analyticsEventName="Issue Details: Streamline UI Learn More"
-            />
+              analyticsParams={{show_learn_more: showLearnMore}}
+              onClick={() => setShowLearnMore(false)}
+            >
+              {showLearnMore ? t("See What's New") : null}
+            </LinkButton>
             <NewIssueExperienceButton />
           </ButtonBar>
         </Flex>
@@ -214,7 +224,6 @@ export default function StreamlinedGroupHeader({
           project={project}
           disabled={disableActions}
           event={event}
-          query={location.query}
         />
         <WorkflowActions>
           <Workflow>

@@ -59,7 +59,7 @@ describe('WidgetBuilderGroupBySelector', function () {
 
     expect(await screen.findAllByLabelText('Remove group')).toHaveLength(2);
 
-    await userEvent.click((await screen.findAllByLabelText('Remove group'))[0]);
+    await userEvent.click((await screen.findAllByLabelText('Remove group'))[0]!);
 
     expect(await screen.findByText('id')).toBeInTheDocument();
     await waitFor(() => {

@@ -313,7 +313,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
     <TopFrameworksImageWrapper>
       <TopFrameworkIcon
         size={84}
-        platform={top3[1].id}
+        platform={top3[1]!.id}
         angle={-34}
         radius={8}
         offset={-74}
@@ -321,7 +321,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[2].id}
+        platform={top3[2]!.id}
         angle={34}
         radius={8}
         offset={+74}
@@ -329,7 +329,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[0].id}
+        platform={top3[0]!.id}
         angle={0}
         radius={8}
         offset={0}

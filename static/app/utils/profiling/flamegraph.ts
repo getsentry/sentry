@@ -26,7 +26,7 @@ function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
       next.children.sort(sortFn);
 
       for (let i = 0; i < next.children.length; i++) {
-        queue.push(next.children[i]);
+        queue.push(next.children[i]!);
       }
     }
   };
@@ -313,8 +313,8 @@ export class Flamegraph {
 
     if (fields.length === 1) {
       for (let i = 0; i < this.frames.length; i++) {
-        if (this.frames[i].frame[fields[0]] === query) {
-          matches.push(this.frames[i]);
+        if (this.frames[i]!.frame[fields[0]!] === query) {
+          matches.push(this.frames[i]!);
         }
       }
       return matches;
@@ -322,8 +322,8 @@ export class Flamegraph {
 
     for (let i = 0; i < this.frames.length; i++) {
       for (let j = fields.length; j--; ) {
-        if (this.frames[i].frame[fields[j]] === query) {
-          matches.push(this.frames[i]);
+        if (this.frames[i]!.frame[fields[j]!] === query) {
+          matches.push(this.frames[i]!);
         }
       }
     }
@@ -338,13 +338,13 @@ export class Flamegraph {
 
     for (let i = 0; i < this.frames.length; i++) {
       if (
-        this.frames[i].frame.name === frameName &&
+        this.frames[i]!.frame.name === frameName &&
         // the framePackage can match either the package or the module
         // this is an artifact of how we previously used image
-        (tryTrimPackage(this.frames[i].frame.package) === framePackage ||
-          this.frames[i].frame.module === framePackage)
+        (tryTrimPackage(this.frames[i]!.frame.package) === framePackage ||
+          this.frames[i]!.frame.module === framePackage)
       ) {
-        matches.push(this.frames[i]);
+        matches.push(this.frames[i]!);
       }
     }
 

@@ -1,10 +1,9 @@
 import functools
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from time import sleep
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
-from dateutil.parser import parse as parse_datetime
 from django.urls import reverse
 from django.utils import timezone
 
@@ -59,7 +58,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
@@ -84,7 +83,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():
@@ -102,7 +101,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_sort_by_date_with_tag(self, _: MagicMock) -> None:
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -114,7 +113,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_query_for_archived(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -130,21 +129,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_sort_by_trends(self, mock_query: MagicMock) -> None:
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         ).group
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(hours=13)),
+                "timestamp": before_now(hours=13).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -152,21 +151,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         group_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=5)),
+                "timestamp": before_now(seconds=5).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         ).group
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(hours=13)),
+                "timestamp": before_now(hours=13).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: dict = {
+        aggregate_kwargs: dict[str, str] = {
             "log_level": "3",
             "has_stacktrace": "5",
             "relative_volume": "1",
@@ -180,8 +179,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="trends",
             query="is:unresolved",
             limit=25,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
+            start=before_now(days=1).isoformat(),
+            end=before_now(seconds=1).isoformat(),
             **aggregate_kwargs,
         )
         assert len(response.data) == 2
@@ -192,7 +191,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -201,7 +200,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -227,7 +226,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -236,7 +235,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -253,7 +252,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         owner_by_other = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-3"],
             },
             project_id=self.project.id,
@@ -272,7 +271,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         owned_me_assigned_to_other = self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project.id,
@@ -291,7 +290,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         unowned_assigned_to_other = self.store_event(
             data={
                 "event_id": "e" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-5"],
             },
             project_id=self.project.id,
@@ -312,7 +311,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "contexts": {
                     "trace": {
                         "parent_span_id": "8988cec7cc0779c1",
@@ -412,12 +411,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_simple_pagination(self, _: MagicMock) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group1 = event1.group
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         group2 = event2.group
@@ -430,6 +429,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
+        assert links["next"]["href"] is not None
 
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
@@ -460,7 +460,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -468,7 +468,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "staging",
             },
             project_id=self.project.id,
@@ -487,7 +487,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -505,11 +505,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "b" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         group2 = event2.group
@@ -537,7 +537,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -551,12 +551,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_lookup_by_event_id_incorrect_project_id(self, _: MagicMock) -> None:
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         event_id = "b" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -577,7 +577,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -610,7 +610,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_lookup_by_short_id_alias(self, _: MagicMock) -> None:
         event_id = "f" * 32
         group = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": event_id, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         ).group
         short_id = group.qualified_short_id
@@ -625,11 +625,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2))},
+            data={"timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1))},
+            data={"timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
         with self.feature("organizations:global-views"):
@@ -708,11 +708,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
+            data={"release": release.version, "timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
 
@@ -741,7 +741,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release.add_project(project)
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -765,7 +765,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event1 = self.store_event(
             data={
                 "release": release1.version,
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": before_now(seconds=3).isoformat(),
                 "fingerprint": ["1"],
             },
             project_id=project.id,
@@ -773,7 +773,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event2 = self.store_event(
             data={
                 "release": release2.version,
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "fingerprint": ["2"],
             },
             project_id=project.id,
@@ -781,7 +781,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.store_event(
             data={
                 "release": release3.version,
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "fingerprint": ["3"],
             },
             project_id=project.id,
@@ -801,7 +801,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release.add_project(project)
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -818,7 +818,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release = self.create_release()
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -836,7 +836,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                     data={
                         "event_id": i * 32,
                         "fingerprint": [i],
-                        "timestamp": iso_format(self.min_ago),
+                        "timestamp": self.min_ago.isoformat(),
                     },
                     project_id=self.project.id,
                 )
@@ -874,7 +874,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_date_range(self, _: MagicMock) -> None:
         with self.options({"system.event-retention-days": 2}):
             event = self.store_event(
-                data={"timestamp": iso_format(before_now(hours=5))}, project_id=self.project.id
+                data={"timestamp": before_now(hours=5).isoformat()}, project_id=self.project.id
             )
             group = event.group
 
@@ -931,7 +931,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             ]
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(days=day)),
+                    "timestamp": before_now(days=day).isoformat(),
                     "fingerprint": [f"group-{day}"],
                 },
                 project_id=self.project.id,
@@ -980,7 +980,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         for i in range(5):
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=10, days=i)),
+                    "timestamp": before_now(minutes=10, days=i).isoformat(),
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=self.project.id,
@@ -1005,7 +1005,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_seen_stats(self, _: MagicMock) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         before_now_300_seconds = before_now(seconds=300).isoformat()
@@ -1018,7 +1018,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group2.first_seen = datetime.fromisoformat(before_now_350_seconds)
         group2.times_seen = 55
         group2.save()
-        before_now_250_seconds = iso_format(before_now(seconds=250))
+        before_now_250_seconds = before_now(seconds=250).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_250_seconds,
@@ -1029,13 +1029,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
             project_id=self.project.id,
         )
-        before_now_150_seconds = iso_format(before_now(seconds=150))
+        before_now_150_seconds = before_now(seconds=150).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_150_seconds,
@@ -1044,7 +1044,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
-        before_now_100_seconds = iso_format(before_now(seconds=100))
+        before_now_100_seconds = before_now(seconds=100).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_100_seconds,
@@ -1066,21 +1066,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"]["stats"] is None
         assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
 
-        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["lifetime"]["firstSeen"] == datetime.fromisoformat(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["lifetime"]["lastSeen"] == datetime.fromisoformat(
             before_now_100_seconds
-        ).replace(tzinfo=UTC)
+        )
         assert response.data[0]["lifetime"]["count"] == "55"
 
         assert response.data[0]["filtered"]["count"] == "2"
-        assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["filtered"]["firstSeen"] == datetime.fromisoformat(
             before_now_250_seconds
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["filtered"]["lastSeen"] == datetime.fromisoformat(
             before_now_150_seconds
-        ).replace(tzinfo=UTC)
+        )
 
         # Empty filter test:
         response = self.get_response(sort_by="date", limit=10, query="")
@@ -1092,12 +1092,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"]["stats"] is None
 
         assert response.data[0]["lifetime"]["count"] == "55"
-        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["lifetime"]["firstSeen"] == datetime.fromisoformat(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["lifetime"]["lastSeen"] == datetime.fromisoformat(
             before_now_100_seconds
-        ).replace(tzinfo=UTC)
+        )
 
         # now with useGroupSnubaDataset = 1
         response = self.get_response(sort_by="date", limit=10, query="server:example.com")
@@ -1113,7 +1113,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_1_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1123,7 +1123,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_2_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_2.version,
             },
@@ -1132,7 +1132,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_3_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_3.version,
             },
@@ -1181,7 +1181,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_inbox_search(self, _: MagicMock) -> None:
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1190,7 +1190,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1199,7 +1199,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-3"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1226,8 +1226,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="is:unresolved is:for_review",
             collapse="stats",
             expand=["inbox", "owners"],
-            start=iso_format(before_now(days=20)),
-            end=iso_format(before_now(days=15)),
+            start=before_now(days=20).isoformat(),
+            end=before_now(days=15).isoformat(),
         )
         assert response.status_code == 200
         assert len(response.data) == 0
@@ -1236,7 +1236,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=180)),
+                "timestamp": before_now(seconds=180).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1244,7 +1244,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=185)),
+                "timestamp": before_now(seconds=185).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1252,7 +1252,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=190)),
+                "timestamp": before_now(seconds=190).isoformat(),
                 "fingerprint": ["group-3"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1261,7 +1261,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assigned_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=195)),
+                "timestamp": before_now(seconds=195).isoformat(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project.id,
@@ -1269,7 +1269,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assigned_to_other_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=195)),
+                "timestamp": before_now(seconds=195).isoformat(),
                 "fingerprint": ["group-5"],
             },
             project_id=self.project.id,
@@ -1419,7 +1419,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1427,7 +1427,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1435,7 +1435,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1443,7 +1443,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
+                "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": release_2.version,
             },
@@ -1451,7 +1451,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_3_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).isoformat(),
                 "fingerprint": ["group-5"],
                 "release": release_3.version,
             },
@@ -1459,7 +1459,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_3_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=6)),
+                "timestamp": before_now(minutes=6).isoformat(),
                 "fingerprint": ["group-6"],
                 "release": release_3.version,
             },
@@ -1519,7 +1519,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         adopted_release_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": adopted_release.version,
                 "environment": self.environment.name,
@@ -1528,7 +1528,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         adopted_release_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": adopted_release.version,
                 "environment": self.environment.name,
@@ -1537,7 +1537,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         replaced_release_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": replaced_release.version,
                 "environment": self.environment.name,
@@ -1546,7 +1546,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         replaced_release_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
+                "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": replaced_release.version,
                 "environment": self.environment.name,
@@ -1613,7 +1613,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1621,7 +1621,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1629,7 +1629,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1657,7 +1657,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1665,7 +1665,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1673,7 +1673,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1698,7 +1698,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_aggregate_stats_regression_test(self, _: MagicMock) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
 
@@ -1712,12 +1712,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_skipped_fields(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1726,7 +1726,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " first_seen:" + iso_format(before_now(seconds=500))
+        query += " first_seen:" + before_now(seconds=500).isoformat()
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=query)
@@ -1739,7 +1739,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_inbox_fields(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1773,7 +1773,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_inbox_fields_issue_states(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1805,7 +1805,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_expand_string(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1821,7 +1821,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_expand_plugin_actions_and_issues(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1845,7 +1845,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_expand_integration_issues(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1896,7 +1896,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_expand_sentry_app_issues(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1951,7 +1951,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     @with_feature("organizations:event-attachments")
     def test_expand_latest_event_has_attachments(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1995,7 +1995,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self, _: MagicMock, mock_latest_event: MagicMock
     ) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -2010,7 +2010,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_expand_owners(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -2071,11 +2071,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_default_search(self, _: MagicMock) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         event2.group.update(status=GroupStatus.RESOLVED, substatus=None)
@@ -2087,13 +2087,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_default_search_with_priority(self, _: MagicMock) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event1.group.priority = PriorityLevel.HIGH
         event1.group.save()
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-3"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
             project_id=self.project.id,
         )
         event2.group.status = GroupStatus.RESOLVED
@@ -2102,7 +2102,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event2.group.save()
 
         event3 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         event3.group.priority = PriorityLevel.LOW
@@ -2117,7 +2117,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_collapse_stats(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2137,7 +2137,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_collapse_lifetime(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2156,7 +2156,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_collapse_filtered(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2175,7 +2175,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_collapse_lifetime_and_filtered(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2194,7 +2194,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_collapse_base(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2218,7 +2218,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         GroupSnooze.objects.create(
@@ -2237,10 +2237,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    @with_feature("organizations:issue-stream-performance")
     def test_collapse_unhandled(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2261,7 +2260,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2270,7 +2269,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2299,7 +2298,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2308,7 +2307,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2336,7 +2335,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2345,7 +2344,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2383,7 +2382,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2392,7 +2391,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2432,7 +2431,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2455,7 +2454,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_global_default_custom_view_query(self, _: MagicMock) -> None:
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2475,7 +2474,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_query_status_and_substatus_overlapping(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -2529,7 +2528,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_query_status_and_substatus_nonoverlapping(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -2579,7 +2578,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_use_group_snuba_dataset(self, mock_query: MagicMock) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2620,15 +2619,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_snuba_order_by_freq(self, mock_query: MagicMock) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
 
@@ -2658,7 +2657,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # 2 events, 2 users
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=6)),
+                "timestamp": before_now(seconds=6).isoformat(),
                 "fingerprint": ["group-1"],
                 "user": user2,
             },
@@ -2666,7 +2665,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=5)),
+                "timestamp": before_now(seconds=5).isoformat(),
                 "fingerprint": ["group-1"],
                 "user": user3,
             },
@@ -2676,7 +2675,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # 3 events, 1 user for group 1
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=4)),
+                "timestamp": before_now(seconds=4).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": user1,
             },
@@ -2684,7 +2683,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": before_now(seconds=3).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": user1,
             },
@@ -2692,7 +2691,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "user": user1,
             },
@@ -3158,7 +3157,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             user={"email": "myemail@example.com"},
             event_data={
                 "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "start_timestamp": (datetime.now() - timedelta(minutes=1)).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
         )
@@ -3217,7 +3216,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             event_data={
                 "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "start_timestamp": (datetime.now() - timedelta(minutes=1)).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             override_occurrence_data={
@@ -3233,7 +3232,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             [f"{PerformanceNPlusOneGroupType.type_id}-group2"],
             event_data={
                 "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
+                "start_timestamp": (datetime.now() - timedelta(minutes=1)).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             override_occurrence_data={
@@ -3330,7 +3329,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         for i in range(30):
             self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(seconds=i)),
+                    "timestamp": before_now(seconds=i).isoformat(),
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=self.project.id,
@@ -3385,7 +3384,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending an event with Kafka enabled
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "OutOfMemoryError",
                 "tags": {"level": "error"},
             },
@@ -3394,7 +3393,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending another event that matches the wildcard filter
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "MemoryError",
                 "tags": {"level": "error"},
             },
@@ -3404,7 +3403,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending another event that doesn't match the filter
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "NullPointerException",
                 "tags": {"level": "error"},
             },
@@ -3439,7 +3438,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         for i, (time1, time2) in enumerate(times):
             self.store_event(
                 data={
-                    "timestamp": iso_format(time1),
+                    "timestamp": time1.isoformat(),
                     "message": f"Error {i}",
                     "fingerprint": [f"group-{i}"],
                 },
@@ -3447,7 +3446,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             self.store_event(
                 data={
-                    "timestamp": iso_format(time2),
+                    "timestamp": time2.isoformat(),
                     "message": f"Error {i} - additional event",
                     "fingerprint": [f"group-{i}"],
                 },
@@ -3455,7 +3454,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
 
         # Test firstSeen filter
-        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        twenty_four_hours_ago = before_now(hours=24).isoformat()
         response = self.get_success_response(query=f"firstSeen:<{twenty_four_hours_ago}")
         assert len(response.data) == 0
         response = self.get_success_response(query="firstSeen:-24h")
@@ -3469,7 +3468,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 4
 
         # Test lastSeen filter with an absolute date using before_now
-        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        absolute_date = before_now(days=1).isoformat()  # Assuming 365 days before now as an example
         response = self.get_success_response(query=f"lastSeen:>{absolute_date}")
         assert len(response.data) == 4
         response = self.get_success_response(query=f"lastSeen:<{absolute_date}")
@@ -3483,7 +3482,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create two issues, one bookmarked by each user
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3494,7 +3493,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3520,7 +3519,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create two issues, one linked and one not linked
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3535,7 +3534,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3560,7 +3559,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create two issues, one subscribed by user1 and one not subscribed
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3575,7 +3574,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3597,7 +3596,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release = self.create_release()
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -3618,7 +3617,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release = self.create_release(version="steve@1.2.7+123")
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -3638,7 +3637,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         project = self.project
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["unique-fingerprint-1"],
                 "exception": {
                     "values": [
@@ -3662,7 +3661,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "fingerprint": ["unique-fingerprint-2"],
                 "exception": {
                     "values": [
@@ -3699,7 +3698,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending an event with main_thread set to true
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "MainThreadError",
                 "exception": {
                     "values": [
@@ -3717,7 +3716,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending an event with main_thread set to false
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "message": "WorkerThreadError",
                 "exception": {
                     "values": [
@@ -3747,7 +3746,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_snuba_heavy_search_aggregate_stats_regression_test(self, _: MagicMock) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
 
@@ -3764,7 +3763,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_snuba_heavy_search_inbox_search(self, _: MagicMock) -> None:
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -3773,7 +3772,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -3782,7 +3781,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-3"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -3805,7 +3804,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
     @patch("sentry.analytics.record")
-    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock):
+    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
@@ -3830,7 +3829,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     def test_snuba_heavy_filter_not_unresolved(self, _: MagicMock) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.RESOLVED, substatus=None)
@@ -3849,7 +3848,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Store an event with sdk.name as sentry.python
         event_python = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "sdk": {"name": "sentry.python", "version": "0.13.19"},
             },
@@ -3859,7 +3858,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Store another event with sdk.name as sentry.javascript
         event_javascript = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=400)),
+                "timestamp": before_now(seconds=400).isoformat(),
                 "fingerprint": ["group-2"],
                 "sdk": {"name": "sentry.javascript", "version": "2.1.1"},
             },
@@ -3903,7 +3902,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create an event with an unhandled exception
         unhandled_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=300)),
+                "timestamp": before_now(seconds=300).isoformat(),
                 "level": "error",
                 "fingerprint": ["unhandled-group"],
                 "exception": {
@@ -3922,7 +3921,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create an event with a handled exception
         handled_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=300)),
+                "timestamp": before_now(seconds=300).isoformat(),
                 "fingerprint": ["handled-group"],
                 "exception": {
                     "values": [
@@ -3962,7 +3961,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response_handled_0.data) == 1
         assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
 
-    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool):
+    def run_feedback_filtered_by_default_test(self, use_group_snuba_dataset: bool) -> None:
         with Feature(
             {
                 FeedbackGroup.build_visible_feature_name(): True,
@@ -3971,7 +3970,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             }
         ):
             event = self.store_event(
-                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                data={"event_id": uuid4().hex, "timestamp": before_now(seconds=1).isoformat()},
                 project_id=self.project.id,
             )
             assert event.group is not None
@@ -3990,13 +3989,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) != feedback_group.id
         assert issue["issueCategory"] != "feedback"
 
-    def test_feedback_filtered_by_default_no_snuba_search(self, _):
+    def test_feedback_filtered_by_default_no_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_filtered_by_default_test(False)
 
-    def test_feedback_filtered_by_default_use_snuba_search(self, _):
+    def test_feedback_filtered_by_default_use_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_filtered_by_default_test(True)
 
-    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool):
+    def run_feedback_category_filter_test(self, use_group_snuba_dataset: bool) -> None:
         with Feature(
             {
                 FeedbackGroup.build_visible_feature_name(): True,
@@ -4005,7 +4004,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             }
         ):
             event = self.store_event(
-                data={"event_id": uuid4().hex, "timestamp": iso_format(before_now(seconds=1))},
+                data={"event_id": uuid4().hex, "timestamp": before_now(seconds=1).isoformat()},
                 project_id=self.project.id,
             )
             assert event.group is not None
@@ -4026,10 +4025,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issue["id"]) == feedback_group.id
         assert issue["issueCategory"] == "feedback"
 
-    def test_feedback_category_filter_no_snuba_search(self, _):
+    def test_feedback_category_filter_no_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_category_filter_test(False)
 
-    def test_feedback_category_filter_use_snuba_search(self, _):
+    def test_feedback_category_filter_use_snuba_search(self, _: MagicMock) -> None:
         self.run_feedback_category_filter_test(True)
 
 
@@ -4156,7 +4155,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             self.store_event(
                 data={
                     "fingerprint": [i],
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "timestamp": (self.min_ago - timedelta(seconds=i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -4180,7 +4179,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
         )
         group = event.group
 
@@ -4354,7 +4353,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_21_1_1.version,
             },
@@ -4362,7 +4361,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_21_1_0.version,
             },
@@ -4420,7 +4419,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4469,7 +4468,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4484,7 +4483,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=0)),
+                "timestamp": before_now(seconds=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_2.version,
             },
@@ -4527,7 +4526,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4675,7 +4674,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -5006,7 +5005,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": str(i)},
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
+                    "timestamp": (self.min_ago + timedelta(seconds=i)).isoformat(),
                 },
                 project_id=self.project.id,
             )

@@ -175,7 +175,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
-          conditions.cursor = paginationObject.next.cursor;
+          conditions.cursor = paginationObject.next!.cursor;
         } else {
           hasMore = false;
         }

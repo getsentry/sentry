@@ -31,7 +31,7 @@ from sentry.signals import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -1016,11 +1016,11 @@ class OrganizationOnboardingTaskTest(TestCase):
     @patch("sentry.analytics.record")
     def test_new_onboarding_complete(self, record_analytics):
         """
-        Test the new quick start happy path
+        Test the new quick start happy path (without source maps)
         """
         with self.feature("organizations:quick-start-updates"):
             # Create first project
-            project = self.create_project()
+            project = self.create_project(platform="python")
             project_created.send(
                 project=project, user=self.user, default_rules=False, sender=type(project)
             )
@@ -1068,7 +1068,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 data={
                     "event_id": "c" * 32,
                     "message": "this is bad.",
-                    "timestamp": iso_format(timezone.now()),
+                    "timestamp": timezone.now().isoformat(),
                     "type": "error",
                 },
                 project_id=project.id,
@@ -1123,59 +1123,6 @@ class OrganizationOnboardingTaskTest(TestCase):
                 duplicate_rule=None,
                 wizard_v3=None,
                 query_type=None,
-            )
-
-            # Unminify your code
-            sourcemap_event = load_data("javascript")
-            sourcemap_event.update(
-                {
-                    "exception": {
-                        "values": [
-                            {
-                                "stacktrace": {
-                                    "frames": [
-                                        {
-                                            "data": {
-                                                "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
-                                            }
-                                        }
-                                    ]
-                                },
-                                "type": "TypeError",
-                            }
-                        ]
-                    },
-                }
-            )
-            event_with_sourcemap = self.store_event(data=sourcemap_event, project_id=project.id)
-            event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
-            assert (
-                OrganizationOnboardingTask.objects.get(
-                    organization=self.organization,
-                    task=OnboardingTask.SOURCEMAPS,
-                    status=OnboardingTaskStatus.COMPLETE,
-                )
-                is not None
-            )
-            record_analytics.call_args_list[
-                len(record_analytics.call_args_list) - 2
-            ].assert_called_with(
-                "first_sourcemaps.sent",
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-                project_id=project.id,
-                platform=event_with_sourcemap.platform,
-                project_platform=project.platform,
-                url=dict(event_with_sourcemap.tags).get("url", None),
-            )
-            record_analytics.assert_called_with(
-                "first_sourcemaps_for_project.sent",
-                user_id=self.user.id,
-                organization_id=self.organization.id,
-                project_id=project.id,
-                platform=event_with_sourcemap.platform,
-                project_platform=project.platform,
-                url=dict(event_with_sourcemap.tags).get("url", None),
             )
 
             # Track releases
@@ -1358,4 +1305,150 @@ class OrganizationOnboardingTaskTest(TestCase):
                 user_id=self.user.id,
                 organization_id=self.organization.id,
                 referrer="onboarding_tasks",
+            )
+
+    @patch("sentry.analytics.record")
+    def test_source_maps_as_required_task(self, record_analytics):
+        """
+        Test the new quick start happy path (with source maps)
+        """
+        with self.feature("organizations:quick-start-updates"):
+            # Create a project that can have source maps + create an issue alert
+            project = self.create_project(platform="javascript")
+            project_created.send(project=project, user=self.user, sender=type(project))
+
+            # Capture first transaction + release
+            transaction_event = load_data("transaction")
+            transaction_event.update({"release": "my-first-release", "tags": []})
+            event = self.store_event(data=transaction_event, project_id=project.id)
+            transaction_processed.send(project=project, event=event, sender=type(project))
+
+            #  Capture first error
+            error_event = self.store_event(
+                data={
+                    "event_id": "c" * 32,
+                    "message": "this is bad.",
+                    "timestamp": timezone.now().isoformat(),
+                    "type": "error",
+                    "release": "my-first-release",
+                },
+                project_id=project.id,
+            )
+            event_processed.send(project=project, event=error_event, sender=type(project))
+
+            # Invite your team
+            user = self.create_user(email="test@example.org")
+            member = self.create_member(
+                organization=self.organization, teams=[self.team], email=user.email
+            )
+            member_invited.send(member=member, user=user, sender=type(member))
+
+            # Member accepted the invite
+            member_joined.send(
+                organization_member_id=member.id,
+                organization_id=self.organization.id,
+                user_id=member.user_id,
+                sender=None,
+            )
+
+            # Link Sentry to source code
+            github_integration = self.create_integration("github", 1234)
+            integration_added.send(
+                integration_id=github_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+
+            # Set up session replay
+            first_replay_received.send(project=project, sender=type(project))
+
+            # Get real time notifications
+            slack_integration = self.create_integration("slack", 4321)
+            integration_added.send(
+                integration_id=slack_integration.id,
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                sender=None,
+            )
+
+            # Add Sentry to other parts app
+            second_project = self.create_project(
+                first_event=timezone.now(), organization=self.organization
+            )
+            project_created.send(
+                project=second_project,
+                user=self.user,
+                sender=type(second_project),
+                default_rules=False,
+            )
+
+            # Onboarding is NOT yet complete
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 0
+            )
+
+            # Unminify your code
+            # Send event with source map
+            data = load_data("javascript")
+            data["exception"] = {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "data": {
+                                        "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map"
+                                    }
+                                }
+                            ]
+                        },
+                        "type": "TypeError",
+                    }
+                ]
+            }
+
+            event_with_sourcemap = self.store_event(
+                project_id=project.id,
+                data=data,
+            )
+            event_processed.send(project=project, event=event_with_sourcemap, sender=type(project))
+            assert (
+                OrganizationOnboardingTask.objects.get(
+                    organization=self.organization,
+                    task=OnboardingTask.SOURCEMAPS,
+                    status=OnboardingTaskStatus.COMPLETE,
+                )
+                is not None
+            )
+            record_analytics.call_args_list[
+                len(record_analytics.call_args_list) - 2
+            ].assert_called_with(
+                "first_sourcemaps.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+            record_analytics.assert_called_with(
+                "first_sourcemaps_for_project.sent",
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                project_id=project.id,
+                platform=event_with_sourcemap.platform,
+                project_platform=project.platform,
+                url=dict(event_with_sourcemap.tags).get("url", None),
+            )
+
+            # Onboarding is NOW complete
+            assert (
+                OrganizationOption.objects.filter(
+                    organization=self.organization, key="onboarding:complete"
+                ).count()
+                == 1
             )

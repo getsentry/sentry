@@ -173,6 +173,6 @@ describe('mapSeriesToChart func', function () {
     });
 
     // sums up rate limited, abuse, and cardinality limited
-    expect(mappedSeries.cardStats.rateLimited).toEqual('11');
+    expect(mappedSeries.cardStats.rateLimited).toBe('11');
   });
 });

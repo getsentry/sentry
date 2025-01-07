@@ -15,6 +15,10 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
   const totalVisible = tag.topValues.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
 
+  const otherPercentage = percent(tag.totalValues - totalVisible, tag.totalValues);
+  const otherDisplayPercentage =
+    otherPercentage < 1 ? '<1%' : `${otherPercentage.toFixed(0)}%`;
+
   return (
     <div>
       <TagHeader>
@@ -39,9 +43,8 @@ export function TagPreviewDistribution({tag}: {tag: GroupTag}) {
         {hasOther && (
           <TagValueRow>
             <TagValue>{t('Other')}</TagValue>
-            <TagBar
-              percentage={percent(tag.totalValues - totalVisible, tag.totalValues)}
-            />
+            <TagBarValue>{otherDisplayPercentage}</TagBarValue>
+            <TagBar percentage={otherPercentage} />
           </TagValueRow>
         )}
       </TagValueContent>
@@ -111,7 +114,11 @@ export function TagBar({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  return <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />;
+  return (
+    <TagBarPlaceholder>
+      <TagBarContainer style={{width: `${percentage}%`, ...style}} {...props} />
+    </TagBarPlaceholder>
+  );
 }
 
 const TagPanel = styled(Link)`
@@ -144,9 +151,10 @@ const TagPreviewTitle = styled(TagTitle)`
 `;
 
 // The 40px is a buffer to prevent percentages from overflowing
+const progressBarWidth = '45px';
 const TagValueContent = styled('div')`
   display: grid;
-  grid-template-columns: 4fr auto 45px;
+  grid-template-columns: 4fr auto ${progressBarWidth};
   color: ${p => p.theme.subText};
   grid-column-gap: ${space(1)};
 
@@ -169,20 +177,28 @@ const TagValue = styled('div')`
   margin-right: ${space(0.5)};
 `;
 
+const TagBarPlaceholder = styled('div')`
+  position: relative;
+  height: ${space(1)};
+  width: 100%;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px ${p => p.theme.translucentBorder};
+  background: ${p => Color(p.theme.gray300).alpha(0.1).toString()};
+  overflow: hidden;
+`;
+
 const TagBarContainer = styled('div')`
   height: ${space(1)};
-  position: relative;
-  flex: 1;
-  min-width: ${space(1)};
-  display: flex;
-  align-items: center;
+  position: absolute;
+  left: 0;
+  top: 0;
+  min-width: ${space(0.25)};
   &:before {
     position: absolute;
     inset: 0;
     content: '';
-    border-radius: 3px;
-    background: ${p => Color(p.theme.gray300).alpha(0.5).toString()};
-    border: 1px solid ${p => p.theme.translucentBorder};
+    background: ${p =>
+      `linear-gradient(to right, ${Color(p.theme.gray300).alpha(0.5).toString()} 0px, ${Color(p.theme.gray300).alpha(0.7).toString()} ${progressBarWidth})`};
     width: 100%;
   }
 `;

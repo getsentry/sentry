@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 

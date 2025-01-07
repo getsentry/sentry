@@ -2,7 +2,6 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.auth.services.auth import AuthenticatedToken
@@ -35,7 +34,7 @@ class APITestEndpoint(Endpoint):
     )
 
     def get(self, request):
-        return Response({"ok": True})
+        raise NotImplementedError
 
 
 @all_silo_test

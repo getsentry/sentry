@@ -65,9 +65,12 @@ SnubaData = list[SnubaRow]
 
 
 class EventsMeta(TypedDict):
+    datasetReason: NotRequired[str]
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
 
 
 class EventsResponse(TypedDict):

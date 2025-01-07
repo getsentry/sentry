@@ -184,7 +184,7 @@ function VitalChart({
 
 export default VitalChart;
 
-export type _VitalChartProps = {
+export type VitalChartInnerProps = {
   field: string;
   grid: LineChartProps['grid'];
   loading: boolean;
@@ -201,7 +201,7 @@ export type _VitalChartProps = {
 
 function fieldToVitalType(
   seriesName: string,
-  vitalFields: _VitalChartProps['vitalFields']
+  vitalFields: VitalChartInnerProps['vitalFields']
 ): VitalState | undefined {
   if (seriesName === vitalFields?.poorCountField.replace('equation|', '')) {
     return VitalState.POOR;
@@ -216,7 +216,7 @@ function fieldToVitalType(
   return undefined;
 }
 
-export function _VitalChart(props: _VitalChartProps) {
+export function VitalChartInner(props: VitalChartInnerProps) {
   const {
     field: yAxis,
     data: _results,
