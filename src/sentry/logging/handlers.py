@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import re
 from typing import Any
 
@@ -164,3 +165,18 @@ class MetricsLogHandler(logging.Handler):
         key = metrics_badchars_re.sub("", key)
         key = ".".join(key.split(".")[:3])
         metrics.incr(key, skip_internal=False)
+
+
+class SamplingFilter(logging.Filter):
+    """
+    A logging filter to sample logs at a fixed percentage.
+
+    p -- probability log is emitted. Float in range [0.0, 1.0]
+    """
+
+    def __init__(self, p: float):
+        super().__init__()
+        self.sample_probability = p
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return random.random() < self.sample_probability
