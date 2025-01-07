@@ -87,9 +87,6 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-from sentry.incidents.endpoints.organization_alert_rule_activations import (
-    OrganizationAlertRuleActivationsEndpoint,
-)
 from sentry.incidents.endpoints.organization_alert_rule_anomalies import (
     OrganizationAlertRuleAnomaliesEndpoint,
 )
@@ -178,7 +175,6 @@ from sentry.issues.endpoints import (
     GroupHashesEndpoint,
     GroupNotesDetailsEndpoint,
     GroupNotesEndpoint,
-    GroupParticipantsEndpoint,
     GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
@@ -798,11 +794,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             name=f"{name_prefix}-group-first-last-release",
         ),
         re_path(
-            r"^(?P<issue_id>[^\/]+)/participants/$",
-            GroupParticipantsEndpoint.as_view(),
-            name=f"{name_prefix}-group-participants",
-        ),
-        re_path(
             r"^(?P<issue_id>[^\/]+)/autofix/$",
             GroupAutofixEndpoint.as_view(),
             name=f"{name_prefix}-group-autofix",
@@ -1160,11 +1151,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/$",
         OrganizationAlertRuleDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-alert-rule-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/activations/$",
-        OrganizationAlertRuleActivationsEndpoint.as_view(),
-        name="sentry-api-0-organization-alert-rule-activations",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/alert-rules/(?P<alert_rule_id>[^\/]+)/anomalies/$",

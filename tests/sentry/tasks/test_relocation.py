@@ -2192,7 +2192,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
     @staticmethod
     def noop_relocated_signal_receiver(sender, **kwargs) -> None:
-        pass
+        raise NotImplementedError
 
     def test_success(
         self,

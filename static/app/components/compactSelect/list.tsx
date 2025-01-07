@@ -201,7 +201,7 @@ function List<Value extends SelectKey>({
       disallowEmptySelection: disallowEmptySelection ?? true,
       allowDuplicateSelectionEvents: true,
       onSelectionChange: selection => {
-        const selectedOption = getSelectedOptions(items, selection)[0] ?? null;
+        const selectedOption = getSelectedOptions(items, selection)[0]! ?? null;
         // Save selected options in SelectContext, to update the trigger label
         saveSelectedOptions(compositeIndex, selectedOption);
         onChange?.(selectedOption);

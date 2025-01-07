@@ -1,25 +1,20 @@
 import type {Theme} from '@emotion/react';
-import * as Sentry from '@sentry/react';
 import {Replayer} from '@sentry-internal/rrweb';
 
 import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer';
 import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
 import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
 
-type RootElem = HTMLDivElement | null;
-
 interface VideoReplayerWithInteractionsOptions {
-  context: {sdkName: string | undefined | null; sdkVersion: string | undefined | null};
   durationMs: number;
   eventsWithSnapshots: RecordingFrame[];
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   speed: number;
   start: number;
   theme: Theme;
-  touchEvents: RecordingFrame[];
   videoApiPrefix: string;
   videoEvents: VideoEvent[];
   clipWindow?: ClipWindow;
@@ -37,7 +32,6 @@ export class VideoReplayerWithInteractions {
   constructor({
     videoEvents,
     eventsWithSnapshots,
-    touchEvents,
     root,
     start,
     videoApiPrefix,
@@ -48,7 +42,6 @@ export class VideoReplayerWithInteractions {
     durationMs,
     theme,
     speed,
-    context,
   }: VideoReplayerWithInteractionsOptions) {
     this.config = {
       skipInactive: false,
@@ -67,26 +60,8 @@ export class VideoReplayerWithInteractions {
       config: this.config,
     });
 
-    root?.classList.add('video-replayer');
-
-    const grouped = Object.groupBy(touchEvents, (t: any) => t.data.pointerId);
-    Object.values(grouped).forEach(t => {
-      if (t?.length !== 2) {
-        Sentry.captureMessage(
-          'Mobile replay has mismatching touch start and end events',
-          {
-            tags: {
-              sdk_name: context.sdkName,
-              sdk_version: context.sdkVersion,
-              touch_event_type: typeof t,
-            },
-          }
-        );
-      }
-    });
-
     this.replayer = new Replayer(eventsWithSnapshots, {
-      root: root as Element,
+      root,
       blockClass: 'sentry-block',
       mouseTail: {
         duration: 0.75 * 1000,

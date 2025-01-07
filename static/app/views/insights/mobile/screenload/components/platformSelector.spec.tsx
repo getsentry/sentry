@@ -1,6 +1,7 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 
@@ -15,10 +16,11 @@ describe('PlatformSelector', function () {
   });
 
   it('updates url params on click', async function () {
-    render(<PlatformSelector />);
+    const router = RouterFixture();
+    render(<PlatformSelector />, {router});
     await userEvent.click(screen.getByRole('radio', {name: 'iOS'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/mock-pathname/',
       query: {
         platform: 'iOS',

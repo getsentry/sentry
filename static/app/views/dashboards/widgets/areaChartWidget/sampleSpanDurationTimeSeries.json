@@ -1,5 +1,13 @@
 {
   "field": "avg(span.duration)",
+  "meta": {
+    "fields": {
+      "avg(span.duration)": "duration"
+    },
+    "units": {
+      "avg(span.duration)": "millisecond"
+    }
+  },
   "data": [
     {
       "timestamp": "2024-12-09T22:00:00Z",

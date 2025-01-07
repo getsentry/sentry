@@ -18,7 +18,7 @@ export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
     // app/components/charts/eventsChart so that the ordering matches
 
     // the color pallete contains n + 2 colors, so we subtract 2 here
-    return p.theme.charts.getColorPalette(p.count - 2)[p.index];
+    return p.theme.charts.getColorPalette(p.count - 2)?.[p.index];
   }};
 `;
 

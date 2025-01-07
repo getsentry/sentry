@@ -72,7 +72,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [props.differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
   );
 

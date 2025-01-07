@@ -14,7 +14,6 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -74,7 +73,6 @@ describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
     ProjectsStore.loadInitialData([project]);
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
@@ -151,7 +149,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.lcp)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.lcp)'
+          );
         },
       ],
     });
@@ -189,7 +189,9 @@ describe('Performance > VitalDetail', function () {
       },
       match: [
         (_url, options) => {
-          return options.query?.field?.find(f => f === 'p50(measurements.cls)');
+          return (options.query?.field as string[])?.some(
+            f => f === 'p50(measurements.cls)'
+          );
         },
       ],
     });
@@ -265,10 +267,10 @@ describe('Performance > VitalDetail', function () {
 
     // Check the navigation.
     await waitFor(() => {
-      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledTimes(1);
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: '1',
@@ -393,8 +395,8 @@ describe('Performance > VitalDetail', function () {
     expect(menuItem).toBeInTheDocument();
     await userEvent.click(menuItem);
 
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(newRouter.push).toHaveBeenCalledTimes(1);
+    expect(newRouter.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
         project: 1,

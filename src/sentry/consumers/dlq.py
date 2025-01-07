@@ -107,13 +107,16 @@ class DlqStaleMessages(ProcessingStrategy[KafkaPayload]):
             if message_timestamp < min_accepted_timestamp:
                 self.offsets_to_forward[message.value.partition] = message.value.next_offset
                 raise InvalidMessage(
-                    message.value.partition, message.value.offset, reason=RejectReason.STALE.value
+                    message.value.partition,
+                    message.value.offset,
+                    reason=RejectReason.STALE.value,
+                    log_exception=False,
                 )
 
         # If we get a valid message for a partition later, don't emit a filtered message for it
         if self.offsets_to_forward:
             for partition in message.committable:
-                self.offsets_to_forward.pop(partition)
+                self.offsets_to_forward.pop(partition, None)
 
         self.next_step.submit(message)
 

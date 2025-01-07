@@ -95,11 +95,11 @@ describe('TeamKeyTransactionButton', function () {
     await clickTeamKeyTransactionDropdown();
 
     // all teams should be checked
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -111,9 +111,9 @@ describe('TeamKeyTransactionButton', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
-        count: id === teams[0].id ? 1 : 0,
+        count: id === teams[0]!.id ? 1 : 0,
         keyed:
-          id === teams[0].id
+          id === teams[0]!.id
             ? [{project_id: String(project.id), transaction: 'transaction'}]
             : [],
       })),
@@ -130,11 +130,11 @@ describe('TeamKeyTransactionButton', function () {
     await clickTeamKeyTransactionDropdown();
 
     // only team 1 should be checked
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'false'
     );
@@ -162,11 +162,11 @@ describe('TeamKeyTransactionButton', function () {
     await clickTeamKeyTransactionDropdown();
 
     // all teams should be unchecked
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'false'
     );
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'false'
     );
@@ -189,7 +189,7 @@ describe('TeamKeyTransactionButton', function () {
       body: [],
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
-        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+        MockApiClient.matchData({team: [teams[0]!.id], transaction: 'transaction'}),
       ],
     });
 
@@ -203,7 +203,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('option', {name: `#${teams[0].slug}`}));
+    await userEvent.click(screen.getByRole('option', {name: `#${teams[0]!.slug}`}));
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -224,7 +224,7 @@ describe('TeamKeyTransactionButton', function () {
       body: [],
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
-        MockApiClient.matchData({team: [teams[0].id], transaction: 'transaction'}),
+        MockApiClient.matchData({team: [teams[0]!.id], transaction: 'transaction'}),
       ],
     });
 
@@ -238,7 +238,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('option', {name: `#${teams[0].slug}`}));
+    await userEvent.click(screen.getByRole('option', {name: `#${teams[0]!.slug}`}));
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -260,7 +260,7 @@ describe('TeamKeyTransactionButton', function () {
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
         MockApiClient.matchData({
-          team: [teams[0].id, teams[1].id],
+          team: [teams[0]!.id, teams[1]!.id],
           transaction: 'transaction',
         }),
       ],
@@ -279,11 +279,11 @@ describe('TeamKeyTransactionButton', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Select All in My Teams'}));
 
     // all teams should be checked now
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
@@ -309,7 +309,7 @@ describe('TeamKeyTransactionButton', function () {
       match: [
         MockApiClient.matchQuery({project: [project.id]}),
         MockApiClient.matchData({
-          team: [teams[0].id, teams[1].id],
+          team: [teams[0]!.id, teams[1]!.id],
           transaction: 'transaction',
         }),
       ],
@@ -328,11 +328,11 @@ describe('TeamKeyTransactionButton', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Unselect All in My Teams'}));
 
     // all teams should be checked now
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'false'
     );
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'false'
     );
@@ -364,12 +364,12 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
 
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -402,12 +402,12 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[0]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );
 
-    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: `#${teams[1]!.slug}`})).toHaveAttribute(
       'aria-selected',
       'true'
     );

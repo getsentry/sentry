@@ -16,12 +16,12 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
@@ -185,6 +185,8 @@ function Search(props: Props) {
     percentileValues,
   } = props;
 
+  const navigate = useNavigate();
+
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
       ...(location.query || {}),
@@ -194,7 +196,7 @@ function Search(props: Props) {
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });

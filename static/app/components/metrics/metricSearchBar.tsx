@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 import {css, type SerializedStyles} from '@emotion/react';
 
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {MRI} from 'sentry/types/metrics';

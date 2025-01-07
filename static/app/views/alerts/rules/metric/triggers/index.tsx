@@ -74,7 +74,7 @@ class Triggers extends Component<Props> {
 
   handleAddAction = (triggerIndex: number, action: Action) => {
     const {onChange, triggers} = this.props;
-    const trigger = triggers[triggerIndex];
+    const trigger = triggers[triggerIndex]!;
     const actions = [...trigger.actions, action];
     const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
       ...trigger,
@@ -89,7 +89,7 @@ class Triggers extends Component<Props> {
     actions: Action[]
   ): void => {
     const {onChange} = this.props;
-    const trigger = triggers[triggerIndex];
+    const trigger = triggers[triggerIndex]!;
     const updatedTriggers = replaceAtArrayIndex(triggers, triggerIndex, {
       ...trigger,
       actions,

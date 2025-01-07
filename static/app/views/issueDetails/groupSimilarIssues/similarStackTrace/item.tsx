@@ -160,7 +160,7 @@ class Item extends Component<Props, State> {
             // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
             if (hasSimilarityEmbeddingsFeature) {
               for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
-                if (scoreValue <= similarityEmbeddingScoreValues[i]) {
+                if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
                   scoreValue = i;
                   break;
                 }

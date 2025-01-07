@@ -9,10 +9,10 @@ import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 
 import SuspectSpansTable from '../transactionSpans/suspectSpansTable';
@@ -96,6 +96,7 @@ type HeaderProps = {
 
 function SuspectSpansHeader(props: HeaderProps) {
   const {location, organization, projectId, transactionName, pageLinks} = props;
+  const navigate = useNavigate();
 
   const viewAllTarget = spansRouteWithQuery({
     orgSlug: organization.slug,
@@ -105,7 +106,7 @@ function SuspectSpansHeader(props: HeaderProps) {
   });
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [SPANS_CURSOR_NAME]: cursor},
     });

@@ -204,7 +204,7 @@ function getReleasesSeriesRequest(
   organization: Organization,
   pageFilters: PageFilters
 ) {
-  const query = widget.queries[queryIndex];
+  const query = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
 
   const {datetime} = pageFilters;

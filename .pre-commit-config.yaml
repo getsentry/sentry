@@ -117,7 +117,7 @@ repos:
       - id: eslint
         name: eslint
         language: system
-        files: \.[jt]sx?$
+        files: \.(ts|js|tsx|jsx|mjs)$
         entry: ./node_modules/.bin/eslint --quiet --fix
 
       - id: stylelint
