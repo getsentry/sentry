@@ -29,7 +29,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
-    invoke_alert_subscription_callback,
 )
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
@@ -460,16 +459,6 @@ class SubscriptionProcessor:
                     },
                 )
                 return
-
-        # Trigger callbacks for any AlertRules that may need to know about the subscription update
-        # Current callback will update the activation metric values & delete querysubscription on finish
-        # TODO: register over/under triggers as alert rule callbacks as well
-        invoke_alert_subscription_callback(
-            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
-            subscription=self.subscription,
-            alert_rule=self.alert_rule,
-            value=aggregation_value,
-        )
 
         if aggregation_value is None:
             metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")

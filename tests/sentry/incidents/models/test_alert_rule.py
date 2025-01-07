@@ -1,11 +1,9 @@
 import unittest
-from datetime import timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache import cache
-from django.utils import timezone
 
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models.alert_rule import (
@@ -16,9 +14,6 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
-    register_alert_subscription_callback,
-    update_alert_activations,
 )
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
@@ -406,82 +401,6 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
-
-
-class UpdateAlertActivationsTest(TestCase):
-    def test_updates_non_expired_alerts(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project],
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-                activator="testing",
-            )
-            assert alert_rule.snuba_query is not None
-            subscription = alert_rule.snuba_query.subscriptions.get()
-            activation = alert_rule.activations.get()
-            assert activation.finished_at is None
-            assert activation.metric_value is None
-
-            expected_value = 10
-            result = update_alert_activations(
-                subscription=subscription, alert_rule=alert_rule, value=expected_value
-            )
-            assert result is True
-            assert QuerySubscription.objects.filter(id=subscription.id).exists()
-            activation = alert_rule.activations.get()
-            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
-            assert activation.finished_at is None
-            assert activation.metric_value == expected_value
-
-    def test_cleans_expired_alerts(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project],
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-                activator="testing",
-            )
-
-            assert alert_rule.snuba_query is not None
-            subscription = alert_rule.snuba_query.subscriptions.get()
-            subscription.date_added = timezone.now() - timedelta(days=21)
-
-            expected_value = 10
-            result = update_alert_activations(
-                subscription=subscription, alert_rule=alert_rule, value=expected_value
-            )
-
-            assert result is True
-            assert subscription.status == QuerySubscription.Status.DELETING.value
-            assert not QuerySubscription.objects.filter(id=subscription.id).exists()
-            activation = alert_rule.activations.get()
-            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
-            assert activation.finished_at is not None
-            assert activation.metric_value == expected_value
-
-    def test_update_alerts_add_processor(self):
-        @register_alert_subscription_callback(AlertRuleMonitorTypeInt.CONTINUOUS)
-        def mock_processor(_subscription, alert_rule, value):
-            # everything other than subscription is passed as a kwarg
-            return True
-
-        assert AlertRuleMonitorTypeInt.CONTINUOUS in alert_subscription_callback_registry
-        assert (
-            alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-            == mock_processor
-        )
-
-    def test_update_alerts_execute_processor(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        assert alert_rule.snuba_query is not None
-        subscription = alert_rule.snuba_query.subscriptions.get()
-
-        callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-        result = callback(subscription, alert_rule=alert_rule, value=10)
-        assert result is True
 
 
 class AlertRuleFetchForProjectTest(TestCase):
