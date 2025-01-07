@@ -1384,8 +1384,9 @@ export class VirtualizedViewManager {
             previousLabel.style.transform = `translateX(${2 - overlap}px)`;
           }
         } else {
+          const OVERLAP_FACTOR = 0.25;
           clamped_label_transform +=
-            (indicator_label_right - clamped_label_transform) * 0.25;
+            (indicator_label_right - clamped_label_transform) * OVERLAP_FACTOR;
         }
       }
 

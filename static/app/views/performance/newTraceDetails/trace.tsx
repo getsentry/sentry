@@ -880,6 +880,7 @@ const TraceStylingWrapper = styled('div')`
     margin-top: 2px;
     white-space: nowrap;
     pointer-events: auto;
+    cursor: pointer;
 
     &:hover {
       z-index: 10;
