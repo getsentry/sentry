@@ -36,16 +36,6 @@ EVENT_PLATFORMS_BYPASSING_FRAME_COUNT_CHECK = frozenset(
         "ruby",
     ]
 )
-# Existing projects with these platforms shouldn't be backfilled and new projects with these
-# platforms shouldn't have Seer enabled.
-SEER_INELIGIBLE_PROJECT_PLATFORMS = frozenset(
-    [
-        # We have no clue what's in these projects
-        "other",
-        "",
-        None,
-    ]
-)
 BASE64_ENCODED_PREFIXES = [
     "data:text/html;base64",
     "data:text/javascript;base64",
@@ -455,11 +445,9 @@ def _is_snipped_context_line(context_line: str) -> bool:
 
 def project_is_seer_eligible(project: Project) -> bool:
     """
-    Return True if the project hasn't already been backfilled, is a Seer-eligible platform, and
-    the feature is enabled in the region.
+    Return True if the project hasn't already been backfilled and the feature is enabled in the region.
     """
     is_backfill_completed = project.get_option("sentry:similarity_backfill_completed")
-    is_seer_eligible_platform = project.platform not in SEER_INELIGIBLE_PROJECT_PLATFORMS
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
-    return not is_backfill_completed and is_seer_eligible_platform and is_region_enabled
+    return not is_backfill_completed and is_region_enabled
