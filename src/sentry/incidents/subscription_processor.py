@@ -24,7 +24,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
