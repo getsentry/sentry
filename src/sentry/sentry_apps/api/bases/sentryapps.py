@@ -49,17 +49,6 @@ def catch_raised_errors(func):
     return wrapped
 
 
-def _handle_sentry_app_exception(exception: Exception):
-    # If the error_type attr exists we know the error is one of SentryAppError or SentryAppIntegratorError
-    if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-        response = Response({"error": str(exception)}, status=exception.status_code)
-        response.exception = True
-        return response
-
-    # If not an audited sentry app error then default to using default error handler
-    return None
-
-
 def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:
     """
     Verifies the User making the request has at least one required scope for
@@ -131,9 +120,19 @@ class IntegrationPlatformEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
-        return _handle_sentry_app_exception(exception=exc) or super().handle_exception_with_details(
-            request, exc, handler_context, scope
-        )
+        return self._handle_sentry_app_exception(
+            exception=exc
+        ) or super().handle_exception_with_details(request, exc, handler_context, scope)
+
+    def _handle_sentry_app_exception(self, exception: Exception):
+        # If the error_type attr exists we know the error is one of SentryAppError or SentryAppIntegratorError
+        if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
+            response = Response({"detail": str(exception)}, status=exception.status_code)
+            response.exception = True
+            return response
+
+        # If not an audited sentry app error then default to using default error handler
+        return None
 
 
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):

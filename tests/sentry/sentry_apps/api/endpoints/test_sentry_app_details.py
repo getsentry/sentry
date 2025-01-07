@@ -744,7 +744,7 @@ class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=400,
         )
         assert (
-            response.data["error"]
+            response.data["detail"]
             == "User must be in the app owner's organization for unpublished apps"
         )
 
