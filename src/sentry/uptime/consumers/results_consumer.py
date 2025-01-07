@@ -123,7 +123,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         update_remote_uptime_subscription.delay(subscription.id)
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
-        logger.info("process_result", extra=result)
+        if random.random() < 0.01:
+            logger.info("process_result", extra=result)
 
         if subscription is None:
             # If no subscription in the Postgres, this subscription has been orphaned. Remove
