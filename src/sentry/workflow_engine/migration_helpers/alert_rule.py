@@ -11,7 +11,6 @@ from sentry.workflow_engine.models import (
     DetectorState,
     DetectorWorkflow,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -20,7 +19,7 @@ def create_metric_alert_lookup_tables(
     alert_rule: AlertRule,
     detector: Detector,
     workflow: Workflow,
-) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow, WorkflowDataConditionGroup]:
+) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow]:
     alert_rule_detector = AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
     alert_rule_workflow = AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
     detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
@@ -108,7 +107,6 @@ def migrate_alert_rule(
         AlertRuleDetector,
         AlertRuleWorkflow,
         DetectorWorkflow,
-        WorkflowDataConditionGroup,
     ]
     | None
 ):
