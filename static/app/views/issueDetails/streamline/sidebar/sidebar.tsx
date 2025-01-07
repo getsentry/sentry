@@ -45,6 +45,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const showMetricIssueSection = event?.contexts?.metric_alert?.alert_rule_id;
 
   return (
     <Side>
@@ -90,10 +91,12 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <MergedIssuesSidebarSection />
         </Fragment>
       )}
-      <Fragment>
-        <StyledBreak />
-        <MetricIssueSidebarSection event={event} />
-      </Fragment>
+      {showMetricIssueSection && (
+        <Fragment>
+          <StyledBreak />
+          <MetricIssueSidebarSection event={event} />
+        </Fragment>
+      )}
     </Side>
   );
 }
