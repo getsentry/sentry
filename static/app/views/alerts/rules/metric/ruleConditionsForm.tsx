@@ -490,8 +490,15 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderInterval() {
-    const {organization, timeWindow, disabled, alertType, project, isForLlmMetric} =
-      this.props;
+    const {
+      organization,
+      timeWindow,
+      disabled,
+      alertType,
+      project,
+      isForLlmMetric,
+      onTimeWindowChange,
+    } = this.props;
 
     return (
       <Fragment>
