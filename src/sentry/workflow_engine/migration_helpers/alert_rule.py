@@ -5,7 +5,6 @@ from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.snuba.subscriptions import bulk_delete_snuba_subscriptions
 from sentry.users.services.user import RpcUser
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
@@ -201,10 +200,6 @@ def dual_delete_migrated_alert_rule(
             extra={"alert_rule_id": AlertRule.id},
         )
         return
-    # we know this exists because the data_source exists
-    assert alert_rule.snuba_query is not None
-    query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
-    bulk_delete_snuba_subscriptions([query_subscription])
     # NOTE: for migrated alert rules, each workflow is associated with a single detector
     # make sure there are no other detectors associated with the workflow, then delete it if so
     if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:

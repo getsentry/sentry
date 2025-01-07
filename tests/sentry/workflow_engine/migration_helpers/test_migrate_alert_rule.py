@@ -127,5 +127,3 @@ class AlertRuleMigrationHelpersTest(APITestCase):
 
         # check data source
         assert not DataSource.objects.filter(id=data_source.id).exists()
-        query_subscription.refresh_from_db()
-        assert query_subscription.status == QuerySubscription.Status.DELETING.value

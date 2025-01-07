@@ -1026,15 +1026,7 @@ def delete_alert_rule(
                 data=alert_rule.get_audit_log_data(),
                 event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
-        if not features.has(
-            "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-        ):
-            # NOTE: we will delete the subscription within the dual delete helpers
-            # if the organization is flagged into dual write
-            subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
-            bulk_delete_snuba_subscriptions(subscriptions)
-
-        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
+        subscriptions = _unpack_snuba_query(alert_rule).subscriptions.all()
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)
         if incidents.exists():
@@ -1057,10 +1049,13 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-            if features.has(
-                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-            ):
-                dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
+            # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
+            # the user could be removed from the dual write flag for whatever reason, and we need to make sure
+            # that the extra table data is deleted. If the rows don't exist, we'll exit early.
+            dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
+
+        bulk_delete_snuba_subscriptions(subscriptions)
+        schedule_update_project_config(alert_rule, [sub.project for sub in subscriptions])
         alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
