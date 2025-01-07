@@ -88,7 +88,11 @@ export default function Page({
         ) : (
           <Fragment>
             {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-            {isVideoReplay ? <ConfigureMobileReplayCard /> : <ConfigureReplayCard />}
+            {isVideoReplay ? (
+              <ConfigureMobileReplayCard replayRecord={replayRecord} />
+            ) : (
+              <ConfigureReplayCard />
+            )}
           </Fragment>
         )}
 

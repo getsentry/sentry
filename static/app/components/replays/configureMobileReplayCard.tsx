@@ -6,35 +6,56 @@ import {ButtonContainer, Resource} from 'sentry/components/replays/configureRepl
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
-function ResourceButtons() {
+function getSDKName(sdkName: string | null | undefined) {
+  switch (sdkName) {
+    case 'sentry.cocoa':
+      return 'apple/guides/ios';
+    case 'sentry.java.android':
+      return 'android';
+    case 'sentry.dart.flutter':
+      return 'flutter';
+    case 'sentry.javascript.react-native':
+    default:
+      return 'react-native';
+  }
+}
+
+function ResourceButtons({sdkName}: {sdkName: string}) {
   return (
     <ButtonContainer>
       <Resource
         title={t('General')}
         subtitle={t('Configure sampling rates and recording thresholds')}
-        link="https://docs.sentry.io/platforms/react-native/session-replay/#sampling"
+        link={`https://docs.sentry.io/platforms/${sdkName}/session-replay/#sampling`}
       />
       <Resource
         title={t('Element Masking/Blocking')}
         subtitle={t('Unmask text (****) and unblock media (img, svg, video, etc.)')}
-        link="https://docs.sentry.io/platforms/react-native/session-replay/#privacy"
+        link={`https://docs.sentry.io/platforms/${sdkName}/session-replay/#privacy`}
       />
       <Resource
         title={t('Identify Users')}
         subtitle={t('Identify your users through a specific attribute, such as email.')}
-        link="https://docs.sentry.io/platforms/react-native/enriching-events/identify-user/"
+        link={`https://docs.sentry.io/platforms/${sdkName}/enriching-events/identify-user/`}
       />
     </ButtonContainer>
   );
 }
 
-export default function ConfigureMobileReplayCard() {
+export default function ConfigureMobileReplayCard({
+  replayRecord,
+}: {
+  replayRecord: ReplayRecord | undefined;
+}) {
+  const sdkName = getSDKName(replayRecord?.sdk.name);
+
   return (
     <ClassNames>
       {({css}) => (
         <Hovercard
-          body={<ResourceButtons />}
+          body={<ResourceButtons sdkName={sdkName} />}
           bodyClassName={css`
             padding: ${space(1)};
           `}
