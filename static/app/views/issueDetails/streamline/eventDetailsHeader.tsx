@@ -88,7 +88,6 @@ export function EventDetailsHeader({
           <EventGraph event={event} group={group} style={{flex: 1}} />
           <SectionDivider />
           <IssueTagsPreview groupId={group.id} environments={environments} />
-
           <IssueTagsButton
             aria-label={t('View issue tag distributions')}
             to={{
