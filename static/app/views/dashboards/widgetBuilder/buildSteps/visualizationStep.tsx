@@ -9,7 +9,6 @@ import isEqual from 'lodash/isEqual';
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -20,6 +19,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
 import {IndexedEventsSelectionAlert} from '../../indexedEventsSelectionAlert';
@@ -164,40 +164,6 @@ const StyledBuildStep = styled(BuildStep)`
 
   &::before {
     margin-top: 1px;
-  }
-`;
-
-const WidgetCardContextMenuContainer = styled('div')`
-  opacity: 1;
-  transition: opacity 0.1s;
-`;
-
-const WidgetCardPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'isDragging',
-})<{
-  isDragging: boolean;
-}>`
-  margin: 0;
-  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
-  /* If a panel overflows due to a long title stretch its grid sibling */
-  height: 100%;
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-
-  &:not(:hover):not(:focus-within) {
-    ${WidgetCardContextMenuContainer} {
-      opacity: 0;
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
   }
 `;
 

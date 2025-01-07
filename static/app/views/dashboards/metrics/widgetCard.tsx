@@ -6,7 +6,6 @@ import type {Location} from 'history';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {HeaderTitle} from 'sentry/components/charts/styles';
 import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
-import Panel from 'sentry/components/panels/panel';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,6 +36,8 @@ import {WidgetTitleRow} from 'sentry/views/dashboards/widgetCard';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
+import {WidgetCardContextMenuContainer} from 'sentry/views/dashboards/widgetCard/widgetCardContextMenuContainer';
+import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
 import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 
 type Props = {
@@ -284,38 +285,4 @@ const WidgetTitle = styled(HeaderTitle)`
 
 const ErrorWrapper = styled('div')`
   padding-top: ${space(1)};
-`;
-
-export const WidgetCardContextMenuContainer = styled('div')`
-  opacity: 1;
-  transition: opacity 0.1s;
-`;
-
-export const WidgetCardPanel = styled(Panel, {
-  shouldForwardProp: prop => prop !== 'isDragging',
-})<{
-  isDragging: boolean;
-}>`
-  margin: 0;
-  visibility: ${p => (p.isDragging ? 'hidden' : 'visible')};
-  /* If a panel overflows due to a long title stretch its grid sibling */
-  height: 100%;
-  min-height: 96px;
-  display: flex;
-  flex-direction: column;
-
-  &:not(:hover):not(:focus-within) {
-    ${WidgetCardContextMenuContainer} {
-      opacity: 0;
-      ${p => p.theme.visuallyHidden}
-    }
-  }
-
-  :hover {
-    background-color: ${p => p.theme.surface200};
-    transition:
-      background-color 100ms linear,
-      box-shadow 100ms linear;
-    box-shadow: ${p => p.theme.dropShadowLight};
-  }
 `;
