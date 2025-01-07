@@ -90,6 +90,9 @@ def iter_cluster_memory_usage(cluster: Cluster) -> Generator[ServiceMemory, None
         cluster_info = promise.value
 
     for node_id, info in cluster_info.items():
+        # we only care about the memory level of leader nodes, not followers
+        if info.get("role") != "master":
+            continue
         node_info = get_host_port_info(node_id, cluster)
         memory_usage = get_memory_usage(node_id, info)
         memory_usage.host = node_info.host
