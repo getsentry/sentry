@@ -141,6 +141,7 @@ export default function StreamlinedGroupHeader({
               icon={<IconInfo />}
               analyticsEventKey="issue_details.streamline_ui_learn_more"
               analyticsEventName="Issue Details: Streamline UI Learn More"
+              analyticsParams={{show_learn_more: showLearnMore}}
               onClick={() => setShowLearnMore(false)}
             >
               {showLearnMore ? t("See What's New") : null}
