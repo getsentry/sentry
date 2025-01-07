@@ -32,12 +32,17 @@ export default function DiffTimestampPicker() {
     }
     const timestamp = frameOrEvent.timestamp.getTime();
     const rrwebFrames = replay.getRRWebFrames().filter(isRRWebChangeFrame);
-
+    const dedupedTimestamps = rrwebFrames.filter((frame, index) => {
+      if (index === 0) {
+        return true;
+      }
+      return frame.timestamp !== rrwebFrames[index - 1]?.timestamp;
+    });
     return {
-      beforeOptions: rrwebFrames
+      beforeOptions: dedupedTimestamps
         .filter(frame => frame.timestamp < timestamp)
         .slice(maxOptions * -1),
-      afterOptions: rrwebFrames
+      afterOptions: dedupedTimestamps
         .filter(frame => frame.timestamp > timestamp)
         .slice(0, maxOptions),
     };

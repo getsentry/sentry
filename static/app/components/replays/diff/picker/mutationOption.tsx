@@ -23,8 +23,7 @@ export default function MutationOption({
   onChange,
   radioName,
 }: Props) {
-  const name =
-    frame.type === EventType.FullSnapshot ? t('Full Snapshot') : t('Inc. Snapshot');
+  const name = frame.type === EventType.FullSnapshot ? t('Full') : t('Incremental');
 
   const formattedDuration = formatDuration({
     duration: [frame.timestamp - startTimestampMs, 'ms'],
