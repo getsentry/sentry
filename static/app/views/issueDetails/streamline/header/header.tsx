@@ -162,7 +162,7 @@ export default function StreamlinedGroupHeader({
             </SecondaryTitle>
           </Flex>
           <StatTitle>
-            {issueTypeConfig.eventCounts.enabled && (
+            {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
                 to={`${baseUrl}events/${location.search}`}
                 aria-label={t('View events')}
@@ -172,7 +172,7 @@ export default function StreamlinedGroupHeader({
             )}
           </StatTitle>
           <StatTitle>
-            {issueTypeConfig.eventCounts.enabled &&
+            {issueTypeConfig.eventAndUserCounts.enabled &&
               (userCount === 0 ? (
                 t('Users')
               ) : (
@@ -207,10 +207,10 @@ export default function StreamlinedGroupHeader({
             <UserFeedbackBadge group={group} project={project} />
             <ReplayBadge group={group} project={project} />
           </Flex>
-          {issueTypeConfig.eventCounts.enabled && (
+          {issueTypeConfig.eventAndUserCounts.enabled && (
             <StatCount value={eventCount} aria-label={t('Event count')} />
           )}
-          {issueTypeConfig.eventCounts.enabled && (
+          {issueTypeConfig.eventAndUserCounts.enabled && (
             <GuideAnchor target="issue_header_stats">
               <StatCount value={userCount} aria-label={t('User count')} />
             </GuideAnchor>

@@ -46,7 +46,7 @@ export type IssueTypeConfig = {
   /**
    * Is the Event and User Counts shown for this issue
    */
-  eventCounts: DisabledWithReasonConfig;
+  eventAndUserCounts: DisabledWithReasonConfig;
   /**
    * Is the Events tab show for this issue
    */

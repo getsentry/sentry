@@ -17,7 +17,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       resolution: t('Back to baseline'),
     },
     attachments: {enabled: false},
-    eventCounts: {enabled: false},
+    eventAndUserCounts: {enabled: false},
     resources: null,
     autofix: false,
     events: {enabled: false},
