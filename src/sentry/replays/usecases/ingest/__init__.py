@@ -4,6 +4,7 @@ import dataclasses
 import logging
 import zlib
 from datetime import datetime, timezone
+from random import random
 from typing import TypedDict, cast
 
 import sentry_sdk.scope
@@ -287,16 +288,17 @@ def recording_post_processor(
         )
 
         # Log # of rrweb events to bigquery.
-        logger.info(
-            "sentry.replays.slow_click",
-            extra={
-                "event_type": "rrweb_event_count",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "replay_id": message.replay_id,
-                "size": len(parsed_segment_data),
-            },
-        )
+        if random() < 0.01:
+            logger.info(
+                "sentry.replays.slow_click",
+                extra={
+                    "event_type": "rrweb_event_count",
+                    "org_id": message.org_id,
+                    "project_id": message.project_id,
+                    "replay_id": message.replay_id,
+                    "size": len(parsed_segment_data),
+                },
+            )
 
     except Exception:
         logging.exception(
