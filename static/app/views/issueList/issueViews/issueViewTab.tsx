@@ -2,11 +2,17 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import Badge from 'sentry/components/badge/badge';
 import {TEMPORARY_TAB_KEY} from 'sentry/components/draggableTabs/draggableTabList';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import EditableTabTitle from 'sentry/views/issueList/issueViews/editableTabTitle';
 import {IssueViewEllipsisMenu} from 'sentry/views/issueList/issueViews/issueViewEllipsisMenu';
 import {
@@ -14,7 +20,9 @@ import {
   type IssueView,
   IssueViewsContext,
 } from 'sentry/views/issueList/issueViews/issueViews';
+import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
 
+const TAB_MAX_COUNT = 99;
 interface IssueViewTabProps {
   editingTabKey: string | null;
   initialTabKey: string;
@@ -22,6 +30,22 @@ interface IssueViewTabProps {
   setEditingTabKey: (key: string | null) => void;
   view: IssueView;
 }
+
+const constructCountTimeFrame = (
+  pageFilters: PageFilters['datetime']
+): {
+  end?: string;
+  start?: string;
+  statsPeriod?: string;
+} => {
+  if (pageFilters.period) {
+    return {statsPeriod: pageFilters.period};
+  }
+  return {
+    ...(pageFilters.start ? {start: getUtcDateString(pageFilters.start)} : {}),
+    ...(pageFilters.end ? {end: getUtcDateString(pageFilters.end)} : {}),
+  };
+};
 
 export function IssueViewTab({
   editingTabKey,
@@ -31,10 +55,23 @@ export function IssueViewTab({
   view,
 }: IssueViewTabProps) {
   const navigate = useNavigate();
+  const organization = useOrganization();
 
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
+
+  const pageFilters = usePageFilters();
+
+  // TODO(msun): Once page filters are saved to views, remember to use the view's specific
+  // page filters here instead of the global pageFilters, if they exists.
+  const {data: queryCount, isLoading: queryCountLoading} = useFetchIssueCounts({
+    orgSlug: organization.slug,
+    query: [view.query],
+    project: pageFilters.selection.projects,
+    environment: pageFilters.selection.environments,
+    ...constructCountTimeFrame(pageFilters.selection.datetime),
+  });
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
@@ -117,6 +154,16 @@ export function IssueViewTab({
           (!tabListState && view.key === initialTabKey)
         }
       />
+      {!queryCountLoading && queryCount && (
+        <QueryCountBadge>
+          <QueryCount
+            count={queryCount?.[view.query]}
+            max={TAB_MAX_COUNT}
+            hideIfEmpty={false}
+            hideParens
+          />
+        </QueryCountBadge>
+      )}
       {/* If tablistState isn't initialized, we want to load the elipsis menu
           for the initial tab, that way it won't load in a second later
           and cause the tabs to shift and animate on load. */}
@@ -241,4 +288,16 @@ const TabContentWrap = styled('span')`
   flex-direction: row;
   padding: 0;
   gap: 6px;
+`;
+
+const QueryCountBadge = styled(Badge)`
+  display: flex;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
+  margin-left: 0;
 `;
