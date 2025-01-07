@@ -109,7 +109,8 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         with self.tasks():
             run_scheduled_deletions()
 
-        # check alert_rule_workflow
+        # check workflow-related tables
+        assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not AlertRuleWorkflow.objects.filter(id=alert_rule_workflow.id).exists()
 
         # check detector-related tables
@@ -128,7 +129,3 @@ class AlertRuleMigrationHelpersTest(APITestCase):
         assert not DataSource.objects.filter(id=data_source.id).exists()
         query_subscription.refresh_from_db()
         assert query_subscription.status == QuerySubscription.Status.DELETING.value
-
-        # don't delete the associated workflow
-        # uncomment this when things change in the dual write
-        # assert Workflow.objects.filter(id=workflow.id).exists()

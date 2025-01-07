@@ -190,6 +190,7 @@ def dual_delete_migrated_alert_rule(
         )
         return
 
+    workflow: Workflow = alert_rule_workflow.workflow
     detector: Detector = alert_rule_detector.detector
     data_condition_group: DataConditionGroup | None = detector.workflow_condition_group
 
@@ -204,14 +205,15 @@ def dual_delete_migrated_alert_rule(
     assert alert_rule.snuba_query is not None
     query_subscription = QuerySubscription.objects.get(snuba_query=alert_rule.snuba_query.id)
     bulk_delete_snuba_subscriptions([query_subscription])
-    # deleting the alert_rule would also delete alert_rule_workflow, but let's do it here
-    RegionScheduledDeletion.schedule(instance=alert_rule_workflow, days=0, actor=user)
-    # also deletes alert_rule_detector, detector_workflow, detector_state
+    # NOTE: for migrated alert rules, each workflow is associated with a single detector
+    # make sure there are no other detectors associated with the workflow, then delete it if so
+    if DetectorWorkflow.objects.filter(workflow=workflow).count() == 1:
+        # also deletes alert_rule_workflow
+        RegionScheduledDeletion.schedule(instance=workflow, days=0, actor=user)
+    # also deletes alert_rule_detector, detector_workflow (if not already deleted), detector_state
     RegionScheduledDeletion.schedule(instance=detector, days=0, actor=user)
     if data_condition_group:
         RegionScheduledDeletion.schedule(instance=data_condition_group, days=0, actor=user)
     RegionScheduledDeletion.schedule(instance=data_source, days=0, actor=user)
-
-    # NOTE: we do not delete the workflow or workflow_data_condition_group
 
     return

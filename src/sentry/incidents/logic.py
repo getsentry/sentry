@@ -1011,6 +1011,8 @@ def delete_alert_rule(
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
     """
+    from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migrated_alert_rule
+
     if alert_rule.status == AlertRuleStatus.SNAPSHOT.value:
         raise AlreadyDeletedError()
 
@@ -1055,10 +1057,10 @@ def delete_alert_rule(
             )
         else:
             RegionScheduledDeletion.schedule(instance=alert_rule, days=0, actor=user)
-            # if features.has(
-            #     "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
-            # ):
-            #     dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
+            if features.has(
+                "organizations:workflow-engine-metric-alert-dual-write", alert_rule.organization
+            ):
+                dual_delete_migrated_alert_rule(alert_rule=alert_rule, user=user)
         alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
 
     if alert_rule.id:
