@@ -66,7 +66,6 @@ describe('SolutionsSection', () => {
       },
       attachments: {enabled: false},
       autofix: true,
-      detectorDetails: {enabled: false},
       discover: {enabled: false},
       events: {enabled: false},
       evidence: null,

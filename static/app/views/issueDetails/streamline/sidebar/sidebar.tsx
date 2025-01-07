@@ -90,12 +90,10 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           <MergedIssuesSidebarSection />
         </Fragment>
       )}
-      {issueTypeConfig.detectorDetails.enabled && (
-        <Fragment>
-          <StyledBreak />
-          <MetricIssueSidebarSection event={event} />
-        </Fragment>
-      )}
+      <Fragment>
+        <StyledBreak />
+        <MetricIssueSidebarSection event={event} />
+      </Fragment>
     </Side>
   );
 }
