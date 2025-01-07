@@ -1,3 +1,5 @@
+from collections.abc import Callable, MutableMapping
+from typing import Any, TypeVar
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -20,6 +22,8 @@ from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
+ActionRegistrationT = TypeVar("ActionRegistrationT", bound=ActionRegistration)
+
 
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
@@ -36,18 +40,32 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             self.create_project(name="greenpath", organization=self.organization),
             self.create_project(name="dirtmouth", organization=self.organization),
         ]
-        self.base_data = {
+        self.base_data: MutableMapping[str, Any] = {
             "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@hollowknight",
             "targetIdentifier": "THK",
         }
-        self.mock_register = lambda data: NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(data["triggerType"]),
-            service_type=ActionService.get_value(data["serviceType"]),
-            target_type=ActionTarget.get_value(data["targetType"]),
-        )
+
+        def mock_register(
+            data: MutableMapping[str, Any]
+        ) -> Callable[[type[ActionRegistrationT]], type[ActionRegistrationT]]:
+            assert (
+                triggerType := ActionTrigger.get_value(data["triggerType"])
+            ) is not None, "triggerType must exist"
+            assert (
+                serviceType := ActionService.get_value(data["serviceType"])
+            ) is not None, "serviceType must exist"
+            assert (
+                targetType := ActionTarget.get_value(data["targetType"])
+            ) is not None, "targetType must exist"
+
+            return NotificationAction.register_action(
+                trigger_type=triggerType, service_type=serviceType, target_type=targetType
+            )
+
+        self.mock_register = mock_register
         self.login_as(user=self.user)
 
     def test_get_simple(self):
@@ -128,10 +146,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         }
 
         for data in query_data.values():
+            assert isinstance(data, MutableMapping), "query_data's values need to be indexable ;-;"
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
-                qs_params=data["query"],
+                qs_params=data.get("query"),
             )
             assert len(response.data) == len(data["result"])
             for action in data["result"]:
@@ -328,6 +347,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert "Did not recieve PagerDuty service id" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = second_integration.organizationintegration_set.first()
+            assert org_integration is not None, "org integration needs to exist!"
             service = add_service(
                 org_integration,
                 service_name=service_name,
@@ -343,6 +363,8 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         assert "ensure Sentry has access" in str(response.data["targetIdentifier"])
         with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = integration.organizationintegration_set.first()
+            assert org_integration is not None, "org integration needs to exist!"
+
             service = add_service(
                 org_integration,
                 service_name=service_name,
@@ -364,11 +386,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             validate_action = MagicMock()
 
         registration = MockActionRegistration
-        NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
-            service_type=ActionService.get_value(self.base_data["serviceType"]),
-            target_type=ActionTarget.get_value(self.base_data["targetType"]),
-        )(registration)
+        self.mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
@@ -426,11 +444,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             validate_action = MagicMock()
 
         registration = MockActionRegistration
-        NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
-            service_type=ActionService.get_value(self.base_data["serviceType"]),
-            target_type=ActionTarget.get_value(self.base_data["targetType"]),
-        )(registration)
+        self.mock_register(self.base_data)(registration)
 
         data = {
             **self.base_data,
