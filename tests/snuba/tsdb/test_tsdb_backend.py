@@ -483,31 +483,6 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_most_frequent(self):
-        assert self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [self.proj1.id],
-            self.now,
-            self.now + timedelta(hours=4),
-            rollup=3600,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) in [
-            {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]},
-            {self.proj1.id: [(self.proj1group2.id, 2.0), (self.proj1group1.id, 1.0)]},
-        ]  # Both issues equally frequent
-
-        assert (
-            self.db.get_most_frequent(
-                TSDBModel.frequent_issues_by_project,
-                [],
-                self.now,
-                self.now + timedelta(hours=4),
-                rollup=3600,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-            == {}
-        )
-
     def test_frequency_series(self):
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_frequency_series(
@@ -555,81 +530,45 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         project_id = self.proj1.id
         dts = [self.now + timedelta(hours=i) for i in range(4)]
 
-        results = self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, 1.0)]})
-
-        results = self.db.get_most_frequent_series(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, {1: 1.0})]})
-
         items = {
             # {project_id: (issue_id, issue_id, ...)}
             project_id: (self.proj1group1.id, self.proj1group2.id)
         }
-        results = self.db.get_frequency_series(
+        results1 = self.db.get_frequency_series(
             TSDBModel.frequent_issues_by_project,
             items,
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, {1: 1})]})
+        assert has_shape(results1, {1: [(1, {1: 1})]})
 
-        results = self.db.get_frequency_totals(
-            TSDBModel.frequent_issues_by_project,
-            items,
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: {1: 1}})
-
-        results = self.db.get_range(
+        results2 = self.db.get_range(
             TSDBModel.project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results2, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_series(
+        results3 = self.db.get_distinct_counts_series(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results3, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_totals(
+        results4 = self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: 1})
-
-        results = self.db.get_distinct_counts_union(
-            TSDBModel.users_affected_by_project,
-            [project_id],
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, 1)
+        assert has_shape(results4, {1: 1})
 
     def test_calculated_limit(self):
 

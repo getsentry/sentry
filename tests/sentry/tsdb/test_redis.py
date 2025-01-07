@@ -253,21 +253,6 @@ class RedisTSDBTest(TestCase):
         )
         assert results == {1: 0, 2: 0}
 
-        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
-        assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
-        assert (
-            self.db.get_distinct_counts_union(
-                model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=1
-            )
-            == 1
-        )
-        assert (
-            self.db.get_distinct_counts_union(
-                model, [1, 2], dts[0], dts[-1], rollup=3600, environment_id=0
-            )
-            == 0
-        )
-
         self.db.merge_distinct_counts(model, 1, [2], dts[0], environment_ids=[0, 1])
 
         assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
@@ -307,11 +292,6 @@ class RedisTSDBTest(TestCase):
 
         results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
         assert results == {1: 3, 2: 0}
-
-        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
-        assert self.db.get_distinct_counts_union(model, [1], dts[0], dts[-1], rollup=3600) == 3
-        assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
-        assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
         self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1], environment_ids=[0, 1])
 
@@ -369,73 +349,7 @@ class RedisTSDBTest(TestCase):
             environment_id=1,
         )
 
-        assert self.db.get_most_frequent(
-            model, ("organization:1", "organization:2"), now, rollup=rollup
-        ) == {
-            "organization:1": [("project:3", 3.0), ("project:2", 2.0), ("project:1", 1.0)],
-            "organization:2": [],
-        }
-
-        assert self.db.get_most_frequent(
-            model,
-            ("organization:1", "organization:2"),
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-            environment_id=1,
-        ) == {
-            "organization:1": [("project:4", 3.0), ("project:3", 2.0), ("project:2", 1.0)],
-            "organization:2": [("project:5", 0.5)],
-        }
-
-        assert self.db.get_most_frequent(
-            model, ("organization:1", "organization:2"), now, limit=1, rollup=rollup
-        ) == {"organization:1": [("project:3", 3.0)], "organization:2": []}
-
-        assert self.db.get_most_frequent(
-            model,
-            ("organization:1", "organization:2"),
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-        ) == {
-            "organization:1": [
-                ("project:3", 3.0 + 3.0),
-                ("project:2", 2.0 + 2.0),
-                ("project:4", 4.0),
-                ("project:1", 1.0 + 1.0),
-            ],
-            "organization:2": [("project:5", 1.5)],
-        }
-
-        assert self.db.get_most_frequent(
-            model,
-            ("organization:1", "organization:2"),
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-            environment_id=0,
-        ) == {"organization:1": [], "organization:2": []}
-
         timestamp = int(now.timestamp() // rollup) * rollup
-
-        assert self.db.get_most_frequent_series(
-            model,
-            ("organization:1", "organization:2", "organization:3"),
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-        ) == {
-            "organization:1": [
-                (
-                    timestamp - rollup,
-                    {"project:1": 1.0, "project:2": 2.0, "project:3": 3.0, "project:4": 4.0},
-                ),
-                (timestamp, {"project:1": 1.0, "project:2": 2.0, "project:3": 3.0}),
-            ],
-            "organization:2": [(timestamp - rollup, {"project:5": 1.5}), (timestamp, {})],
-            "organization:3": [(timestamp - rollup, {}), (timestamp, {})],
-        }
 
         assert self.db.get_frequency_series(
             model,
@@ -490,88 +404,9 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        assert self.db.get_frequency_totals(
-            model,
-            {
-                "organization:1": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                "organization:2": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-            },
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-        ) == {
-            "organization:1": {
-                "project:1": 1.0 + 1.0,
-                "project:2": 2.0 + 2.0,
-                "project:3": 3.0 + 3.0,
-                "project:4": 4.0,
-                "project:5": 0.0,
-            },
-            "organization:2": {
-                "project:1": 0.0,
-                "project:2": 0.0,
-                "project:3": 0.0,
-                "project:4": 0.0,
-                "project:5": 1.5,
-            },
-        }
-
         self.db.merge_frequencies(
             model, "organization:1", ["organization:2"], now, environment_ids=[0, 1]
         )
-
-        assert self.db.get_frequency_totals(
-            model,
-            {
-                "organization:1": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                "organization:2": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-            },
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-        ) == {
-            "organization:1": {
-                "project:1": 1.0 + 1.0,
-                "project:2": 2.0 + 2.0,
-                "project:3": 3.0 + 3.0,
-                "project:4": 4.0,
-                "project:5": 1.5,
-            },
-            "organization:2": {
-                "project:1": 0.0,
-                "project:2": 0.0,
-                "project:3": 0.0,
-                "project:4": 0.0,
-                "project:5": 0.0,
-            },
-        }
-
-        assert self.db.get_frequency_totals(
-            model,
-            {
-                "organization:1": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-                "organization:2": ("project:1", "project:2", "project:3", "project:4", "project:5"),
-            },
-            now - timedelta(hours=1),
-            now,
-            rollup=rollup,
-            environment_id=1,
-        ) == {
-            "organization:1": {
-                "project:1": 0.0,
-                "project:2": 1.0,
-                "project:3": 2.0,
-                "project:4": 3.0,
-                "project:5": 0.5,
-            },
-            "organization:2": {
-                "project:1": 0.0,
-                "project:2": 0.0,
-                "project:3": 0.0,
-                "project:4": 0.0,
-                "project:5": 0.0,
-            },
-        }
 
         self.db.delete_frequencies(
             [model],
@@ -580,15 +415,6 @@ class RedisTSDBTest(TestCase):
             now,
             environment_ids=[0, 1],
         )
-
-        assert self.db.get_most_frequent(model, ("organization:1", "organization:2"), now) == {
-            "organization:1": [],
-            "organization:2": [],
-        }
-
-        assert self.db.get_most_frequent(
-            model, ("organization:1", "organization:2"), now, environment_id=1
-        ) == {"organization:1": [], "organization:2": []}
 
     def test_frequency_table_import_export_no_estimators(self):
         client = self.db.cluster.get_local_client_for_key("key")
