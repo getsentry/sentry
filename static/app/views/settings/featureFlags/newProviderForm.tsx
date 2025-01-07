@@ -118,7 +118,7 @@ export default function NewProviderForm({
         name="provider"
         options={[
           {value: 'LaunchDarkly', label: 'LaunchDarkly'},
-          {value: 'Generic', label: 'Custom'},
+          {value: 'Generic', label: 'Generic'},
         ]}
         help={t(
           'If you have already linked this provider, pasting a new secret will override the existing secret.'
