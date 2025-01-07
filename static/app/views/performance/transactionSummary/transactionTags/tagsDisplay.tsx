@@ -5,11 +5,11 @@ import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import TagKeyHistogramQuery from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import TagsHeatMap from './tagsHeatMap';
 import {TagValueTable} from './tagValueTable';
@@ -98,11 +98,12 @@ export const TAGS_TABLE_COLUMN_ORDER: TagsTableColumn[] = [
 ];
 
 function TagsDisplay(props: Props) {
+  const navigate = useNavigate();
   const {eventView: _eventView, location, organization, aggregateColumn, tagKey} = props;
   const eventView = _eventView.clone();
 
   const handleCursor: CursorHandler = (cursor, pathname, query) =>
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [TAG_PAGE_TABLE_CURSOR]: cursor},
     });

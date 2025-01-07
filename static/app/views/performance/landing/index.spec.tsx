@@ -198,7 +198,7 @@ describe('Performance > Landing > Index', function () {
 
     expect(columnHeaders).toHaveLength(REACT_NATIVE_COLUMN_TITLES.length);
     for (const [index, title] of columnHeaders.entries()) {
-      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]);
+      expect(title).toHaveTextContent(REACT_NATIVE_COLUMN_TITLES[index]!.title!);
     }
   });
 
@@ -296,7 +296,7 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
       await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
@@ -320,7 +320,7 @@ describe('Performance > Landing > Index', function () {
 
       wrapper = render(<WrappedComponent data={data} />);
 
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
       expect(await screen.findByPlaceholderText('Search Transactions')).toHaveValue('');
     });

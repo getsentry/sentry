@@ -7,7 +7,6 @@ import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardi
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {
   hasQuickStartUpdatesFeature,
-  hasQuickStartUpdatesFeatureGA,
   taskIsDone,
 } from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -58,7 +57,7 @@ function getIssueAlertUrl({projects, organization}: Options) {
   }
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
-  const project = firstProjectWithEvents ?? projects[0];
+  const project = firstProjectWithEvents ?? projects[0]!;
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
 }
 
@@ -81,7 +80,7 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
   const firstProjectWithoutError = projects.find(project => !project.firstEvent);
   // If all projects contain errors, this step will not be visible to the user,
   // but if the user falls into this case for some reason, we pick the first project
-  const project = firstProjectWithoutError ?? projects[0];
+  const project = firstProjectWithoutError ?? projects[0]!;
 
   let url = `/${organization.slug}/${project.slug}/getting-started/`;
 
@@ -100,7 +99,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
   const firstProjectWithEvents = projects.find(
     project => !!project.firstTransactionEvent
   );
-  const project = firstProjectWithEvents ?? projects[0];
+  const project = firstProjectWithEvents ?? projects[0]!;
   return {
     pathname: `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`,
     query: {
@@ -219,7 +218,6 @@ export function getOnboardingTasks({
             <EventWaitingIndicator
               text={t('Waiting for error')}
               hasQuickStartUpdatesFeature
-              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
             />
           );
         }
@@ -230,7 +228,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="error"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -325,7 +323,6 @@ export function getOnboardingTasks({
           <EventWaitingIndicator
             text={t('Waiting for error')}
             hasQuickStartUpdatesFeature
-            hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
           />
         );
       },
@@ -372,14 +369,14 @@ export function getOnboardingTasks({
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `${performanceUrl}?project=${projectsForOnboarding[0].id}#performance-sidequest`,
+            `${performanceUrl}?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0].id}#performance-sidequest`,
+          `${performanceUrl}?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
           router
         );
       },
@@ -394,12 +391,7 @@ export function getOnboardingTasks({
           if (!projects?.length || task.requisiteTasks.length > 0 || taskIsDone(task)) {
             return null;
           }
-          return (
-            <EventWaitingIndicator
-              hasQuickStartUpdatesFeature
-              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
-            />
-          );
+          return <EventWaitingIndicator hasQuickStartUpdatesFeature />;
         }
 
         return !!projects?.length &&
@@ -408,7 +400,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="transaction"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -474,7 +466,6 @@ export function getOnboardingTasks({
             <EventWaitingIndicator
               text={t('Waiting for user session')}
               hasQuickStartUpdatesFeature
-              hasQuickStartUpdatesFeatureGA={hasQuickStartUpdatesFeatureGA(organization)}
             />
           );
         }
@@ -485,7 +476,7 @@ export function getOnboardingTasks({
           <EventWaiter
             api={api}
             organization={organization}
-            project={projects[0]}
+            project={projects[0]!}
             eventType="replay"
             onIssueReceived={() => !taskIsDone(task) && onCompleteTask?.()}
           >
@@ -589,42 +580,32 @@ export function getMergedTasks({organization, projects, onboardingContext}: Opti
 
 const PulsingIndicator = styled('div')<{
   hasQuickStartUpdatesFeature?: boolean;
-  hasQuickStartUpdatesFeatureGA?: boolean;
 }>`
   ${pulsingIndicatorStyles};
   ${p =>
-    p.hasQuickStartUpdatesFeatureGA
+    p.hasQuickStartUpdatesFeature
       ? css`
           margin: 0;
         `
-      : p.hasQuickStartUpdatesFeature
-        ? css`
-            margin: 0 ${space(0.5)};
-          `
-        : css`
-            margin-right: ${space(1)};
-          `}
+      : css`
+          margin-right: ${space(1)};
+        `}
 `;
 
 const EventWaitingIndicator = styled(
   ({
     hasQuickStartUpdatesFeature: quickStartUpdatesFeature,
-    hasQuickStartUpdatesFeatureGA: quickStartUpdatesFeatureGA,
     text,
     ...p
   }: React.HTMLAttributes<HTMLDivElement> & {
     hasQuickStartUpdatesFeature?: boolean;
-    hasQuickStartUpdatesFeatureGA?: boolean;
     text?: string;
   }) => {
     if (quickStartUpdatesFeature) {
       return (
         <div {...p}>
           <Tooltip title={text || t('Waiting for event')}>
-            <PulsingIndicator
-              hasQuickStartUpdatesFeature
-              hasQuickStartUpdatesFeatureGA={quickStartUpdatesFeatureGA}
-            />
+            <PulsingIndicator hasQuickStartUpdatesFeature />
           </Tooltip>
         </div>
       );

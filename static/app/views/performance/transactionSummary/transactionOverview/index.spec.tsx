@@ -4,12 +4,12 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
-  findByLabelText,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -907,7 +907,7 @@ describe('Performance > TransactionSummary', function () {
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
+      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]!);
 
       // Check the navigation.
       expect(router.push).toHaveBeenCalledWith({
@@ -939,11 +939,11 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Transaction Summary');
 
       const pagination = await screen.findByTestId('pagination');
-      expect(await findByLabelText(pagination, 'Previous')).toBeInTheDocument();
-      expect(await findByLabelText(pagination, 'Next')).toBeInTheDocument();
+      expect(await within(pagination).findByLabelText('Previous')).toBeInTheDocument();
+      expect(await within(pagination).findByLabelText('Next')).toBeInTheDocument();
 
       // Click the 'next' button
-      await userEvent.click(await findByLabelText(pagination, 'Next'));
+      await userEvent.click(await within(pagination).findByLabelText('Next'));
 
       // Check the navigation.
       expect(router.push).toHaveBeenCalledWith({

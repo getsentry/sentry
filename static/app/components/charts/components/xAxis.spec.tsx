@@ -32,11 +32,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8 5:00 PM');
         });
       });
 
@@ -53,11 +53,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 9 12:00 AM');
         });
       });
 
@@ -74,11 +74,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8\n5:00 PM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8\n5:00 PM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('Jul 8\n5:00 PM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('Jul 8\n5:00 PM');
         });
       });
     });
@@ -97,11 +97,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 8 5:00 PM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 8 5:00 PM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('5:00 PM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('5:00 PM');
         });
       });
 
@@ -118,11 +118,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9 12:00 AM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9 12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('12:00 AM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
         });
       });
 
@@ -140,11 +140,11 @@ describe('Chart XAxis', function () {
         });
 
         it('formats axis label for first data point', function () {
-          expect(axisLabelFormatter(timestamp, 0)).toEqual('Jul 9\n12:00 AM');
+          expect(axisLabelFormatter(timestamp, 0)).toBe('Jul 9\n12:00 AM');
         });
 
         it('formats axis label for second data point', function () {
-          expect(axisLabelFormatter(timestamp, 1)).toEqual('12:00 AM');
+          expect(axisLabelFormatter(timestamp, 1)).toBe('12:00 AM');
         });
       });
     });

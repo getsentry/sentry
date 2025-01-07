@@ -90,11 +90,8 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, metaclass=abc.ABCMeta):
         pass
 
     def create_subscription(
-        self, status: UptimeSubscription.Status | None = None, subscription_id: str | None = None
+        self, status: UptimeSubscription.Status, subscription_id: str | None = None
     ):
-        if status is None:
-            status = self.expected_status
-
         return UptimeSubscription.objects.create(
             status=status.value,
             type="something",
@@ -334,6 +331,7 @@ class SubscriptionCheckerTest(UptimeTestCase):
     def test_create_update_delete(self):
         for status in (
             UptimeSubscription.Status.CREATING,
+            UptimeSubscription.Status.UPDATING,
             UptimeSubscription.Status.DELETING,
         ):
             sub = self.create_uptime_subscription(

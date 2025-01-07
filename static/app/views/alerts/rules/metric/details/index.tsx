@@ -152,7 +152,7 @@ class MetricAlertDetails extends Component<Props, State> {
     }
 
     const timeOption =
-      TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1];
+      TIME_OPTIONS.find(item => item.value === period) ?? TIME_OPTIONS[1]!;
     const start = getUtcDateString(
       moment(moment.utc().diff(TIME_WINDOWS[timeOption.value]))
     );

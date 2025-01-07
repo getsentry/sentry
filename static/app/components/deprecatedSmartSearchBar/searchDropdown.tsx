@@ -22,7 +22,7 @@ import {invalidTypes, ItemType} from './types';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
-    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]) : ''
+    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]!) : ''
   }`;
 
 type Props = {
@@ -244,7 +244,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   if (searchSubstring) {
     const idx =
       restWords.length === 0
-        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
+        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0]!)
         : fullWord.toLowerCase().indexOf(searchSubstring);
 
     // Below is the logic to make the current query bold inside the result.
@@ -253,14 +253,14 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
         <SearchItemTitleWrapper hasSingleField={hasSingleField}>
           {!isFirstWordHidden && (
             <FirstWordWrapper>
-              {firstWord.slice(0, idx)}
-              <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
-              {firstWord.slice(idx + searchSubstring.length)}
+              {firstWord!.slice(0, idx)}
+              <strong>{firstWord!.slice(idx, idx + searchSubstring.length)}</strong>
+              {firstWord!.slice(idx + searchSubstring.length)}
             </FirstWordWrapper>
           )}
           {combinedRestWords && (
             <HighlightedRestOfWords
-              firstWord={firstWord}
+              firstWord={firstWord!}
               isFirstWordHidden={isFirstWordHidden}
               searchSubstring={searchSubstring}
               combinedRestWords={combinedRestWords}

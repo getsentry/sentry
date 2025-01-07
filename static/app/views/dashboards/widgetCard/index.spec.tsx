@@ -145,7 +145,7 @@ describe('Dashboards > WidgetCard', function () {
     renderWithProviders(
       <WidgetCard
         api={api}
-        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         isEditingDashboard={false}
         onDelete={() => undefined}
@@ -194,7 +194,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
@@ -233,7 +233,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.TOP_N,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: ['transaction', 'count()'],
               columns: ['transaction'],
               aggregates: ['count()'],
@@ -268,7 +268,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.LINE,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               conditions: '',
               fields: [],
               columns: [],
@@ -303,7 +303,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -330,7 +330,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -357,7 +357,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -384,7 +384,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.AREA,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -418,7 +418,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -453,7 +453,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditingDashboard={false}
@@ -655,7 +655,7 @@ describe('Dashboards > WidgetCard', function () {
     });
     const mockCall = spy.mock.calls?.at(-1)?.[0];
     // @ts-expect-error
-    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toEqual(
+    expect(mockCall?.yAxis.axisLabel.formatter(24, 'p95(measurements.custom)')).toBe(
       '24ms'
     );
   });
@@ -756,7 +756,7 @@ describe('Dashboards > WidgetCard', function () {
     expect(
       // @ts-expect-error
       mockCall?.yAxis.axisLabel.formatter(60000, 'p50(transaction.duration)')
-    ).toEqual('60s');
+    ).toBe('60s');
     // @ts-expect-error
     expect(mockCall?.yAxis?.minInterval).toEqual(SECOND);
   });

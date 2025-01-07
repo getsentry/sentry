@@ -159,7 +159,7 @@ export function handleUpdateDashboardSplit({
   );
 
   if (widgetIndex >= 0) {
-    updatedDashboard.widgets[widgetIndex].widgetType = splitDecision;
+    updatedDashboard.widgets[widgetIndex]!.widgetType = splitDecision;
   }
   onDashboardUpdate?.(updatedDashboard);
 

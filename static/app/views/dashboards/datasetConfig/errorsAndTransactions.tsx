@@ -362,7 +362,7 @@ export function transformEventsResponseToSeries(
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = data[seriesName];
+        const seriesData: EventsStats = data[seriesName]!;
         return [
           seriesData.order || 0,
           transformSeries(seriesData, prefixedName, seriesName),
@@ -376,7 +376,7 @@ export function transformEventsResponseToSeries(
         .map(item => item[1]),
     ];
   } else {
-    const field = widgetQuery.aggregates[0];
+    const field = widgetQuery.aggregates[0]!;
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
     const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
@@ -390,12 +390,12 @@ function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
-  const field = widgetQuery.aggregates[0];
+  const field = widgetQuery.aggregates[0]!;
   const resultTypes = {};
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
-      key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
+      key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
     );
   } else {
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
@@ -544,7 +544,7 @@ function getEventsSeriesRequest(
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
-  const widgetQuery = widget.queries[queryIndex];
+  const widgetQuery = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;

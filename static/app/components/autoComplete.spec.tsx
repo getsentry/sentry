@@ -216,7 +216,7 @@ describe('AutoComplete', function () {
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      fireEvent.click(screen.getByText(items[1].name));
+      fireEvent.click(screen.getByText(items[1]!.name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),
@@ -419,7 +419,7 @@ describe('AutoComplete', function () {
       createWrapper({isOpen: true});
       expect(screen.getAllByRole('option')).toHaveLength(3);
 
-      fireEvent.click(screen.getByText(items[1].name));
+      fireEvent.click(screen.getByText(items[1]!.name));
       expect(mocks.onSelect).toHaveBeenCalledWith(
         items[1],
         expect.objectContaining({inputValue: '', highlightedIndex: 0}),

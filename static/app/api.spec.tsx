@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {Client, ResponseMeta} from 'sentry/api';
 import {isSimilarOrigin, Request, resolveHostname} from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 
@@ -9,7 +10,7 @@ import OrganizationStore from './stores/organizationStore';
 jest.unmock('sentry/api');
 
 describe('api', function () {
-  let api;
+  let api: Client;
 
   beforeEach(function () {
     api = new MockApiClient();
@@ -41,7 +42,9 @@ describe('api', function () {
 
   it('does not call success callback if 302 was returned because of a project slug change', function () {
     const successCb = jest.fn();
-    api.activeRequests = {id: {alive: true}};
+    api.activeRequests = {
+      id: {alive: true, requestPromise: new Promise(() => null), cancel: jest.fn()},
+    };
     api.wrapCallback(
       'id',
       successCb
@@ -60,9 +63,9 @@ describe('api', function () {
   });
 
   it('handles error callback', function () {
-    jest.spyOn(api, 'wrapCallback').mockImplementation((_id, func) => func);
+    jest.spyOn(api, 'wrapCallback').mockImplementation((_id: string, func: any) => func);
     const errorCb = jest.fn();
-    const args = ['test', true, 1];
+    const args = ['test', true, 1] as unknown as [ResponseMeta, string, string];
     api.handleRequestError(
       {
         id: 'test',
@@ -83,15 +86,18 @@ describe('api', function () {
           path: 'test',
           requestOptions: {},
         },
-        {},
-        {}
+        {} as ResponseMeta,
+        '',
+        'test'
       )
     ).not.toThrow();
   });
 });
 
 describe('resolveHostname', function () {
-  let devUi, location, configstate;
+  let devUi: boolean | undefined;
+  let location: Location;
+  let configstate: ReturnType<typeof ConfigStore.getState>;
 
   const controlPath = '/api/0/broadcasts/';
   const regionPath = '/api/0/organizations/slug/issues/';
@@ -103,7 +109,7 @@ describe('resolveHostname', function () {
 
     ConfigStore.loadInitialData({
       ...configstate,
-      features: ['system:multi-region'],
+      features: new Set(['system:multi-region']),
       links: {
         organizationUrl: 'https://acme.sentry.io',
         sentryUrl: 'https://sentry.io',
@@ -122,7 +128,7 @@ describe('resolveHostname', function () {
     ConfigStore.loadInitialData({
       ...configstate,
       // Remove the feature flag
-      features: [],
+      features: new Set(),
     });
 
     let result = resolveHostname(controlPath);

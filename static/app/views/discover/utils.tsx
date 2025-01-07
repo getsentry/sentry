@@ -392,7 +392,7 @@ function generateAdditionalConditions(
           ? `tags[${column.field}]`
           : column.field;
 
-        const tagValue = dataRow.tags[tagIndex].value;
+        const tagValue = dataRow.tags[tagIndex]!.value;
         conditions[key] = tagValue;
       }
     }
@@ -409,7 +409,7 @@ export function usesTransactionsDataset(eventView: EventView, yAxisValue: string
   let usesTransactions: boolean = false;
   const parsedQuery = new MutableSearch(eventView.query);
   for (let index = 0; index < yAxisValue.length; index++) {
-    const yAxis = yAxisValue[index];
+    const yAxis = yAxisValue[index]!;
     const aggregateArg = getAggregateArg(yAxis) ?? '';
     if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
@@ -452,7 +452,7 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
-    const value = conditions[key];
+    const value = conditions[key]!;
 
     if (Array.isArray(value)) {
       parsedQuery.setFilterValues(key, value);
@@ -519,9 +519,9 @@ export function generateFieldOptions({
   // function names. Having a mapping makes finding the value objects easier
   // later as well.
   functions.forEach(func => {
-    const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
-    const parameters = aggregations[func].parameters.map(param => {
-      const overrides = aggregations[func].getFieldOverrides;
+    const ellipsis = aggregations[func]!.parameters.length ? '\u2026' : '';
+    const parameters = aggregations[func]!.parameters.map(param => {
+      const overrides = aggregations[func]!.getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
       }
@@ -657,8 +657,8 @@ export function eventViewToWidgetQuery({
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
-      if (sort.field === getAggregateAlias(aggregateFields[i])) {
-        orderbyFunction = aggregateFields[i];
+      if (sort.field === getAggregateAlias(aggregateFields[i]!)) {
+        orderbyFunction = aggregateFields[i]!;
         break;
       }
     }
@@ -717,20 +717,23 @@ export function handleAddQueryToDashboard({
     location,
     widgetType,
   });
+
   openAddToDashboardModal({
     organization,
     selection: {
-      projects: eventView.project,
-      environments: eventView.environment,
+      projects: eventView.project.slice(),
+      environments: eventView.environment.slice(),
       datetime: {
-        start: eventView.start,
-        end: eventView.end,
-        period: eventView.statsPeriod,
+        start: eventView.start!,
+        end: eventView.end!,
+        period: eventView.statsPeriod!,
+        // Previously undetected because the type used to rely on an implicit any value.
+        // @ts-expect-error
         utc: eventView.utc,
       },
     },
     widget: {
-      title: query?.name ?? eventView.name,
+      title: (query?.name ?? eventView.name)!,
       displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
       queries: [
         {
@@ -738,7 +741,7 @@ export function handleAddQueryToDashboard({
           aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
         },
       ],
-      interval: eventView.interval,
+      interval: eventView.interval!,
       limit:
         displayType === DisplayType.TOP_N
           ? Number(eventView.topEvents) || TOP_N
@@ -746,6 +749,8 @@ export function handleAddQueryToDashboard({
       widgetType,
     },
     router,
+    // Previously undetected because the type relied on implicit any.
+    // @ts-expect-error
     widgetAsQueryParams,
     location,
   });

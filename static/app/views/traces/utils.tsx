@@ -37,7 +37,7 @@ export function areQueriesEmpty(queries: string[]): boolean {
   }
 
   if (queries.length === 1) {
-    return queries[0].length === 0;
+    return queries[0]!.length === 0;
   }
 
   return false;

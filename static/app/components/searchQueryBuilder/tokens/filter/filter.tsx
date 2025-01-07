@@ -51,10 +51,10 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     case Token.VALUE_NUMBER_LIST:
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue(items[0]!.value)}
           </FilterValueSingleTruncatedValue>
         );
       }

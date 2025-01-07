@@ -36,7 +36,7 @@ describe('projectPerformance', function () {
     router,
     location: LocationFixture(),
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     routeParams: router.params,
   };
 
@@ -331,7 +331,7 @@ describe('projectPerformance', function () {
         await userEvent.click(chevron);
       }
 
-      const slider = screen.getAllByRole('slider')[sliderIndex];
+      const slider = screen.getAllByRole('slider')[sliderIndex]!;
       const indexOfValue = allowedValues.indexOf(defaultValue);
       const newValueIndex = allowedValues.indexOf(newValue);
 

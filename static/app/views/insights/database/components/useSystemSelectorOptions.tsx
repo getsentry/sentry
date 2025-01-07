@@ -43,12 +43,12 @@ export function useSystemSelectorOptions() {
 
   // Edge case: Invalid DB system was retrieved from localStorage
   if (!options.find(option => selectedSystem === option.value) && options.length > 0) {
-    setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0]!.value);
   }
 
   // Edge case: No current system is saved in localStorage
   if (!selectedSystem && options.length > 0) {
-    setSelectedSystem(options[0].value);
+    setSelectedSystem(options[0]!.value);
   }
 
   return {selectedSystem, setSelectedSystem, options, isLoading: isPending, isError};

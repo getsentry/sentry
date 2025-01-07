@@ -56,6 +56,7 @@ function WidgetBuilderSlideout({
   const organization = useOrganization();
   const {state} = useWidgetBuilderContext();
   const [initialState] = useState(state);
+  const [error, setError] = useState<Record<string, any>>({});
   const {widgetIndex} = useParams();
   const theme = useTheme();
 
@@ -76,7 +77,7 @@ function WidgetBuilderSlideout({
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsPreviewDraggable(!entry.isIntersecting);
+        setIsPreviewDraggable(!entry!.isIntersecting);
       },
       {threshold: 0}
     );
@@ -128,7 +129,7 @@ function WidgetBuilderSlideout({
             </Section>
           )}
         <Section>
-          <WidgetBuilderTypeSelector />
+          <WidgetBuilderTypeSelector error={error} setError={setError} />
         </Section>
         <div ref={previewRef}>
           {isSmallScreen && (
@@ -147,6 +148,7 @@ function WidgetBuilderSlideout({
         <Section>
           <WidgetBuilderQueryFilterBuilder
             onQueryConditionChange={onQueryConditionChange}
+            error={error}
           />
         </Section>
         {isChartWidget && (
@@ -160,9 +162,9 @@ function WidgetBuilderSlideout({
           </Section>
         )}
         <Section>
-          <WidgetBuilderNameAndDescription />
+          <WidgetBuilderNameAndDescription error={error} setError={setError} />
         </Section>
-        <SaveButton isEditing={isEditing} onSave={onSave} />
+        <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
       </SlideoutBodyWrapper>
     </SlideOverPanel>
   );
