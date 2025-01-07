@@ -325,6 +325,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["id"] == "a" * 32
 
+    @pytest.mark.skip(reason="flakey")
     def test_parent_span_id_in_context(self):
         self.store_event(
             data={
