@@ -247,7 +247,6 @@ module = [
     "sentry.middleware.superuser",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
-    "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
     "sentry.monitors.endpoints.organization_monitor_index",
     "sentry.net.http",
     "sentry.net.socket",
