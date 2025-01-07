@@ -8,18 +8,19 @@ import {
   AreaChartWidget,
   type AreaChartWidgetProps,
 } from 'sentry/views/dashboards/widgets/areaChartWidget/areaChartWidget';
-import {
-  AreaChartWidgetVisualization,
-  type AreaChartWidgetVisualizationProps,
-} from 'sentry/views/dashboards/widgets/areaChartWidget/areaChartWidgetVisualization';
+import {AreaChartWidgetSeries} from 'sentry/views/dashboards/widgets/areaChartWidget/areaChartWidgetSeries';
 import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
+import {
+  TimeSeriesWidgetVisualization,
+  type TimeSeriesWidgetVisualizationProps,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 
 import {THROUGHPUT_COLOR} from '../../colors';
 import type {DiscoverSeries} from '../queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from '../utils/convertSeriesToTimeseries';
 
 interface InsightsAreaChartWidgetProps
-  extends Pick<AreaChartWidgetProps, 'title' | 'meta' | 'isLoading'> {
+  extends Pick<AreaChartWidgetProps, 'title' | 'isLoading'> {
   aliases: Aliases;
   error: AreaChartWidgetProps['error'] | null;
   series: DiscoverSeries[];
@@ -30,7 +31,8 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
   const {start, end, period, utc} = pageFilters.selection.datetime;
   const {projects, environments} = pageFilters.selection;
 
-  const visualizationProps: AreaChartWidgetVisualizationProps = {
+  const visualizationProps: TimeSeriesWidgetVisualizationProps = {
+    SeriesConstructor: AreaChartWidgetSeries,
     timeseries: (props.series.filter(Boolean) ?? [])?.map(serie => {
       const timeserie = convertSeriesToTimeseries(serie);
 
@@ -65,7 +67,7 @@ export function InsightsAreaChartWidget(props: InsightsAreaChartWidgetProps) {
                 {({releases}) => {
                   return (
                     <ModalChartContainer>
-                      <AreaChartWidgetVisualization
+                      <TimeSeriesWidgetVisualization
                         {...visualizationProps}
                         releases={
                           releases

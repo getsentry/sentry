@@ -13,10 +13,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/releases/list/';
 import {ReleasesDisplayOption} from 'sentry/views/releases/list/releasesDisplayOptions';
-import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions';
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {

@@ -32,7 +32,7 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![0]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
       isLoading={isPending}
       error={error}
     />
@@ -58,7 +58,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![0]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
       isLoading={isPending}
       error={error}
     />
@@ -89,7 +89,7 @@ export function EAPNumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps
   return (
     <InsightsLineChartWidget
       title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![1]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
       isLoading={isPending}
       error={error}
     />
@@ -114,7 +114,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![1]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
       isLoading={isPending}
       error={error}
     />
@@ -144,7 +144,7 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
   return (
     <InsightsLineChartWidget
       title={t('Pipeline Duration')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![2]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
       isLoading={isPending}
       error={error}
     />
@@ -169,7 +169,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Pipeline Duration')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2]![2]!}]}
+      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
       isLoading={isPending}
       error={error}
     />

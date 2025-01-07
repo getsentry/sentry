@@ -40,14 +40,14 @@ export function ThroughputChart({error, destination, referrer}: Props) {
         renameDiscoverSeries(
           {
             ...publishData['spm()'],
-            color: CHART_PALETTE[2]![1]!,
+            color: CHART_PALETTE[2][1],
           },
           'spm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
             ...processData['spm()'],
-            color: CHART_PALETTE[2]![2]!,
+            color: CHART_PALETTE[2][2],
           },
           'spm() span.op:queue.process'
         ),

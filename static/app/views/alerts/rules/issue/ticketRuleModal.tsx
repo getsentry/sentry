@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import type {FormProps} from 'sentry/components/forms/form';
@@ -11,7 +12,6 @@ import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {IssueConfigField} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 
@@ -51,7 +51,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {instance} = this.props;
     const query = (instance.dynamic_form_fields || [])
       .filter(field => field.updatesForm)

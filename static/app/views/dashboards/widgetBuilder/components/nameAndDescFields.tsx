@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import TextArea from 'sentry/components/forms/controls/textarea';
-import Input from 'sentry/components/input';
+import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
@@ -12,9 +12,13 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/us
 
 interface WidgetBuilderNameAndDescriptionProps {
   error: Record<string, any>;
+  setError: (error: Record<string, any>) => void;
 }
 
-function WidgetBuilderNameAndDescription({}: WidgetBuilderNameAndDescriptionProps) {
+function WidgetBuilderNameAndDescription({
+  error,
+  setError,
+}: WidgetBuilderNameAndDescriptionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const [isDescSelected, setIsDescSelected] = useState(state.description ? true : false);
 
@@ -22,15 +26,20 @@ function WidgetBuilderNameAndDescription({}: WidgetBuilderNameAndDescriptionProp
     <Fragment>
       <SectionHeader title={t('Widget Name & Description')} />
       <StyledInput
+        name={t('Widget Name')}
         size="md"
         placeholder={t('Name')}
         title={t('Widget Name')}
-        type="text"
         aria-label={t('Widget Name')}
         value={state.title}
-        onChange={e => {
-          dispatch({type: BuilderStateAction.SET_TITLE, payload: e.target.value});
+        onChange={newTitle => {
+          // clear error once user starts typing
+          setError({...error, title: undefined});
+          dispatch({type: BuilderStateAction.SET_TITLE, payload: newTitle});
         }}
+        required
+        error={error.title}
+        inline={false}
       />
       {!isDescSelected && (
         <AddDescriptionButton
@@ -62,8 +71,10 @@ function WidgetBuilderNameAndDescription({}: WidgetBuilderNameAndDescriptionProp
 
 export default WidgetBuilderNameAndDescription;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(TextField)`
   margin-bottom: ${space(1)};
+  padding: 0;
+  border: none;
 `;
 
 const AddDescriptionButton = styled(Button)`
