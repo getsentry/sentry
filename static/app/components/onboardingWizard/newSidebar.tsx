@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -39,6 +39,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+
+/**
+ * How long (in ms) to delay before beginning to mark tasks complete
+ */
+const INITIAL_MARK_COMPLETE_TIMEOUT = 100;
 
 const orderedGettingStartedTasks = [
   OnboardingTaskKey.FIRST_PROJECT,
@@ -393,6 +398,15 @@ function ExpandedTaskGroup({
   const api = useApi();
   const organization = useOrganization();
 
+  const markCompletionTimeout = useRef<number | undefined>();
+
+  function completionTimeout(time: number): Promise<void> {
+    window.clearTimeout(markCompletionTimeout.current);
+    return new Promise(resolve => {
+      markCompletionTimeout.current = window.setTimeout(resolve, time);
+    });
+  }
+
   const markTasksAsSeen = useCallback(() => {
     const unseenDoneTasks = sortedTasks
       .filter(task => taskIsDone(task) && !task.completionSeen)
@@ -406,8 +420,21 @@ function ExpandedTaskGroup({
     }
   }, [api, organization, sortedTasks]);
 
+  const markSeenOnOpen = useCallback(
+    async function () {
+      // Add a minor delay to marking tasks complete to account for the animation
+      // opening of the group
+      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+      markTasksAsSeen();
+    },
+    [markTasksAsSeen]
+  );
+
   useEffect(() => {
-    markTasksAsSeen();
+    markSeenOnOpen();
+    return () => {
+      window.clearTimeout(markCompletionTimeout.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
