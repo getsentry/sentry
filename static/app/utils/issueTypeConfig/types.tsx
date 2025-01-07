@@ -11,6 +11,12 @@ type DisabledWithReasonConfig = {
   disabledReason?: string;
 };
 
+type LastSeenConfig = {
+  prefix: string;
+  showDate: boolean;
+  showStatus: boolean;
+};
+
 export type IssueTypeConfig = {
   /**
    * Enable/disable actions for an issue type
@@ -37,6 +43,7 @@ export type IssueTypeConfig = {
    * Custom copy for actions and other UI elements
    */
   customCopy: {
+    firstSeen: string;
     resolution: string;
   };
   /**
@@ -59,6 +66,10 @@ export type IssueTypeConfig = {
    * Is the Issue Summary available for this issue
    */
   issueSummary: DisabledWithReasonConfig;
+  /**
+   * Is the Last Seen data shown for this issue
+   */
+  lastSeen: LastSeenConfig;
   /**
    * Is the Merged Issues tab shown for this issue
    */

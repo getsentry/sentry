@@ -15,6 +15,12 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     },
     customCopy: {
       resolution: t('Back to baseline'),
+      firstSeen: t('Started'),
+    },
+    lastSeen: {
+      prefix: t('Open period '),
+      showDate: false,
+      showStatus: true,
     },
     attachments: {enabled: false},
     resources: null,

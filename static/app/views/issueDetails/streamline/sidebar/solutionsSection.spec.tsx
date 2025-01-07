@@ -63,6 +63,12 @@ describe('SolutionsSection', () => {
       },
       customCopy: {
         resolution: 'Resolved',
+        firstSeen: 'First seen',
+      },
+      lastSeen: {
+        prefix: 'Last seen ',
+        showDate: true,
+        showStatus: false,
       },
       attachments: {enabled: false},
       autofix: true,

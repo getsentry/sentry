@@ -6,9 +6,10 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types/group';
+import {type Group, GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useFetchAllEnvsGroupData} from 'sentry/views/issueDetails/groupSidebar';
@@ -20,6 +21,7 @@ interface GroupRelease {
 
 export default function FirstLastSeenSection({group}: {group: Group}) {
   const organization = useOrganization();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
   const {project} = group;
 
   const {data: allEnvironments} = useFetchAllEnvsGroupData(organization, group);
@@ -35,24 +37,30 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
     <Flex column gap={space(0.75)}>
       <div>
         <Flex gap={space(0.5)}>
-          <Title>{t('Last seen')}</Title>
-          {group.lastSeen ? (
-            <SeenInfo
-              date={group.lastSeen}
-              dateGlobal={allEnvironments?.lastSeen ?? group.lastSeen}
-              organization={organization}
-              projectId={project.id}
-              projectSlug={project.slug}
-            />
-          ) : (
-            t('N/A')
-          )}
+          <Title>
+            {issueTypeConfig.lastSeen.prefix}
+            {issueTypeConfig.lastSeen.showStatus && group.status === GroupStatus.RESOLVED
+              ? t('resolved')
+              : t('ongoing')}
+          </Title>
+          {issueTypeConfig.lastSeen.showDate &&
+            (group.lastSeen ? (
+              <SeenInfo
+                date={group.lastSeen}
+                dateGlobal={allEnvironments?.lastSeen ?? group.lastSeen}
+                organization={organization}
+                projectId={project.id}
+                projectSlug={project.slug}
+              />
+            ) : (
+              t('N/A')
+            ))}
         </Flex>
         <ReleaseText project={group.project} release={groupReleaseData?.lastRelease} />
       </div>
       <div>
         <Flex gap={space(0.5)}>
-          <Title>{t('First seen')}</Title>
+          <Title>{issueTypeConfig.customCopy.firstSeen || t('First seen')}</Title>
           {group.firstSeen ? (
             <SeenInfo
               date={group.firstSeen}
