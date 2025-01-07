@@ -23,7 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentType
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
@@ -743,7 +743,7 @@ def generate_events(
     return generated_events
 
 
-def create_metric_alert_rule(organization: Organization, project: Project) -> None:
+def create_metric_alert_rule(organization: Organization, project: Project) -> AlertRule:
     # Metric alerts
     alert_rule = create_alert_rule(
         organization,
@@ -764,6 +764,7 @@ def create_metric_alert_rule(organization: Organization, project: Project) -> No
         alert_rule=alert_rule,
         projects=[project],
     )
+    return alert_rule
 
 
 def create_mock_transactions(
@@ -1318,6 +1319,58 @@ def create_mock_user_feedback(project, has_attachment=True):
         create_mock_attachment(event["event_id"], project)
 
 
+def create_or_update_metric_issue(project, metric_alert_id=None):
+    from django.utils import timezone
+
+    from sentry.incidents.models.alert_rule import AlertRule
+    from sentry.integrations.metric_alerts import get_incident_status_text
+    from sentry.issues.grouptype import MetricIssuePOC
+    from sentry.issues.occurrence_consumer import _process_message
+    from sentry.issues.producer import PayloadType
+    from sentry.types.group import PriorityLevel
+
+    if not project:
+        return None
+
+    if not metric_alert_id:
+        alert_rule = create_metric_alert_rule(project.organization, project)
+        metric_alert_id = alert_rule.id
+
+    # collect the data from the incident to treat as an event
+    event_data: dict[str, str | int] = {
+        "event_id": uuid4().hex,
+        "project_id": project.id,
+        "timestamp": timezone.now().isoformat(),
+        "platform": project.platform or "",
+        "received": timezone.now().isoformat(),
+    }
+
+    initial_issue_priority = PriorityLevel.HIGH
+    alert_rule = AlertRule.objects.get(id=metric_alert_id)
+    fingerprint = [str(alert_rule.id)]
+    occurrence = {
+        "id": uuid4().hex,
+        "project_id": project.id,
+        "event_id": str(event_data["event_id"]),
+        "fingerprint": fingerprint,
+        "issue_title": alert_rule.name,
+        "subtitle": get_incident_status_text(alert_rule, str(0.1)),
+        "resource_id": None,
+        "type": MetricIssuePOC.type_id,
+        "detection_time": timezone.now(),
+        "level": "error",
+        "culprit": "",
+        "initial_issue_priority": initial_issue_priority,
+        # TODO(snigdha): Add more data here as needed
+        "evidence_data": {"metric_value": 0.1, "alert_rule_id": alert_rule.id},
+        "evidence_display": [],
+    }
+    occurrence.update({"payload_type": PayloadType.OCCURRENCE.value, "event": event_data})
+    _process_message(occurrence)
+
+    return occurrence
+
+
 def main(
     skip_default_setup=False,
     num_events=1,
@@ -1325,6 +1378,8 @@ def main(
     load_trends=False,
     load_performance_issues=False,
     slow=False,
+    load_metric_issues=False,
+    metric_alert_id=None,
 ):
     owner = get_superuser()
     user = create_user()
@@ -1335,6 +1390,9 @@ def main(
     member = create_member(organization, user, role=roles.get_default().id)
 
     project_map = generate_projects(organization)
+    if load_metric_issues:
+        create_or_update_metric_issue(project=project_map["Wind"], metric_alert_id=metric_alert_id)
+
     if not skip_default_setup:
         for project in project_map.values():
             environment = create_environment(project)
