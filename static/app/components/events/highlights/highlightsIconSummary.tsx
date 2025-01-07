@@ -35,9 +35,14 @@ interface HighlightsIconSummaryProps {
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
   const organization = useOrganization();
+
+  // Project slug and project id are pull out because group is not always available
+  const projectSlug = group?.project.slug ?? event.projectSlug;
+  const projectId = group?.project.id ?? event.projectID;
+
   const {data: attachments = []} = useFetchEventAttachments({
     orgSlug: organization.slug,
-    projectSlug: group?.project.slug,
+    projectSlug,
     eventId: event.id,
   });
   const screenshot = attachments.find(({name}) => SCREENSHOT_NAMES.includes(name));
@@ -118,7 +123,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               </IconDescription>
             </IconContainer>
           ))}
-          {releaseTag && group && (
+          {releaseTag && projectSlug && projectId && (
             <IconContainer key="release">
               <IconWrapper>
                 <IconReleases size="sm" color="subText" />
@@ -126,13 +131,10 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
               <IconDescription aria-label={t('Event release')}>
                 <VersionHoverCard
                   organization={organization}
-                  projectSlug={group.project.slug}
+                  projectSlug={projectSlug}
                   releaseVersion={releaseTag.value}
                 >
-                  <StyledVersion
-                    version={releaseTag.value}
-                    projectId={group.project.id}
-                  />
+                  <StyledVersion version={releaseTag.value} projectId={projectId} />
                 </VersionHoverCard>
               </IconDescription>
             </IconContainer>
