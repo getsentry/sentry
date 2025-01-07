@@ -12,7 +12,9 @@ describe('useChartInterval', function () {
   });
 
   it('allows changing chart interval', async function () {
-    let chartInterval, setChartInterval, intervalOptions;
+    let chartInterval!: ReturnType<typeof useChartInterval>[0];
+    let setChartInterval!: ReturnType<typeof useChartInterval>[1];
+    let intervalOptions!: ReturnType<typeof useChartInterval>[2];
 
     function TestPage() {
       [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
@@ -27,10 +29,10 @@ describe('useChartInterval', function () {
       {value: '12h', label: '12 hours'},
       {value: '1d', label: '1 day'},
     ]);
-    expect(chartInterval).toEqual('3h'); // default
+    expect(chartInterval).toBe('3h'); // default
 
     await act(() => setChartInterval('1d'));
-    expect(chartInterval).toEqual('1d');
+    expect(chartInterval).toBe('1d');
 
     // Update page filters to change interval options
     await act(() =>
@@ -50,7 +52,7 @@ describe('useChartInterval', function () {
     await act(() => {
       setChartInterval('1m');
     });
-    expect(chartInterval).toEqual('1m');
+    expect(chartInterval).toBe('1m');
   });
 });
 

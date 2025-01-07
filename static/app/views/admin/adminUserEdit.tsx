@@ -5,6 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -15,7 +16,6 @@ import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {User} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -120,19 +120,19 @@ class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   }
 }
 
-type Props = DeprecatedAsyncView['props'] & RouteComponentProps<{id: string}, {}>;
+type Props = DeprecatedAsyncComponent['props'] & RouteComponentProps<{id: string}, {}>;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   user: User | null;
 };
 
-class AdminUserEdit extends DeprecatedAsyncView<Props, State> {
+class AdminUserEdit extends DeprecatedAsyncComponent<Props, State> {
   get userEndpoint() {
     const {params} = this.props;
     return `/users/${params.id}/`;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['user', this.userEndpoint]];
   }
 

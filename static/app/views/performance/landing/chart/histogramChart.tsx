@@ -27,7 +27,8 @@ import {
 } from 'sentry/utils/performance/histogram/utils';
 
 import {DoubleHeaderContainer} from '../../styles';
-import {getFieldOrBackup} from '../display/utils';
+
+import {getFieldOrBackup} from './utils';
 
 const NUM_BUCKETS = 50;
 const PRECISION = 0;

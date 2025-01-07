@@ -92,7 +92,7 @@ describe('Data Scrubbing', function () {
 
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
 
-      for (const index in JSON.parse(relayPiiConfig).rules) {
+      for (const index in JSON.parse(relayPiiConfig).rules as number[]) {
         expect(screen.getAllByRole('button', {name: 'Edit Rule'})[index]).toBeDisabled();
         expect(
           screen.getAllByRole('button', {name: 'Delete Rule'})[index]
@@ -160,7 +160,7 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]!);
 
       expect(
         await screen.findByText('Are you sure you wish to delete this rule?')
@@ -209,7 +209,7 @@ describe('Data Scrubbing', function () {
         {router}
       );
 
-      await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]!);
 
       // Verify the router to open the modal was called
       expect(router.push).toHaveBeenCalledWith(

@@ -7,7 +7,7 @@ import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
 
 describe('projectIssueGrouping', () => {
   const {organization, projects} = initializeOrg();
-  const project = projects[0];
+  const project = projects[0]!;
 
   it('renders successfully', async () => {
     const request = MockApiClient.addMockResponse({

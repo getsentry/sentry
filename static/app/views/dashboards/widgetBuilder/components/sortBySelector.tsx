@@ -41,7 +41,7 @@ function WidgetBuilderSortBySelector() {
 
   if (datasetConfig.disableSortOptions) {
     ({disableSort, disableSortDirection, disableSortReason} =
-      datasetConfig.disableSortOptions(widget.queries[0]));
+      datasetConfig.disableSortOptions(widget.queries[0]!));
   }
 
   const displayType = state.displayType ?? DisplayType.TABLE;
@@ -54,7 +54,7 @@ function WidgetBuilderSortBySelector() {
 
   const maxLimit = getResultsLimit(
     widget.queries.length,
-    widget.queries[0].aggregates.length
+    widget.queries[0]!.aggregates.length
   );
 
   // handles when the maxLimit changes to a value less than the current selected limit
@@ -117,17 +117,17 @@ function WidgetBuilderSortBySelector() {
           <SortBySelectors
             displayType={displayType}
             widgetType={state.dataset ?? WidgetType.ERRORS}
-            hasGroupBy={isTimeseriesChart && !!widget.queries[0].columns.length}
+            hasGroupBy={isTimeseriesChart && !!widget.queries[0]!.columns.length}
             disableSortReason={disableSortReason}
             disableSort={disableSort}
             disableSortDirection={disableSortDirection}
-            widgetQuery={widget.queries[0]}
+            widgetQuery={widget.queries[0]!}
             values={{
               sortDirection:
                 state.sort?.[0]?.kind === 'asc'
                   ? SortDirection.LOW_TO_HIGH
                   : SortDirection.HIGH_TO_LOW,
-              sortBy: state.sort?.length ? state.sort?.[0]?.field : '',
+              sortBy: state.sort?.length ? state.sort?.[0]!?.field : '',
             }}
             onChange={({sortDirection, sortBy}) => {
               const newSortDirection =

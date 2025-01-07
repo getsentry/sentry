@@ -247,12 +247,7 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 status=data,
             )
             update_groups(
-                request=self.request.request,
-                group_ids=[self.group.id],
-                projects=[self.group.project],
-                organization_id=self.group.organization.id,
-                user=self.user,
-                data=data,
+                request=self.request.request, groups=[self.group], user=self.user, data=data
             )
 
 

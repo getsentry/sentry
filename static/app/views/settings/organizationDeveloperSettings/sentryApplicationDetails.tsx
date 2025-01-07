@@ -16,6 +16,7 @@ import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -41,11 +42,9 @@ import type {SentryApp} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -151,13 +150,13 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   app: SentryApp | null;
   newTokens: NewInternalAppApiToken[];
   tokens: InternalAppApiToken[];
 };
 
-class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
+class SentryApplicationDetails extends DeprecatedAsyncComponent<Props, State> {
   form = new SentryAppFormModel({mapFormErrors});
 
   getDefaultState(): State {
@@ -169,7 +168,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
@@ -200,7 +199,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
-    const {organization} = this.props;
+    const {organization, router} = this.props;
     const type = this.isInternal ? 'internal' : 'public';
     const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
@@ -209,7 +208,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(normalizeUrl(url));
+    router.push(normalizeUrl(url));
   };
 
   handleSubmitError = err => {

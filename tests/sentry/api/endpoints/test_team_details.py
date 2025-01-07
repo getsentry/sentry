@@ -6,7 +6,6 @@ from sentry.models.team import Team, TeamStatus
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 
 
@@ -62,7 +61,6 @@ class TeamDetailsTestBase(APITestCase):
 
 
 class TeamDetailsTest(TeamDetailsTestBase):
-    @override_options({"api.id-or-slug-enabled": True})
     def test_simple(self):
         team = self.team  # force creation
 
@@ -116,7 +114,6 @@ class TeamUpdateTest(TeamDetailsTestBase):
         assert team.name == "foo"
         assert team.slug == "bar"
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_admin_with_team_membership_with_id(self):
         """Admins can modify their teams"""
         org = self.create_organization()
@@ -274,7 +271,6 @@ class TeamDeleteTest(TeamDetailsTestBase):
         team.refresh_from_db()
         self.assert_team_deleted(team.id)
 
-    @override_options({"api.id-or-slug-enabled": True})
     def test_admin_with_team_membership_with_id(self):
         """Admins can delete their teams"""
         org = self.create_organization()

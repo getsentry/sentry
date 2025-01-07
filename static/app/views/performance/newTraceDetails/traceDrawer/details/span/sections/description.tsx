@@ -212,6 +212,22 @@ export function SpanDescription({
   );
 }
 
+function getImageSrc(span: TraceTree.Span) {
+  let src = span.description ?? '';
+
+  // Account for relative URLs
+  if (src.startsWith('/')) {
+    const urlScheme = span.data?.['url.scheme'];
+    const serverAddress = span.data?.['server.address'];
+
+    if (urlScheme && serverAddress) {
+      src = `${urlScheme}://${serverAddress}${src}`;
+    }
+  }
+
+  return src;
+}
+
 function ResourceImageDescription({
   formattedDescription,
   node,
@@ -243,7 +259,7 @@ function ResourceImageDescription({
           fileName={formattedDescription}
           showImage={!showLinks}
           size={size}
-          src={span.description ?? ''}
+          src={getImageSrc(span)}
         />
       )}
     </StyledDescriptionWrapper>
@@ -259,7 +275,6 @@ function ResourceImage(props: {
   const [hasError, setHasError] = useState(false);
 
   const {fileName, size, src, showImage = true} = props;
-  const isRelativeUrl = src.startsWith('/');
 
   return (
     <ImageContainer>
@@ -275,7 +290,7 @@ function ResourceImage(props: {
           title={t('Copy file name')}
         />
       </FilenameContainer>
-      {showImage && !isRelativeUrl && !hasError ? (
+      {showImage && !hasError ? (
         <ImageWrapper>
           <img
             data-test-id="sample-image"

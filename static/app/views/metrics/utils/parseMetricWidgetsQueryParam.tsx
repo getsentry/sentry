@@ -284,11 +284,11 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
 
   // We can reset the id if there is only one widget
   if (queries.length === 1) {
-    queries[0].id = 0;
+    queries[0]!.id = 0;
   }
 
   if (formulas.length === 1) {
-    formulas[0].id = 0;
+    formulas[0]!.id = 0;
   }
 
   return [

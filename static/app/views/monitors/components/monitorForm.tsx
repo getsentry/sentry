@@ -97,7 +97,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        const targetType = RULE_TARGET_MAP[type];
+        const targetType = RULE_TARGET_MAP[type!];
 
         return {targetType, targetIdentifier: Number(id)};
       });
@@ -490,17 +490,17 @@ function MonitorForm({
           {t('Configure who to notify upon issue creation and when.')}
         </ListItemSubText>
         <InputGroup>
+          {monitor?.config.alert_rule_id && (
+            <AlertLink
+              priority="muted"
+              to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
+              withoutMarginBottom
+            >
+              {t('Customize this monitors notification configuration in Alerts')}
+            </AlertLink>
+          )}
           <Panel>
             <PanelBody>
-              {monitor?.config.alert_rule_id && (
-                <AlertLink
-                  priority="muted"
-                  to={`/organizations/${organization.slug}/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`}
-                  withoutMarginBottom
-                >
-                  {t('Customize this monitors notification configuration in Alerts')}
-                </AlertLink>
-              )}
               <Observer>
                 {() => {
                   const projectSlug = form.current.getValue('project')?.toString();

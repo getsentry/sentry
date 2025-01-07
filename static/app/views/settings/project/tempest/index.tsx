@@ -3,6 +3,8 @@ import {Fragment} from 'react';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import Form from 'sentry/components/forms/form';
+import JsonForm from 'sentry/components/forms/jsonForm';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -34,11 +36,37 @@ export default function TempestSettings({organization, project}: Props) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('Playstation')} />
+      <SentryDocumentTitle title={t('PlayStation')} />
       <SettingsPageHeader
-        title={t('Playstation')}
+        title={t('PlayStation')}
         action={addNewCredentials(hasWriteAccess, organization, project)}
       />
+
+      <Form
+        apiMethod="PUT"
+        apiEndpoint={`/organizations/${organization.slug}/`}
+        initialData={{
+          tempestFetchScreenshots: project.options?.tempestFetchScreenshots,
+        }}
+        saveOnBlur
+        hideFooter
+      >
+        <JsonForm
+          forms={[
+            {
+              title: t('General Settings'),
+              fields: [
+                {
+                  name: 'tempestFetchScreenshots',
+                  type: 'boolean',
+                  label: t('Fetch Screenshots'),
+                  help: t('Allow Tempest to fetch screenshots for the project.'),
+                },
+              ],
+            },
+          ]}
+        />
+      </Form>
 
       <PanelTable
         headers={[t('Client ID'), t('Client Secret'), t('Created At'), t('Created By')]}

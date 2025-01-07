@@ -13,7 +13,7 @@ interface Props {
   orgSlug: string;
 }
 
-function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
+export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const crumbs = [
     {
       label: t('Crons'),
@@ -45,5 +45,3 @@ function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
     </Layout.Header>
   );
 }
-
-export default MonitorHeader;

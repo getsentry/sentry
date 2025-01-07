@@ -155,6 +155,7 @@ export function AssigneeAvatar({
   }
 
   if (suggestedActors.length > 0) {
+    const actor = suggestedActors[0]!;
     return (
       <SuggestedAvatarStack
         size={26}
@@ -164,17 +165,12 @@ export function AssigneeAvatar({
           <TooltipWrapper>
             <div>
               {tct('Suggestion: [name]', {
-                name:
-                  suggestedActors[0].type === 'team'
-                    ? `#${suggestedActors[0].name}`
-                    : suggestedActors[0].name,
+                name: actor.type === 'team' ? `#${actor.name}` : actor.name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
             </div>
-            <TooltipSubtext>
-              {suggestedReasons[suggestedActors[0].suggestedReason]}
-            </TooltipSubtext>
+            <TooltipSubtext>{suggestedReasons[actor.suggestedReason]}</TooltipSubtext>
           </TooltipWrapper>
         }
       />
@@ -265,7 +261,10 @@ export default function AssigneeSelectorDropdown({
     const uniqueSuggestions = uniqBy(suggestedOwners, owner => owner.owner);
     return uniqueSuggestions
       .map<SuggestedAssignee | null>(suggestion => {
-        const [suggestionType, suggestionId] = suggestion.owner.split(':');
+        const [suggestionType, suggestionId] = suggestion.owner.split(':') as [
+          string,
+          string,
+        ];
         const suggestedReasonText = suggestedReasonTable[suggestion.type];
         if (suggestionType === 'user') {
           const member = currentMemberList.find(user => user.id === suggestionId);
@@ -322,7 +321,7 @@ export default function AssigneeSelectorDropdown({
     }
     // See makeMemberOption and makeTeamOption for how the value is formatted
     const type = selectedOption.value.startsWith('user:') ? 'user' : 'team';
-    const assigneeId = selectedOption.value.split(':')[1];
+    const assigneeId = selectedOption.value.split(':')[1]!;
     let assignee: User | Actor;
 
     if (type === 'user') {

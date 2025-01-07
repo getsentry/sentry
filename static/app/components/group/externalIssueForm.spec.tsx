@@ -11,8 +11,8 @@ import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
   const mockDebounce =
-    (fn, timeout) =>
-    (...args) => {
+    (fn: (...args: any[]) => void, timeout: number) =>
+    (...args: any[]) => {
       if (debounceMap.has(fn)) {
         clearTimeout(debounceMap.get(fn));
       }
@@ -28,7 +28,9 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('ExternalIssueForm', () => {
-  let group, integration, formConfig;
+  let group!: ReturnType<typeof GroupFixture>;
+  let integration!: ReturnType<typeof GitHubIntegrationFixture>;
+  let formConfig!: any;
   const onChange = jest.fn();
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -48,7 +50,7 @@ describe('ExternalIssueForm', () => {
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
 
-    const styledWrapper = styled(c => c.children);
+    const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     const wrapper = render(
       <ExternalIssueForm
         Body={styledWrapper()}
@@ -100,7 +102,8 @@ describe('ExternalIssueForm', () => {
     });
   });
   describe('link', () => {
-    let externalIssueField, getFormConfigRequest;
+    let externalIssueField!: any;
+    let getFormConfigRequest!: jest.Mock;
     beforeEach(() => {
       externalIssueField = {
         name: 'externalIssue',

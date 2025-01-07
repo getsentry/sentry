@@ -16,6 +16,7 @@ import type {Integration, Repository} from 'sentry/types/integrations';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';

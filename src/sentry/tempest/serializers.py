@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.base import Serializer, register
 from sentry.tempest.models import TempestCredentials
+from sentry.users.services.user.service import user_service
 
 
 @register(TempestCredentials)
@@ -9,7 +10,26 @@ class TempestCredentialsSerializer(Serializer):
     def _obfuscate_client_secret(self, client_secret: str) -> str:
         return "*" * len(client_secret)
 
+    def get_attrs(
+        self,
+        item_list,
+        user,
+        **kwargs,
+    ):
+        users_mapping = {}
+        user_ids = [item.created_by_id for item in item_list if item.created_by_id is not None]
+        users = user_service.get_many_by_id(ids=user_ids)
+        for rpc_user in users:
+            users_mapping[rpc_user.id] = rpc_user
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = users_mapping.get(item.created_by_id)
+
+        return attrs
+
     def serialize(self, obj, attrs, user, **kwargs):
+        rpc_user = attrs
         return {
             "id": obj.id,
             "clientId": obj.client_id,
@@ -18,6 +38,7 @@ class TempestCredentialsSerializer(Serializer):
             "messageType": obj.message_type,
             "latestFetchedItemId": obj.latest_fetched_item_id,
             "createdById": obj.created_by_id,
+            "createdByEmail": rpc_user.email if rpc_user else None,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
         }

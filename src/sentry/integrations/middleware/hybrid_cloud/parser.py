@@ -12,6 +12,7 @@ from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
 from sentry.api.base import ONE_DAY
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
@@ -366,7 +367,8 @@ class BaseRequestParser:
             logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
             raise Integration.DoesNotExist()
         organization_integrations = OrganizationIntegration.objects.filter(
-            integration_id=integration.id
+            integration_id=integration.id,
+            status=ObjectStatus.ACTIVE,
         )
 
         if organization_integrations.count() == 0:

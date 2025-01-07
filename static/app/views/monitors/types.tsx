@@ -148,13 +148,6 @@ export interface MonitorStat {
 
 export interface CheckIn {
   /**
-   * Attachment ID for attachments sent via the legacy attachment HTTP
-   * endpoint. This will likely be removed in the future.
-   *
-   * @deprecated
-   */
-  attachmentId: number | null;
-  /**
    * Date the opening check-in was sent
    */
   dateCreated: string;
